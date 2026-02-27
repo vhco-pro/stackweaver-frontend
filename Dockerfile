@@ -10,6 +10,8 @@ RUN npm ci
 
 # Copy source and build
 COPY . .
+# package.json references ../scripts/ which from WORKDIR /app resolves to /scripts/
+COPY scripts/ /scripts/
 RUN npm run build
 
 # Runtime stage — serve static files with nginx
