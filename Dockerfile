@@ -2,16 +2,19 @@ FROM node:24-alpine AS builder
 
 ARG IMAGE_NAME=stackweaver-frontend
 
-WORKDIR /app
+# WORKDIR /frontend so build-docs-index.js relative paths resolve correctly:
+#   script __dirname = /scripts  →  ../docs = /docs  ✓
+#                                    ../frontend/public = /frontend/public  ✓
+WORKDIR /frontend
 
 # Copy package files first for caching
 COPY package*.json ./
 RUN npm ci
 
-# Copy source and build
+# Copy frontend source, scripts, and docs to their expected locations
 COPY . .
-# package.json references ../scripts/ which from WORKDIR /app resolves to /scripts/
 COPY scripts/ /scripts/
+COPY docs/ /docs/
 RUN npm run build
 
 # Runtime stage — serve static files with nginx
@@ -21,7 +24,7 @@ ARG IMAGE_NAME=stackweaver-frontend
 ENV IMAGE_NAME=${IMAGE_NAME}
 
 # Copy built frontend
-COPY --from=builder /app/dist /usr/share/nginx/html
+COPY --from=builder /frontend/dist /usr/share/nginx/html
 
 # Copy nginx config
 COPY nginx.conf /etc/nginx/conf.d/default.conf
