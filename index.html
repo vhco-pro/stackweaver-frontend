@@ -1,0 +1,81 @@
+<!-- Copyright (c) 2025 VH & Co BV. Licensed under the Business Source License 1.1. See LICENSE for details. -->
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.ico" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Stackweaver</title>
+    <style>
+      /* Prevent white flash - critical CSS that applies immediately */
+      /* Set dark background on html element (always exists, even before body) */
+      html {
+        background-color: rgb(2 6 23);
+        background-image: linear-gradient(to bottom right, rgb(2 6 23), rgb(30 27 75), rgb(2 6 23));
+        background-attachment: fixed;
+        margin: 0;
+        padding: 0;
+        min-height: 100vh;
+      }
+      
+      /* Dark theme */
+      html.dark,
+      html.dark body {
+        background-color: rgb(2 6 23);
+        background-image: linear-gradient(to bottom right, rgb(2 6 23), rgb(30 27 75), rgb(2 6 23));
+        background-attachment: fixed;
+      }
+      
+      /* Light theme */
+      html.light,
+      html.light body {
+        background-color: rgb(248 250 252);
+        background-image: linear-gradient(to bottom right, rgb(248 250 252), rgb(219 234 254), rgb(248 250 252));
+        background-attachment: fixed;
+      }
+      
+      body {
+        margin: 0;
+        padding: 0;
+        min-height: 100vh;
+      }
+      
+      #root {
+        min-height: 100vh;
+        background-color: transparent;
+      }
+    </style>
+    <script>
+      // Apply theme class immediately to prevent white flash
+      // Runs synchronously before body renders - html element always exists
+      (function() {
+        const stored = localStorage.getItem('theme');
+        let theme = 'dark'; // Default to dark
+        
+        if (stored === 'light' || stored === 'dark') {
+          theme = stored;
+        } else if (stored === 'system' || !stored) {
+          // Check system preference
+          theme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+        }
+        
+        // Apply theme class to html element (always exists, even before body)
+        document.documentElement.classList.add(theme);
+        
+        // Set inline style on html element as absolute fallback (highest priority)
+        if (theme === 'dark') {
+          document.documentElement.style.backgroundColor = 'rgb(2 6 23)';
+        } else {
+          document.documentElement.style.backgroundColor = 'rgb(248 250 252)';
+        }
+      })();
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <!-- Runtime config: populated by deployment (Kubernetes/nginx), falls back to import.meta.env in dev -->
+    <script src="/env.js" onerror="console.debug('env.js not found — using build-time env vars')"></script>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

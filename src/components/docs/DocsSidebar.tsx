@@ -1,0 +1,246 @@
+// Copyright (c) 2025 VH & Co BV. Licensed under the Business Source License 1.1. See LICENSE for details.
+
+import { useState, useEffect } from 'react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { ChevronRight, ChevronDown, FileText, Folder, FolderOpen } from 'lucide-react';
+import { cn } from '@/lib/utils';
+
+interface DocTreeNode {
+  type: 'directory' | 'file';
+  name: string;
+  path: string;
+  title?: string;
+  description?: string;
+  children?: DocTreeNode[];
+}
+
+interface DocsIndex {
+  tree: DocTreeNode[];
+  flat: Record<string, DocTreeNode>;
+  generated: string;
+}
+
+interface DocsSidebarProps {
+  className?: string;
+}
+
+export function DocsSidebar({ className }: DocsSidebarProps) {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const [index, setIndex] = useState<DocsIndex | null>(null);
+  const [expandedDirs, setExpandedDirs] = useState<Set<string>>(new Set());
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function loadIndex() {
+      try {
+        const response = await fetch('/docs-index.json');
+        if (!response.ok) throw new Error('Failed to load docs index');
+        const data = await response.json() as DocsIndex;
+        setIndex(data);
+      } catch (error) {
+        console.error('Failed to load docs index:', error);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    void loadIndex();
+  }, []);
+
+  // Auto-expand directories that contain the current path when location changes
+  useEffect(() => {
+    if (!index) return;
+    
+    const currentPath = location.pathname.replace('/docs/', '').replace(/\/$/, '') || 'README.md';
+    const parts = currentPath.split('/');
+    
+    // Expand all parent directories of the current path
+    setExpandedDirs(prev => {
+      const next = new Set(prev);
+      for (let i = 0; i < parts.length - 1; i++) {
+        next.add(parts.slice(0, i + 1).join('/'));
+      }
+      return next;
+    });
+  }, [location.pathname, index]);
+
+  const toggleDir = (path: string) => {
+    setExpandedDirs(prev => {
+      const next = new Set(prev);
+      if (next.has(path)) {
+        next.delete(path);
+      } else {
+        next.add(path);
+      }
+      return next;
+    });
+  };
+
+  const getDocPath = (nodePath: string): string => {
+    // Remove .md extension and convert to route path
+    const withoutExt = nodePath.replace(/\.md$/, '');
+    // If it's the root README, return /docs
+    if (withoutExt === 'README' || withoutExt === 'README.md') {
+      return '/docs';
+    }
+    // For README in subdirectories, use the directory path as the doc path
+    const parts = withoutExt.split('/');
+    if (parts[parts.length - 1] === 'README') {
+      return `/docs/${parts.slice(0, -1).join('/')}`;
+    }
+    return `/docs/${withoutExt}`;
+  };
+
+  // Check if a directory has a README file (case-insensitive)
+  const findReadmeInDir = (children?: DocTreeNode[]): DocTreeNode | null => {
+    if (!children) return null;
+    return children.find(child => 
+      child.type === 'file' && 
+      /^README\.md$/i.test(child.name)
+    ) || null;
+  };
+
+  const isActive = (nodePath: string): boolean => {
+    const docPath = getDocPath(nodePath);
+    const currentPath = location.pathname.replace(/\/$/, ''); // Remove trailing slash
+    
+    // Handle README/index - only match exactly /docs, not sub-paths
+    if (nodePath === 'README.md') {
+      return currentPath === '/docs' || currentPath === '';
+    }
+    
+    // For other docs, match exactly or as a prefix (but not if it's the README path)
+    // Make sure docPath is not /docs when checking sub-paths
+    if (docPath === '/docs') {
+      return false; // Already handled above
+    }
+    
+    return currentPath === docPath || currentPath.startsWith(docPath + '/');
+  };
+
+  const renderNode = (node: DocTreeNode, level = 0): React.ReactNode => {
+    if (node.type === 'directory') {
+      const isExpanded = expandedDirs.has(node.path);
+      const hasChildren = node.children && node.children.length > 0;
+      const readmeFile = findReadmeInDir(node.children);
+      const readmePath = readmeFile ? getDocPath(readmeFile.path) : null;
+      
+      // Filter out README from children if it exists (we'll use it as default)
+      const childrenWithoutReadme = node.children?.filter(child => 
+        !(child.type === 'file' && /^README\.md$/i.test(child.name))
+      ) || [];
+      
+      // Check if current path matches this directory's README
+      const isReadmeActive = readmePath && location.pathname === readmePath;
+      
+      const handleFolderClick = (e: React.MouseEvent) => {
+        const target = e.target as HTMLElement;
+        // Only the chevron toggles expand/collapse
+        if (target.closest('.chevron-container')) {
+          e.preventDefault();
+          toggleDir(node.path);
+          return;
+        }
+        // Clicking the folder icon or label: navigate to README when it exists, otherwise toggle
+        if (readmePath) {
+          e.preventDefault();
+          setExpandedDirs(prev => {
+            const next = new Set(prev);
+            next.add(node.path);
+            const parts = node.path.split('/');
+            for (let i = 1; i < parts.length; i++) {
+              next.add(parts.slice(0, i).join('/'));
+            }
+            return next;
+          });
+          void navigate(readmePath);
+        } else {
+          toggleDir(node.path);
+        }
+      };
+      
+      return (
+        <div key={node.path}>
+          <button
+            onClick={handleFolderClick}
+            className={cn(
+              'w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-muted/50 rounded-md transition-colors',
+              'text-muted-foreground hover:text-foreground',
+              isReadmeActive && 'bg-muted text-foreground font-medium',
+              level > 0 && 'pl-6'
+            )}
+            style={{ paddingLeft: `${0.75 + level * 1.5}rem` }}
+          >
+            {hasChildren && (
+              <div className="chevron-container flex-shrink-0">
+                {isExpanded ? (
+                  <ChevronDown className="h-4 w-4" />
+                ) : (
+                  <ChevronRight className="h-4 w-4" />
+                )}
+              </div>
+            )}
+            <div className="folder-icon-container flex-shrink-0">
+              {isExpanded ? (
+                <FolderOpen className="h-4 w-4" />
+              ) : (
+                <Folder className="h-4 w-4" />
+              )}
+            </div>
+            <span className="truncate">{node.name}</span>
+          </button>
+          {isExpanded && hasChildren && (
+            <div className="mt-1">
+              {childrenWithoutReadme.map(child => renderNode(child, level + 1))}
+            </div>
+          )}
+        </div>
+      );
+    } else {
+      const docPath = getDocPath(node.path);
+      const active = isActive(node.path);
+      
+      return (
+        <Link
+          key={node.path}
+          to={docPath}
+          className={cn(
+            'flex items-center gap-2 px-3 py-2 text-sm rounded-md transition-colors',
+            'hover:bg-muted/50 text-muted-foreground hover:text-foreground',
+            active && 'bg-muted text-foreground font-medium',
+            level > 0 && 'pl-6'
+          )}
+          style={{ paddingLeft: `${0.75 + level * 1.5}rem` }}
+        >
+          <FileText className="h-4 w-4 flex-shrink-0" />
+          <span className="truncate">{node.title || node.name.replace(/\.md$/, '')}</span>
+        </Link>
+      );
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className={cn('p-4 space-y-2', className)}>
+        <div className="h-6 bg-muted/50 rounded animate-pulse" />
+        <div className="h-6 bg-muted/50 rounded animate-pulse ml-4" />
+        <div className="h-6 bg-muted/50 rounded animate-pulse ml-4" />
+      </div>
+    );
+  }
+
+  if (!index || !index.tree.length) {
+    return (
+      <div className={cn('p-4 text-sm text-muted-foreground', className)}>
+        No documentation available
+      </div>
+    );
+  }
+
+  return (
+    <nav className={cn('p-4 space-y-1', className)}>
+      {index.tree.map(node => renderNode(node))}
+    </nav>
+  );
+}
