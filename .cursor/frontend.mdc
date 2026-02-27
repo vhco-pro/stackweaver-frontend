@@ -1,0 +1,550 @@
+---
+alwaysApply: true
+---
+
+# Frontend Development Rules - IaC Platform
+
+## Overview
+We're building a premium, modern SaaS frontend using React 19, TypeScript, Tailwind CSS, and shadcn/ui. The design should be genuinely gorgeous with transparency, gradients, glassmorphism effects, and micro-interactions while maintaining excellent performance and responsiveness.
+
+---
+
+## Design Principles
+
+### Visual Excellence
+- **Transparency & Glassmorphism**: Use `backdrop-blur-md`, `bg-white/10`, `bg-black/5` for glass effects
+- **Gradients**: Leverage gradient backgrounds (`bg-gradient-to-br`, `bg-gradient-to-r`) for depth and visual interest
+- **Modern Spacing**: Use generous whitespace, `gap-6`, `gap-8` for breathing room
+- **Subtle Shadows**: `shadow-lg`, `shadow-xl` with colored shadows for depth (`shadow-purple-500/20`)
+- **Border Radius**: Use `rounded-xl`, `rounded-2xl` for modern, soft appearance
+- **Animations**: Smooth transitions (`transition-all duration-300`), hover effects, and micro-interactions
+- **Responsive First**: Mobile-first approach, use Tailwind breakpoints (`sm:`, `md:`, `lg:`, `xl:`)
+
+### Color Palette
+- Use CSS variables for theming (from `index.css`)
+- Prefer transparency overlays: `bg-primary/10`, `bg-accent/20`
+- Gradient combinations: `from-purple-500 via-pink-500 to-orange-500`
+- Ensure proper contrast for accessibility (WCAG AA minimum)
+
+---
+
+## React 19 Best Practices
+
+### Components
+- **Use function components** exclusively (no class components)
+- **Leverage React 19 features**: `use()` hook for promises, improved server components patterns
+- **TypeScript**: All components must be typed with interfaces or types
+- **Performance**: Use `React.memo()` for expensive components, `useMemo()` and `useCallback()` appropriately
+- **Error Boundaries**: Wrap route components in error boundaries
+
+### Component Structure
+```tsx
+// Preferred component structure
+interface ComponentProps {
+  // Props with clear types
+}
+
+export function Component({ ...props }: ComponentProps) {
+  // Hooks first
+  // State management
+  // Effects
+  // Handlers
+  // Render
+  return (
+    <div className="...">
+      {/* JSX */}
+    </div>
+  );
+}
+
+// Export default only if needed for routing
+export default Component;
+```
+
+### State Management
+- Use `useState` for local component state
+- Use `useContext` for shared state (Auth, Theme)
+- Avoid prop drilling - use composition or context
+- Consider `useReducer` for complex state logic
+
+---
+
+## shadcn/ui Guidelines
+
+### Component Usage
+- Always use shadcn/ui components from `@/components/ui/`
+- Extend shadcn components when needed, don't modify source
+- Use `cn()` utility for conditional className merging
+- Follow shadcn's variant patterns with `cva` (class-variance-authority)
+
+### Component Patterns
+```tsx
+// Button example with variants
+import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
+
+<Button 
+  variant="default" 
+  size="lg"
+  className="bg-gradient-to-r from-purple-500 to-pink-500"
+>
+  Action
+</Button>
+```
+
+### Available Components
+- Use `Button`, `Dialog`, `Dropdown`, `Select`, `Tabs`, `Toast` from shadcn
+- Create custom components in `components/` that compose shadcn primitives
+- Maintain shadcn's accessibility standards (ARIA, keyboard navigation)
+
+---
+
+## Tailwind CSS Patterns
+
+### Modern Styling
+- **Gradients**: 
+  ```tsx
+  className="bg-gradient-to-br from-purple-500/20 via-pink-500/20 to-orange-500/20 backdrop-blur-md"
+  ```
+- **Glassmorphism**:
+  ```tsx
+  className="bg-white/10 dark:bg-black/10 backdrop-blur-xl border border-white/20"
+  ```
+- **Hover Effects**:
+  ```tsx
+  className="transition-all duration-300 hover:scale-105 hover:shadow-xl hover:shadow-purple-500/20"
+  ```
+- **Responsive**: Always mobile-first, progressive enhancement
+
+### Spacing Scale
+- Use `p-4`, `p-6`, `p-8` for padding
+- Use `gap-4`, `gap-6`, `gap-8` for grid/flex gaps
+- Use `space-y-4`, `space-y-6` for vertical spacing
+- Use `mb-8`, `mt-12` for section spacing
+
+### Typography
+- Headings: `text-2xl`, `text-3xl`, `text-4xl` with `font-bold` or `font-semibold`
+- Body: `text-sm`, `text-base`, `text-lg`
+- Subtle text: `text-muted-foreground`
+- Gradient text: `bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent`
+
+---
+
+## Performance Optimization
+
+### Code Splitting
+- Use React.lazy() for route-level code splitting
+- Import components dynamically when possible
+- Use `React.memo()` for list items and expensive renders
+
+### Bundle Size
+- Import specific icons from `lucide-react`: `import { Home, Settings } from 'lucide-react'`
+- Avoid importing entire libraries
+- Use Vite's tree-shaking effectively
+
+### Rendering
+- Minimize re-renders with proper memoization
+- Use `useTransition()` for non-urgent updates
+- Debounce/throttle expensive operations
+- Virtualize long lists if needed
+
+### Loading States
+- Always show loading states: `{loading ? <Skeleton /> : <Content />}`
+- Use shadcn's Skeleton component for consistent loading UI
+- Prefer optimistic updates where appropriate
+
+---
+
+## TypeScript Standards
+
+### Type Safety
+- **No `any` types** - use `unknown` if type is truly unknown
+- Define interfaces for all props and API responses
+- Use type guards for runtime type checking
+- Leverage TypeScript's utility types: `Partial<T>`, `Pick<T>`, `Omit<T>`
+
+### File Organization
+```typescript
+// types/api.ts - API response types
+export interface Organization {
+  id: string;
+  name: string;
+  description?: string;
+  created_at: string;
+}
+
+// types/index.ts - Re-export commonly used types
+export * from './api';
+export * from './ui';
+```
+
+### Component Props
+```typescript
+// Always define props interface
+interface CardProps {
+  title: string;
+  description?: string;
+  children?: React.ReactNode;
+  className?: string;
+  onClick?: () => void;
+}
+
+// Use React.FC or explicit return type
+export function Card({ title, description, children, className, onClick }: CardProps) {
+  // ...
+}
+```
+
+---
+
+## Component Architecture
+
+### File Structure
+```
+src/
+├── components/
+│   ├── ui/          # shadcn/ui components (don't modify directly)
+│   ├── layout/      # Layout components (Navbar, Sidebar, Footer)
+│   ├── features/    # Feature-specific components
+│   └── common/      # Shared components (Loading, ErrorBoundary)
+├── pages/           # Route components
+├── hooks/           # Custom React hooks
+├── contexts/        # React contexts
+├── lib/             # Utilities and helpers
+├── types/           # TypeScript type definitions
+└── api/             # API client code
+```
+
+### Component Naming
+- Components: PascalCase (`UserProfile.tsx`)
+- Hooks: camelCase with `use` prefix (`useAuth.ts`)
+- Utilities: camelCase (`formatDate.ts`)
+- Types: PascalCase (`UserProfileProps`)
+
+---
+
+## Responsive Design
+
+### Breakpoints
+- `sm:` 640px and up
+- `md:` 768px and up
+- `lg:` 1024px and up
+- `xl:` 1280px and up
+- `2xl:` 1536px and up
+
+### Mobile-First
+```tsx
+// Start with mobile styles, add desktop enhancements
+<div className="
+  flex flex-col gap-4
+  md:flex-row md:gap-6
+  lg:gap-8
+">
+  {/* Content */}
+</div>
+```
+
+### Touch Targets
+- Minimum 44x44px for interactive elements
+- Adequate spacing between clickable elements
+- Use `min-h-[44px]` for buttons on mobile
+
+---
+
+## Accessibility
+
+### Standards
+- Semantic HTML: Use `<nav>`, `<main>`, `<section>`, `<article>`
+- ARIA labels for icon-only buttons
+- Keyboard navigation: Tab order, focus indicators
+- Color contrast: WCAG AA minimum (4.5:1 for text)
+
+### Focus Management
+- Visible focus indicators: `focus-visible:ring-2 focus-visible:ring-ring`
+- Skip links for keyboard users
+- Focus trap in modals/dialogs (shadcn handles this)
+
+---
+
+## Animation & Transitions
+
+### Principles
+- **Subtle and purposeful**: Animations should enhance UX, not distract
+- **Fast**: Keep transitions under 300ms for most interactions
+- **Consistent**: Use same timing functions across similar interactions
+
+### Common Patterns
+```tsx
+// Fade in
+className="animate-in fade-in duration-300"
+
+// Slide in
+className="animate-in slide-in-from-bottom-4 duration-300"
+
+// Scale on hover
+className="transition-transform duration-200 hover:scale-105"
+
+// Gradient animation (requires custom CSS animation - see tailwind.config.js)
+className="bg-gradient-to-r from-purple-500 to-pink-500 animate-gradient"
+
+// Note: animate-gradient requires custom keyframes in tailwind.config.js
+// plugins: [
+//   plugin(({ theme, addUtilities }) => {
+//     addUtilities({
+//       '@keyframes gradient': {
+//         '0%, 100%': { backgroundPosition: '0% 50%' },
+//         '50%': { backgroundPosition: '100% 50%' },
+//       },
+//       '.animate-gradient': {
+//         backgroundSize: '200% 200%',
+//         animation: 'gradient 3s ease infinite',
+//       },
+//     });
+//   }),
+// ]
+```
+
+---
+
+## Loading & Error States
+
+### Loading States
+- Always show loading indicators
+- Use skeleton loaders for better perceived performance
+- Show optimistic updates when possible
+
+```tsx
+if (loading) {
+  return <Skeleton className="h-32 w-full" />;
+}
+
+if (error) {
+  return <ErrorState error={error} onRetry={refetch} />;
+}
+```
+
+### Error Handling
+- User-friendly error messages
+- Retry mechanisms
+- Graceful degradation
+- Error boundaries for route-level errors
+
+---
+
+## Form Patterns
+
+### shadcn Form Components
+- Use `Label`, `Input`, `Select`, `Textarea` from shadcn
+- Implement proper validation
+- Show inline error messages
+- Disable submit buttons during submission
+
+### Form Structure
+```tsx
+import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { useForm } from 'react-hook-form'; // or your preferred form library
+
+// Example with react-hook-form
+function MyForm() {
+  const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm();
+  
+  const onSubmit = async (data) => {
+    // Handle form submission
+  };
+
+  return (
+    <form onSubmit={handleSubmit(onSubmit)}>
+      <div className="space-y-4">
+        <div>
+          <Label htmlFor="name">Name</Label>
+          <Input id="name" {...register('name', { required: 'Name is required' })} />
+          {errors.name && <p className="text-destructive text-sm">{errors.name.message}</p>}
+        </div>
+        <Button type="submit" disabled={isSubmitting}>
+          Submit
+        </Button>
+      </div>
+    </form>
+  );
+}
+```
+
+---
+
+## API Integration
+
+### Client Usage
+- Always use the API client from `@/api/client`
+- Handle loading, error, and success states
+- Use TypeScript types for API responses
+- Implement proper error handling
+
+```tsx
+// Example with TanStack Query (React Query)
+import { useQuery } from '@tanstack/react-query';
+import { organizationsApi } from '@/api/client';
+import { Skeleton } from '@/components/ui/skeleton';
+
+function OrganizationsList() {
+  const { data, isLoading, error, refetch } = useQuery({
+    queryKey: ['organizations'],
+    queryFn: () => organizationsApi.list(),
+  });
+
+  if (isLoading) return <Skeleton className="h-32 w-full" />;
+  if (error) return <ErrorState error={error} onRetry={() => refetch()} />;
+  return <OrganizationList data={data} />;
+}
+
+// Alternative: Direct API calls with useState/useEffect
+import { useState, useEffect } from 'react';
+
+function OrganizationsList() {
+  const [data, setData] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    organizationsApi.list()
+      .then((res) => {
+        setData(res.data);
+        setIsLoading(false);
+      })
+      .catch((err) => {
+        setError(err);
+        setIsLoading(false);
+      });
+  }, []);
+
+  if (isLoading) return <Skeleton className="h-32 w-full" />;
+  if (error) return <ErrorState error={error} onRetry={() => window.location.reload()} />;
+  return <OrganizationList data={data} />;
+}
+```
+
+---
+
+## Code Quality
+
+### Best Practices
+- **DRY**: Don't repeat yourself - extract reusable logic
+- **Single Responsibility**: Each component should do one thing well
+- **Composition**: Prefer composition over complex props
+- **Readable**: Code should be self-documenting with clear naming
+- **Testable**: Write testable components (separate logic from presentation)
+
+### Comments
+- Use JSDoc comments for complex functions
+- Explain "why" not "what" in comments
+- Remove commented-out code before committing
+
+### ESLint
+- Follow ESLint rules
+- Fix all warnings and errors before committing
+- Use `eslint-disable` sparingly and with justification
+
+---
+
+## Examples
+
+### Modern Card Component
+```tsx
+import { cn } from '@/lib/utils';
+
+interface ModernCardProps {
+  title: string;
+  description?: string;
+  children?: React.ReactNode;
+  gradient?: 'purple' | 'blue' | 'pink';
+}
+
+export function ModernCard({ title, description, children, gradient = 'purple' }: ModernCardProps) {
+  const gradientClasses = {
+    purple: 'from-purple-500/20 via-pink-500/20 to-orange-500/20',
+    blue: 'from-blue-500/20 via-cyan-500/20 to-teal-500/20',
+    pink: 'from-pink-500/20 via-rose-500/20 to-red-500/20',
+  };
+
+  return (
+    <div className={cn(
+      "relative overflow-hidden rounded-2xl",
+      "bg-gradient-to-br",
+      gradientClasses[gradient],
+      "backdrop-blur-md border border-white/20",
+      "p-6 shadow-xl shadow-purple-500/10",
+      "transition-all duration-300",
+      "hover:shadow-2xl hover:shadow-purple-500/20 hover:scale-[1.02]"
+    )}>
+      <h3 className="text-xl font-semibold mb-2 bg-gradient-to-r from-white to-white/80 bg-clip-text text-transparent">
+        {title}
+      </h3>
+      {description && (
+        <p className="text-muted-foreground mb-4">
+          {description}
+        </p>
+      )}
+      {children}
+    </div>
+  );
+}
+```
+
+### Gradient Background Section
+```tsx
+<section className="relative min-h-screen overflow-hidden">
+  {/* Animated gradient background */}
+  <div className="absolute inset-0 bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900" />
+  <div className="absolute inset-0 bg-[url('/grid.svg')] opacity-10" />
+  
+  {/* Glassmorphic content */}
+  <div className="relative z-10 container mx-auto px-4 py-16">
+    <div className="bg-white/10 dark:bg-black/10 backdrop-blur-xl rounded-2xl border border-white/20 p-8">
+      {/* Content */}
+    </div>
+  </div>
+</section>
+```
+
+---
+
+## Performance Checklist
+
+Before submitting code:
+- [ ] Components are properly memoized if expensive
+- [ ] Images are optimized (if any)
+- [ ] Bundle size is reasonable
+- [ ] No unnecessary re-renders
+- [ ] Loading states are implemented
+- [ ] Error states are handled
+- [ ] Responsive on all breakpoints
+- [ ] Accessibility requirements met
+- [ ] TypeScript types are complete
+- [ ] ESLint passes without errors
+
+---
+
+## Quick Reference
+
+### Common Class Combinations
+```tsx
+// Glass card
+"bg-white/10 dark:bg-black/10 backdrop-blur-xl border border-white/20 rounded-2xl p-6"
+
+// Gradient button
+"bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-lg px-6 py-2 hover:shadow-lg transition-all"
+
+// Hover effect
+"transition-all duration-300 hover:scale-105 hover:shadow-xl"
+
+// Gradient text
+"bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent"
+
+// Responsive container
+"container mx-auto px-4 sm:px-6 lg:px-8"
+```
+
+---
+
+Remember: We're building a premium SaaS platform. Every pixel matters. Strive for perfection in design, code quality, and user experience.

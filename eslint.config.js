@@ -1,0 +1,81 @@
+// Copyright (c) 2025 VH & Co BV. Licensed under the Business Source License 1.1. See LICENSE for details.
+
+import js from '@eslint/js'
+import globals from 'globals'
+import reactHooks from 'eslint-plugin-react-hooks'
+import reactRefresh from 'eslint-plugin-react-refresh'
+import tseslint from 'typescript-eslint'
+
+export default [
+  { ignores: ['dist', '**/src/pages/Ansible/JobDetail.tsx'] },
+  js.configs.recommended,
+  ...tseslint.configs.recommended,
+  // Type-aware linting for TypeScript files (catches build errors)
+  ...tseslint.configs.recommendedTypeChecked.map((config) => ({
+    ...config,
+    files: ['**/*.{ts,tsx}'],
+  })),
+  {
+    files: ['**/*.{ts,tsx}'],
+    plugins: {
+      'react-hooks': reactHooks,
+      'react-refresh': reactRefresh,
+    },
+    languageOptions: {
+      ecmaVersion: 2020,
+      globals: globals.browser,
+      parserOptions: {
+        project: ['./tsconfig.app.json', './tsconfig.node.json'],
+        tsconfigRootDir: import.meta.dirname,
+      },
+    },
+    rules: {
+      ...reactHooks.configs.recommended.rules,
+      'react-refresh/only-export-components': [
+        'warn',
+        { allowConstantExport: true },
+      ],
+    },
+  },
+  // Disable no-explicit-any for files that intentionally use 'any' for JSON:API attributes
+  // These files work with dynamic JSON:API structures where attributes can be any type
+  {
+    files: ['**/api/client.ts', '**/utils/jsonapi.ts', '**/utils/ansible-jsonapi.ts'],
+    rules: {
+      '@typescript-eslint/no-explicit-any': 'off',
+    },
+  },
+  // Disable no-explicit-any and unsafe-* rules for WorkspaceDetail.tsx which works with dynamic Terraform data structures
+  // Terraform plan outputs and state data have highly dynamic structures that are difficult to type strictly
+  {
+    files: ['**/pages/WorkspaceDetail.tsx'],
+    rules: {
+      '@typescript-eslint/no-explicit-any': 'off',
+      '@typescript-eslint/no-unsafe-assignment': 'off',
+      '@typescript-eslint/no-unsafe-member-access': 'off',
+      '@typescript-eslint/no-unsafe-call': 'off',
+      '@typescript-eslint/no-unsafe-argument': 'off',
+      '@typescript-eslint/no-unsafe-return': 'off',
+    },
+  },
+  // Disable unsafe-* rules for JSON:API utility files and API client which work with dynamic JSON:API structures
+  // These files intentionally use 'any' to handle the dynamic nature of JSON:API attributes
+  {
+    files: ['**/api/client.ts', '**/utils/jsonapi.ts', '**/utils/ansible-jsonapi.ts'],
+    rules: {
+      '@typescript-eslint/no-unsafe-assignment': 'off',
+      '@typescript-eslint/no-unsafe-member-access': 'off',
+      '@typescript-eslint/no-unsafe-call': 'off',
+      '@typescript-eslint/no-unsafe-argument': 'off',
+      '@typescript-eslint/no-unsafe-return': 'off',
+    },
+  },
+  // Allow require() in config files (tailwind.config.js needs it for Tailwind plugins)
+  {
+    files: ['**/*.config.js', '**/*.config.cjs'],
+    rules: {
+      '@typescript-eslint/no-require-imports': 'off',
+      'no-undef': 'off',
+    },
+  },
+]

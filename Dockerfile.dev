@@ -1,0 +1,24 @@
+FROM node:24-alpine
+
+# Install wget for healthcheck
+RUN apk add --no-cache wget
+
+WORKDIR /app
+
+# Copy package files first for better layer caching
+COPY package*.json ./
+
+# Install dependencies using npm ci for consistent, reproducible builds
+# This runs during build time to create the base node_modules
+RUN npm ci
+
+# Copy the rest of the application
+COPY . .
+
+# Expose Vite dev server port
+EXPOSE 5173
+
+# Use a script to ensure dependencies are in sync when container starts
+# This handles the case where package.json might have changed on the host
+CMD sh -c "npm ci && npm run dev -- --host 0.0.0.0"
+
