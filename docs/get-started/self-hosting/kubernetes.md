@@ -151,34 +151,13 @@ When all four `secretName` values are set, the chart creates zero Secret resourc
 ## Complete Zitadel Initialization
 
 After Zitadel starts, a post-install Job called `zitadel-init` runs automatically.
-It creates the OIDC apps, service users, and webhooks that StackWeaver needs.
+It creates the OIDC apps, service users, and webhooks that StackWeaver needs, then writes the generated credentials directly into the Zitadel Kubernetes Secret and triggers rolling restarts of the API, frontend, and login-ui.
+No manual steps are required.
 
-Watch the init job.
+To monitor progress:
 
 ```bash
 kubectl logs -f job/stackweaver-zitadel-init --namespace stackweaver
-```
-
-The init job outputs the generated credentials.
-Copy the values and update the Zitadel secret (whether auto-generated or external).
-
-```bash
-kubectl patch secret stackweaver-zitadel --namespace stackweaver --type merge \
-  -p '{"stringData": {
-    "client-id": "<value from init logs>",
-    "client-secret": "<value from init logs>",
-    "login-service-user-token": "<value from init logs>",
-    "frontend-client-id": "<value from init logs>",
-    "webhook-idp-sync-key": "<value from init logs>",
-    "webhook-complement-token-key": "<value from init logs>"
-  }}'
-```
-
-Then restart the API and Login UI to pick up the new credentials.
-
-```bash
-kubectl rollout restart deployment/stackweaver-api --namespace stackweaver
-kubectl rollout restart deployment/stackweaver-login-ui --namespace stackweaver
 ```
 
 ## Frontend Runtime Configuration

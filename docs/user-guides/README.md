@@ -38,6 +38,7 @@ Practical, step-by-step guides for using StackWeaver. These guides walk you thro
 ## Infrastructure and Execution
 
 - **[Self-Hosted Runners](./user-guides/self-hosted-runners.md)** - Run Terraform and Ansible workloads on your own infrastructure using agent pools and self-hosted runners
+- **[Kubernetes Pull Secret for GHCR](./kubernetes-pull-secret-ghcr.md)** - Create and configure a Kubernetes image pull secret so your cluster can pull StackWeaver images from the private GHCR registry
 
 ## Common Tasks
 
