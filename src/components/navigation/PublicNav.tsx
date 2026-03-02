@@ -1,7 +1,7 @@
 // Copyright (c) 2025 VH & Co BV. Licensed under the Business Source License 1.1. See LICENSE for details.
 
 import { useState, useEffect } from 'react';
-import { useNavigate, Link, useLocation } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { ArrowRight, Sun, Moon, Laptop, Menu } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
@@ -28,7 +28,6 @@ export function PublicNav({ activeLink = 'home' }: PublicNavProps) {
   const { session } = useAuth();
   const { theme, setTheme } = useTheme();
   const navigate = useNavigate();
-  const location = useLocation();
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
@@ -40,11 +39,6 @@ export function PublicNav({ activeLink = 'home' }: PublicNavProps) {
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
-
-  // Close mobile menu on route change
-  useEffect(() => {
-    setMobileMenuOpen(false);
-  }, [location.pathname]);
 
   const handleGetStarted = (e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();
@@ -280,6 +274,7 @@ export function PublicNav({ activeLink = 'home' }: PublicNavProps) {
                   </a>
                   <Link
                     to="/docs"
+                    onClick={() => setMobileMenuOpen(false)}
                     className="flex items-center px-3 py-3 text-sm font-medium text-slate-700 dark:text-gray-200 hover:bg-slate-100 dark:hover:bg-white/10 rounded-lg transition-colors"
                   >
                     Docs
@@ -289,6 +284,7 @@ export function PublicNav({ activeLink = 'home' }: PublicNavProps) {
                 <>
                   <Link
                     to="/"
+                    onClick={() => setMobileMenuOpen(false)}
                     className="flex items-center px-3 py-3 text-sm font-medium text-slate-700 dark:text-gray-200 hover:bg-slate-100 dark:hover:bg-white/10 rounded-lg transition-colors"
                   >
                     Home
@@ -316,6 +312,7 @@ export function PublicNav({ activeLink = 'home' }: PublicNavProps) {
                   </a>
                   <Link
                     to="/docs"
+                    onClick={() => setMobileMenuOpen(false)}
                     className="flex items-center px-3 py-3 text-sm font-medium text-blue-600 dark:text-blue-400 hover:bg-slate-100 dark:hover:bg-white/10 rounded-lg transition-colors"
                   >
                     Docs
