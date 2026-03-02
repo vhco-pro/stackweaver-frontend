@@ -1,8 +1,8 @@
 // Copyright (c) 2025 VH & Co BV. Licensed under the Business Source License 1.1. See LICENSE for details.
 
 import { useState, useEffect } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
-import { ArrowRight, Sun, Moon, Laptop } from 'lucide-react';
+import { useNavigate, Link, useLocation } from 'react-router-dom';
+import { ArrowRight, Sun, Moon, Laptop, Menu } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTheme } from '@/contexts/ThemeContext';
@@ -12,6 +12,12 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from '@/components/ui/sheet';
 
 interface PublicNavProps {
   /** Active link to highlight. Options: 'home', 'docs' */
@@ -22,7 +28,9 @@ export function PublicNav({ activeLink = 'home' }: PublicNavProps) {
   const { session } = useAuth();
   const { theme, setTheme } = useTheme();
   const navigate = useNavigate();
+  const location = useLocation();
   const [isScrolled, setIsScrolled] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -32,6 +40,11 @@ export function PublicNav({ activeLink = 'home' }: PublicNavProps) {
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
+
+  // Close mobile menu on route change
+  useEffect(() => {
+    setMobileMenuOpen(false);
+  }, [location.pathname]);
 
   const handleGetStarted = (e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();
@@ -59,7 +72,7 @@ export function PublicNav({ activeLink = 'home' }: PublicNavProps) {
           : 'bg-white/50 dark:bg-white/5 backdrop-blur-md border-black/5 dark:border-white/10 hover:border-black/10 dark:hover:border-white/20'
       }`}
     >
-      <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
+      <div className="max-w-7xl mx-auto px-4 md:px-6 h-16 flex items-center justify-between">
         <a
           href="#"
           onClick={handleLogoClick}
@@ -80,7 +93,9 @@ export function PublicNav({ activeLink = 'home' }: PublicNavProps) {
             Stackweaver
           </span>
         </a>
-        <div className="flex items-center gap-4">
+
+        {/* Desktop Navigation */}
+        <div className="hidden md:flex items-center gap-4">
           {activeLink === 'home' ? (
             <>
               <a
@@ -214,6 +229,158 @@ export function PublicNav({ activeLink = 'home' }: PublicNavProps) {
             </Button>
           </div>
         </div>
+
+        {/* Mobile Hamburger Button */}
+        <div className="flex md:hidden items-center gap-2">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setMobileMenuOpen(true)}
+            className="w-10 h-10 text-slate-700 dark:text-white hover:bg-black/5 dark:hover:bg-white/10 border-none outline-none focus-visible:ring-0 focus-visible:ring-offset-0"
+            aria-label="Open menu"
+          >
+            <Menu className="h-5 w-5" />
+          </Button>
+        </div>
+
+        {/* Mobile Menu Sheet */}
+        <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
+          <SheetContent side="right" className="w-[280px] bg-white dark:bg-slate-900 border-l border-gray-200 dark:border-white/10">
+            <SheetHeader>
+              <SheetTitle className="flex items-center gap-2">
+                <img src="/logo.png" alt="Stackweaver" className="h-6 w-6" />
+                <span className="bg-gradient-to-r from-blue-500 via-blue-600 to-purple-500 bg-clip-text text-transparent font-bold">
+                  Stackweaver
+                </span>
+              </SheetTitle>
+            </SheetHeader>
+            <nav className="flex flex-col gap-1 mt-6">
+              {activeLink === 'home' ? (
+                <>
+                  <a
+                    href="#overview"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="flex items-center px-3 py-3 text-sm font-medium text-slate-700 dark:text-gray-200 hover:bg-slate-100 dark:hover:bg-white/10 rounded-lg transition-colors"
+                  >
+                    Overview
+                  </a>
+                  <a
+                    href="#install"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="flex items-center px-3 py-3 text-sm font-medium text-slate-700 dark:text-gray-200 hover:bg-slate-100 dark:hover:bg-white/10 rounded-lg transition-colors"
+                  >
+                    Install
+                  </a>
+                  <a
+                    href="#features"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="flex items-center px-3 py-3 text-sm font-medium text-slate-700 dark:text-gray-200 hover:bg-slate-100 dark:hover:bg-white/10 rounded-lg transition-colors"
+                  >
+                    Features
+                  </a>
+                  <Link
+                    to="/docs"
+                    className="flex items-center px-3 py-3 text-sm font-medium text-slate-700 dark:text-gray-200 hover:bg-slate-100 dark:hover:bg-white/10 rounded-lg transition-colors"
+                  >
+                    Docs
+                  </Link>
+                </>
+              ) : (
+                <>
+                  <Link
+                    to="/"
+                    className="flex items-center px-3 py-3 text-sm font-medium text-slate-700 dark:text-gray-200 hover:bg-slate-100 dark:hover:bg-white/10 rounded-lg transition-colors"
+                  >
+                    Home
+                  </Link>
+                  <a
+                    href="/#overview"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="flex items-center px-3 py-3 text-sm font-medium text-slate-700 dark:text-gray-200 hover:bg-slate-100 dark:hover:bg-white/10 rounded-lg transition-colors"
+                  >
+                    Overview
+                  </a>
+                  <a
+                    href="/#install"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="flex items-center px-3 py-3 text-sm font-medium text-slate-700 dark:text-gray-200 hover:bg-slate-100 dark:hover:bg-white/10 rounded-lg transition-colors"
+                  >
+                    Install
+                  </a>
+                  <a
+                    href="/#features"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="flex items-center px-3 py-3 text-sm font-medium text-slate-700 dark:text-gray-200 hover:bg-slate-100 dark:hover:bg-white/10 rounded-lg transition-colors"
+                  >
+                    Features
+                  </a>
+                  <Link
+                    to="/docs"
+                    className="flex items-center px-3 py-3 text-sm font-medium text-blue-600 dark:text-blue-400 hover:bg-slate-100 dark:hover:bg-white/10 rounded-lg transition-colors"
+                  >
+                    Docs
+                  </Link>
+                </>
+              )}
+
+              {/* Theme Toggle */}
+              <div className="border-t border-slate-200 dark:border-white/10 mt-3 pt-3">
+                <div className="px-3 py-2 text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wide">
+                  Theme
+                </div>
+                <div className="flex gap-1 px-3">
+                  <Button
+                    variant={theme === 'light' ? 'default' : 'ghost'}
+                    size="sm"
+                    onClick={() => setTheme('light')}
+                    className="flex-1 gap-1.5"
+                  >
+                    <Sun className="h-3.5 w-3.5" />
+                    <span className="text-xs">Light</span>
+                  </Button>
+                  <Button
+                    variant={theme === 'dark' ? 'default' : 'ghost'}
+                    size="sm"
+                    onClick={() => setTheme('dark')}
+                    className="flex-1 gap-1.5"
+                  >
+                    <Moon className="h-3.5 w-3.5" />
+                    <span className="text-xs">Dark</span>
+                  </Button>
+                  <Button
+                    variant={theme === 'system' ? 'default' : 'ghost'}
+                    size="sm"
+                    onClick={() => setTheme('system')}
+                    className="flex-1 gap-1.5"
+                  >
+                    <Laptop className="h-3.5 w-3.5" />
+                    <span className="text-xs">Auto</span>
+                  </Button>
+                </div>
+              </div>
+
+              {/* CTA Button */}
+              <div className="border-t border-slate-200 dark:border-white/10 mt-3 pt-4 px-3">
+                <div className="relative inline-flex w-full rounded-md bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500 p-[2px]">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={(e) => {
+                      setMobileMenuOpen(false);
+                      handleGetStarted(e);
+                    }}
+                    className="w-full bg-white dark:bg-slate-900/80 text-slate-900 dark:text-white hover:bg-slate-50 dark:hover:bg-slate-900/90 border-0 rounded-[calc(0.375rem-2px)]"
+                  >
+                    <span className="flex items-center gap-2">
+                      <span>{session ? 'Dashboard' : 'Get Started'}</span>
+                      <ArrowRight className="h-4 w-4 flex-shrink-0" />
+                    </span>
+                  </Button>
+                </div>
+              </div>
+            </nav>
+          </SheetContent>
+        </Sheet>
       </div>
     </nav>
   );
