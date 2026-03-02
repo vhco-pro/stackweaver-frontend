@@ -2,11 +2,19 @@
 
 import { type ReactNode, useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
+import { Menu, List } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import { PublicNav } from '@/components/navigation/PublicNav';
 import { Footer } from '@/components/layout/Footer';
 import { DocsSidebar } from './DocsSidebar';
 import { TableOfContents } from './TableOfContents';
 import { DocNavigation } from './DocNavigation';
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from '@/components/ui/sheet';
 
 interface DocsLayoutProps {
   children: ReactNode;
@@ -30,6 +38,8 @@ interface DocTreeNode {
 export function DocsLayout({ children }: DocsLayoutProps) {
   const location = useLocation();
   const [index, setIndex] = useState<DocsIndex | null>(null);
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+  const [mobileTocOpen, setMobileTocOpen] = useState(false);
 
   // Load docs index for breadcrumb titles
   useEffect(() => {
@@ -60,6 +70,12 @@ export function DocsLayout({ children }: DocsLayoutProps) {
       }
     });
     return () => cancelAnimationFrame(id);
+  }, [location.pathname]);
+
+  // Close mobile drawers on navigation
+  useEffect(() => {
+    setMobileSidebarOpen(false);
+    setMobileTocOpen(false);
   }, [location.pathname]);
 
   // Build breadcrumbs from current path - only for subfolders (nested paths)
@@ -124,19 +140,68 @@ export function DocsLayout({ children }: DocsLayoutProps) {
       {/* Public Navigation */}
       <PublicNav activeLink="docs" />
       
+      {/* Mobile Navigation Bar - visible below lg breakpoint */}
+      <div className="lg:hidden fixed top-[6.5rem] left-0 right-0 z-30 bg-background/95 backdrop-blur-sm border-b border-border/40 px-4 py-2 flex items-center justify-between gap-2">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => setMobileSidebarOpen(true)}
+          className="flex items-center gap-2 text-muted-foreground hover:text-foreground"
+        >
+          <Menu className="h-4 w-4" />
+          <span className="text-sm">Navigation</span>
+        </Button>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => setMobileTocOpen(true)}
+          className="flex items-center gap-2 text-muted-foreground hover:text-foreground"
+        >
+          <List className="h-4 w-4" />
+          <span className="text-sm">On this page</span>
+        </Button>
+      </div>
+
+      {/* Mobile Sidebar Sheet */}
+      <Sheet open={mobileSidebarOpen} onOpenChange={setMobileSidebarOpen}>
+        <SheetContent side="left" className="w-[280px] p-0 bg-background">
+          <SheetHeader className="px-4 pt-6 pb-2">
+            <SheetTitle className="text-sm font-semibold">Documentation</SheetTitle>
+          </SheetHeader>
+          <div className="overflow-y-auto h-[calc(100vh-4rem)]">
+            <DocsSidebar />
+          </div>
+        </SheetContent>
+      </Sheet>
+
+      {/* Mobile Table of Contents Sheet */}
+      <Sheet open={mobileTocOpen} onOpenChange={setMobileTocOpen}>
+        <SheetContent side="right" className="w-[280px] p-0 bg-background">
+          <SheetHeader className="px-4 pt-6 pb-2">
+            <SheetTitle className="text-sm font-semibold">On this page</SheetTitle>
+          </SheetHeader>
+          <div className="overflow-y-auto h-[calc(100vh-4rem)]">
+            <TableOfContents />
+          </div>
+        </SheetContent>
+      </Sheet>
+      
       {/* Main Content Area - Three Column Layout */}
       <div className="pt-32 pb-8 flex">
-        {/* Left Sidebar - Docs Navigation Tree */}
+        {/* Extra top padding on mobile when mobile nav bar is visible */}
+        <div className="lg:hidden h-0" />
+        
+        {/* Left Sidebar - Docs Navigation Tree (desktop only) */}
         <aside className="hidden lg:block w-64 flex-shrink-0 border-r border-border/40 bg-background/50 sticky top-24 h-[calc(100vh-6rem)] overflow-y-auto">
           <DocsSidebar />
         </aside>
         
         {/* Center - Main Content */}
-        <main className="flex-1 min-w-0 px-8 py-4 max-w-4xl mx-auto">
+        <main className="flex-1 min-w-0 px-4 md:px-8 py-4 pt-12 lg:pt-4 max-w-4xl mx-auto">
           {/* Breadcrumb Navigation - Only show in subfolders */}
           {breadcrumbs && (
-            <div className="mb-6 pb-4">
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <div className="mb-6 pb-4 overflow-x-auto">
+              <div className="flex items-center gap-2 text-sm text-muted-foreground whitespace-nowrap">
                 {breadcrumbs.map((crumb, index) => {
                   const isLast = index === breadcrumbs.length - 1;
                   return (
@@ -167,15 +232,13 @@ export function DocsLayout({ children }: DocsLayoutProps) {
           <DocNavigation index={index} />
         </main>
         
-        {/* Right Sidebar - Table of Contents */}
+        {/* Right Sidebar - Table of Contents (desktop only) */}
         <aside className="hidden xl:block w-64 flex-shrink-0 border-l border-border/40 bg-background/50 sticky top-24 h-[calc(100vh-6rem)] overflow-y-auto">
           <TableOfContents />
         </aside>
       </div>
       
       <Footer />
-      
-      {/* Mobile Sidebar Toggle - TODO: Add mobile navigation */}
     </div>
   );
 }

@@ -219,7 +219,7 @@ export default function Landing() {
             />
           </Slide>
           
-          <div className="text-6xl md:text-8xl font-bold mb-6 bg-gradient-to-r from-blue-500 via-blue-600 to-purple-500 dark:from-white dark:via-blue-100 dark:to-blue-300 bg-clip-text text-transparent min-h-[1.2em]">
+          <div className="text-4xl sm:text-6xl md:text-8xl font-bold mb-6 bg-gradient-to-r from-blue-500 via-blue-600 to-purple-500 dark:from-white dark:via-blue-100 dark:to-blue-300 bg-clip-text text-transparent min-h-[1.2em]">
              <SplittingText text="Stackweaver" type="chars" delay={400} inView inViewOnce />
           </div>
           
@@ -285,9 +285,9 @@ export default function Landing() {
       <InstallSection />
 
       {/* Features Section */}
-      <section id="features" className="py-24 px-6 relative">
+      <section id="features" className="py-12 md:py-24 px-4 md:px-6 relative">
         <div className="max-w-6xl mx-auto">
-          <h2 className="text-4xl md:text-5xl font-bold text-center mb-16 bg-gradient-to-r from-blue-500 via-blue-600 to-purple-500 dark:from-white dark:to-blue-200 bg-clip-text text-transparent">
+          <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-center mb-8 md:mb-16 bg-gradient-to-r from-blue-500 via-blue-600 to-purple-500 dark:from-white dark:to-blue-200 bg-clip-text text-transparent">
             Powerful Features
           </h2>
           
@@ -541,12 +541,12 @@ kubectl apply -f k8s/`,
   ];
 
   return (
-    <section id="install" className="py-24 px-6 relative">
+    <section id="install" className="py-12 md:py-24 px-4 md:px-6 relative">
       <div className="max-w-6xl mx-auto">
-        <h2 className="text-4xl md:text-5xl font-bold text-center mb-4 bg-gradient-to-r from-blue-500 via-blue-600 to-purple-500 dark:from-white dark:to-blue-200 bg-clip-text text-transparent">
+        <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-center mb-4 bg-gradient-to-r from-blue-500 via-blue-600 to-purple-500 dark:from-white dark:to-blue-200 bg-clip-text text-transparent">
           Install Stackweaver
         </h2>
-        <p className="text-center text-slate-800 dark:text-gray-400 mb-16 max-w-2xl mx-auto">
+        <p className="text-center text-slate-800 dark:text-gray-400 mb-8 md:mb-16 max-w-2xl mx-auto">
           Choose your preferred installation method. Stackweaver is available via Docker Compose, Docker, or Kubernetes manifests.
         </p>
 

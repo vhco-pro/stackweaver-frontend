@@ -8,7 +8,7 @@ import { RotatingTextContainer, RotatingText } from '@/components/animate-ui/pri
 
 export function ProductOverview() {
   return (
-    <section id="overview" className="py-24 px-6 relative overflow-hidden bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white transition-colors duration-500">
+    <section id="overview" className="py-12 md:py-24 px-4 md:px-6 relative overflow-hidden bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white transition-colors duration-500">
       {/* Background gradients */}
       <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none">
         <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] rounded-full bg-blue-200/40 dark:bg-blue-900/20 blur-[120px]" />
@@ -27,14 +27,14 @@ export function ProductOverview() {
 
           {/* Heading */}
           <div>
-          <h1 className="text-5xl md:text-6xl font-bold tracking-tight mb-2 text-slate-900 dark:text-white">
+          <h1 className="text-3xl sm:text-5xl md:text-6xl font-bold tracking-tight mb-2 text-slate-900 dark:text-white">
             STACKWEAVER
           </h1>
-            <h2 className="text-4xl md:text-5xl font-bold tracking-tight text-slate-700 dark:text-gray-200 mb-6 flex flex-wrap items-center gap-x-3">
+            <h2 className="text-2xl sm:text-4xl md:text-5xl font-bold tracking-tight text-slate-700 dark:text-gray-200 mb-6 flex flex-wrap items-center gap-x-3">
               <span>Dashboard for</span>
               <RotatingTextContainer
                 text={['Terraform', 'Ansible']}
-                className="inline-flex text-blue-600 dark:text-blue-400 min-w-[140px] justify-start"
+                className="inline-flex text-blue-600 dark:text-blue-400 min-w-[100px] sm:min-w-[140px] justify-start"
                 y={40}
                 duration={2000}
               >
@@ -163,7 +163,7 @@ export function ProductOverview() {
             <motion.div 
                animate={{ y: [0, -10, 0] }}
                transition={{ duration: 4, repeat: Infinity, ease: "easeInOut", delay: 1 }}
-               className="absolute top-1/4 right-[-20px] bg-white dark:bg-slate-800 p-4 rounded-lg border border-slate-200 dark:border-white/10 shadow-xl w-48 z-20"
+               className="absolute top-1/4 right-[-20px] bg-white dark:bg-slate-800 p-4 rounded-lg border border-slate-200 dark:border-white/10 shadow-xl w-48 z-20 hidden md:block"
                style={{ transform: 'translateZ(40px)' }}
             >
                <div className="flex items-center gap-3 mb-2">
@@ -180,7 +180,7 @@ export function ProductOverview() {
             <motion.div 
                animate={{ y: [0, 15, 0] }}
                transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
-               className="absolute bottom-1/4 left-[-10px] bg-white dark:bg-slate-800 p-4 rounded-lg border border-slate-200 dark:border-white/10 shadow-xl w-40 z-20"
+               className="absolute bottom-1/4 left-[-10px] bg-white dark:bg-slate-800 p-4 rounded-lg border border-slate-200 dark:border-white/10 shadow-xl w-40 z-20 hidden md:block"
                style={{ transform: 'translateZ(60px)' }}
             >
                <div className="text-xs text-slate-500 dark:text-gray-400 mb-1">Active Resources</div>
