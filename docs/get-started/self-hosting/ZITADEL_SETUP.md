@@ -110,6 +110,22 @@ kubectl logs -n stackweaver \
 kubectl get pod -n stackweaver -l app.kubernetes.io/component=postgresql
 ```
 
+### Troubleshooting: Login UI — "Instance not found / public domain not trusted"
+
+If the login-ui logs show:
+
+```
+unable to set instance using origin {auth.example.com <pod-ip>:3000 https}: public domain "<pod-ip>" not trusted
+```
+
+The login-ui is forwarding the pod's IP address as `x-forwarded-host` to Zitadel.
+This happens because Kubernetes readiness/liveness probes hit the pod directly at its IP, so the `Host` header is the pod IP, which is not a trusted domain.
+
+This is already fixed in the Helm chart: `CUSTOM_REQUEST_HEADERS` forces `x-forwarded-host: <auth-hostname>` on all Zitadel API calls from the login-ui.
+If you see this on an older install, upgrade the chart and resync.
+
+> **Docker Compose note:** This issue does not occur in Docker Compose because `network_mode: host` means probes use `localhost` as the Host header, and `localhost` is automatically added as a trusted domain by `zitadel-init`.
+
 ### Troubleshooting: OAuth Still Redirects to Zitadel's Built-In Login
 
 Verify `ZITADEL_LOGIN_UI_BASE_URL` is set correctly in the Zitadel pod environment — it is derived from `ingress.hosts.auth` in the chart values.
