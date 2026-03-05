@@ -48,10 +48,11 @@ If you're self-hosting StackWeaver, follow these guides to set up your instance:
 
 For a quick deployment, follow these steps in order:
 
-1. **Set up Zitadel** - Configure authentication ([Zitadel Setup Guide](self-hosting/ZITADEL_SETUP.md))
+1. **Deploy StackWeaver**
+   - **Kubernetes**: Follow the [Kubernetes Deployment Guide](self-hosting/kubernetes.md) — a single `helm install` generates all secrets, initializes Zitadel, and starts all services automatically.
+   - **Docker Compose**: Run `docker compose up -d --build` then `docker compose run --rm zitadel-init`. See the [Zitadel Setup Guide](self-hosting/ZITADEL_SETUP.md#docker-compose-deployment) for details.
 2. **Configure GitHub App** - Enable VCS integration ([GitHub App Setup Guide](self-hosting/GITHUB_APP_SETUP.md))
-3. **Start StackWeaver** - Launch your instance using Docker Compose or Kubernetes
-4. **Create your first organization** - Set up your workspace and start managing infrastructure
+3. **Create your first organization** - Set up your workspace and start managing infrastructure
 
 ## Next Steps
 
