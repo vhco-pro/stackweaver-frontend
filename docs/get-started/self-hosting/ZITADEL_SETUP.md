@@ -85,6 +85,20 @@ Then restart the Zitadel pod:
 kubectl rollout restart deployment/stackweaver-zitadel -n stackweaver
 ```
 
+### Troubleshooting: Zitadel Panics with "no private ip address"
+
+If Zitadel panics with:
+
+```
+none of the enabled methods for identifying the machine succeeded
+failed to get Private IP address no private ip address
+```
+
+This means Zitadel's Sonyflake ID generator cannot identify the machine.
+In Kubernetes each pod runs in its own network namespace, so the private IP scan returns nothing.
+The fix is already applied in the Helm chart (`Machine.Identification.Hostname.Enabled: true`).
+If you see this on an older install, upgrade the chart and resync.
+
 ### Troubleshooting: Zitadel Not Starting
 
 ```bash
