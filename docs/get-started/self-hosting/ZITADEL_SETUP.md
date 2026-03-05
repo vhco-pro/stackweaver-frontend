@@ -121,7 +121,7 @@ unable to set instance using origin {auth.example.com <pod-ip>:3000 https}: publ
 The login-ui is forwarding the pod's IP address as `x-forwarded-host` to Zitadel.
 This happens because Kubernetes readiness/liveness probes hit the pod directly at its IP, so the `Host` header is the pod IP, which is not a trusted domain.
 
-This is already fixed in the Helm chart: `CUSTOM_REQUEST_HEADERS` forces `x-forwarded-host: <auth-hostname>` on all Zitadel API calls from the login-ui.
+This is already fixed in the Helm chart: both probes include an `httpHeaders` entry setting `Host: <auth-hostname>`, so the login-ui always sees the correct domain on probe requests and forwards that to Zitadel rather than the pod IP.
 If you see this on an older install, upgrade the chart and resync.
 
 > **Docker Compose note:** This issue does not occur in Docker Compose because `network_mode: host` means probes use `localhost` as the Host header, and `localhost` is automatically added as a trusted domain by `zitadel-init`.
