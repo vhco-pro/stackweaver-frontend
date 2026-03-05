@@ -118,10 +118,11 @@ If the login-ui logs show:
 unable to set instance using origin {auth.example.com <pod-ip>:3000 https}: public domain "<pod-ip>" not trusted
 ```
 
-The login-ui is forwarding the pod's IP address as `x-forwarded-host` to Zitadel.
-This happens because Kubernetes readiness/liveness probes hit the pod directly at its IP, so the `Host` header is the pod IP, which is not a trusted domain.
+Kubernetes readiness/liveness probes hit the pod directly at its IP.
+The login-ui reads the `Host` header from probe requests and forwards it as `x-forwarded-host` to Zitadel, which rejects the pod IP as untrusted.
+HTTP probes on `/ui/v2/login` also trigger Next.js SSR which calls Zitadel via gRPC; if Zitadel is slow, those probes time out entirely.
 
-This is already fixed in the Helm chart: both probes include an `httpHeaders` entry setting `Host: <auth-hostname>`, so the login-ui always sees the correct domain on probe requests and forwards that to Zitadel rather than the pod IP.
+This is already fixed in the Helm chart: both probes use `tcpSocket` instead of `httpGet`, which only checks that port 3000 is accepting connections without triggering any Zitadel API calls.
 If you see this on an older install, upgrade the chart and resync.
 
 > **Docker Compose note:** This issue does not occur in Docker Compose because `network_mode: host` means probes use `localhost` as the Host header, and `localhost` is automatically added as a trusted domain by `zitadel-init`.
