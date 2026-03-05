@@ -35,7 +35,7 @@ When you install the Helm chart, the following happens without any manual interv
    It reads `masterkey` and `adminPassword` from the Kubernetes Secret via environment variables.
 
 3. **zitadel-init Job (PostSync)**: after Zitadel is up, the `zitadel-init` post-install/post-upgrade Job runs.
-   It provisions the OIDC apps (frontend, API), the login service user, and webhook keys, then writes the results directly into the Zitadel Kubernetes Secret.
+   It provisions the OIDC apps (frontend, API), registers the production redirect URI, sets the Login V2 BaseURI via the Feature API, configures the login service user, and webhook keys, then writes the results directly into the Zitadel Kubernetes Secret.
    It also triggers rolling restarts of the API, frontend, and login-ui pods.
 
 ### Finding the Admin Password (Kubernetes)
@@ -127,15 +127,22 @@ If you see this on an older install, upgrade the chart and resync.
 
 > **Docker Compose note:** This issue does not occur in Docker Compose because `network_mode: host` means probes use `localhost` as the Host header, and `localhost` is automatically added as a trusted domain by `zitadel-init`.
 
-### Troubleshooting: OAuth Still Redirects to Zitadel's Built-In Login
+### Troubleshooting: OAuth Redirects to Internal Service URL
 
-Verify `ZITADEL_LOGIN_UI_BASE_URL` is set correctly in the Zitadel pod environment — it is derived from `ingress.hosts.auth` in the chart values.
+If the browser is redirected to a URL like `http://stackweaver-login-ui:3000/ui/v2/login/login?authRequest=...` (an internal Kubernetes DNS name), the Login V2 BaseURI in Zitadel's database is pointing at the internal service instead of the public auth domain.
+
+This is already fixed: `zitadel-init` calls the Zitadel Feature API (`SetInstanceFeatures`) on every run to set `LoginV2.BaseUri` to `https://<ingress.hosts.auth>/ui/v2/login`.
+The Feature API update runs after every ArgoCD sync, so changing `ingress.hosts.auth` in `values.yaml` and resyncing is enough to fix it.
+
+If you need to verify what BaseURI is currently active:
 
 ```bash
-kubectl describe deployment stackweaver-zitadel -n stackweaver | grep LOGIN_UI
-```
+# Check the LOGIN_UI_BASE_URL passed to the init job
+kubectl describe job stackweaver-zitadel-init -n stackweaver | grep LOGIN_UI_BASE_URL
 
-If the value is wrong, update your `values.yaml` with the correct `ingress.hosts.auth` and run `helm upgrade`.
+# Or check the zitadel-init job logs for the confirmation line
+kubectl logs job/stackweaver-zitadel-init -n stackweaver | grep "Login V2 BaseURI"
+```
 
 ---
 
@@ -177,10 +184,11 @@ The Docker Compose stack uses static credentials defined in `deploy/zitadel-init
 3. Creates or updates:
    - Organization `IAC Platform`
    - Project `IAC Platform Project`
-   - Frontend OIDC app (PKCE)
+   - Frontend OIDC app (PKCE) with the production redirect URI
    - API app (client secret)
    - Login UI service machine user + PAT (`IAM_LOGIN_CLIENT` role)
    - Webhook signing keys
+   - Login V2 BaseURI (via Feature API — not just the DefaultInstance config)
 4. Writes the generated values to `deploy/.env`.
 
 The bootstrap is idempotent — re-running it reuses existing apps and orgs.
@@ -211,6 +219,9 @@ ZITADEL_WEBHOOK_COMPLEMENT_TOKEN_KEY=<webhook-key>
 | `ZITADEL_ADMIN_PASSWORD` | Admin password (matches init-steps.yaml) | `Password1!` |
 | `PROJECT_ROOT` | Where env/config files are written | `/config` inside container |
 | `ZITADEL_PAT` | Optional PAT override instead of `/pat/admin.pat` | empty |
+| `FRONTEND_REDIRECT_URI` | OAuth redirect URI registered on the frontend OIDC app | empty (Kubernetes only) |
+| `FRONTEND_POST_LOGOUT_URI` | Post-logout redirect URI registered on the frontend OIDC app | empty (Kubernetes only) |
+| `LOGIN_UI_BASE_URL` | Login V2 BaseURI set via Feature API (overrides database value) | empty (Kubernetes only) |
 
 ### Troubleshooting: Zitadel Not Starting (Docker Compose)
 
@@ -236,21 +247,19 @@ The OAuth client ID doesn't exist or isn't accessible.
 
 Both deployment paths use Zitadel's Login V2 feature, which redirects authentication flows to a separate Next.js `login-ui` service rather than Zitadel's built-in login.
 
-This is configured in the Zitadel `defaults.yaml` (ConfigMap in Kubernetes, mounted file in Docker Compose) under `DefaultInstance.Features.LoginV2`:
+### How the Login V2 BaseURI is managed
 
-```yaml
-DefaultInstance:
-  Features:
-    LoginV2:
-      Required: true
-      BaseURI: <login-ui-url>/ui/v2/login
-```
+The BaseURI (the browser-reachable URL Zitadel redirects users to for login) is set from two sources, in priority order:
 
-In Kubernetes, `BaseURI` is automatically set to `http://<fullname>-login-ui:3000/ui/v2/login`.
-In Docker Compose, it is set to `http://localhost:3000/ui/v2/login`.
+**Kubernetes (Helm):**
+1. `DefaultInstance.Features.LoginV2.BaseURI` in the Zitadel ConfigMap — sets the initial value in the database on first Zitadel startup. Set to `https://<ingress.hosts.auth>/ui/v2/login`.
+2. `zitadel-init` Feature API call — on every post-install/post-upgrade run, `zitadel-init` calls `SetInstanceFeatures` with `LoginV2.BaseUri` set to the same public URL. This overwrites the database value, so domain changes take effect on the next sync without a database reset.
+
+**Docker Compose:**
+The `DefaultInstance.Features.LoginV2.BaseURI` in the mounted `zitadel-defaults.yaml` is set to `http://localhost:3000/ui/v2/login`, which is directly browser-reachable because `network_mode: host` exposes port 3000 on localhost.
 
 > **Note:** `DefaultInstance` settings only apply during first initialization.
-> If Zitadel has already run and created the database, changing these settings requires resetting the database or using the Zitadel console/API to update the instance.
+> In Kubernetes, `zitadel-init` handles ongoing updates via the Feature API — you do not need to reset the database when the auth domain changes.
 
 ---
 
