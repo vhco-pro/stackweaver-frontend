@@ -34,18 +34,33 @@ This platform uses **GitHub Apps** (not OAuth Apps) for VCS integration. This al
        - Copy the HTTPS URL (e.g., `https://abc123.ngrok.io`)
        - Use: `https://abc123.ngrok.io/api/v2/vcs-connections/github/webhook`
      - **For production / Kubernetes**: `https://your-domain.com/api/v2/vcs-connections/github/webhook`
-   - **Webhook secret**: Generate a random secret (store securely) - must match `GITHUB_WEBHOOK_SECRET` environment variable
-   - **Webhook events**: Ensure "Push" events are enabled (required for tag-based module publishing)
+   - **Webhook secret**: Generate a random secret (store securely) — must match the `GITHUB_WEBHOOK_SECRET` environment variable
+   - **Webhook events** — subscribe to the following:
+
+     | Event | Why |
+     |---|---|
+     | Push | Triggers workspace runs on branch pushes and publishes module versions on tag pushes |
+     | Pull requests | Triggers speculative plans on PR open/update and posts plan results as commit status checks |
+     | Workflow job | Required for GitHub Actions integration and workflow status tracking |
+     | Installation, Installation repositories | Notifies the platform when the app is installed or its repository access changes |
+
    - **Repository permissions**:
-     - **Contents**: Read (to read repo files)
-     - **Metadata**: Read (required)
-     - **Pull requests**: Read (for PR-based runs)
-     - **Commit statuses**: **Read and write** (required for PR status checks) ⚠️ **IMPORTANT**
-     - **Webhooks**: Write (to create webhooks)
-   - **Organization permissions** (if needed):
-     - **Members**: Read (to check org membership)
-   - **Where can this GitHub App be installed?**: 
-     - Select "Any account" for self-service
+
+     | Permission | Level | Why |
+     |---|---|---|
+     | Contents | Read | Read repository files for runs |
+     | Metadata | Read | Required by GitHub for all apps |
+     | Pull requests | Read | Required to comment and react to PR events |
+     | Commit statuses | **Read and write** ⚠️ | Post plan results as PR status checks |
+     | Webhooks | Write | Register repository-level webhooks |
+
+   - **Organization permissions**:
+
+     | Permission | Level | Why |
+     |---|---|---|
+     | Members | Read | Verify organization membership during authorization |
+
+   - **Where can this GitHub App be installed?**: Select "Any account" to allow self-service installs by your users
 3. Click "Create GitHub App"
 4. **Copy the App ID** (you'll see it on the app settings page)
 5. **Generate a Private Key**:
@@ -126,11 +141,14 @@ The chart then automatically:
 
 No other configuration is required. If `secrets.githubApp.secretName` is empty, GitHub App support is disabled entirely and none of the above env vars are injected.
 
-**Required Variables** (reference):
-- `GITHUB_APP_ID` — Your GitHub App ID (found on the app settings page)
-- `GITHUB_APP_NAME` — The slug from the GitHub App URL (e.g. `my-stackweaver-app`)
-- `GITHUB_APP_PRIVATE_KEY_PATH` — Path to the `.pem` file inside the container (set automatically by the chart)
-- `GITHUB_WEBHOOK_SECRET` — Webhook secret for verifying webhook signatures
+**Required environment variables** (reference):
+
+| Variable | Description |
+|---|---|
+| `GITHUB_APP_ID` | Your GitHub App ID, shown on the app settings page |
+| `GITHUB_APP_NAME` | The slug from the GitHub App URL (e.g. `my-stackweaver-app`) |
+| `GITHUB_APP_PRIVATE_KEY_PATH` | Path to the `.pem` file inside the container (set automatically by the Helm chart) |
+| `GITHUB_WEBHOOK_SECRET` | Webhook secret used to verify incoming webhook signatures |
 
 ### 3. User Flow (Self-Service)
 
