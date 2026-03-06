@@ -25,13 +25,17 @@ This platform uses **GitHub Apps** (not OAuth Apps) for VCS integration. This al
    - **GitHub App name**: `Stackweaver-instance-$` (or your choice)
    - **Homepage URL**: `http://localhost:5173` (your frontend URL)
    - **setup URL**: `http://localhost:5173/vcs/github/installed`
-   - **Webhook URL**: 
+   - **Webhook URL**:
      - **For development (using ngrok)**: `https://your-ngrok-url.ngrok.io/api/v2/vcs-connections/github/webhook`
        - Install ngrok: `source <(curl -fsSL https://raw.githubusercontent.com/michielvha/PDS/main/bash/common/software/ngrok.sh)`
        - Start ngrok: `ngrok http 8022` (or your API port)
        - Copy the HTTPS URL (e.g., `https://abc123.ngrok.io`)
        - Use: `https://abc123.ngrok.io/api/v2/vcs-connections/github/webhook`
-     - **For production**: `https://your-domain.com/api/v2/vcs-connections/github/webhook`
+     - **For production / Kubernetes**: `https://your-domain.com/api/v2/vcs-connections/github/webhook`
+   - **Setup URL** (important — this is where GitHub redirects after installation):
+     - **For development**: leave blank, or use `https://your-ngrok-url.ngrok.io/api/v2/vcs-connections/github/setup`
+     - **For production / Kubernetes**: `https://your-domain.com/api/v2/vcs-connections/github/setup`
+     - The API relays this redirect to the correct frontend URL automatically — do not use `http://localhost:5173` here
    - **Webhook secret**: Generate a random secret (store securely) - must match `GITHUB_WEBHOOK_SECRET` environment variable
    - **Webhook events**: Ensure "Push" events are enabled (required for tag-based module publishing)
    - **Repository permissions**:
@@ -62,18 +66,73 @@ By default, private apps can only be installed on the owner’s account. To let 
 4. Under "Where can this GitHub App be installed?", ensure "Any account" is selected
 5. Share the install URL when needed: `https://github.com/apps/<your-app-slug>/installations/new`
 
-### 2. Configure Environment Variables
+### 2. Configure Your Deployment
 
-Add these to your backend environment (`.env` or `docker-compose.yml`).
+#### Docker Compose
 
-**Reference**: See `deploy/docker-compose.yml` for environment variable configuration.
+The private key file is mounted directly from the `deploy/` directory. Place your downloaded `.pem` file there:
 
-**Required Variables**:
-- `GITHUB_APP_ID` - Your GitHub App ID
-- `GITHUB_APP_NAME` - The slug name from the GitHub App URL
-- `GITHUB_APP_PRIVATE_KEY_PATH` - Path to private key file, OR
-- `GITHUB_APP_PRIVATE_KEY` - Inline private key (alternative to path)
-- `GITHUB_WEBHOOK_SECRET` - Webhook secret for verifying webhook signatures.
+```bash
+cp ~/Downloads/your-app-name.*.private-key.pem deploy/github-app-private-key.pem
+```
+
+Then set the three non-secret values directly in `deploy/docker-compose.yml` (they are already wired up under the `api` and `orchestrator` services):
+
+```yaml
+- GITHUB_APP_ID=<your-app-id>
+- GITHUB_APP_NAME=<your-app-slug>
+- GITHUB_APP_PRIVATE_KEY_PATH=/etc/github-app-private-key.pem
+- GITHUB_WEBHOOK_SECRET=<your-webhook-secret>
+```
+
+The compose file bind-mounts `deploy/github-app-private-key.pem` → `/etc/github-app-private-key.pem` inside the container, so no additional steps are needed.
+
+#### Kubernetes (Helm)
+
+The Helm chart stores the private key and webhook secret in a Kubernetes Secret and mounts it as a volume. The chart wires everything up automatically once you provide the secret name.
+
+**Step 1 — Create the Kubernetes Secret:**
+
+```bash
+kubectl create secret generic stackweaver-github-app \
+  --namespace stackweaver \
+  --from-file=private-key=deploy/github-app-private-key.pem \
+  --from-literal=webhook-secret='<your-webhook-secret>'
+```
+
+**Step 2 — Set values in your `values.yaml`:**
+
+```yaml
+secrets:
+  githubApp:
+    secretName: stackweaver-github-app
+    keys:
+      privateKey: private-key       # must match the key name used in kubectl create secret
+      webhookSecret: webhook-secret  # must match the key name used in kubectl create secret
+
+api:
+  githubApp:
+    id: "<your-app-id>"
+    name: "<your-app-slug>"
+
+orchestrator:
+  githubApp:
+    id: "<your-app-id>"
+    name: "<your-app-slug>"
+```
+
+The chart then automatically:
+- Mounts the secret as a read-only volume at `/etc/github-app/` in both the `api` and `orchestrator` pods.
+- Sets `GITHUB_APP_PRIVATE_KEY_PATH=/etc/github-app/private-key.pem` in each pod.
+- Injects `GITHUB_APP_ID`, `GITHUB_APP_NAME`, and `GITHUB_WEBHOOK_SECRET` as environment variables.
+
+No other configuration is required. If `secrets.githubApp.secretName` is empty, GitHub App support is disabled entirely and none of the above env vars are injected.
+
+**Required Variables** (reference):
+- `GITHUB_APP_ID` — Your GitHub App ID (found on the app settings page)
+- `GITHUB_APP_NAME` — The slug from the GitHub App URL (e.g. `my-stackweaver-app`)
+- `GITHUB_APP_PRIVATE_KEY_PATH` — Path to the `.pem` file inside the container (set automatically by the chart)
+- `GITHUB_WEBHOOK_SECRET` — Webhook secret for verifying webhook signatures
 
 ### 3. User Flow (Self-Service)
 
@@ -96,6 +155,17 @@ Add these to your backend environment (`.env` or `docker-compose.yml`).
 - **Security**: Private key must be kept secure and never exposed
 
 ## Troubleshooting
+
+### After Installation, Browser Redirects to `localhost:5173`
+
+This means the GitHub App's **Setup URL** is still pointing to the old localhost address. GitHub uses the Setup URL for all post-installation redirects (new installs, permission updates, uninstalls).
+
+Fix:
+1. Go to `https://github.com/settings/apps/<your-app-slug>` → General
+2. Set **Setup URL** to `https://your-domain.com/api/v2/vcs-connections/github/setup`
+3. Save changes
+
+The API's `/setup` endpoint receives the redirect from GitHub and forwards it to the correct frontend URL based on the `STACKWEAVER_APP_URL` environment variable (set automatically by the Helm chart, or via `STACKWEAVER_APP_URL` in Docker Compose).
 
 ### "GitHub App is not configured" Error
 - Make sure `GITHUB_APP_ID` and `GITHUB_APP_NAME` are set
