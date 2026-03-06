@@ -55,5 +55,5 @@ Common scenarios for editing workspaces:
 
 ## Related Documentation
 
-- [Your First Terraform Workspace](../../user-guides/your-first-terraform-workspace.md) - Get started with workspaces
+- [Your First Terraform Workspace](../../get-started/your-first-terraform-workspace.md) - Get started with workspaces
 - [Backend API Reference](../../internal/api-reference/backend-api-reference.md) - API for workspace management

@@ -4,23 +4,29 @@
 
 Practical, step-by-step guides for using StackWeaver. These guides walk you through common tasks and workflows.
 
-## Getting Started
+## Authentication
 
-- **[Your First Terraform Workspace](./user-guides/your-first-terraform-workspace.md)** - Set up and run your first Terraform workspace from scratch
-- **[Running Your First Ansible Job](./user-guides/your-first-ansible-job.md)** - Get started with Ansible automation in StackWeaver
+- **[Authentication Overview](./authentication/README.md)** - Zitadel setup, custom domain, and SSO federation
+  - **[Zitadel Setup](./authentication/zitadel-setup.md)** - How Zitadel is initialised in Docker Compose and Kubernetes deployments
+  - **[Custom Domain](./authentication/zitadel-custom-domain.md)** - Run StackWeaver on a custom domain with internal service communication on localhost
+
+## VCS Integration
+
+- **[VCS Overview](./vcs/README.md)** - Connect a version control system to trigger Terraform runs from code pushes
+  - **[GitHub App](./vcs/github-app.md)** - Create and configure a GitHub App for self-service VCS connections
+  - **[Azure DevOps](./vcs/azure-devops.md)** - Connect Azure DevOps repositories using Microsoft Entra ID OAuth2
 
 ## Terraform Workflows
 
-- **[Understanding Terraform Runs](./user-guides/understanding-terraform-runs.md)** - Learn how to read plan and apply outputs, understand resource changes, and track run history
-- **[Managing Workspace Variables](./user-guides/managing-workspace-variables.md)** - Set up and organize variables across workspaces and projects
-
-> [!NOTE]
-> More user guides are coming soon. See [Features](../features/README.md) for documentation on platform features.
+- **[Understanding Terraform Runs](./understanding-terraform-runs.md)** - Learn how to read plan and apply outputs, understand resource changes, and track run history
+- **[Managing Workspace Variables](./managing-workspace-variables.md)** - Set up and organize variables across workspaces and projects
 
 ## Ansible Workflows
 
 > [!NOTE]
 > Ansible user guides are coming soon. See [Ansible Documentation](../features/ansible/README.md) for complete Ansible integration documentation.
+
+- **[Dynamic Inventories](./dynamic-inventories.md)** - Configure dynamic inventory sources for Ansible jobs
 
 ## Organization and Access
 
@@ -35,11 +41,10 @@ Practical, step-by-step guides for using StackWeaver. These guides walk you thro
 
 - **[Azure OIDC Configuration](./azure-oidc-configuration.md)** - Configure keyless authentication from Terraform and Ansible runs to Azure using OpenID Connect workload identity
 
-## Infrastructure and Execution
+## Infrastructure
 
-- **[Self-Hosted Runners](./user-guides/self-hosted-runners.md)** - Run Terraform and Ansible workloads on your own infrastructure using agent pools and self-hosted runners
-- **[Kubernetes Pull Secret for GHCR](./kubernetes-pull-secret-ghcr.md)** - Create and configure a Kubernetes image pull secret so your cluster can pull StackWeaver images from the private GHCR registry
+- **[Self-Hosted Runners](./self-hosted-runners.md)** - Run Terraform and Ansible workloads on your own infrastructure using agent pools and self-hosted runners
 
-## Common Tasks
+## Troubleshooting
 
-- **[Troubleshooting Common Issues](./user-guides/troubleshooting-common-issues.md)** - Solutions for frequent problems and questions
+- **[Troubleshooting Common Issues](./troubleshooting-common-issues.md)** - Solutions for frequent problems and questions

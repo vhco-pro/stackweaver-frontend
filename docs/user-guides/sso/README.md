@@ -35,7 +35,7 @@ See the [Team Mapping Guide](./team-mapping.md) for details on configuring autom
 
 Before configuring SSO, ensure you have:
 
-1. A running StackWeaver deployment with Zitadel initialized (see the [Zitadel Setup Guide](../../get-started/self-hosting/ZITADEL_SETUP.md)).
+1. A running StackWeaver deployment with Zitadel initialized (see the [Zitadel Setup Guide](../authentication/zitadel-setup.md)).
 2. Administrator access to your external identity provider.
 3. Access to the `deploy/sso.env` file to set SSO/OIDC environment variables (this file is not overwritten by the auto-generated `deploy/.env`).
 

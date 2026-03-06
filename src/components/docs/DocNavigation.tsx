@@ -77,7 +77,7 @@ export function DocNavigation({ index }: DocNavigationProps) {
   const allDocs = flattenDocsTree(index.tree);
 
   // Find current document
-  const currentPath = location.pathname.replace('/docs/', '').replace(/\/$/, '') || 'README';
+  const currentPath = location.pathname.replace(/^\/docs\/?/, '').replace(/\/$/, '') || 'README';
   const currentIndex = allDocs.findIndex(doc => {
     const routePath = getDocRoutePath(doc.docPath);
     const normalizedCurrentPath = currentPath === 'README' ? '/docs' : `/docs/${currentPath}`;
@@ -130,6 +130,7 @@ export function DocNavigation({ index }: DocNavigationProps) {
         {prevDoc ? (
           <Link
             to={getDocRoutePath(prevDoc.docPath)}
+            onClick={() => window.scrollTo(0, 0)}
             className="group flex flex-col justify-between p-4 rounded-lg border border-border/40 bg-background/50 hover:bg-muted/50 hover:border-border transition-colors h-full"
           >
             <div className="text-base font-medium text-foreground group-hover:text-primary transition-colors">
@@ -148,6 +149,7 @@ export function DocNavigation({ index }: DocNavigationProps) {
         {nextDoc ? (
           <Link
             to={getDocRoutePath(nextDoc.docPath)}
+            onClick={() => window.scrollTo(0, 0)}
             className="group flex flex-col justify-between p-4 rounded-lg border border-border/40 bg-background/50 hover:bg-muted/50 hover:border-border transition-colors h-full text-right"
           >
             <div className="text-base font-medium text-foreground group-hover:text-primary transition-colors">

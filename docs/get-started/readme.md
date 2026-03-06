@@ -32,27 +32,15 @@ StackWeaver Cloud is our fully managed SaaS offering that eliminates the need fo
 
 ## Self-Hosting Setup
 
-If you're self-hosting StackWeaver, follow these guides to set up your instance:
-
-### Table of Contents
-
-#### Authentication Setup
-
-- **[Zitadel Setup Guide](self-hosting/ZITADEL_SETUP.md)**: Complete guide to setting up Zitadel for authentication and identity management in your StackWeaver instance. Covers automated bootstrap, manual configuration, OIDC app setup, and integration with the StackWeaver platform.
-
-#### VCS Integration
-
-- **[GitHub App Setup Guide](self-hosting/GITHUB_APP_SETUP.md)**: Step-by-step instructions for configuring GitHub App integration for self-service VCS connections. Includes creating the GitHub App, configuring webhooks, setting environment variables, and testing the integration.
-
-### Quick Start Checklist
-
-For a quick deployment, follow these steps in order:
+If you're self-hosting StackWeaver, follow these steps in order:
 
 1. **Deploy StackWeaver**
-   - **Kubernetes**: Follow the [Kubernetes Deployment Guide](self-hosting/kubernetes.md) — a single `helm install` generates all secrets, initializes Zitadel, and starts all services automatically.
-   - **Docker Compose**: Run `docker compose up -d --build` then `docker compose run --rm zitadel-init`. See the [Zitadel Setup Guide](self-hosting/ZITADEL_SETUP.md#docker-compose-deployment) for details.
-2. **Configure GitHub App** - Enable VCS integration ([GitHub App Setup Guide](self-hosting/GITHUB_APP_SETUP.md))
-3. **Create your first organization** - Set up your workspace and start managing infrastructure
+   - **Kubernetes**: Follow the [Kubernetes Deployment Guide](self-hosting/kubernetes/) — a single `helm install` generates all secrets, initialises Zitadel, and starts all services automatically.
+   - **Docker Compose**: Follow the [Docker Compose Deployment Guide](self-hosting/docker-compose/) — run `make up` to start all services.
+2. **Configure authentication** — See the [Zitadel Setup Guide](../user-guides/authentication/zitadel-setup.md) for both deployment paths. For custom domains see [Custom Domain](../user-guides/authentication/zitadel-custom-domain.md).
+3. **Connect a VCS provider** — [GitHub App](../user-guides/vcs/github-app.md) or [Azure DevOps](../user-guides/vcs/azure-devops.md).
+4. **Create your first Terraform workspace** — Follow [Your First Terraform Workspace](./your-first-terraform-workspace.md).
+5. **Create your first Ansible job** — Follow [Running Your First Ansible Job](./your-first-ansible-job.md).
 
 ## Next Steps
 

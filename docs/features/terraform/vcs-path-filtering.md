@@ -97,5 +97,5 @@ Separate infrastructure per team:
 ## Related Documentation
 
 - [Workspace Editing](./workspace-editing.md) - How to set working directories
-- [Your First Terraform Workspace](../../user-guides/your-first-terraform-workspace.md) - Workspace setup and configuration
-- [Connecting to GitHub](../../get-started/self-hosting/GITHUB_APP_SETUP.md) - Setting up VCS integration
+- [Your First Terraform Workspace](../../get-started/your-first-terraform-workspace.md) - Workspace setup and configuration
+- [Connecting to GitHub](../../user-guides/vcs/github-app.md) - Setting up VCS integration

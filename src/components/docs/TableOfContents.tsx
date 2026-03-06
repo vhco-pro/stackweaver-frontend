@@ -1,6 +1,7 @@
 // Copyright (c) 2025 VH & Co BV. Licensed under the Business Source License 1.1. See LICENSE for details.
 
 import { useEffect, useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import { Menu } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -16,6 +17,7 @@ interface TableOfContentsProps {
 }
 
 export function TableOfContents({ content, className }: TableOfContentsProps) {
+  const location = useLocation();
   const [headings, setHeadings] = useState<Heading[]>([]);
   const [activeId, setActiveId] = useState<string>('');
   const [isManualScroll, setIsManualScroll] = useState(false);
@@ -69,7 +71,7 @@ export function TableOfContents({ content, className }: TableOfContentsProps) {
       clearTimeout(timeoutId2);
       observer.disconnect();
     };
-  }, [content]);
+  }, [content, location.pathname]);
 
   useEffect(() => {
     if (headings.length === 0) return;

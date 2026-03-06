@@ -12,6 +12,7 @@ The chart deploys all StackWeaver components and their dependencies (PostgreSQL,
 - An ingress controller (nginx-ingress recommended)
 - Two DNS records pointing to your ingress (one for the app, one for Zitadel auth)
 - TLS certificates (cert-manager recommended, or provide your own)
+- A Kubernetes image pull secret for GHCR — see [Kubernetes Pull Secret for GHCR](./kubernetes-pull-secret-ghcr.md)
 
 ## Architecture Overview
 
