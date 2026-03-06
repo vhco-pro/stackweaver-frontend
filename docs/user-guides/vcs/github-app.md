@@ -24,7 +24,9 @@ This platform uses **GitHub Apps** (not OAuth Apps) for VCS integration. This al
 2. Fill in the form:
    - **GitHub App name**: `Stackweaver-instance-$` (or your choice)
    - **Homepage URL**: `http://localhost:5173` (your frontend URL)
-   - **setup URL**: `http://localhost:5173/vcs/github/installed`
+   - **Setup URL** — set this to your **frontend URL**: `https://your-domain.com/vcs/github/installed`
+     - For local Docker Compose development, set this to `http://localhost:5173/vcs/github/installed`.
+     - If you need one GitHub App to work across both environments, you will need separate GitHub App registrations (one per environment), or use a tool like ngrok to expose your local frontend.
    - **Webhook URL**:
      - **For development (using ngrok)**: `https://your-ngrok-url.ngrok.io/api/v2/vcs-connections/github/webhook`
        - Install ngrok: `source <(curl -fsSL https://raw.githubusercontent.com/michielvha/PDS/main/bash/common/software/ngrok.sh)`
@@ -32,10 +34,6 @@ This platform uses **GitHub Apps** (not OAuth Apps) for VCS integration. This al
        - Copy the HTTPS URL (e.g., `https://abc123.ngrok.io`)
        - Use: `https://abc123.ngrok.io/api/v2/vcs-connections/github/webhook`
      - **For production / Kubernetes**: `https://your-domain.com/api/v2/vcs-connections/github/webhook`
-   - **Setup URL** (important — this is where GitHub redirects after installation):
-     - **For development**: leave blank, or use `https://your-ngrok-url.ngrok.io/api/v2/vcs-connections/github/setup`
-     - **For production / Kubernetes**: `https://your-domain.com/api/v2/vcs-connections/github/setup`
-     - The API relays this redirect to the correct frontend URL automatically — do not use `http://localhost:5173` here
    - **Webhook secret**: Generate a random secret (store securely) - must match `GITHUB_WEBHOOK_SECRET` environment variable
    - **Webhook events**: Ensure "Push" events are enabled (required for tag-based module publishing)
    - **Repository permissions**:
@@ -158,14 +156,14 @@ No other configuration is required. If `secrets.githubApp.secretName` is empty, 
 
 ### After Installation, Browser Redirects to `localhost:5173`
 
-This means the GitHub App's **Setup URL** is still pointing to the old localhost address. GitHub uses the Setup URL for all post-installation redirects (new installs, permission updates, uninstalls).
+Root cause: The GitHub App **Setup URL** is set to `http://localhost:5173/vcs/github/installed`, which only works for local Docker Compose development. In Kubernetes (production), the Setup URL must point to your actual frontend domain.
 
 Fix:
 1. Go to `https://github.com/settings/apps/<your-app-slug>` → General
-2. Set **Setup URL** to `https://your-domain.com/api/v2/vcs-connections/github/setup`
+2. Set **Setup URL** to `https://your-domain.com/vcs/github/installed`
 3. Save changes
 
-The API's `/setup` endpoint receives the redirect from GitHub and forwards it to the correct frontend URL based on the `STACKWEAVER_APP_URL` environment variable (set automatically by the Helm chart, or via `STACKWEAVER_APP_URL` in Docker Compose).
+If you need the same GitHub App to work for both local dev and production, set up two separate GitHub App registrations — one per environment.
 
 ### "GitHub App is not configured" Error
 - Make sure `GITHUB_APP_ID` and `GITHUB_APP_NAME` are set
