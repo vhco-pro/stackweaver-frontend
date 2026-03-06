@@ -1,6 +1,6 @@
 // Copyright (c) 2025 VH & Co BV. Licensed under the Business Source License 1.1. See LICENSE for details.
 
-import { type ReactNode, useState, useEffect } from 'react';
+import { type ReactNode, useState, useEffect, useLayoutEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Menu, List } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -57,26 +57,18 @@ export function DocsLayout({ children }: DocsLayoutProps) {
     void loadIndex();
   }, []);
 
-  // Scroll to top when navigating to a new doc (in-content links, sidebar, breadcrumbs, prev/next).
-  // Defer with rAF so it runs after React's commit; scroll the main content into view so the doc
-  // (below the fixed nav) is at the top of the viewport.
-  useEffect(() => {
-    const id = requestAnimationFrame(() => {
-      const main = document.querySelector('main');
-      if (main) {
-        main.scrollIntoView({ block: 'start', behavior: 'auto' });
-      } else {
-        window.scrollTo(0, 0);
-      }
-    });
-    return () => cancelAnimationFrame(id);
-  }, [location.pathname]);
+  // Scroll to top when navigating to a new doc (sidebar, breadcrumbs, prev/next, in-content links).
+  // useLayoutEffect runs synchronously before paint to avoid scroll flicker.
+  // location.key changes on every navigation, even to the same URL.
+  useLayoutEffect(() => {
+    window.scrollTo(0, 0);
+  }, [location.key]);
 
   // Close mobile drawers on navigation
   useEffect(() => {
     setMobileSidebarOpen(false);
     setMobileTocOpen(false);
-  }, [location.pathname]);
+  }, [location.key]);
 
   // Build breadcrumbs from current path - only for subfolders (nested paths)
   const getBreadcrumbs = () => {
@@ -89,7 +81,7 @@ export function DocsLayout({ children }: DocsLayoutProps) {
     }
     
     // Get path segments after /docs/
-    const path = pathname.replace('/docs/', '').replace('/docs', '').replace(/\/$/, '');
+    const path = pathname.replace(/^\/docs\/?/, '').replace(/\/$/, '');
     const parts = path.split('/').filter(Boolean);
     
     // Only show breadcrumbs if we're in a subfolder (have at least 2 path segments)
@@ -169,7 +161,7 @@ export function DocsLayout({ children }: DocsLayoutProps) {
             <SheetTitle className="text-sm font-semibold">Documentation</SheetTitle>
           </SheetHeader>
           <div className="overflow-y-auto h-[calc(100vh-4rem)]">
-            <DocsSidebar />
+            <DocsSidebar onNavigate={() => setMobileSidebarOpen(false)} />
           </div>
         </SheetContent>
       </Sheet>
@@ -181,15 +173,13 @@ export function DocsLayout({ children }: DocsLayoutProps) {
             <SheetTitle className="text-sm font-semibold">On this page</SheetTitle>
           </SheetHeader>
           <div className="overflow-y-auto h-[calc(100vh-4rem)]">
-            <TableOfContents />
+            <TableOfContents key={location.pathname} />
           </div>
         </SheetContent>
       </Sheet>
       
       {/* Main Content Area - Three Column Layout */}
       <div className="pt-32 pb-8 flex">
-        {/* Extra top padding on mobile when mobile nav bar is visible */}
-        <div className="lg:hidden h-0" />
         
         {/* Left Sidebar - Docs Navigation Tree (desktop only) */}
         <aside className="hidden lg:block w-64 flex-shrink-0 border-r border-border/40 bg-background/50 sticky top-24 h-[calc(100vh-6rem)] overflow-y-auto">

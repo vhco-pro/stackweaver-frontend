@@ -7,9 +7,14 @@ Welcome to the StackWeaver documentation. This directory contains comprehensive 
 ## Get Started
 
 - **[Get Started](./get-started/readme.md)**: Overview of StackWeaver and how to get up and running
-- **Self-Hosting**
-  - **[Zitadel Setup Guide](./get-started/self-hosting/ZITADEL_SETUP.md)**: Set up Zitadel for authentication
-  - **[GitHub App Setup Guide](./get-started/self-hosting/GITHUB_APP_SETUP.md)**: Configure GitHub App integration for VCS connections
+- **[Your First Terraform Workspace](./get-started/your-first-terraform-workspace.md)**
+- **[Running Your First Ansible Job](./get-started/your-first-ansible-job.md)**
+- **[Self-Hosting](./get-started/self-hosting/)**
+  - **[Environment Variables Reference](./get-started/self-hosting/environment-variables.md)**: All service environment variables
+  - **[Docker Compose](./get-started/self-hosting/docker-compose/)**: Deploy on a single machine with Docker Compose
+    - **[Cloudflare Tunnel](./get-started/self-hosting/docker-compose/cloud-flare-tunnel.md)**: Expose your Docker Compose stack publicly via Cloudflare Tunnel
+  - **[Kubernetes](./get-started/self-hosting/kubernetes/)**: Deploy on Kubernetes using the Helm chart
+    - **[Kubernetes Pull Secret for GHCR](./get-started/self-hosting/kubernetes/kubernetes-pull-secret-ghcr.md)**: Pull StackWeaver images in a private cluster
 
 ## Architecture
 
@@ -43,12 +48,15 @@ Welcome to the StackWeaver documentation. This directory contains comprehensive 
 ## User Guides
 
 - **[User Guides Overview](./user-guides/README.md)**: Practical, step-by-step workflows
-  - **[Your First Terraform Workspace](./user-guides/your-first-terraform-workspace.md)**
-  - **[Running Your First Ansible Job](./user-guides/your-first-ansible-job.md)**
+  - **[Authentication](./user-guides/authentication/README.md)**
+    - **[Zitadel Setup](./user-guides/authentication/zitadel-setup.md)**: Set up Zitadel for authentication
+    - **[Custom Domain](./user-guides/authentication/zitadel-custom-domain.md)**: Configure a custom domain for Zitadel
+  - **[VCS Integration](./user-guides/vcs/README.md)**
+    - **[GitHub App](./user-guides/vcs/github-app.md)**: Configure GitHub App integration for VCS connections
+    - **[Azure DevOps](./user-guides/vcs/azure-devops.md)**: Connect Azure DevOps repositories
   - **[Understanding Terraform Runs](./user-guides/understanding-terraform-runs.md)**
   - **[Managing Workspace Variables](./user-guides/managing-workspace-variables.md)**
   - **[Troubleshooting Common Issues](./user-guides/troubleshooting-common-issues.md)**
-  - **[Cloudflare Tunnel](./user-guides/cloud-flare-tunnel.md)**
   - **[Single Sign-On (SSO)](./user-guides/sso/README.md)**: Federated authentication with external identity providers
     - **[Azure AD / Entra ID](./user-guides/sso/azure-ad.md)**
     - **[Okta](./user-guides/sso/okta.md)**

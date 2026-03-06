@@ -22,9 +22,10 @@ interface DocsIndex {
 
 interface DocsSidebarProps {
   className?: string;
+  onNavigate?: () => void;
 }
 
-export function DocsSidebar({ className }: DocsSidebarProps) {
+export function DocsSidebar({ className, onNavigate }: DocsSidebarProps) {
   const location = useLocation();
   const navigate = useNavigate();
   const [index, setIndex] = useState<DocsIndex | null>(null);
@@ -52,13 +53,14 @@ export function DocsSidebar({ className }: DocsSidebarProps) {
   useEffect(() => {
     if (!index) return;
     
-    const currentPath = location.pathname.replace('/docs/', '').replace(/\/$/, '') || 'README.md';
-    const parts = currentPath.split('/');
+    const currentPath = location.pathname.replace(/^\/docs\/?/, '').replace(/\/$/, '') || 'README.md';
+    const parts = currentPath.split('/').filter(Boolean);
     
-    // Expand all parent directories of the current path
+    // Expand all ancestor directories and the current directory itself
+    // (so navigating to a folder via prev/next also opens it)
     setExpandedDirs(prev => {
       const next = new Set(prev);
-      for (let i = 0; i < parts.length - 1; i++) {
+      for (let i = 0; i < parts.length; i++) {
         next.add(parts.slice(0, i + 1).join('/'));
       }
       return next;
@@ -132,7 +134,8 @@ export function DocsSidebar({ className }: DocsSidebarProps) {
       ) || [];
       
       // Check if current path matches this directory's README
-      const isReadmeActive = readmePath && location.pathname === readmePath;
+      const currentPathNorm = location.pathname.replace(/\/$/, '');
+      const isReadmeActive = !!readmePath && currentPathNorm === readmePath;
       
       const handleFolderClick = (e: React.MouseEvent) => {
         const target = e.target as HTMLElement;
@@ -154,6 +157,7 @@ export function DocsSidebar({ className }: DocsSidebarProps) {
             }
             return next;
           });
+          onNavigate?.();
           void navigate(readmePath);
         } else {
           toggleDir(node.path);
@@ -205,6 +209,7 @@ export function DocsSidebar({ className }: DocsSidebarProps) {
         <Link
           key={node.path}
           to={docPath}
+          onClick={() => onNavigate?.()}
           className={cn(
             'flex items-center gap-2 px-3 py-2 text-sm rounded-md transition-colors',
             'hover:bg-muted/50 text-muted-foreground hover:text-foreground',

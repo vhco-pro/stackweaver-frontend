@@ -199,7 +199,7 @@ Your custom domain must resolve to the machine running Zitadel on port 8080. Com
 
 ### Cloudflare Tunnel (recommended for self-hosted)
 
-Point a Cloudflare tunnel at `http://localhost:8080`. See the [Cloudflare tunnel guide](cloud-flare-tunnel.md) for detailed setup. The tunnel must route your domain's hostname to `http://localhost:8080`.
+Point a Cloudflare tunnel at `http://localhost:8080`. See the [Cloudflare tunnel guide](../../get-started/self-hosting/docker-compose/cloud-flare-tunnel.md) for detailed setup. The tunnel must route your domain's hostname to `http://localhost:8080`.
 
 ```bash
 cloudflared tunnel route dns my-tunnel zitadel.example.com
@@ -342,5 +342,5 @@ The API fetches JWKS from `http://localhost:8080/oauth/v2/keys` (via `ZITADEL_IN
 
 - [Zitadel Custom Domain docs](https://zitadel.com/docs/self-hosting/manage/custom-domain)
 - [Zitadel Configuration reference](https://github.com/zitadel/zitadel/blob/main/cmd/defaults.yaml)
-- [Cloudflare Tunnel guide](cloud-flare-tunnel.md)
+- [Cloudflare Tunnel guide](../../get-started/self-hosting/docker-compose/cloud-flare-tunnel.md)
 - [Azure AD SSO setup](sso/azure-ad.md)

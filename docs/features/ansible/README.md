@@ -55,6 +55,6 @@ This directory contains the authoritative documentation for StackWeaver's Ansibl
 
 ## Related Documentation
 
-- [GitHub App Setup](../../get-started/self-hosting/GITHUB_APP_SETUP.md) - VCS integration
-- [Zitadel Setup](../../get-started/self-hosting/ZITADEL_SETUP.md) - Authentication
+- [GitHub App Setup](../../user-guides/vcs/github-app.md) - VCS integration
+- [Zitadel Setup](../../user-guides/authentication/zitadel-setup.md) - Authentication
 - [Frontend API Reference](../../internal/api-reference/frontend-api-reference.md) - React patterns

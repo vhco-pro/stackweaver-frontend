@@ -94,5 +94,5 @@ Sync errors are displayed in the playbook detail view, along with details about 
 ## Related Documentation
 
 - [Ansible Documentation](./ansible/README.md) - Complete Ansible integration guide
-- [GitHub App Setup](../get-started/self-hosting/GITHUB_APP_SETUP.md) - Setting up VCS connections
+- [GitHub App Setup](../user-guides/vcs/github-app.md) - Setting up VCS connections
 - [VCS Path Filtering](./terraform/vcs-path-filtering.md) - How path-based filtering works for Terraform workspaces

@@ -363,6 +363,8 @@ export interface MarkdownRendererProps {
   enableMermaid?: boolean;
   // For internal link resolution (used in docs viewer)
   docPath?: string;
+  // Whether the current page loaded a directory README (affects relative link resolution)
+  isDirectoryPage?: boolean;
   // Custom link handler (optional, for non-docs contexts)
   onLinkClick?: (href: string) => void;
 }
@@ -374,6 +376,7 @@ export function MarkdownRenderer({
   enableCodeGroups = true,
   enableMermaid = true,
   docPath = '',
+  isDirectoryPage = false,
   onLinkClick,
 }: MarkdownRendererProps) {
   const navigate = useNavigate();
@@ -837,32 +840,40 @@ export function MarkdownRenderer({
 
         if (isInternalLink && href) {
           let path = href;
+
+          // Determine the current directory for relative link resolution.
+          // If this is a directory page (loaded a README), docPath IS the directory.
+          // If this is a file page (loaded a .md file), strip the last segment.
+          const currentDir = (() => {
+            if (!docPath || docPath === 'README') return '';
+            if (isDirectoryPage) return docPath;
+            // File page: strip last segment to get parent directory
+            const lastSlash = docPath.lastIndexOf('/');
+            return lastSlash >= 0 ? docPath.substring(0, lastSlash) : '';
+          })();
           
-          // Remove leading ./ or ../
+          // Resolve relative prefixes
           if (path.startsWith('./')) {
             path = path.slice(2);
+            path = currentDir ? `${currentDir}/${path}` : path;
           } else if (path.startsWith('../')) {
-            // Handle relative paths: resolve based on current docPath
-            const currentDir = docPath.includes('/') ? docPath.split('/').slice(0, -1).join('/') : '';
             // Count how many ../ we have
             const upLevels = (path.match(/\.\.\//g) || []).length;
-            if (upLevels > 0) {
-              const dirParts = currentDir ? currentDir.split('/') : [];
-              const targetDir = dirParts.slice(0, -upLevels).join('/');
-              path = path.replace(/^\.\.\//g, '');
-              path = targetDir ? `${targetDir}/${path}` : path;
-            } else {
-              path = path.replace(/^\.\.\//g, '');
-              path = currentDir ? `${currentDir}/${path}` : path;
-            }
+            const dirParts = currentDir ? currentDir.split('/') : [];
+            const targetDir = dirParts.slice(0, Math.max(0, dirParts.length - upLevels)).join('/');
+            path = path.replace(/^(\.\.\/)+/, '');
+            path = targetDir ? `${targetDir}/${path}` : path;
+          } else {
+            // Bare relative path (no ./ or ../), resolve relative to current dir
+            path = currentDir ? `${currentDir}/${path}` : path;
           }
           
           // Remove .md extension
           path = path.replace(/\.md$/, '');
           
-          // Handle README files
-          if (path.endsWith('/README') || path === 'README') {
-            path = path.replace(/\/?README$/, '');
+          // Handle README files (case-insensitive)
+          if (/\/?readme$/i.test(path)) {
+            path = path.replace(/\/?readme$/i, '');
           }
           
           // Build the /docs/* path
@@ -893,7 +904,7 @@ export function MarkdownRenderer({
         );
       },
     };
-  }, [highlightedCode, docPath, navigate, copiedCodeId, enableCallouts, enableCodeGroups, enableMermaid, onLinkClick]);
+  }, [highlightedCode, docPath, isDirectoryPage, navigate, copiedCodeId, enableCallouts, enableCodeGroups, enableMermaid, onLinkClick]);
 
   // Create a key based on highlighted code blocks to force ReactMarkdown to re-render
   // when highlighting completes. ReactMarkdown only re-processes when content changes,

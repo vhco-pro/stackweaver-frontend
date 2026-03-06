@@ -38,17 +38,52 @@ When you install the Helm chart, the following happens without any manual interv
    It provisions the OIDC apps (frontend, API), registers the production redirect URI, sets the Login V2 BaseURI via the Feature API, configures the login service user, and webhook keys, then writes the results directly into the Zitadel Kubernetes Secret.
    It also triggers rolling restarts of the API, frontend, and login-ui pods.
 
-### Finding the Admin Password (Kubernetes)
+### Accessing the Zitadel Admin Console (Kubernetes)
 
-The Zitadel admin password is auto-generated during install.
-The admin user is `{{ zitadel.init.adminUsername }}` (default: `admin@ZITADEL.localhost`).
+The Zitadel console is available at `https://<ingress.hosts.auth>/ui/console`.
 
-To retrieve the password:
+**Admin credentials:**
+
+In Zitadel, login names follow the format `username@orgname.externaldomain`.
+When `ExternalDomain` is your auth hostname (e.g. `sw-auth.example.com`), the admin login name becomes:
+
+```
+admin@zitadel.<ingress.hosts.auth>
+# example: admin@zitadel.sw-auth.example.com
+```
+
+The email address (`admin@ZITADEL.localhost`, configured via `zitadel.init.adminUsername`) also works as a login identifier.
+
+The password is auto-generated on first install. Retrieve it with:
 
 ```bash
 kubectl get secret stackweaver-zitadel -n stackweaver \
   -o jsonpath='{.data.admin-password}' | base64 -d
 ```
+
+> **Note:** In Docker Compose, `ExternalDomain` is `localhost`, so the login name is `admin@ZITADEL.localhost` with the static password `Password1!`. These differ from Kubernetes by design.
+
+### Troubleshooting: Admin Password Does Not Work (Kubernetes)
+
+The admin password is written to the Kubernetes Secret by the PreSync `secrets-init` job and injected into Zitadel via `ZITADEL_FIRSTINSTANCE_ORG_HUMAN_PASSWORD`. This only takes effect during the **first** Zitadel initialization — if the database already existed with a different password (e.g. the secret was deleted and recreated), the DB and secret are out of sync.
+
+To recover, reset the Zitadel database and let it reinitialize:
+
+```bash
+PG_POD=$(kubectl get pod -n stackweaver \
+  -l app.kubernetes.io/component=postgresql \
+  -o jsonpath='{.items[0].metadata.name}')
+
+kubectl exec -n stackweaver "$PG_POD" -- \
+  psql -U iac -c "DROP DATABASE IF EXISTS zitadel;"
+
+kubectl exec -n stackweaver "$PG_POD" -- \
+  psql -U iac -c "CREATE DATABASE zitadel OWNER iac;"
+
+kubectl rollout restart deployment/stackweaver-zitadel -n stackweaver
+```
+
+After Zitadel restarts and completes initialization, the new password from the secret will be active.
 
 ### Monitoring Initialization Progress
 

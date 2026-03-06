@@ -91,7 +91,7 @@ cp deploy/vcs.env.example deploy/vcs.env
 make fresh-backend
 ```
 
-For a full list of every environment variable, see the [Environment Variables Reference](environment-variables.md).
+For a full list of every environment variable, see the [Environment Variables Reference](../environment-variables.md).
 
 ### Custom Domain (Production)
 
@@ -102,7 +102,7 @@ To use a custom domain, Zitadel's external domain configuration must be updated.
 2. Set the `ZITADEL_CUSTOM_DOMAINS` environment variable in `deploy/zitadel-init.yaml` or directly as an env var.
 3. Update frontend env vars to point to the new domain.
 
-See the [Zitadel Setup guide](ZITADEL_SETUP.md) for detailed instructions.
+See the [Zitadel Setup guide](../../../user-guides/authentication/zitadel-setup.md) for detailed instructions.
 
 ### Reverse Proxy
 
