@@ -36,13 +36,19 @@ The chart deploys the following resources.
 All services communicate via internal Kubernetes DNS names.
 No service uses `localhost` — the Helm chart automatically configures the correct internal addresses.
 
+## Chart Distribution
+
+The Helm chart is published to an OCI registry and does not require cloning any repository.
+Check the [releases page](https://github.com/vhco-pro/stackweaver-helm/releases) for the latest version, then substitute it into the commands below.
+
 ## Zero-Config Install
 
-The quickest way to get started — the chart auto-generates all required passwords, keys, and credentials.
+The quickest way to get started. The chart auto-generates all required passwords, keys, and credentials.
 You only need to provide your domain names.
 
 ```bash
-helm install stackweaver ./deploy/helm/stackweaver \
+helm install stackweaver oci://ghcr.io/vhco-pro/charts/stackweaver \
+  --version 0.3.12 \
   --namespace stackweaver --create-namespace \
   --set ingress.hosts.app=stackweaver.example.com \
   --set ingress.hosts.auth=auth.stackweaver.example.com
@@ -51,7 +57,7 @@ helm install stackweaver ./deploy/helm/stackweaver \
 That is it.
 The chart generates random secrets for PostgreSQL, MinIO, the encryption key, and Zitadel, and persists them in Kubernetes Secrets that survive upgrades and uninstalls.
 
-The frontend is configured automatically — its API URL, Zitadel issuer, and OAuth2 redirect URI are all derived from the ingress host names.
+The frontend is configured automatically; its API URL, Zitadel issuer, and OAuth2 redirect URI are all derived from the ingress host names.
 
 ## Using a Values File
 
@@ -73,7 +79,8 @@ ingress:
 Install with the file.
 
 ```bash
-helm install stackweaver ./deploy/helm/stackweaver \
+helm install stackweaver oci://ghcr.io/vhco-pro/charts/stackweaver \
+  --version 0.3.12 \
   --namespace stackweaver --create-namespace \
   --values my-values.yaml
 ```
@@ -219,7 +226,8 @@ storage:
 ## Upgrading
 
 ```bash
-helm upgrade stackweaver ./deploy/helm/stackweaver \
+helm upgrade stackweaver oci://ghcr.io/vhco-pro/charts/stackweaver \
+  --version 0.3.12 \
   --namespace stackweaver \
   --values my-values.yaml
 ```
