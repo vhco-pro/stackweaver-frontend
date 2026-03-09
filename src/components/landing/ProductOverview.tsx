@@ -2,9 +2,10 @@
 
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
-import { GithubIcon, FileText, Search, Shield, LayoutDashboard, Zap } from 'lucide-react';
+import { FileText, Search, Shield, LayoutDashboard, Zap } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { RotatingTextContainer, RotatingText } from '@/components/animate-ui/primitives/texts/rotating';
+import { getVcsProviderIcon } from '@/lib/vcs';
 
 export function ProductOverview() {
   return (
@@ -75,7 +76,7 @@ export function ProductOverview() {
                 className="w-full sm:w-auto justify-center bg-white dark:bg-slate-900/80 dark:backdrop-blur-sm text-slate-900 dark:text-white hover:bg-slate-50 dark:hover:bg-slate-900/90 border-0 whitespace-nowrap rounded-[calc(0.75rem-3px)] dark:rounded-[calc(0.75rem-2.5px)] h-12 px-6 text-base font-semibold transition-colors duration-200"
               >
                 <a href="https://github.com/michielvha/stackweaver" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2">
-                  <GithubIcon className="w-5 h-5" />
+                  {getVcsProviderIcon('github', 'w-5 h-5')}
                   <span>View on GitHub</span>
                 </a>
               </Button>
