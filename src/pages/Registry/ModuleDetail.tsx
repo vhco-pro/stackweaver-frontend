@@ -27,14 +27,13 @@ import {
 } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
 import { getVcsProviderIcon, getVcsRepoUrl } from '@/lib/vcs';
-import { vcsConnectionsApi, type VCSConnection } from '@/api/client';
 import { useState, useEffect } from 'react';
 import { HclSyntaxHighlighter } from '@/components/code/HclSyntaxHighlighter';
 import { MarkdownRenderer } from '@/components/docs/MarkdownRenderer';
 
 type TabType = 'readme' | 'inputs' | 'outputs' | 'dependencies' | 'resources' | 'versions';
 
-type ConfirmKind = 'version' | 'module' | 'all';
+type ConfirmKind = 'version' | 'module';
 
 // Types for module metadata based on backend parser structures
 interface InputDefinition {
@@ -269,7 +268,6 @@ export default function ModuleDetail() {
   }>();
   const navigate = useNavigate();
   const [module, setModule] = useState<Module | null>(null);
-  const [vcsConnections, setVcsConnections] = useState<VCSConnection[]>([]);
   const [versions, setVersions] = useState<ModuleVersion[]>([]);
   const [selectedVersion, setSelectedVersion] = useState<ModuleVersion | null>(null);
   const [activeTab, setActiveTab] = useState<TabType>('inputs');
@@ -294,7 +292,6 @@ export default function ModuleDetail() {
     ])
       .then(([moduleData, versionsData]) => {
         setModule(moduleData);
-        void vcsConnectionsApi.list(orgName ?? '').then(setVcsConnections).catch(() => {});
         const versionsList = Array.isArray(versionsData) ? versionsData : [];
         setVersions(versionsList);
         // Set latest version as selected (first in list, sorted by published_at DESC)
@@ -484,19 +481,18 @@ export default function ModuleDetail() {
               </>
             )}
             {module.vcs_repository && (() => {
-              const conn = vcsConnections.find(c => c.id === module.vcs_connection_id);
-              const repoUrl = getVcsRepoUrl(conn?.provider ?? '', module.vcs_repository ?? '', conn?.account_name);
+              const repoUrl = getVcsRepoUrl(module.vcs_provider ?? '', module.vcs_repository ?? '', module.vcs_account_name);
               return repoUrl ? (
                 <a href={repoUrl} target="_blank" rel="noopener noreferrer"
-                  className="flex items-center gap-1 text-blue-600 dark:text-blue-400 hover:underline">
-                  {getVcsProviderIcon(conn?.provider ?? '', 'h-4 w-4')}
-                  {module.vcs_repository}
+                  className="flex items-center gap-1.5 hover:underline">
+                  {getVcsProviderIcon(module.vcs_provider ?? '', 'h-3.5 w-3.5 dark:text-white')}
+                  <span>{module.vcs_repository}</span>
                   <ExternalLink className="h-3 w-3" />
                 </a>
               ) : (
-                <span className="flex items-center gap-1">
-                  {getVcsProviderIcon(conn?.provider ?? '', 'h-4 w-4')}
-                  {module.vcs_repository}
+                <span className="flex items-center gap-1.5">
+                  {getVcsProviderIcon(module.vcs_provider ?? '', 'h-3.5 w-3.5 dark:text-white')}
+                  <span>{module.vcs_repository}</span>
                 </span>
               );
             })()}
@@ -978,11 +974,14 @@ export default function ModuleDetail() {
               </div>
             )}
 
-            {/* Delete All Versions (Delete Module) */}
-            <div className="border rounded-lg p-4 space-y-2">
-              <h4 className="font-semibold text-sm">Delete All Versions</h4>
+            {/* Delete All Versions (Delete Module) - Danger zone */}
+            <div className="border rounded-lg p-4 space-y-2 border-destructive/50 bg-destructive/5">
+              <div className="flex items-center gap-2">
+                <AlertTriangle className="h-4 w-4 text-destructive" />
+                <h4 className="font-semibold text-sm text-destructive">Delete All Versions</h4>
+              </div>
               <p className="text-xs text-muted-foreground">
-                Delete this module and all its versions. This action cannot be undone.
+                Permanently delete <strong>all versions</strong> of this module. This action cannot be undone.
               </p>
               <Button
                 variant="destructive"
@@ -1003,35 +1002,6 @@ export default function ModuleDetail() {
                 )}
               </Button>
             </div>
-
-            {/* Delete All Modules in Organization - Danger zone at bottom */}
-            <div className="border rounded-lg p-4 space-y-2 border-destructive/50 bg-destructive/5">
-              <div className="flex items-center gap-2">
-                <AlertTriangle className="h-4 w-4 text-destructive" />
-                <h4 className="font-semibold text-sm text-destructive">Danger Zone</h4>
-              </div>
-              <p className="text-xs text-muted-foreground">
-                Permanently delete <strong>all modules</strong> in this organization. This action cannot be undone.
-              </p>
-              <Button
-                variant="destructive"
-                className="w-full gap-2"
-                onClick={() => { setConfirmDialog({ kind: 'all' }); }}
-                disabled={deleting}
-              >
-                {deleting ? (
-                  <>
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    Deleting...
-                  </>
-                ) : (
-                  <>
-                    <Trash2 className="h-4 w-4" />
-                    Delete All Modules
-                  </>
-                )}
-              </Button>
-            </div>
           </div>
         </DialogContent>
       </Dialog>
@@ -1045,9 +1015,7 @@ export default function ModuleDetail() {
             ? `Delete version ${confirmDialog.version ?? ''}?`
             : confirmDialog?.kind === 'module'
               ? `Delete module ${moduleName}/${provider}?`
-              : confirmDialog?.kind === 'all'
-                ? `Delete all modules in ${orgName}?`
-                : ''
+              : ''
         }
         description="This action cannot be undone."
         confirmLabel={
@@ -1055,9 +1023,7 @@ export default function ModuleDetail() {
             ? `Delete Version ${confirmDialog.version ?? ''}`
             : confirmDialog?.kind === 'module'
               ? 'Delete Module'
-              : confirmDialog?.kind === 'all'
-                ? 'Delete All Modules'
-                : 'Confirm'
+              : 'Confirm'
         }
         cancelLabel="Cancel"
         variant="destructive"
@@ -1084,13 +1050,6 @@ export default function ModuleDetail() {
               setConfirmDialog(null);
               void Promise.resolve(navigate(`/app/${orgName}/registry`));
               return;
-            } else if (confirmDialog.kind === 'all') {
-              await registryApi.modules.deleteAll(orgName);
-              toast.success('All modules deleted successfully');
-              setManageDialogOpen(false);
-              setConfirmDialog(null);
-              void Promise.resolve(navigate(`/app/${orgName}/registry`));
-              return;
             }
             setConfirmDialog(null);
             setManageDialogOpen(false);
@@ -1099,9 +1058,7 @@ export default function ModuleDetail() {
               ? String((err as { message: unknown }).message)
               : confirmDialog.kind === 'version'
                 ? 'Failed to delete version'
-                : confirmDialog.kind === 'module'
-                  ? 'Failed to delete module'
-                  : 'Failed to delete modules';
+                : 'Failed to delete module';
             toast.error(errorMessage);
           } finally {
             setDeleting(false);
