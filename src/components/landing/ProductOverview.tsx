@@ -67,12 +67,12 @@ export function ProductOverview() {
 
           {/* Actions */}
           <div className="flex flex-col sm:flex-row gap-4 mt-4">
-            <div className="relative inline-flex rounded-xl bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500 p-[3px] dark:p-[2.5px]">
-              <Button 
+            <div className="relative inline-flex w-full sm:w-auto rounded-xl bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500 p-[3px] dark:p-[2.5px]">
+              <Button
                 variant="ghost"
-                size="lg" 
+                size="lg"
                 asChild
-                className="bg-white dark:bg-slate-900/80 dark:backdrop-blur-sm text-slate-900 dark:text-white hover:bg-slate-50 dark:hover:bg-slate-900/90 border-0 whitespace-nowrap rounded-[calc(0.75rem-3px)] dark:rounded-[calc(0.75rem-2.5px)] h-12 px-6 text-base font-semibold transition-colors duration-200"
+                className="w-full sm:w-auto justify-center bg-white dark:bg-slate-900/80 dark:backdrop-blur-sm text-slate-900 dark:text-white hover:bg-slate-50 dark:hover:bg-slate-900/90 border-0 whitespace-nowrap rounded-[calc(0.75rem-3px)] dark:rounded-[calc(0.75rem-2.5px)] h-12 px-6 text-base font-semibold transition-colors duration-200"
               >
                 <a href="https://github.com/michielvha/stackweaver" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2">
                   <GithubIcon className="w-5 h-5" />
