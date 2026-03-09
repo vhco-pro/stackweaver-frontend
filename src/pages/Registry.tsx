@@ -9,13 +9,6 @@ import { registryApi, organizationsApi, type Module, type Organization } from '@
 import { toast } from 'sonner';
 import { CreateModuleDialog } from '@/components/registry/CreateModuleDialog';
 import { Badge } from '@/components/ui/badge';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import { Loader2 } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
 
@@ -164,7 +157,7 @@ export default function Registry() {
               className="w-full pl-10 pr-4 py-2 rounded-lg border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
             />
           </div>
-          <div className="flex items-center gap-2 border-b border-border">
+          <div className="hidden sm:flex items-center gap-2 border-b border-border">
             <button className="px-4 py-2 text-sm font-medium border-b-2 border-primary text-primary">
               Modules
             </button>
@@ -175,15 +168,19 @@ export default function Registry() {
               Providers
             </button>
           </div>
-          <Select>
-            <SelectTrigger className="w-[120px]">
-              <SelectValue placeholder="Publish" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="module">Module</SelectItem>
-              <SelectItem value="provider">Provider</SelectItem>
-            </SelectContent>
-          </Select>
+          {/* Responsive fallback: compact select shown when tabs don't fit */}
+          <select
+            className="sm:hidden border border-input bg-background text-sm rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-ring"
+            onChange={(e) => {
+              if (e.target.value === 'providers') {
+                void navigate(`/app/${selectedOrg}/registry/providers`);
+              }
+            }}
+            defaultValue="modules"
+          >
+            <option value="modules">Modules</option>
+            <option value="providers">Providers</option>
+          </select>
           <Button 
             onClick={() => setCreateDialogOpen(true)}
             className="bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white ml-auto"

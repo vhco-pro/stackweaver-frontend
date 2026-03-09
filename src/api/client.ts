@@ -1939,6 +1939,8 @@ export interface Module {
   source?: string;
   verified: boolean;
   vcs_connection_id?: string;
+  vcs_provider?: string;
+  vcs_account_name?: string;
   vcs_repository?: string;
   auto_publish_tags: boolean;
   latest_version?: string;
