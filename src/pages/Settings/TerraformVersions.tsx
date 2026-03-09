@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { ArrowLeft, Plus, Search, Loader2, ToggleLeft, ToggleRight, Trash2, Tag } from 'lucide-react';
+import { ArrowLeft, Plus, Search, Loader2, Trash2, Tag } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -26,7 +26,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { cn } from '@/lib/utils';
+import { Switch } from '@/components/ui/switch';
 
 export default function TerraformVersions() {
   const { orgName } = useParams<{ orgName: string }>();
@@ -186,25 +186,37 @@ export default function TerraformVersions() {
   return (
     <div className="space-y-8">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <Link
-            to={`/app/${orgName || ''}/settings`}
-            className="inline-flex items-center justify-center rounded-lg p-2 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+      <div className="flex items-start gap-4">
+        <Link to={`/app/${orgName || ''}/settings`}>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-10 w-10 rounded-xl text-muted-foreground hover:text-foreground"
+            aria-label="Back to Settings"
           >
             <ArrowLeft className="h-5 w-5" />
-          </Link>
+          </Button>
+        </Link>
+        <div className="flex-1 flex items-start justify-between gap-4 mb-2">
           <div>
-            <h1 className="text-2xl font-bold tracking-tight">Terraform Versions</h1>
-            <p className="text-sm text-muted-foreground">
+            <h1 className="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-500 bg-clip-text text-transparent mb-2">
+              Terraform Versions
+            </h1>
+            <p className="text-muted-foreground">
               Manage the available Terraform versions for workspaces in this organization.
             </p>
           </div>
+          <div className="relative inline-flex rounded-xl bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-500 p-[2px]">
+            <Button
+              variant="ghost"
+              onClick={() => { setAddDialogOpen(true); }}
+              className="bg-white dark:bg-slate-950/80 dark:backdrop-blur-sm text-slate-900 dark:text-white hover:bg-slate-50 dark:hover:bg-slate-950/90 border-0 whitespace-nowrap rounded-[calc(0.75rem-2px)] px-4 py-2"
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Add Terraform Version
+            </Button>
+          </div>
         </div>
-        <Button onClick={() => { setAddDialogOpen(true); }} className="gap-2">
-          <Plus className="h-4 w-4" />
-          Add Terraform version
-        </Button>
       </div>
 
       {/* Org default version selector */}
@@ -300,25 +312,12 @@ export default function TerraformVersions() {
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-3">
-                        <button
-                          onClick={() => { void handleToggleEnabled(v); }}
-                          className="flex items-center gap-1.5 text-sm"
-                          title={v.attributes.enabled ? 'Disable' : 'Enable'}
-                        >
-                          {v.attributes.enabled ? (
-                            <ToggleRight className="h-5 w-5 text-green-500" />
-                          ) : (
-                            <ToggleLeft className="h-5 w-5 text-muted-foreground" />
-                          )}
-                          <span className={cn(
-                            'rounded-full px-2 py-0.5 text-xs font-medium',
-                            v.attributes.enabled
-                              ? 'bg-green-500/10 text-green-600 dark:text-green-400'
-                              : 'bg-gray-500/10 text-gray-600 dark:text-gray-400'
-                          )}>
-                            {v.attributes.enabled ? 'Enabled' : 'Disabled'}
-                          </span>
-                        </button>
+                        <Switch
+                          checked={v.attributes.enabled}
+                          onCheckedChange={() => { void handleToggleEnabled(v); }}
+                          aria-label={v.attributes.enabled ? 'Disable version' : 'Enable version'}
+                          className="data-[state=checked]:bg-green-500"
+                        />
                         {v.attributes.deprecated && (
                           <span className="rounded-full bg-red-500/10 px-2 py-0.5 text-xs font-medium text-red-600 dark:text-red-400">
                             Deprecated

@@ -44,7 +44,9 @@ export default function UsersSettings() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [hasManageAccess, setHasManageAccess] = useState<boolean | null>(null);
+  const [activeTab, setActiveTab] = useState('users');
   const [showAddDialog, setShowAddDialog] = useState(false);
+  const [showCreateTeamDialog, setShowCreateTeamDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [selectedMembership, setSelectedMembership] = useState<OrganizationMembership | null>(null);
   const [newEmail, setNewEmail] = useState('');
@@ -203,11 +205,15 @@ export default function UsersSettings() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <Link
-            to={`/app/${orgName}/settings`}
-            className="text-muted-foreground hover:text-foreground transition-colors"
-          >
-            <ArrowLeft className="h-5 w-5" />
+          <Link to={`/app/${orgName}/settings`}>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-10 w-10 rounded-xl text-muted-foreground hover:text-foreground"
+              aria-label="Back to Settings"
+            >
+              <ArrowLeft className="h-5 w-5" />
+            </Button>
           </Link>
           <div>
             <h1 className="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-violet-400 via-indigo-400 to-blue-400 bg-clip-text text-transparent">
@@ -218,22 +224,31 @@ export default function UsersSettings() {
             </p>
           </div>
         </div>
+        <div className="relative inline-flex rounded-xl bg-gradient-to-r from-violet-500 via-indigo-500 to-blue-500 p-[2px]">
+          <Button
+            variant="ghost"
+            onClick={() => {
+              if (activeTab === 'users') {
+                setShowAddDialog(true);
+              } else {
+                setShowCreateTeamDialog(true);
+              }
+            }}
+            className="bg-white dark:bg-slate-950/80 dark:backdrop-blur-sm text-slate-900 dark:text-white hover:bg-slate-50 dark:hover:bg-slate-950/90 border-0 whitespace-nowrap rounded-[calc(0.75rem-2px)] px-4 py-2"
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            {activeTab === 'users' ? 'Add User' : 'Create Team'}
+          </Button>
+        </div>
       </div>
 
-      <Tabs defaultValue="users" className="space-y-6">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
         <TabsList>
           <TabsTrigger value="users">Users</TabsTrigger>
           <TabsTrigger value="teams">Teams</TabsTrigger>
         </TabsList>
 
         <TabsContent value="users" className="space-y-6">
-          <div className="flex items-center justify-end">
-            <Button onClick={() => setShowAddDialog(true)}>
-              <Plus className="h-4 w-4 mr-2" />
-              Add User
-            </Button>
-          </div>
-
           {/* Error Message */}
           {error && (
             <div className="bg-destructive/10 border border-destructive/20 text-destructive px-4 py-3 rounded-lg">
@@ -397,7 +412,7 @@ export default function UsersSettings() {
         </TabsContent>
 
         <TabsContent value="teams">
-          <TeamsTab orgName={orgName} />
+          <TeamsTab orgName={orgName} showCreateDialog={showCreateTeamDialog} setShowCreateDialog={setShowCreateTeamDialog} />
         </TabsContent>
       </Tabs>
     </div>
@@ -405,12 +420,11 @@ export default function UsersSettings() {
 }
 
 // Teams Tab Component (extracted from Teams.tsx)
-function TeamsTab({ orgName }: { orgName: string }) {
+function TeamsTab({ orgName, showCreateDialog, setShowCreateDialog }: { orgName: string; showCreateDialog: boolean; setShowCreateDialog: (open: boolean) => void }) {
   const [teams, setTeams] = useState<Team[]>([]);
   const [allMemberships, setAllMemberships] = useState<OrganizationMembership[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showMembersDialog, setShowMembersDialog] = useState(false);
@@ -739,13 +753,6 @@ function TeamsTab({ orgName }: { orgName: string }) {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-end">
-        <Button onClick={() => setShowCreateDialog(true)}>
-          <Plus className="h-4 w-4 mr-2" />
-          Create Team
-        </Button>
-      </div>
-
       {/* Error Message */}
       {error && (
         <div className="bg-destructive/10 border border-destructive/20 text-destructive px-4 py-3 rounded-lg">

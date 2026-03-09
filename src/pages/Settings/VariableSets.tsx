@@ -1,20 +1,18 @@
 // Copyright (c) 2025 VH & Co BV. Licensed under the Business Source License 1.1. See LICENSE for details.
 
 import { useEffect, useState, useCallback } from 'react';
-import { useParams, useNavigate, useSearchParams, Link } from 'react-router-dom';
+import { useParams, Link } from 'react-router-dom';
 import { Package, Plus, Trash2, Settings, Users, ChevronDown, ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { 
-  variableSetsApi, 
-  organizationsApi, 
+import {
+  variableSetsApi,
   projectsApi,
   workspacesApi,
-  type VariableSet, 
-  type Organization,
+  type VariableSet,
   type Project,
   type Workspace
 } from '@/api/client';
@@ -60,15 +58,9 @@ import {
 import { cn } from '@/lib/utils';
 
 export default function VariableSets() {
-  const params = useParams<{ orgName: string }>();
-  const orgName = params.orgName;
-  const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
+  const { orgName } = useParams<{ orgName: string }>();
   const [variableSets, setVariableSets] = useState<VariableSet[]>([]);
-  const [organizations, setOrganizations] = useState<Organization[]>([]);
-  const [selectedOrg, setSelectedOrg] = useState<string>(orgName || '');
   const [loading, setLoading] = useState(true);
-  const [loadingOrgs, setLoadingOrgs] = useState(true);
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [manageDialogOpen, setManageDialogOpen] = useState(false);
   const [selectedVariableSet, setSelectedVariableSet] = useState<VariableSet | null>(null);
@@ -115,44 +107,14 @@ export default function VariableSets() {
     description: string;
   }>>([]);
 
-  // Load organizations
-  useEffect(() => {
-    void organizationsApi.list()
-      .then((res) => {
-        const orgs = res.data || [];
-        setOrganizations(orgs);
-        setLoadingOrgs(false);
-        
-        const orgFromQuery = searchParams.get('org');
-        if (orgFromQuery && orgs.some(o => o.name === orgFromQuery)) {
-          setSelectedOrg(orgFromQuery);
-          // Redirect to organization-specific route if accessed from general settings
-          if (!orgName) {
-            void Promise.resolve(navigate(`/app/${orgFromQuery}/settings/variable-sets`, { replace: true }));
-          }
-        } else if (!orgName && orgs.length > 0) {
-          const firstOrg = orgs[0].name;
-          setSelectedOrg(firstOrg);
-          // Redirect to organization-specific route if accessed from general settings
-          void Promise.resolve(navigate(`/app/${firstOrg}/settings/variable-sets`, { replace: true }));
-        } else if (orgName) {
-          setSelectedOrg(orgName);
-        }
-      })
-      .catch((err) => {
-        console.error('Failed to load organizations:', err);
-        setLoadingOrgs(false);
-      });
-  }, [orgName, searchParams, navigate]);
-
   const fetchVariableSets = useCallback(() => {
-    if (!selectedOrg) {
+    if (!orgName) {
       setLoading(false);
       return;
     }
 
     setLoading(true);
-    void variableSetsApi.list(selectedOrg)
+    void variableSetsApi.list(orgName)
       .then((sets) => {
         const normalizedSets = Array.isArray(sets) ? sets : [];
         setVariableSets(normalizedSets);
@@ -164,7 +126,7 @@ export default function VariableSets() {
         setVariableSets([]);
         setLoading(false);
       });
-  }, [selectedOrg]);
+  }, [orgName]);
 
   useEffect(() => {
     fetchVariableSets();
@@ -172,11 +134,11 @@ export default function VariableSets() {
 
   // Load projects and workspaces for assignment (both create and manage dialogs)
   useEffect(() => {
-    if (!selectedOrg) return;
+    if (!orgName) return;
 
     void Promise.all([
-      projectsApi.list(selectedOrg),
-      workspacesApi.list(selectedOrg)
+      projectsApi.list(orgName),
+      workspacesApi.list(orgName)
     ])
       .then(([projectsRes, workspacesRes]) => {
         setProjects(projectsRes?.data || []);
@@ -187,16 +149,11 @@ export default function VariableSets() {
         setProjects([]);
         setWorkspaces([]);
       });
-  }, [selectedOrg]);
-
-  const handleOrgChange = (orgName: string) => {
-    setSelectedOrg(orgName);
-    void Promise.resolve(navigate(`/app/${orgName}/settings/variable-sets`, { replace: true }));
-  };
+  }, [orgName]);
 
   const handleCreateVariableSet = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedOrg) return;
+    if (!orgName) return;
 
     if (!variableSetForm.name.trim()) {
       toast.error('Variable set name is required');
@@ -205,20 +162,20 @@ export default function VariableSets() {
 
     setCreating(true);
     try {
-      const newSet = await variableSetsApi.create(selectedOrg, {
+      const newSet = await variableSetsApi.create(orgName, {
         name: variableSetForm.name.trim(),
         description: variableSetForm.description.trim() || undefined,
         scope: 'organization', // Always organization-scoped (global=false means scoped to specific projects/workspaces, but still org-owned)
         priority: variableSetForm.priority,
         // Parent is always organization when creating from org settings
         parentType: 'organizations',
-        parentId: selectedOrg,
+        parentId: orgName,
       });
       
       // Add initial variables if any
       if (initialVariables.length > 0) {
         const variablePromises = initialVariables.map(variable =>
-          variableSetsApi.createVariable(selectedOrg, newSet.id, {
+          variableSetsApi.createVariable(orgName, newSet.id, {
             key: variable.key.trim(),
             value: variable.value.trim(),
             sensitive: variable.sensitive,
@@ -237,14 +194,14 @@ export default function VariableSets() {
         // Assign to selected projects
         if (variableSetForm.selectedProjects.length > 0) {
           assignmentPromises.push(...variableSetForm.selectedProjects.map(projectId =>
-            variableSetsApi.assignProject(selectedOrg, newSet.id, projectId)
+            variableSetsApi.assignProject(orgName, newSet.id, projectId)
           ));
         }
         
         // Assign to selected workspaces
         if (variableSetForm.selectedWorkspaces.length > 0) {
           assignmentPromises.push(...variableSetForm.selectedWorkspaces.map(workspaceId =>
-            variableSetsApi.assignWorkspace(selectedOrg, newSet.id, workspaceId)
+            variableSetsApi.assignWorkspace(orgName, newSet.id, workspaceId)
           ));
         }
         
@@ -295,7 +252,7 @@ export default function VariableSets() {
   };
 
   const handleSaveVariableSet = async () => {
-    if (!selectedOrg || !selectedVariableSet) return;
+    if (!orgName || !selectedVariableSet) return;
 
     if (!variableSetForm.name.trim()) {
       toast.error('Variable set name is required');
@@ -306,7 +263,7 @@ export default function VariableSets() {
     try {
       // Update basic info
       // Note: Parent cannot be changed in TFE - it's inferred from creation context
-      await variableSetsApi.update(selectedOrg, selectedVariableSet.id, {
+      await variableSetsApi.update(orgName, selectedVariableSet.id, {
         name: variableSetForm.name.trim(),
         description: variableSetForm.description.trim() || undefined,
         scope: 'organization', // Always organization-scoped (global=false means scoped to specific projects/workspaces, but still org-owned)
@@ -323,10 +280,10 @@ export default function VariableSets() {
       if (variableSetForm.global) {
         // Remove all project and workspace assignments when global
         const removeProjectPromises = currentProjects.map(projectId =>
-          variableSetsApi.unassignProject(selectedOrg, selectedVariableSet.id, projectId)
+          variableSetsApi.unassignProject(orgName, selectedVariableSet.id, projectId)
         );
         const removeWorkspacePromises = currentWorkspaces.map(workspaceId =>
-          variableSetsApi.unassignWorkspace(selectedOrg, selectedVariableSet.id, workspaceId)
+          variableSetsApi.unassignWorkspace(orgName, selectedVariableSet.id, workspaceId)
         );
         promises.push(...removeProjectPromises, ...removeWorkspacePromises);
       } else {
@@ -340,18 +297,18 @@ export default function VariableSets() {
         
         // Add/remove projects
         promises.push(...toAddProjects.map(projectId =>
-          variableSetsApi.assignProject(selectedOrg, selectedVariableSet.id, projectId)
+          variableSetsApi.assignProject(orgName, selectedVariableSet.id, projectId)
         ));
         promises.push(...toRemoveProjects.map(projectId =>
-          variableSetsApi.unassignProject(selectedOrg, selectedVariableSet.id, projectId)
+          variableSetsApi.unassignProject(orgName, selectedVariableSet.id, projectId)
         ));
         
         // Add/remove workspaces
         promises.push(...toAddWorkspaces.map(workspaceId =>
-          variableSetsApi.assignWorkspace(selectedOrg, selectedVariableSet.id, workspaceId)
+          variableSetsApi.assignWorkspace(orgName, selectedVariableSet.id, workspaceId)
         ));
         promises.push(...toRemoveWorkspaces.map(workspaceId =>
-          variableSetsApi.unassignWorkspace(selectedOrg, selectedVariableSet.id, workspaceId)
+          variableSetsApi.unassignWorkspace(orgName, selectedVariableSet.id, workspaceId)
         ));
       }
       
@@ -359,7 +316,7 @@ export default function VariableSets() {
       toast.success('Variable set updated successfully');
       fetchVariableSets();
       // Reload the variable set to get updated data
-      const fullSet = await variableSetsApi.get(selectedOrg, selectedVariableSet.id);
+      const fullSet = await variableSetsApi.get(orgName, selectedVariableSet.id);
       setSelectedVariableSet(fullSet);
       // Close the detail view after successful save
       setManageDialogOpen(false);
@@ -374,11 +331,11 @@ export default function VariableSets() {
   };
 
   const handleDeleteVariableSet = async () => {
-    if (!selectedOrg || !selectedVariableSet) return;
+    if (!orgName || !selectedVariableSet) return;
 
     setDeleting(true);
     try {
-      await variableSetsApi.delete(selectedOrg, selectedVariableSet.id);
+      await variableSetsApi.delete(orgName, selectedVariableSet.id);
       toast.success('Variable set deleted successfully');
       setSelectedVariableSet(null);
       fetchVariableSets();
@@ -394,8 +351,9 @@ export default function VariableSets() {
   };
 
   const handleOpenManage = async (variableSet: VariableSet) => {
+    if (!orgName) return;
     try {
-      const fullSet = await variableSetsApi.get(selectedOrg, variableSet.id);
+      const fullSet = await variableSetsApi.get(orgName, variableSet.id);
       setSelectedVariableSet(fullSet);
       // Determine if it's global based on scope and assignments
       const isGlobal = fullSet.scope === 'organization' && (!fullSet.projects || fullSet.projects.length === 0) && (!fullSet.workspaces || fullSet.workspaces.length === 0);
@@ -430,7 +388,7 @@ export default function VariableSets() {
   };
 
   const handleAddVariable = async () => {
-    if (!selectedOrg || !selectedVariableSet) return;
+    if (!orgName || !selectedVariableSet) return;
 
     if (!variableForm.key.trim() || !variableForm.value.trim()) {
       toast.error('Key and value are required');
@@ -444,7 +402,7 @@ export default function VariableSets() {
     }
 
     try {
-      await variableSetsApi.createVariable(selectedOrg, selectedVariableSet.id, {
+      await variableSetsApi.createVariable(orgName, selectedVariableSet.id, {
         key: variableForm.key.trim(),
         value: variableForm.value.trim(),
         sensitive: variableForm.sensitive,
@@ -455,7 +413,7 @@ export default function VariableSets() {
       toast.success('Variable added successfully');
       setVariableForm({ key: '', value: '', sensitive: false, encrypted: false, category: 'terraform', description: '' });
       // Reload variable set to get updated variables
-      const fullSet = await variableSetsApi.get(selectedOrg, selectedVariableSet.id);
+      const fullSet = await variableSetsApi.get(orgName, selectedVariableSet.id);
       setSelectedVariableSet(fullSet);
     } catch (err: unknown) {
       // The API client already extracts the error detail from the backend response
@@ -468,14 +426,14 @@ export default function VariableSets() {
   };
 
   const handleDeleteVariable = async (variableId: string) => {
-    if (!selectedOrg || !selectedVariableSet) return;
+    if (!orgName || !selectedVariableSet) return;
 
     setDeleting(true);
     try {
-      await variableSetsApi.deleteVariable(selectedOrg, selectedVariableSet.id, variableId);
+      await variableSetsApi.deleteVariable(orgName, selectedVariableSet.id, variableId);
       toast.success('Variable deleted successfully');
       // Reload variable set
-      const fullSet = await variableSetsApi.get(selectedOrg, selectedVariableSet.id);
+      const fullSet = await variableSetsApi.get(orgName, selectedVariableSet.id);
       setSelectedVariableSet(fullSet);
       setDeleteVariableDialogOpen(false);
       setVariableToDelete(null);
@@ -490,14 +448,6 @@ export default function VariableSets() {
   };
 
 
-
-  if (loadingOrgs) {
-    return (
-      <div className="flex min-h-[400px] items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
-  }
 
   return (
     <div className="space-y-8">
@@ -522,38 +472,20 @@ export default function VariableSets() {
                 Manage variable sets that can be applied to multiple workspaces
               </p>
             </div>
-            <div className="flex items-center gap-3">
-              {organizations.length > 1 && (
-                <Select value={selectedOrg} onValueChange={handleOrgChange}>
-                  <SelectTrigger className="w-[200px]">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {organizations.map((org) => (
-                      <SelectItem key={org.id} value={org.name}>
-                        {org.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              )}
-              {selectedOrg && (
-                <div className="relative inline-flex rounded-xl bg-gradient-to-r from-blue-500 via-indigo-500 to-blue-500 p-[2px]">
-                  <Button
-                    variant="ghost"
-                    onClick={() => {
-                      setVariableSetForm({ name: '', description: '', global: true, priority: false, selectedProjects: [], selectedWorkspaces: [] });
-                      setShowSelectedProjects(false);
-                      setShowSelectedWorkspaces(false);
-                      setCreateDialogOpen(true);
-                    }}
-                    className="bg-white dark:bg-slate-950/80 dark:backdrop-blur-sm text-slate-900 dark:text-white hover:bg-slate-50 dark:hover:bg-slate-950/90 border-0 whitespace-nowrap rounded-[calc(0.75rem-2px)] px-4 py-2"
-                  >
-                    <Plus className="h-4 w-4 mr-2" />
-                    New Variable Set
-                  </Button>
-                </div>
-              )}
+            <div className="relative inline-flex rounded-xl bg-gradient-to-r from-blue-500 via-indigo-500 to-blue-500 p-[2px]">
+              <Button
+                variant="ghost"
+                onClick={() => {
+                  setVariableSetForm({ name: '', description: '', global: true, priority: false, selectedProjects: [], selectedWorkspaces: [] });
+                  setShowSelectedProjects(false);
+                  setShowSelectedWorkspaces(false);
+                  setCreateDialogOpen(true);
+                }}
+                className="bg-white dark:bg-slate-950/80 dark:backdrop-blur-sm text-slate-900 dark:text-white hover:bg-slate-50 dark:hover:bg-slate-950/90 border-0 whitespace-nowrap rounded-[calc(0.75rem-2px)] px-4 py-2"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                New Variable Set
+              </Button>
             </div>
           </div>
         </div>
@@ -573,7 +505,7 @@ export default function VariableSets() {
               <p className="text-muted-foreground mb-6">
                 Create your first variable set to share variables across workspaces
               </p>
-              {selectedOrg && (
+              {orgName && (
                 <Button onClick={() => setCreateDialogOpen(true)}>
                   <Plus className="mr-2 h-4 w-4" />
                   Create Variable Set

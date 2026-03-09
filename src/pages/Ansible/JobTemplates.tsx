@@ -331,17 +331,25 @@ export default function JobTemplates() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-start justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Job Templates</h1>
+          <h1 className="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-violet-500 via-indigo-500 to-blue-500 bg-clip-text text-transparent mb-2">
+            Job Templates
+          </h1>
           <p className="text-muted-foreground">
             Manage reusable Ansible job configurations for {selectedOrg}
           </p>
         </div>
-        <Button onClick={() => setCreateDialogOpen(true)}>
-          <Plus className="h-4 w-4 mr-2" />
-          New Job Template
-        </Button>
+        <div className="relative inline-flex rounded-xl bg-gradient-to-r from-violet-500 via-indigo-500 to-blue-500 p-[2px]">
+          <Button
+            variant="ghost"
+            onClick={() => setCreateDialogOpen(true)}
+            className="bg-white dark:bg-slate-950/80 dark:backdrop-blur-sm text-slate-900 dark:text-white hover:bg-slate-50 dark:hover:bg-slate-950/90 border-0 whitespace-nowrap rounded-[calc(0.75rem-2px)] px-4 py-2"
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            New Job Template
+          </Button>
+        </div>
       </div>
 
       {/* Search */}
@@ -402,18 +410,22 @@ export default function JobTemplates() {
                     </div>
                   </div>
                   <div className="flex items-center gap-2 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
-                    <Button
-                      size="sm"
-                      onClick={() => { void handleLaunch(template); }}
-                      disabled={launching === template.id}
-                    >
-                      {launching === template.id ? (
-                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      ) : (
-                        <Play className="h-4 w-4 mr-2" />
-                      )}
-                      Launch
-                    </Button>
+                    <div className="relative inline-flex rounded-xl bg-gradient-to-r from-violet-500 via-indigo-500 to-blue-500 p-[2px]">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => { void handleLaunch(template); }}
+                        disabled={launching === template.id}
+                        className="bg-white dark:bg-slate-950/80 dark:backdrop-blur-sm text-slate-900 dark:text-white hover:bg-slate-50 dark:hover:bg-slate-950/90 border-0 whitespace-nowrap rounded-[calc(0.75rem-2px)] px-3 py-1"
+                      >
+                        {launching === template.id ? (
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        ) : (
+                          <Play className="h-4 w-4 mr-2" />
+                        )}
+                        Launch
+                      </Button>
+                    </div>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <Button variant="ghost" size="icon">

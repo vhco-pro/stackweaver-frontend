@@ -284,13 +284,16 @@ export default function ApiKeysSettings() {
                 Create and manage API keys for programmatic access
               </p>
             </div>
-            <Button
-              onClick={() => setShowCreateForm(!showCreateForm)}
-              className="bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600"
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              Create API Key
-            </Button>
+            <div className="relative inline-flex rounded-xl bg-gradient-to-r from-cyan-500 via-blue-500 to-cyan-500 p-[2px]">
+              <Button
+                variant="ghost"
+                onClick={() => setShowCreateForm(!showCreateForm)}
+                className="bg-white dark:bg-slate-950/80 dark:backdrop-blur-sm text-slate-900 dark:text-white hover:bg-slate-50 dark:hover:bg-slate-950/90 border-0 whitespace-nowrap rounded-[calc(0.75rem-2px)] px-4 py-2"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Create API Key
+              </Button>
+            </div>
           </div>
         </div>
       </div>

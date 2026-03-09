@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { Shield, ArrowLeft, Plus, Trash2, Loader2, Settings2 } from 'lucide-react';
+import { Shield, ArrowLeft, Plus, Trash2, Loader2, Settings2, Copy, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -31,6 +31,14 @@ export default function OIDCConfigurations() {
   const [creating, setCreating] = useState(false);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [copiedField, setCopiedField] = useState<string | null>(null);
+
+  const copyToClipboard = (value: string, key: string) => {
+    void navigator.clipboard.writeText(value).then(() => {
+      setCopiedField(key);
+      setTimeout(() => { setCopiedField(null); }, 2000);
+    });
+  };
 
   const [createForm, setCreateForm] = useState({
     client_id: '',
@@ -139,30 +147,37 @@ export default function OIDCConfigurations() {
   return (
     <div className="space-y-8">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <Link
-            to={`/app/${orgName}/settings`}
-            className="text-muted-foreground hover:text-foreground transition-colors"
+      <div className="flex items-start gap-4">
+        <Link to={`/app/${orgName}/settings`}>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-10 w-10 rounded-xl text-muted-foreground hover:text-foreground"
+            aria-label="Back to Settings"
           >
             <ArrowLeft className="h-5 w-5" />
-          </Link>
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-sky-500 to-blue-500 shadow-lg">
-              <Shield className="h-5 w-5 text-white" />
-            </div>
-            <div>
-              <h1 className="text-2xl font-bold">OIDC Configurations</h1>
-              <p className="text-sm text-muted-foreground">
-                Manage keyless authentication from Terraform runs to cloud providers via OIDC workload identity
-              </p>
-            </div>
+          </Button>
+        </Link>
+        <div className="flex-1 flex items-start justify-between gap-4 mb-2">
+          <div>
+            <h1 className="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-sky-400 via-blue-400 to-sky-400 bg-clip-text text-transparent mb-2">
+              OIDC Configurations
+            </h1>
+            <p className="text-muted-foreground">
+              Manage keyless authentication from Terraform runs to cloud providers via OIDC workload identity
+            </p>
+          </div>
+          <div className="relative inline-flex rounded-xl bg-gradient-to-r from-sky-500 via-blue-500 to-sky-500 p-[2px]">
+            <Button
+              variant="ghost"
+              onClick={() => { setCreateOpen(true); }}
+              className="bg-white dark:bg-slate-950/80 dark:backdrop-blur-sm text-slate-900 dark:text-white hover:bg-slate-50 dark:hover:bg-slate-950/90 border-0 whitespace-nowrap rounded-[calc(0.75rem-2px)] px-4 py-2"
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Add Azure OIDC
+            </Button>
           </div>
         </div>
-        <Button onClick={() => { setCreateOpen(true); }} className="gap-2">
-          <Plus className="h-4 w-4" />
-          Add Azure OIDC
-        </Button>
       </div>
 
       {/* Config List */}
@@ -209,18 +224,30 @@ export default function OIDCConfigurations() {
                     </div>
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm">
-                    <div>
-                      <span className="text-muted-foreground">Client ID</span>
-                      <p className="font-mono text-xs mt-1 truncate max-w-[200px]">{config.client_id}</p>
-                    </div>
-                    <div>
-                      <span className="text-muted-foreground">Subscription ID</span>
-                      <p className="font-mono text-xs mt-1 truncate max-w-[200px]">{config.subscription_id}</p>
-                    </div>
-                    <div>
-                      <span className="text-muted-foreground">Tenant ID</span>
-                      <p className="font-mono text-xs mt-1 truncate max-w-[200px]">{config.tenant_id}</p>
-                    </div>
+                    {([
+                      { label: 'Client ID', value: config.client_id, key: `${config.id}-client` },
+                      { label: 'Subscription ID', value: config.subscription_id, key: `${config.id}-sub` },
+                      { label: 'Tenant ID', value: config.tenant_id, key: `${config.id}-tenant` },
+                    ] as { label: string; value: string; key: string }[]).map(({ label, value, key }) => (
+                      <div key={key} className="min-w-0">
+                        <span className="text-muted-foreground">{label}</span>
+                        <div className="flex items-center gap-1.5 mt-1">
+                          <p className="font-mono text-xs truncate min-w-0 flex-1">{value}</p>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-5 w-5 shrink-0 text-muted-foreground hover:text-foreground"
+                            onClick={() => { copyToClipboard(value, key); }}
+                            title={`Copy ${label}`}
+                          >
+                            {copiedField === key
+                              ? <Check className="h-3 w-3 text-green-500" />
+                              : <Copy className="h-3 w-3" />
+                            }
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
