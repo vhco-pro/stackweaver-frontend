@@ -1,6 +1,6 @@
 // Copyright (c) 2025 VH & Co BV. Licensed under the Business Source License 1.1. See LICENSE for details.
 
-import { useState, useMemo, useEffect, type ReactNode } from 'react';
+import { useState, useMemo, useEffect, type ReactNode, type KeyboardEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -11,6 +11,10 @@ import { JsonSyntaxHighlighter } from '@/components/code/JsonSyntaxHighlighter';
 import { CalloutBox, type CalloutType } from '@/components/docs/CalloutBox';
 import { CodeGroup } from '@/components/docs/CodeGroup';
 import { MermaidDiagram } from '@/components/docs/MermaidDiagram';
+import { FileTreeViewer } from '@/components/docs/FileTreeViewer';
+import { CodeExplorer } from '@/components/docs/CodeExplorer';
+import { Dialog, DialogContent } from '@/components/ui/dialog';
+import { useTheme } from '@/contexts/ThemeContext';
 
 // Types for ReactMarkdown components
 interface MarkdownHeadingProps {
@@ -66,6 +70,124 @@ interface ParsedCallout {
 
 type UnknownRecord = Record<string, unknown>;
 
+interface MarkdownImageProps {
+  src?: string;
+  alt?: string;
+  title?: string;
+  [key: string]: unknown;
+}
+
+interface DocImageProps {
+  src?: string;
+  alt?: string;
+  title?: string;
+  currentDir: string;
+  onLightbox: (src: string, alt: string) => void;
+}
+
+/**
+ * Derive the expected dark-variant src from a resolved image src.
+ * e.g. /docs/features/screenshot.png -> /docs/features/screenshot-dark.png
+ */
+function darkVariant(src: string): string {
+  const dot = src.lastIndexOf('.');
+  if (dot === -1) return src + '-dark';
+  return src.slice(0, dot) + '-dark' + src.slice(dot);
+}
+
+/**
+ * Standalone DocImage component for rendering doc images.
+ * Must live outside the useMemo in MarkdownRenderer so hook state is preserved
+ * across memo recomputations.
+ */
+function DocImage({ src, alt, title, currentDir, onLightbox }: DocImageProps) {
+  const { resolvedTheme } = useTheme();
+  const isDark = resolvedTheme === 'dark';
+  const [darkFailed, setDarkFailed] = useState(false);
+  const [lastSrc, setLastSrc] = useState(src);
+
+  // Resolve relative src to an absolute /docs/... path
+  const resolvedSrc = (() => {
+    if (!src) return '';
+    // Pass through absolute URLs and data URIs
+    if (
+      src.startsWith('http://') ||
+      src.startsWith('https://') ||
+      src.startsWith('/') ||
+      src.startsWith('data:')
+    ) {
+      return src;
+    }
+    // Relative path — strip leading ./
+    let rel = src.startsWith('./') ? src.slice(2) : src;
+    // Handle ../
+    if (rel.startsWith('../')) {
+      const upLevels = (rel.match(/\.\.\//g) || []).length;
+      const dirParts = currentDir ? currentDir.split('/') : [];
+      const targetDir = dirParts.slice(0, Math.max(0, dirParts.length - upLevels)).join('/');
+      rel = rel.replace(/^(\.\.\/)+/, '');
+      return `/docs/${targetDir ? targetDir + '/' : ''}${rel}`;
+    }
+    return `/docs/${currentDir ? currentDir + '/' : ''}${rel}`;
+  })();
+
+  // Reset darkFailed when the image src changes (derived state during render, no effect needed)
+  if (lastSrc !== src) {
+    setLastSrc(src);
+    setDarkFailed(false);
+  }
+
+  const activeSrc = isDark && !darkFailed ? darkVariant(resolvedSrc) : resolvedSrc;
+
+  const handleClick = () => {
+    if (resolvedSrc) onLightbox(resolvedSrc, alt ?? '');
+  };
+
+  const handleKeyDown = (e: KeyboardEvent<HTMLImageElement>) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      handleClick();
+    }
+  };
+
+  const imgEl = (
+    <img
+      src={activeSrc}
+      alt={alt ?? ''}
+      title={title}
+      loading="lazy"
+      onError={isDark && !darkFailed ? () => { setDarkFailed(true); } : undefined}
+      onClick={handleClick}
+      onKeyDown={handleKeyDown}
+      tabIndex={0}
+      className="block max-w-full h-auto rounded-md border border-border/40 my-4 cursor-zoom-in focus:outline-none focus:ring-2 focus:ring-ring"
+    />
+  );
+
+  if (title) {
+    return (
+      <figure className="my-4">
+        {/* Re-render img without the outer my-4 margin since figure handles it */}
+        <img
+          src={activeSrc}
+          alt={alt ?? ''}
+          loading="lazy"
+          onError={isDark && !darkFailed ? () => { setDarkFailed(true); } : undefined}
+          onClick={handleClick}
+          onKeyDown={handleKeyDown}
+          tabIndex={0}
+          className="block max-w-full h-auto rounded-md border border-border/40 cursor-zoom-in focus:outline-none focus:ring-2 focus:ring-ring"
+        />
+        <figcaption className="mt-2 text-center text-sm text-muted-foreground">
+          {title}
+        </figcaption>
+      </figure>
+    );
+  }
+
+  return imgEl;
+}
+
 function isRecord(value: unknown): value is UnknownRecord {
   return typeof value === 'object' && value !== null;
 }
@@ -98,6 +220,21 @@ function isCodeGroupContainerStart(node: unknown): boolean {
   return typeof text === 'string' && /^:::\s*code-group\s*$/i.test(text.trim());
 }
 
+function isCodeExplorerStart(node: unknown): { path: string; defaultFile: string; selfClosed: boolean } | null {
+  const text = paragraphText(node);
+  if (typeof text !== 'string') return null;
+  // When there is no blank line between ::: code-explorer and :::, remark puts both
+  // lines in the same paragraph as "::: code-explorer ./path\n:::". Check only the
+  // first line so the pattern still matches.
+  const lines = text.split('\n');
+  const firstLine = (lines[0] ?? '').trim();
+  const match = /^:::\s*code-explorer\s+(\S+)(?:\s+default="([^"]+)")?\s*$/i.exec(firstLine);
+  if (!match) return null;
+  // selfClosed: closing ::: is in the same paragraph (no blank line between directives)
+  const selfClosed = lines.length > 1 && lines.slice(1).some((l) => /^:::\s*$/.test(l.trim()));
+  return { path: match[1], defaultFile: match[2] ?? '', selfClosed };
+}
+
 function isCodeGroupContainerEnd(node: unknown): boolean {
   const text = paragraphText(node);
   return typeof text === 'string' && /^:::\s*$/.test(text.trim());
@@ -128,6 +265,25 @@ function remarkCodeGroup() {
 
       for (let i = 0; i < children.length; i++) {
         const child = children[i];
+
+        // ::: code-explorer <path> ... ::: — must be checked before code-group (same closer)
+        const explorerMatch = isCodeExplorerStart(child);
+        if (explorerMatch) {
+          if (explorerMatch.selfClosed) {
+            // Opening and closing ::: were in the same paragraph (no blank line between them)
+            nextChildren.push({ type: 'codeExplorer', path: explorerMatch.path, defaultFile: explorerMatch.defaultFile });
+            continue;
+          }
+          let j = i + 1;
+          while (j < children.length && !isCodeGroupContainerEnd(children[j])) {
+            j++;
+          }
+          if (j < children.length) {
+            nextChildren.push({ type: 'codeExplorer', path: explorerMatch.path, defaultFile: explorerMatch.defaultFile });
+            i = j; // skip through the closing :::
+            continue;
+          }
+        }
 
         // Preferred authoring syntax: ::: code-group ... :::
         if (isCodeGroupContainerStart(child)) {
@@ -194,6 +350,19 @@ function codeGroupToHast(node: unknown) {
     tagName: 'codegroup',
     properties: {
       'data-code-group-items': JSON.stringify(n.items || []),
+    },
+    children: [],
+  };
+}
+
+function codeExplorerToHast(node: unknown) {
+  const n = node as { path?: string; defaultFile?: string };
+  return {
+    type: 'element',
+    tagName: 'codeexplorer',
+    properties: {
+      'data-path': n.path ?? '',
+      'data-default': n.defaultFile ?? '',
     },
     children: [],
   };
@@ -382,6 +551,8 @@ export function MarkdownRenderer({
   const navigate = useNavigate();
   const [highlightedCode, setHighlightedCode] = useState<Record<string, string>>({});
   const [copiedCodeId, setCopiedCodeId] = useState<string | null>(null);
+  const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
+  const [lightboxAlt, setLightboxAlt] = useState<string>('');
 
   // Track theme changes (html.dark class) so Shiki uses matching colors
   useEffect(() => {
@@ -400,6 +571,14 @@ export function MarkdownRenderer({
     observer.observe(el, { attributes: true, attributeFilter: ['class'] });
     return () => observer.disconnect();
   }, []);
+
+  // Compute current directory for relative path resolution (used by img and a handlers)
+  const currentDir = (() => {
+    if (!docPath || docPath === 'README') return '';
+    if (isDirectoryPage) return docPath;
+    const lastSlash = docPath.lastIndexOf('/');
+    return lastSlash >= 0 ? docPath.substring(0, lastSlash) : '';
+  })();
 
   // Memoize components to ensure they update when highlightedCode changes
   const markdownComponents = useMemo(() => {
@@ -513,6 +692,28 @@ export function MarkdownRenderer({
           </CodeGroup>
         );
       },
+      codeexplorer: (props: MarkdownBlockProps) => {
+        const rawPath = (props['data-path'] as string) ?? '';
+        const defaultFile = (props['data-default'] as string) ?? '';
+        let explorerPath = rawPath;
+        if (rawPath.startsWith('github:')) {
+          // Build-time fetch: resolve to _github/<org>/<repo>/<ref>/<path>
+          const ghMatch = /^github:([^/]+)\/([^/]+)\/(.+?)(?:@(.+))?$/.exec(rawPath);
+          if (ghMatch) {
+            const org = ghMatch[1], repo = ghMatch[2], ghPath = ghMatch[3], ref = ghMatch[4] ?? 'main';
+            explorerPath = `_github/${org}/${repo}/${ref}/${ghPath}`;
+          }
+        } else if (rawPath.startsWith('./')) {
+          explorerPath = currentDir ? `${currentDir}/${rawPath.slice(2)}` : rawPath.slice(2);
+        } else if (rawPath.startsWith('../')) {
+          const upLevels = (rawPath.match(/\.\.\//g) ?? []).length;
+          const dirParts = currentDir ? currentDir.split('/') : [];
+          const targetDir = dirParts.slice(0, Math.max(0, dirParts.length - upLevels)).join('/');
+          explorerPath = rawPath.replace(/^(\.\.\/)+/, '');
+          explorerPath = targetDir ? `${targetDir}/${explorerPath}` : explorerPath;
+        }
+        return <CodeExplorer path={explorerPath} defaultFile={defaultFile} />;
+      },
       // Pre wrapper - handles shiki highlighted code
       pre: ({ children, ...props }: MarkdownPreProps) => {
         // ReactMarkdown wraps code blocks as <pre><code>...</code></pre>
@@ -585,6 +786,11 @@ export function MarkdownRenderer({
             // For Mermaid, render diagram (do not use Shiki)
             if (lang === 'mermaid' && enableMermaid) {
               return <MermaidDiagram code={codeTextTrimmed} />;
+            }
+
+            // For tree / filetree, render interactive file tree visualization
+            if (lang === 'tree' || lang === 'filetree') {
+              return <FileTreeViewer content={codeTextTrimmed} />;
             }
             
             // Calculate hash for copy functionality
@@ -841,16 +1047,7 @@ export function MarkdownRenderer({
         if (isInternalLink && href) {
           let path = href;
 
-          // Determine the current directory for relative link resolution.
-          // If this is a directory page (loaded a README), docPath IS the directory.
-          // If this is a file page (loaded a .md file), strip the last segment.
-          const currentDir = (() => {
-            if (!docPath || docPath === 'README') return '';
-            if (isDirectoryPage) return docPath;
-            // File page: strip last segment to get parent directory
-            const lastSlash = docPath.lastIndexOf('/');
-            return lastSlash >= 0 ? docPath.substring(0, lastSlash) : '';
-          })();
+          // currentDir is computed once outside useMemo and closed over here.
           
           // Resolve relative prefixes
           if (path.startsWith('./')) {
@@ -903,8 +1100,15 @@ export function MarkdownRenderer({
           />
         );
       },
+      img: (props: MarkdownImageProps) => (
+        <DocImage
+          {...props}
+          currentDir={currentDir}
+          onLightbox={(src, alt) => { setLightboxSrc(src); setLightboxAlt(alt); }}
+        />
+      ),
     };
-  }, [highlightedCode, docPath, isDirectoryPage, navigate, copiedCodeId, enableCallouts, enableCodeGroups, enableMermaid, onLinkClick]);
+  }, [highlightedCode, docPath, navigate, copiedCodeId, enableCallouts, enableCodeGroups, enableMermaid, onLinkClick, currentDir]);
 
   // Create a key based on highlighted code blocks to force ReactMarkdown to re-render
   // when highlighting completes. ReactMarkdown only re-processes when content changes,
@@ -921,6 +1125,7 @@ export function MarkdownRenderer({
           {
             handlers: {
               codeGroup: (_state: unknown, node: unknown) => codeGroupToHast(node),
+              codeExplorer: (_state: unknown, node: unknown) => codeExplorerToHast(node),
             },
           } as unknown as Record<string, unknown>
         }
@@ -930,6 +1135,18 @@ export function MarkdownRenderer({
       >
         {content}
       </ReactMarkdown>
+
+      <Dialog open={lightboxSrc !== null} onOpenChange={() => { setLightboxSrc(null); }}>
+        <DialogContent className="max-w-[90vw] max-h-[90vh] p-2 flex items-center justify-center bg-background/95 backdrop-blur-sm">
+          {lightboxSrc && (
+            <img
+              src={lightboxSrc}
+              alt={lightboxAlt}
+              className="max-w-full max-h-[86vh] object-contain rounded-md"
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

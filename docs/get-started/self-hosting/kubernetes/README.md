@@ -107,6 +107,9 @@ kubectl get secret stackweaver-postgresql -n stackweaver \
 
 Create the secrets in advance and reference them in your values file.
 
+> [!IMPORTANT] 
+> If you create secrets manually with `kubectl create`, you must reference all four of them via `secretName` in your values file before running `helm install`. If you run `helm install` without those references, Helm will attempt to create and own the same secrets, which conflicts with the `kubectl-create` field manager and causes the installation to fail.
+
 ```bash
 NAMESPACE=stackweaver
 kubectl create namespace $NAMESPACE
@@ -249,3 +252,21 @@ Remove them manually if no longer needed.
 kubectl delete pvc -l app.kubernetes.io/instance=stackweaver -n stackweaver
 kubectl delete secret -l app.kubernetes.io/managed-by=Helm -n stackweaver
 ```
+
+## Troubleshooting
+
+### Installation fails with "Apply failed with conflicts: conflicts with kubectl-create"
+
+This error occurs when secrets already exist in the namespace that were created with `kubectl create` (rather than by Helm). Helm uses server-side apply and cannot take ownership of fields managed by a different field manager.
+
+This happens if you ran `kubectl create secret generic` commands manually and then ran `helm install` without providing the `secretName` references in your values file, or if a previous install attempt left behind secrets.
+
+To resolve, delete the conflicting secrets and re-run the install — Helm will recreate them with the correct field manager.
+
+```bash
+kubectl delete secret stackweaver-zitadel stackweaver-minio \
+  stackweaver-postgresql stackweaver-encryption \
+  -n stackweaver
+```
+
+Then re-run `helm install`.
