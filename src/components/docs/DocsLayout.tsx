@@ -61,7 +61,7 @@ export function DocsLayout({ children }: DocsLayoutProps) {
   // useLayoutEffect runs synchronously before paint to avoid scroll flicker.
   // location.key changes on every navigation, even to the same URL.
   useLayoutEffect(() => {
-    window.scrollTo(0, 0);
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
   }, [location.key]);
 
   // Close mobile drawers on navigation
