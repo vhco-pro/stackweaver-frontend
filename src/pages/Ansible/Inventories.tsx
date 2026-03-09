@@ -468,18 +468,7 @@ export default function Inventories() {
     }
   };
 
-  const getTypeBadgeVariant = (type: string) => {
-    switch (type) {
-      case 'static':
-        return 'secondary';
-      case 'dynamic':
-        return 'default';
-      case 'vcs':
-        return 'outline';
-      default:
-        return 'secondary';
-    }
-  };
+  const getTypeBadgeVariant = () => 'outline' as const;
 
   const getTypeLabel = (inventory: AnsibleInventory) => {
     if (inventory.type === 'vcs' && inventory.inventory_path) {
@@ -989,7 +978,7 @@ export default function Inventories() {
               </CardHeader>
               <CardContent className="mt-auto pt-4">
                 <div className="flex items-center justify-between">
-                  <Badge variant={getTypeBadgeVariant(inventory.type)}>
+                  <Badge variant={getTypeBadgeVariant()}>
                     {getTypeIcon(inventory.type, inventory.inventory_path)}
                     <span className="ml-1 capitalize">{getTypeLabel(inventory)}</span>
                   </Badge>

@@ -1,14 +1,14 @@
 // Copyright (c) 2025 VH & Co BV. Licensed under the Business Source License 1.1. See LICENSE for details.
 
 import { useEffect, useState, useCallback, useRef } from 'react';
-import { Link, useParams, useNavigate, useSearchParams } from 'react-router-dom';
+import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { GitBranch, Plus, Trash2, CheckCircle2, ArrowLeft } from 'lucide-react';
 import { getVcsProviderIcon, getVcsProviderLabel } from '@/lib/vcs';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { vcsConnectionsApi, organizationsApi, type VCSConnection, type Organization } from '@/api/client';
+import { vcsConnectionsApi, type VCSConnection } from '@/api/client';
 import { toast } from 'sonner';
 import { Loader2 } from 'lucide-react';
 import {
@@ -31,13 +31,9 @@ import { cn } from '@/lib/utils';
 
 export default function VCSConnections() {
   const { orgName } = useParams<{ orgName: string }>();
-  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [connections, setConnections] = useState<VCSConnection[]>([]);
-  const [organizations, setOrganizations] = useState<Organization[]>([]);
-  const [selectedOrg, setSelectedOrg] = useState<string>(orgName || '');
   const [loading, setLoading] = useState(true);
-  const [loadingOrgs, setLoadingOrgs] = useState(true);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [connectionToDelete, setConnectionToDelete] = useState<VCSConnection | null>(null);
   const [deleting, setDeleting] = useState(false);
@@ -45,37 +41,14 @@ export default function VCSConnections() {
   const [adoOrg, setAdoOrg] = useState('');
   const [adoConnecting, setAdoConnecting] = useState(false);
 
-  // Load organizations
-  useEffect(() => {
-    void organizationsApi.list()
-      .then((res) => {
-        const orgs = res.data || [];
-        setOrganizations(orgs);
-        setLoadingOrgs(false);
-        
-        // Check for org in URL params
-        if (orgName) {
-          setSelectedOrg(orgName);
-        } else if (orgs.length > 0) {
-          // Redirect to first org if no org in URL
-          void Promise.resolve(navigate(`/app/${orgs[0].name}/settings/vcs-connections`, { replace: true }));
-          setSelectedOrg(orgs[0].name);
-        }
-      })
-      .catch((err) => {
-        console.error('Failed to load organizations:', err);
-        setLoadingOrgs(false);
-      });
-  }, [orgName, navigate]);
-
   const fetchConnections = useCallback(() => {
-    if (!selectedOrg) {
+    if (!orgName) {
       setLoading(false);
       return;
     }
 
     setLoading(true);
-    void vcsConnectionsApi.list(selectedOrg)
+    void vcsConnectionsApi.list(orgName)
       .then((conns) => {
         const connections = Array.isArray(conns) ? conns : [];
         // Deduplicate by ID to prevent duplicates
@@ -91,7 +64,7 @@ export default function VCSConnections() {
       setConnections([]);
       setLoading(false);
       });
-  }, [selectedOrg]);
+  }, [orgName]);
 
   useEffect(() => {
     fetchConnections();
@@ -102,11 +75,11 @@ export default function VCSConnections() {
   // Handle GitHub App redirect with installation_id
   useEffect(() => {
     const installationId = searchParams.get('installation_id');
-    if (!installationId || !selectedOrg || installationHandledRef.current) return;
+    if (!installationId || !orgName || installationHandledRef.current) return;
 
     installationHandledRef.current = true;
     // Create connection from installation and refresh
-    void vcsConnectionsApi.createConnectionFromInstallation(selectedOrg, installationId)
+    void vcsConnectionsApi.createConnectionFromInstallation(orgName, installationId)
       .then(() => {
         // Clean query params
         const newSearchParams = new URLSearchParams(searchParams);
@@ -120,17 +93,17 @@ export default function VCSConnections() {
         console.error('Failed to create VCS connection from installation:', err);
         toast.error('Failed to create VCS connection');
       });
-  }, [searchParams, selectedOrg, fetchConnections]);
+  }, [searchParams, orgName, fetchConnections]);
 
   const handleConnectGitHub = async () => {
-    if (!selectedOrg) {
+    if (!orgName) {
       toast.error('Please select an organization');
       return;
     }
 
     try {
-      const redirectUrl = `${window.location.origin}/app/${selectedOrg}/settings/vcs-connections`;
-      const response = await vcsConnectionsApi.initiateInstallationWithRedirect(selectedOrg, redirectUrl);
+      const redirectUrl = `${window.location.origin}/app/${orgName}/settings/vcs-connections`;
+      const response = await vcsConnectionsApi.initiateInstallationWithRedirect(orgName, redirectUrl);
       const installUrl = response?.install_url;
       
       if (installUrl) {
@@ -172,14 +145,14 @@ export default function VCSConnections() {
   };
 
   const handleConnectAzureDevOps = async () => {
-    if (!selectedOrg || !adoOrg.trim()) {
+    if (!orgName || !adoOrg.trim()) {
       toast.error('Please enter your Azure DevOps organization name');
       return;
     }
     setAdoConnecting(true);
     try {
-      const returnPath = `/app/${selectedOrg}/settings/vcs-connections`;
-      const response = await vcsConnectionsApi.initiateAzureDevOpsInstallation(selectedOrg, adoOrg.trim(), returnPath);
+      const returnPath = `/app/${orgName}/settings/vcs-connections`;
+      const response = await vcsConnectionsApi.initiateAzureDevOpsInstallation(orgName, adoOrg.trim(), returnPath);
       const authUrl = response?.auth_url;
       if (authUrl) {
         window.location.href = authUrl;
@@ -198,30 +171,6 @@ export default function VCSConnections() {
   };
 
 
-  if (loadingOrgs) {
-    return (
-      <div className="p-8 flex items-center justify-center min-h-[400px]">
-        <div className="flex items-center gap-2 text-muted-foreground">
-          <Loader2 className="h-4 w-4 animate-spin" />
-          Loading organizations...
-        </div>
-      </div>
-    );
-  }
-
-  if (organizations.length === 0) {
-    return (
-      <div className="p-8">
-        <div className="text-center space-y-4">
-          <p className="text-muted-foreground">No organizations found. Please create an organization first.</p>
-          <Button onClick={() => { void Promise.resolve(navigate('/organizations')); }}>
-            Go to Organizations
-          </Button>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="space-y-8 p-8">
       {/* Header */}
@@ -236,30 +185,13 @@ export default function VCSConnections() {
             <ArrowLeft className="h-5 w-5" />
           </Button>
         </Link>
-        <div className="flex-1 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div>
-            <h1 className="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 bg-clip-text text-transparent mb-2">
-              VCS Connections
-            </h1>
-            <p className="text-muted-foreground">
-              Connect version control providers to enable repository access for workspaces and modules
-            </p>
-          </div>
-          {organizations.length > 1 && (
-            <div className="flex items-center gap-4">
-              <select
-                value={selectedOrg}
-                onChange={(e) => setSelectedOrg(e.target.value)}
-                className="px-4 py-2 rounded-lg border border-gray-300 dark:border-white/10 bg-white dark:bg-white/5"
-              >
-                {organizations.map((org) => (
-                  <option key={org.id} value={org.name}>
-                    {org.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-          )}
+        <div className="flex-1">
+          <h1 className="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 bg-clip-text text-transparent mb-2">
+            VCS Connections
+          </h1>
+          <p className="text-muted-foreground">
+            Connect version control providers to enable repository access for workspaces and modules
+          </p>
         </div>
       </div>
 
