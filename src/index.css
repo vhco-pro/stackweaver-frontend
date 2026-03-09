@@ -168,6 +168,15 @@ html:not(.dark) .shiki-wrapper {
   border: 1px solid rgba(148, 163, 184, 0.4); /* Darker border for light mode */
 }
 
+/* Strip Shiki background in code explorer — works inside Dialog portals outside .markdown-content */
+.code-explorer-code pre[class*='shiki'] {
+  background-color: transparent !important;
+  background-image: none !important;
+}
+.code-explorer-code pre[class*='shiki'] code {
+  background-color: transparent !important;
+}
+
 /* Remove any background from shiki pre elements - ensure no borders on nested pre */
 .markdown-content .shiki-wrapper pre[class*='shiki'],
 .markdown-content pre[class*='shiki'] {

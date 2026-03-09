@@ -1,6 +1,4 @@
-# Copyright (c) 2025 VH & Co BV. Licensed under the Business Source License 1.1. See LICENSE for details.
-#
-# Stackweaver — Entra ID app registration for Azure DevOps integration
+# Stackweaver Entra ID app registration for Azure DevOps integration
 #
 # Provisions everything required for Stackweaver to authenticate with Azure DevOps via OAuth2:
 #   - Azure DevOps enterprise application (service principal) in the tenant
