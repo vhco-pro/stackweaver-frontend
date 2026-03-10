@@ -2,6 +2,8 @@
 
 # SSO/OIDC Team Integration Design Plan
 
+**Status:** ✅ Substantially complete — `sso_team_id` field on Team model (Phase 1), Zitadel Actions for group claim passthrough, and `TeamSyncService` for automatic membership sync are all implemented. See companion [OIDC Federation Plan](../oidc-federation/THIRD_PARTY_OIDC_FEDERATION_PLAN.md) for the upstream federation status. The "Current State" section below reflects an earlier snapshot; actual implementation is further along.
+
 ## Executive Summary
 
 This document outlines the design plan for integrating SSO/OIDC team membership with StackWeaver teams. This enables automatic team membership assignment based on OIDC/SAML group claims from identity providers like Zitadel.

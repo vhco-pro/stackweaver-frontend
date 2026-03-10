@@ -17,6 +17,8 @@ https://developer.hashicorp.com/terraform/enterprise/api-docs/admin/organization
 https://developer.hashicorp.com/terraform/enterprise/api-docs/organization-memberships
 https://developer.hashicorp.com/terraform/enterprise/api-docs/organization-tokens
 
+**Status:** ✅ Backend complete — `teams`, `team_members`, `team_workspace_access`, `team_project_access`, and `organization_memberships` models and handlers all exist. Frontend UI for user/team management in Settings: verify current state.
+
 ## Executive Summary
 
 This document outlines the implementation plan for adding teams functionality to StackWeaver, maintaining full compatibility with Terraform Enterprise (TFE) API and the `terraform-provider-tfe` provider. This will enable users to manage teams, team members, and organization memberships using Terraform.

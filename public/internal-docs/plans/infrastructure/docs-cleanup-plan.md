@@ -2,6 +2,8 @@
 
 # Documentation Cleanup and Reorganization Plan
 
+**Status:** ✅ Complete — docs have been reorganized into the current `docs/internal/` structure. The old `architecture/`, `testing/`, `ansible/` directory layout referenced here no longer exists.
+
 ## Overview
 
 Before implementing the docs viewer, we should clean up and reorganize the documentation structure. This will:

@@ -1,5 +1,7 @@
 <!-- Copyright (c) 2025 VH & Co BV. Licensed under the Business Source License 1.1. See LICENSE for details. -->
 
+**Status:** ❌ Not started — all todos remain pending. No Trivy scanning in CI, no `.trivyignore`, no SBOM generation.
+
 ---
 name: Add Trivy Security Scanning
 overview: Add Trivy security scanning to CI/CD to detect container image vulnerabilities, npm dependencies, IaC misconfigurations, and secrets - complementing existing linters that focus on code-level security.

@@ -2,6 +2,8 @@
 
 # Ansible Playbook Webhook Auto-Sync Implementation Plan
 
+**Status:** ✅ Implemented — `VCSAppInstallationHandlerV2` queues playbook syncs on branch push via `playbookRepo.ListByVCSRepositoryAndBranch` + `isPlaybookAffected` check (lines 1709-1735 and 557-565 of `vcs_app_installation.go`).
+
 ## Issue
 
 When making a commit to a GitHub repository, Ansible playbooks connected via VCS are not automatically synced. Currently, the webhook handler at `/api/v2/vcs-connections/github/webhook` handles workspace runs and inventory syncs on push events, but does not trigger playbook syncs.

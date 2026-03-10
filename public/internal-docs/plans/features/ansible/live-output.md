@@ -2,6 +2,8 @@
 
 # Live Output Streaming Implementation
 
+**Status:** ✅ Implemented — JSONL callback (`ansible.posix.jsonl`) is in use in the ansible runner.
+
 ## Current State
 
 The current implementation uses the `json` callback plugin which **buffers all output** until the playbook completes. This means users cannot see task progress in real-time.

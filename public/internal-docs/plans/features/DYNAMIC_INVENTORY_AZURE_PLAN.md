@@ -2,6 +2,8 @@
 
 # Plan: Dynamic Inventory — Dual Approach (UI-configured + VCS-backed)
 
+**Status:** ✅ All phases complete — Phase 1 (OIDC auth for UI-configured sources), Phase 2 (frontend badges/schedule), Phase 3 (Dockerfile), Phase 4 (runner OIDC via Python wrapper), Phase 4b (self-hosted runner) all implemented.
+
 TODO: Check if we really need to have the subject of the claim be TFC compliant because it seems to me that it's never created by the provider so in theory we could deviate to a more standard format for stackweaver but to be checked.
 
 User-facing guide: [docs/user-guides/dynamic-inventories.md](../../../user-guides/dynamic-inventories.md)

@@ -2,6 +2,8 @@
 
 # Stackweaver Release Strategy
 
+**Status:** ⚠️ In progress — strategy defined and Helm chart exists; verify which satellite repos are created and have working CI/CD pipelines.
+
 This document defines the end-to-end strategy for packaging, distributing, and releasing all Stackweaver components as Docker containers with independent versioning.
 
 ## Principles
