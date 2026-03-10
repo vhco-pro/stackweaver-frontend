@@ -80,6 +80,8 @@ function AppContent() {
               <Route path="/" element={<Landing />} />
               <Route path="/docs" element={<DocsIndex />} />
               <Route path="/docs/*" element={<DocsViewer />} />
+              <Route path="/internal-docs" element={<ProtectedRoute><DocsViewer docsBase="/internal-docs" indexFile="/internal-docs-index.json" /></ProtectedRoute>} />
+              <Route path="/internal-docs/*" element={<ProtectedRoute><DocsViewer docsBase="/internal-docs" indexFile="/internal-docs-index.json" /></ProtectedRoute>} />
             <Route
               path="/dashboard"
               element={

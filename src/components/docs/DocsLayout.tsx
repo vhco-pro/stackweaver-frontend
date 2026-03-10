@@ -18,6 +18,8 @@ import {
 
 interface DocsLayoutProps {
   children: ReactNode;
+  docsBase?: string;
+  indexFile?: string;
 }
 
 interface DocsIndex {
@@ -35,7 +37,7 @@ interface DocTreeNode {
   children?: DocTreeNode[];
 }
 
-export function DocsLayout({ children }: DocsLayoutProps) {
+export function DocsLayout({ children, docsBase = '/docs', indexFile = '/docs-index.json' }: DocsLayoutProps) {
   const location = useLocation();
   const [index, setIndex] = useState<DocsIndex | null>(null);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
@@ -45,7 +47,7 @@ export function DocsLayout({ children }: DocsLayoutProps) {
   useEffect(() => {
     async function loadIndex() {
       try {
-        const response = await fetch('/docs-index.json');
+        const response = await fetch(indexFile);
         if (!response.ok) throw new Error('Failed to load docs index');
         const data = await response.json() as DocsIndex;
         setIndex(data);
@@ -75,13 +77,13 @@ export function DocsLayout({ children }: DocsLayoutProps) {
     // Get the path after /docs/
     const pathname = location.pathname;
     
-    // If we're exactly on /docs or /docs/, don't show breadcrumbs
-    if (pathname === '/docs' || pathname === '/docs/') {
+    // If we're exactly on the docs base, don't show breadcrumbs
+    if (pathname === docsBase || pathname === `${docsBase}/`) {
       return null;
     }
-    
-    // Get path segments after /docs/
-    const path = pathname.replace(/^\/docs\/?/, '').replace(/\/$/, '');
+
+    // Get path segments after the base
+    const path = pathname.replace(new RegExp(`^${docsBase}/?`), '').replace(/\/$/, '');
     const parts = path.split('/').filter(Boolean);
     
     // Only show breadcrumbs if we're in a subfolder (have at least 2 path segments)
@@ -118,7 +120,7 @@ export function DocsLayout({ children }: DocsLayoutProps) {
           .join(' ');
       }
       
-      const breadcrumbPath = `/docs/${currentPath}`;
+      const breadcrumbPath = `${docsBase}/${currentPath}`;
       breadcrumbs.push({ path: breadcrumbPath, label });
     }
 
@@ -161,7 +163,7 @@ export function DocsLayout({ children }: DocsLayoutProps) {
             <SheetTitle className="text-sm font-semibold">Documentation</SheetTitle>
           </SheetHeader>
           <div className="overflow-y-auto h-[calc(100vh-4rem)]">
-            <DocsSidebar onNavigate={() => setMobileSidebarOpen(false)} />
+            <DocsSidebar docsBase={docsBase} indexFile={indexFile} onNavigate={() => setMobileSidebarOpen(false)} />
           </div>
         </SheetContent>
       </Sheet>
@@ -183,7 +185,7 @@ export function DocsLayout({ children }: DocsLayoutProps) {
         
         {/* Left Sidebar - Docs Navigation Tree (desktop only) */}
         <aside className="hidden lg:block w-64 flex-shrink-0 border-r border-border/40 bg-background/50 sticky top-24 h-[calc(100vh-6rem)] overflow-y-auto">
-          <DocsSidebar />
+          <DocsSidebar docsBase={docsBase} indexFile={indexFile} />
         </aside>
         
         {/* Center - Main Content */}
@@ -219,7 +221,7 @@ export function DocsLayout({ children }: DocsLayoutProps) {
           </div>
           
           {/* Previous/Next Navigation */}
-          <DocNavigation index={index} />
+          <DocNavigation index={index} docsBase={docsBase} />
         </main>
         
         {/* Right Sidebar - Table of Contents (desktop only) */}

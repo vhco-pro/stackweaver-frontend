@@ -14,7 +14,12 @@ function isHtmlFallback(response: Response): boolean {
 }
 
 
-export default function DocsViewer() {
+interface DocsViewerProps {
+  docsBase?: string;
+  indexFile?: string;
+}
+
+export default function DocsViewer({ docsBase = '/docs', indexFile = '/docs-index.json' }: DocsViewerProps) {
   const params = useParams<{ '*': string }>();
   const location = useLocation();
   const [content, setContent] = useState<string>('');
@@ -44,14 +49,14 @@ export default function DocsViewer() {
           filePath = `${docPath}/README.md`;
         }
 
-        let response = await fetch(`/docs/${filePath}`);
+        let response = await fetch(`${docsBase}/${filePath}`);
 
         // If README.md wasn't found, try lowercase readme.md (some directories use it)
         if (docPath !== '' && docPath !== 'README' &&
             (!response.ok || isHtmlFallback(response)) &&
             filePath.endsWith('/README.md')) {
           filePath = `${docPath}/readme.md`;
-          response = await fetch(`/docs/${filePath}`);
+          response = await fetch(`${docsBase}/${filePath}`);
         }
 
         // If the folder README still wasn't found, try as a regular .md file instead.
@@ -59,7 +64,7 @@ export default function DocsViewer() {
             (!response.ok || isHtmlFallback(response))) {
           filePath = `${docPath}.md`;
           resolvedAsDirectory = false;
-          response = await fetch(`/docs/${filePath}`);
+          response = await fetch(`${docsBase}/${filePath}`);
         }
 
         // Validate the final response
@@ -84,7 +89,7 @@ export default function DocsViewer() {
 
   if (loading) {
     return (
-      <DocsLayout>
+      <DocsLayout docsBase={docsBase} indexFile={indexFile}>
         <div className="space-y-4">
           <Skeleton className="h-12 w-3/4" />
           <Skeleton className="h-4 w-full" />
@@ -98,7 +103,7 @@ export default function DocsViewer() {
 
   if (error) {
     return (
-      <DocsLayout>
+      <DocsLayout docsBase={docsBase} indexFile={indexFile}>
         <div className="flex items-center gap-3 p-4 rounded-lg bg-red-500/10 border border-red-500/30 text-red-400">
           <AlertCircle className="h-5 w-5 flex-shrink-0" />
           <div>
@@ -111,7 +116,7 @@ export default function DocsViewer() {
   }
 
   return (
-    <DocsLayout>
+    <DocsLayout docsBase={docsBase} indexFile={indexFile}>
       <MarkdownRenderer
         content={content}
         docPath={docPath}

@@ -23,9 +23,11 @@ interface DocsIndex {
 interface DocsSidebarProps {
   className?: string;
   onNavigate?: () => void;
+  docsBase?: string;
+  indexFile?: string;
 }
 
-export function DocsSidebar({ className, onNavigate }: DocsSidebarProps) {
+export function DocsSidebar({ className, onNavigate, docsBase = '/docs', indexFile = '/docs-index.json' }: DocsSidebarProps) {
   const location = useLocation();
   const navigate = useNavigate();
   const [index, setIndex] = useState<DocsIndex | null>(null);
@@ -35,7 +37,7 @@ export function DocsSidebar({ className, onNavigate }: DocsSidebarProps) {
   useEffect(() => {
     async function loadIndex() {
       try {
-        const response = await fetch('/docs-index.json');
+        const response = await fetch(indexFile);
         if (!response.ok) throw new Error('Failed to load docs index');
         const data = await response.json() as DocsIndex;
         setIndex(data);
@@ -53,7 +55,7 @@ export function DocsSidebar({ className, onNavigate }: DocsSidebarProps) {
   useEffect(() => {
     if (!index) return;
     
-    const currentPath = location.pathname.replace(/^\/docs\/?/, '').replace(/\/$/, '') || 'README.md';
+    const currentPath = location.pathname.replace(new RegExp(`^${docsBase}/?`), '').replace(/\/$/, '') || 'README.md';
     const parts = currentPath.split('/').filter(Boolean);
     
     // Expand all ancestor directories and the current directory itself
@@ -82,16 +84,16 @@ export function DocsSidebar({ className, onNavigate }: DocsSidebarProps) {
   const getDocPath = (nodePath: string): string => {
     // Remove .md extension and convert to route path
     const withoutExt = nodePath.replace(/\.md$/, '');
-    // If it's the root README, return /docs
+    // If it's the root README, return the base
     if (withoutExt === 'README' || withoutExt === 'README.md') {
-      return '/docs';
+      return docsBase;
     }
     // For README in subdirectories, use the directory path as the doc path
     const parts = withoutExt.split('/');
     if (parts[parts.length - 1] === 'README') {
-      return `/docs/${parts.slice(0, -1).join('/')}`;
+      return `${docsBase}/${parts.slice(0, -1).join('/')}`;
     }
-    return `/docs/${withoutExt}`;
+    return `${docsBase}/${withoutExt}`;
   };
 
   // Check if a directory has a README file (case-insensitive)
@@ -106,18 +108,17 @@ export function DocsSidebar({ className, onNavigate }: DocsSidebarProps) {
   const isActive = (nodePath: string): boolean => {
     const docPath = getDocPath(nodePath);
     const currentPath = location.pathname.replace(/\/$/, ''); // Remove trailing slash
-    
-    // Handle README/index - only match exactly /docs, not sub-paths
+
+    // Handle README/index - only match exactly the base, not sub-paths
     if (nodePath === 'README.md') {
-      return currentPath === '/docs' || currentPath === '';
+      return currentPath === docsBase || currentPath === '';
     }
-    
-    // For other docs, match exactly or as a prefix (but not if it's the README path)
-    // Make sure docPath is not /docs when checking sub-paths
-    if (docPath === '/docs') {
+
+    // For other docs, match exactly or as a prefix (but not if it's the base path)
+    if (docPath === docsBase) {
       return false; // Already handled above
     }
-    
+
     return currentPath === docPath || currentPath.startsWith(docPath + '/');
   };
 
