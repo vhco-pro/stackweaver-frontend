@@ -2,6 +2,8 @@
 
 # Zitadel User Avatar in Admin Top Bar – Implementation Plan
 
+**Status:** ❌ Not implemented — no avatar/picture fetching in the auth service or display in navigation components.
+
 ## Summary
 
 - **Zitadel source**: OIDC **UserInfo** `picture` claim (`GET ${issuer}/oidc/v1/userinfo` with Bearer token). Requires `profile` scope (already requested).

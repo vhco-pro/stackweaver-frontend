@@ -2,6 +2,8 @@
 
 # Satellite Sync Workflows — Analysis
 
+**Note:** Reference/analysis document — no implementation phases. Documents the intentional decision to sync the full `backend/` directory to all satellite repos due to Go `internal/` package constraints.
+
 This document analyzes the current monorepo-to-satellite sync workflows and addresses whether backend services should sync the full `backend/` directory or only the files each component touches.
 
 ## Current Behavior

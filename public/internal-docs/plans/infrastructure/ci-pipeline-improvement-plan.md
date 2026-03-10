@@ -2,6 +2,8 @@
 
 # CI Pipeline Improvement Plan
 
+**Status:** ✅ Implemented — `dorny/paths-filter` for path-based triggering and `concurrency` for cancel-in-progress are in use in `.github/workflows/ci.yml`.
+
 This plan redesigns the CI pipeline for path-based triggering, parallel jobs, and composite actions to reduce unnecessary runs and improve feedback time.
 
 ## Current Problems

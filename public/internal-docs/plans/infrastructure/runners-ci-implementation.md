@@ -2,6 +2,8 @@
 
 # Runner CI/CD Implementation Plan
 
+**Status:** ⚠️ Partially complete — verify current state of `stackweaver-runner` and `stackweaver-ansible-runner` satellite repos. Logger package dependency (`github.com/michielvha/logger`) must be resolved before runner satellite CI/CD is fully operational.
+
 This document contains the remaining steps for setting up the open-source runner repository and sync workflow. These steps should be executed after the logger package has been published.
 
 ## Prerequisites

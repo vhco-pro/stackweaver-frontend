@@ -1,5 +1,7 @@
 # Plan: Automate Zitadel Secret Population in Kubernetes
 
+**Status:** ✅ Implemented — Helm chart includes `secrets-init-job.yaml` with `zitadel-init-rbac.yaml` ServiceAccount and RBAC, enabling the init job to patch the Zitadel Secret and trigger rolling restarts automatically.
+
 ## Context
 
 After a Helm install the `zitadel-init` Job successfully provisions all Zitadel credentials (OIDC app client IDs/secrets, service user token, webhook signing keys), but it only writes them to `deploy/.env` (for Docker Compose). In Kubernetes, the credentials land nowhere — the Zitadel Secret is created by the chart with empty values, and the NOTES.txt currently asks the operator to manually run `kubectl patch secret` and `kubectl rollout restart`. That manual step breaks any "one-command install" story.

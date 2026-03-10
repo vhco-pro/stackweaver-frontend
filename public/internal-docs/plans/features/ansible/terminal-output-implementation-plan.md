@@ -2,6 +2,8 @@
 
 # Ansible Terminal Output Implementation Plan
 
+**Status:** ❌ Not implemented — no terminal output reconstruction from JSONL events exists yet. Jobs still display raw JSONL format.
+
 ## Overview
 
 Add terminal-style output view for Ansible jobs to match AWX's familiar display format, while maintaining our structured JSONL parsing benefits. This will provide a dual-view approach similar to how Terraform workspaces handle output.

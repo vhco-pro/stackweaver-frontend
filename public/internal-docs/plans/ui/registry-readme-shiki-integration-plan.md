@@ -2,6 +2,8 @@
 
 # Registry README Shiki Integration Plan
 
+**Status:** ✅ Implemented — `MarkdownRenderer` from the docs viewer is imported and used in `ModuleDetail.tsx` for README rendering.
+
 ## Current State
 
 ### Registry README Rendering

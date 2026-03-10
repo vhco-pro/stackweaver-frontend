@@ -2,6 +2,8 @@
 
 # Self-Hosted Runners Management System Design
 
+**Status:** ✅ Implemented — runner registration, heartbeat polling, job assignment, agent pools, label matching, TFE-compatible API, and frontend Settings pages are all complete. See [Agent Pools Implementation Plan](./AGENT_POOLS_IMPLEMENTATION_PLAN.md) for detailed status.
+
 Important: be sure to use the JSON:API everywhere, aswell as in the frontend to be consistent with the rest of the platform and make sure the design is consistent with other components.
 
 ## Overview

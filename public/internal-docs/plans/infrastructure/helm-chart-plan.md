@@ -1,5 +1,7 @@
 # Helm Chart for StackWeaver — Plan
 
+**Status:** ✅ Substantially implemented — `deploy/helm/stackweaver/` exists with templates for all services (API, frontend, orchestrator, runners, PostgreSQL, Redis, MinIO, Zitadel). Verify completeness against `values.yaml`.
+
 ## Overview
 
 Provide an official Helm chart in `deploy/helm/stackweaver/` so operators can run StackWeaver on Kubernetes. The chart bundles optional dependencies for a quick all-in-one install, while supporting "bring your own" instances for PostgreSQL, Redis, object storage, and Zitadel.

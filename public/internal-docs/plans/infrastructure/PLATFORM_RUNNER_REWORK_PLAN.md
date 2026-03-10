@@ -2,6 +2,8 @@
 
 # Platform Runner Rework Plan
 
+**Status:** ❌ Not started — the platform runner still uses persistent workspace directories. The self-hosted runner (agent mode) uses ephemeral temp dirs as the reference pattern.
+
 TODO: the platform runner for ansible needs to be reworked in the same way - extend the plan with this info
 
 ## Executive Summary

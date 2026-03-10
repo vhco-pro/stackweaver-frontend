@@ -2,6 +2,8 @@
 
 # Organization, Project, and Workspace Settings – Implementation Plan
 
+**Status:** ❌ Not implemented — no `organization_settings`, `project_settings`, or `workspace_settings` models, repositories, or API handlers exist yet.
+
 ## Overview
 
 Add **organization-, project-, and workspace-level settings** as JSONB-backed resources with GET/PUT APIs. Each level has its own table and is linked by FK. Inheritance (merging user → org → project → workspace) is optional in the first version.

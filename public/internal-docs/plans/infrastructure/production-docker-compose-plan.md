@@ -1,5 +1,7 @@
 # Production Docker Compose — Implementation Plan
 
+**Status:** ❌ Not implemented — no `docs/get-started/self-hosting/docker-compose/example/` directory or production compose file exists yet.
+
 > **Goal:** Create a user-facing Docker Compose example that uses pre-built container images from GHCR (no source code required). The example lives inside the docs directory and is rendered via the `::: code-explorer` directive. It does NOT replace the existing `deploy/docker-compose.yml` (which is the internal development compose file).
 
 ---

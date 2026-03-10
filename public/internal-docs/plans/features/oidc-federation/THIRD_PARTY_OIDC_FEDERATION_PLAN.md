@@ -2,6 +2,8 @@
 
 # Third-Party OIDC Identity Provider Federation Plan
 
+**Status:** ✅ Substantially complete — external IdPs enabled in Zitadel, Azure AD configured via `zitadel-init`, Zitadel Actions V2 webhooks for group claim passthrough, `sso_groups` extraction in auth middleware, and `TeamSyncService` for automatic team membership sync are all implemented.
+
 ## Executive Summary
 
 This document outlines the design plan for integrating third-party OIDC identity providers (Azure AD/Entra ID, Okta, AWS Cognito, and any generic OIDC provider) with StackWeaver via Zitadel identity brokering.
