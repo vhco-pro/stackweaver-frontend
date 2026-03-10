@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowRight, Zap, Shield, Cloud, Layers3, GitBranch, Cpu, Workflow, ShieldCheck, Wrench, Database, Globe, PlugZap, Box, Container, Copy, Check, ExternalLink } from 'lucide-react';
+import { ArrowRight, Zap, Shield, Cloud, Layers3, GitBranch, Cpu, KeyRound, ShieldCheck, Wrench, Database, Globe, PlugZap, Box, Container, Copy, Check, ExternalLink } from 'lucide-react';
 import { getVcsProviderIcon } from '@/lib/vcs';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
@@ -293,15 +293,16 @@ export default function Landing() {
           
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {[
-              { icon: Layers3, title: 'TFE-Compatible Core', description: 'Organizations, Projects, Workspaces, Runs, Variables, State Versions, Tokens — JSON:API v2 and TFE token auth' },
-              { icon: GitBranch, title: 'VCS-Driven Workflows', description: 'GitHub App install, repo/branch selection, webhooks for push/PR events, auto-queue and speculative plans' },
-              { icon: Cpu, title: 'Remote Execution Engine', description: 'Kubernetes agent pools, queued plans/applies, logs/artifacts, RBAC-scoped runners and isolation' },
-              { icon: Workflow, title: 'Run Tasks & Integrations', description: 'Pre/Post plan/apply hooks for security, cost, policy checks; pluggable task providers' },
-              { icon: ShieldCheck, title: 'Policy & Governance', description: 'OPA/Sentinel-style policy-as-code gates, approvals, drift detection, audit trails, team/org policies' },
-              { icon: Wrench, title: 'Ansible (AWX Parity)', description: 'Projects, inventories, credentials, job templates, schedules, RBAC — managed side-by-side' },
-              { icon: Database, title: 'State & Secrets', description: 'Encrypted state storage (S3-compatible), variable sets, sensitive vars, workspace-scoped secrets' },
-              { icon: Globe, title: 'Multi-Cloud & Hybrid', description: 'AWS/GCP/Azure support, private networking to runners, on‑prem friendly with agent pools' },
+              { icon: Layers3, title: 'TFE-Compatible Core', description: 'Organizations, Projects, Workspaces, Runs, Variables, State Versions, Tokens, JSON:API v2 and TFE token auth' },
               { icon: PlugZap, title: 'Provider Compatibility', description: 'terraform-provider-tfe parity for seamless CLI/automation adoption' },
+              { icon: Database, title: 'State & Secrets', description: 'Encrypted state storage (S3-compatible), variable sets, sensitive vars, workspace-scoped secrets' },
+              { icon: Wrench, title: 'Ansible (AWX Parity)', description: 'Projects, inventories, credentials, job templates and schedules' },
+              { icon: GitBranch, title: 'VCS-Driven Workflows', description: 'GitHub App and Azure DevOps integration, repo/branch selection, webhooks for push/PR events, auto-queue and speculative plans' },
+              { icon: Cpu, title: 'Remote Execution Engine', description: 'Self-hosted runners with agent pools, Redis-queued plans/applies, streamed logs and artifact storage, org-scoped runner assignment' },
+              { icon: KeyRound, title: 'Identity & SSO', description: 'OIDC workload identity for AWS, GCP and Azure; no static credentials in runners. SSO via Azure AD, Okta, Cognito or any OIDC provider with optional team sync' },
+              { icon: ShieldCheck, title: 'Policy & Governance', description: 'OPA/Sentinel-style policy-as-code gates, approvals, drift detection, audit trails, team/org policies' },
+              { icon: Globe, title: 'Multi-Cloud & Hybrid', description: 'AWS/GCP/Azure support, on‑prem friendly with outbound agent pools' },
+
             ].map((feature, index) => (
               <div
                 key={index}
