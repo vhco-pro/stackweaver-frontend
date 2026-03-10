@@ -2,45 +2,46 @@
 
 # Get Started with StackWeaver
 
-Welcome to StackWeaver! This guide will help you get started with the platform.  
-StackWeaver can be used in two main ways: as a self-hosted solution on your own infrastructure, or through StackWeaver Cloud, our managed SaaS offering.
+Welcome to **StackWeaver**, the open-source DevOps platform for orchestrating infastructure and configuration at scale. Whether you run it yourself or let us handle it, you'll be up and running in minutes.
 
-## Self-Hosted
+## Choose your deployment
 
-> [!IMPORTANT]
-> Self hosted is **free for companies > 20 employees**. Any additional support or extras are on a paid basis; contact us at `support@stackweaver.co` for any inquiries.
+Getting started with Stackweaver is easy, just choose between these 2 options:
 
-Self-hosting StackWeaver gives you complete control over your infrastructure and data. You deploy and manage the platform on your own infrastructure using Docker or Kubernetes. This option is ideal for:
+### Self-Hosted
+> [!IMPORTANT] 
+> deploy on your own infrastructure with Docker Compose or Kubernetes. Your data never leaves your environment. See the [Self-Hosting Setup](#self-hosting-setup) section below to get started.
 
-- Organizations with strict data residency requirements
-- Teams that need full control over the deployment and configuration
-- Users who want to avoid vendor lock-in
-- Environments with existing infrastructure investments
+### StackWeaver Cloud
+> [!TIP] 
+> our managed SaaS offering, no infrastructure to maintain. [Sign up](https://cloud.stackweaver.co) (coming soon) or reach out at `support@stackweaver.co` for early access.
 
-**Getting Started**: See the [Self-Hosting Setup](#self-hosting-setup) section below for detailed setup guides.
+Common sense should dictate your decision, we offer a small comparison below;
 
-## StackWeaver Cloud (SaaS)
+#### Comparison
 
-StackWeaver Cloud is our fully managed SaaS offering that eliminates the need for infrastructure management. With StackWeaver Cloud, you can:
+| | Self-Hosted | StackWeaver Cloud |
+|---|---|---|
+| **Cost** | Free | Coming soon |
+| **Setup** | ~15 minutes (Docker or Helm) | Sign up and go |
+| **Data control** | Fully yours | Managed by us |
+| **Updates** | Self-managed | Automatic |
+| **Support** | Community + optional paid | Dedicated |
+| **Best for** | Full control, air-gapped, compliance | Fastest path to production |
 
-- Start using StackWeaver immediately without any setup
-- Focus on your infrastructure workflows instead of platform maintenance
-- Benefit from automatic updates and scaling
-- Get dedicated support and monitoring
 
-**Getting Started**: Sign up at [StackWeaver Cloud](https://cloud.stackweaver.co) (coming soon) or contact our sales team for enterprise deployments.
 
 ## Self-Hosting Setup
 
 If you're self-hosting StackWeaver, follow these steps in order:
 
 1. **Deploy StackWeaver**
-   - **Kubernetes**: Follow the [Kubernetes Deployment Guide](self-hosting/kubernetes/) — a single `helm install` generates all secrets, initialises Zitadel, and starts all services automatically.
-   - **Docker Compose**: Follow the [Docker Compose Deployment Guide](self-hosting/docker-compose/) — run `make up` to start all services.
-2. **Configure authentication** — See the [Zitadel Setup Guide](../user-guides/authentication/zitadel-setup.md) for both deployment paths. For custom domains see [Custom Domain](../user-guides/authentication/zitadel-custom-domain.md).
-3. **Connect a VCS provider** — [GitHub App](../user-guides/vcs/github-app.md) or [Azure DevOps](../user-guides/vcs/azure-devops.md).
-4. **Create your first Terraform workspace** — Follow [Your First Terraform Workspace](./your-first-terraform-workspace.md).
-5. **Create your first Ansible job** — Follow [Running Your First Ansible Job](./your-first-ansible-job.md).
+   - **Kubernetes**: Follow the [Kubernetes Deployment Guide](self-hosting/kubernetes/), a single `helm install` generates all secrets, initialises Zitadel, and starts all services automatically.
+   - **Docker Compose**: Follow the [Docker Compose Deployment Guide](self-hosting/docker-compose/), run `docker compose up -d` to start all services.
+2. **Configure authentication** See the [Zitadel Setup Guide](../user-guides/authentication/zitadel-setup.md) for both deployment paths. For custom domains see [Custom Domain](../user-guides/authentication/zitadel-custom-domain.md).
+3. **Connect a VCS provider** [GitHub App](../user-guides/vcs/github-app.md) or [Azure DevOps](../user-guides/vcs/azure-devops.md).
+4. **Create your first Terraform workspace** Follow [Your First Terraform Workspace](./your-first-terraform-workspace.md).
+5. **Create your first Ansible job** Follow [Running Your First Ansible Job](./your-first-ansible-job.md).
 
 ## Next Steps
 
