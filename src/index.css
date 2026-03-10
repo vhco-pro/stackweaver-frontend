@@ -143,10 +143,7 @@ html:not(.dark) .markdown-content li {
 }
 
 .markdown-content code {
-  @apply bg-indigo-50 dark:bg-indigo-950/40
-         border border-indigo-200/70 dark:border-indigo-700/30
-         text-indigo-800 dark:text-indigo-200
-         px-1.5 py-0.5 rounded-md text-sm font-mono;
+  @apply bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200/70 dark:border-indigo-700/30 text-indigo-800 dark:text-indigo-200 px-1.5 py-0.5 rounded-md text-sm font-mono;
 }
 
 .markdown-content pre:not([class*='shiki']) {

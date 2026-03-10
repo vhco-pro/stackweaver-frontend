@@ -20,6 +20,7 @@ interface DocsIndex {
 
 interface DocNavigationProps {
   index: DocsIndex | null;
+  docsBase?: string;
 }
 
 // Flatten the tree to get all documents in order (depth-first)
@@ -59,14 +60,14 @@ function flattenDocsTree(nodes: DocTreeNode[]): Array<{ node: DocTreeNode; docPa
 }
 
 // Get the route path for a document
-function getDocRoutePath(docPath: string): string {
+function getDocRoutePath(docPath: string, base: string): string {
   if (!docPath || docPath === 'README') {
-    return '/docs';
+    return base;
   }
-  return `/docs/${docPath}`;
+  return `${base}/${docPath}`;
 }
 
-export function DocNavigation({ index }: DocNavigationProps) {
+export function DocNavigation({ index, docsBase = '/docs' }: DocNavigationProps) {
   const location = useLocation();
 
   if (!index) {
@@ -77,10 +78,10 @@ export function DocNavigation({ index }: DocNavigationProps) {
   const allDocs = flattenDocsTree(index.tree);
 
   // Find current document
-  const currentPath = location.pathname.replace(/^\/docs\/?/, '').replace(/\/$/, '') || 'README';
+  const currentPath = location.pathname.replace(new RegExp(`^${docsBase}/?`), '').replace(/\/$/, '') || 'README';
   const currentIndex = allDocs.findIndex(doc => {
-    const routePath = getDocRoutePath(doc.docPath);
-    const normalizedCurrentPath = currentPath === 'README' ? '/docs' : `/docs/${currentPath}`;
+    const routePath = getDocRoutePath(doc.docPath, docsBase);
+    const normalizedCurrentPath = currentPath === 'README' ? docsBase : `${docsBase}/${currentPath}`;
     return routePath === normalizedCurrentPath;
   });
 
@@ -129,7 +130,7 @@ export function DocNavigation({ index }: DocNavigationProps) {
         {/* Previous */}
         {prevDoc ? (
           <Link
-            to={getDocRoutePath(prevDoc.docPath)}
+            to={getDocRoutePath(prevDoc.docPath, docsBase)}
             className="group flex flex-col justify-between p-4 rounded-lg border border-border/40 bg-background/50 hover:bg-muted/50 hover:border-border transition-colors h-full"
           >
             <div className="text-base font-medium text-foreground group-hover:text-primary transition-colors">
@@ -147,7 +148,7 @@ export function DocNavigation({ index }: DocNavigationProps) {
         {/* Next */}
         {nextDoc ? (
           <Link
-            to={getDocRoutePath(nextDoc.docPath)}
+            to={getDocRoutePath(nextDoc.docPath, docsBase)}
             className="group flex flex-col justify-between p-4 rounded-lg border border-border/40 bg-background/50 hover:bg-muted/50 hover:border-border transition-colors h-full text-right"
           >
             <div className="text-base font-medium text-foreground group-hover:text-primary transition-colors">
