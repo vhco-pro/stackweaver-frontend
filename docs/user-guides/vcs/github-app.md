@@ -24,7 +24,7 @@ This platform uses **GitHub Apps** (not OAuth Apps) for VCS integration. This al
 2. Fill in the form:
    - **GitHub App name**: `Stackweaver-instance-$` (or your choice)
    - **Homepage URL**: `http://localhost:5173` (your frontend URL)
-   - **Setup URL** — set this to your **frontend URL**: `https://your-domain.com/vcs/github/installed`
+   - **Setup URL**: set this to your **frontend URL**: `https://your-domain.com/vcs/github/installed`
      - For local Docker Compose development, set this to `http://localhost:5173/vcs/github/installed`.
      - If you need one GitHub App to work across both environments, you will need separate GitHub App registrations (one per environment), or use a tool like ngrok to expose your local frontend.
    - **Webhook URL**:
@@ -34,8 +34,8 @@ This platform uses **GitHub Apps** (not OAuth Apps) for VCS integration. This al
        - Copy the HTTPS URL (e.g., `https://abc123.ngrok.io`)
        - Use: `https://abc123.ngrok.io/api/v2/vcs-connections/github/webhook`
      - **For production / Kubernetes**: `https://your-domain.com/api/v2/vcs-connections/github/webhook`
-   - **Webhook secret**: Generate a random secret (store securely) — must match the `GITHUB_WEBHOOK_SECRET` environment variable
-   - **Webhook events** — subscribe to the following:
+   - **Webhook secret**: Generate a random secret (store securely); it must match the `GITHUB_WEBHOOK_SECRET` environment variable
+   - **Webhook events**: subscribe to the following:
 
      | Event | Why |
      |---|---|
@@ -104,7 +104,7 @@ The compose file bind-mounts `deploy/github-app-private-key.pem` → `/etc/githu
 
 The Helm chart stores the private key and webhook secret in a Kubernetes Secret and mounts it as a volume. The chart wires everything up automatically once you provide the secret name.
 
-**Step 1 — Create the Kubernetes Secret:**
+**Step 1: Create the Kubernetes Secret:**
 
 ```bash
 kubectl create secret generic stackweaver-github-app \
@@ -113,7 +113,7 @@ kubectl create secret generic stackweaver-github-app \
   --from-literal=webhook-secret='<your-webhook-secret>'
 ```
 
-**Step 2 — Set values in your `values.yaml`:**
+**Step 2: Set values in your `values.yaml`:**
 
 ```yaml
 secrets:
@@ -181,7 +181,7 @@ Fix:
 2. Set **Setup URL** to `https://your-domain.com/vcs/github/installed`
 3. Save changes
 
-If you need the same GitHub App to work for both local dev and production, set up two separate GitHub App registrations — one per environment.
+If you need the same GitHub App to work for both local dev and production, set up two separate GitHub App registrations, one per environment.
 
 ### "GitHub App is not configured" Error
 - Make sure `GITHUB_APP_ID` and `GITHUB_APP_NAME` are set

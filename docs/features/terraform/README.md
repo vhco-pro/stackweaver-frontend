@@ -28,5 +28,5 @@ Manually cancel runs that are queued, planning, or applying. Describes when canc
 
 ## Related Documentation
 
-- [Platform Features Overview](../README.md) — Full feature set and platform capabilities
-- [Your First Terraform Workspace](../../get-started/your-first-terraform-workspace.md) — End-to-end setup and first run
+- [Platform Features Overview](../README.md): full feature set and platform capabilities
+- [Your First Terraform Workspace](../../get-started/your-first-terraform-workspace.md): end-to-end setup and first run

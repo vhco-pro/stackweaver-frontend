@@ -20,18 +20,18 @@ Kustomize will expand the `helmCharts` entry in `overlays/production/kustomizati
 The `../../base` resource reference pulls in the namespace declaration so Kustomize produces a self-contained set of manifests.
 
 Both Argo CD and Flux CD support this pattern natively.
-Neither tool needs any special plugins — Helm chart expansion via Kustomize is built into both.
+Neither tool needs any special plugins; Helm chart expansion via Kustomize is built into both.
 
 ## Adapting the Example
 
 Open `overlays/production/values.yaml` and replace the example host names and TLS secret names with your own:
 
-- `ingress.hosts.app` — the domain where the StackWeaver UI will be served.
-- `ingress.hosts.auth` — the domain for the Zitadel authentication service.
-- `ingress.tls.secretName` and `ingress.tls.authSecretName` — the names of the Kubernetes TLS secrets for each domain.
+- `ingress.hosts.app`: the domain where the StackWeaver UI will be served.
+- `ingress.hosts.auth`: the domain for the Zitadel authentication service.
+- `ingress.tls.secretName` and `ingress.tls.authSecretName`: the names of the Kubernetes TLS secrets for each domain.
 
 For persistent storage, `overlays/production/pv-pvc.yaml` contains an Azure Blob CSI example.
-If your cluster uses a different storage provider — AWS EFS, an NFS server, or a dynamic provisioner — replace the `csi` block with the appropriate driver configuration.
+If your cluster uses a different storage provider (AWS EFS, an NFS server, or a dynamic provisioner), replace the `csi` block with the appropriate driver configuration.
 The PVC names (`runner-workspaces-pvc` and `zitadel-pat-pvc`) must stay the same because `values.yaml` references them by name.
 
 ## Secrets

@@ -1,6 +1,6 @@
-# Production Docker Compose — Implementation Plan
+# Production Docker Compose: Implementation Plan
 
-**Status:** ❌ Not implemented — no `docs/get-started/self-hosting/docker-compose/example/` directory or production compose file exists yet.
+**Status:** ❌ Not implemented. No `docs/get-started/self-hosting/docker-compose/example/` directory or production compose file exists yet.
 
 > **Goal:** Create a user-facing Docker Compose example that uses pre-built container images from GHCR (no source code required). The example lives inside the docs directory and is rendered via the `::: code-explorer` directive. It does NOT replace the existing `deploy/docker-compose.yml` (which is the internal development compose file).
 
@@ -10,8 +10,8 @@
 
 ### Current state
 
-- `deploy/docker-compose.yml` — development compose; uses `build: context: ../backend` directives to build everything from source. Requires the full repo checkout.
-- `docs/get-started/self-hosting/docker-compose/README.md` — user-facing docs page that currently describes the development process (clone repo, `make up`). This will be updated to reference the new example.
+- `deploy/docker-compose.yml`: development compose; uses `build: context: ../backend` directives to build everything from source. Requires the full repo checkout.
+- `docs/get-started/self-hosting/docker-compose/README.md`: user-facing docs page that currently describes the development process (clone repo, `make up`). This will be updated to reference the new example.
 - The Kustomize guide already uses this pattern: `docs/get-started/self-hosting/kubernetes/kustomize/example/` + `::: code-explorer ./example` directive.
 
 ### Pre-built images (from `deploy/helm/stackweaver/values.yaml` and `docs/internal/release-process.md`)
@@ -58,16 +58,16 @@ All files go under `docs/get-started/self-hosting/docker-compose/example/`.
 
 This is the main file. Key requirements:
 
-- **NO `build:` directives** — every service uses `image:`.
+- **NO `build:` directives**; every service uses `image:`.
 - Uses `network_mode: host` (same as dev, simplest for single-machine deployment).
 - All services from the dev compose must be present: `postgres`, `redis`, `minio`, `zitadel`, `login-ui`, `zitadel-init`, `api`, `frontend`, `orchestrator`, `runner`, `ansible-runner`.
 - Named volumes: `postgres_data`, `minio_data`, `runner-workspaces`, `zitadel-pat`.
-- The `api` service needs a `config.yaml` — use Docker Compose `configs:` top-level key with an inline config block (avoids needing a separate file).
-- The `frontend` service needs an `env.js` file mounted at `/usr/share/nginx/html/env.js` — use Docker Compose `configs:` or a volume mount to `./env.js`.
+- The `api` service needs a `config.yaml`: use Docker Compose `configs:` top-level key with an inline config block (avoids needing a separate file).
+- The `frontend` service needs an `env.js` file mounted at `/usr/share/nginx/html/env.js`: use Docker Compose `configs:` or a volume mount to `./env.js`.
 - `zitadel-init` uses the pre-built image `ghcr.io/vhco-pro/stackweaver-zitadel-init:latest` (NOT built from `scripts/zitadel-init/`).
-- Zitadel needs `zitadel-defaults.yaml` and `zitadel-init-steps.yaml` — embed via Docker Compose `configs:` top-level key.
-- All env vars reference a `.env` file using `env_file:` — users copy from `.env.example`.
-- Optional env files (`sso.env`, `vcs.env`, `oidc.env`) are referenced with `env_file:` — include them with a comment that they're optional.
+- Zitadel needs `zitadel-defaults.yaml` and `zitadel-init-steps.yaml`: embed via Docker Compose `configs:` top-level key.
+- All env vars reference a `.env` file using `env_file:`; users copy from `.env.example`.
+- Optional env files (`sso.env`, `vcs.env`, `oidc.env`) are referenced with `env_file:`; include them with a comment that they're optional.
 - Remove all hardcoded development-specific values (e.g., specific GitHub App IDs, webhook secrets).
 - Use `${VARIABLE:-default}` syntax for sensible defaults.
 - Add clear comments throughout.
@@ -672,8 +672,8 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 ### Files NOT needed
 
-- **`config.yaml`** — Already embedded in the API and orchestrator images at `/etc/iac/config/config.yaml`. Env vars override values.
-- **`env.js`** — Generated at container start via the frontend entrypoint override.
+- **`config.yaml`**: already embedded in the API and orchestrator images at `/etc/iac/config/config.yaml`. Env vars override values.
+- **`env.js`**: generated at container start via the frontend entrypoint override.
 - **`github-app-private-key.pem`** — Make the volume mount conditional or document that users should create an empty placeholder. **Decision:** Don't mount it at all in the default compose. Use env var `GITHUB_APP_PRIVATE_KEY` (direct PEM content) instead of file path. Actually, check if the API supports this... Looking at the dev compose, it uses `GITHUB_APP_PRIVATE_KEY_PATH`. The API code likely reads from file. **Keep the file mount but make it optional.** Add a comment. Create an empty placeholder file OR use a Docker Compose profile to make GitHub services optional. **Simplest: don't include the GitHub App volume mount. Users can add it themselves following the VCS guide.** But this will cause a Docker error if the file doesn't exist... **Use a bind mount with `ro` flag and document it.** Actually, if the file doesn't exist Docker creates it as a directory. That's a problem. **Solution: remove the GitHub file mount entirely. Set `GITHUB_APP_PRIVATE_KEY_PATH` to a non-existent path and let the API handle it gracefully (it should — the GitHub integration is optional).** Or better: Don't set `GITHUB_APP_PRIVATE_KEY_PATH` at all if it's optional. Check whether the API crashes if the path doesn't exist... Looking at the dev compose, it's always set. **Safest: keep the mount and include an empty `github-app-private-key.pem` file in the example.** This way Docker won't error out.
 
 Actually — the cleanest approach for the code explorer: just don't include the mount at all, and comment out the GitHub-related env vars. Users who need GitHub integration can follow the VCS docs to add the mount. If the env var isn't set, the API won't try to read the file.
@@ -689,7 +689,7 @@ Wait — looking more carefully at the dev compose, `GITHUB_APP_PRIVATE_KEY_PATH
 | # | File | Purpose |
 |---|---|---|
 | 1 | `docker-compose.yml` | Main compose file with all services using pre-built images |
-| 2 | `.env.example` | Template env file — user copies to `.env` |
+| 2 | `.env.example` | Template env file; user copies to `.env` |
 | 3 | `sso.env` | SSO config (empty defaults, must exist for `env_file:`) |
 | 4 | `vcs.env` | VCS config (empty defaults, must exist for `env_file:`) |
 | 5 | `oidc.env` | OIDC workload identity config (must exist for `env_file:`) |
@@ -722,7 +722,7 @@ The current README describes the development workflow (`git clone`, `make up`). 
    :::
    ```
 
-3. **Update the "Service Management" section** — remove `make` commands (those require the repo). Replace with raw `docker compose` commands:
+3. **Update the "Service Management" section**: remove `make` commands (those require the repo). Replace with raw `docker compose` commands:
    ```bash
    docker compose up -d          # Start all services
    docker compose down           # Stop all services (preserves data)
@@ -731,7 +731,7 @@ The current README describes the development workflow (`git clone`, `make up`). 
    docker compose up -d --pull   # Update to latest and restart
    ```
 
-4. **Update the "Configuration" section** — reference the `.env` file and the optional env files. Remove the `make fresh-backend` references.
+4. **Update the "Configuration" section**: reference the `.env` file and the optional env files. Remove the `make fresh-backend` references.
 
 5. **Keep the "Architecture", "Reverse Proxy", "Data Persistence", "Upgrading", and "Troubleshooting" sections** mostly as-is. Update the "Upgrading" section to use `docker compose pull && docker compose up -d` instead of `git pull && make fresh`.
 
@@ -825,9 +825,9 @@ The implementing model should:
 ### Critical details to get right
 
 - Every `env_file:` reference must point to a file that EXISTS. The example includes `sso.env`, `vcs.env`, `oidc.env` as files with empty/commented values.
-- The `.env.example` must be copied to `.env` — zitadel-init appends to `.env`, not `.env.example`.
+- The `.env.example` must be copied to `.env`; zitadel-init appends to `.env`, not `.env.example`.
 - The frontend `entrypoint/command` override must use `$$` for shell variable references in YAML (Docker Compose escaping).
-- `network_mode: host` means no port mapping — services bind directly to host ports.
+- `network_mode: host` means no port mapping; services bind directly to host ports.
 - The `zitadel-init` container needs `.:/config` mount so it can write `.env` to the user's directory.
 
 ---

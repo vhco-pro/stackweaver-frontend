@@ -2,7 +2,7 @@
 
 # Zitadel User Avatar in Admin Top Bar – Implementation Plan
 
-**Status:** ❌ Not implemented — no avatar/picture fetching in the auth service or display in navigation components.
+**Status:** ❌ Not implemented. No avatar/picture fetching in the auth service or display in navigation components.
 
 ## Summary
 

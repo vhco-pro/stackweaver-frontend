@@ -1,7 +1,7 @@
 # Plan: Inline Code Highlight Redesign
 
-**Status:** Implemented — Indigo (Option C variant)
-**Scope:** Docs viewer only — `MarkdownRenderer.tsx`, `index.css`
+**Status:** Implemented: Indigo (Option C variant)
+**Scope:** Docs viewer only: `MarkdownRenderer.tsx`, `index.css`
 
 ---
 
@@ -19,7 +19,7 @@ Current inline code styling:
 <code className="bg-muted px-1.5 py-0.5 rounded text-sm font-mono">
 ```
 
-`bg-muted` resolves to the shadcn/ui muted token — a flat mid-gray in both light and dark mode. No text color change, no definition, no visual interest. The result is inline code that barely stands out from surrounding prose.
+`bg-muted` resolves to the shadcn/ui muted token, a flat mid-gray in both light and dark mode. No text color change, no definition, no visual interest. The result is inline code that barely stands out from surrounding prose.
 
 ---
 
@@ -32,7 +32,7 @@ bg-blue-500/20 dark:bg-blue-500/15
 text-blue-800 dark:text-blue-300
 ```
 
-This looks alive and intentional. The approach is proven — we just need to bring the same energy to *default* inline code outside callouts.
+This looks alive and intentional. The approach is proven; we just need to bring the same energy to *default* inline code outside callouts.
 
 ---
 
@@ -40,18 +40,18 @@ This looks alive and intentional. The approach is proven — we just need to bri
 
 VitePress default theme uses:
 
-- **Background**: `rgba(125,125,125, 0.12–0.14)` — neutral, slightly higher contrast than pure muted
-- **Text**: `var(--vp-c-text-code)` — slightly brighter/offset from body text, often with a subtle warm or cool cast
+- **Background**: `rgba(125,125,125, 0.12–0.14)`: neutral, slightly higher contrast than pure muted
+- **Text**: `var(--vp-c-text-code)`: slightly brighter/offset from body text, often with a subtle warm or cool cast
 - **Border-radius**: slightly more than body text baseline (feels like a pill-ish chip)
 - **Padding**: similar to current (`px-1.5 py-0.5`)
 
-The key difference is VitePress gives code a **distinct identity** — it reads as a semantic element, not just a gray smudge. Some VitePress themes go further with a faint accent-colored background (e.g., green-tinted for code, blue for notes).
+The key difference is VitePress gives code a **distinct identity**; it reads as a semantic element, not just a gray smudge. Some VitePress themes go further with a faint accent-colored background (e.g., green-tinted for code, blue for notes).
 
 ---
 
 ## Options
 
-### Option A — Neutral but Defined (lowest risk)
+### Option A: Neutral but Defined (lowest risk)
 
 Increase contrast and add a subtle border. No brand color.
 
@@ -60,11 +60,11 @@ Light: bg-slate-100 border border-slate-200/80 text-slate-700
 Dark:  bg-slate-800 border border-slate-700/60 text-slate-200
 ```
 
-**Pros:** Safe, works with any content. **Cons:** Still fairly colorless — only marginally better than current.
+**Pros:** Safe, works with any content. **Cons:** Still fairly colorless, only marginally better than current.
 
 ---
 
-### Option B — Warm Neutral (VitePress-closest)
+### Option B: Warm Neutral (VitePress-closest)
 
 Use a slightly warm gray tint that shifts with mode.
 
@@ -84,7 +84,7 @@ Dark:  border border-zinc-600/40
 
 ---
 
-### Option C — Brand Accent (Stackweaver-native) ← Recommended
+### Option C: Brand Accent (Stackweaver-native) ← Recommended
 
 Use the app's violet/purple brand color as a very subtle tint. Mirrors how callouts already work but in a softer, neutral register.
 
@@ -95,11 +95,11 @@ Dark:  bg-violet-950/40 border border-violet-700/30 text-violet-200
 
 Round up to `rounded-md` (from `rounded`) for a slightly more polished chip feel.
 
-**Pros:** Cohesive with Stackweaver brand; clearly semantic; both modes look intentional. Not so loud it distracts. **Cons:** Slightly opinionated — docs with many inline code references will have a purple cast.
+**Pros:** Cohesive with Stackweaver brand; clearly semantic; both modes look intentional. Not so loud it distracts. **Cons:** Slightly opinionated; docs with many inline code references will have a purple cast.
 
 ---
 
-### Option D — Monochrome Chip with Stronger Contrast
+### Option D: Monochrome Chip with Stronger Contrast
 
 Skip color tint, go higher contrast with a clear border:
 
@@ -118,8 +118,8 @@ Dark:  bg-gray-800/70 border border-gray-600/50 text-gray-100
 
 Rationale:
 1. The app already uses violet/purple heavily (gradient headers, action buttons).
-2. Callouts already demonstrate colored code works — we're just bringing that to the baseline.
-3. VitePress's appeal isn't gray — it's that code elements have *identity*. Brand tint gives identity.
+2. Callouts already demonstrate colored code works; we're just bringing that to the baseline.
+3. VitePress's appeal isn't gray: it's that code elements have *identity*. Brand tint gives identity.
 
 ---
 
@@ -166,7 +166,7 @@ Rationale:
 
 ### Callout Interaction
 
-Callout boxes use `[&_code]` selectors that **override** the default inline code style. No changes needed there — callouts will continue to render code in their contextual color (blue for note, yellow for warning, etc.). The default style only applies when code is not inside a callout.
+Callout boxes use `[&_code]` selectors that **override** the default inline code style. No changes needed there; callouts will continue to render code in their contextual color (blue for note, yellow for warning, etc.). The default style only applies when code is not inside a callout.
 
 ### Pre / Code Block Safety
 
@@ -185,7 +185,7 @@ The existing rule at line 153 (`pre:not([class*='shiki']) code { bg-transparent 
 
 ## Decision
 
-**Implemented: Indigo** — Option C with `indigo` instead of `violet`.
+**Implemented: Indigo**: Option C with `indigo` instead of `violet`.
 
 Violet was rejected after visual review: it reads too much like Terraform's brand color. Indigo sits at the blue-purple midpoint, leans more blue, and feels native to Stackweaver without the Terraform association.
 
@@ -210,5 +210,5 @@ Violet was rejected after visual review: it reads too much like Terraform's bran
 
 | Variant | Light | Dark | Verdict |
 |---------|-------|------|---------|
-| Violet | `bg-violet-50 border-violet-200/70 text-violet-800` | `bg-violet-950/40 border-violet-700/30 text-violet-200` | Rejected — too Terraform |
+| Violet | `bg-violet-50 border-violet-200/70 text-violet-800` | `bg-violet-950/40 border-violet-700/30 text-violet-200` | Rejected: too Terraform |
 | **Indigo** | `bg-indigo-50 border-indigo-200/70 text-indigo-800` | `bg-indigo-950/40 border-indigo-700/30 text-indigo-200` | **Shipped** |

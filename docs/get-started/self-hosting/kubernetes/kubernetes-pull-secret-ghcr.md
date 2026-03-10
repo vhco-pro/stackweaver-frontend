@@ -12,30 +12,30 @@ Before you start, make sure you have:
 - `kubectl` installed and configured to talk to your cluster
 - Access to the namespace where StackWeaver will run
 
-## Step 1 — Request Access to the `vhco-pro` Organisation
+## Step 1: Request Access to the `vhco-pro` Organisation
 
 The StackWeaver images are stored in the private `ghcr.io/vhco-pro` namespace. You must be a member of that GitHub organisation before your token can pull images.
 
-Contact the StackWeaver team at `support@stackweaver.co` and ask to be invited to the `vhco-pro` organisation on GitHub. Include the GitHub username that should receive the invitation. Once the team processes your request you will receive an email from GitHub — accept the invitation before continuing.
+Contact the StackWeaver team at `support@stackweaver.co` and ask to be invited to the `vhco-pro` organisation on GitHub. Include the GitHub username that should receive the invitation. Once the team processes your request you will receive an email from GitHub; accept the invitation before continuing.
 
 > [!NOTE]
 > If you are deploying StackWeaver on behalf of a company rather than as an individual, ask the team to invite a dedicated machine/bot account instead of a personal account. This avoids disruptions when individuals leave.
 
-## Step 2 — Create a Personal Access Token
+## Step 2: Create a Personal Access Token
 
 Once you are a member of `vhco-pro`, create a GitHub personal access token (PAT) scoped to read packages.
 
-1. In GitHub, open **Settings → Developer settings → Personal access tokens → Fine-grained tokens** (or classic tokens — either works).
+1. In GitHub, open **Settings → Developer settings → Personal access tokens → Fine-grained tokens** (or classic tokens; either works).
 2. Click **Generate new token**.
 3. Give the token a descriptive name such as `stackweaver-k8s-pull-<cluster-name>`.
 4. Set an expiry date that matches your rotation policy (90 days is a common baseline).
-5. Under **Permissions** (fine-grained) or **Scopes** (classic), grant **read:packages** — no other permissions are required.
+5. Under **Permissions** (fine-grained) or **Scopes** (classic), grant **read:packages**. No other permissions are required.
 6. Click **Generate token** and copy the value immediately. GitHub will not show it again.
 
 > [!WARNING]
 > Store the token securely. Do not commit it to version control. Treat it like a password.
 
-## Step 3 — Create the Kubernetes Secret
+## Step 3: Create the Kubernetes Secret
 
 Run the following command, replacing the placeholder values with your own:
 
@@ -55,7 +55,7 @@ You can verify the secret was created:
 kubectl get secret ghcr-pull-secret -n <your-namespace>
 ```
 
-## Step 4 — Configure the Helm Chart to Use the Secret
+## Step 4: Configure the Helm Chart to Use the Secret
 
 Tell the StackWeaver Helm chart about the pull secret by setting `global.imagePullSecrets` in your values file:
 
@@ -95,5 +95,5 @@ Using `--dry-run=client -o yaml | kubectl apply` replaces the secret without del
 
 ## Related Documentation
 
-- [Self-Hosted Runners](./self-hosted-runners.md) — run StackWeaver workloads on your own Kubernetes infrastructure
-- [Get Started](../get-started/readme.md) — overview of all setup guides
+- [Self-Hosted Runners](./self-hosted-runners.md): run StackWeaver workloads on your own Kubernetes infrastructure
+- [Get Started](../get-started/readme.md): overview of all setup guides

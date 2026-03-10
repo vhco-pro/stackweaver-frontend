@@ -908,7 +908,7 @@ export function MarkdownRenderer({
       code: ({ inline, className, children, ...props }: MarkdownCodeProps) => {
         if (inline) {
           return (
-            <code className="bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200/70 dark:border-indigo-700/30 text-indigo-800 dark:text-indigo-200 px-1.5 py-0.5 rounded-md text-sm font-mono" {...props}>
+            <code className="bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200/70 dark:border-indigo-700/30 text-indigo-800 dark:text-indigo-200 px-1.5 py-0.5 rounded-md text-sm font-mono whitespace-nowrap" {...props}>
               {children}
             </code>
           );
@@ -1106,6 +1106,11 @@ export function MarkdownRenderer({
           currentDir={currentDir}
           onLightbox={(src, alt) => { setLightboxSrc(src); setLightboxAlt(alt); }}
         />
+      ),
+      table: ({ children, ...props }: React.HTMLAttributes<HTMLTableElement>) => (
+        <div className="overflow-x-auto">
+          <table {...props}>{children}</table>
+        </div>
       ),
     };
   }, [highlightedCode, docPath, navigate, copiedCodeId, enableCallouts, enableCodeGroups, enableMermaid, onLinkClick, currentDir]);

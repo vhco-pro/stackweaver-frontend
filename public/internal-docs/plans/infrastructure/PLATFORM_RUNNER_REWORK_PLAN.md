@@ -2,7 +2,7 @@
 
 # Platform Runner Rework Plan
 
-**Status:** ❌ Not started — the platform runner still uses persistent workspace directories. The self-hosted runner (agent mode) uses ephemeral temp dirs as the reference pattern.
+**Status:** ❌ Not started. The platform runner still uses persistent workspace directories. The self-hosted runner (agent mode) uses ephemeral temp dirs as the reference pattern.
 
 TODO: the platform runner for ansible needs to be reworked in the same way - extend the plan with this info
 
@@ -39,7 +39,7 @@ The platform runner (`backend/cmd/runner/main.go`) currently uses a persistent-d
 | 7 | **Default zero encryption key** | Low | The `ENCRYPTION_KEY` defaults to a zero-value key if not set, meaning workspace variable encryption is ineffective. |
 | 8 | **Provider cache poisoning** | Medium | Shared provider cache across workspaces means a compromised provider binary could affect other workspaces. |
 | 9 | **No security profiles** | Low | No seccomp, AppArmor, or capability restrictions on the runner container. |
-| 10 | **Single process for all tenants** | Medium | One runner binary processes all organizations' runs — no process-level isolation between tenants. |
+| 10 | **Single process for all tenants** | Medium | One runner binary processes all organizations' runs; no process-level isolation between tenants. |
 
 ### Comparison: Platform Runner vs Self-Hosted Runner vs TFE
 
@@ -56,7 +56,7 @@ The platform runner (`backend/cmd/runner/main.go`) currently uses a persistent-d
 
 ## Rework Phases
 
-### Phase 1: Ephemeral Execution (S effort — highest value)
+### Phase 1: Ephemeral Execution (S effort, highest value)
 
 **Goal:** Replace persistent workspace directories with ephemeral temp directories, matching TFE and self-hosted runner behavior.
 
@@ -81,13 +81,13 @@ The platform runner (`backend/cmd/runner/main.go`) currently uses a persistent-d
    - Download state JSON from MinIO
    - Write to `terraform.tfstate` in the temp directory
 
-3. **Remove `runner-workspaces` volume** from `deploy/docker-compose.yml` — no longer needed.
+3. **Remove `runner-workspaces` volume** from `deploy/docker-compose.yml` (no longer needed).
 
 4. **Provider cache:** Keep a shared provider cache (`/home/iac/.terraform.d/plugin-cache`) for performance, but ensure workspace-level `.terraform` directories are ephemeral.
 
 **Impact:** Eliminates issues #1 (cleanup), #3 (shared volumes), #4 (secrets on disk), #8 (cache poisoning for workspace-level state).
 
-**Risk:** Low — self-hosted runner already works this way and has been tested.
+**Risk:** Low. The self-hosted runner already works this way and has been tested.
 
 ---
 

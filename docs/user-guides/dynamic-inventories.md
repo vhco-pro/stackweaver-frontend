@@ -12,7 +12,7 @@ The sync flow works like this: you trigger a sync (manually or via a schedule), 
 
 ## Two Approaches
 
-Stackweaver supports two ways to create dynamic inventories. Both are fully supported and neither is deprecated — choose the one that fits your workflow.
+Stackweaver supports two ways to create dynamic inventories. Both are fully supported and neither is deprecated; choose the one that fits your workflow.
 
 ### VCS-Backed (Recommended for Teams)
 
@@ -29,7 +29,7 @@ Before creating a dynamic inventory, you need the following depending on your cl
 ### Azure
 
 - An Azure App Registration with sufficient RBAC permissions to list VMs in the target subscription. See the [Azure OIDC Configuration](azure-oidc-configuration.md) guide for how to set this up with keyless authentication, or configure an Azure credential in Stackweaver with a client secret.
-- If using OIDC (recommended), the `OIDC_SIGNING_KEY` and `OIDC_ISSUER_URL` must be set in `deploy/oidc.env` and at least one federated credential must be configured on the App Registration. The subject format for inventory sync is different from Terraform runs — see [OIDC Subject Formats](#oidc-subject-formats) for details. For VCS-backed inventories the subject contains the **inventory name**; for UI-configured sources it contains the **source name**, so a single inventory can have multiple sources each with their own federated credential.
+- If using OIDC (recommended), the `OIDC_SIGNING_KEY` and `OIDC_ISSUER_URL` must be set in `deploy/oidc.env` and at least one federated credential must be configured on the App Registration. The subject format for inventory sync is different from Terraform runs; see [OIDC Subject Formats](#oidc-subject-formats) for details. For VCS-backed inventories the subject contains the **inventory name**; for UI-configured sources it contains the **source name**, so a single inventory can have multiple sources each with their own federated credential.
 - The App Registration needs at least `Reader` role on the subscription or resource groups where VMs are deployed.
 
 ### AWS
@@ -111,7 +111,7 @@ Click "Create Inventory".
 
 After creating the inventory, click the "Sync" button in the top-right corner of the inventory detail page. This triggers the Ansible runner to clone the repository, run `ansible-inventory --list` with the plugin file, and cache the discovered hosts and groups.
 
-If the sync succeeds, you will see a toast notification showing how many hosts were discovered (e.g., "Inventory synced successfully — 12 hosts discovered"). The Hosts tab will populate with the discovered machines and their variables (IP addresses, tags, instance IDs, etc.).
+If the sync succeeds, you will see a toast notification showing how many hosts were discovered (e.g., "Inventory synced successfully: 12 hosts discovered"). The Hosts tab will populate with the discovered machines and their variables (IP addresses, tags, instance IDs, etc.).
 
 If the sync fails, a red error banner appears at the top of the inventory page showing the exact error output from Ansible. Click the copy icon on the banner to copy the error text for debugging.
 
@@ -179,9 +179,9 @@ Detection works by examining the `plugin:` field in the YAML file content for VC
 
 ## Syncing and Live Status
 
-When you click "Sync" on a VCS inventory or a UI-configured source, Stackweaver enqueues the sync job and polls for completion automatically. You do not need to refresh the page — the status badge on the inventory or source card updates in real time as the sync progresses. Once the sync finishes, a toast notification reports the result:
+When you click "Sync" on a VCS inventory or a UI-configured source, Stackweaver enqueues the sync job and polls for completion automatically. You do not need to refresh the page; the status badge on the inventory or source card updates in real time as the sync progresses. Once the sync finishes, a toast notification reports the result:
 
-- On success: "Inventory synced successfully — N hosts discovered" (or "Source synced — N hosts discovered" for UI-configured sources).
+- On success: "Inventory synced successfully: N hosts discovered" (or "Source synced: N hosts discovered" for UI-configured sources).
 - On failure: a toast with the error message, and a red error banner appears on the card with the full error output. You can copy the error text using the clipboard icon on the banner.
 - If zero hosts are discovered, a warning toast appears suggesting you check the configuration and authentication settings.
 
@@ -241,7 +241,7 @@ pip install azure-cli-core
 
 Verify your OIDC or credential configuration. For OIDC, check that:
 
-- The `OIDC_SIGNING_KEY` is set in `deploy/oidc.env` and both the API and runner containers share the same key.
+- The `OIDC_SIGNING_KEY` is set in `oidc.env` and both the API and runner containers share the same key.
 - The federated credential on your Azure App Registration has the correct issuer URL (must match `OIDC_ISSUER_URL` exactly, no trailing slash).
 - The App Registration has at least `Reader` role on the target subscription.
 
@@ -249,16 +249,8 @@ For credential-based auth, verify the client secret has not expired and the cred
 
 ### Sync succeeds but no hosts are found
 
-Check that the `include_vm_resource_groups` setting in your inventory file includes the resource groups where VMs are deployed. Using `'*'` includes all resource groups. Also verify that VMs are in a `running` power state — deallocated VMs may not appear depending on your plugin configuration.
+Check that the `include_vm_resource_groups` setting in your inventory file includes the resource groups where VMs are deployed. Using `'*'` includes all resource groups. Also verify that VMs are in a `running` power state, deallocated VMs may not appear depending on your plugin configuration.
 
 ### Sync shows warnings about deprecated options
 
-Some plugin options change between Ansible collection versions. Warnings about deprecated options do not prevent host discovery. Review the amber warning banner on the inventory detail page — you can copy the warnings and update your inventory file to use the recommended alternatives.
-
-### Azure icon does not appear
-
-If the cloud provider icon does not appear on the inventory list or detail page, try a hard refresh in your browser (Ctrl+Shift+R or Cmd+Shift+R) to clear cached assets. The icon is detected based on the `plugin:` field in your inventory file or the file path pattern.
-
-### Sync fails with "collection metadata was not loaded for collection azure.azcollection"
-
-This error occurs when the OIDC wrapper script tries to import the Azure collection too early, before Ansible has initialized its collection metadata loader. If you see this error, ensure you are running the latest version of the `oidc-ansible-inventory` wrapper script, which uses a lazy import hook to avoid this issue. Rebuild the Ansible runner image to pick up the fix.
+Some plugin options change between Ansible collection versions. Warnings about deprecated options do not prevent host discovery. Review the amber warning banner on the inventory detail page, you can copy the warnings and update your inventory file to use the recommended alternatives.

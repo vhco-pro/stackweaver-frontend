@@ -37,7 +37,7 @@ The `RunRepository.ListByWorkspace()` does `db.Find(&runs)` with no `.Omit()` or
 - `backend/internal/api/v2/handlers/terraform/state_versions.go` (line ~170)
 - `backend/internal/models/state_version.go` (line ~40)
 
-The state version list endpoint returns the full `state_data` field — this contains the **entire Terraform state JSON**, which for production infrastructure can be megabytes. This data is:
+The state version list endpoint returns the full `state_data` field, which contains the **entire Terraform state JSON** and for production infrastructure can be megabytes. This data is:
 - Loaded from PostgreSQL (full table scan of JSONB column)
 - Serialized to JSON in the API response
 - Transferred over the network to the browser
@@ -61,7 +61,7 @@ Every component mount or navigation triggers full re-fetches of all data.
 
 **File:** `frontend/src/pages/WorkspaceDetail.tsx` (line ~584)
 
-- WorkspaceDetail polls `runsApi.list()` every **2 seconds** unconditionally when a workspace is loaded. It only stops after discovering no active runs — but it starts polling even when there are no runs at all.
+- WorkspaceDetail polls `runsApi.list()` every **2 seconds** unconditionally when a workspace is loaded. It only stops after discovering no active runs, but it starts polling even when there are no runs at all.
 - Workspaces list page polls every **3 seconds** using the N+1 pattern described above.
 
 ### 6. Everything Fetched Upfront (Medium Impact)
@@ -81,7 +81,7 @@ On mount, WorkspaceDetail fires 6+ parallel API calls regardless of which tab is
 
 ## Implementation Plan
 
-### Phase 1: Backend — Stop Sending Large Payloads (Quick Wins)
+### Phase 1: Backend: Stop Sending Large Payloads (Quick Wins)
 
 These changes have the highest impact-to-effort ratio and don't require frontend changes.
 
@@ -144,7 +144,7 @@ This follows the TFE API pattern where workspace list responses can include the 
 
 **Alternative:** A batch endpoint like `POST /api/v2/runs/batch-latest` accepting workspace IDs and returning a map of workspace_id → latest run summary.
 
-### Phase 2: Frontend — Lazy Loading & Tab-Based Fetching
+### Phase 2: Frontend: Lazy Loading and Tab-Based Fetching
 
 #### 2.1 Defer Tab-Specific Data Fetching
 
@@ -183,7 +183,7 @@ useEffect(() => {
 
 Use the new backend endpoint from 1.3 to get workspace list with latest run included, instead of fetching runs per workspace.
 
-If the backend supports `?include=latest-run`, the workspace list response will contain the latest run as an included relationship — a single HTTP request replaces N+1 requests.
+If the backend supports `?include=latest-run`, the workspace list response will contain the latest run as an included relationship, so a single HTTP request replaces N+1 requests.
 
 #### 2.3 Smart Polling
 
@@ -208,7 +208,7 @@ useEffect(() => {
 }, [workspace, hasActiveRuns]);
 ```
 
-### Phase 3: Frontend — Client-Side Caching (Optional)
+### Phase 3: Frontend: Client-Side Caching (Optional)
 
 #### 3.1 Add React Query or SWR
 
@@ -218,7 +218,7 @@ Replace raw `fetch` calls with a data-fetching library that provides:
 - **Cache invalidation**: Automatically refetch after mutations
 - **Window focus refetching**: Refetch when user returns to the tab
 
-Recommended: **TanStack Query (React Query)** — it integrates cleanly with the existing API client pattern.
+Recommended: **TanStack Query (React Query)**, which integrates cleanly with the existing API client pattern.
 
 This is a larger refactor and should be done incrementally, starting with the most-visited pages (workspace list → workspace detail).
 
@@ -232,18 +232,18 @@ Replace the current full-page loading spinner with skeleton UI for each tab sect
 
 | Priority | Task | Estimated Effort | Impact |
 |----------|------|-----------------|--------|
-| **P0** | 1.1 Omit `plan_output` from run list queries | 15 min | High — eliminates unnecessary DB I/O |
-| **P0** | 1.2 Omit `state_data` from state version list | 30 min | High — removes MB-scale payloads |
-| **P1** | 2.1 Tab-based lazy loading | 2-3 hours | High — eliminates 4+ unnecessary API calls |
-| **P1** | 2.3 Smart polling | 1-2 hours | Medium — reduces background request volume |
-| **P2** | 1.3 Backend latest-run include endpoint | 2-3 hours | High — eliminates N+1 pattern |
-| **P2** | 2.2 Eliminate N+1 on workspace list | 1 hour (after 1.3) | High — depends on backend endpoint |
-| **P3** | 3.1 React Query integration | 1-2 days | Medium — improves perceived speed across the app |
-| **P3** | 3.2 Skeleton loading states | 1 day | Low — perceived performance only |
+| **P0** | 1.1 Omit `plan_output` from run list queries | 15 min | High: eliminates unnecessary DB I/O |
+| **P0** | 1.2 Omit `state_data` from state version list | 30 min | High: removes MB-scale payloads |
+| **P1** | 2.1 Tab-based lazy loading | 2-3 hours | High: eliminates 4+ unnecessary API calls |
+| **P1** | 2.3 Smart polling | 1-2 hours | Medium: reduces background request volume |
+| **P2** | 1.3 Backend latest-run include endpoint | 2-3 hours | High: eliminates N+1 pattern |
+| **P2** | 2.2 Eliminate N+1 on workspace list | 1 hour (after 1.3) | High: depends on backend endpoint |
+| **P3** | 3.1 React Query integration | 1-2 days | Medium: improves perceived speed across the app |
+| **P3** | 3.2 Skeleton loading states | 1 day | Low: perceived performance only |
 
 ### Recommended Approach
 
-Start with **Phase 1** (backend-only changes, zero risk to frontend). These can be shipped immediately and will have the most noticeable impact — especially omitting `state_data` which can reduce response sizes by orders of magnitude.
+Start with **Phase 1** (backend-only changes, zero risk to frontend). These can be shipped immediately and will have the most noticeable impact, especially omitting `state_data`, which can reduce response sizes by orders of magnitude.
 
 Then tackle **Phase 2** for lazy loading and smarter polling. Phase 3 is optional and can be deferred.
 
@@ -259,4 +259,4 @@ Then tackle **Phase 2** for lazy loading and smarter polling. Phase 3 is optiona
 ## Notes
 
 - All changes must maintain TFE API compatibility. The `plan_output` omission is safe because the TFE API already excludes it from run list responses. The `state_data` omission is safe because the TFE API serves state downloads via a separate signed URL mechanism.
-- The backend `Omit()` calls only affect the Go struct deserialization — they don't change the JSON:API response format, just prevent loading unnecessary data from PostgreSQL.
+- The backend `Omit()` calls only affect the Go struct deserialization; they don't change the JSON:API response format, just prevent loading unnecessary data from PostgreSQL.

@@ -2,14 +2,14 @@
 
 # CI Pipeline Improvement Plan
 
-**Status:** ✅ Implemented — `dorny/paths-filter` for path-based triggering and `concurrency` for cancel-in-progress are in use in `.github/workflows/ci.yml`.
+**Status:** ✅ Implemented. `dorny/paths-filter` for path-based triggering and `concurrency` for cancel-in-progress are in use in `.github/workflows/ci.yml`.
 
 This plan redesigns the CI pipeline for path-based triggering, parallel jobs, and composite actions to reduce unnecessary runs and improve feedback time.
 
 ## Current Problems
 
 1. **Over-triggering on PRs**: The `pull_request` trigger has no `paths` filter, so every PR runs both backend and frontend jobs regardless of what changed.
-2. **Over-triggering on push**: Push filters on `backend/**` and `frontend/**` but not granularly — a docs-only change inside `backend/` still triggers the full backend lint.
+2. **Over-triggering on push**: Push filters on `backend/**` and `frontend/**` but not granularly; a docs-only change inside `backend/` still triggers the full backend lint.
 3. **Missing coverage**: No TypeScript type-checking (`tsc --noEmit`), Go tests are commented out, no vulnerability scan on PRs (only push).
 4. **Sequential bottleneck**: Backend lint and vuln scan run sequentially in one job instead of in parallel.
 5. **No concurrency control**: Multiple CI runs can stack up on rapid pushes to a PR.
@@ -56,7 +56,7 @@ These encapsulate only the repeated setup boilerplate. The actual lint/test/buil
 
 ## Status
 
-**Completed** — All steps implemented on 2026-03-05.
+**Completed.** All steps implemented on 2026-03-05.
 
 ## Implementation Steps
 

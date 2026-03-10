@@ -101,7 +101,7 @@ export const workspacesApi = {
 - We currently only have remote execution on our platform managed runners, we should make it easy for people to self host them just like on TFE
     - create a fully separated component ? This would allow us to distribute a custom image, not sure currently tho we need to think a bout the bests ways to do this kind of stuff.
 
-- ~~when we get deprecation warnings they should be show in a separate card with a warning icon and in yellow translucent color - similar to how we did it for ansible~~ **Done** — `WarningDisplay` component shows warnings/deprecations in yellow/orange cards with file/line info for all run types
+- ~~when we get deprecation warnings they should be show in a separate card with a warning icon and in yellow translucent color - similar to how we did it for ansible~~ **Done**: `WarningDisplay` component shows warnings/deprecations in yellow/orange cards with file/line info for all run types
     - add a deprecated resource to stackweaver-tests so we will be able to test it
     - add a new directory with envs/prd so we can test if setting another defautl direcotry works I never tested that
 

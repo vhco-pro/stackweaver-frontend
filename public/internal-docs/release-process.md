@@ -79,7 +79,7 @@ workflows in the receiving repository.
 | `deploy/helm/**` | `sync-helm.yml` | `stackweaver-helm` |
 
 Because Go components share `backend/internal/`, a change there triggers syncs to all Go
-satellites (API, orchestrator, runner, ansible-runner). This is correct behavior — a shared
+satellites (API, orchestrator, runner, ansible-runner). This is correct behavior: a shared
 dependency change should produce new builds of all consumers.
 
 ### Step 3: Satellite Tag Workflow
@@ -231,11 +231,11 @@ commit format (`feat:`, `fix:`, etc.). Messages like `update code` or `WIP` prod
 
 These steps are not automated and require manual intervention:
 
-1. **Creating a new satellite repo** — create on GitHub, push initial skeleton (workflows,
+1. **Creating a new satellite repo**: create on GitHub, push initial skeleton (workflows,
    gitversion.yml, LICENSE, README, Dockerfile), add secrets.
-2. **Major version bumps** — consider if breaking changes warrant a manual review before
+2. **Major version bumps**: consider if breaking changes warrant a manual review before
    release. Use `BREAKING CHANGE` in commit footer or `!:` in commit subject.
-3. **Changing GHCR visibility** — set package visibility (public/private) in GitHub package
+3. **Changing GHCR visibility**: set package visibility (public/private) in GitHub package
    settings after first publish.
-4. **Rotating PATs** — update `SATELLITE_REPO_TOKEN` in monorepo and `RELEASE_TOKEN` in all
+4. **Rotating PATs**: update `SATELLITE_REPO_TOKEN` in monorepo and `RELEASE_TOKEN` in all
    satellite repos when tokens expire or need rotation.
