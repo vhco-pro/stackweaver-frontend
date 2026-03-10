@@ -63,6 +63,10 @@ const INDEX_FILE = path.join(__dirname, '..', 'frontend', 'public', 'docs-index.
 const IMAGE_CACHE_FILE = path.join(__dirname, '..', 'frontend', '.image-cache.json');
 const IMAGE_CACHE_DIR = path.join(__dirname, '..', 'frontend', '.docs-image-cache');
 
+const INTERNAL_DOCS_ROOT = path.join(DOCS_ROOT, 'internal');
+const INTERNAL_PUBLIC_DOCS = path.join(__dirname, '..', 'frontend', 'public', 'internal-docs');
+const INTERNAL_INDEX_FILE = path.join(__dirname, '..', 'frontend', 'public', 'internal-docs-index.json');
+
 const IMAGE_EXTENSIONS = /\.(png|jpe?g|gif|svg|webp|avif)$/i;
 
 /** Map file extension -> fenced code block language identifier */
@@ -197,13 +201,17 @@ function shouldIgnoreDir(dirPath) {
 /**
  * Recursively scan docs directory and build file tree.
  * Returns { mdFiles, imageFiles } — image files are copied but not indexed.
+ *
+ * @param {string} dirPath - Directory to scan
+ * @param {string} [root] - Root to compute relative paths from (defaults to DOCS_ROOT)
+ * @param {boolean} [noFilter] - When true, skip all ignore filters (used for internal docs)
  */
-function scanDocsDir(dirPath) {
+function scanDocsDir(dirPath, root = DOCS_ROOT, noFilter = false) {
   const mdFiles = [];
   const imageFiles = [];
 
-  // Skip if directory should be ignored
-  if (shouldIgnoreDir(dirPath)) {
+  // Skip if directory should be ignored (unless filtering is disabled)
+  if (!noFilter && shouldIgnoreDir(dirPath)) {
     return { mdFiles, imageFiles };
   }
 
@@ -211,16 +219,16 @@ function scanDocsDir(dirPath) {
 
   for (const entry of entries) {
     const fullPath = path.join(dirPath, entry.name);
-    const relativePath = path.relative(DOCS_ROOT, fullPath);
+    const relativePath = path.relative(root, fullPath);
 
     if (entry.isDirectory()) {
       // Recursively scan subdirectories
-      const sub = scanDocsDir(fullPath);
+      const sub = scanDocsDir(fullPath, root, noFilter);
       mdFiles.push(...sub.mdFiles);
       imageFiles.push(...sub.imageFiles);
     } else if (entry.isFile()) {
       if (entry.name.endsWith('.md')) {
-        if (!shouldIgnoreFile(relativePath)) {
+        if (noFilter || !shouldIgnoreFile(relativePath)) {
           mdFiles.push({ relativePath, fullPath });
         }
       } else if (IMAGE_EXTENSIONS.test(entry.name)) {
@@ -407,13 +415,16 @@ function saveImageCache(cache) {
  * Optimised images are cached in IMAGE_CACHE_DIR to speed up incremental builds.
  * Both mdFiles and imageFiles should be passed as a combined array; only mdFiles
  * are passed to buildTree for the navigation index.
+ *
+ * @param {{ relativePath: string, fullPath: string }[]} files
+ * @param {string} [outputDir] - Destination directory (defaults to PUBLIC_DOCS)
  */
-async function copyFiles(files) {
+async function copyFiles(files, outputDir = PUBLIC_DOCS) {
   // Clean public docs directory
-  if (fs.existsSync(PUBLIC_DOCS)) {
-    fs.rmSync(PUBLIC_DOCS, { recursive: true, force: true });
+  if (fs.existsSync(outputDir)) {
+    fs.rmSync(outputDir, { recursive: true, force: true });
   }
-  fs.mkdirSync(PUBLIC_DOCS, { recursive: true });
+  fs.mkdirSync(outputDir, { recursive: true });
   fs.mkdirSync(IMAGE_CACHE_DIR, { recursive: true });
 
   const imageCache = loadImageCache();
@@ -422,7 +433,7 @@ async function copyFiles(files) {
   let imageCacheHits = 0;
 
   for (const file of files) {
-    const destPath = path.join(PUBLIC_DOCS, file.relativePath);
+    const destPath = path.join(outputDir, file.relativePath);
     const destDir = path.dirname(destPath);
     fs.mkdirSync(destDir, { recursive: true });
 
@@ -490,9 +501,9 @@ async function copyFiles(files) {
   const mdCount = files.length - imageCount;
   if (imageCount > 0) {
     const optimised = imageCount - imageCacheHits;
-    console.log(`✅ Copied ${mdCount} docs + ${imageCount} images (${optimised} optimised, ${imageCacheHits} cached) to ${path.relative(process.cwd(), PUBLIC_DOCS)}`);
+    console.log(`✅ Copied ${mdCount} docs + ${imageCount} images (${optimised} optimised, ${imageCacheHits} cached) to ${path.relative(process.cwd(), outputDir)}`);
   } else {
-    console.log(`✅ Copied ${files.length} files to ${path.relative(process.cwd(), PUBLIC_DOCS)}`);
+    console.log(`✅ Copied ${files.length} files to ${path.relative(process.cwd(), outputDir)}`);
   }
 }
 
@@ -573,14 +584,16 @@ function processFileInclusions(content, markdownFilePath) {
  * Scan all processed markdown files for `::: code-explorer <path>` directives.
  * For each directive:
  *   1. Resolve the directory relative to the markdown file (local) or fetch from GitHub.
- *   2. Copy all code files to public/docs/<relative-path>/.
+ *   2. Copy all code files to outputDir/<relative-path>/.
  *   3. Write a <relative-path>.explorer.json manifest.
  *
- * Must be called AFTER copyFiles() so PUBLIC_DOCS already exists.
+ * Must be called AFTER copyFiles() so outputDir already exists.
  *
  * @param {{ relativePath: string, fullPath: string }[]} mdFiles
+ * @param {string} [outputDir] - Destination directory (defaults to PUBLIC_DOCS)
+ * @param {string} [docsRoot] - Root for computing relative paths (defaults to DOCS_ROOT)
  */
-async function processCodeExplorers(mdFiles) {
+async function processCodeExplorers(mdFiles, outputDir = PUBLIC_DOCS, docsRoot = DOCS_ROOT) {
   let directoriesProcessed = 0;
 
   for (const file of mdFiles) {
@@ -611,10 +624,10 @@ async function processCodeExplorers(mdFiles) {
           path: ghMatch[3],
           ref: ghMatch[4] || 'main',
         };
-        const destBase = path.join(PUBLIC_DOCS, '_github', spec.org, spec.repo, spec.ref, spec.path);
-        const relativeDir = path.relative(PUBLIC_DOCS, destBase);
+        const ghDestBase = path.join(outputDir, '_github', spec.org, spec.repo, spec.ref, spec.path);
+        const relativeDir = path.relative(outputDir, ghDestBase);
         try {
-          const manifestFiles = await fetchGitHubExplorer(spec, destBase);
+          const manifestFiles = await fetchGitHubExplorer(spec, ghDestBase);
           const manifest = {
             root: spec.path.split('/').pop() || spec.path,
             source: {
@@ -627,7 +640,7 @@ async function processCodeExplorers(mdFiles) {
             },
             files: manifestFiles,
           };
-          const manifestPath = path.join(PUBLIC_DOCS, `${relativeDir}.explorer.json`);
+          const manifestPath = path.join(outputDir, `${relativeDir}.explorer.json`);
           fs.mkdirSync(path.dirname(manifestPath), { recursive: true });
           fs.writeFileSync(manifestPath, JSON.stringify(manifest, null, 2), 'utf-8');
           directoriesProcessed++;
@@ -655,7 +668,7 @@ async function processCodeExplorers(mdFiles) {
         continue;
       }
 
-      const relativeDir = path.relative(DOCS_ROOT, resolvedDir);
+      const relativeDir = path.relative(docsRoot, resolvedDir);
       const manifestFiles = [];
 
       // Recursively scan the directory for code files
@@ -672,8 +685,8 @@ async function processCodeExplorers(mdFiles) {
             const relPath = path.relative(baseDir, fullPath);
             const lang = extToLang(entry.name);
 
-            // Copy to public/docs/<relativeDir>/<relPath>
-            const destPath = path.join(PUBLIC_DOCS, relativeDir, relPath);
+            // Copy to outputDir/<relativeDir>/<relPath>
+            const destPath = path.join(outputDir, relativeDir, relPath);
             fs.mkdirSync(path.dirname(destPath), { recursive: true });
             fs.copyFileSync(fullPath, destPath);
 
@@ -689,7 +702,7 @@ async function processCodeExplorers(mdFiles) {
         root: path.basename(resolvedDir),
         files: manifestFiles,
       };
-      const manifestPath = path.join(PUBLIC_DOCS, `${relativeDir}.explorer.json`);
+      const manifestPath = path.join(outputDir, `${relativeDir}.explorer.json`);
       fs.mkdirSync(path.dirname(manifestPath), { recursive: true });
       fs.writeFileSync(manifestPath, JSON.stringify(manifest, null, 2), 'utf-8');
 
@@ -748,6 +761,32 @@ async function fetchGitHubExplorer(spec, destBase) {
 }
 
 /**
+ * Build internal docs — scans docs/internal/ with no filtering and outputs to
+ * frontend/public/internal-docs/ + internal-docs-index.json.
+ */
+async function buildInternalDocs() {
+  console.log('\n📁 Building internal documentation index...\n');
+
+  console.log('🔍 Scanning docs/internal directory...');
+  const { mdFiles, imageFiles } = scanDocsDir(INTERNAL_DOCS_ROOT, INTERNAL_DOCS_ROOT, true);
+  console.log(`   Found ${mdFiles.length} documentation files and ${imageFiles.length} images\n`);
+
+  console.log('🌳 Building navigation tree...');
+  const { tree, flat } = buildTree(mdFiles);
+
+  console.log('📋 Copying files to public directory...');
+  await copyFiles([...mdFiles, ...imageFiles], INTERNAL_PUBLIC_DOCS);
+
+  console.log('🗂  Processing code explorer directives...');
+  await processCodeExplorers(mdFiles, INTERNAL_PUBLIC_DOCS, INTERNAL_DOCS_ROOT);
+
+  console.log('💾 Generating internal docs index file...');
+  const index = { tree, flat, generated: new Date().toISOString() };
+  fs.writeFileSync(INTERNAL_INDEX_FILE, JSON.stringify(index, null, 2), 'utf-8');
+  console.log(`✅ Internal index written to ${path.relative(process.cwd(), INTERNAL_INDEX_FILE)}\n`);
+}
+
+/**
  * Main execution
  */
 async function main() {
@@ -781,6 +820,9 @@ async function main() {
   const indexPath = path.relative(process.cwd(), INDEX_FILE);
   fs.writeFileSync(INDEX_FILE, JSON.stringify(index, null, 2), 'utf-8');
   console.log(`✅ Index written to ${indexPath}\n`);
+
+  // Build internal docs
+  await buildInternalDocs();
 
   console.log('✨ Documentation build complete!');
 }
