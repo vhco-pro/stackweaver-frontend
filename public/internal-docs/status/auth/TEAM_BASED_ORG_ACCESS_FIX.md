@@ -14,7 +14,7 @@ Org visibility and tenant isolation were driven **only** by the `organization_me
 Most likely one of these:
 
 1. **Migration / backfill that only touched teams**  
-   When we moved to the team-based model, a migration or script may have created default teams ("owners", "viewers") and added the admin user to the owners team (`team_members`) for existing orgs, but **did not** insert corresponding rows into `organization_members`. So `organization_members` stayed empty while `team_members` was populated. We don’t have a committed `migrate-team-based-permissions.sql` in the repo anymore, but the refactor doc refers to one that “Adds admin@… to owners team for all organizations” — if that script only wrote to `teams` and `team_members`, it would explain the state you saw.
+   When we moved to the team-based model, a migration or script may have created default teams ("owners", "viewers") and added the admin user to the owners team (`team_members`) for existing orgs, but **did not** insert corresponding rows into `organization_members`. So `organization_members` stayed empty while `team_members` was populated. We don’t have a committed `migrate-team-based-permissions.sql` in the repo anymore, but the refactor doc refers to one that “Adds admin@… to owners team for all organizations”; if that script only wrote to `teams` and `team_members`, it would explain the state you saw.
 
 2. **Org creation flow**  
    For **new** orgs we do both: `AddMember(org.ID, user.ID)` and `AddMember(ownersTeam.ID, user.ID)` (see `organizations.go` Create). So the creator is in both `organization_members` and the owners team. That only applies to orgs created by the current code path; anything created or fixed by an older path or a team-only migration would not get `organization_members` backfilled.
@@ -22,7 +22,7 @@ Most likely one of these:
 3. **Manual or one-off DB changes**  
    Less likely, but `organization_members` could have been cleared or never populated by a manual change or a one-off script.
 
-So: the bug wasn’t “we dropped the DB” — it was **two sources of “who is in the org”** (org membership vs team membership) that got out of sync because some path only updated teams.
+So: the bug wasn’t “we dropped the DB”; it was **two sources of “who is in the org”** (org membership vs team membership) that got out of sync because some path only updated teams.
 
 ## Solution (TFE-compatible)
 
@@ -34,9 +34,9 @@ We keep **both** concepts and treat “user is in org” as:
 So:
 
 1. **Organization list** (`ListByUser`): Orgs where the user is in `organization_members` **or** has at least one team in that org.  
-   See `backend/internal/repository/organization.go` — `ListByUser()`.
+   See `backend/internal/repository/organization.go`, `ListByUser()`.
 
-2. **Tenant isolation** (`UserInOrg`): Same rule — true if user is in `organization_members` for that org **or** has at least one team in that org.  
+2. **Tenant isolation** (`UserInOrg`): Same rule, true if user is in `organization_members` for that org **or** has at least one team in that org.  
    Used in RBAC and handlers (projects, team workspace access, API key scope).  
    See `OrganizationRepository.UserInOrg()` in `backend/internal/repository/organization.go`.
 

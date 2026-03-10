@@ -8,7 +8,7 @@ The integration uses **Microsoft Entra ID OAuth2** (the current Microsoft identi
 
 ## Prerequisites
 
-You need an Azure DevOps organization with at least one project containing a Git repository. You also need permission to register applications in Microsoft Entra ID (Azure Active Directory) — either as an Entra ID administrator, or with permission granted by one.
+You need an Azure DevOps organization with at least one project containing a Git repository. You also need permission to register applications in Microsoft Entra ID (Azure Active Directory), either as an Entra ID administrator or with permission granted by one.
 
 ## Step 1: Register an Application in Microsoft Entra ID
 
@@ -39,9 +39,9 @@ This is a one-time step per tenant. It does not affect any Azure DevOps organiza
      ```
      For production deployments, replace `localhost:5173` with your Stackweaver frontend domain.
 4. Click **Register**.
-5. On the resulting overview page, copy the following values — you will need them later:
-   - **Application (client) ID** — this is your `AZURE_DEVOPS_CLIENT_ID`
-   - **Directory (tenant) ID** — only needed if you chose single-tenant in the previous step
+5. On the resulting overview page, copy the following values; you will need them later:
+   - **Application (client) ID**: this is your `AZURE_DEVOPS_CLIENT_ID`
+   - **Directory (tenant) ID**: only needed if you chose single-tenant in the previous step
 
 ## Step 2: Add API Permissions for Azure DevOps
 
@@ -51,21 +51,21 @@ After registration, grant the app permission to read Azure DevOps repositories.
 2. Select **Azure DevOps** from the list of APIs. If it does not appear immediately, search for it.
 3. Select **Delegated permissions** (the app acts on behalf of the signed-in user).
 4. Select the following permissions:
-   - **Code (read)** — `vso.code` — Read source code, commits, and branches.
-   - **Code (status)** — `vso.code_status` — Read and write commit and pull request status. Required for PR status checks (showing plan results on pull requests).
-   - **Project and team (read)** — `vso.project` — Read projects, required to list repositories across projects.
+   - **Code (read)** (`vso.code`): read source code, commits, and branches.
+   - **Code (status)** (`vso.code_status`): read and write commit and pull request status. Required for PR status checks (showing plan results on pull requests).
+   - **Project and team (read)** (`vso.project`): read projects, required to list repositories across projects.
 5. Click **Add permissions**.
 
 You do not need to click **Grant admin consent** for these delegated permissions. Each user grants consent when they first authorize Stackweaver.
 
-Service hook subscriptions (used for webhook auto-registration) are covered automatically by `vso.code`. According to the [Azure DevOps scope hierarchy](https://learn.microsoft.com/en-us/azure/devops/integrate/get-started/authentication/oauth?view=azure-devops#available-scopes), `vso.code` inherits from `vso.hooks_write`. Do not add `vso.hooks_write` or `vso.hooks` as separate permissions — these scopes are no longer public in Entra ID and will cause an AADSTS650053 authorization error if explicitly requested.
+Service hook subscriptions (used for webhook auto-registration) are covered automatically by `vso.code`. According to the [Azure DevOps scope hierarchy](https://learn.microsoft.com/en-us/azure/devops/integrate/get-started/authentication/oauth?view=azure-devops#available-scopes), `vso.code` inherits from `vso.hooks_write`. Do not add `vso.hooks_write` or `vso.hooks` as separate permissions; these scopes are no longer public in Entra ID and will cause an AADSTS650053 authorization error if explicitly requested.
 
 ## Step 3: Create a Client Secret
 
 Stackweaver needs a client secret to exchange authorization codes for tokens.
 
 1. In the app registration, go to **Certificates & secrets** → **New client secret**.
-2. Add a description (e.g., `Stackweaver production`) and set an expiration period. Microsoft recommends 12 months or less. Note the expiration date — you must rotate this secret before it expires or the integration stops working.
+2. Add a description (e.g., `Stackweaver production`) and set an expiration period. Microsoft recommends 12 months or less. Note the expiration date; you must rotate this secret before it expires or the integration stops working.
 3. Click **Add**.
 4. **Copy the secret Value immediately.** It is only shown once. If you navigate away, you must create a new secret.
 
@@ -120,13 +120,13 @@ The connection now appears in your VCS Connections list. You can use it when cre
 
 ## Step 7: Webhooks for Automatic Runs
 
-Stackweaver automatically registers a Service Hook subscription in Azure DevOps when you link a workspace to a repository (Step 8). The subscription is scoped to that specific repository — Stackweaver does not register broad organization-wide hooks. No subscriptions are created when you first connect the VCS account; they are created on demand as workspaces are linked.
+Stackweaver automatically registers a Service Hook subscription in Azure DevOps when you link a workspace to a repository (Step 8). The subscription is scoped to that specific repository; Stackweaver does not register broad organization-wide hooks. No subscriptions are created when you first connect the VCS account; they are created on demand as workspaces are linked.
 
 Three subscriptions are created per linked repository:
 
-- **Code pushed** — triggers plan-and-apply runs on matching workspaces.
-- **Pull request created** — triggers speculative (plan-only) runs.
-- **Pull request updated** — re-runs the plan when new commits are pushed to an open PR.
+- **Code pushed**: triggers plan-and-apply runs on matching workspaces.
+- **Pull request created**: triggers speculative (plan-only) runs.
+- **Pull request updated**: re-runs the plan when new commits are pushed to an open PR.
 
 The subscriptions are registered using the `STACKWEAVER_WEBHOOK_BASE_URL` value set in Step 4. The registration is idempotent: re-saving a workspace does not create duplicate subscriptions.
 
@@ -249,7 +249,7 @@ docker compose -f deploy/docker-compose.yml logs api | grep -i "webhook"
 
 Common causes:
 
-- `STACKWEAVER_WEBHOOK_BASE_URL` is not set or is empty — subscriptions are skipped silently. Set it in `deploy/vcs.env` and re-save the workspace.
+- `STACKWEAVER_WEBHOOK_BASE_URL` is not set or is empty, so subscriptions are skipped silently. Set it in `deploy/vcs.env` and re-save the workspace.
 - The authorizing user does not have permission to create Service Hook subscriptions. The user needs at least **Project Administrator** rights on the project.
 - The Azure DevOps organization has disabled Service Hook creation via API. An administrator can check this under **Organization settings** → **Extensions** and re-enable it, or you can create subscriptions manually (see Step 7).
 
@@ -257,7 +257,7 @@ Common causes:
 
 1. Verify that Service Hook subscriptions exist in your Azure DevOps project under **Project settings** → **Service hooks**.
 2. Confirm the webhook URL in the subscription points to the correct Stackweaver API address and port (default 8022).
-3. Confirm the webhook can reach Stackweaver. Azure DevOps cannot reach `localhost` — use a publicly accessible URL.
+3. Confirm the webhook can reach Stackweaver. Azure DevOps cannot reach `localhost`, so use a publicly accessible URL.
 4. Check the API logs for processing errors:
    ```bash
    docker compose -f deploy/docker-compose.yml logs api | grep -i "webhook"

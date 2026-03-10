@@ -6,6 +6,6 @@ StackWeaver uses Zitadel as its OIDC identity provider. These guides cover setti
 
 ## Guides
 
-- **[Zitadel Setup](./zitadel-setup.md)** — How Zitadel is initialised in both Docker Compose and Kubernetes deployments, including OIDC app configuration and automated bootstrap.
-- **[Custom Domain](./zitadel-custom-domain.md)** — Run StackWeaver on a custom domain while keeping all internal service communication on localhost, including the SSO callback URL fix required for external identity providers.
-- **[Single Sign-On (SSO)](../sso/README.md)** — Federate with an external identity provider (Azure AD, Okta, AWS Cognito, or any OIDC provider).
+- **[Zitadel Setup](./zitadel-setup.md)**: how Zitadel is initialised in both Docker Compose and Kubernetes deployments, including OIDC app configuration and automated bootstrap.
+- **[Custom Domain](./zitadel-custom-domain.md)**: run StackWeaver on a custom domain while keeping all internal service communication on localhost, including the SSO callback URL fix required for external identity providers.
+- **[Single Sign-On (SSO)](../sso/README.md)**: federate with an external identity provider (Azure AD, Okta, AWS Cognito, or any OIDC provider).

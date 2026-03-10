@@ -9,7 +9,7 @@ Azure OIDC (OpenID Connect) configuration enables keyless authentication from St
 1. Stackweaver acts as an OIDC identity provider, exposing a signing key at `/.well-known/jwks` and a discovery document at `/.well-known/openid-configuration`.
 2. You create an Azure App Registration and configure a federated credential that trusts Stackweaver as the issuer.
 3. You register the App Registration's identifiers in Stackweaver using the TFE Terraform provider.
-4. At run time, the runner generates a short-lived JWT scoped to the specific workspace and run phase, and injects it alongside the Azure identifiers as environment variables. The `azurerm` Terraform provider and Ansible Azure collection pick these up automatically — no stored secret is needed.
+4. At run time, the runner generates a short-lived JWT scoped to the specific workspace and run phase, and injects it alongside the Azure identifiers as environment variables. The `azurerm` Terraform provider and Ansible Azure collection pick these up automatically, so no stored secret is needed.
 
 ## Prerequisites
 
@@ -39,7 +39,7 @@ Azure OIDC (OpenID Connect) configuration enables keyless authentication from St
 
 The App Registration needs sufficient permissions to create and manage Azure resources on behalf of your Terraform and Ansible automation.
 
-Because Terraform often needs to assign roles to resources (e.g., granting a managed identity access to a Key Vault), the `Contributor` role is not sufficient for this — role assignment requires `Owner`.
+Because Terraform often needs to assign roles to resources (e.g., granting a managed identity access to a Key Vault), the `Contributor` role is not sufficient; role assignment requires `Owner`.
 
 1. Navigate to the **Subscription** (or **Management Group** for cross-subscription scope) where your automation will run.
 2. Go to **Access control (IAM)** > **Add role assignment**.
@@ -54,7 +54,7 @@ For automation spanning multiple subscriptions, assign the role at the **Managem
 
 ## Step 3: Configure a Federated Identity Credential
 
-A federated credential tells Azure which OIDC tokens it should trust for this App Registration. You configure one credential per scope you want to allow — because `plan` and `apply` produce different subjects, you need two credentials per workspace (or use wildcard subjects if your tenant supports them).
+A federated credential tells Azure which OIDC tokens it should trust for this App Registration. You configure one credential per scope you want to allow. Because `plan` and `apply` produce different subjects, you need two credentials per workspace (or use wildcard subjects if your tenant supports them).
 
 1. In the App Registration, go to **Certificates & secrets** > **Federated credentials**.
 2. Click **Add credential**.
@@ -88,7 +88,7 @@ organization:main:project:infra:workspace:production:run_phase:apply
 
 Create one federated credential for `run_phase:plan` and one for `run_phase:apply` to cover the full Terraform run lifecycle.
 
-**Ansible inventory sync** (StackWeaver-native format — no `run_phase:`):
+**Ansible inventory sync** (StackWeaver-native format, no `run_phase:`):
 
 ```
 organization:<org-name>:project:<project-name>:inventory:<name>:sync
@@ -157,7 +157,7 @@ The runner injects the following environment variables automatically, which the 
 | `ARM_CLIENT_ID` | The `client_id` you registered in Step 4 |
 | `ARM_SUBSCRIPTION_ID` | The `subscription_id` you registered in Step 4 |
 | `ARM_TENANT_ID` | The `tenant_id` you registered in Step 4 |
-| `ARM_USE_OIDC` | `true` — instructs the `azurerm` provider to use OIDC instead of a secret |
+| `ARM_USE_OIDC` | `true` (instructs the `azurerm` provider to use OIDC instead of a secret) |
 
 No workspace variables are needed for Azure authentication when OIDC is configured for the organization.
 
@@ -210,7 +210,7 @@ Your Stackweaver token does not have the `manage-vcs-settings` permission. Perfo
 The issuer or subject in the token does not match any federated credential on the App Registration. Check the following:
 
 - The **Issuer** in the Azure federated credential matches `OIDC_ISSUER_URL` (or `API_URL` if that variable is not set) exactly, with no trailing slash.
-- The **Subject** matches the run that failed. For Terraform runs the subject is `organization:<org>:project:<project>:workspace:<workspace>:run_phase:<plan|apply>` — `plan` and `apply` phases have different subjects and each needs its own federated credential. For Ansible inventory sync the subject is `organization:<org>:project:<project>:inventory:<name>:sync` where `<name>` is the inventory name (VCS) or source name (UI-configured). Note: no `run_phase:` — StackWeaver-native resources use a different format than TFE. For Ansible jobs the subject is `organization:<org>:project:<project>:job:<job_name>:run`.
+- The **Subject** matches the run that failed. For Terraform runs the subject is `organization:<org>:project:<project>:workspace:<workspace>:run_phase:<plan|apply>`; `plan` and `apply` phases have different subjects and each needs its own federated credential. For Ansible inventory sync the subject is `organization:<org>:project:<project>:inventory:<name>:sync` where `<name>` is the inventory name (VCS) or source name (UI-configured). Note: there is no `run_phase:` because StackWeaver-native resources use a different format than TFE. For Ansible jobs the subject is `organization:<org>:project:<project>:job:<job_name>:run`.
 - The **Audience** is `api://AzureADTokenExchange`.
 
 ### Azure returns `AADSTS700211` even though the issuer and subject look correct

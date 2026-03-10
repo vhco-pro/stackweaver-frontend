@@ -6,7 +6,7 @@
 **Status:** Updated Draft
 **Created:** 2025-12-15
 **Updated:** 2026-02-28
-**Depends on:** [Storage Backend Rework (#117)](../infrastructure/storage-backend-rework-plan.md) — implement this plan **after** the storage rework is complete.
+**Depends on:** [Storage Backend Rework (#117)](../infrastructure/storage-backend-rework-plan.md). Implement this plan **after** the storage rework is complete.
 
 ## Overview
 
@@ -23,13 +23,13 @@ This plan replaces the original version which predated the VCS provider-registry
 | VCSConnection.RefreshToken | PostgreSQL `vcs_connections` | Plain text | Encrypted in DB |
 
 **Out of scope (already encrypted):**
-- Workspace variables — encrypted via `variable.Service` + `ENCRYPTION_KEY`
-- Variable-set variables — same encryption path
-- Ansible credentials — encrypted via `CredentialService` + `ENCRYPTION_KEY`
+- Workspace variables: encrypted via `variable.Service` + `ENCRYPTION_KEY`
+- Variable-set variables: same encryption path
+- Ansible credentials: encrypted via `CredentialService` + `ENCRYPTION_KEY`
 
 **Low priority (not credentials):**
-- `ConfigurationVersion.UploadToken` — short-lived, auto-generated, ephemeral
-- `TFEToken.Token` — already hashed (irreversible)
+- `ConfigurationVersion.UploadToken`: short-lived, auto-generated, ephemeral
+- `TFEToken.Token`: already hashed (irreversible)
 
 ## Prerequisite: Storage Backend Rework
 
@@ -75,9 +75,9 @@ backend/internal/services/vcs/
 
 **Key interfaces:**
 
-- `ProviderService.GetFreshToken(ctx, conn)` — returns a valid token, refreshing if needed
-- `ProviderService.BuildCloneURL(conn, token, repoPath)` — returns HTTPS URL with embedded auth
-- `ConnUpdater func(conn *models.VCSConnection) error` — callback to persist refreshed tokens
+- `ProviderService.GetFreshToken(ctx, conn)`: returns a valid token, refreshing if needed
+- `ProviderService.BuildCloneURL(conn, token, repoPath)`: returns HTTPS URL with embedded auth
+- `ConnUpdater func(conn *models.VCSConnection) error`: callback to persist refreshed tokens
 
 **Token flow per provider:**
 
@@ -94,11 +94,11 @@ backend/internal/services/vcs/
 |----------|----------------------|--------|
 | `runner_agent.go` (Ansible jobs) | API calls `GetFreshToken` + `BuildCloneURL`, sends clone URL to runner | API |
 | `runner_agent.go` (Terraform VCS runs) | API calls `GetFreshToken` + `BuildCloneURL`, sends clone URL | API |
-| `runs.go` (config version from VCS) | API clones repo, uploads tarball — runner never sees token | API |
+| `runs.go` (config version from VCS) | API clones repo, uploads tarball; runner never sees token | API |
 | `vcs_app_installation.go` (webhooks) | API clones on push/PR, creates config version | API |
 | `ansible-runner/main.go` | Loads VCS connection from DB, calls `GetFreshToken` + `BuildCloneURL`, clones directly | Ansible runner |
 
-The Terraform runner **never** accesses VCS tokens — it receives pre-built tarballs from object storage.
+The Terraform runner **never** accesses VCS tokens; it receives pre-built tarballs from object storage.
 
 ---
 
@@ -224,10 +224,10 @@ stateService := state.NewService(stateVersionRepo, stateLockRepo, workspaceRepo,
 - **Model:** `VCSConnection.AccessToken` and `RefreshToken` are `string` fields with `json:"-"` (never serialized to API responses). Comments say "Encrypted" but they are **not yet encrypted**.
 - **Write:** Handler in `vcs_connections.go` stores tokens in plaintext with `// TODO: Encrypt` comments.
 - **Reads needing plaintext:**
-  - `ProviderService.GetFreshToken()` (all providers) — returns `conn.AccessToken`
-  - `AzureDevOpsProvider.GetFreshToken()` — reads `conn.RefreshToken` for OAuth refresh
-  - `ConnUpdater` callback — persists refreshed tokens (Azure DevOps OAuth)
-  - `ansible-runner` `cloneVCSRepoGeneric()` — reads `conn.AccessToken` from DB
+  - `ProviderService.GetFreshToken()` (all providers): returns `conn.AccessToken`
+  - `AzureDevOpsProvider.GetFreshToken()`: reads `conn.RefreshToken` for OAuth refresh
+  - `ConnUpdater` callback: persists refreshed tokens (Azure DevOps OAuth)
+  - `ansible-runner` `cloneVCSRepoGeneric()`: reads `conn.AccessToken` from DB
 
 ### 2.2 Architecture Decision: Decrypt in ProviderRegistry
 
@@ -332,11 +332,11 @@ The ansible-runner loads VCS connections from the DB and calls `provider.GetFres
 
 In `cloneVCSRepoGeneric()` (ansible-runner), the flow becomes:
 1. Load `VCSConnection` from DB (encrypted `AccessToken`)
-2. Call `provider.GetFreshToken(ctx, conn)` — registry decrypts first
-3. Call `provider.BuildCloneURL(conn, token, repo)` — uses decrypted token
+2. Call `provider.GetFreshToken(ctx, conn)`; the registry decrypts first
+3. Call `provider.BuildCloneURL(conn, token, repo)`, which uses the decrypted token
 4. `git clone` with the URL
 
-No changes needed in the runner itself — the `ProviderRegistry` handles decryption transparently.
+No changes are needed in the runner itself; the `ProviderRegistry` handles decryption transparently.
 
 #### Step 5: Backward compatibility
 
@@ -418,19 +418,19 @@ All binaries call `crypto.CryptoServiceFromEnv()` once at startup and share the 
 
 - Existing plain JSON files remain readable via the "try decrypt, fallback to plain" pattern
 - New and re-written state files are encrypted
-- No batch migration needed — files are encrypted on next write
+- No batch migration needed; files are encrypted on next write
 - Optionally: provide a CLI command or script to batch-encrypt existing state files
 
 ### VCS tokens
 
 - Existing plaintext tokens in the database remain usable via the same fallback pattern
 - New tokens and refreshed tokens (Azure DevOps OAuth) are stored encrypted
-- No schema migration needed — the column type stays `text`
+- No schema migration needed; the column type stays `text`
 - Tokens are encrypted on next create, update, or OAuth refresh
 
 ### Never-expose guarantee
 
-- `VCSConnection.AccessToken` and `RefreshToken` have `json:"-"` tags — never serialized in API responses
+- `VCSConnection.AccessToken` and `RefreshToken` have `json:"-"` tags, so they are never serialized in API responses
 - Decrypted tokens are only passed in-memory to provider methods or embedded in clone URLs sent to runners
 - Clone URLs in runner job payloads contain short-lived tokens (GitHub App) or are used once and not persisted
 
@@ -466,7 +466,7 @@ All binaries call `crypto.CryptoServiceFromEnv()` once at startup and share the 
 - **Key in memory:** The `CryptoService` holds the key in process memory. This is the standard Go approach. For enhanced security, consider a future integration with HashiCorp Vault or cloud KMS for key wrapping.
 - **Key rotation:** Not in scope. Future work could add key versioning (prepend a key ID byte to ciphertext) and support decrypting with previous keys.
 - **Logging:** Never log encryption keys, decrypted state content, or decrypted tokens. Log only "state encrypted"/"state decrypted (legacy)" at debug level.
-- **Nonce reuse:** `CryptoService` generates a random nonce per encryption call. AES-GCM requires unique nonces — this is satisfied by `crypto/rand`.
+- **Nonce reuse:** `CryptoService` generates a random nonce per encryption call. AES-GCM requires unique nonces, which is satisfied by `crypto/rand`.
 
 ---
 

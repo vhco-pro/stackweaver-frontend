@@ -79,7 +79,7 @@ This tells Okta to include group names in the ID token so StackWeaver can read t
    - **Name**: `groups`
    - **Include in token type**: **ID Token** and **Always**
    - **Value type**: **Groups**
-   - **Filter**: **Matches regex** with value `.*` (dot-star, not just `*` — a bare `*` is invalid regex and silently matches nothing)
+   - **Filter**: **Matches regex** with value `.*` (dot-star, not just `*`; a bare `*` is invalid regex and silently matches nothing)
 4. Click **Create**.
 
 ### 4c. Configure the Access Policy
@@ -227,7 +227,7 @@ The `groups` scope must be explicitly defined on the Custom Authorization Server
    2. Set **OAuth/OIDC client** to your StackWeaver application, **Grant type** to **Authorization Code**, and select a test **User**.
    3. Add both `openid` and `groups` to the **Scopes** field (type each scope name and press enter).
    4. Click **Preview Token**. Two tabs appear in the result: **Token** (access token) and **ID Token**.
-   5. Select the **ID Token** tab and look for a `"groups"` key in the payload. It should contain your group names, for example `"groups": ["Everyone"]`. Note that the **Token** tab shows the access token which only has a `"scp"` field listing the granted scopes — this is not the same as the groups claim.
-   6. If the `groups` claim is missing from the ID Token, go to the **Claims** tab and verify a claim named `groups` exists with **Value type** set to **Groups**, **Include in token type** set to **ID Token — Always**, and **Filter** set to **Matches regex** with value `.*`.
+   5. Select the **ID Token** tab and look for a `"groups"` key in the payload. It should contain your group names, for example `"groups": ["Everyone"]`. Note that the **Token** tab shows the access token, which only has a `"scp"` field listing the granted scopes; this is not the same as the groups claim.
+   6. If the `groups` claim is missing from the ID Token, go to the **Claims** tab and verify a claim named `groups` exists with **Value type** set to **Groups**, **Include in token type** set to **ID Token, Always**, and **Filter** set to **Matches regex** with value `.*`.
 
 > **Note:** StackWeaver uses the Generic OIDC integration for Okta. If you need Azure AD, see the [Azure AD Setup Guide](./azure-ad.md) instead. Only one Generic OIDC provider can be configured at a time through environment variables.

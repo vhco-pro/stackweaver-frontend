@@ -39,7 +39,7 @@ Your signup email and password become your admin credentials. You are created as
 After activation, you need your Okta org domain for the OIDC issuer URL.
 
 1. In the Admin Console, click your name (or profile) in the upper-right.
-2. The URL in your browser is `https://<your-domain>.okta.com` — this is your Okta domain.
+2. The URL in your browser is `https://<your-domain>.okta.com`; this is your Okta domain.
 3. Alternatively, go to **Settings** → **Customization** → **Domains**.
 4. Your OIDC Issuer URL is: `https://<your-domain>.okta.com` (no trailing slash).
 
@@ -61,7 +61,7 @@ Summary of what you will do:
 3. Application type: **Web Application**
 4. Configure redirect URI: `https://<zitadel-domain>/idps/callback` (or `http://localhost:8080/idps/callback` for local dev)
 5. Note **Client ID** and **Client Secret** from the **General** tab
-6. (Optional) Configure `groups` claim for team sync testing — see Step 4 in the Okta user guide
+6. (Optional) Configure `groups` claim for team sync testing; see Step 4 in the Okta user guide
 
 ## Step 4: Create Test Users (Optional)
 

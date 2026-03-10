@@ -1,8 +1,8 @@
 <!-- Copyright (c) 2025 VH & Co BV. Licensed under the Business Source License 1.1. See LICENSE for details. -->
 
-# Satellite Sync Workflows — Analysis
+# Satellite Sync Workflows: Analysis
 
-**Note:** Reference/analysis document — no implementation phases. Documents the intentional decision to sync the full `backend/` directory to all satellite repos due to Go `internal/` package constraints.
+**Note:** Reference/analysis document with no implementation phases. Documents the intentional decision to sync the full `backend/` directory to all satellite repos due to Go `internal/` package constraints.
 
 This document analyzes the current monorepo-to-satellite sync workflows and addresses whether backend services should sync the full `backend/` directory or only the files each component touches.
 
@@ -66,6 +66,6 @@ While the full `backend/` sync is necessary for compilation, there are minor cle
 
 ## Recommendation
 
-**Keep the current full-backend sync approach.** It is correct by necessity — Go's module system requires it. The only change worth making is excluding other binaries' `cmd/` directories and test files, which is cosmetic and low-priority. This should not block other work.
+**Keep the current full-backend sync approach.** It is correct by necessity because Go's module system requires it. The only change worth making is excluding other binaries' `cmd/` directories and test files, which is cosmetic and low-priority. This should not block other work.
 
 If the project eventually extracts shared packages into a standalone Go module (e.g., `github.com/stackweaver/backend-common`), the satellite repos could become truly independent. But that is a significant architectural change and not currently warranted.

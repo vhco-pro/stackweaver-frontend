@@ -2,7 +2,7 @@
 
 # Expose StackWeaver dev stack via Cloudflare Tunnel
 
-**Status:** ✅ Implemented — `deploy/docker-compose.tunnel.yml` exists; `make up-tunnel` works.
+**Status:** ✅ Implemented. `deploy/docker-compose.tunnel.yml` exists; `make up-tunnel` works.
 
 Expose the dev stack to the internet so clients can see a live environment, while keeping localhost as the default for day-to-day development. One Cloudflare Tunnel, no nginx, no manual steps.
 

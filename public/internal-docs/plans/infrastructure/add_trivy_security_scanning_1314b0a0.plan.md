@@ -1,6 +1,6 @@
 <!-- Copyright (c) 2025 VH & Co BV. Licensed under the Business Source License 1.1. See LICENSE for details. -->
 
-**Status:** ❌ Not started — all todos remain pending. No Trivy scanning in CI, no `.trivyignore`, no SBOM generation.
+**Status:** ❌ Not started. All todos remain pending. No Trivy scanning in CI, no `.trivyignore`, no SBOM generation.
 
 ---
 name: Add Trivy Security Scanning

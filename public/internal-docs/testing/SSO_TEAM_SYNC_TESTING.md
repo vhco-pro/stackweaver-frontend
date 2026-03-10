@@ -8,10 +8,10 @@ This guide walks through testing the SSO/OIDC team sync feature using the `terra
 
 Before starting, ensure:
 
-1. **Azure AD SSO login works** — you can log in to StackWeaver via the "Login with Microsoft" button on the Zitadel login page.
+1. **Azure AD SSO login works**: you can log in to StackWeaver via the "Login with Microsoft" button on the Zitadel login page.
 2. **Azure AD credentials are set** in `deploy/sso.env` (`AZURE_AD_CLIENT_ID`, `AZURE_AD_CLIENT_SECRET`, `AZURE_AD_TENANT_ID`).
-3. **Zitadel Actions V2 are deployed** — the `zitadel-init` service has run and created the `stackweaver-idp-sync` and `stackweaver-complement-token` webhook targets. You can verify this by checking the zitadel-init logs for "Set execution" messages.
-4. **A StackWeaver API token** — generate one from the UI or API for use with the terraform provider.
+3. **Zitadel Actions V2 are deployed**: the `zitadel-init` service has run and created the `stackweaver-idp-sync` and `stackweaver-complement-token` webhook targets. You can verify this by checking the zitadel-init logs for "Set execution" messages.
+4. **A StackWeaver API token**: generate one from the UI or API for use with the terraform provider.
 
 ## Step 1: Configure Azure AD Group Claims
 
@@ -338,4 +338,4 @@ Azure AD includes a maximum of 200 groups in token claims. If the user is in mor
 
 ### Team sync runs on every login
 
-This is by design. The sync runs on each authentication to ensure team membership stays in sync with the IdP. It is idempotent — if the user is already in the correct teams, no changes are made.
+This is by design. The sync runs on each authentication to ensure team membership stays in sync with the IdP. It is idempotent: if the user is already in the correct teams, no changes are made.

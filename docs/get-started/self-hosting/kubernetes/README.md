@@ -12,7 +12,7 @@ The chart deploys all StackWeaver components and their dependencies (PostgreSQL,
 - An ingress controller (nginx-ingress recommended)
 - Two DNS records pointing to your ingress (one for the app, one for Zitadel auth)
 - TLS certificates (cert-manager recommended, or provide your own)
-- A Kubernetes image pull secret for GHCR — see [Kubernetes Pull Secret for GHCR](./kubernetes-pull-secret-ghcr.md)
+- A Kubernetes image pull secret for GHCR (see [Kubernetes Pull Secret for GHCR](./kubernetes-pull-secret-ghcr.md))
 
 ## Architecture Overview
 
@@ -34,7 +34,7 @@ The chart deploys the following resources.
 | Ingress (auth) | Ingress | Routes Zitadel + Login UI traffic |
 
 All services communicate via internal Kubernetes DNS names.
-No service uses `localhost` — the Helm chart automatically configures the correct internal addresses.
+No service uses `localhost`; the Helm chart automatically configures the correct internal addresses.
 
 ## Chart Distribution
 
@@ -94,7 +94,7 @@ For production or GitOps workflows (ArgoCD, Flux), you can provide your own pre-
 
 When you leave `secrets.<component>.secretName` empty, the chart creates a Secret with random credentials.
 These secrets have the `helm.sh/resource-policy: keep` annotation, which means they are preserved even if you run `helm uninstall`.
-Values are also preserved across `helm upgrade` — the chart checks for existing secrets before generating new ones.
+Values are also preserved across `helm upgrade`, because the chart checks for existing secrets before generating new ones.
 
 To view an auto-generated password:
 
@@ -157,7 +157,7 @@ secrets:
     secretName: my-zitadel-secret
 ```
 
-When all four `secretName` values are set, the chart creates zero Secret resources — safe for GitOps.
+When all four `secretName` values are set, the chart creates zero Secret resources, which is safe for GitOps.
 
 ## Complete Zitadel Initialization
 
@@ -173,7 +173,7 @@ kubectl logs -f job/stackweaver-zitadel-init --namespace stackweaver
 
 ## Frontend Runtime Configuration
 
-The frontend is a generic container image — it does not have any domain-specific configuration baked in at build time.
+The frontend is a generic container image with no domain-specific configuration baked in at build time.
 Instead, the Helm chart generates an `env.js` file at deploy time with the correct URLs derived from your ingress hosts.
 
 This means:
@@ -261,7 +261,7 @@ This error occurs when secrets already exist in the namespace that were created 
 
 This happens if you ran `kubectl create secret generic` commands manually and then ran `helm install` without providing the `secretName` references in your values file, or if a previous install attempt left behind secrets.
 
-To resolve, delete the conflicting secrets and re-run the install — Helm will recreate them with the correct field manager.
+To resolve, delete the conflicting secrets and re-run the install. Helm will recreate them with the correct field manager.
 
 ```bash
 kubectl delete secret stackweaver-zitadel stackweaver-minio \

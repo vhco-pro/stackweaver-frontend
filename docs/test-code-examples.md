@@ -90,7 +90,7 @@ a full-screen overlay (90vw × 90vh) for easier navigation of large file trees a
 
 ---
 
-### Combined Phase 4 test — entra-setup explorer
+### Combined Phase 4 test: entra-setup explorer
 
 The explorer below exercises features 4 (file-type icons), 5 (Download), and 7 (Expand):
 

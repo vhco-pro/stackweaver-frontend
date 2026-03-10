@@ -1,23 +1,23 @@
 # Docs Code Examples Plan
 
-> **Status: COMPLETE** — All features implemented. Minor polish: CodeExplorer tree filenames bumped from `text-xs` to `text-sm` (2026-03-09).
+> **Status: COMPLETE.** All features implemented. Minor polish: CodeExplorer tree filenames bumped from `text-xs` to `text-sm` (2026-03-09).
 >
-> **Status: IMPLEMENTED** — All three features implemented 2026-03-08.
+> **Status: IMPLEMENTED.** All three features implemented 2026-03-08.
 > Test page: `docs/test-code-examples.md`
 >
-> **Phase 4 plan audited 2026-03-08** — Critical implementation context added for Sonnet 4.6.
+> **Phase 4 plan audited 2026-03-08.** Critical implementation context added for Sonnet 4.6.
 > All code paths, line numbers, interfaces, and integration points verified against the actual codebase.
 >
-> **Phase 4 IMPLEMENTED 2026-03-08** — Features 4, 5, 6, and 7 implemented.
-> - Feature 4: Language icons — `frontend/public/icons/file-types/` (12 SVGs), `fileTypeIcons.ts`, CodeExplorer + FileTreeViewer updated.
-> - Feature 5: ZIP download — `jszip` installed, Download button + `handleDownload` in CodeExplorer.
-> - Feature 6: GitHub sources (build-time) — `processCodeExplorers` made async, `fetchGitHubExplorer` added to build script, `github:` path resolved in `markdownComponents.codeexplorer`, `source` field in manifest, GitHub ↗ link in CodeExplorer header.
-> - Feature 7: Expand/fullscreen — `Maximize2` button in header, `Dialog` overlay at 90vw×90vh, shared state via parent, `codePaneContent` variable reused in both views.
+> **Phase 4 IMPLEMENTED 2026-03-08.** Features 4, 5, 6, and 7 implemented.
+> - Feature 4: Language icons: `frontend/public/icons/file-types/` (12 SVGs), `fileTypeIcons.ts`, CodeExplorer + FileTreeViewer updated.
+> - Feature 5: ZIP download: `jszip` installed, Download button + `handleDownload` in CodeExplorer.
+> - Feature 6: GitHub sources (build-time): `processCodeExplorers` made async, `fetchGitHubExplorer` added to build script, `github:` path resolved in `markdownComponents.codeexplorer`, `source` field in manifest, GitHub ↗ link in CodeExplorer header.
+> - Feature 7: Expand/fullscreen: `Maximize2` button in header, `Dialog` overlay at 90vw×90vh, shared state via parent, `codePaneContent` variable reused in both views.
 
 
 ## Problem
 
-Non-markdown files co-located with docs (e.g. `entra-setup/main.tf`) are never copied by `build-docs-index.js` because the scanner filters to `.md` only. Clicking links to these files in the docs viewer silently fails — DocsViewer resolves a 404, the Vite SPA fallback returns `index.html`, and the viewer detects that as a missing page.
+Non-markdown files co-located with docs (e.g. `entra-setup/main.tf`) are never copied by `build-docs-index.js` because the scanner filters to `.md` only. Clicking links to these files in the docs viewer silently fails: DocsViewer resolves a 404, the Vite SPA fallback returns `index.html`, and the viewer detects that as a missing page.
 
 The broader need is a clean authoring experience for embedding real code examples — single files and multi-file folder structures — directly inside documentation, without iframes or duplicate content.
 
@@ -29,7 +29,7 @@ Three distinct enhancements, ordered by complexity:
 
 | Feature | Directive | Use case |
 |---|---|---|
-| **File Tree** | ` ```tree ` | Visual folder structure diagram — no file contents |
+| **File Tree** | ` ```tree ` | Visual folder structure diagram (no file contents) |
 | **File Inclusion** | `<<< ./path/to/file` | Inline a single file as a syntax-highlighted code block |
 | **Code Explorer** | `::: code-explorer ./dir` | Interactive file tree + viewer for multi-file examples |
 
@@ -45,9 +45,9 @@ These facts are essential for correct implementation. Read before starting.
 
 `scripts/build-docs-index.js` uses `require()` / `module.exports` / `require.main === module`. All new code added to this file must use CommonJS syntax. Do NOT use `import` statements.
 
-### `copyFiles` uses `fs.copyFileSync` — no content processing
+### `copyFiles` uses `fs.copyFileSync`: no content processing
 
-`copyFiles()` currently copies bytes directly with `fs.copyFileSync`. The `<<<` file inclusion feature (Feature 2) needs to read markdown content, process inclusions, and write the result — NOT blindly copy. The function must be restructured so that for `.md` files it does:
+`copyFiles()` currently copies bytes directly with `fs.copyFileSync`. The `<<<` file inclusion feature (Feature 2) needs to read markdown content, process inclusions, and write the result, not blindly copy. The function must be restructured so that for `.md` files it does:
 
 ```js
 const content = fs.readFileSync(file.fullPath, 'utf-8')
@@ -66,7 +66,7 @@ For non-`.md` files (code example files for code explorer), it continues using `
 The current `remarkCodeGroup` plugin (MarkdownRenderer.tsx ~line 108) works as follows:
 
 1. `isCodeGroupContainerStart(node)` checks if a paragraph node’s text matches `/^:::\s*code-group\s*$/i`
-2. `isCodeGroupContainerEnd(node)` checks for `/^:::\s*$/` (— the closing `:::`)
+2. `isCodeGroupContainerEnd(node)` checks for `/^:::\s*$/` (the closing `:::`)
 3. When a matching start is found, the plugin collects all children between start and end `:::`
 4. It produces a virtual AST node of type `codeGroup` with the collected items
 5. `codeGroupToHast()` (line ~149) converts this AST node to a `<codegroup>` HTML element with `data-code-group-items` JSON attribute
@@ -75,7 +75,7 @@ The current `remarkCodeGroup` plugin (MarkdownRenderer.tsx ~line 108) works as f
 
 For `::: code-explorer`, you must follow this exact same pattern:
 
-**Step 1 — Add detection function:**
+**Step 1: Add detection function:**
 ```ts
 function isCodeExplorerStart(node: unknown): { path: string; defaultFile: string } | null {
   const text = paragraphText(node);
@@ -86,9 +86,9 @@ function isCodeExplorerStart(node: unknown): { path: string; defaultFile: string
 }
 ```
 
-**Step 2 — Extend the `remarkCodeGroup` function** (rename it to `remarkDirectives` or keep it and add a second check in the scan loop). The closing `:::` delimiter is shared with code-group, so the parser must track which directive type opened the current block. Add a check for `isCodeExplorerStart` BEFORE the `isCodeGroupContainerStart` check in the `for` loop. When matched, skip forward to the closing `:::` and produce a `{ type: 'codeExplorer', path, defaultFile }` AST node.
+**Step 2: Extend the `remarkCodeGroup` function** (rename it to `remarkDirectives` or keep it and add a second check in the scan loop). The closing `:::` delimiter is shared with code-group, so the parser must track which directive type opened the current block. Add a check for `isCodeExplorerStart` BEFORE the `isCodeGroupContainerStart` check in the `for` loop. When matched, skip forward to the closing `:::` and produce a `{ type: 'codeExplorer', path, defaultFile }` AST node.
 
-**Step 3 — Add hast handler:**
+**Step 3: Add hast handler:**
 ```ts
 function codeExplorerToHast(_state: unknown, node: unknown) {
   const n = node as { path?: string; defaultFile?: string };
@@ -104,7 +104,7 @@ function codeExplorerToHast(_state: unknown, node: unknown) {
 }
 ```
 
-**Step 4 — Register the handler** in `remarkRehypeOptions.handlers` alongside the existing `codeGroup` handler:
+**Step 4: Register the handler** in `remarkRehypeOptions.handlers` alongside the existing `codeGroup` handler:
 ```ts
 remarkRehypeOptions={{
   handlers: {
@@ -114,7 +114,7 @@ remarkRehypeOptions={{
 }}
 ```
 
-**Step 5 — Add to `markdownComponents`:**
+**Step 5: Add to `markdownComponents`:**
 ```tsx
 codeexplorer: (props: MarkdownBlockProps) => {
   const explorerPath = (props['data-path'] as string) || '';
@@ -164,7 +164,7 @@ The build script currently only reads markdown file content for frontmatter extr
 
 ### What it does
 
-Renders a GitHub-style visual file tree from a text description. This is a **static visualization only** — no file contents, no interactivity. Useful for docs that explain "your workspace should be organised like this".
+Renders a GitHub-style visual file tree from a text description. This is a **static visualization only** with no file contents and no interactivity. Useful for docs that explain "your workspace should be organised like this".
 
 ### Authoring syntax
 
@@ -185,7 +185,7 @@ Alternatively a `::: file-tree` directive (same as VitePress) can be supported u
 
 ### Rendering
 
-A custom Shiki language does NOT work here because tree rendering needs React (icons, hover, dark mode). Instead, the code block renderer in `MarkdownRenderer.tsx` already switches on the fenced language — it handles `mermaid` this way. Add a matching branch for `tree` / `filetree`.
+A custom Shiki language does NOT work here because tree rendering needs React (icons, hover, dark mode). Instead, the code block renderer in `MarkdownRenderer.tsx` already switches on the fenced language (it handles `mermaid` this way). Add a matching branch for `tree` / `filetree`.
 
 **React component `FileTreeViewer.tsx`:**
 

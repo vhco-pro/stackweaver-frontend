@@ -6,7 +6,7 @@ This page tests every image feature implemented in the docs viewer: relative pat
 
 ## 1. Basic Relative Image
 
-The image below uses a `./` relative path. The viewer resolves it to `/docs/test-image.svg` at runtime. It has no dark variant — the same file is shown in both light and dark mode.
+The image below uses a `./` relative path. The viewer resolves it to `/docs/test-image.svg` at runtime. It has no dark variant; the same file is shown in both light and dark mode.
 
 ```markdown
 ![A placeholder image with no dark variant](./test-image.svg)
@@ -19,7 +19,7 @@ The image below uses a `./` relative path. The viewer resolves it to `/docs/test
 
 ## 2. Dark-Mode Variant
 
-The image below has a paired dark variant. When you switch the theme to dark, `test-image-themed-dark.svg` loads automatically. Switch back to light and it returns to the blue version. No markdown change needed — just the file naming convention `filename-dark.ext`.
+The image below has a paired dark variant. When you switch the theme to dark, `test-image-themed-dark.svg` loads automatically. Switch back to light and it returns to the blue version. No markdown change needed; just follow the file naming convention `filename-dark.ext`.
 
 ```markdown
 ![A themed image with a dark variant](./test-image-themed.svg)
@@ -35,7 +35,7 @@ The two files involved:
 | Dark | `test-image-themed-dark.svg` |
 
 > [!NOTE]
-> If the dark variant file does not exist, the viewer falls back silently to the light image — no broken-image icon. The `onError` handler sets an internal `darkFailed` flag that switches `activeSrc` back to the base image.
+> If the dark variant file does not exist, the viewer falls back silently to the light image with no broken-image icon. The `onError` handler sets an internal `darkFailed` flag that switches `activeSrc` back to the base image.
 
 ## 3. Caption via Title Attribute
 
@@ -51,7 +51,7 @@ The click-to-zoom handler is on the `<img>` inside the `<figure>`, not on the fi
 
 ## 4. Lightbox (Click to Zoom)
 
-Every image in the docs viewer is clickable. Clicking opens a full-viewport `Dialog` showing the image at up to 90 vw / 90 vh. The lightbox is managed by a single `lightboxSrc` state at the `MarkdownRenderer` level — all three images above share the same lightbox.
+Every image in the docs viewer is clickable. Clicking opens a full-viewport `Dialog` showing the image at up to 90 vw / 90 vh. The lightbox is managed by a single `lightboxSrc` state at the `MarkdownRenderer` level; all three images above share the same lightbox.
 
 Features:
 - Close with Escape key (shadcn/ui Dialog)
@@ -77,6 +77,6 @@ Running `npm run build:docs` (or `node scripts/build-docs-index.js`) now:
 1. Scans `docs/` for both `.md` files and image files (`.png`, `.jpg`, `.jpeg`, `.gif`, `.svg`, `.webp`, `.avif`)
 2. Copies all files to `frontend/public/docs/` in one pass (single `copyFiles` call to avoid the double-delete bug)
 3. Losslessly optimises images via `svgo` (SVG) and `sharp` (PNG, JPEG)
-4. Caches optimised images in `frontend/.docs-image-cache/` — unchanged images are not re-optimised on the next build
-5. Only `.md` files are indexed in the navigation tree — image files do not appear in the sidebar
+4. Caches optimised images in `frontend/.docs-image-cache/`; unchanged images are not re-optimised on the next build
+5. Only `.md` files are indexed in the navigation tree; image files do not appear in the sidebar
 6. Images under `docs/internal/` are excluded (same rule as markdown files)

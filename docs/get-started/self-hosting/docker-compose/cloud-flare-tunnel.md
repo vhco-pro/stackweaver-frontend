@@ -64,7 +64,7 @@ The static URL won't change, so you can configure it in GitHub once and forget a
 
 Best ways to run cloudflared detached:
 
-## Option 1: Systemd Service (Recommended — survives reboot)
+## Option 1: Systemd Service (Recommended, survives reboot)
 
 The service runs as root and reads config from `/etc/cloudflared/`. Use a system-wide deploy so it starts on boot.
 

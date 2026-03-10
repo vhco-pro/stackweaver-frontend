@@ -2,7 +2,7 @@
 
 # Self-Hosted Runners Management System Design
 
-**Status:** ✅ Implemented — runner registration, heartbeat polling, job assignment, agent pools, label matching, TFE-compatible API, and frontend Settings pages are all complete. See [Agent Pools Implementation Plan](./AGENT_POOLS_IMPLEMENTATION_PLAN.md) for detailed status.
+**Status:** ✅ Implemented. Runner registration, heartbeat polling, job assignment, agent pools, label matching, TFE-compatible API, and frontend Settings pages are all complete. See [Agent Pools Implementation Plan](./AGENT_POOLS_IMPLEMENTATION_PLAN.md) for detailed status.
 
 Important: be sure to use the JSON:API everywhere, aswell as in the frontend to be consistent with the rest of the platform and make sure the design is consistent with other components.
 
@@ -379,7 +379,7 @@ When a self-hosted runner executes an Ansible job, the following pipeline runs:
 - Agent runs `ansible-playbook` with `ANSIBLE_STDOUT_CALLBACK=ansible.posix.jsonl` for structured output
 - Each JSONL line is streamed to `POST /api/v2/runner/jobs/:id/output`
 - Server's `JobOutput` handler parses each JSONL line and creates structured `AnsibleJobEvent` records
-- Events include: host facts, task results, play stats — same format as platform-hosted execution
+- Events include: host facts, task results, play stats (same format as platform-hosted execution)
 - `v2_playbook_on_stats` events update the job's host stats (`HostsOk`, `HostsChanged`, etc.)
 - See `JobOutput` and `parseAndStoreAgentEvent` in `backend/internal/api/v2/handlers/runner_agent.go`
 
@@ -429,9 +429,9 @@ A single agent pool can contain both Terraform and Ansible runners. The platform
 ### Runner Types
 
 Defined in `backend/internal/models/runner.go`:
-- `terraform` — Can only execute Terraform runs
-- `ansible` — Can only execute Ansible jobs
-- `combined` — Can execute both
+- `terraform`: can only execute Terraform runs
+- `ansible`: can only execute Ansible jobs
+- `combined`: can execute both
 
 Helper methods: `CanExecuteTerraform()` and `CanExecuteAnsible()` return true for the matching type or `combined`.
 
@@ -448,7 +448,7 @@ See `backend/internal/api/v2/handlers/runner_agent.go:Register()` (lines 164-170
 
 **Heartbeat-based dispatch** (`findPendingJobsForRunner` in `runner_agent.go`):
 - Only queries `ansible_jobs` (pending, matching `agent_pool_id`)
-- If the runner's type is `terraform` (not `ansible` or `combined`), returns empty immediately — terraform-only runners never receive ansible jobs
+- If the runner's type is `terraform` (not `ansible` or `combined`), returns empty immediately; terraform-only runners never receive ansible jobs
 - Ansible and combined runners receive matching ansible jobs
 
 **Routing service** (`FindAvailableRunner` in `backend/internal/repository/runner.go`):
@@ -551,7 +551,7 @@ POST   /api/v2/runner/jobs/:id/complete
 
 Cancellation is important for both Terraform runs and Ansible jobs. When a user cancels a run or job in the UI, the API sets the run/job status to `canceled`. Self-hosted runners do not receive a push notification; they must **poll for cancellation** during execution.
 
-- **GET /api/v2/runner/jobs/:id/status** — Returns `{"status": "<status>"}` for the run or job. For Terraform jobs (id is run id, e.g. `run-xxx`) the value is the run status (e.g. `canceled`, `applying`). For Ansible jobs (id is job UUID) the value is the job status (e.g. `canceled`, `running`). Authenticated with the same runner token as other job endpoints.
+- **GET /api/v2/runner/jobs/:id/status**: returns `{"status": "<status>"}` for the run or job. For Terraform jobs (id is run id, e.g. `run-xxx`) the value is the run status (e.g. `canceled`, `applying`). For Ansible jobs (id is job UUID) the value is the job status (e.g. `canceled`, `running`). Authenticated with the same runner token as other job endpoints.
 
 - **Agent behavior**: Both the Terraform and Ansible self-hosted runners poll this endpoint every 2 seconds while executing a job. When the status is `canceled`, the runner cancels the execution context, which terminates the Terraform or Ansible process, then reports completion with status `canceled` via `POST /api/v2/runner/jobs/:id/complete`. The run/job remains in a canceled state and is not overwritten to applied/successful.
 
@@ -1036,7 +1036,7 @@ POLL_INTERVAL=10s                  # Default: 10s
 - [x] Modify orchestrator to check for available self-hosted runners when workspace `execution_mode` is `agent` and `agent_pool_id` is set
   - Orchestrator skips Redis enqueue for runs with agent pool, assigns agent_pool_id to run
   - Terraform runs use workspace `agent_pool_id`
-  - Ansible jobs use job template `agent_pool_id` (assigned via UI, propagated to job on launch — see Phase 4)
+  - Ansible jobs use job template `agent_pool_id` (assigned via UI, propagated to job on launch; see Phase 4)
 
 **Frontend:**
 - [x] Runner detail page with system info, capabilities, labels, and pool link
@@ -1068,7 +1068,7 @@ POLL_INTERVAL=10s                  # Default: 10s
 
 ### Phase 5: Agent Mode Execution Pipeline & Bug Fixes (Week 5) ✅
 
-**Critical routing fix — jobs always going to platform runners:**
+**Critical routing fix: jobs always going to platform runners:**
 - [x] `LaunchJob` now conditionally enqueues: only jobs without `AgentPoolID` go to Redis queue; jobs with a pool stay `pending` for heartbeat pickup (`backend/internal/services/ansible/job.go`)
 - [x] `findPendingJobsForRunner` creates `RunnerJobExecution` records when assigning jobs to runners (`backend/internal/api/v2/handlers/runner_agent.go`)
 
@@ -1111,54 +1111,54 @@ POLL_INTERVAL=10s                  # Default: 10s
 
 **Summary**: Both Ansible and Terraform self-hosted runners are implemented end-to-end. Ansible runners are tested and working in production. Terraform runners have full frontend and backend support and are ready for testing.
 
-### Ansible Self-Hosted Runners — Done & Working
+### Ansible Self-Hosted Runners: Done and Working
 
 - **Backend**: Runner agent API (`/api/v2/runner/*`), job artifacts endpoint with credential decryption, inventory generation, and VCS clone info.
 - **Credential handling**:
-  - **Encryption key**: Runner agent uses the same encryption key as Ansible credentials (`ANSIBLE_ENCRYPTION_KEY` or `ENCRYPTION_KEY`). Previously the runner used only `ENCRYPTION_KEY`, so credentials were never decrypted or sent when only `ANSIBLE_ENCRYPTION_KEY` was set — fixed in `backend/internal/api/v2/routes/routes.go` by creating `runnerCryptoSvc` from `encryptionKeyBytes`.
+  - **Encryption key**: Runner agent uses the same encryption key as Ansible credentials (`ANSIBLE_ENCRYPTION_KEY` or `ENCRYPTION_KEY`). Previously the runner used only `ENCRYPTION_KEY`, so credentials were never decrypted or sent when only `ANSIBLE_ENCRYPTION_KEY` was set; fixed in `backend/internal/api/v2/routes/routes.go` by creating `runnerCryptoSvc` from `encryptionKeyBytes`.
   - **Username**: Credential username is injected into the inventory as `ansible_user` and set as `ANSIBLE_REMOTE_USER` in the agent so the runner does not fall back to the process user (e.g. `iac`). See `injectUserIntoInventory` in `runner_agent.go` and agent `-u` / env in `agent_mode.go`.
   - **Password**: For Machine SSH, decrypted password is injected into the inventory as `ansible_password`. Inventory is written as **`inventory.json`** so Ansible parses it as JSON and picks up host vars; writing as `inventory` (no extension) could be parsed as INI and drop vars.
   - **sshpass**: SSH password auth requires `sshpass` on the runner; the agent checks for it and fails with a clear message if missing.
 - **Diagnostics**: Agent logs inventory size, presence of `ansible_user`/`ansible_password`, credential summary (type, has username/password/ssh_key), and extra vars keys (to spot overrides).
 - **Frontend**: Settings > Runners, Runner detail, Agent Pools, Job Template agent pool dropdown, Job detail shows runner/agent pool. Credential edit allows changing username and resetting password for Machine SSH.
 
-### Terraform Self-Hosted Runners — Implemented & Tested
+### Terraform Self-Hosted Runners: Implemented and Tested
 
-- **Frontend — Workspace Agent Pool Assignment**:
+- **Frontend: Workspace Agent Pool Assignment**:
   - `CreateWorkspaceDialog` and `EditWorkspaceDialog` now show an "Agent Pool" dropdown when `execution_mode=agent`. Pools are fetched from `agentPoolsApi.list()` on dialog open.
   - `Workspace` interface and API client include `agent_pool_id` in create/update payloads (`frontend/src/api/client.ts`).
   - When execution mode is changed away from "agent", the agent pool selection is cleared.
   - Workspace detail page shows agent pool name in metadata row (with `Server` icon) for agent-mode workspaces.
   - Run detail page shows the specific runner name (not pool name) that executed each run.
-- **Backend — Workspace Handler**:
+- **Backend: Workspace Handler**:
   - Full TFE `tfe_workspace` attribute support: `name`, `description`, `terraform-version`, `auto-apply`, `auto-apply-run-trigger`, `allow-destroy-plan`, `queue-all-runs`, `speculative-enabled`, `file-triggers-enabled`, `trigger-prefixes`, `trigger-patterns`, `global-remote-state`, `structured-run-output-enabled`, `assessments-enabled`, `source-name`, `source-url`, `tag-names`, `working-directory`, `execution-mode`, `agent-pool-id`.
   - VCS repo block support: `identifier`, `branch` (defaults to `main`), `github-app-installation-id`, `oauth-token-id`, `ingress-submodules`, `tags-regex`.
   - `formatWorkspaceResponse` returns all attributes from model (no hardcoded values for booleans).
   - Organization relationship included (required by `go-tfe` client to prevent nil pointer dereference).
-- **Backend — Run Creation for Agent Workspaces**:
-  - Platform skips VCS cloning for `execution_mode=agent` workspaces — the self-hosted runner handles its own VCS clone.
+- **Backend: Run Creation for Agent Workspaces**:
+  - Platform skips VCS cloning for `execution_mode=agent` workspaces; the self-hosted runner handles its own VCS clone.
   - `AgentPoolID` is explicitly set on the `Run` model during creation for proper job routing.
-- **Backend — Heartbeat Dispatch for Terraform Runs**:
+- **Backend: Heartbeat Dispatch for Terraform Runs**:
   - `findPendingJobsForRunner` queries both Ansible jobs AND Terraform runs, filtered by runner type capabilities.
   - Heartbeat handler derives `availableCapacity` from runner's `max_concurrent_jobs` if not explicitly provided.
   - Terraform runs include `run_type` (plan/apply/destroy) in the `PendingJob` response.
-- **Backend — Terraform Run Artifacts** (`getTerraformRunArtifacts`):
+- **Backend: Terraform Run Artifacts** (`getTerraformRunArtifacts`):
   - Returns configuration tarball (base64-encoded from MinIO), or VCS info for cloning if no config version exists.
   - VCS clone URL includes fresh GitHub App installation token (generated per-request via `GenerateInstallationToken`).
   - Returns Terraform variables and environment variables from the variable service, respecting variable set precedence.
   - Returns `terraform_version` and `working_directory` from workspace metadata.
-- **Backend — JobStart/JobComplete for Terraform Runs**:
+- **Backend: JobStart/JobComplete for Terraform Runs**:
   - ID-based routing: if job ID starts with `run-`, the Terraform handler is called; otherwise UUID parse for Ansible.
   - `JobStart`: Updates run status to `planning` (from pending) or records `ApplyStartedAt` (from applying). Sets `RunnerID`.
   - `JobComplete`: Handles plan/apply completion, failure (stores `ErrorMessage` or `Output` for UI display), and cancellation. Uses `Output` as fallback for `ErrorMessage` when runner sends error details.
-- **Backend — Runner Registration**:
+- **Backend: Runner Registration**:
   - Supports re-registration: if a runner with the same name already exists (e.g. container restart), the existing entry is updated and reused instead of returning 409 Conflict.
-- **Backend — JobOutput for Terraform Runs**:
+- **Backend: JobOutput for Terraform Runs**:
   - Terraform output is stored in MinIO logs (`runs/{runID}/logs/{phase}.log`) appended per output chunk.
-  - Supports plan, apply, and destroy phase log streams — runner sends `stream` field ("plan", "apply", or "destroy") to route output to the correct log file.
-- **Backend — Runner Deletion**:
+  - Supports plan, apply, and destroy phase log streams; the runner sends a `stream` field ("plan", "apply", or "destroy") to route output to the correct log file.
+- **Backend: Runner Deletion**:
   - Runner delete correctly nullifies `runner_id` on both `ansible_jobs` and `runs` tables to prevent foreign key constraint errors.
-- **Backend — Workspace Force Delete (TFE-compatible)**:
+- **Backend: Workspace Force Delete (TFE-compatible)**:
   - `ForceDelete` boolean field on workspace model (TFE `force_delete` attribute).
   - Delete handler checks both `?force=true` query param and the workspace's `ForceDelete` attribute.
   - `DeleteByID`, `SafeDelete`, `SafeDeleteByID` endpoints for TFE API compatibility.
@@ -1170,11 +1170,11 @@ POLL_INTERVAL=10s                  # Default: 10s
   - Error propagation: When execution fails (clone, init, plan, apply), both the error and the captured command output are sent to the server via `error_message` field, ensuring error details are visible in the UI.
   - Clone URL logging: Masked token output for debugging VCS clone issues.
   - **Real-time log streaming**: `tfStreamWriter` streams output to server with correct `runner_id`, `stream` (phase), and `output` fields. Separate buffers for streaming (reset on flush) and full output accumulation (for return value). Final flush after command completes ensures no output is lost.
-  - **Phase-aware streaming**: Log phase determined from job run type — "plan" for plan jobs, "apply" for apply jobs, "destroy" for destroy jobs — matching the backend's log retrieval expectations.
-- **Frontend — Plan-and-Apply Confirmation**:
+  - **Phase-aware streaming**: log phase is determined from job run type ("plan" for plan jobs, "apply" for apply jobs, "destroy" for destroy jobs), matching the backend's log retrieval expectations.
+- **Frontend: Plan-and-Apply Confirmation**:
   - Fixed: "Plan and Apply" runs now correctly wait for user confirmation before applying (unless workspace has auto-apply enabled). Previously, all plan-and-apply runs auto-applied because the frontend conflated the operation type with the auto-apply flag.
   - Frontend sends explicit `operation` field ("plan-only", "plan-and-apply", "destroy") and derives `auto_apply_after_plan` from the workspace's `auto_apply` setting.
-- **Frontend — Cancelled Run Display**:
+- **Frontend: Cancelled Run Display**:
   - Fixed: Cancelled/discarded runs now show the apply phase as "cancelled" (grey) instead of "pending" on both platform and self-hosted runners.
 - **Orchestrator**: Already assigns `AgentPoolID` to runs from workspace and skips Redis enqueue.
 
@@ -1247,8 +1247,8 @@ POLL_INTERVAL=10s                  # Default: 10s
 ## Future Enhancements
 
 1. **Agent Pools**: Implemented as part of this design (TFE-compatible pools, scoping, runner membership).
-2. ~~**Terraform Workspace → Agent Pool UI**~~: Done — agent pool selector added to workspace create/edit dialogs.
-3. ~~**Terraform Heartbeat Dispatch**~~: Done — `findPendingJobsForRunner` queries Terraform runs; full artifact/execution flow implemented.
+2. ~~**Terraform Workspace → Agent Pool UI**~~: Done; agent pool selector added to workspace create/edit dialogs.
+3. ~~**Terraform Heartbeat Dispatch**~~: Done; `findPendingJobsForRunner` queries Terraform runs, full artifact/execution flow implemented.
 4. **Auto-scaling**: Integration with cloud providers to auto-scale runner capacity per pool
 5. **Runner Logs**: Central collection of runner agent logs (Terraform logs currently stored in MinIO per-run)
 6. **Custom Runner Images**: Support for custom Docker images with pre-installed tools

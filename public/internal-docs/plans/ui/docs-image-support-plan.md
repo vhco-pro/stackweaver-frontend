@@ -1,4 +1,4 @@
-# Docs Viewer — Image Support Plan
+# Docs Viewer: Image Support Plan
 
 ## Status: IMPLEMENTED ✅
 
@@ -13,14 +13,14 @@ Allow documentation authors to embed images in markdown files using standard syn
 ## Current State (at time of writing)
 
 - `build-docs-index.js` scans `docs/` for `.md` files only and copies them to `frontend/public/docs/`, preserving directory structure.
-- `MarkdownRenderer.tsx` uses `react-markdown` + `rehype-raw` but has no custom `img` handler — images with relative `src` paths would be resolved by the browser against the current URL (e.g. `/docs/features/terraform/screenshot.png`), which would work if the file was present, but images are never copied because the build script ignores non-`.md` files.
+- `MarkdownRenderer.tsx` uses `react-markdown` + `rehype-raw` but has no custom `img` handler; images with relative `src` paths would be resolved by the browser against the current URL (e.g. `/docs/features/terraform/screenshot.png`), which would work if the file was present, but images are never copied because the build script ignores non-`.md` files.
 - No image files currently exist in `docs/` except `docs/internal/image.png` (internal only).
 
 ## Chosen Approach
 
 **Store images co-located with their markdown files** inside `docs/`, using standard relative paths in markdown syntax. This mirrors GitHub's convention (e.g. `docs/features/terraform/` holds both `run-timeout.md` and `run-timeout-screenshot.png`).
 
-Images are served from `frontend/public/docs/` at runtime — the same location as the markdown files — so relative paths in `![alt](./image.png)` resolve correctly in the browser without any extra URL rewriting.
+Images are served from `frontend/public/docs/` at runtime (the same location as the markdown files), so relative paths in `![alt](./image.png)` resolve correctly in the browser without any extra URL rewriting.
 
 ## Critical Implementation Context
 
@@ -35,7 +35,7 @@ const { optimize } = require('svgo')
 const sharp = require('sharp')
 ```
 
-Do NOT convert the file to ESM — that would break the `require.main === module` entry point.
+Do NOT convert the file to ESM, as that would break the `require.main === module` entry point.
 
 ### `copyFiles()` nukes the output directory
 
@@ -43,7 +43,7 @@ Do NOT convert the file to ESM — that would break the `require.main === module
 
 ### Image cache manifest must live outside `PUBLIC_DOCS`
 
-Because `copyFiles` deletes and recreates `PUBLIC_DOCS` on every run, the `.image-cache.json` manifest for skipping unchanged images must be stored outside it — e.g. at `frontend/.image-cache.json`.
+Because `copyFiles` deletes and recreates `PUBLIC_DOCS` on every run, the `.image-cache.json` manifest for skipping unchanged images must be stored outside it, e.g. at `frontend/.image-cache.json`.
 
 ### `copyFiles` is synchronous but `sharp` is async
 
@@ -57,11 +57,11 @@ The plan's Section 7 incorrectly claims `ThemeContext` is "already imported in `
 import { useTheme } from '@/contexts/ThemeContext';
 ```
 
-`useTheme()` returns `{ theme, setTheme, resolvedTheme }` where `theme` can be `'light' | 'dark' | 'system'` and `resolvedTheme` is always `'light' | 'dark'`. Use `resolvedTheme === 'dark'` for dark mode checks — NOT `theme === 'dark'` (which misses the `'system'` case).
+`useTheme()` returns `{ theme, setTheme, resolvedTheme }` where `theme` can be `'light' | 'dark' | 'system'` and `resolvedTheme` is always `'light' | 'dark'`. Use `resolvedTheme === 'dark'` for dark mode checks, not `theme === 'dark'` (which misses the `'system'` case).
 
 ### The `img` handler must be a standalone component (not inline in `useMemo`)
 
-All component handlers in `markdownComponents` are defined inside a `useMemo` block (line ~383). When the memo's dependencies change (theme, highlight state, copiedCodeId, etc.), React sees entirely new component functions, unmounts old instances, and remounts — **resetting all hook state**. This means `useState` / `useEffect` hooks defined inside a `useMemo`-returned component will lose state on every recomputation.
+All component handlers in `markdownComponents` are defined inside a `useMemo` block (line ~383). When the memo's dependencies change (theme, highlight state, copiedCodeId, etc.), React sees entirely new component functions, unmounts old instances, and remounts, **resetting all hook state**. This means `useState` / `useEffect` hooks defined inside a `useMemo`-returned component will lose state on every recomputation.
 
 The `img` handler uses `useState` for `darkFailed` and `useEffect` to reset it. These hooks **must not** be defined inside the `useMemo` closure. Instead, extract a standalone `DocImage` component defined OUTSIDE the `useMemo` (either at module level or as a named function component in the same file):
 
@@ -120,11 +120,11 @@ Both packages resolve correctly in the Docker build container (Linux x64). After
 
 ## Changes Required
 
-### 1. ✅ `scripts/build-docs-index.js` — copy image files alongside markdown
+### 1. ✅ `scripts/build-docs-index.js`: copy image files alongside markdown
 
 The `scanDocsDir` function currently filters to `.md` only. Extend it to also collect image files (`.png`, `.jpg`, `.jpeg`, `.gif`, `.svg`, `.webp`, `.avif`).
 
-Image files are added to a separate `imageFiles` list (not the `files` list used for the navigation tree/index — they should not appear in the sidebar). The `copyFiles` function is called for both lists.
+Image files are added to a separate `imageFiles` list (not the `files` list used for the navigation tree/index; they should not appear in the sidebar). The `copyFiles` function is called for both lists.
 
 Specifically:
 - In the `entry.isFile()` branch inside `scanDocsDir`, also collect entries matching `/\.(png|jpe?g|gif|svg|webp|avif)$/i`.
@@ -134,7 +134,7 @@ Specifically:
 
 Internal images (under `docs/internal/`) are already excluded because `internal` is in `DIR_IGNORE_PATTERNS`. That directory's images will not be copied or served.
 
-### 2. ✅ `frontend/src/components/docs/MarkdownRenderer.tsx` — custom `img` component
+### 2. ✅ `frontend/src/components/docs/MarkdownRenderer.tsx`: custom `img` component
 
 Add an `img` entry to `markdownComponents`. This component must:
 
@@ -159,13 +159,13 @@ If `src` is already absolute or an external URL, pass it through untouched.
 
 **b) GitHub-style presentation**
 
-- `max-width: 100%` — never overflow the content column.
-- `height: auto` — preserve aspect ratio.
+- `max-width: 100%`: never overflow the content column.
+- `height: auto`: preserve aspect ratio.
 - Subtle `rounded-md` border-radius (matches GitHub's slight rounding).
-- `border border-border/40` — faint border so images on white/dark backgrounds have definition.
+- `border border-border/40`: faint border so images on white/dark backgrounds have definition.
 - `my-4` vertical margin.
-- `loading="lazy"` — browser-native lazy loading, no library needed.
-- `display: block` — prevents inline baseline gap.
+- `loading="lazy"`: browser-native lazy loading, no library needed.
+- `display: block`: prevents inline baseline gap.
 
 **c) Figure + caption (optional)**
 
@@ -194,7 +194,7 @@ interface MarkdownImageProps {
 
 **e) Dependency on `docPath` / `isDirectoryPage`**
 
-The `img` handler needs `docPath` and `isDirectoryPage` — both are already in the `useMemo` dependency array via the `a` handler, so no changes needed there.
+The `img` handler needs `docPath` and `isDirectoryPage`, both of which are already in the `useMemo` dependency array via the `a` handler, so no changes are needed there.
 
 ### 3. ✅ Image storage convention (authoring guide)
 
@@ -211,15 +211,15 @@ Added to `docs/internal/guidelines/documentation/USER_FACING_DOCS_STANDARDS.md` 
 
 If authors need images shared across multiple docs pages (e.g. a logo used in several places), a `docs/images/` directory at the root of `docs/` can hold them. Reference as `../../images/logo.png` from a nested doc or `/docs/images/logo.png` as an absolute path.
 
-No special tooling changes are needed for this — it falls out naturally from the build script copying all image files.
+No special tooling changes are needed for this; it falls out naturally from the build script copying all image files.
 
-### 5. ✅ Build-time image optimisation — lossless only
+### 5. ✅ Build-time image optimisation: lossless only
 
 All optimisation applied by the build script is strictly lossless: no pixel data is altered, no quality is traded for file size. Authors do not need to manually optimise assets before committing.
 
-**SVG — `svgo` (included in main implementation)**
+**SVG: `svgo` (included in main implementation)**
 
-SVG files are XML. `svgo` removes comments, redundant attributes, editor metadata (`<sodipodi:*>`, `<inkscape:*>`), unused `<defs>`, and empty groups. Visual output is identical. No native binary required — `svgo` is a pure-JS npm package already common in frontend toolchains.
+SVG files are XML. `svgo` removes comments, redundant attributes, editor metadata (`<sodipodi:*>`, `<inkscape:*>`), unused `<defs>`, and empty groups. Visual output is identical. No native binary is required; `svgo` is a pure-JS npm package already common in frontend toolchains.
 
 In `build-docs-index.js`, after reading an SVG's content and before writing it to `public/docs/`:
 
@@ -230,7 +230,7 @@ const result = optimize(svgContent, { path: srcPath, multipass: true })
 fs.writeFileSync(destPath, result.data)
 ```
 
-**PNG — lossless recompression via `sharp` (included in main implementation)**
+**PNG: lossless recompression via `sharp` (included in main implementation)**
 
 `sharp` recompresses PNG files using libvips's lossless encoder (`compressionLevel: 9`). This is equivalent to running `optipng -o7`: it finds a smaller byte representation of the exact same pixel data by trying different deflate strategies and filter combinations. No colour information is discarded.
 
@@ -240,11 +240,11 @@ const sharp = require('sharp')
 await sharp(srcPath).png({ compressionLevel: 9, effort: 10 }).toFile(destPath)
 ```
 
-`effort: 10` is the maximum compression pass count — slower build, smaller output, zero quality loss.
+`effort: 10` is the maximum compression pass count; it produces a slower build, smaller output, and zero quality loss.
 
-**JPEG — metadata strip + lossless Huffman via `sharp` (included in main implementation)**
+**JPEG: metadata strip + lossless Huffman via `sharp` (included in main implementation)**
 
-`sharp` can rewrite JPEG files with `mozjpeg: true, quality: 100`. At `quality: 100`, MozJPEG performs no lossy quantisation — it only strips EXIF/IPTC metadata and reoptimises Huffman tables. The pixel values written to the screen are unchanged.
+`sharp` can rewrite JPEG files with `mozjpeg: true, quality: 100`. At `quality: 100`, MozJPEG performs no lossy quantisation; it only strips EXIF/IPTC metadata and reoptimises Huffman tables. The pixel values written to the screen are unchanged.
 
 ```js
 // Using require'd sharp (see above)
@@ -253,17 +253,17 @@ await sharp(srcPath).jpeg({ quality: 100, mozjpeg: true }).toFile(destPath)
 
 Note: `.jpg` screenshots exported from macOS or Windows often carry several kilobytes of metadata (GPS, colour profile, app info). Stripping it is always safe and frequently reduces file size by 5–20 % without touching a single pixel.
 
-**WebP — NOT generated at build time**
+**WebP: NOT generated at build time**
 
-Auto-generating `.webp` variants requires the browser to switch between sources, which involves either `<picture>` markup (requires build-time rewriting of markdown) or serving WebP with `Accept: image/webp` content negotiation (requires a server that inspects headers, which the static public/ directory cannot do). This is deferred — see the dark-mode variants section, which handles a similar `<picture>` pattern.
+Auto-generating `.webp` variants requires the browser to switch between sources, which involves either `<picture>` markup (requires build-time rewriting of markdown) or serving WebP with `Accept: image/webp` content negotiation (requires a server that inspects headers, which the static public/ directory cannot do). This is deferred; see the dark-mode variants section, which handles a similar `<picture>` pattern.
 
 **`sharp` as a build dependency**
 
-`sharp` is a native binary (libvips) distributed as pre-built platform-specific npm packages. It is already one of the most widely used image processing packages in the Node ecosystem and is explicitly supported on Linux x64 (the Docker build environment). Add it as a `devDependency` of the frontend package alongside existing build tooling. No changes to the Docker image are required — `npm install` in the container resolves the correct pre-built binary.
+`sharp` is a native binary (libvips) distributed as pre-built platform-specific npm packages. It is already one of the most widely used image processing packages in the Node ecosystem and is explicitly supported on Linux x64 (the Docker build environment). Add it as a `devDependency` of the frontend package alongside existing build tooling. No changes to the Docker image are required; `npm install` in the container resolves the correct pre-built binary.
 
 **Optimisation is skipped when the source file is unchanged**
 
-Before processing, compare the source file's mtime or content hash against a stored manifest (`frontend/.image-cache.json` — NOT inside `public/docs/` which is deleted on every build). If unchanged, copy the previously optimised output directly from `frontend/.docs-image-cache/`. This keeps incremental builds fast.
+Before processing, compare the source file's mtime or content hash against a stored manifest (`frontend/.image-cache.json`; NOT inside `public/docs/` which is deleted on every build). If unchanged, copy the previously optimised output directly from `frontend/.docs-image-cache/`. This keeps incremental builds fast.
 
 **Estimated size savings (typical docs screenshots)**
 
@@ -285,7 +285,7 @@ A lightbox opens a full-viewport modal when the user clicks any doc image. It sh
 
 **State management**
 
-In `MarkdownRenderer.tsx`, add a `lightboxSrc` state variable at the component level (not inside the memoised `img` handler — the handler closes over a setter):
+In `MarkdownRenderer.tsx`, add a `lightboxSrc` state variable at the component level (not inside the memoised `img` handler, since the handler closes over a setter):
 
 ```ts
 const [lightboxSrc, setLightboxSrc] = useState<string | null>(null)
