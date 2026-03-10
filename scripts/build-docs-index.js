@@ -765,6 +765,11 @@ async function fetchGitHubExplorer(spec, destBase) {
  * frontend/public/internal-docs/ + internal-docs-index.json.
  */
 async function buildInternalDocs() {
+  if (!fs.existsSync(INTERNAL_DOCS_ROOT)) {
+    console.log('\n📁 No internal docs directory found, skipping.\n');
+    return;
+  }
+
   console.log('\n📁 Building internal documentation index...\n');
 
   console.log('🔍 Scanning docs/internal directory...');
