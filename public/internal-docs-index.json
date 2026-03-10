@@ -33,6 +33,13 @@
             },
             {
               "type": "file",
+              "name": "README.md",
+              "path": "analysis/architecture/README.md",
+              "title": "README",
+              "description": ""
+            },
+            {
+              "type": "file",
               "name": "STATE_PERSISTENCE_ANALYSIS.md",
               "path": "analysis/architecture/STATE_PERSISTENCE_ANALYSIS.md",
               "title": "STATE PERSISTENCE ANALYSIS",
@@ -77,6 +84,13 @@
                   "path": "analysis/features/ansible/output-comparison-analysis.md",
                   "title": "output comparison analysis",
                   "description": ""
+                },
+                {
+                  "type": "file",
+                  "name": "README.md",
+                  "path": "analysis/features/ansible/README.md",
+                  "title": "README",
+                  "description": ""
                 }
               ]
             },
@@ -85,6 +99,13 @@
               "name": "terraform",
               "path": "analysis/features/terraform",
               "children": [
+                {
+                  "type": "file",
+                  "name": "README.md",
+                  "path": "analysis/features/terraform/README.md",
+                  "title": "README",
+                  "description": ""
+                },
                 {
                   "type": "file",
                   "name": "TFE_COMPATIBILITY_AUDIT.md",
@@ -110,6 +131,13 @@
             },
             {
               "type": "file",
+              "name": "README.md",
+              "path": "analysis/features/README.md",
+              "title": "README",
+              "description": ""
+            },
+            {
+              "type": "file",
               "name": "stackweaver-terraform-provider-analysis.md",
               "path": "analysis/features/stackweaver-terraform-provider-analysis.md",
               "title": "stackweaver terraform provider analysis",
@@ -122,6 +150,13 @@
           "name": "migrations",
           "path": "analysis/migrations",
           "children": [
+            {
+              "type": "file",
+              "name": "README.md",
+              "path": "analysis/migrations/README.md",
+              "title": "README",
+              "description": ""
+            },
             {
               "type": "file",
               "name": "VARIABLES_JSONAPI_MIGRATION.md",
@@ -150,6 +185,13 @@
           "name": "proxmox-version-output-trace-log-pollution-root-cause.md",
           "path": "analysis/proxmox-version-output-trace-log-pollution-root-cause.md",
           "title": "proxmox version output trace log pollution root cause",
+          "description": ""
+        },
+        {
+          "type": "file",
+          "name": "README.md",
+          "path": "analysis/README.md",
+          "title": "README",
           "description": ""
         },
         {
@@ -207,6 +249,13 @@
           "path": "api-reference/frontend-api-reference.md",
           "title": "frontend api reference",
           "description": ""
+        },
+        {
+          "type": "file",
+          "name": "README.md",
+          "path": "api-reference/README.md",
+          "title": "README",
+          "description": ""
         }
       ]
     },
@@ -227,6 +276,13 @@
           "name": "initial-architecture-design-v1.md",
           "path": "archive/initial-architecture-design-v1.md",
           "title": "initial architecture design v1",
+          "description": ""
+        },
+        {
+          "type": "file",
+          "name": "README.md",
+          "path": "archive/README.md",
+          "title": "README",
           "description": ""
         },
         {
@@ -262,6 +318,13 @@
           "name": "frontend-v2-design.md",
           "path": "design/frontend-v2-design.md",
           "title": "frontend v2 design",
+          "description": ""
+        },
+        {
+          "type": "file",
+          "name": "README.md",
+          "path": "design/README.md",
+          "title": "README",
           "description": ""
         },
         {
@@ -310,6 +373,13 @@
               "path": "fixes/linting/phase3-verification-checklist.md",
               "title": "phase3 verification checklist",
               "description": ""
+            },
+            {
+              "type": "file",
+              "name": "README.md",
+              "path": "fixes/linting/README.md",
+              "title": "README",
+              "description": ""
             }
           ]
         },
@@ -332,6 +402,13 @@
           "name": "docs-viewer-scroll-to-top-bug.md",
           "path": "fixes/docs-viewer-scroll-to-top-bug.md",
           "title": "docs viewer scroll to top bug",
+          "description": ""
+        },
+        {
+          "type": "file",
+          "name": "README.md",
+          "path": "fixes/README.md",
+          "title": "README",
           "description": ""
         },
         {
@@ -362,6 +439,13 @@
             },
             {
               "type": "file",
+              "name": "README.md",
+              "path": "guidelines/documentation/README.md",
+              "title": "README",
+              "description": ""
+            },
+            {
+              "type": "file",
               "name": "USER_FACING_DOCS_STANDARDS.md",
               "path": "guidelines/documentation/USER_FACING_DOCS_STANDARDS.md",
               "title": "USER FACING DOCS STANDARDS",
@@ -379,6 +463,13 @@
               "name": "icon-color-guidelines.md",
               "path": "guidelines/frontend/icon-color-guidelines.md",
               "title": "icon color guidelines",
+              "description": ""
+            },
+            {
+              "type": "file",
+              "name": "README.md",
+              "path": "guidelines/frontend/README.md",
+              "title": "README",
               "description": ""
             },
             {
@@ -404,12 +495,26 @@
             },
             {
               "type": "file",
+              "name": "README.md",
+              "path": "guidelines/terraform/README.md",
+              "title": "README",
+              "description": ""
+            },
+            {
+              "type": "file",
               "name": "terraform-api-considerations.md",
               "path": "guidelines/terraform/terraform-api-considerations.md",
               "title": "terraform api considerations",
               "description": ""
             }
           ]
+        },
+        {
+          "type": "file",
+          "name": "README.md",
+          "path": "guidelines/README.md",
+          "title": "README",
+          "description": ""
         }
       ]
     },
@@ -452,6 +557,13 @@
           "path": "overviews/PERMISSIONS_MODEL_V2.md",
           "title": "PERMISSIONS MODEL V2",
           "description": ""
+        },
+        {
+          "type": "file",
+          "name": "README.md",
+          "path": "overviews/README.md",
+          "title": "README",
+          "description": ""
         }
       ]
     },
@@ -465,6 +577,13 @@
           "name": "archive",
           "path": "plans/archive",
           "children": [
+            {
+              "type": "file",
+              "name": "README.md",
+              "path": "plans/archive/README.md",
+              "title": "README",
+              "description": ""
+            },
             {
               "type": "file",
               "name": "runner_ci_cd_and_extraction_b7fe52e6.plan.md",
@@ -500,6 +619,13 @@
                 },
                 {
                   "type": "file",
+                  "name": "README.md",
+                  "path": "plans/features/ansible/README.md",
+                  "title": "README",
+                  "description": ""
+                },
+                {
+                  "type": "file",
                   "name": "terminal-output-implementation-plan.md",
                   "path": "plans/features/ansible/terminal-output-implementation-plan.md",
                   "title": "terminal output implementation plan",
@@ -518,6 +644,13 @@
                   "path": "plans/features/dashboard/IMPLEMENTATION_PLAN.md",
                   "title": "IMPLEMENTATION PLAN",
                   "description": ""
+                },
+                {
+                  "type": "file",
+                  "name": "README.md",
+                  "path": "plans/features/dashboard/README.md",
+                  "title": "README",
+                  "description": ""
                 }
               ]
             },
@@ -526,6 +659,13 @@
               "name": "oidc-federation",
               "path": "plans/features/oidc-federation",
               "children": [
+                {
+                  "type": "file",
+                  "name": "README.md",
+                  "path": "plans/features/oidc-federation/README.md",
+                  "title": "README",
+                  "description": ""
+                },
                 {
                   "type": "file",
                   "name": "THIRD_PARTY_OIDC_FEDERATION_PLAN.md",
@@ -546,6 +686,13 @@
                   "path": "plans/features/settings/org-project-workspace-settings-implementation-plan.md",
                   "title": "org project workspace settings implementation plan",
                   "description": ""
+                },
+                {
+                  "type": "file",
+                  "name": "README.md",
+                  "path": "plans/features/settings/README.md",
+                  "title": "README",
+                  "description": ""
                 }
               ]
             },
@@ -554,6 +701,13 @@
               "name": "teams",
               "path": "plans/features/teams",
               "children": [
+                {
+                  "type": "file",
+                  "name": "README.md",
+                  "path": "plans/features/teams/README.md",
+                  "title": "README",
+                  "description": ""
+                },
                 {
                   "type": "file",
                   "name": "SSO_OIDC_TEAM_INTEGRATION_PLAN.md",
@@ -580,6 +734,13 @@
                   "name": "legacy-implementation-database-permissions-security-plan.md",
                   "path": "plans/features/terraform/legacy-implementation-database-permissions-security-plan.md",
                   "title": "legacy implementation database permissions security plan",
+                  "description": ""
+                },
+                {
+                  "type": "file",
+                  "name": "README.md",
+                  "path": "plans/features/terraform/README.md",
+                  "title": "README",
                   "description": ""
                 },
                 {
@@ -619,6 +780,13 @@
               "children": [
                 {
                   "type": "file",
+                  "name": "README.md",
+                  "path": "plans/features/vcs/README.md",
+                  "title": "README",
+                  "description": ""
+                },
+                {
+                  "type": "file",
                   "name": "vcs-integration-plan.md",
                   "path": "plans/features/vcs/vcs-integration-plan.md",
                   "title": "vcs integration plan",
@@ -645,6 +813,13 @@
               "name": "projects-scoping-extension-plan.md",
               "path": "plans/features/projects-scoping-extension-plan.md",
               "title": "projects scoping extension plan",
+              "description": ""
+            },
+            {
+              "type": "file",
+              "name": "README.md",
+              "path": "plans/features/README.md",
+              "title": "README",
               "description": ""
             }
           ]
@@ -740,6 +915,13 @@
             },
             {
               "type": "file",
+              "name": "README.md",
+              "path": "plans/infrastructure/README.md",
+              "title": "README",
+              "description": ""
+            },
+            {
+              "type": "file",
               "name": "release-strategy.md",
               "path": "plans/infrastructure/release-strategy.md",
               "title": "release strategy",
@@ -789,6 +971,13 @@
           "children": [
             {
               "type": "file",
+              "name": "README.md",
+              "path": "plans/performance/README.md",
+              "title": "README",
+              "description": ""
+            },
+            {
+              "type": "file",
               "name": "satellite-pipeline-caching.md",
               "path": "plans/performance/satellite-pipeline-caching.md",
               "title": "satellite pipeline caching",
@@ -813,6 +1002,13 @@
               "name": "encryption-at-rest-implementation-plan.md",
               "path": "plans/security/encryption-at-rest-implementation-plan.md",
               "title": "encryption at rest implementation plan",
+              "description": ""
+            },
+            {
+              "type": "file",
+              "name": "README.md",
+              "path": "plans/security/README.md",
+              "title": "README",
               "description": ""
             }
           ]
@@ -845,6 +1041,13 @@
             },
             {
               "type": "file",
+              "name": "README.md",
+              "path": "plans/ui/README.md",
+              "title": "README",
+              "description": ""
+            },
+            {
+              "type": "file",
               "name": "registry-readme-shiki-integration-plan.md",
               "path": "plans/ui/registry-readme-shiki-integration-plan.md",
               "title": "registry readme shiki integration plan",
@@ -858,6 +1061,13 @@
               "description": ""
             }
           ]
+        },
+        {
+          "type": "file",
+          "name": "README.md",
+          "path": "plans/README.md",
+          "title": "README",
+          "description": ""
         },
         {
           "type": "file",
@@ -889,6 +1099,13 @@
                   "path": "research/features/ansible/execution-environments.md",
                   "title": "execution environments",
                   "description": ""
+                },
+                {
+                  "type": "file",
+                  "name": "README.md",
+                  "path": "research/features/ansible/README.md",
+                  "title": "README",
+                  "description": ""
                 }
               ]
             },
@@ -897,6 +1114,13 @@
               "name": "phase3-rollback-research.md",
               "path": "research/features/phase3-rollback-research.md",
               "title": "phase3 rollback research",
+              "description": ""
+            },
+            {
+              "type": "file",
+              "name": "README.md",
+              "path": "research/features/README.md",
+              "title": "README",
               "description": ""
             },
             {
@@ -928,6 +1152,13 @@
               "description": ""
             }
           ]
+        },
+        {
+          "type": "file",
+          "name": "README.md",
+          "path": "research/README.md",
+          "title": "README",
+          "description": ""
         }
       ]
     },
@@ -942,6 +1173,13 @@
           "path": "security/certs.md",
           "title": "certs",
           "description": ""
+        },
+        {
+          "type": "file",
+          "name": "README.md",
+          "path": "security/README.md",
+          "title": "README",
+          "description": ""
         }
       ]
     },
@@ -950,6 +1188,13 @@
       "name": "setup",
       "path": "setup",
       "children": [
+        {
+          "type": "file",
+          "name": "README.md",
+          "path": "setup/README.md",
+          "title": "README",
+          "description": ""
+        },
         {
           "type": "file",
           "name": "setup-guide.md",
@@ -999,6 +1244,13 @@
             },
             {
               "type": "file",
+              "name": "README.md",
+              "path": "status/auth/README.md",
+              "title": "README",
+              "description": ""
+            },
+            {
+              "type": "file",
               "name": "TEAM_BASED_ORG_ACCESS_FIX.md",
               "path": "status/auth/TEAM_BASED_ORG_ACCESS_FIX.md",
               "title": "TEAM BASED ORG ACCESS FIX",
@@ -1025,6 +1277,13 @@
           "name": "ISSUES_62_63_STATUS.md",
           "path": "status/ISSUES_62_63_STATUS.md",
           "title": "ISSUES 62 63 STATUS",
+          "description": ""
+        },
+        {
+          "type": "file",
+          "name": "README.md",
+          "path": "status/README.md",
+          "title": "README",
           "description": ""
         },
         {
@@ -1071,6 +1330,13 @@
                   "path": "summaries/features/ansible/implementation-status.md",
                   "title": "implementation status",
                   "description": ""
+                },
+                {
+                  "type": "file",
+                  "name": "README.md",
+                  "path": "summaries/features/ansible/README.md",
+                  "title": "README",
+                  "description": ""
                 }
               ]
             },
@@ -1084,6 +1350,13 @@
                   "name": "IMPLEMENTATION_SUMMARY.md",
                   "path": "summaries/features/dashboard/IMPLEMENTATION_SUMMARY.md",
                   "title": "IMPLEMENTATION SUMMARY",
+                  "description": ""
+                },
+                {
+                  "type": "file",
+                  "name": "README.md",
+                  "path": "summaries/features/dashboard/README.md",
+                  "title": "README",
                   "description": ""
                 }
               ]
@@ -1112,6 +1385,13 @@
                   "name": "PROJECT_TEAM_ACCESS_UI_IMPLEMENTATION.md",
                   "path": "summaries/features/teams/PROJECT_TEAM_ACCESS_UI_IMPLEMENTATION.md",
                   "title": "PROJECT TEAM ACCESS UI IMPLEMENTATION",
+                  "description": ""
+                },
+                {
+                  "type": "file",
+                  "name": "README.md",
+                  "path": "summaries/features/teams/README.md",
+                  "title": "README",
                   "description": ""
                 },
                 {
@@ -1147,6 +1427,13 @@
                   "name": "plan-streaming-implementation.md",
                   "path": "summaries/features/terraform/plan-streaming-implementation.md",
                   "title": "plan streaming implementation",
+                  "description": ""
+                },
+                {
+                  "type": "file",
+                  "name": "README.md",
+                  "path": "summaries/features/terraform/README.md",
+                  "title": "README",
                   "description": ""
                 },
                 {
@@ -1188,6 +1475,13 @@
             },
             {
               "type": "file",
+              "name": "README.md",
+              "path": "summaries/features/README.md",
+              "title": "README",
+              "description": ""
+            },
+            {
+              "type": "file",
               "name": "run-cancellation-implementation.md",
               "path": "summaries/features/run-cancellation-implementation.md",
               "title": "run cancellation implementation",
@@ -1215,6 +1509,13 @@
               "description": ""
             }
           ]
+        },
+        {
+          "type": "file",
+          "name": "README.md",
+          "path": "summaries/README.md",
+          "title": "README",
+          "description": ""
         },
         {
           "type": "file",
@@ -1249,6 +1550,13 @@
           "name": "OKTA_TENANT_SETUP.md",
           "path": "testing/OKTA_TENANT_SETUP.md",
           "title": "OKTA TENANT SETUP",
+          "description": ""
+        },
+        {
+          "type": "file",
+          "name": "README.md",
+          "path": "testing/README.md",
+          "title": "README",
           "description": ""
         },
         {
@@ -1326,6 +1634,13 @@
           "name": "resources",
           "path": "tfe-compatibility/resources",
           "children": [
+            {
+              "type": "file",
+              "name": "README.md",
+              "path": "tfe-compatibility/resources/README.md",
+              "title": "README",
+              "description": ""
+            },
             {
               "type": "file",
               "name": "tfe_agent_pool_allowed_projects.md",
@@ -1514,6 +1829,13 @@
       "description": "",
       "type": "file"
     },
+    "README.md": {
+      "path": "README.md",
+      "name": "README.md",
+      "title": "README",
+      "description": "",
+      "type": "file"
+    },
     "TODO.md": {
       "path": "TODO.md",
       "name": "TODO.md",
@@ -1525,6 +1847,13 @@
       "path": "analysis/MAKE_FRESH_USERS_GONE_RCA.md",
       "name": "MAKE_FRESH_USERS_GONE_RCA.md",
       "title": "MAKE FRESH USERS GONE RCA",
+      "description": "",
+      "type": "file"
+    },
+    "analysis/README.md": {
+      "path": "analysis/README.md",
+      "name": "README.md",
+      "title": "README",
       "description": "",
       "type": "file"
     },
@@ -1570,6 +1899,13 @@
       "description": "",
       "type": "file"
     },
+    "analysis/architecture/README.md": {
+      "path": "analysis/architecture/README.md",
+      "name": "README.md",
+      "title": "README",
+      "description": "",
+      "type": "file"
+    },
     "analysis/architecture/STATE_PERSISTENCE_ANALYSIS.md": {
       "path": "analysis/architecture/STATE_PERSISTENCE_ANALYSIS.md",
       "name": "STATE_PERSISTENCE_ANALYSIS.md",
@@ -1598,6 +1934,20 @@
       "description": "",
       "type": "file"
     },
+    "analysis/features/README.md": {
+      "path": "analysis/features/README.md",
+      "name": "README.md",
+      "title": "README",
+      "description": "",
+      "type": "file"
+    },
+    "analysis/features/ansible/README.md": {
+      "path": "analysis/features/ansible/README.md",
+      "name": "README.md",
+      "title": "README",
+      "description": "",
+      "type": "file"
+    },
     "analysis/features/ansible/output-comparison-analysis.md": {
       "path": "analysis/features/ansible/output-comparison-analysis.md",
       "name": "output-comparison-analysis.md",
@@ -1609,6 +1959,13 @@
       "path": "analysis/features/stackweaver-terraform-provider-analysis.md",
       "name": "stackweaver-terraform-provider-analysis.md",
       "title": "stackweaver terraform provider analysis",
+      "description": "",
+      "type": "file"
+    },
+    "analysis/features/terraform/README.md": {
+      "path": "analysis/features/terraform/README.md",
+      "name": "README.md",
+      "title": "README",
       "description": "",
       "type": "file"
     },
@@ -1630,6 +1987,13 @@
       "path": "analysis/features/terraform/workspace-run-ui-enhancement-preserved-logic-analysis.md",
       "name": "workspace-run-ui-enhancement-preserved-logic-analysis.md",
       "title": "workspace run ui enhancement preserved logic analysis",
+      "description": "",
+      "type": "file"
+    },
+    "analysis/migrations/README.md": {
+      "path": "analysis/migrations/README.md",
+      "name": "README.md",
+      "title": "README",
       "description": "",
       "type": "file"
     },
@@ -1668,6 +2032,13 @@
       "description": "",
       "type": "file"
     },
+    "api-reference/README.md": {
+      "path": "api-reference/README.md",
+      "name": "README.md",
+      "title": "README",
+      "description": "",
+      "type": "file"
+    },
     "api-reference/backend-api-reference.md": {
       "path": "api-reference/backend-api-reference.md",
       "name": "backend-api-reference.md",
@@ -1679,6 +2050,13 @@
       "path": "api-reference/frontend-api-reference.md",
       "name": "frontend-api-reference.md",
       "title": "frontend api reference",
+      "description": "",
+      "type": "file"
+    },
+    "archive/README.md": {
+      "path": "archive/README.md",
+      "name": "README.md",
+      "title": "README",
       "description": "",
       "type": "file"
     },
@@ -1717,6 +2095,13 @@
       "description": "",
       "type": "file"
     },
+    "design/README.md": {
+      "path": "design/README.md",
+      "name": "README.md",
+      "title": "README",
+      "description": "",
+      "type": "file"
+    },
     "design/TFE_WORKSPACE_DESIGN.md": {
       "path": "design/TFE_WORKSPACE_DESIGN.md",
       "name": "TFE_WORKSPACE_DESIGN.md",
@@ -1728,6 +2113,13 @@
       "path": "design/frontend-v2-design.md",
       "name": "frontend-v2-design.md",
       "title": "frontend v2 design",
+      "description": "",
+      "type": "file"
+    },
+    "fixes/README.md": {
+      "path": "fixes/README.md",
+      "name": "README.md",
+      "title": "README",
       "description": "",
       "type": "file"
     },
@@ -1749,6 +2141,13 @@
       "path": "fixes/docs-viewer-scroll-to-top-bug.md",
       "name": "docs-viewer-scroll-to-top-bug.md",
       "title": "docs viewer scroll to top bug",
+      "description": "",
+      "type": "file"
+    },
+    "fixes/linting/README.md": {
+      "path": "fixes/linting/README.md",
+      "name": "README.md",
+      "title": "README",
       "description": "",
       "type": "file"
     },
@@ -1787,6 +2186,13 @@
       "description": "",
       "type": "file"
     },
+    "guidelines/README.md": {
+      "path": "guidelines/README.md",
+      "name": "README.md",
+      "title": "README",
+      "description": "",
+      "type": "file"
+    },
     "guidelines/documentation/DOCUMENTATION_STANDARDS.md": {
       "path": "guidelines/documentation/DOCUMENTATION_STANDARDS.md",
       "name": "DOCUMENTATION_STANDARDS.md",
@@ -1794,10 +2200,24 @@
       "description": "",
       "type": "file"
     },
+    "guidelines/documentation/README.md": {
+      "path": "guidelines/documentation/README.md",
+      "name": "README.md",
+      "title": "README",
+      "description": "",
+      "type": "file"
+    },
     "guidelines/documentation/USER_FACING_DOCS_STANDARDS.md": {
       "path": "guidelines/documentation/USER_FACING_DOCS_STANDARDS.md",
       "name": "USER_FACING_DOCS_STANDARDS.md",
       "title": "USER FACING DOCS STANDARDS",
+      "description": "",
+      "type": "file"
+    },
+    "guidelines/frontend/README.md": {
+      "path": "guidelines/frontend/README.md",
+      "name": "README.md",
+      "title": "README",
       "description": "",
       "type": "file"
     },
@@ -1822,6 +2242,13 @@
       "description": "",
       "type": "file"
     },
+    "guidelines/terraform/README.md": {
+      "path": "guidelines/terraform/README.md",
+      "name": "README.md",
+      "title": "README",
+      "description": "",
+      "type": "file"
+    },
     "guidelines/terraform/terraform-api-considerations.md": {
       "path": "guidelines/terraform/terraform-api-considerations.md",
       "name": "terraform-api-considerations.md",
@@ -1833,6 +2260,13 @@
       "path": "overviews/PERMISSIONS_MODEL_V2.md",
       "name": "PERMISSIONS_MODEL_V2.md",
       "title": "PERMISSIONS MODEL V2",
+      "description": "",
+      "type": "file"
+    },
+    "overviews/README.md": {
+      "path": "overviews/README.md",
+      "name": "README.md",
+      "title": "README",
       "description": "",
       "type": "file"
     },
@@ -1864,6 +2298,20 @@
       "description": "",
       "type": "file"
     },
+    "plans/README.md": {
+      "path": "plans/README.md",
+      "name": "README.md",
+      "title": "README",
+      "description": "",
+      "type": "file"
+    },
+    "plans/archive/README.md": {
+      "path": "plans/archive/README.md",
+      "name": "README.md",
+      "title": "README",
+      "description": "",
+      "type": "file"
+    },
     "plans/archive/runner_ci_cd_and_extraction_b7fe52e6.plan.md": {
       "path": "plans/archive/runner_ci_cd_and_extraction_b7fe52e6.plan.md",
       "name": "runner_ci_cd_and_extraction_b7fe52e6.plan.md",
@@ -1882,6 +2330,20 @@
       "path": "plans/features/DYNAMIC_INVENTORY_AZURE_PLAN.md",
       "name": "DYNAMIC_INVENTORY_AZURE_PLAN.md",
       "title": "DYNAMIC INVENTORY AZURE PLAN",
+      "description": "",
+      "type": "file"
+    },
+    "plans/features/README.md": {
+      "path": "plans/features/README.md",
+      "name": "README.md",
+      "title": "README",
+      "description": "",
+      "type": "file"
+    },
+    "plans/features/ansible/README.md": {
+      "path": "plans/features/ansible/README.md",
+      "name": "README.md",
+      "title": "README",
       "description": "",
       "type": "file"
     },
@@ -1913,6 +2375,20 @@
       "description": "",
       "type": "file"
     },
+    "plans/features/dashboard/README.md": {
+      "path": "plans/features/dashboard/README.md",
+      "name": "README.md",
+      "title": "README",
+      "description": "",
+      "type": "file"
+    },
+    "plans/features/oidc-federation/README.md": {
+      "path": "plans/features/oidc-federation/README.md",
+      "name": "README.md",
+      "title": "README",
+      "description": "",
+      "type": "file"
+    },
     "plans/features/oidc-federation/THIRD_PARTY_OIDC_FEDERATION_PLAN.md": {
       "path": "plans/features/oidc-federation/THIRD_PARTY_OIDC_FEDERATION_PLAN.md",
       "name": "THIRD_PARTY_OIDC_FEDERATION_PLAN.md",
@@ -1927,10 +2403,24 @@
       "description": "",
       "type": "file"
     },
+    "plans/features/settings/README.md": {
+      "path": "plans/features/settings/README.md",
+      "name": "README.md",
+      "title": "README",
+      "description": "",
+      "type": "file"
+    },
     "plans/features/settings/org-project-workspace-settings-implementation-plan.md": {
       "path": "plans/features/settings/org-project-workspace-settings-implementation-plan.md",
       "name": "org-project-workspace-settings-implementation-plan.md",
       "title": "org project workspace settings implementation plan",
+      "description": "",
+      "type": "file"
+    },
+    "plans/features/teams/README.md": {
+      "path": "plans/features/teams/README.md",
+      "name": "README.md",
+      "title": "README",
       "description": "",
       "type": "file"
     },
@@ -1945,6 +2435,13 @@
       "path": "plans/features/teams/TEAMS_IMPLEMENTATION_PLAN.md",
       "name": "TEAMS_IMPLEMENTATION_PLAN.md",
       "title": "TEAMS IMPLEMENTATION PLAN",
+      "description": "",
+      "type": "file"
+    },
+    "plans/features/terraform/README.md": {
+      "path": "plans/features/terraform/README.md",
+      "name": "README.md",
+      "title": "README",
       "description": "",
       "type": "file"
     },
@@ -1983,6 +2480,13 @@
       "description": "",
       "type": "file"
     },
+    "plans/features/vcs/README.md": {
+      "path": "plans/features/vcs/README.md",
+      "name": "README.md",
+      "title": "README",
+      "description": "",
+      "type": "file"
+    },
     "plans/features/vcs/vcs-integration-plan.md": {
       "path": "plans/features/vcs/vcs-integration-plan.md",
       "name": "vcs-integration-plan.md",
@@ -2008,6 +2512,13 @@
       "path": "plans/infrastructure/PLATFORM_RUNNER_REWORK_PLAN.md",
       "name": "PLATFORM_RUNNER_REWORK_PLAN.md",
       "title": "PLATFORM RUNNER REWORK PLAN",
+      "description": "",
+      "type": "file"
+    },
+    "plans/infrastructure/README.md": {
+      "path": "plans/infrastructure/README.md",
+      "name": "README.md",
+      "title": "README",
       "description": "",
       "type": "file"
     },
@@ -2116,6 +2627,13 @@
       "description": "",
       "type": "file"
     },
+    "plans/performance/README.md": {
+      "path": "plans/performance/README.md",
+      "name": "README.md",
+      "title": "README",
+      "description": "",
+      "type": "file"
+    },
     "plans/performance/satellite-pipeline-caching.md": {
       "path": "plans/performance/satellite-pipeline-caching.md",
       "name": "satellite-pipeline-caching.md",
@@ -2130,10 +2648,24 @@
       "description": "",
       "type": "file"
     },
+    "plans/security/README.md": {
+      "path": "plans/security/README.md",
+      "name": "README.md",
+      "title": "README",
+      "description": "",
+      "type": "file"
+    },
     "plans/security/encryption-at-rest-implementation-plan.md": {
       "path": "plans/security/encryption-at-rest-implementation-plan.md",
       "name": "encryption-at-rest-implementation-plan.md",
       "title": "encryption at rest implementation plan",
+      "description": "",
+      "type": "file"
+    },
+    "plans/ui/README.md": {
+      "path": "plans/ui/README.md",
+      "name": "README.md",
+      "title": "README",
       "description": "",
       "type": "file"
     },
@@ -2186,6 +2718,20 @@
       "description": "",
       "type": "file"
     },
+    "research/README.md": {
+      "path": "research/README.md",
+      "name": "README.md",
+      "title": "README",
+      "description": "",
+      "type": "file"
+    },
+    "research/features/README.md": {
+      "path": "research/features/README.md",
+      "name": "README.md",
+      "title": "README",
+      "description": "",
+      "type": "file"
+    },
     "research/features/TEAM_PHASE1_MISSING_FIELDS.md": {
       "path": "research/features/TEAM_PHASE1_MISSING_FIELDS.md",
       "name": "TEAM_PHASE1_MISSING_FIELDS.md",
@@ -2204,6 +2750,13 @@
       "path": "research/features/TEAM_WORKSPACE_ACCESS_RESEARCH.md",
       "name": "TEAM_WORKSPACE_ACCESS_RESEARCH.md",
       "title": "TEAM WORKSPACE ACCESS RESEARCH",
+      "description": "",
+      "type": "file"
+    },
+    "research/features/ansible/README.md": {
+      "path": "research/features/ansible/README.md",
+      "name": "README.md",
+      "title": "README",
       "description": "",
       "type": "file"
     },
@@ -2228,10 +2781,24 @@
       "description": "",
       "type": "file"
     },
+    "security/README.md": {
+      "path": "security/README.md",
+      "name": "README.md",
+      "title": "README",
+      "description": "",
+      "type": "file"
+    },
     "security/certs.md": {
       "path": "security/certs.md",
       "name": "certs.md",
       "title": "certs",
+      "description": "",
+      "type": "file"
+    },
+    "setup/README.md": {
+      "path": "setup/README.md",
+      "name": "README.md",
+      "title": "README",
       "description": "",
       "type": "file"
     },
@@ -2260,6 +2827,13 @@
       "path": "status/ISSUES_62_63_STATUS.md",
       "name": "ISSUES_62_63_STATUS.md",
       "title": "ISSUES 62 63 STATUS",
+      "description": "",
+      "type": "file"
+    },
+    "status/README.md": {
+      "path": "status/README.md",
+      "name": "README.md",
+      "title": "README",
       "description": "",
       "type": "file"
     },
@@ -2305,6 +2879,13 @@
       "description": "",
       "type": "file"
     },
+    "status/auth/README.md": {
+      "path": "status/auth/README.md",
+      "name": "README.md",
+      "title": "README",
+      "description": "",
+      "type": "file"
+    },
     "status/auth/TEAM_BASED_ORG_ACCESS_FIX.md": {
       "path": "status/auth/TEAM_BASED_ORG_ACCESS_FIX.md",
       "name": "TEAM_BASED_ORG_ACCESS_FIX.md",
@@ -2319,6 +2900,13 @@
       "description": "",
       "type": "file"
     },
+    "summaries/README.md": {
+      "path": "summaries/README.md",
+      "name": "README.md",
+      "title": "README",
+      "description": "",
+      "type": "file"
+    },
     "summaries/V2_MIGRATION_COMPLETE.md": {
       "path": "summaries/V2_MIGRATION_COMPLETE.md",
       "name": "V2_MIGRATION_COMPLETE.md",
@@ -2326,10 +2914,24 @@
       "description": "",
       "type": "file"
     },
+    "summaries/features/README.md": {
+      "path": "summaries/features/README.md",
+      "name": "README.md",
+      "title": "README",
+      "description": "",
+      "type": "file"
+    },
     "summaries/features/TFE_STATE_LOCK_IMPLEMENTATION.md": {
       "path": "summaries/features/TFE_STATE_LOCK_IMPLEMENTATION.md",
       "name": "TFE_STATE_LOCK_IMPLEMENTATION.md",
       "title": "TFE STATE LOCK IMPLEMENTATION",
+      "description": "",
+      "type": "file"
+    },
+    "summaries/features/ansible/README.md": {
+      "path": "summaries/features/ansible/README.md",
+      "name": "README.md",
+      "title": "README",
       "description": "",
       "type": "file"
     },
@@ -2344,6 +2946,13 @@
       "path": "summaries/features/dashboard/IMPLEMENTATION_SUMMARY.md",
       "name": "IMPLEMENTATION_SUMMARY.md",
       "title": "IMPLEMENTATION SUMMARY",
+      "description": "",
+      "type": "file"
+    },
+    "summaries/features/dashboard/README.md": {
+      "path": "summaries/features/dashboard/README.md",
+      "name": "README.md",
+      "title": "README",
       "description": "",
       "type": "file"
     },
@@ -2389,6 +2998,13 @@
       "description": "",
       "type": "file"
     },
+    "summaries/features/teams/README.md": {
+      "path": "summaries/features/teams/README.md",
+      "name": "README.md",
+      "title": "README",
+      "description": "",
+      "type": "file"
+    },
     "summaries/features/teams/TEAM_ACCESS_UI_IMPLEMENTATION.md": {
       "path": "summaries/features/teams/TEAM_ACCESS_UI_IMPLEMENTATION.md",
       "name": "TEAM_ACCESS_UI_IMPLEMENTATION.md",
@@ -2414,6 +3030,13 @@
       "path": "summaries/features/teams-implementation.md",
       "name": "teams-implementation.md",
       "title": "teams implementation",
+      "description": "",
+      "type": "file"
+    },
+    "summaries/features/terraform/README.md": {
+      "path": "summaries/features/terraform/README.md",
+      "name": "README.md",
+      "title": "README",
       "description": "",
       "type": "file"
     },
@@ -2463,6 +3086,13 @@
       "path": "testing/OKTA_TENANT_SETUP.md",
       "name": "OKTA_TENANT_SETUP.md",
       "title": "OKTA TENANT SETUP",
+      "description": "",
+      "type": "file"
+    },
+    "testing/README.md": {
+      "path": "testing/README.md",
+      "name": "README.md",
+      "title": "README",
       "description": "",
       "type": "file"
     },
@@ -2538,6 +3168,13 @@
     },
     "tfe-compatibility/README.md": {
       "path": "tfe-compatibility/README.md",
+      "name": "README.md",
+      "title": "README",
+      "description": "",
+      "type": "file"
+    },
+    "tfe-compatibility/resources/README.md": {
+      "path": "tfe-compatibility/resources/README.md",
       "name": "README.md",
       "title": "README",
       "description": "",
@@ -2677,5 +3314,5 @@
       "type": "file"
     }
   },
-  "generated": "2026-03-10T16:23:35.403Z"
+  "generated": "2026-03-10T16:48:34.652Z"
 }

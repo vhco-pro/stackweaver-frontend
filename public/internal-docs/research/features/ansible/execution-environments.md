@@ -2,6 +2,17 @@
 
 # Ansible Execution Environments: StackWeaver vs AWX
 
+## Implementation Status
+
+| Phase | Description | Status |
+|-------|-------------|--------|
+| Agent pool infrastructure | Runner registration, heartbeat, job assignment, frontend UI | ✅ Complete |
+| Phase 1: Container-based execution | EE container spawning per job | ❌ Not started |
+| Phase 2: Multiple EE support | EE selection in job templates | ❌ Not started |
+| Phase 3: EE registry integration | Build/manage EEs, UI | ❌ Not started |
+
+The self-hosted runner infrastructure (agent pools, runner registration, heartbeat, label matching, TFE-compatible agent pool API) was implemented independently and is complete. The EE model described in this document remains a future improvement to the Ansible execution layer.
+
 ## Overview
 
 This document compares StackWeaver's current Ansible execution approach with AWX/Automation Controller's Execution Environment (EE) model, and provides recommendations for improvement.
@@ -10,21 +21,38 @@ This document compares StackWeaver's current Ansible execution approach with AWX
 
 ### Architecture
 
-StackWeaver currently uses a **single monolithic container** approach:
+StackWeaver uses a **self-hosted runner** model with agent pools. Runners register with the API using an API key, poll for jobs via heartbeat, and execute `ansible-playbook` directly within the runner container:
 
 ```
 ┌─────────────────────────────────────────┐
+│  StackWeaver API                        │
+│  Agent Pool ← Runner registers here    │
+└──────────────┬──────────────────────────┘
+               │ heartbeat / job polling
+               ▼
+┌─────────────────────────────────────────┐
+│  Ansible Runner container               │
 │  Python 3.13 + Ansible (latest)        │
 │  + All collections pre-installed        │
-│  + Runner binary (Go)                   │
-│  └─────────────────────────────────────┘
-│         │
-│         ▼
-│  Executes ansible-playbook directly
-│  in the same container
+│  + Go ansible-runner binary             │
+│         │                               │
+│         ▼                               │
+│  Executes ansible-playbook directly     │
+│  in the same container environment      │
+└─────────────────────────────────────────┘
 ```
 
 ### Current Implementation
+
+**Runner Infrastructure** (implemented):
+
+- **Agent pools** (`backend/internal/models/agent_pool.go`): Logical groupings of runners with workspace/project scoping. TFE-compatible API.
+- **Runner model** (`backend/internal/models/runner.go`): Tracks `runner_type` (terraform/ansible/combined), `status`, `labels`, `available_collections`, `ansible_version`, heartbeat timestamps.
+- **Registration** (`POST /api/v2/runner/register`): Runner authenticates with an org-scoped API key, reports metadata (hostname, versions, collections, labels, max concurrent jobs). Receives runner-specific API key.
+- **Heartbeat** (`POST /api/v2/runner/heartbeat`): Runners poll every 10s; API returns pending jobs matched by pool, runner type, and labels.
+- **Job lifecycle**: `start` → stream `output` → `complete`. Ansible runner also has Terraform runner support (combined type).
+- **Agent mode** (`backend/cmd/ansible-runner/agent_mode.go`): Self-contained polling loop with graceful shutdown and re-registration support.
+- **Frontend**: Agent Pools and Runners pages in Settings with real-time status polling.
 
 **Dockerfile** (`runner-images/ansible/Dockerfile`):
 - Base: `python:3.13-slim`
@@ -33,19 +61,20 @@ StackWeaver currently uses a **single monolithic container** approach:
 - Single binary: Go-based `ansible-runner` executed within container
 
 **Execution Flow**:
-1. Runner binary listens to Redis queue
-2. Downloads playbook from VCS/storage
-3. Generates inventory file
-4. Executes `ansible-playbook` as subprocess
-5. Parses JSONL output stream
-6. Stores events in database
+1. Runner registers with API, joins an agent pool
+2. Heartbeat loop receives pending jobs matched to this runner
+3. Downloads playbook from VCS/storage (MinIO)
+4. Generates inventory file
+5. Executes `ansible-playbook` as subprocess
+6. Streams output logs to API
+7. Stores events in database; signals completion
 
 ### Limitations
 
 1. **Single Ansible Version**: All jobs use the same Ansible version installed in the container
 2. **All Collections Included**: Large image with collections that may not be needed
 3. **Deprecated Warnings**: Cannot easily update Ansible-core without rebuilding entire image
-4. **Limited Isolation**: All jobs share the same Python environment
+4. **Limited Isolation**: All jobs on a runner share the same Python environment
 5. **No Version Flexibility**: Cannot run playbooks requiring different Ansible versions
 
 ## AWX/Automation Controller Execution Environment Model
@@ -289,17 +318,17 @@ RUN xargs -a /tmp/bindep.txt apt-get install -y 2>/dev/null || true
 
 ### Migration Strategy
 
-1. **Phase 1** (Immediate):
+1. **Phase 1** (Not started):
    - Create base EE image with latest ansible-core
-   - Update runner to optionally use container execution
+   - Update runner (`backend/cmd/ansible-runner/`) to optionally spawn a container (podman/docker) per job instead of executing `ansible-playbook` directly
    - Test with existing playbooks
 
-2. **Phase 2** (Short-term):
+2. **Phase 2** (Not started):
    - Make container execution default
-   - Add EE selection to job templates
+   - Add `execution_environment_image` field to job templates
    - Support custom EE building
 
-3. **Phase 3** (Long-term):
+3. **Phase 3** (Not started):
    - EE registry integration
    - Automatic EE building from requirements
    - EE versioning and management UI
@@ -308,15 +337,16 @@ RUN xargs -a /tmp/bindep.txt apt-get install -y 2>/dev/null || true
 
 | Feature | StackWeaver (Current) | AWX | StackWeaver (Proposed) |
 |---------|----------------------|-----|----------------------|
-| Execution Model | Single container, direct exec | Container per job (EE) | Container per job (EE) |
-| Ansible Version | Fixed (single version) | Flexible (EE-based) | Flexible (EE-based) |
-| Isolation | Shared environment | Full isolation | Full isolation |
+| Runner model | Self-hosted agent pools, heartbeat registration | Kubernetes/Podman-native | Self-hosted agent pools (unchanged) |
+| Execution Model | Direct `ansible-playbook` in runner container | Container per job (EE) | Container per job (EE) |
+| Ansible Version | Fixed (single version per runner image) | Flexible (EE-based) | Flexible (EE-based) |
+| Isolation | Shared environment within runner | Full per-job isolation | Full per-job isolation |
 | Collections | Pre-installed all | Per-EE | Per-EE or custom |
-| Updates | Rebuild entire image | Update EE independently | Update EE independently |
+| Updates | Rebuild runner image | Update EE independently | Update EE independently |
 | Deprecation Handling | Manual rebuild | EE updates | EE updates |
 | Custom Requirements | Limited | Full (custom EE) | Full (custom EE) |
-| Security | Shared context | Isolated | Isolated |
-| Scalability | Single runner | Kubernetes-native | Container-based |
+| Security | Shared context within runner | Isolated | Isolated |
+| Scalability | Multiple self-hosted runners in pools | Kubernetes-native | Multiple self-hosted runners + EE per job |
 
 ## References
 

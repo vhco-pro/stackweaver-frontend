@@ -62,7 +62,7 @@ make clean           # Remove containers AND volumes (destroys all data)
 View logs for a specific service.
 
 ```bash
-docker compose -f deploy/docker-compose.yml logs api          # API logs
+docker compose -f deploy/docker-compose.yml logs api           # API logs
 docker compose -f deploy/docker-compose.yml logs orchestrator  # Orchestrator logs
 docker compose -f deploy/docker-compose.yml logs runner        # Runner logs
 docker compose -f deploy/docker-compose.yml logs zitadel       # Zitadel logs
@@ -107,6 +107,20 @@ See the [Zitadel Setup guide](../../../user-guides/authentication/zitadel-setup.
 ### Reverse Proxy
 
 For production deployments behind a reverse proxy (nginx, Caddy, Cloudflare Tunnel), you need to route two domains.
+
+```mermaid
+flowchart LR
+    Client([Browser / Terraform CLI])
+
+    Client --> AppDomain["app.example.com"]
+    Client --> AuthDomain["auth.example.com"]
+
+    AppDomain -->|"/api/v2/*\n/.well-known/terraform.json\n/v1/modules/*\n/health"| API["API :8022"]
+    AppDomain -->|"Everything else"| Frontend["Frontend :5173"]
+
+    AuthDomain -->|"/ui/v2/login/*"| ZitadelUI["Zitadel UI :3000"]
+    AuthDomain -->|"Everything else"| Zitadel["Zitadel :8080"]
+```
 
 **App domain** (e.g. `app.example.com`):
 - `/api/v2/*`, `/.well-known/terraform.json`, `/v1/modules/*`, `/health` → `localhost:8022`
