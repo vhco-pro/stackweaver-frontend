@@ -27,3 +27,5 @@ runner
 
 public/docs/*
 public/docs-index.json
+public/internal-docs/*
+public/internal-docs-index.json
