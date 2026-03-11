@@ -7,7 +7,7 @@ description: "Test page for file tree, file inclusion, and code explorer feature
 
 # Code Examples Test
 
-This page exercises all three code-example features added in the docs-code-examples plan.
+This page exercises all code-example features added in the docs-code-examples plan.
 
 ---
 
@@ -110,3 +110,34 @@ entra-setup/
 └── test/
     └── terraform.tfvars
 ```
+
+---
+
+## Phase 6: GitHub Code Snippets + Explorer Enhancements
+
+### Feature: Code Snippet (`::: code-snippet`)
+
+Embeds a specific file and line range from a GitHub repo as a compact card with attribution and a link back.
+
+Single file snippet with line range (HashiCorp Terraform AWS VPC module, main outputs):
+
+::: code-snippet https://github.com/hashicorp/terraform-aws-vpc/blob/master/outputs.tf#L1-L19
+:::
+
+Full file snippet (no line range):
+
+::: code-snippet https://github.com/hashicorp/terraform-aws-vpc/blob/master/variables.tf#L1-L15
+:::
+
+### Feature: Code Explorer from GitHub (subdirectory)
+
+Browse a real GitHub directory interactively. This fetches the HashiCorp Terraform AWS VPC examples at build time:
+
+::: code-explorer github:hashicorp/terraform-aws-vpc/examples/simple-vpc@master
+:::
+
+### Feature: Explorer GitHub UX Enhancements
+
+The GitHub-sourced explorers above should show:
+- **Ref in header**: e.g. `SIMPLE @ main` with the ref after the directory name
+- **Per-file GitHub links**: the ↗ button updates to link to the currently selected file on GitHub (not just the directory)

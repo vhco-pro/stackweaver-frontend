@@ -11,6 +11,7 @@ const FOLDER_OPEN_ICON = '/icons/file-types/folder-blue-open.svg';
 interface ExplorerFile {
   path: string;
   lang: string;
+  url?: string;
 }
 
 interface ExplorerSource {
@@ -326,6 +327,13 @@ export function CodeExplorer({ path, defaultFile = '' }: CodeExplorerProps) {
   const treeNodes = buildFileTree(manifest.files);
   const rootName = manifest.root.toUpperCase();
 
+  // For GitHub sources: show ref in header, get per-file link for current selection
+  const shortRef = manifest.source?.ref
+    ? (/^[0-9a-f]{40}$/i.test(manifest.source.ref) ? manifest.source.ref.slice(0, 7) : manifest.source.ref)
+    : null;
+  const selectedFileEntry = manifest.files.find(f => f.path === selectedFile);
+  const selectedFileUrl = selectedFileEntry?.url;
+
   // Code pane content (shared between inline and dialog views)
   const codePaneContent = loading ? (
     <div className="p-4 space-y-2">
@@ -348,11 +356,11 @@ export function CodeExplorer({ path, defaultFile = '' }: CodeExplorerProps) {
     <div className="flex items-center gap-3">
       {manifest.source?.type === 'github' && (
         <a
-          href={manifest.source.url}
+          href={selectedFileUrl || manifest.source.url}
           target="_blank"
           rel="noopener noreferrer"
           className="text-xs text-muted-foreground hover:text-foreground transition-colors"
-          title="View on GitHub"
+          title={selectedFileUrl ? `View ${selectedFile} on GitHub` : 'View on GitHub'}
         >
           ↗
         </a>
@@ -383,7 +391,9 @@ export function CodeExplorer({ path, defaultFile = '' }: CodeExplorerProps) {
       <div className="not-prose my-4 rounded-md border border-border/40 overflow-hidden flex flex-col" style={{ height: '480px' }}>
         {/* Header */}
         <div className="flex items-center justify-between px-3 py-2 border-b border-border/40 bg-muted/30 shrink-0">
-          <span className="text-xs font-semibold tracking-wider text-muted-foreground">{rootName}</span>
+          <span className="text-xs font-semibold tracking-wider text-muted-foreground">
+              {rootName}{shortRef && <span className="font-normal ml-1.5 opacity-60">@ {shortRef}</span>}
+            </span>
           <div className="flex items-center gap-3">
             {actionButtons}
             <button
@@ -422,7 +432,9 @@ export function CodeExplorer({ path, defaultFile = '' }: CodeExplorerProps) {
         <DialogContent hideCloseButton aria-label={rootName} aria-describedby={undefined} className="not-prose max-w-[90vw] p-0 gap-0 overflow-hidden" style={{ height: '90vh', display: 'flex', flexDirection: 'column' }}>
           {/* Dialog header */}
           <div className="flex items-center justify-between px-3 py-2 border-b border-border/40 bg-muted/30 shrink-0">
-            <span className="text-xs font-semibold tracking-wider text-muted-foreground">{rootName}</span>
+            <span className="text-xs font-semibold tracking-wider text-muted-foreground">
+              {rootName}{shortRef && <span className="font-normal ml-1.5 opacity-60">@ {shortRef}</span>}
+            </span>
             <div className="flex items-center gap-3">
               {actionButtons}
               <button

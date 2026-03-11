@@ -13,6 +13,7 @@ import { CodeGroup } from '@/components/docs/CodeGroup';
 import { MermaidDiagram } from '@/components/docs/MermaidDiagram';
 import { FileTreeViewer } from '@/components/docs/FileTreeViewer';
 import { CodeExplorer } from '@/components/docs/CodeExplorer';
+import { GitHubSnippet } from '@/components/docs/GitHubSnippet';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { useTheme } from '@/contexts/ThemeContext';
 
@@ -235,6 +236,21 @@ function isCodeExplorerStart(node: unknown): { path: string; defaultFile: string
   return { path: match[1], defaultFile: match[2] ?? '', selfClosed };
 }
 
+const GITHUB_SNIPPET_RE = /^https:\/\/github\.com\/([^/]+)\/([^/]+)\/blob\/([^/]+)\/(.+?)(?:#L(\d+)(?:-L(\d+))?)?$/;
+
+function isCodeSnippetStart(node: unknown): { url: string; selfClosed: boolean } | null {
+  const text = paragraphText(node);
+  if (typeof text !== 'string') return null;
+  const lines = text.split('\n');
+  const firstLine = (lines[0] ?? '').trim();
+  const directiveMatch = /^:::\s*code-snippet\s+(\S+)\s*$/i.exec(firstLine);
+  if (!directiveMatch) return null;
+  const url = directiveMatch[1];
+  if (!GITHUB_SNIPPET_RE.test(url)) return null;
+  const selfClosed = lines.length > 1 && lines.slice(1).some((l) => /^:::\s*$/.test(l.trim()));
+  return { url, selfClosed };
+}
+
 function isCodeGroupContainerEnd(node: unknown): boolean {
   const text = paragraphText(node);
   return typeof text === 'string' && /^:::\s*$/.test(text.trim());
@@ -265,6 +281,24 @@ function remarkCodeGroup() {
 
       for (let i = 0; i < children.length; i++) {
         const child = children[i];
+
+        // ::: code-snippet <github-url> ... ::: — single-file GitHub embed
+        const snippetMatch = isCodeSnippetStart(child);
+        if (snippetMatch) {
+          if (snippetMatch.selfClosed) {
+            nextChildren.push({ type: 'codeSnippet', url: snippetMatch.url });
+            continue;
+          }
+          let j = i + 1;
+          while (j < children.length && !isCodeGroupContainerEnd(children[j])) {
+            j++;
+          }
+          if (j < children.length) {
+            nextChildren.push({ type: 'codeSnippet', url: snippetMatch.url });
+            i = j;
+            continue;
+          }
+        }
 
         // ::: code-explorer <path> ... ::: — must be checked before code-group (same closer)
         const explorerMatch = isCodeExplorerStart(child);
@@ -363,6 +397,18 @@ function codeExplorerToHast(node: unknown) {
     properties: {
       'data-path': n.path ?? '',
       'data-default': n.defaultFile ?? '',
+    },
+    children: [],
+  };
+}
+
+function codeSnippetToHast(node: unknown) {
+  const n = node as { url?: string };
+  return {
+    type: 'element',
+    tagName: 'codesnippet',
+    properties: {
+      'data-url': n.url ?? '',
     },
     children: [],
   };
@@ -698,10 +744,18 @@ export function MarkdownRenderer({
         let explorerPath = rawPath;
         if (rawPath.startsWith('github:')) {
           // Build-time fetch: resolve to _github/<org>/<repo>/<ref>/<path>
-          const ghMatch = /^github:([^/]+)\/([^/]+)\/(.+?)(?:@(.+))?$/.exec(rawPath);
+          // Supports both github:org/repo/path@ref and github:org/repo@ref (repo root)
+          let ghMatch = /^github:([^/]+)\/([^/]+)\/(.+?)(?:@(.+))?$/.exec(rawPath);
           if (ghMatch) {
             const org = ghMatch[1], repo = ghMatch[2], ghPath = ghMatch[3], ref = ghMatch[4] ?? 'main';
             explorerPath = `_github/${org}/${repo}/${ref}/${ghPath}`;
+          } else {
+            // Repo root: github:org/repo@ref or github:org/repo
+            ghMatch = /^github:([^/]+)\/([^@]+?)(?:@(.+))?$/.exec(rawPath);
+            if (ghMatch) {
+              const org = ghMatch[1], repo = ghMatch[2], ref = ghMatch[3] ?? 'main';
+              explorerPath = `_github/${org}/${repo}/${ref}`;
+            }
           }
         } else if (rawPath.startsWith('./')) {
           explorerPath = currentDir ? `${currentDir}/${rawPath.slice(2)}` : rawPath.slice(2);
@@ -713,6 +767,10 @@ export function MarkdownRenderer({
           explorerPath = targetDir ? `${targetDir}/${explorerPath}` : explorerPath;
         }
         return <CodeExplorer path={explorerPath} defaultFile={defaultFile} />;
+      },
+      codesnippet: (props: MarkdownBlockProps) => {
+        const url = (props['data-url'] as string) ?? '';
+        return <GitHubSnippet url={url} />;
       },
       // Pre wrapper - handles shiki highlighted code
       pre: ({ children, ...props }: MarkdownPreProps) => {
@@ -1131,6 +1189,7 @@ export function MarkdownRenderer({
             handlers: {
               codeGroup: (_state: unknown, node: unknown) => codeGroupToHast(node),
               codeExplorer: (_state: unknown, node: unknown) => codeExplorerToHast(node),
+              codeSnippet: (_state: unknown, node: unknown) => codeSnippetToHast(node),
             },
           } as unknown as Record<string, unknown>
         }
