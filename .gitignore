@@ -25,5 +25,7 @@ dist-ssr
 
 runner
 
-public/docs/*
+public/docs/**
 public/docs-index.json
+public/internal-docs/**
+public/internal-docs-index.json
