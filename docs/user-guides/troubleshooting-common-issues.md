@@ -1,5 +1,3 @@
-<!-- Copyright (c) 2025 VH & Co BV. Licensed under the Business Source License 1.1. See LICENSE for details. -->
-
 # Troubleshooting Common Issues
 
 Solutions for the most frequent problems and questions when using StackWeaver.
@@ -15,7 +13,7 @@ Solutions for the most frequent problems and questions when using StackWeaver.
 - **VCS connection issue**: Verify your GitHub connection is active in organization settings. Try disconnecting and reconnecting.
 - **Repository access**: Ensure StackWeaver has access to the repository. Check repository permissions in GitHub.
 - **Working directory**: If your Terraform files aren't in the repo root, verify the working directory path is correct.
-- **Runner unavailable**: Check if there are any runner issues. Contact support if runs consistently fail to start.
+- **Runner unavailable**: Check if there are any runner issues. Check `docker compose -f deploy/docker-compose.yml logs runner` for errors. If runs consistently fail to start, review the orchestrator logs as well.
 
 ### Plan Shows Unexpected Changes
 
@@ -149,7 +147,7 @@ If your servers aren't publicly accessible, you'll need to use self-hosted runne
 
 **Common causes:**
 
-- **Cache delay**: Dashboard data is cached for performance. Refresh after a minute.
+- **Timing**: Dashboard data is fetched live from the API. Try refreshing the page.
 - **Filter scope**: Check if filters are applied that might exclude some resources
 - **Permission filtering**: Dashboard only shows resources you have access to
 
@@ -172,7 +170,7 @@ If you're still stuck:
 2. **Review raw output**: Switch to raw output tab for full logs and stack traces
 3. **Compare to working runs**: See what changed between successful and failed runs
 4. **Search documentation**: Check other guides for related topics
-5. **Contact support**: If the issue persists, reach out with:
+5. **Open an issue**: If the issue persists, [open a GitHub issue](https://github.com/vhco-pro/stackweaver/issues) with:
    - Error messages
    - Relevant run IDs
    - Steps to reproduce

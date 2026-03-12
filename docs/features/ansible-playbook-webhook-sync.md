@@ -1,5 +1,3 @@
-<!-- Copyright (c) 2025 VH & Co BV. Licensed under the Business Source License 1.1. See LICENSE for details. -->
-
 # Ansible Playbook Webhook Sync
 
 StackWeaver automatically synchronizes Ansible playbooks from your Git repositories whenever you push changes. Keep your playbooks in version control and let StackWeaver handle the rest.

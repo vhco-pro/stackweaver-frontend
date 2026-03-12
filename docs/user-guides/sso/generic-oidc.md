@@ -1,5 +1,3 @@
-<!-- Copyright (c) 2025 VH & Co BV. Licensed under the Business Source License 1.1. See LICENSE for details. -->
-
 # Generic OIDC Provider Setup
 
 This guide covers configuring any OIDC-compliant identity provider with StackWeaver. Use this guide if your provider is not Azure AD, Okta, or AWS Cognito, or if the provider-specific guides do not cover your setup.

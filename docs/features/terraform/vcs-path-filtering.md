@@ -1,5 +1,3 @@
-<!-- Copyright (c) 2025 VH & Co BV. Licensed under the Business Source License 1.1. See LICENSE for details. -->
-
 # VCS Path Filtering
 
 StackWeaver intelligently filters which workspaces should trigger runs based on which files actually changed in your repository. This GitOps-style filtering prevents unnecessary runs when multiple workspaces share the same repository but monitor different paths.

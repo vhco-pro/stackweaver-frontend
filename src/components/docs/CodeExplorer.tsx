@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { File, Copy, Check, Download, Maximize2, Minimize2 } from 'lucide-react';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { getFileTypeIcon } from './fileTypeIcons';
+import { getVcsProviderIcon } from '@/lib/vcs';
 
 const FOLDER_ICON = '/icons/file-types/folder-blue.svg';
 const FOLDER_OPEN_ICON = '/icons/file-types/folder-blue-open.svg';
@@ -351,20 +352,41 @@ export function CodeExplorer({ path, defaultFile = '' }: CodeExplorerProps) {
     <div className="p-4 text-sm text-muted-foreground">No file selected.</div>
   );
 
+  // Ref badge shared between inline and dialog headers
+  const refBadge = shortRef ? (
+    /^[0-9a-f]{7}$/i.test(shortRef) ? (
+      <a
+        href={manifest.source ? `https://github.com/${manifest.source.org}/${manifest.source.repo}/commit/${manifest.source.ref}` : '#'}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="inline-flex items-center gap-1 ml-2 px-1.5 py-0.5 rounded text-[10px] font-mono bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 hover:bg-amber-500/20 transition-colors"
+        title={`Commit ${manifest.source?.ref ?? shortRef}`}
+      >
+        {shortRef}
+      </a>
+    ) : (
+      <span className="inline-flex items-center gap-1 ml-2 px-1.5 py-0.5 rounded text-[10px] font-medium bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+        {shortRef}
+      </span>
+    )
+  ) : null;
+
+  // GitHub icon for the left header title area (only for GitHub sources)
+  const githubTitleIcon = manifest.source?.type === 'github' ? (
+    <a
+      href={selectedFileUrl || manifest.source.url}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="text-muted-foreground hover:text-foreground transition-colors shrink-0"
+      title={selectedFileUrl ? `View ${selectedFile} on GitHub` : 'View on GitHub'}
+    >
+      {getVcsProviderIcon('github', 'h-3.5 w-3.5')}
+    </a>
+  ) : null;
+
   // Action buttons shared between inline header and dialog header (icons only)
   const actionButtons = (
     <div className="flex items-center gap-3">
-      {manifest.source?.type === 'github' && (
-        <a
-          href={selectedFileUrl || manifest.source.url}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-xs text-muted-foreground hover:text-foreground transition-colors"
-          title={selectedFileUrl ? `View ${selectedFile} on GitHub` : 'View on GitHub'}
-        >
-          ↗
-        </a>
-      )}
       <button
         type="button"
         onClick={() => { void handleDownload(); }}
@@ -391,9 +413,9 @@ export function CodeExplorer({ path, defaultFile = '' }: CodeExplorerProps) {
       <div className="not-prose my-4 rounded-md border border-border/40 overflow-hidden flex flex-col" style={{ height: '480px' }}>
         {/* Header */}
         <div className="flex items-center justify-between px-3 py-2 border-b border-border/40 bg-muted/30 shrink-0">
-          <span className="text-xs font-semibold tracking-wider text-muted-foreground">
-              {rootName}{shortRef && <span className="font-normal ml-1.5 opacity-60">@ {shortRef}</span>}
-            </span>
+          <span className="flex items-center gap-2 text-xs font-semibold tracking-wider text-muted-foreground">
+            {githubTitleIcon}{rootName}{refBadge}
+          </span>
           <div className="flex items-center gap-3">
             {actionButtons}
             <button
@@ -432,8 +454,8 @@ export function CodeExplorer({ path, defaultFile = '' }: CodeExplorerProps) {
         <DialogContent hideCloseButton aria-label={rootName} aria-describedby={undefined} className="not-prose max-w-[90vw] p-0 gap-0 overflow-hidden" style={{ height: '90vh', display: 'flex', flexDirection: 'column' }}>
           {/* Dialog header */}
           <div className="flex items-center justify-between px-3 py-2 border-b border-border/40 bg-muted/30 shrink-0">
-            <span className="text-xs font-semibold tracking-wider text-muted-foreground">
-              {rootName}{shortRef && <span className="font-normal ml-1.5 opacity-60">@ {shortRef}</span>}
+            <span className="flex items-center gap-2 text-xs font-semibold tracking-wider text-muted-foreground">
+              {githubTitleIcon}{rootName}{refBadge}
             </span>
             <div className="flex items-center gap-3">
               {actionButtons}

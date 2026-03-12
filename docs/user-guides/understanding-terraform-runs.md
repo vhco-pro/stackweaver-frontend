@@ -1,5 +1,3 @@
-<!-- Copyright (c) 2025 VH & Co BV. Licensed under the Business Source License 1.1. See LICENSE for details. -->
-
 # Understanding Terraform Runs
 
 Learn how to read plan and apply outputs, interpret resource changes, and make sense of your Terraform run history.
@@ -57,7 +55,6 @@ Sometimes you just want to see what would change without applying:
 
 - **Speculative plans**: Run on pull requests to preview changes
 - **Planning without applying**: Review changes before committing
-- **Cost estimation**: See resource impact before deployment
 
 > [!TIP]
 > Plan-only runs are safe - they never modify your infrastructure.
@@ -150,14 +147,9 @@ Common failure reasons:
 - **State conflicts**: Resources changed outside Terraform
 - **Dependency issues**: Resources depending on non-existent resources
 
-### Comparing Runs
+### Reviewing Past Runs
 
-To understand what changed:
-
-1. Open the current run
-2. Compare it to a previous run
-3. Look at the resource diffs to see attribute changes
-4. Check the run metadata to see what triggered each
+To understand what changed between runs, review the run history for the workspace. Each run includes its configuration version (Git commit), resource diffs, and metadata showing what triggered it.
 
 ## Tips for Effective Run Review
 

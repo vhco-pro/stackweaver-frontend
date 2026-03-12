@@ -1,8 +1,6 @@
-<!-- Copyright (c) 2025 VH & Co BV. Licensed under the Business Source License 1.1. See LICENSE for details. -->
-
 # Get Started with StackWeaver
 
-Welcome to **StackWeaver**, the open-source DevOps platform for orchestrating infastructure and configuration at scale. Whether you run it yourself or let us handle it, you'll be up and running in minutes.
+Welcome to **StackWeaver**, the open-source DevOps platform for orchestrating infrastructure and configuration at scale. Whether you run it yourself or let us handle it, you'll be up and running in minutes.
 
 ## Choose your deployment
 

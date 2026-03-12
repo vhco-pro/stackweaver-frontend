@@ -1,8 +1,8 @@
 // Copyright (c) 2025 VH & Co BV. Licensed under the Business Source License 1.1. See LICENSE for details.
 
 import { Children, useEffect, useMemo, useState, type ReactNode } from 'react';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Check, Copy } from 'lucide-react';
+import { getLanguageIcon } from './fileTypeIcons';
 
 interface CodeGroupProps {
   children: React.ReactNode;
@@ -14,7 +14,7 @@ interface CodeGroupProps {
 
 /**
  * CodeGroup - Renders tabbed code blocks
- * 
+ *
  * Usage in markdown (via custom component):
  * <CodeGroup languages={['kubernetes', 'docker-compose']}>
  *   <pre><code className="language-kubernetes">...</code></pre>
@@ -52,16 +52,6 @@ export function CodeGroup({ children, languages, defaultTab = 0 }: CodeGroupProp
   const getLabel = (index: number): string => {
     const lang = getLanguage(index);
     return (languages?.[index] || lang || 'text').trim();
-  };
-
-  const getIconPath = (label: string): string | null => {
-    const name = label.trim().toLowerCase();
-    if (name.endsWith('.sh') || name.includes('bash') || name.includes('shell')) return '/icons/code-group/bash.svg';
-    if (name.endsWith('.ps1') || name.includes('pwsh') || name.includes('powershell')) return '/icons/code-group/powershell.svg';
-    if (name.endsWith('.go') || name === 'go' || name.includes('golang')) return '/icons/code-group/go.svg';
-    if (name.includes('docker') || name.includes('docker-compose')) return '/icons/code-group/docker.svg';
-    if (name.includes('kubectl') || name.includes('kubernetes') || name.includes('k8s')) return '/icons/code-group/kubernetes.svg';
-    return null;
   };
 
   const activeCodeText = useMemo(() => {
@@ -160,63 +150,70 @@ export function CodeGroup({ children, languages, defaultTab = 0 }: CodeGroupProp
 
   return (
     <div className="my-4">
-      <Tabs value={String(activeTab)} onValueChange={(v) => setActiveTab(Number(v))}>
-        <div className="flex items-center justify-between rounded-t-lg border border-[rgba(203,213,225,0.25)] bg-muted/30 px-2 py-1">
-          <TabsList className="h-auto bg-transparent p-0 text-muted-foreground">
+      {/* Tab header — plain HTML to avoid shadcn TabsList h-10 override issues */}
+      <div className="flex items-center justify-between rounded-t-lg border border-[rgba(203,213,225,0.25)] bg-muted/30 px-2 py-1">
+        <div className="flex items-center gap-0.5" role="tablist">
           {codeBlocks.map((_, index) => {
             const displayLang = getLabel(index);
-            const iconPath = getIconPath(displayLang);
+            const iconPath = getLanguageIcon(displayLang) ?? getLanguageIcon(getLanguage(index));
+            const isActive = activeTab === index;
             return (
-              <TabsTrigger
+              <button
                 key={index}
-                value={String(index)}
-                className="gap-2 rounded-md px-3 py-1.5 data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:text-foreground"
+                type="button"
+                role="tab"
+                aria-selected={isActive}
+                onClick={() => setActiveTab(index)}
+                className={`inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-sm font-medium transition-colors ${
+                  isActive ? 'text-foreground' : 'text-muted-foreground hover:text-foreground'
+                }`}
               >
                 {iconPath ? (
                   <img
                     src={iconPath}
                     alt=""
                     aria-hidden
-                    className="h-[17px] w-[17px] opacity-90"
+                    className="!h-3.5 !w-3.5 !my-0 !rounded-none opacity-90"
                     loading="lazy"
                   />
                 ) : null}
                 <span>{displayLang}</span>
-              </TabsTrigger>
+              </button>
             );
           })}
-          </TabsList>
-          <button
-            type="button"
-            onClick={() => { void handleCopy(); }}
-            className="flex items-center gap-2 rounded-md px-2 py-1 text-sm text-muted-foreground hover:text-foreground"
-          >
-            {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-            <span>{copied ? 'Copied' : 'Copy'}</span>
-          </button>
         </div>
-        {codeBlocks.map((_, index) => {
-          const html = highlightedBlocks[index];
-          return (
-            <TabsContent
-              key={index}
-              value={String(index)}
-              className="mt-0 overflow-hidden rounded-b-lg border border-t-0 border-[rgba(203,213,225,0.25)]"
-            >
-              {html ? (
-                <div
-                  className="overflow-auto"
-                  dangerouslySetInnerHTML={{ __html: html }}
-                />
-              ) : (
-                <div className="p-4 text-sm text-muted-foreground">
-                  Rendering…
-                </div>
-              )}
-            </TabsContent>
-          );
-        })}
-      </Tabs>
+        <button
+          type="button"
+          onClick={() => { void handleCopy(); }}
+          className="flex items-center gap-1.5 rounded-md px-2 py-1 text-sm text-muted-foreground hover:text-foreground"
+        >
+          {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
+          <span>{copied ? 'Copied' : 'Copy'}</span>
+        </button>
+      </div>
+      {/* Content panes */}
+      {codeBlocks.map((_, index) => {
+        if (index !== activeTab) return null;
+        const html = highlightedBlocks[index];
+        return (
+          <div
+            key={index}
+            role="tabpanel"
+            className="overflow-hidden rounded-b-lg border border-t-0 border-[rgba(203,213,225,0.25)]"
+          >
+            {html ? (
+              <div
+                className="overflow-auto"
+                dangerouslySetInnerHTML={{ __html: html }}
+              />
+            ) : (
+              <div className="p-4 text-sm text-muted-foreground">
+                Rendering…
+              </div>
+            )}
+          </div>
+        );
+      })}
     </div>
   );
 }

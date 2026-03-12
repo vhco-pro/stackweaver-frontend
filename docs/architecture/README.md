@@ -1,5 +1,3 @@
-<!-- Copyright (c) 2025 VH & Co BV. Licensed under the Business Source License 1.1. See LICENSE for details. -->
-
 # Architecture Overview
 
 This document provides a high-level overview of the Stackweaver Orchestration Platform architecture.
@@ -13,7 +11,7 @@ flowchart TB
     end
 
     subgraph Frontend["Frontend (React/Vite)"]
-        F1["React 18 + TypeScript"]
+        F1["React 19 + TypeScript"]
         F2["Vite Dev Server"]
         F3["Zitadel OIDC Client"]
     end
@@ -62,7 +60,7 @@ flowchart TB
 - **State Management**: Versioned state storage in MinIO
 - **Variable Management**: Workspace and variable set support
 - **Registry**: Private module and provider registry
-- **VCS Integration**: GitHub App for automatic configuration sync
+- **VCS Integration**: GitHub App and Azure DevOps for automatic configuration sync
 
 ### Ansible
 
@@ -101,7 +99,7 @@ flowchart TB
 **Directory Structure**: See `frontend/` directory structure in the repository. Key directories:
 - `src/api/` - API client and types (see `frontend/src/api/client.ts`)
 - `src/components/` - Reusable React components
-- `src/contexts/` - React contexts (Auth, Theme)
+- `src/contexts/` - React contexts (Auth, Organization, Theme, Notification, RunDisplayPreferences)
 - `src/lib/` - Utilities (Zitadel, utils)
 - `src/pages/` - Route pages
 - `src/App.tsx` - Main app component
@@ -126,7 +124,7 @@ flowchart TB
 - CORS support
 - Terraform Registry API (TFE-compatible)
 <!-- - Ansible Automation Platform integration -->
-- VCS connections (GitHub App)
+- VCS connections (GitHub App, Azure DevOps)
 
 **Directory Structure**: See `backend/` directory structure in the repository. Key directories:
 - `cmd/api/` - Application entry point
@@ -137,19 +135,29 @@ flowchart TB
   - `handlers/` - HTTP request handlers (see `backend/internal/api/v2/handlers/`)
     - `terraform/` - Terraform-specific handlers (workspaces, runs, state)
     - `ansible/` - Ansible-specific handlers (playbooks, jobs, inventories)
-  - `middleware/` - HTTP middleware (auth, CORS, rate limit)
+  - `middleware/` - HTTP middleware (auth, CORS, rate limit, RBAC, validation)
   - `routes/` - Route definitions (see `backend/internal/api/v2/routes/routes.go`)
 - `internal/models/` - Database models (Terraform, Ansible, Registry)
 - `internal/repository/` - Data access layer
 - `internal/services/` - Business logic
-  - `auth/` - Authentication service
-  - `rbac/` - Team-based RBAC service
-  - `terraform/` - Terraform execution service
+  - `activity/` - Activity and audit trail tracking
   - `ansible/` - Ansible execution service
+  - `apikey/` - API key generation and validation
+  - `audit/` - Compliance auditing
+  - `auth/` - Authentication service (JWT, TFE tokens, auto-provisioning)
+  - `logbuffer/` - Log buffering for streaming
+  - `logparser/` - Execution log parsing
+  - `oidc/` - OIDC workload identity
+  - `profile/` - User profile management
+  - `rbac/` - Team-based RBAC service
   - `registry/` - Terraform Registry service
-  - `vcs/` - VCS connection service (GitHub App)
+  - `runner/` - Runner health checks and job assignment
+  - `sessions/` - Session management
   - `state/` - State version management
+  - `team_sync/` - Automatic SSO team assignment
+  - `terraform/` - Terraform execution service
   - `variable/` - Variable management
+  - `vcs/` - VCS connection service (GitHub App, Azure DevOps)
 - `internal/storage/` - Object storage interface (MinIO)
 - `internal/queue/` - Queue interface (Redis)
 
@@ -174,14 +182,22 @@ flowchart TB
   - **Jobs**: Ansible job executions
   - **Credentials**: Encrypted Ansible credentials
   - **Schedules**: Automated job scheduling
-  - **Workflows**: Workflow templates (future)
+  - **Workflows**: Workflow templates (nodes, edges)
 - **Registry Resources**:
   - **Modules**: Terraform module registry
   - **Providers**: Terraform provider registry
   - **Module Versions**: Module version tracking
   - **Provider Versions**: Provider version tracking
 - **VCS Resources**:
-  - **VCS Connections**: GitHub App connections
+  - **VCS Connections**: GitHub App and Azure DevOps connections
+  - **Webhook Events**: VCS event tracking
+- **Platform Resources**:
+  - **API Keys**: API authentication tokens
+  - **TFE Tokens**: Terraform Enterprise-compatible API tokens
+  - **Azure OIDC Configurations**: Workload identity federation
+  - **Terraform Versions**: Terraform version catalog
+  - **Runners**: Runner agent registration and status
+  - **GPG Keys**: Provider signing keys
 - **Audit Logs**: Activity audit trail
 
 **Key Design Decisions**:
@@ -446,7 +462,7 @@ flowchart TB
 
 **Network Mode**: `host` (all services on localhost)
 
-### Production (Kubernetes) - Future
+### Production (Kubernetes)
 
 ```mermaid
 flowchart TB
@@ -518,17 +534,17 @@ flowchart TB
 ### Versioning
 
 - **Primary API**: `/api/v2/...` (TFE-compatible where applicable)
-- **Legacy API**: `/api/v1/...` (limited endpoints, deprecated)
 - **Terraform Registry**: `.well-known/terraform.json` for service discovery
 
 ### Pagination
 
-- **Query Parameters**: `limit` and `offset`
-- **Response Format**: `{ data: [...], total: number }`
+- **JSON:API Style** (most endpoints): `page[number]` and `page[size]` query parameters
+- **Response Format**: `{ data: [...], meta: { pagination: { current-page, page-size, total-count, total-pages } } }`
 
 ### Error Handling
 
-- **Consistent Format**: `{ error: "message" }`
+- **JSON:API Format**: `{ errors: [{ status: "...", title: "...", detail: "..." }] }` for most endpoints
+- **Simple Format**: `{ error: "message" }` used by some internal endpoints
 - **Descriptive Messages**: Human-readable error messages
 - **Status Codes**: Appropriate HTTP status codes
 
@@ -566,6 +582,7 @@ flowchart TB
 ### VCS Integration
 
 - **GitHub App**: Primary VCS integration method
+- **Azure DevOps**: Entra ID OAuth2 integration
 - **Features**: Automatic token management, repository access control, webhook handling
 - **Use Cases**: Playbook sync, module publishing, workspace configuration sync
 

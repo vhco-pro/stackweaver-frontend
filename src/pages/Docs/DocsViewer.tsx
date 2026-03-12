@@ -120,6 +120,7 @@ export default function DocsViewer({ docsBase = '/docs', indexFile = '/docs-inde
       <MarkdownRenderer
         content={content}
         docPath={docPath}
+        docsBase={docsBase}
         isDirectoryPage={isDirectoryPage}
         enableCallouts={true}
         enableCodeGroups={true}

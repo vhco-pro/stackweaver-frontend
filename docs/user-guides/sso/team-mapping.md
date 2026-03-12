@@ -1,5 +1,3 @@
-<!-- Copyright (c) 2025 VH & Co BV. Licensed under the Business Source License 1.1. See LICENSE for details. -->
-
 # SSO Team Mapping
 
 StackWeaver can automatically assign users to teams based on their identity provider (IdP) group memberships. When a user logs in via SSO, their group claims are forwarded through the JWT, and StackWeaver maps those groups to teams that have a matching `sso_team_id` configured.

@@ -1,5 +1,3 @@
-<!-- Copyright (c) 2025 VH & Co BV. Licensed under the Business Source License 1.1. See LICENSE for details. -->
-
 # Zitadel Setup Guide
 
 This guide covers how Zitadel is configured and initialized in StackWeaver, for both the Kubernetes (Helm) and Docker Compose deployment paths.
@@ -34,9 +32,10 @@ When you install the Helm chart, the following happens without any manual interv
 2. **Zitadel starts**: the Zitadel pod waits for PostgreSQL to be ready (via an initContainer), then runs `start-from-init`.
    It reads `masterkey` and `adminPassword` from the Kubernetes Secret via environment variables.
 
-3. **zitadel-init Job (PostSync)**: after Zitadel is up, the `zitadel-init` post-install/post-upgrade Job runs.
-   It provisions the OIDC apps (frontend, API), registers the production redirect URI, sets the Login V2 BaseURI via the Feature API, configures the login service user, and webhook keys, then writes the results directly into the Zitadel Kubernetes Secret.
-   It also triggers rolling restarts of the API, frontend, and login-ui pods.
+3. **zitadel-init sidecar**: a sidecar container in the same pod as Zitadel waits for Zitadel to become ready, then provisions the OIDC apps (frontend, API), registers the production redirect URI, sets the Login V2 BaseURI via the Feature API, configures the login service user, and webhook keys, then writes the results directly into the Zitadel Kubernetes Secret.
+   It also triggers rolling restarts of the API, frontend, and login-ui pods, then enters an idle state with a health endpoint on `:8081`.
+
+   **PAT acquisition**: On the first boot (fresh database), Zitadel writes an admin PAT to a shared emptyDir volume. The sidecar reads this file and persists the PAT into the K8s Secret (`admin-pat` key). On subsequent pod restarts, the emptyDir is empty (Zitadel skips PAT generation for existing databases), so the sidecar falls back to reading the PAT from the K8s Secret. This three-tier fallback (`ZITADEL_PAT` env var > PAT file > K8s Secret) ensures the sidecar never crash-loops on pod restarts.
 
 ### Accessing the Zitadel Admin Console (Kubernetes)
 
@@ -88,12 +87,42 @@ After Zitadel restarts and completes initialization, the new password from the s
 ### Monitoring Initialization Progress
 
 ```bash
-# Watch the zitadel-init job logs
-kubectl logs -f job/stackweaver-zitadel-init -n stackweaver
+# Watch the zitadel-init sidecar logs
+kubectl logs -f deployment/stackweaver-zitadel -c zitadel-init -n stackweaver
 
 # Check Zitadel pod status
 kubectl get pod -n stackweaver -l app.kubernetes.io/component=zitadel
 ```
+
+### Troubleshooting: zitadel-init Crash-Looping (PAT Not Found)
+
+If the `zitadel-init` sidecar is crash-looping with errors about the PAT file not being found, this means:
+
+1. The database already exists (Zitadel skips `FirstInstance`, so no PAT file is written to emptyDir).
+2. The K8s Secret does not contain an `admin-pat` value (e.g., the secret was manually recreated without it).
+
+**To fix**, force a clean first-time initialization:
+
+```bash
+# Option A: Reset the Zitadel database (preserves other data)
+PG_POD=$(kubectl get pod -n stackweaver \
+  -l app.kubernetes.io/component=postgresql \
+  -o jsonpath='{.items[0].metadata.name}')
+
+kubectl exec -n stackweaver "$PG_POD" -- \
+  psql -U iac -c "DROP DATABASE IF EXISTS zitadel;"
+
+kubectl exec -n stackweaver "$PG_POD" -- \
+  psql -U iac -c "CREATE DATABASE zitadel OWNER iac;"
+
+# Delete the Zitadel secret so it gets recreated with empty admin-pat
+kubectl delete secret stackweaver-zitadel -n stackweaver
+
+# Restart Zitadel to trigger a fresh FirstInstance
+kubectl rollout restart deployment/stackweaver-zitadel -n stackweaver
+```
+
+After Zitadel reinitializes, the sidecar will read the PAT from the emptyDir and persist it to the K8s Secret. Future pod restarts will use the secret fallback.
 
 ### Troubleshooting: Stuck Migration Lock
 
@@ -214,7 +243,11 @@ The Docker Compose stack uses static credentials defined in `deploy/zitadel-init
 
 ### What `zitadel-init` Does
 
-1. Waits for `/pat/admin.pat` (written by Zitadel during `start-from-init`).
+1. Acquires an admin PAT:
+   - **Docker Compose**: Waits up to 300s for `/pat/admin.pat` (written by Zitadel during `start-from-init`).
+   - **Kubernetes (first boot)**: Waits for Zitadel readiness, then reads PAT from emptyDir (30s timeout). After provisioning, persists the PAT to the K8s Secret.
+   - **Kubernetes (pod restart)**: PAT file is absent (emptyDir is ephemeral). Falls back to reading `admin-pat` from the K8s Secret (stored during first boot).
+   - **Manual override**: If `ZITADEL_PAT` env var is set, it is used directly (highest priority).
 2. Uses the PAT to connect to Zitadel via gRPC (`localhost:8080`).
 3. Creates or updates:
    - Organization `IAC Platform`

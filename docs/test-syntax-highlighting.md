@@ -1,5 +1,3 @@
-<!-- Copyright (c) 2025 VH & Co BV. Licensed under the Business Source License 1.1. See LICENSE for details. -->
-
 # Syntax Highlighting Test Page
 
 This page contains various code examples to test syntax highlighting with different languages and themes.

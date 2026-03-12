@@ -1,5 +1,3 @@
-<!-- Copyright (c) 2025 VH & Co BV. Licensed under the Business Source License 1.1. See LICENSE for details. -->
-
 # Azure DevOps VCS Integration
 
 This guide walks you through connecting Azure DevOps repositories to Stackweaver so it can trigger Terraform runs from code pushes and pull requests.

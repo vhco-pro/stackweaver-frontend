@@ -1,5 +1,3 @@
-<!-- Copyright (c) 2025 VH & Co BV. Licensed under the Business Source License 1.1. See LICENSE for details. -->
-
 # Workspace Editing
 
 StackWeaver allows you to edit workspace settings after initial creation, enabling you to modify workspace configuration without needing to delete and recreate workspaces.

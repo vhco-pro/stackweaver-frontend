@@ -1,5 +1,3 @@
-<!-- Copyright (c) 2025 VH & Co BV. Licensed under the Business Source License 1.1. See LICENSE for details. -->
-
 # Dashboard Documentation
 
 The user dashboard (`/dashboard`) is the main landing page for authenticated users in StackWeaver. It provides an overview of the user's infrastructure, operations, and quick access to common tasks.
@@ -17,7 +15,7 @@ The dashboard serves as a central hub where users can:
 
 **Backend Endpoint**: `GET /api/v2/dashboard/stats`  
 **Handler Implementation**: See `backend/internal/api/v2/handlers/dashboard.go`  
-**Route Registration**: See `backend/internal/api/v2/routes/routes.go:575-583`  
+**Route Registration**: See `backend/internal/api/v2/routes/routes.go:1064-1087`  
 **Frontend Component**: See `frontend/src/pages/Dashboard.tsx`  
 **Frontend API Client**: See `frontend/src/api/client.ts` (dashboardApi)
 

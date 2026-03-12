@@ -184,7 +184,7 @@ export function DocsLayout({ children, docsBase = '/docs', indexFile = '/docs-in
       <div className="pt-32 pb-8 flex">
         
         {/* Left Sidebar - Docs Navigation Tree (desktop only) */}
-        <aside className="hidden lg:block w-64 flex-shrink-0 border-r border-border/40 bg-background/50 sticky top-24 h-[calc(100vh-6rem)] overflow-y-auto">
+        <aside className="hidden lg:block w-[18%] min-w-56 max-w-72 flex-shrink-0 border-r border-border/40 bg-background/50 sticky top-24 h-[calc(100vh-6rem)] overflow-y-auto">
           <DocsSidebar docsBase={docsBase} indexFile={indexFile} />
         </aside>
         

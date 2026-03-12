@@ -1,5 +1,3 @@
-<!-- Copyright (c) 2025 VH & Co BV. Licensed under the Business Source License 1.1. See LICENSE for details. -->
-
 # Dynamic Inventories
 
 Dynamic inventories let Stackweaver discover hosts automatically from cloud providers like Azure, AWS, and GCP instead of listing them manually. This guide covers both approaches for setting up dynamic inventories: VCS-backed plugin files (recommended for teams) and UI-configured sources (quick setup).
@@ -121,7 +119,7 @@ If the sync succeeds but Ansible printed warnings to stderr, an amber warning ba
 
 Once hosts are synced, you can use this inventory in any Ansible job template. The job will run against the cached hosts without re-querying the cloud provider. The cached inventory includes all hostvars (IP addresses, tags, metadata) that the plugin discovered.
 
-To refresh the cache, click "Sync" again at any time. In the future, scheduled sync and update-on-launch will be available to automate this.
+To refresh the cache, click "Sync" again at any time. You can also set up scheduled syncs to automate this; see the Schedules feature in the Ansible section.
 
 ## Creating a UI-Configured Dynamic Inventory
 

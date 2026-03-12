@@ -1,5 +1,3 @@
-<!-- Copyright (c) 2025 VH & Co BV. Licensed under the Business Source License 1.1. See LICENSE for details. -->
-
 # Run Cancellation
 
 StackWeaver allows you to cancel runs that are in progress, whether they're still queued, planning, or applying infrastructure changes.

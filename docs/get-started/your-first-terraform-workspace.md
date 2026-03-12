@@ -1,5 +1,3 @@
-<!-- Copyright (c) 2025 VH & Co BV. Licensed under the Business Source License 1.1. See LICENSE for details. -->
-
 # Your First Terraform Workspace
 
 Learn how to create and run your first Terraform workspace in StackWeaver. By the end of this guide, you'll have successfully executed a plan and understand the basics of workspace management.

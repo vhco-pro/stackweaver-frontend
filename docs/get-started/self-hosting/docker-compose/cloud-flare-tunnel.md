@@ -1,5 +1,3 @@
-<!-- Copyright (c) 2025 VH & Co BV. Licensed under the Business Source License 1.1. See LICENSE for details. -->
-
 # Use Cloudflare tunnel to expose local service
 
 Using a Cloudflare tunnel is a free, static alternative to using something like ngrok

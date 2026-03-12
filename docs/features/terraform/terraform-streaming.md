@@ -1,5 +1,3 @@
-<!-- Copyright (c) 2025 VH & Co BV. Licensed under the Business Source License 1.1. See LICENSE for details. -->
-
 # Terraform Output Streaming
 
 StackWeaver provides real-time, live streaming of Terraform output during plan and apply operations. Watch your infrastructure changes happen in real time without waiting for the entire operation to complete.

@@ -1,0 +1,335 @@
+# StackWeaver — Production Docker Compose
+# Uses pre-built container images from GHCR (no source code required).
+#
+# Quick start:
+#   1. cp .env.example .env
+#   2. docker compose up -d
+#   3. Wait for zitadel-init to complete (docker compose logs -f zitadel-init)
+#   4. Open http://localhost:5173
+
+volumes:
+  postgres_data:
+  minio_data:
+  runner-workspaces:
+  zitadel-pat:
+
+services:
+
+  # ── Infrastructure ──────────────────────────────────────────────────
+
+  postgres:
+    image: postgres:17
+    container_name: postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-iac}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-iac_password}
+      POSTGRES_DB: ${POSTGRES_DB:-iac_platform}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init-postgres.sql:/docker-entrypoint-initdb.d/init-postgres.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-iac} -d ${POSTGRES_DB:-iac_platform}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    network_mode: host
+
+  redis:
+    image: redis:7-alpine
+    container_name: redis
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    network_mode: host
+
+  minio:
+    image: minio/minio:latest
+    container_name: minio
+    restart: unless-stopped
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ACCESS_KEY:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${MINIO_SECRET_KEY:-minioadmin}
+    command: server /data --console-address ":9001"
+    volumes:
+      - minio_data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 20s
+      retries: 7
+    network_mode: host
+
+  # ── Authentication ──────────────────────────────────────────────────
+
+  zitadel:
+    image: ghcr.io/zitadel/zitadel:latest
+    container_name: zitadel
+    restart: unless-stopped
+    command: >
+      start-from-init
+      --config /etc/zitadel/defaults.yaml
+      --steps /etc/zitadel/init-steps.yaml
+      --masterkey "${ZITADEL_MASTERKEY:-LfcvxoyK4yAwsyp5WYeA3siK61yl7064}"
+      --tlsMode external
+    env_file:
+      - ./.env
+    environment:
+      ZITADEL_SERVICE_USER_TOKEN: ${ZITADEL_LOGIN_SERVICE_USER_TOKEN:-}
+      ZITADEL_DATABASE_POSTGRES_HOST: localhost
+      ZITADEL_LOGIN_UI_BASE_URL: ${ZITADEL_LOGIN_UI_BASE_URL:-http://localhost:3000/ui/v2/login}
+      ZITADEL_LOGIN_UI_ORIGIN: ${ZITADEL_LOGIN_UI_ORIGIN:-http://localhost:3000}
+    volumes:
+      - ./zitadel-defaults.yaml:/etc/zitadel/defaults.yaml:ro
+      - ./zitadel-init-steps.yaml:/etc/zitadel/init-steps.yaml:ro
+      - zitadel-pat:/pat
+    user: "0"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    network_mode: host
+
+  login-ui:
+    image: ghcr.io/zitadel/zitadel-login:v4.11.1
+    container_name: login-ui
+    restart: unless-stopped
+    env_file:
+      - ./.env
+    environment:
+      NEXT_PUBLIC_BASE_PATH: /ui/v2/login
+      ZITADEL_API_URL: http://localhost:8080
+      ZITADEL_SERVICE_USER_TOKEN: ${ZITADEL_LOGIN_SERVICE_USER_TOKEN:-}
+      EMAIL_VERIFICATION: "false"
+      CUSTOM_REQUEST_HEADERS: "x-zitadel-instance-host:${ZITADEL_EXTERNAL_HOST:-}"
+    depends_on:
+      zitadel:
+        condition: service_started
+      zitadel-init:
+        condition: service_completed_successfully
+    network_mode: host
+
+  zitadel-init:
+    image: ghcr.io/vhco-pro/stackweaver-zitadel-init:latest
+    container_name: zitadel-init
+    env_file:
+      - ./.env
+      - ./sso.env
+    environment:
+      ZITADEL_ISSUER: ${ZITADEL_ISSUER:-http://localhost:8080}/ui/v2/login
+      ZITADEL_INTERNAL_ADDR: localhost:8080
+      # Mount maps ./ to /config/deploy so zitadel-init writes .env here
+      PROJECT_ROOT: /config
+      ZITADEL_ADMIN_USERNAME: admin@ZITADEL.localhost
+      ZITADEL_ADMIN_PASSWORD: ${ZITADEL_ADMIN_PASSWORD:-Password1!}
+      ZITADEL_PAT_PATH: /pat/admin.pat
+      ZITADEL_PAT: ${ZITADEL_PAT:-}
+      ZITADEL_CUSTOM_DOMAINS: ${ZITADEL_CUSTOM_DOMAINS:-}
+    volumes:
+      # Map current directory as deploy/ under PROJECT_ROOT so zitadel-init
+      # writes .env to ./ and reads zitadel-init.yaml from ./
+      - .:/config/deploy
+      - zitadel-pat:/pat:ro
+    depends_on:
+      zitadel:
+        condition: service_started
+    restart: "no"
+    network_mode: host
+
+  # ── Application ─────────────────────────────────────────────────────
+
+  api:
+    image: ghcr.io/vhco-pro/stackweaver-api:latest
+    container_name: api
+    restart: unless-stopped
+    env_file:
+      - ./.env
+      - ./sso.env
+      - ./vcs.env
+      - ./oidc.env
+    environment:
+      CONFIG_PATH: /etc/iac/config/config.yaml
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      ZITADEL_ISSUER: ${ZITADEL_ISSUER:-http://localhost:8080}
+      ZITADEL_API_CLIENT_ID: ${ZITADEL_API_CLIENT_ID:-}
+      ZITADEL_API_CLIENT_SECRET: ${ZITADEL_API_CLIENT_SECRET:-}
+      ZITADEL_LOGIN_SERVICE_USER_TOKEN: ${ZITADEL_LOGIN_SERVICE_USER_TOKEN:-}
+      ZITADEL_INTERNAL_ADDR: localhost:8080
+      CORS_EXTRA_ORIGINS: ${CORS_EXTRA_ORIGINS:-}
+      ZITADEL_WEBHOOK_IDP_SYNC_KEY: ${ZITADEL_WEBHOOK_IDP_SYNC_KEY:-}
+      ZITADEL_WEBHOOK_COMPLEMENT_TOKEN_KEY: ${ZITADEL_WEBHOOK_COMPLEMENT_TOKEN_KEY:-}
+      STACKWEAVER_APP_URL: ${STACKWEAVER_APP_URL:-http://localhost:5173}
+      ANSIBLE_ENCRYPTION_KEY: ${ENCRYPTION_KEY:-00000000000000000000000000000000}
+      STORAGE_BACKEND: minio
+      STORAGE_BUCKET: terraform-registry
+      MINIO_ENDPOINT: localhost:9000
+      MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY:-minioadmin}
+      MINIO_SECRET_KEY: ${MINIO_SECRET_KEY:-minioadmin}
+      MINIO_USE_SSL: "false"
+      # GitHub App (optional — uncomment and configure to enable)
+      # GITHUB_APP_ID: ${GITHUB_APP_ID:-}
+      # GITHUB_APP_NAME: ${GITHUB_APP_NAME:-}
+      # GITHUB_APP_PRIVATE_KEY_PATH: /etc/github-app-private-key.pem
+      # GITHUB_WEBHOOK_SECRET: ${GITHUB_WEBHOOK_SECRET:-}
+    # Uncomment to mount GitHub App private key:
+    # volumes:
+    #   - ./github-app-private-key.pem:/etc/github-app-private-key.pem:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      zitadel:
+        condition: service_started
+      zitadel-init:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8022/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    network_mode: host
+
+  frontend:
+    image: ghcr.io/vhco-pro/stackweaver-frontend:latest
+    container_name: frontend
+    restart: unless-stopped
+    env_file:
+      - ./.env
+    environment:
+      VITE_API_URL: ${VITE_API_URL:-http://localhost:8022/api/v2}
+      VITE_ZITADEL_ISSUER: ${VITE_ZITADEL_ISSUER:-http://localhost:8080}
+      VITE_ZITADEL_CLIENT_ID: ${ZITADEL_FRONTEND_CLIENT_ID:-}
+      VITE_ZITADEL_REDIRECT_URI: ${VITE_ZITADEL_REDIRECT_URI:-http://localhost:5173/auth/callback}
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        # Generate env.js with runtime configuration
+        cat > /usr/share/nginx/html/env.js << EOF
+        window.__STACKWEAVER__ = {
+          VITE_API_URL: "$$VITE_API_URL",
+          VITE_ZITADEL_ISSUER: "$$VITE_ZITADEL_ISSUER",
+          VITE_ZITADEL_CLIENT_ID: "$$VITE_ZITADEL_CLIENT_ID",
+          VITE_ZITADEL_REDIRECT_URI: "$$VITE_ZITADEL_REDIRECT_URI",
+        };
+        EOF
+        # Change nginx listen port from 80 to 5173
+        sed -i 's/listen 80/listen 5173/' /etc/nginx/conf.d/default.conf
+        exec nginx -g 'daemon off;'
+    depends_on:
+      api:
+        condition: service_started
+      zitadel:
+        condition: service_started
+      zitadel-init:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:5173/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    network_mode: host
+
+  orchestrator:
+    image: ghcr.io/vhco-pro/stackweaver-orchestrator:latest
+    container_name: orchestrator
+    restart: unless-stopped
+    env_file:
+      - ./.env
+      - ./vcs.env
+    environment:
+      CONFIG_PATH: /etc/iac/config/config.yaml
+      REDIS_HOST: localhost
+      REDIS_PORT: "6379"
+      REDIS_PASSWORD: ""
+      REDIS_DB: "0"
+      # GitHub App (optional — uncomment and configure to enable)
+      # GITHUB_APP_ID: ${GITHUB_APP_ID:-}
+      # GITHUB_APP_NAME: ${GITHUB_APP_NAME:-}
+      # GITHUB_APP_PRIVATE_KEY_PATH: /etc/github-app-private-key.pem
+    # Uncomment to mount GitHub App private key:
+    # volumes:
+    #   - ./github-app-private-key.pem:/etc/github-app-private-key.pem:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      api:
+        condition: service_started
+    network_mode: host
+
+  runner:
+    image: ghcr.io/vhco-pro/stackweaver-runner:latest
+    container_name: runner
+    restart: unless-stopped
+    env_file:
+      - ./.env
+      - ./oidc.env
+    environment:
+      CONFIG_PATH: /etc/iac/config/config.yaml
+      REDIS_HOST: localhost
+      REDIS_PORT: "6379"
+      REDIS_PASSWORD: ""
+      REDIS_DB: "0"
+      STORAGE_BACKEND: minio
+      STORAGE_BUCKET: terraform-registry
+      MINIO_ENDPOINT: localhost:9000
+      MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY:-minioadmin}
+      MINIO_SECRET_KEY: ${MINIO_SECRET_KEY:-minioadmin}
+      MINIO_USE_SSL: "false"
+      ENCRYPTION_KEY: ${ENCRYPTION_KEY:-00000000000000000000000000000000}
+    volumes:
+      - runner-workspaces:/home/iac/workspaces
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+      orchestrator:
+        condition: service_started
+    network_mode: host
+
+  ansible-runner:
+    image: ghcr.io/vhco-pro/stackweaver-ansible-runner:latest
+    container_name: ansible-runner
+    restart: unless-stopped
+    env_file:
+      - ./.env
+      - ./vcs.env
+      - ./oidc.env
+    environment:
+      REDIS_HOST: localhost
+      REDIS_PORT: "6379"
+      REDIS_PASSWORD: ""
+      DATABASE_HOST: localhost
+      DATABASE_PORT: "5432"
+      DATABASE_USER: ${POSTGRES_USER:-iac}
+      DATABASE_PASSWORD: ${POSTGRES_PASSWORD:-iac_password}
+      DATABASE_NAME: ${POSTGRES_DB:-iac_platform}
+      STORAGE_ENDPOINT: localhost:9000
+      STORAGE_ACCESS_KEY: ${MINIO_ACCESS_KEY:-minioadmin}
+      STORAGE_SECRET_KEY: ${MINIO_SECRET_KEY:-minioadmin}
+      STORAGE_BUCKET: ansible-artifacts
+      STORAGE_USE_SSL: "false"
+      ANSIBLE_ENCRYPTION_KEY: ${ENCRYPTION_KEY:-00000000000000000000000000000000}
+      WORKSPACES_DIR: /home/iac/workspaces
+      ANSIBLE_HOST_KEY_CHECKING: "false"
+      ANSIBLE_RETRY_FILES_ENABLED: "false"
+      ANSIBLE_RUNNER_KEEP_WORKSPACE: "true"
+    volumes:
+      - runner-workspaces:/home/iac/workspaces
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+      api:
+        condition: service_started
+    network_mode: host

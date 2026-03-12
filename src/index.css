@@ -105,7 +105,7 @@
 }
 
 .dark .markdown-content p {
-  @apply text-slate-300;
+  color: #d7dfe9;
 }
 
 html:not(.dark) .markdown-content p {
@@ -130,7 +130,7 @@ html:not(.dark) .markdown-content p {
 }
 
 .dark .markdown-content li {
-  @apply text-slate-300;
+  color: #d7dfe9;
 }
 
 html:not(.dark) .markdown-content li {
@@ -385,48 +385,6 @@ html:not(.dark) .markdown-content .shiki-wrapper[data-language="json"] code span
 
 .markdown-content em {
   @apply italic;
-}
-
-/* ------------------------------------------------------------ */
-/* CodeGroup tab icons (mask SVGs, inherit currentColor)         */
-/* Files live under: frontend/public/icons/code-group/           */
-/* ------------------------------------------------------------ */
-.codegroup-icon {
-  display: inline-block;
-  width: 1rem;
-  height: 1rem;
-  background-color: currentColor;
-  -webkit-mask-repeat: no-repeat;
-  -webkit-mask-position: center;
-  -webkit-mask-size: contain;
-  mask-repeat: no-repeat;
-  mask-position: center;
-  mask-size: contain;
-}
-
-.codegroup-icon--bash {
-  -webkit-mask-image: url('/icons/code-group/bash.svg');
-  mask-image: url('/icons/code-group/bash.svg');
-}
-
-.codegroup-icon--powershell {
-  -webkit-mask-image: url('/icons/code-group/powershell.svg');
-  mask-image: url('/icons/code-group/powershell.svg');
-}
-
-.codegroup-icon--go {
-  -webkit-mask-image: url('/icons/code-group/go.svg');
-  mask-image: url('/icons/code-group/go.svg');
-}
-
-.codegroup-icon--docker {
-  -webkit-mask-image: url('/icons/code-group/docker.svg');
-  mask-image: url('/icons/code-group/docker.svg');
-}
-
-.codegroup-icon--kubernetes {
-  -webkit-mask-image: url('/icons/code-group/kubernetes.svg');
-  mask-image: url('/icons/code-group/kubernetes.svg');
 }
 
 @layer utilities {

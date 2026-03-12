@@ -1,5 +1,3 @@
-<!-- Copyright (c) 2025 VH & Co BV. Licensed under the Business Source License 1.1. See LICENSE for details. -->
-
 # Self-Hosted Runners
 
 Learn how to run Terraform and Ansible workloads on your own infrastructure using StackWeaver self-hosted runners. By the end of this guide, you will know how to create agent pools, register runners, and route jobs to them.
@@ -230,4 +228,4 @@ A: Check that the container is running, that `STACKWEAVER_SERVER` and `STACKWEAV
 
 - Use [Managing Workspace Variables](./managing-workspace-variables.md) to configure variables for workspaces that run on your runners.
 - Use [Understanding Terraform Runs](./understanding-terraform-runs.md) to interpret plan and apply output for runs executed on your runners.
-- Use [Running Your First Ansible Job](./your-first-ansible-job.md) to run Ansible jobs that can be routed to your self-hosted Ansible runners.
+- Use [Running Your First Ansible Job](../get-started/your-first-ansible-job.md) to run Ansible jobs that can be routed to your self-hosted Ansible runners.
