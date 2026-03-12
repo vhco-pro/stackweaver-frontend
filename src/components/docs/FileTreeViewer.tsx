@@ -78,7 +78,7 @@ export function FileTreeViewer({ content }: FileTreeViewerProps) {
             style={{ paddingLeft: `${line.depth * 1.25}rem`, margin: 0 }}
           >
             {line.isDir
-              ? <Folder className="h-[1.125rem] w-[1.125rem] shrink-0 text-amber-400" />
+              ? <Folder className="h-[1.125rem] w-[1.125rem] shrink-0 text-blue-500" />
               : getFileIcon(line.name)
             }
             <span>{line.name}</span>

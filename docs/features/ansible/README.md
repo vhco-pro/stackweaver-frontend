@@ -1,5 +1,3 @@
-<!-- Copyright (c) 2025 VH & Co BV. Licensed under the Business Source License 1.1. See LICENSE for details. -->
-
 # Ansible Integration Documentation
 
 This directory contains the authoritative documentation for StackWeaver's Ansible integration.
@@ -37,7 +35,7 @@ This directory contains the authoritative documentation for StackWeaver's Ansibl
 | Galaxy Auto-Install | ✅ Complete |
 | Live Job Output | ✅ Complete (JSONL) |
 | Task Grouping | ✅ Complete |
-| Workflow Templates | 📋 Roadmap |
+| Workflow Templates | 🚧 In Progress |
 | Surveys | 📋 Roadmap |
 | Notifications | 📋 Roadmap |
 

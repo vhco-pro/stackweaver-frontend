@@ -23,18 +23,21 @@ try {
   matter = require('gray-matter');
 } catch (e) {
   // If gray-matter not available, use basic frontmatter parsing
+  // Handles files with content before frontmatter (e.g. copyright comments)
   matter = (content) => {
-    const frontmatterRegex = /^---\s*\n([\s\S]*?)\n---\s*\n([\s\S]*)$/;
+    const frontmatterRegex = /(?:^|\n)---\s*\n([\s\S]*?)\n---\s*\n([\s\S]*)$/;
     const match = content.match(frontmatterRegex);
     if (match) {
       const frontmatter = match[1];
       const body = match[2];
       const data = {};
-      // Basic YAML parsing for title and description only
-      const titleMatch = frontmatter.match(/^title:\s*(.+)$/m);
-      const descMatch = frontmatter.match(/^description:\s*(.+)$/m);
-      if (titleMatch) data.title = titleMatch[1].trim().replace(/^["']|["']$/g, '');
-      if (descMatch) data.description = descMatch[1].trim().replace(/^["']|["']$/g, '');
+      // Basic YAML parsing for known frontmatter fields
+      const fields = ['title', 'description', 'status', 'status_description', 'author', 'priority', 'created', 'updated', 'issue', 'goal'];
+      for (const field of fields) {
+        const re = new RegExp(`^${field}:\\s*(.+)$`, 'm');
+        const fm = frontmatter.match(re);
+        if (fm) data[field] = fm[1].trim().replace(/^["']|["']$/g, '');
+      }
       return { data, content: body };
     }
     return { data: {}, content };
@@ -86,6 +89,9 @@ const EXT_TO_LANG = {
   '.js': 'javascript',
   '.py': 'python',
   '.md': 'markdown',
+  '.sql': 'sql',
+  '.env': 'bash',
+  '.example': 'bash',
 };
 
 function extToLang(filePath) {
@@ -438,10 +444,10 @@ async function copyFiles(files, outputDir = PUBLIC_DOCS) {
     fs.mkdirSync(destDir, { recursive: true });
 
     if (file.relativePath.endsWith('.md')) {
-      // Process file inclusions (<<< directives) before writing
+      // Process file inclusions (<<< directives); keep frontmatter for MarkdownRenderer to parse
       const content = fs.readFileSync(file.fullPath, 'utf-8');
       const processed = processFileInclusions(content, file.fullPath);
-      fs.writeFileSync(destPath, processed, 'utf-8');
+      fs.writeFileSync(destPath, processed.trimStart(), 'utf-8');
     } else if (IMAGE_EXTENSIONS.test(file.relativePath)) {
       imageCount++;
       const cacheKey = fileCacheKey(file.fullPath);
@@ -581,6 +587,48 @@ function processFileInclusions(content, markdownFilePath) {
 }
 
 /**
+ * Find all matches of a directive pattern in markdown content, skipping matches
+ * that appear inside fenced code blocks (``` or ````).
+ *
+ * @param {string} content - Raw markdown content
+ * @param {RegExp} pattern - RegExp with global+multiline flags. Must have exactly one capture group.
+ * @returns {{ match: string, index: number }[]} Array of capture group values with their indices
+ */
+function findDirectivesOutsideCodeBlocks(content, pattern) {
+  const lines = content.split('\n');
+  let inCodeBlock = false;
+  let codeBlockFence = '';
+  const results = [];
+
+  for (const line of lines) {
+    const trimmed = line.trimStart();
+    // Track fenced code blocks (``` or ```` or more)
+    const fenceMatch = /^(`{3,}|~{3,})/.exec(trimmed);
+    if (fenceMatch) {
+      if (!inCodeBlock) {
+        inCodeBlock = true;
+        codeBlockFence = fenceMatch[1].charAt(0).repeat(fenceMatch[1].length);
+      } else if (trimmed.startsWith(codeBlockFence) && trimmed.slice(codeBlockFence.length).trim() === '') {
+        inCodeBlock = false;
+        codeBlockFence = '';
+      }
+      continue;
+    }
+
+    if (inCodeBlock) continue;
+
+    // Reset lastIndex since we're testing line by line
+    pattern.lastIndex = 0;
+    const m = pattern.exec(line);
+    if (m) {
+      results.push({ match: m[1] });
+    }
+  }
+
+  return results;
+}
+
+/**
  * Scan all processed markdown files for `::: code-explorer <path>` directives.
  * For each directive:
  *   1. Resolve the directory relative to the markdown file (local) or fetch from GitHub.
@@ -605,46 +653,67 @@ async function processCodeExplorers(mdFiles, outputDir = PUBLIC_DOCS, docsRoot =
     }
 
     const markdownDir = path.dirname(file.fullPath);
-    const directivePattern = /^:::\s*code-explorer\s+(\S+)/gim;
-    let match;
+    const directivePattern = /^:::\s*code-explorer\s+(\S+)/i;
+    const directives = findDirectivesOutsideCodeBlocks(content, directivePattern);
 
-    while ((match = directivePattern.exec(content)) !== null) {
-      const rawPath = match[1];
+    for (const directive of directives) {
+      const rawPath = directive.match;
 
-      // Handle github: prefix
+      // Handle github: prefix — supports both github:org/repo/path@ref and github:org/repo@ref (repo root)
       if (rawPath.startsWith('github:')) {
-        const ghMatch = /^github:([^/]+)\/([^/]+)\/(.+?)(?:@(.+))?$/.exec(rawPath);
-        if (!ghMatch) {
-          console.warn(`⚠ Invalid github: code-explorer spec: ${rawPath}`);
-          continue;
+        // Try with path first, then without path (repo root)
+        let ghMatch = /^github:([^/]+)\/([^/]+)\/(.+?)(?:@(.+))?$/.exec(rawPath);
+        let specPath = '';
+        if (ghMatch) {
+          specPath = ghMatch[3];
+        } else {
+          // Repo root: github:org/repo@ref or github:org/repo
+          ghMatch = /^github:([^/]+)\/([^@]+?)(?:@(.+))?$/.exec(rawPath);
+          if (!ghMatch) {
+            console.warn(`⚠ Invalid github: code-explorer spec: ${rawPath}`);
+            continue;
+          }
+          specPath = '';
         }
         const spec = {
           org: ghMatch[1],
           repo: ghMatch[2],
-          path: ghMatch[3],
-          ref: ghMatch[4] || 'main',
+          path: specPath,
+          ref: (specPath ? ghMatch[4] : ghMatch[3]) || 'main',
         };
-        const ghDestBase = path.join(outputDir, '_github', spec.org, spec.repo, spec.ref, spec.path);
-        const relativeDir = path.relative(outputDir, ghDestBase);
+        const ghDestDir = spec.path
+          ? path.join(outputDir, '_github', spec.org, spec.repo, spec.ref, spec.path)
+          : path.join(outputDir, '_github', spec.org, spec.repo, spec.ref);
+        const relativeDir = path.relative(outputDir, ghDestDir);
         try {
-          const manifestFiles = await fetchGitHubExplorer(spec, ghDestBase);
+          const manifestFiles = await fetchGitHubExplorer(spec, ghDestDir);
+          // Add per-file GitHub URLs
+          const filesWithUrls = manifestFiles.map(f => ({
+            ...f,
+            url: spec.path
+              ? `https://github.com/${spec.org}/${spec.repo}/blob/${spec.ref}/${spec.path}/${f.path}`
+              : `https://github.com/${spec.org}/${spec.repo}/blob/${spec.ref}/${f.path}`,
+          }));
           const manifest = {
-            root: spec.path.split('/').pop() || spec.path,
+            root: spec.path ? (spec.path.split('/').pop() || spec.path) : spec.repo,
             source: {
               type: 'github',
               org: spec.org,
               repo: spec.repo,
               path: spec.path,
               ref: spec.ref,
-              url: `https://github.com/${spec.org}/${spec.repo}/tree/${spec.ref}/${spec.path}`,
+              url: spec.path
+                ? `https://github.com/${spec.org}/${spec.repo}/tree/${spec.ref}/${spec.path}`
+                : `https://github.com/${spec.org}/${spec.repo}/tree/${spec.ref}`,
             },
-            files: manifestFiles,
+            files: filesWithUrls,
           };
           const manifestPath = path.join(outputDir, `${relativeDir}.explorer.json`);
           fs.mkdirSync(path.dirname(manifestPath), { recursive: true });
           fs.writeFileSync(manifestPath, JSON.stringify(manifest, null, 2), 'utf-8');
           directoriesProcessed++;
-          console.log(`   ✅ Code explorer (GitHub): ${spec.org}/${spec.repo}/${spec.path}@${spec.ref} (${manifestFiles.length} files)`);
+          const displayPath = spec.path ? `${spec.org}/${spec.repo}/${spec.path}` : `${spec.org}/${spec.repo}`;
+          console.log(`   ✅ Code explorer (GitHub): ${displayPath}@${spec.ref} (${manifestFiles.length} files)`);
         } catch (err) {
           console.warn(`⚠ Failed to fetch GitHub code-explorer ${rawPath}: ${err.message}`);
         }
@@ -675,7 +744,7 @@ async function processCodeExplorers(mdFiles, outputDir = PUBLIC_DOCS, docsRoot =
       function scanExplorerDir(dir, baseDir) {
         const entries = fs.readdirSync(dir, { withFileTypes: true });
         for (const entry of entries) {
-          if (entry.name.startsWith('.')) continue;
+          if (entry.name.startsWith('.') && !entry.name.startsWith('.env')) continue;
           const fullPath = path.join(dir, entry.name);
           if (entry.isDirectory()) {
             scanExplorerDir(fullPath, baseDir);
@@ -755,9 +824,128 @@ async function fetchGitHubExplorer(spec, destBase) {
     }
   }
 
-  const apiBase = `https://api.github.com/repos/${spec.org}/${spec.repo}/contents/${spec.path}?ref=${spec.ref}`;
+  const contentsPath = spec.path || '';
+  const apiBase = contentsPath
+    ? `https://api.github.com/repos/${spec.org}/${spec.repo}/contents/${contentsPath}?ref=${spec.ref}`
+    : `https://api.github.com/repos/${spec.org}/${spec.repo}/contents?ref=${spec.ref}`;
   await fetchDir(apiBase, '');
   return manifestFiles;
+}
+
+/**
+ * Simple string hash (must match the frontend snippetHash function).
+ * @param {string} str
+ * @returns {string}
+ */
+function snippetHash(str) {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    hash = ((hash << 5) - hash + str.charCodeAt(i)) | 0;
+  }
+  return Math.abs(hash).toString(36);
+}
+
+// Matches: https://github.com/{org}/{repo}/blob/{ref}/{path}#L{start}-L{end}
+const GITHUB_SNIPPET_RE = /^https:\/\/github\.com\/([^/]+)\/([^/]+)\/blob\/([^/]+)\/(.+?)(?:#L(\d+)(?:-L(\d+))?)?$/;
+
+/**
+ * Process ::: code-snippet directives in markdown files.
+ * Fetches referenced GitHub files at build time and writes .snippet.json manifests.
+ *
+ * @param {{ relativePath: string, fullPath: string }[]} mdFiles
+ * @param {string} [outputDir]
+ */
+async function processCodeSnippets(mdFiles, outputDir = PUBLIC_DOCS) {
+  const headers = process.env.GITHUB_TOKEN
+    ? { Authorization: `Bearer ${process.env.GITHUB_TOKEN}`, 'User-Agent': 'stackweaver-docs-builder' }
+    : { 'User-Agent': 'stackweaver-docs-builder' };
+
+  let snippetsProcessed = 0;
+  // Deduplicate: same URL might appear in multiple docs
+  const processed = new Set();
+
+  for (const file of mdFiles) {
+    let content;
+    try {
+      content = fs.readFileSync(file.fullPath, 'utf-8');
+    } catch {
+      continue;
+    }
+
+    const directivePattern = /^:::\s*code-snippet\s+(\S+)/i;
+    const directives = findDirectivesOutsideCodeBlocks(content, directivePattern);
+
+    for (const directive of directives) {
+      const url = directive.match;
+      if (processed.has(url)) continue;
+      processed.add(url);
+
+      const ghMatch = GITHUB_SNIPPET_RE.exec(url);
+      if (!ghMatch) {
+        console.warn(`⚠ Invalid code-snippet URL (must be a GitHub blob permalink): ${url}`);
+        continue;
+      }
+
+      const org = ghMatch[1];
+      const repo = ghMatch[2];
+      const ref = ghMatch[3];
+      const filePath = ghMatch[4];
+      const startLine = ghMatch[5] ? parseInt(ghMatch[5], 10) : null;
+      const endLine = ghMatch[6] ? parseInt(ghMatch[6], 10) : null;
+      const lang = extToLang(filePath);
+
+      // Fetch raw file content
+      const rawUrl = `https://raw.githubusercontent.com/${org}/${repo}/${ref}/${filePath}`;
+      try {
+        const res = await fetch(rawUrl, { headers });
+        if (!res.ok) {
+          console.warn(`⚠ Failed to fetch code-snippet ${url}: HTTP ${res.status} for ${rawUrl}`);
+          continue;
+        }
+        const fullContent = await res.text();
+
+        // Extract line range
+        let snippetContent;
+        if (startLine !== null) {
+          const lines = fullContent.split('\n');
+          const end = endLine !== null ? endLine : startLine;
+          snippetContent = lines.slice(startLine - 1, end).join('\n');
+        } else {
+          snippetContent = fullContent;
+        }
+
+        const snippet = {
+          org,
+          repo,
+          ref,
+          path: filePath,
+          startLine,
+          endLine: endLine !== null ? endLine : startLine,
+          lang,
+          content: snippetContent,
+          url,
+        };
+
+        const hash = snippetHash(url);
+        const snippetDir = path.join(outputDir, '_snippets');
+        fs.mkdirSync(snippetDir, { recursive: true });
+        fs.writeFileSync(
+          path.join(snippetDir, `${hash}.snippet.json`),
+          JSON.stringify(snippet, null, 2),
+          'utf-8'
+        );
+        snippetsProcessed++;
+        const lineInfo = startLine ? ` L${startLine}${endLine ? `-L${endLine}` : ''}` : '';
+        console.log(`   ✅ Code snippet: ${org}/${repo}/${filePath}@${ref}${lineInfo}`);
+      } catch (err) {
+        console.warn(`⚠ Failed to fetch code-snippet ${url}: ${err.message}`);
+      }
+    }
+  }
+
+  if (snippetsProcessed > 0) {
+    console.log(`✅ Processed ${snippetsProcessed} code snippet(s)\n`);
+  }
 }
 
 /**
@@ -813,6 +1001,10 @@ async function main() {
   // Process code-explorer directives: copy example files and generate manifests
   console.log('🗂  Processing code explorer directives...');
   await processCodeExplorers(mdFiles);
+
+  // Process code-snippet directives: fetch GitHub file excerpts
+  console.log('📎 Processing code snippet directives...');
+  await processCodeSnippets(mdFiles);
 
   // Generate index JSON
   console.log('💾 Generating index file...');

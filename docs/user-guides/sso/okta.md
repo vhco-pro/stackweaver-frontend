@@ -1,5 +1,3 @@
-<!-- Copyright (c) 2025 VH & Co BV. Licensed under the Business Source License 1.1. See LICENSE for details. -->
-
 # Okta SSO Setup
 
 This guide walks you through configuring Okta as an external identity provider for StackWeaver using the Generic OIDC integration.

@@ -1,5 +1,3 @@
-<!-- Copyright (c) 2025 VH & Co BV. Licensed under the Business Source License 1.1. See LICENSE for details. -->
-
 # Kubernetes Deployment
 
 This guide walks through deploying StackWeaver on Kubernetes using the official Helm chart.
@@ -38,8 +36,10 @@ No service uses `localhost`; the Helm chart automatically configures the correct
 
 ## Chart Distribution
 
-The Helm chart is published to an OCI registry and does not require cloning any repository.
-Check the [releases page](https://github.com/vhco-pro/stackweaver-helm/releases) for the latest version, then substitute it into the commands below.
+The Helm chart is published to an OCI registry for distribution. Since we are already on github we have opted to use [GHCR](https://github.com/vhco-pro/stackweaver-helm/pkgs/container/charts%2Fstackweaver).
+
+> [!IMPORTANT]
+> Check the [github container registry](https://github.com/vhco-pro/stackweaver-helm/pkgs/container/charts%2Fstackweaver) for the latest version, then substitute it into the commands below.
 
 ## Zero-Config Install
 
@@ -140,7 +140,8 @@ kubectl create secret generic my-zitadel-secret \
   --from-literal=login-service-user-token="" \
   --from-literal=frontend-client-id="" \
   --from-literal=webhook-idp-sync-key="" \
-  --from-literal=webhook-complement-token-key=""
+  --from-literal=webhook-complement-token-key="" \
+  --from-literal=admin-pat=""
 ```
 
 Reference them in your values file.
@@ -161,14 +162,17 @@ When all four `secretName` values are set, the chart creates zero Secret resourc
 
 ## Complete Zitadel Initialization
 
-After Zitadel starts, a post-install Job called `zitadel-init` runs automatically.
-It creates the OIDC apps, service users, and webhooks that StackWeaver needs, then writes the generated credentials directly into the Zitadel Kubernetes Secret and triggers rolling restarts of the API, frontend, and login-ui.
+A `zitadel-init` sidecar runs alongside Zitadel in the same pod.
+It waits for Zitadel to become ready, then creates the OIDC apps, service users, and webhooks that StackWeaver needs, writes the generated credentials directly into the Zitadel Kubernetes Secret, and triggers rolling restarts of the API, frontend, and login-ui.
 No manual steps are required.
+
+On the first boot, the sidecar reads the admin PAT from a shared emptyDir volume (written by Zitadel during database initialization) and persists it to the K8s Secret.
+On subsequent pod restarts, the sidecar falls back to reading the PAT from the K8s Secret, so it never crash-loops waiting for a file that won't appear.
 
 To monitor progress:
 
 ```bash
-kubectl logs -f job/stackweaver-zitadel-init --namespace stackweaver
+kubectl logs -f deployment/stackweaver-zitadel -c zitadel-init --namespace stackweaver
 ```
 
 ## Frontend Runtime Configuration
@@ -245,7 +249,7 @@ helm uninstall stackweaver --namespace stackweaver
 ```
 
 Auto-generated secrets are **not** deleted on uninstall (due to `helm.sh/resource-policy: keep`).
-PersistentVolumeClaims for PostgreSQL, MinIO, runner workspaces, and Zitadel PAT are also not deleted automatically.
+PersistentVolumeClaims for PostgreSQL, MinIO, and runner workspaces are also not deleted automatically.
 Remove them manually if no longer needed.
 
 ```bash

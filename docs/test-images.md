@@ -1,5 +1,3 @@
-<!-- Copyright (c) 2025 VH & Co BV. Licensed under the Business Source License 1.1. See LICENSE for details. -->
-
 # Image Support Test Page
 
 This page tests every image feature implemented in the docs viewer: relative path resolution, GitHub-style presentation, captions, dark-mode variants, and the click-to-zoom lightbox.

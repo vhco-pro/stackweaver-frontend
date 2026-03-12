@@ -1,5 +1,3 @@
-<!-- Copyright (c) 2025 VH & Co BV. Licensed under the Business Source License 1.1. See LICENSE for details. -->
-
 # Authentication
 
 StackWeaver uses Zitadel as its OIDC identity provider. These guides cover setting up Zitadel, configuring a custom domain for production, and federating with an external identity provider via SSO.

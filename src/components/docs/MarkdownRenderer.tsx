@@ -83,6 +83,7 @@ interface DocImageProps {
   alt?: string;
   title?: string;
   currentDir: string;
+  docsBase: string;
   onLightbox: (src: string, alt: string) => void;
 }
 
@@ -101,7 +102,7 @@ function darkVariant(src: string): string {
  * Must live outside the useMemo in MarkdownRenderer so hook state is preserved
  * across memo recomputations.
  */
-function DocImage({ src, alt, title, currentDir, onLightbox }: DocImageProps) {
+function DocImage({ src, alt, title, currentDir, docsBase, onLightbox }: DocImageProps) {
   const { resolvedTheme } = useTheme();
   const isDark = resolvedTheme === 'dark';
   const [darkFailed, setDarkFailed] = useState(false);
@@ -127,9 +128,9 @@ function DocImage({ src, alt, title, currentDir, onLightbox }: DocImageProps) {
       const dirParts = currentDir ? currentDir.split('/') : [];
       const targetDir = dirParts.slice(0, Math.max(0, dirParts.length - upLevels)).join('/');
       rel = rel.replace(/^(\.\.\/)+/, '');
-      return `/docs/${targetDir ? targetDir + '/' : ''}${rel}`;
+      return `${docsBase}/${targetDir ? targetDir + '/' : ''}${rel}`;
     }
-    return `/docs/${currentDir ? currentDir + '/' : ''}${rel}`;
+    return `${docsBase}/${currentDir ? currentDir + '/' : ''}${rel}`;
   })();
 
   // Reset darkFailed when the image src changes (derived state during render, no effect needed)
@@ -209,9 +210,14 @@ function paragraphText(node: unknown): string | null {
   if (!children) return null;
   const parts: string[] = [];
   for (const c of children) {
-    if (getNodeType(c) !== 'text') continue;
     if (!isRecord(c)) continue;
-    if (typeof c.value === 'string') parts.push(c.value);
+    const type = getNodeType(c);
+    if (type === 'text') {
+      if (typeof c.value === 'string') parts.push(c.value);
+    } else if (type === 'link') {
+      // remark auto-links bare URLs — extract href so directives containing URLs still match
+      if (typeof c.url === 'string') parts.push(c.url);
+    }
   }
   return parts.join('');
 }
@@ -578,10 +584,60 @@ export interface MarkdownRendererProps {
   enableMermaid?: boolean;
   // For internal link resolution (used in docs viewer)
   docPath?: string;
+  // Base path for docs routes (e.g. '/docs' or '/internal-docs')
+  docsBase?: string;
   // Whether the current page loaded a directory README (affects relative link resolution)
   isDirectoryPage?: boolean;
   // Custom link handler (optional, for non-docs contexts)
   onLinkClick?: (href: string) => void;
+}
+
+// ─── Frontmatter parsing ─────────────────────────────────────────────────────
+
+interface DocFrontmatter {
+  title?: string;
+  description?: string;
+  status?: string;
+  status_description?: string;
+  author?: string;
+  priority?: string;
+  created?: string;
+  updated?: string;
+  issue?: string;
+  goal?: string;
+  [key: string]: unknown;
+}
+
+const FRONTMATTER_RE = /(?:^|\n)---\s*\n([\s\S]*?)\n---\s*\n/;
+
+function parseFrontmatter(raw: string): { meta: DocFrontmatter; body: string } {
+  const match = raw.match(FRONTMATTER_RE);
+  if (!match) return { meta: {}, body: raw };
+
+  const block = match[1];
+  const meta: DocFrontmatter = {};
+  for (const line of block.split('\n')) {
+    const kv = /^(\w+):\s*(.+)$/.exec(line);
+    if (kv) {
+      meta[kv[1]] = kv[2].trim().replace(/^["']|["']$/g, '');
+    }
+  }
+  // Remove the entire frontmatter block (including any preceding copyright comment)
+  const body = raw.replace(/^[\s\S]*?---\s*\n[\s\S]*?\n---\s*\n/, '');
+  return { meta, body };
+}
+
+const STATUS_STYLES: Record<string, { bg: string; text: string; border: string }> = {
+  planned:       { bg: 'bg-blue-500/10',   text: 'text-blue-600 dark:text-blue-400',     border: 'border-blue-500/20' },
+  'in-progress': { bg: 'bg-amber-500/10',  text: 'text-amber-600 dark:text-amber-400',   border: 'border-amber-500/20' },
+  complete:      { bg: 'bg-emerald-500/10', text: 'text-emerald-600 dark:text-emerald-400', border: 'border-emerald-500/20' },
+  archived:      { bg: 'bg-slate-500/10',   text: 'text-slate-500 dark:text-slate-400',   border: 'border-slate-500/20' },
+  draft:         { bg: 'bg-purple-500/10',  text: 'text-purple-600 dark:text-purple-400', border: 'border-purple-500/20' },
+};
+
+function getStatusStyle(status: string) {
+  const key = status.toLowerCase().replace(/\s+/g, '-');
+  return STATUS_STYLES[key] ?? { bg: 'bg-muted/60', text: 'text-muted-foreground', border: 'border-border/40' };
 }
 
 export function MarkdownRenderer({
@@ -591,6 +647,7 @@ export function MarkdownRenderer({
   enableCodeGroups = true,
   enableMermaid = true,
   docPath = '',
+  docsBase = '/docs',
   isDirectoryPage = false,
   onLinkClick,
 }: MarkdownRendererProps) {
@@ -599,6 +656,9 @@ export function MarkdownRenderer({
   const [copiedCodeId, setCopiedCodeId] = useState<string | null>(null);
   const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
   const [lightboxAlt, setLightboxAlt] = useState<string>('');
+
+  // Parse frontmatter from content
+  const { meta, body: markdownBody } = useMemo(() => parseFrontmatter(content), [content]);
 
   // Track theme changes (html.dark class) so Shiki uses matching colors
   useEffect(() => {
@@ -1132,7 +1192,7 @@ export function MarkdownRenderer({
           }
           
           // Build the /docs/* path
-          const to = path === '' || path === 'README' ? '/docs' : `/docs/${path}`;
+          const to = path === '' || path === 'README' ? docsBase : `${docsBase}/${path}`;
           
           return (
             <a
@@ -1162,6 +1222,7 @@ export function MarkdownRenderer({
         <DocImage
           {...props}
           currentDir={currentDir}
+          docsBase={docsBase}
           onLightbox={(src, alt) => { setLightboxSrc(src); setLightboxAlt(alt); }}
         />
       ),
@@ -1171,7 +1232,7 @@ export function MarkdownRenderer({
         </div>
       ),
     };
-  }, [highlightedCode, docPath, navigate, copiedCodeId, enableCallouts, enableCodeGroups, enableMermaid, onLinkClick, currentDir]);
+  }, [highlightedCode, docPath, docsBase, navigate, copiedCodeId, enableCallouts, enableCodeGroups, enableMermaid, onLinkClick, currentDir]);
 
   // Create a key based on highlighted code blocks to force ReactMarkdown to re-render
   // when highlighting completes. ReactMarkdown only re-processes when content changes,
@@ -1179,8 +1240,90 @@ export function MarkdownRenderer({
   const highlightedKeys = Object.keys(highlightedCode).sort().join(',');
   const markdownKey = `markdown-${highlightedKeys}`;
 
+  // Frontmatter metadata table
+  const hasMetaHeader = meta.status || meta.priority || meta.created || meta.updated || meta.author || meta.issue || meta.goal;
+  const metaHeader = hasMetaHeader ? (() => {
+    const s = meta.status ? getStatusStyle(String(meta.status)) : null;
+    const statusLabel = meta.status ? String(meta.status).replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase()) : null;
+    const desc = meta.status_description ? String(meta.status_description) : null;
+
+    const priorityStyles: Record<string, string> = {
+      high: 'text-red-600 dark:text-red-400',
+      medium: 'text-amber-600 dark:text-amber-400',
+      low: 'text-blue-600 dark:text-blue-400',
+    };
+    const priorityColor = meta.priority
+      ? (priorityStyles[String(meta.priority).toLowerCase()] ?? 'text-muted-foreground')
+      : '';
+
+    const issueUrl = meta.issue ? String(meta.issue) : null;
+    // Extract a short label from the URL (e.g. "org/repo#123" or just the URL)
+    const issueLabel = issueUrl ? (() => {
+      const ghMatch = /github\.com\/([^/]+\/[^/]+)\/issues\/(\d+)/.exec(issueUrl);
+      if (ghMatch) return `${ghMatch[1]}#${ghMatch[2]}`;
+      return issueUrl;
+    })() : null;
+
+    type MetaRow = { label: string; value: React.ReactNode };
+    const rows: MetaRow[] = [];
+
+    if (s && statusLabel) {
+      rows.push({
+        label: 'Status',
+        value: (
+          <div className="flex items-center gap-2">
+            <span className={`inline-flex items-center px-2 py-0.5 rounded text-[11px] font-semibold tracking-wide uppercase border ${s.bg} ${s.text} ${s.border}`}>
+              {statusLabel}
+            </span>
+            {desc && <span className="text-muted-foreground">{desc}</span>}
+          </div>
+        ),
+      });
+    }
+    if (meta.priority) {
+      rows.push({
+        label: 'Priority',
+        value: <span className={`font-medium ${priorityColor}`}>{String(meta.priority).charAt(0).toUpperCase() + String(meta.priority).slice(1)}</span>,
+      });
+    }
+    if (meta.author) {
+      rows.push({ label: 'Author', value: <span className="text-foreground/80">{String(meta.author)}</span> });
+    }
+    if (issueUrl && issueLabel) {
+      rows.push({
+        label: 'Issue',
+        value: <a href={issueUrl} target="_blank" rel="noopener noreferrer" className="text-blue-600 dark:text-blue-400 hover:underline">{issueLabel}</a>,
+      });
+    }
+    if (meta.goal) {
+      rows.push({ label: 'Goal', value: <span className="text-foreground/80">{String(meta.goal)}</span> });
+    }
+    if (meta.created) {
+      rows.push({ label: 'Created', value: <span className="text-foreground/70">{String(meta.created)}</span> });
+    }
+    if (meta.updated) {
+      rows.push({ label: 'Updated', value: <span className="text-foreground/70">{String(meta.updated)}</span> });
+    }
+
+    return (
+      <div className="mb-6 not-prose rounded-md border border-border/40 overflow-hidden text-sm">
+        <table className="w-full">
+          <tbody>
+            {rows.map((row, i) => (
+              <tr key={row.label} className={i % 2 === 0 ? 'bg-muted/20' : ''}>
+                <td className="px-3 py-1.5 text-xs font-medium text-muted-foreground w-24 align-middle">{row.label}</td>
+                <td className="px-3 py-1.5 align-middle">{row.value}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    );
+  })() : null;
+
   return (
     <div className={cn('markdown-content', className)}>
+      {metaHeader}
       <ReactMarkdown
         key={markdownKey}
         remarkPlugins={remarkGfm ? [remarkGfm, remarkCodeGroup] : [remarkCodeGroup]}
@@ -1197,7 +1340,7 @@ export function MarkdownRenderer({
         // @ts-expect-error - react-markdown component types are complex and our custom components work correctly
         components={markdownComponents}
       >
-        {content}
+        {markdownBody}
       </ReactMarkdown>
 
       <Dialog open={lightboxSrc !== null} onOpenChange={() => { setLightboxSrc(null); }}>

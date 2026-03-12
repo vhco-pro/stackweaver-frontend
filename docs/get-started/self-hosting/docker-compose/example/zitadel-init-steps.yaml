@@ -1,0 +1,22 @@
+FirstInstance:
+  Skip: false
+  PatPath: /pat/admin.pat
+  InstanceName: "StackWeaver"
+  DefaultLanguage: en
+  Org:
+    Name: ZITADEL
+    Human:
+      UserName: admin
+      FirstName: Admin
+      LastName: User
+      Email:
+        Address: admin@zitadel.localhost
+        Verified: true
+      Password: Password1!
+      PasswordChangeRequired: false
+    Machine:
+      Machine:
+        Username: admin
+        Name: "Automatically Initialized IAM_OWNER"
+      Pat:
+        ExpirationDate: "2029-01-01T00:00:00Z"

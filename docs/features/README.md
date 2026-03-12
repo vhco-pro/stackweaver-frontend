@@ -1,5 +1,3 @@
-<!-- Copyright (c) 2025 VH & Co BV. Licensed under the Business Source License 1.1. See LICENSE for details. -->
-
 # Platform Features
 
 StackWeaver is a unified orchestration platform for managing Terraform and Ansible workflows. It combines the capabilities of Terraform Cloud and Ansible AWX into a single solution. It's available for self hosting or as a managed service.

@@ -1,5 +1,3 @@
-<!-- Copyright (c) 2025 VH & Co BV. Licensed under the Business Source License 1.1. See LICENSE for details. -->
-
 # Azure OIDC Configuration
 
 Azure OIDC (OpenID Connect) configuration enables keyless authentication from Stackweaver-managed Terraform and Ansible runs to Azure. Instead of storing a long-lived client secret in your workspace variables, Stackweaver issues a short-lived signed JWT at run time, which Azure accepts in exchange for an access token via workload identity federation.

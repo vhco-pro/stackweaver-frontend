@@ -1,5 +1,3 @@
-<!-- Copyright (c) 2025 VH & Co BV. Licensed under the Business Source License 1.1. See LICENSE for details. -->
-
 # Managing Workspace Variables
 
 Learn how to set up, organize, and manage variables across your Terraform workspaces and projects.
@@ -79,7 +77,7 @@ If the same variable exists in multiple places, StackWeaver resolves conflicts u
 | **2** | Variable set variables | `instance_type = "t2.medium"` in attached set |
 | **3 (Lowest)** | Terraform variable defaults | `default = "t2.micro"` in your `.tf` file |
 
-This precedence means workspace variables always override variable set values, which is perfect for environment-specific overrides. You might have a variable set with production defaults, but override a few values for specific workspaces.
+By default, workspace variables override variable set values. However, variable sets have a **Priority** option: when enabled, the variable set's values take precedence over workspace variables. This is useful for enforcing organization-wide standards (e.g. required tags) that individual workspaces should not be able to override.
 
 ## Variable Categories
 

@@ -1,5 +1,3 @@
-<!-- Copyright (c) 2025 VH & Co BV. Licensed under the Business Source License 1.1. See LICENSE for details. -->
-
 # GitOps with Kustomize
 
 This guide shows how to deploy StackWeaver using Kustomize in a GitOps workflow with Argo CD or Flux CD.

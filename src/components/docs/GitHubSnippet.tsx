@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { Copy, Check } from 'lucide-react';
+import { getVcsProviderIcon } from '@/lib/vcs';
 
 interface SnippetData {
   org: string;
@@ -131,29 +132,55 @@ export function GitHubSnippet({ url }: GitHubSnippetProps) {
     );
   }
 
-  const shortRef = /^[0-9a-f]{40}$/i.test(snippet.ref) ? snippet.ref.slice(0, 7) : snippet.ref;
+  const isCommit = /^[0-9a-f]{40}$/i.test(snippet.ref);
+  const shortRef = isCommit ? snippet.ref.slice(0, 7) : snippet.ref;
+  const commitUrl = `https://github.com/${snippet.org}/${snippet.repo}/commit/${snippet.ref}`;
   const lineInfo = snippet.startLine != null
     ? snippet.endLine != null && snippet.endLine !== snippet.startLine
-      ? `Lines ${snippet.startLine} to ${snippet.endLine}`
-      : `Line ${snippet.startLine}`
+      ? `L${snippet.startLine}-${snippet.endLine}`
+      : `L${snippet.startLine}`
     : null;
 
   return (
     <div className="not-prose my-4 rounded-md border border-border/40 overflow-hidden text-sm">
       {/* Header */}
       <div className="flex items-center justify-between px-3 py-2 bg-muted/30 border-b border-border/40">
-        <div className="flex flex-col gap-0.5 min-w-0">
+        <div className="flex items-center gap-2 min-w-0">
+          <a
+            href={`https://github.com/${snippet.org}/${snippet.repo}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="shrink-0 text-muted-foreground hover:text-foreground transition-colors"
+            title={`${snippet.org}/${snippet.repo} on GitHub`}
+          >
+            {getVcsProviderIcon('github', 'h-4 w-4')}
+          </a>
           <a
             href={url}
             target="_blank"
             rel="noopener noreferrer"
-            className="font-mono text-xs text-primary hover:underline truncate"
+            className="font-mono text-xs text-foreground/80 hover:text-foreground truncate transition-colors"
           >
-            {snippet.org}/{snippet.repo}/{snippet.path}
+            <span className="text-muted-foreground">{snippet.org}/</span>{snippet.repo}<span className="text-muted-foreground">/{snippet.path}</span>
           </a>
           {lineInfo && (
-            <span className="text-xs text-muted-foreground">
-              {lineInfo} in <code className="text-xs font-mono bg-muted/50 px-1 rounded">{shortRef}</code>
+            <span className="inline-flex items-center shrink-0 px-1.5 py-0.5 rounded text-[10px] font-mono bg-muted/60 text-muted-foreground border border-border/40">
+              {lineInfo}
+            </span>
+          )}
+          {isCommit ? (
+            <a
+              href={commitUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center shrink-0 px-1.5 py-0.5 rounded text-[10px] font-mono bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 hover:bg-amber-500/20 transition-colors"
+              title={`Commit ${snippet.ref}`}
+            >
+              {shortRef}
+            </a>
+          ) : (
+            <span className="inline-flex items-center shrink-0 px-1.5 py-0.5 rounded text-[10px] font-medium bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+              {shortRef}
             </span>
           )}
         </div>

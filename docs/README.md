@@ -1,5 +1,3 @@
-<!-- Copyright (c) 2025 VH & Co BV. Licensed under the Business Source License 1.1. See LICENSE for details. -->
-
 # Documentation Index
 
 Welcome to the StackWeaver documentation. This directory contains comprehensive documentation for developers, operators, and users of the orchestration platform.

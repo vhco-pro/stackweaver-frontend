@@ -1,5 +1,3 @@
-<!-- Copyright (c) 2025 VH & Co BV. Licensed under the Business Source License 1.1. See LICENSE for details. -->
-
 # Run Timeout
 
 StackWeaver includes a configurable timeout feature that automatically cancels long-running apply operations to prevent jobs from getting stuck indefinitely.

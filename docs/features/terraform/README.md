@@ -1,5 +1,3 @@
-<!-- Copyright (c) 2025 VH & Co BV. Licensed under the Business Source License 1.1. See LICENSE for details. -->
-
 # Terraform Features
 
 StackWeaver's Terraform integration provides workspace management, run execution, and automation features compatible with Terraform Cloud and Enterprise. This section covers platform-specific capabilities for configuring workspaces, controlling runs, and viewing output.

@@ -1,5 +1,3 @@
-<!-- Copyright (c) 2025 VH & Co BV. Licensed under the Business Source License 1.1. See LICENSE for details. -->
-
 # Environment Variables Reference
 
 This page documents every environment variable used by StackWeaver services.
@@ -174,12 +172,11 @@ The runner picks jobs from the Redis queue and executes Terraform plan/apply/des
 | `DATABASE_PASSWORD` | PostgreSQL password | `iac_password` |
 | `DATABASE_NAME` | Database name | `iac_platform` |
 | `DATABASE_SSLMODE` | SSL mode | `disable` |
-| `STORAGE_ENDPOINT` | MinIO/S3 endpoint (host:port) | `localhost:9000` |
-| `STORAGE_ACCESS_KEY` | Access key | `minioadmin` |
-| `STORAGE_SECRET_KEY` | Secret key | `minioadmin` |
-| `STORAGE_USE_SSL` | Use HTTPS | `false` |
-| `STORAGE_BUCKET` | Bucket for Terraform configs | `terraform-registry` |
-| `STATE_BUCKET` | Bucket for Terraform state files | `iac-state` |
+| `MINIO_ENDPOINT` | MinIO/S3 endpoint (host:port) | `localhost:9000` |
+| `MINIO_ACCESS_KEY` | Access key | `minioadmin` |
+| `MINIO_SECRET_KEY` | Secret key | `minioadmin` |
+| `MINIO_USE_SSL` | Use HTTPS | `false` |
+| `STORAGE_BUCKET` | Bucket for Terraform configs and registry | `terraform-registry` |
 | `ENCRYPTION_KEY` | 32-byte hex encryption key | `0000...` (insecure) |
 | `OIDC_ISSUER_URL` | OIDC issuer URL for workload identity | Falls back to `API_URL` |
 
@@ -236,7 +233,8 @@ The following are the most relevant variables used in the StackWeaver deployment
 ## zitadel-init
 
 The zitadel-init container sets up the Zitadel organisation, OIDC apps, and service users.
-It writes the generated credentials to `deploy/.env` which is consumed by other services.
+In Docker Compose it writes the generated credentials to `deploy/.env`.
+In Kubernetes it runs as a sidecar in the Zitadel pod and patches the K8s Secret directly.
 
 | Variable | Description | Default |
 |---|---|---|
@@ -246,10 +244,29 @@ It writes the generated credentials to `deploy/.env` which is consumed by other 
 | `ZITADEL_ADMIN_USERNAME` | Admin email address | `admin@ZITADEL.localhost` |
 | `ZITADEL_ADMIN_PASSWORD` | Admin password | `Password1!` |
 | `ZITADEL_PAT_PATH` | Path to PAT file written by Zitadel | `/pat/admin.pat` |
-| `ZITADEL_PAT` | Pre-existing PAT (skips file read) | (empty) |
+| `ZITADEL_PAT` | Pre-existing PAT (highest priority, skips file and secret read) | (empty) |
 | `ZITADEL_CUSTOM_DOMAINS` | Additional custom domains | (none) |
 | `FRONTEND_REDIRECT_URI` | OAuth2 callback URI for frontend | Derived from app URL |
 | `FRONTEND_POST_LOGOUT_URI` | Post-logout redirect URI | Derived from app URL |
+
+### Kubernetes-only variables
+
+These are set by the Helm chart and used by the sidecar for K8s Secret patching and deployment restarts.
+
+| Variable | Description | Default |
+|---|---|---|
+| `K8S_SECRET_NAME` | Name of the K8s Secret to patch | (from Helm template) |
+| `K8S_NAMESPACE` | Namespace (injected via Downward API) | (from pod metadata) |
+| `K8S_API_DEPLOYMENT` | API deployment name (for rolling restart) | (from Helm template) |
+| `K8S_FRONTEND_DEPLOYMENT` | Frontend deployment name | (from Helm template) |
+| `K8S_LOGIN_UI_DEPLOYMENT` | Login UI deployment name | (from Helm template) |
+| `K8S_KEY_CLIENT_ID` | Secret key name for client ID | `client-id` |
+| `K8S_KEY_CLIENT_SECRET` | Secret key name for client secret | `client-secret` |
+| `K8S_KEY_LOGIN_SERVICE_USER_TOKEN` | Secret key name for login service user token | `login-service-user-token` |
+| `K8S_KEY_FRONTEND_CLIENT_ID` | Secret key name for frontend client ID | `frontend-client-id` |
+| `K8S_KEY_WEBHOOK_IDP_SYNC_KEY` | Secret key name for webhook IdP sync key | `webhook-idp-sync-key` |
+| `K8S_KEY_WEBHOOK_COMPLEMENT_TOKEN_KEY` | Secret key name for webhook complement token key | `webhook-complement-token-key` |
+| `K8S_KEY_ADMIN_PAT` | Secret key name for persisted admin PAT | `admin-pat` |
 
 ---
 
