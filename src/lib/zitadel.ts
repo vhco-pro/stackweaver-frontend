@@ -139,10 +139,13 @@ export async function getUserInfo(accessToken: string): Promise<UserInfo> {
   return await response.json() as UserInfo;
 }
 
-// Store tokens in localStorage for persistence across browser sessions
+// Store tokens in localStorage for persistence across browser sessions.
+// Also records the clientId so stale tokens from a previous install are
+// detected and cleared automatically (see clearTokensIfClientChanged).
 export function storeTokens(tokens: { access_token: string; id_token: string; refresh_token?: string; expires_in?: number }) {
   localStorage.setItem('zitadel_access_token', tokens.access_token);
   localStorage.setItem('zitadel_id_token', tokens.id_token);
+  localStorage.setItem('zitadel_client_id', clientId);
   if (tokens.refresh_token) {
     localStorage.setItem('zitadel_refresh_token', tokens.refresh_token);
   }
@@ -151,6 +154,19 @@ export function storeTokens(tokens: { access_token: string; id_token: string; re
     const expiresAt = Date.now() + (tokens.expires_in * 1000);
     localStorage.setItem('zitadel_token_expires_at', expiresAt.toString());
   }
+}
+
+// Clear tokens if the clientId in localStorage does not match the current
+// clientId from env.js. This self-heals after a cluster wipe + reinstall
+// where a new OIDC app is provisioned with a different clientId.
+export function clearTokensIfClientChanged(): boolean {
+  const storedClientId = localStorage.getItem('zitadel_client_id');
+  if (storedClientId !== null && storedClientId !== clientId) {
+    console.warn(`OIDC clientId changed (${storedClientId} → ${clientId}), clearing stale tokens`);
+    clearTokens();
+    return true;
+  }
+  return false;
 }
 
 // Get stored access token
@@ -219,6 +235,7 @@ export function clearTokens() {
   localStorage.removeItem('zitadel_id_token');
   localStorage.removeItem('zitadel_refresh_token');
   localStorage.removeItem('zitadel_token_expires_at');
+  localStorage.removeItem('zitadel_client_id');
   sessionStorage.removeItem('zitadel_code_verifier');
 }
 

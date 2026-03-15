@@ -1,7 +1,7 @@
 // Copyright (c) 2025 VH & Co BV. Licensed under the Business Source License 1.1. See LICENSE for details.
 
 import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from 'react';
-import { getAccessToken, getUserInfo, getLogoutUrl, clearTokens, isTokenExpired, refreshAccessToken } from '@/lib/zitadel';
+import { getAccessToken, getUserInfo, getLogoutUrl, clearTokens, clearTokensIfClientChanged, isTokenExpired, refreshAccessToken } from '@/lib/zitadel';
 
 // Zitadel user session type
 export type Session = {
@@ -32,6 +32,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const checkSession = async (): Promise<void> => {
     try {
+      // If the OIDC clientId changed (e.g. cluster wipe + reinstall), tokens
+      // from the old install are invalid. Clear them before doing anything else.
+      clearTokensIfClientChanged();
+
       let accessToken = getAccessToken();
       
       // Check if token is expired and try to refresh
