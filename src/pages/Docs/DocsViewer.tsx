@@ -85,7 +85,7 @@ export default function DocsViewer({ docsBase = '/docs', indexFile = '/docs-inde
     }
 
     void loadDoc();
-  }, [docPath, location.pathname]);
+  }, [docPath, location.pathname, docsBase]);
 
   if (loading) {
     return (

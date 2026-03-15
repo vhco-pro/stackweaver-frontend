@@ -49,7 +49,7 @@ export function DocsSidebar({ className, onNavigate, docsBase = '/docs', indexFi
     }
 
     void loadIndex();
-  }, []);
+  }, [indexFile]);
 
   // Auto-expand directories that contain the current path when location changes
   useEffect(() => {
@@ -67,7 +67,7 @@ export function DocsSidebar({ className, onNavigate, docsBase = '/docs', indexFi
       }
       return next;
     });
-  }, [location.pathname, index]);
+  }, [location.pathname, index, docsBase]);
 
   const toggleDir = (path: string) => {
     setExpandedDirs(prev => {

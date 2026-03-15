@@ -57,7 +57,7 @@ export function DocsLayout({ children, docsBase = '/docs', indexFile = '/docs-in
     }
 
     void loadIndex();
-  }, []);
+  }, [indexFile]);
 
   // Scroll to top when navigating to a new doc (sidebar, breadcrumbs, prev/next, in-content links).
   // useLayoutEffect runs synchronously before paint to avoid scroll flicker.

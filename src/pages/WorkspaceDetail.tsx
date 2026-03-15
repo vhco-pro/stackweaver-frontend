@@ -2,19 +2,21 @@
 
 import { useEffect, useState, useRef } from 'react';
 import { useParams, Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { 
-  workspacesApi, 
-  runsApi, 
-  stateVersionsApi, 
+import {
+  workspacesApi,
+  runsApi,
+  stateVersionsApi,
   variablesApi,
   variableSetsApi,
-  type Workspace, 
+  vcsConnectionsApi,
+  type Workspace,
   type Run,
   type StateVersion,
   type Variable,
   type VariableSet
 } from '@/api/client';
 import { getRunFromJsonApi, type JsonApiResource, type JsonApiResponse } from '@/utils/jsonapi';
+import { MarkdownRenderer } from '@/components/docs/MarkdownRenderer';
 import { OutputViewer } from '@/components/runs/OutputViewer';
 import { RunSourceDisplay } from '@/components/runs/RunSourceDisplay';
 import { ErrorDisplay } from '@/components/runs/ErrorDisplay';
@@ -27,6 +29,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
   ArrowLeft,
+  BookOpen,
   Lock,
   Unlock,
   Plus,
@@ -219,6 +222,10 @@ export default function WorkspaceDetail() {
   const [pendingVariableCreate, setPendingVariableCreate] = useState<(() => void) | null>(null);
   const [platformVariablesSectionOpen, setPlatformVariablesSectionOpen] = useState(false);
   
+  // README state
+  const [readmeContent, setReadmeContent] = useState<string | null>(null);
+  const [readmeLoading, setReadmeLoading] = useState(false);
+
   // Inline description editing state
   const [isEditingDescription, setIsEditingDescription] = useState(false);
   const [inlineDescription, setInlineDescription] = useState('');
@@ -576,6 +583,48 @@ export default function WorkspaceDetail() {
       setActiveTab(tabParam as TabType);
     }
   }, [searchParams]);
+
+  // Fetch README from VCS repository
+  useEffect(() => {
+    if (!workspace?.vcs_connection_id || !workspace?.vcs_repository) return;
+
+    const parts = workspace.vcs_repository.split('/');
+    if (parts.length !== 2) return;
+    const [owner, repo] = parts;
+
+    let cancelled = false;
+    setReadmeLoading(true);
+
+    void (async () => {
+      const dir = workspace.working_directory ? `${workspace.working_directory}/` : '';
+      const candidates = [`${dir}README.md`, `${dir}readme.md`, `${dir}Readme.md`];
+      for (const filepath of candidates) {
+        if (cancelled) return;
+        try {
+          const result = await vcsConnectionsApi.getFileContent(
+            workspace.vcs_connection_id!,
+            owner,
+            repo,
+            filepath,
+            workspace.vcs_branch || undefined,
+          );
+          if (!cancelled) {
+            setReadmeContent(result.content);
+            setReadmeLoading(false);
+          }
+          return;
+        } catch {
+          // Try next candidate
+        }
+      }
+      if (!cancelled) {
+        setReadmeContent(null);
+        setReadmeLoading(false);
+      }
+    })();
+
+    return () => { cancelled = true; };
+  }, [workspace?.vcs_connection_id, workspace?.vcs_repository, workspace?.vcs_branch, workspace?.working_directory]);
 
   // Poll for active runs updates (running or pending - these can change status)
   useEffect(() => {
@@ -2104,6 +2153,37 @@ export default function WorkspaceDetail() {
               </TabsContent>
             </Tabs>
           </div>
+
+          {/* README Section */}
+          {workspace.vcs_connection_id && workspace.vcs_repository && (
+            readmeLoading ? (
+              <div className="border rounded-lg p-6 bg-muted/30">
+                <div className="flex items-center gap-2 mb-4">
+                  <BookOpen className="h-5 w-5 text-muted-foreground" />
+                  <h3 className="text-lg font-semibold">README</h3>
+                </div>
+                <div className="flex items-center gap-2 text-muted-foreground">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <span className="text-sm">Loading README...</span>
+                </div>
+              </div>
+            ) : readmeContent ? (
+              <div className="border rounded-lg p-6 bg-muted/30">
+                <div className="flex items-center gap-2 mb-4">
+                  <BookOpen className="h-5 w-5 text-muted-foreground" />
+                  <h3 className="text-lg font-semibold">README</h3>
+                </div>
+                <div className="max-w-4xl">
+                  <MarkdownRenderer
+                    content={readmeContent}
+                    enableCallouts={true}
+                    enableCodeGroups={true}
+                    enableMermaid={true}
+                  />
+                </div>
+              </div>
+            ) : null
+          )}
 
           {/* Right Sidebar Info */}
           <div className="border rounded-lg p-6 bg-muted/30">

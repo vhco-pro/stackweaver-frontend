@@ -617,7 +617,7 @@ function parseFrontmatter(raw: string): { meta: DocFrontmatter; body: string } {
   const block = match[1];
   const meta: DocFrontmatter = {};
   for (const line of block.split('\n')) {
-    const kv = /^(\w+):\s*(.+)$/.exec(line);
+    const kv = /^([\w-]+):\s*(.+)$/.exec(line);
     if (kv) {
       meta[kv[1]] = kv[2].trim().replace(/^["']|["']$/g, '');
     }
@@ -632,6 +632,8 @@ const STATUS_STYLES: Record<string, { bg: string; text: string; border: string }
   'in-progress': { bg: 'bg-amber-500/10',  text: 'text-amber-600 dark:text-amber-400',   border: 'border-amber-500/20' },
   complete:      { bg: 'bg-emerald-500/10', text: 'text-emerald-600 dark:text-emerald-400', border: 'border-emerald-500/20' },
   archived:      { bg: 'bg-slate-500/10',   text: 'text-slate-500 dark:text-slate-400',   border: 'border-slate-500/20' },
+  abandoned:     { bg: 'bg-red-500/10',     text: 'text-red-600 dark:text-red-400',       border: 'border-red-500/20' },
+  superseded:    { bg: 'bg-orange-500/10',  text: 'text-orange-600 dark:text-orange-400', border: 'border-orange-500/20' },
   draft:         { bg: 'bg-purple-500/10',  text: 'text-purple-600 dark:text-purple-400', border: 'border-purple-500/20' },
 };
 
@@ -1241,7 +1243,7 @@ export function MarkdownRenderer({
   const markdownKey = `markdown-${highlightedKeys}`;
 
   // Frontmatter metadata table
-  const hasMetaHeader = meta.status || meta.priority || meta.created || meta.updated || meta.author || meta.issue || meta.goal;
+  const hasMetaHeader = meta.status || meta.priority || meta.created || meta.updated || meta.author || meta.issue || meta.goal || meta['superseded-by'];
   const metaHeader = hasMetaHeader ? (() => {
     const s = meta.status ? getStatusStyle(String(meta.status)) : null;
     const statusLabel = meta.status ? String(meta.status).replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase()) : null;
@@ -1267,6 +1269,31 @@ export function MarkdownRenderer({
     type MetaRow = { label: string; value: React.ReactNode };
     const rows: MetaRow[] = [];
 
+    if (typeof meta['superseded-by'] === 'string' && meta['superseded-by']) {
+      const rawPath = meta['superseded-by'];
+      // Strip leading "docs/" prefix and ".md" extension to build the route
+      const routePath = rawPath.replace(/^docs\//, '').replace(/\.md$/, '');
+      const to = `${docsBase}/${routePath}`;
+      // Display label: last path segment without extension
+      const displayLabel = routePath.split('/').pop() ?? routePath;
+      rows.push({
+        label: 'Superseded By',
+        value: (
+          <span className="inline-flex items-center gap-2">
+            <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-semibold tracking-wide uppercase border bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-700/40">
+              Superseded
+            </span>
+            <a
+              href={to}
+              onClick={(e) => { e.preventDefault(); void navigate(to); }}
+              className="text-primary underline hover:text-primary/80 font-mono text-xs"
+            >
+              {displayLabel}
+            </a>
+          </span>
+        ),
+      });
+    }
     if (s && statusLabel) {
       rows.push({
         label: 'Status',

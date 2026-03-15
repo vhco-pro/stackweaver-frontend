@@ -949,6 +949,133 @@ async function processCodeSnippets(mdFiles, outputDir = PUBLIC_DOCS) {
 }
 
 /**
+ * Generate the markdown for the ## Contents section of a directory.
+ * Subdirectories (with README.md) are listed first, then files.
+ * Files without a description field are omitted.
+ *
+ * @param {string} dirPath - Absolute path to the directory
+ * @returns {string|null} Markdown string starting with "## Contents\n", or null on error
+ */
+function generateContentsTable(dirPath) {
+  let entries;
+  try {
+    entries = fs.readdirSync(dirPath, { withFileTypes: true });
+  } catch {
+    return null;
+  }
+
+  const rows = [];
+
+  // Subdirectories that have a README.md, sorted alphabetically
+  const subdirs = entries
+    .filter(e => e.isDirectory())
+    .map(e => e.name)
+    .sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase()));
+
+  for (const subdir of subdirs) {
+    const readmePath = path.join(dirPath, subdir, 'README.md');
+    if (!fs.existsSync(readmePath)) continue;
+    const meta = extractMetadata(readmePath);
+    rows.push(`| [${subdir}/](./${subdir}/) | ${meta.description || ''} |`);
+  }
+
+  // .md files directly in this directory — exclude README.md and _ prefix
+  const files = entries
+    .filter(e => e.isFile() && e.name.endsWith('.md') && e.name.toLowerCase() !== 'readme.md' && !e.name.startsWith('_'))
+    .map(e => e.name)
+    .sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase()));
+
+  for (const filename of files) {
+    const filePath = path.join(dirPath, filename);
+    let parsed;
+    try {
+      parsed = matter(fs.readFileSync(filePath, 'utf-8'));
+    } catch {
+      continue;
+    }
+    const description = parsed.data.description;
+    if (!description) continue;
+    // Use explicit title as link text when present, filename otherwise
+    const linkText = parsed.data.title || filename;
+    rows.push(`| [${linkText}](./${filename}) | ${description} |`);
+  }
+
+  if (rows.length === 0) {
+    return '## Contents\n\n_No documents found._\n';
+  }
+
+  return '## Contents\n\n| Name | Description |\n|------|-------------|\n' + rows.join('\n') + '\n';
+}
+
+/**
+ * Update the ## Contents section of a README.md in-place.
+ * Splices only the Contents section; any sections after it are preserved.
+ * If no ## Contents heading is found, logs a warning and skips.
+ *
+ * @param {string} dirPath - Absolute path to the directory containing README.md
+ */
+function updateReadme(dirPath) {
+  const readmePath = path.join(dirPath, 'README.md');
+  if (!fs.existsSync(readmePath)) return;
+
+  const content = fs.readFileSync(readmePath, 'utf-8');
+  const lines = content.split('\n');
+
+  // Find the ## Contents heading
+  const contentsIdx = lines.findIndex(l => /^## Contents\s*$/.test(l));
+  if (contentsIdx === -1) {
+    const rel = path.relative(DOCS_ROOT, readmePath);
+    console.log(`   ⚠ No ## Contents in ${rel} — skipping`);
+    return;
+  }
+
+  // Find the next sibling ## heading (or EOF)
+  const nextHeaderIdx = lines.findIndex((l, i) => i > contentsIdx && /^## /.test(l));
+  const endIdx = nextHeaderIdx === -1 ? lines.length : nextHeaderIdx;
+
+  const newTable = generateContentsTable(dirPath);
+  if (newTable === null) return;
+
+  const before = lines.slice(0, contentsIdx);
+  const after = endIdx < lines.length ? lines.slice(endIdx) : [];
+  const tableLines = newTable.trimEnd().split('\n');
+
+  const parts = [...before, ...tableLines];
+  if (after.length > 0) parts.push('', ...after);
+
+  // Preserve trailing newline
+  const newContent = parts.join('\n') + (content.endsWith('\n') ? '\n' : '');
+
+  if (newContent !== content) {
+    fs.writeFileSync(readmePath, newContent, 'utf-8');
+    console.log(`   ✅ ${path.relative(DOCS_ROOT, readmePath)}`);
+  }
+}
+
+/**
+ * Walk all directories under rootDir and update their README.md Contents sections.
+ *
+ * @param {string} rootDir
+ */
+function updateAllReadmes(rootDir) {
+  function walk(dir) {
+    updateReadme(dir);
+    let entries;
+    try {
+      entries = fs.readdirSync(dir, { withFileTypes: true });
+    } catch {
+      return;
+    }
+    for (const entry of entries) {
+      if (entry.isDirectory()) {
+        walk(path.join(dir, entry.name));
+      }
+    }
+  }
+  walk(rootDir);
+}
+
+/**
  * Build internal docs — scans docs/internal/ with no filtering and outputs to
  * frontend/public/internal-docs/ + internal-docs-index.json.
  */
@@ -959,6 +1086,10 @@ async function buildInternalDocs() {
   }
 
   console.log('\n📁 Building internal documentation index...\n');
+
+  console.log('📝 Updating README Contents sections...');
+  updateAllReadmes(INTERNAL_DOCS_ROOT);
+  console.log('');
 
   console.log('🔍 Scanning docs/internal directory...');
   const { mdFiles, imageFiles } = scanDocsDir(INTERNAL_DOCS_ROOT, INTERNAL_DOCS_ROOT, true);

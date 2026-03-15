@@ -26,20 +26,53 @@ const ToggleSwitch = ({ enabled, onChange }: { enabled: boolean; onChange: () =>
   </button>
 );
 
+const PREFS_STORAGE_KEY = 'general-preferences';
+
+interface GeneralPreferences {
+  theme: string;
+  language: string;
+  timezone: string;
+  dateFormat: string;
+  timeFormat: string;
+  compactMode: boolean;
+}
+
+const defaultPreferences: GeneralPreferences = {
+  theme: 'system',
+  language: 'en',
+  timezone: 'UTC',
+  dateFormat: 'YYYY-MM-DD',
+  timeFormat: '24h',
+  compactMode: false,
+};
+
+function loadPreferences(): GeneralPreferences {
+  try {
+    const stored = localStorage.getItem(PREFS_STORAGE_KEY);
+    if (stored) {
+      const parsed = JSON.parse(stored) as Partial<GeneralPreferences>;
+      return { ...defaultPreferences, ...parsed };
+    }
+  } catch {
+    // ignore
+  }
+  return defaultPreferences;
+}
+
 export default function PreferencesSettings() {
   const { preferences: runDisplayPrefs, updatePreference: updateRunDisplayPref } = useRunDisplayPreferences();
-  const [preferences, setPreferences] = useState({
-    theme: 'system',
-    language: 'en',
-    timezone: 'UTC',
-    dateFormat: 'YYYY-MM-DD',
-    timeFormat: '24h',
-    compactMode: false,
-  });
+  const [preferences, setPreferencesRaw] = useState<GeneralPreferences>(loadPreferences);
 
-  const handleSave = () => {
-    // TODO: Implement API call
-    console.log('Saving preferences:', preferences);
+  const setPreferences: typeof setPreferencesRaw = (action) => {
+    setPreferencesRaw((prev) => {
+      const next = typeof action === 'function' ? action(prev) : action;
+      try {
+        localStorage.setItem(PREFS_STORAGE_KEY, JSON.stringify(next));
+      } catch {
+        // ignore
+      }
+      return next;
+    });
   };
 
   return (
@@ -332,15 +365,6 @@ export default function PreferencesSettings() {
             </div>
           </div>
 
-          {/* Actions */}
-          <div className="flex justify-end">
-            <Button
-              onClick={handleSave}
-              className="bg-gradient-to-r from-indigo-500 to-violet-500 hover:from-indigo-600 hover:to-violet-600"
-            >
-              Save Preferences
-            </Button>
-          </div>
         </div>
 
         {/* Sidebar Info */}
@@ -359,7 +383,7 @@ export default function PreferencesSettings() {
             <div className="space-y-2 text-sm">
               <div className="flex items-center gap-2">
                 <Palette className="h-4 w-4 text-muted-foreground" />
-                <span>Theme preferences apply immediately</span>
+                <span>All preferences auto-save on change</span>
               </div>
               <div className="flex items-center gap-2">
                 <Languages className="h-4 w-4 text-muted-foreground" />
