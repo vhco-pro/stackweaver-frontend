@@ -252,6 +252,16 @@ Auto-generated secrets are **not** deleted on uninstall (due to `helm.sh/resourc
 PersistentVolumeClaims for PostgreSQL, MinIO, and runner workspaces are also not deleted automatically.
 Remove them manually if no longer needed.
 
+> [!WARNING]
+> Secrets and PVCs are coupled. Deleting a secret without deleting the corresponding PVC (or vice versa) can leave the cluster in an unrecoverable state — for example, deleting the Zitadel secret removes the masterkey needed to decrypt the Zitadel database. Before any destructive operation, back up your secrets:
+>
+> ```bash
+> kubectl get secret stackweaver-zitadel -n stackweaver -o yaml > zitadel-secret-backup.yaml
+> kubectl get secret stackweaver-postgresql -n stackweaver -o yaml > postgresql-secret-backup.yaml
+> ```
+>
+> Store these outside the cluster. If you intend a full clean start, delete the secrets **and** the PVCs together.
+
 ```bash
 kubectl delete pvc -l app.kubernetes.io/instance=stackweaver -n stackweaver
 kubectl delete secret -l app.kubernetes.io/managed-by=Helm -n stackweaver
