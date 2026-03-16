@@ -230,6 +230,50 @@ storage:
     region: eu-west-1
 ```
 
+## Custom CA Certificates
+
+If your Zitadel instance (or any other upstream service such as an external MinIO or PostgreSQL endpoint) is signed by an internal or corporate certificate authority, the Go services will refuse TLS connections with an error like `x509: certificate signed by unknown authority`.
+
+To fix this, provide the CA certificate to the chart using one of three approaches.
+
+**Option 1 — inline PEM in your values file** (simplest, cert is public data):
+
+```yaml
+customCA:
+  cert: |
+    -----BEGIN CERTIFICATE-----
+    MIIDXTCCAkWgAwIBAgIJAL...
+    -----END CERTIFICATE-----
+```
+
+The chart creates a ConfigMap from this value automatically.
+
+**Option 2 — existing ConfigMap** (if you manage the cert separately):
+
+```bash
+kubectl create configmap my-ca-bundle \
+  --namespace stackweaver \
+  --from-file=ca.crt=/path/to/corporate-ca.crt
+```
+
+```yaml
+customCA:
+  existingConfigMap: my-ca-bundle
+```
+
+**Option 3 — existing Secret** (for GitOps workflows using External Secrets Operator or Sealed Secrets):
+
+```yaml
+customCA:
+  existingSecret: my-ca-secret
+  key: ca.crt  # key within the Secret (default: ca.crt)
+```
+
+In all cases the certificate is mounted at `/etc/ssl/certs/custom-ca.crt` using `subPath`, so the system certificate directory is not replaced.
+Go's `crypto/x509` package scans `/etc/ssl/certs/` on Linux automatically — no additional environment variables are required.
+
+The certificate is mounted into the API, Orchestrator, Terraform Runner, and Ansible Runner containers.
+
 ## Upgrading
 
 ```bash
