@@ -139,6 +139,35 @@ The chart then automatically:
 
 No other configuration is required. If `secrets.githubApp.secretName` is empty, GitHub App support is disabled entirely and none of the above env vars are injected.
 
+#### Using ExternalSecrets or a Secret Manager
+
+If you manage Kubernetes secrets via an external system (1Password, HashiCorp Vault, AWS Secrets Manager, etc.) rather than `kubectl create secret --from-file`, you must ensure that PEM newline characters are preserved in the synced secret. Many secret managers strip or collapse newlines when storing multiline values in text fields.
+
+For **1Password**: store the `.pem` file as a **document attachment** on the 1Password item, not as a text or password field. Text fields in 1Password can collapse newlines to spaces, which breaks PEM parsing.
+
+For **HashiCorp Vault**: use file-based input to preserve formatting:
+
+```bash
+vault kv put secret/stackweaver-github-app \
+  private-key=@github-app-private-key.pem \
+  webhook-secret='<your-webhook-secret>'
+```
+
+After the secret is synced, verify PEM formatting:
+
+```bash
+kubectl get secret stackweaver-github-app -n stackweaver \
+  -o jsonpath='{.data.private-key}' | base64 -d | head -1
+```
+
+Expected output is the PEM header on its own line with no trailing content:
+
+```
+-----BEGIN RSA PRIVATE KEY-----
+```
+
+If instead you see the base64 key data on the same line as the header, the newlines have been lost and the key will fail to load.
+
 **Required environment variables** (reference):
 
 | Variable | Description |
@@ -181,9 +210,28 @@ Fix:
 
 If you need the same GitHub App to work for both local dev and production, set up two separate GitHub App registrations, one per environment.
 
-### "GitHub App is not configured" Error
-- Make sure `GITHUB_APP_ID` and `GITHUB_APP_NAME` are set
-- Verify private key is correctly loaded (check logs for parsing errors)
+### "Connect GitHub" Shows Error or "GitHub App Not Configured"
+
+This means the GitHub App Manager failed to initialize at API startup. The most common cause is a malformed PEM private key in the Kubernetes Secret (newlines stripped by a secret manager).
+
+Diagnosis:
+
+1. Check API logs for the initialization error:
+
+```bash
+kubectl logs -n stackweaver deploy/stackweaver-api | grep "GitHub App"
+```
+
+2. Verify PEM format in the secret (should be ~28 lines, not 0 or 1):
+
+```bash
+kubectl get secret stackweaver-github-app -n stackweaver \
+  -o jsonpath='{.data.private-key}' | base64 -d | wc -l
+```
+
+3. If the PEM is a single line, the secret source (1Password, Vault, etc.) likely stripped newlines during storage or retrieval. See the "Using ExternalSecrets or a Secret Manager" section above for how to fix this.
+
+4. Make sure `GITHUB_APP_ID` and `GITHUB_APP_NAME` are set in your Helm values.
 
 ### Installation Not Working
 - Check webhook URL is correct in GitHub App settings
