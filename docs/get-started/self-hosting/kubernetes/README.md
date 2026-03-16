@@ -160,6 +160,42 @@ secrets:
 
 When all four `secretName` values are set, the chart creates zero Secret resources, which is safe for GitOps.
 
+### BYO Zitadel Secret with External Zitadel
+
+If you use an external Zitadel instance (`zitadel.bundled: false`), the zitadel-init sidecar does not run.
+You **must** provide a BYO Zitadel secret with all derived keys pre-populated — they will not be filled in automatically.
+
+```bash
+kubectl create secret generic my-zitadel-secret \
+  --namespace stackweaver \
+  --from-literal=client-id="<your API app client ID>" \
+  --from-literal=client-secret="<your API app client secret>" \
+  --from-literal=frontend-client-id="<your frontend app client ID>" \
+  --from-literal=login-service-user-token="<your service user PAT>" \
+  --from-literal=masterkey="" \
+  --from-literal=admin-password="" \
+  --from-literal=webhook-idp-sync-key="" \
+  --from-literal=webhook-complement-token-key=""
+```
+
+> [!WARNING]
+> If you set `zitadel.bundled: false` without providing `secrets.zitadel.secretName`, the chart auto-generates a Zitadel secret with empty derived keys and no sidecar to populate them.
+> The API and frontend will fail to start.
+
+### Required Keys Reference
+
+Each secret must contain specific keys. If a key is missing, the dependent pods will fail silently with empty environment variables.
+
+| Secret | Required keys | Configurable via |
+|---|---|---|
+| PostgreSQL | `password` | `secrets.postgresql.keys.password` |
+| MinIO | `access-key`, `secret-key` | `secrets.minio.keys.accessKey`, `secrets.minio.keys.secretKey` |
+| Encryption | `encryption-key` | `secrets.encryption.keys.key` |
+| Zitadel (bundled) | `masterkey`, `admin-password`, `admin-username` (derived keys filled by sidecar) | `secrets.zitadel.keys.*` |
+| Zitadel (external) | `client-id`, `client-secret`, `frontend-client-id`, `login-service-user-token` | `secrets.zitadel.keys.*` |
+
+If your existing secret uses different key names, set the corresponding `secrets.<component>.keys.*` values to match.
+
 ## Complete Zitadel Initialization
 
 A `zitadel-init` sidecar runs alongside Zitadel in the same pod.
@@ -305,6 +341,17 @@ Remove them manually if no longer needed.
 > ```
 >
 > Store these outside the cluster. If you intend a full clean start, delete the secrets **and** the PVCs together.
+
+**What you can safely delete** (will be re-created on next install):
+
+| Resource | Safe to delete? | Consequence |
+|---|---|---|
+| Deployments, Services, ConfigMaps, Jobs | Yes | Re-created by Helm |
+| Secrets + PVCs together | Yes | Full clean start, all data lost |
+| PVCs only (keep secrets) | Yes | Fresh databases, credentials still match — zitadel-init re-provisions OIDC apps |
+| Secrets only (keep PVCs) | **No** | New random credentials don't match existing data — **unrecoverable** for masterkey and encryption-key |
+
+For a full clean start:
 
 ```bash
 kubectl delete pvc -l app.kubernetes.io/instance=stackweaver -n stackweaver
