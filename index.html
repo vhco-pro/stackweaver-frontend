@@ -74,8 +74,10 @@
   </head>
   <body>
     <div id="root"></div>
-    <!-- Runtime config: populated by deployment (Kubernetes/nginx), falls back to import.meta.env in dev -->
-    <script src="/env.js" onerror="console.debug('env.js not found — using build-time env vars')"></script>
+    <!-- Runtime config: populated by deployment (Kubernetes/nginx), falls back to import.meta.env in dev.
+         Cache-busted with Date.now() to prevent stale client_id after cluster reinstalls.
+         Must be synchronous (document.write) so it executes before main.tsx. -->
+    <script>document.write('<script src="/env.js?_=' + Date.now() + '" onerror="console.debug(\'env.js not found — using build-time env vars\')"><\/script>');</script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
