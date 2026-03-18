@@ -35,7 +35,9 @@ Before configuring SSO, ensure you have:
 
 1. A running StackWeaver deployment with Zitadel initialized (see the [Zitadel Setup Guide](../authentication/zitadel-setup.md)).
 2. Administrator access to your external identity provider.
-3. Access to the `deploy/sso.env` file to set SSO/OIDC environment variables (this file is not overwritten by the auto-generated `deploy/.env`).
+3. Access to configure SSO environment variables for your deployment method:
+   - **Docker Compose**: edit `deploy/sso.env` (not overwritten by the auto-generated `deploy/.env`).
+   - **Kubernetes / Helm**: create a Kubernetes Secret with SSO credentials and reference it in your Helm values (see [Deploying SSO on Kubernetes](#deploying-sso-on-kubernetes) below).
 
 ## Architecture Overview
 
@@ -62,3 +64,89 @@ StackWeaver is a multi-tenant platform. SSO-authenticated users are provisioned 
 2. The user's SSO group claims are mapped to StackWeaver teams via the `sso_team_id` field, which automatically grants organization membership for those specific organizations only.
 
 This design ensures strong tenant isolation. A user from one company cannot see or access another company's organizations, even if both companies use the same StackWeaver instance.
+
+## Deploying SSO on Kubernetes
+
+The individual provider guides below show Docker Compose commands for setting environment variables and restarting services. If you are running StackWeaver on Kubernetes with the Helm chart, use the Helm chart's `sso` values instead.
+
+### Step 1: Create a Kubernetes Secret with SSO credentials
+
+Create a Secret containing the client secret(s) for your provider. The key names must match what the chart expects.
+
+**Azure AD:**
+
+```bash
+kubectl create secret generic stackweaver-sso \
+  --namespace stackweaver \
+  --from-literal=azure-ad-client-secret="<your-azure-ad-client-secret>"
+```
+
+**Generic OIDC (Okta, AWS Cognito, etc.):**
+
+```bash
+kubectl create secret generic stackweaver-sso \
+  --namespace stackweaver \
+  --from-literal=oidc-idp-client-secret="<your-oidc-client-secret>"
+```
+
+**Both Azure AD and a Generic OIDC provider:**
+
+```bash
+kubectl create secret generic stackweaver-sso \
+  --namespace stackweaver \
+  --from-literal=azure-ad-client-secret="<your-azure-ad-client-secret>" \
+  --from-literal=oidc-idp-client-secret="<your-oidc-client-secret>"
+```
+
+### Step 2: Add SSO values to your Helm values file
+
+Add the non-secret configuration and reference the Secret you created.
+
+**Azure AD example:**
+
+```yaml
+sso:
+  enableOidcTeamSync: true
+  secretName: stackweaver-sso
+  azureAd:
+    clientId: "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+    tenantId: "f0e1d2c3-b4a5-6789-0abc-def123456789"
+```
+
+**Okta example:**
+
+```yaml
+sso:
+  enableOidcTeamSync: true
+  secretName: stackweaver-sso
+  oidcProvider:
+    name: "Okta"
+    issuer: "https://dev-12345678.okta.com/oauth2/default"
+    clientId: "0oa1a2b3c4d5e6f7g8h9"
+```
+
+**AWS Cognito example:**
+
+```yaml
+sso:
+  enableOidcTeamSync: true
+  secretName: stackweaver-sso
+  oidcProvider:
+    name: "AWS Cognito"
+    issuer: "https://cognito-idp.us-east-1.amazonaws.com/us-east-1_AbCdEfGhI"
+    clientId: "1a2b3c4d5e6f7g8h9i0j"
+```
+
+### Step 3: Upgrade the Helm release
+
+```bash
+helm upgrade stackweaver oci://ghcr.io/vhco-pro/charts/stackweaver \
+  --namespace stackweaver \
+  --values my-values.yaml
+```
+
+The zitadel-init sidecar picks up the SSO environment variables, registers the provider in Zitadel, and restarts the affected deployments. Monitor progress with the following command.
+
+```bash
+kubectl logs -f deployment/stackweaver-zitadel -c zitadel-init --namespace stackweaver
+```

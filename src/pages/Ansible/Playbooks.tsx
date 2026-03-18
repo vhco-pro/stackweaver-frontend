@@ -586,18 +586,18 @@ export default function Playbooks() {
                       <a href={fileUrl} target="_blank" rel="noopener noreferrer"
                         className="text-muted-foreground flex items-center gap-1 hover:text-foreground hover:underline"
                         onClick={(e) => e.stopPropagation()}>
-                        <FileText className="h-3.5 w-3.5" />
+                        <FileText className="h-3.5 w-3.5 text-purple-600 dark:text-purple-400" />
                         {playbook.playbook_path || 'site.yml'}
                       </a>
                     ) : (
                       <span className="text-muted-foreground flex items-center gap-1">
-                        <FileText className="h-3.5 w-3.5" />
+                        <FileText className="h-3.5 w-3.5 text-purple-600 dark:text-purple-400" />
                         {playbook.playbook_path || 'site.yml'}
                       </span>
                     );
                   })() : (
                     <span className="text-muted-foreground flex items-center gap-1">
-                      <FileText className="h-3.5 w-3.5" />
+                      <FileText className="h-3.5 w-3.5 text-purple-600 dark:text-purple-400" />
                       {playbook.playbook_path || 'site.yml'}
                     </span>
                   )}
@@ -609,18 +609,18 @@ export default function Playbooks() {
                       <a href={branchUrl} target="_blank" rel="noopener noreferrer"
                         className="text-muted-foreground flex items-center gap-1 hover:text-foreground hover:underline"
                         onClick={(e) => e.stopPropagation()}>
-                        <GitBranch className="h-3.5 w-3.5" />
+                        <GitBranch className="h-3.5 w-3.5 text-purple-600 dark:text-purple-400" />
                         {playbook.vcs_branch}
                       </a>
                     ) : (
                       <span className="text-muted-foreground flex items-center gap-1">
-                        <GitBranch className="h-3.5 w-3.5" />
+                        <GitBranch className="h-3.5 w-3.5 text-purple-600 dark:text-purple-400" />
                         {playbook.vcs_branch}
                       </span>
                     );
                   })() : playbook.vcs_branch ? (
                     <span className="text-muted-foreground flex items-center gap-1">
-                      <GitBranch className="h-3.5 w-3.5" />
+                      <GitBranch className="h-3.5 w-3.5 text-purple-600 dark:text-purple-400" />
                       {playbook.vcs_branch}
                     </span>
                   ) : null}
@@ -628,7 +628,7 @@ export default function Playbooks() {
                   {/* Last Synced */}
                   {playbook.last_synced_at && (
                     <span className="text-muted-foreground flex items-center gap-1">
-                      <Clock className="h-3.5 w-3.5" />
+                      <Clock className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400" />
                       Synced {formatRelativeTime(playbook.last_synced_at)}
                     </span>
                   )}

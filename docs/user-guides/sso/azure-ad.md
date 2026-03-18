@@ -63,7 +63,11 @@ Ensure the application has the following API permissions:
    - `email` (Delegated)
 3. If they are missing, click **Add a permission** > **Microsoft Graph** > **Delegated permissions** and add them.
 
-## Step 6: Set Environment Variables
+## Step 6: Configure StackWeaver
+
+Choose the instructions for your deployment method.
+
+### Docker Compose
 
 Add the following variables to **`deploy/sso.env`** (this file is not overwritten by the auto-generated `deploy/.env`):
 
@@ -76,14 +80,42 @@ AZURE_AD_TENANT_ID=f0e1d2c3-b4a5-6789-0abc-def123456789
 
 If you omit `AZURE_AD_TENANT_ID`, StackWeaver will configure the provider in "common" multi-tenant mode, which allows any Azure AD tenant to authenticate. For most deployments, you should set the tenant ID to restrict access to your organization.
 
-## Step 7: Restart Services
-
-After setting the environment variables, restart the services to apply the configuration:
+Then restart the `zitadel-init` service to apply the configuration:
 
 ```bash
 cd deploy
 docker compose up -d --build zitadel-init
 ```
+
+### Kubernetes / Helm
+
+Create a Kubernetes Secret with the client secret:
+
+```bash
+kubectl create secret generic stackweaver-sso \
+  --namespace stackweaver \
+  --from-literal=azure-ad-client-secret="your-client-secret-value"
+```
+
+Add the Azure AD configuration to your Helm values file:
+
+```yaml
+sso:
+  secretName: stackweaver-sso
+  azureAd:
+    clientId: "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+    tenantId: "f0e1d2c3-b4a5-6789-0abc-def123456789"
+```
+
+Then upgrade the release:
+
+```bash
+helm upgrade stackweaver oci://ghcr.io/vhco-pro/charts/stackweaver \
+  --namespace stackweaver \
+  --values my-values.yaml
+```
+
+### Verify the configuration
 
 The `zitadel-init` service will automatically detect the Azure AD environment variables and:
 
@@ -91,10 +123,16 @@ The `zitadel-init` service will automatically detect the Azure AD environment va
 2. Add the provider to the login policy so the "Sign in with Microsoft" button appears.
 3. Create Zitadel Actions to capture and forward group claims through the JWT.
 
-You can verify the configuration by checking the `zitadel-init` container logs:
+Check the logs to verify:
 
+**Docker Compose:**
 ```bash
 docker compose -f deploy/docker-compose.yml logs zitadel-init
+```
+
+**Kubernetes:**
+```bash
+kubectl logs -f deployment/stackweaver-zitadel -c zitadel-init --namespace stackweaver
 ```
 
 Look for output like:
@@ -133,7 +171,7 @@ The Azure AD provider is configured with the following behaviors:
 
 ### "Sign in with Microsoft" button does not appear
 
-Verify that the `AZURE_AD_CLIENT_ID` environment variable is set and non-empty in your `deploy/sso.env` file. Then re-run `zitadel-init` and check its logs for errors.
+Verify that the `AZURE_AD_CLIENT_ID` environment variable is set and non-empty. For Docker Compose, check `deploy/sso.env`. For Kubernetes, verify your Helm values have `sso.azureAd.clientId` set. Then re-run `zitadel-init` and check its logs for errors.
 
 ### Redirect URI mismatch error (AADSTS50011)
 
