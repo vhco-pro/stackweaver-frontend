@@ -71,7 +71,12 @@ The individual provider guides below show Docker Compose commands for setting en
 
 ### Step 1: Create a Kubernetes Secret with SSO credentials
 
-Create a Secret containing the client secret(s) for your provider. The key names must match what the chart expects.
+Create a Secret containing the client secret(s) for your provider. By default the chart reads the following key names from the Secret.
+
+| Provider | Default key name |
+|----------|-----------------|
+| Azure AD | `azure-ad-client-secret` |
+| Generic OIDC | `oidc-idp-client-secret` |
 
 **Azure AD:**
 
@@ -96,6 +101,16 @@ kubectl create secret generic stackweaver-sso \
   --namespace stackweaver \
   --from-literal=azure-ad-client-secret="<your-azure-ad-client-secret>" \
   --from-literal=oidc-idp-client-secret="<your-oidc-client-secret>"
+```
+
+If your Secret uses different key names (for example, because it is managed by External Secrets Operator or Sealed Secrets), override the defaults with `sso.keys`:
+
+```yaml
+sso:
+  secretName: my-existing-secret
+  keys:
+    azureAdClientSecret: my-azure-secret-key       # default: azure-ad-client-secret
+    oidcProviderClientSecret: my-oidc-secret-key   # default: oidc-idp-client-secret
 ```
 
 ### Step 2: Add SSO values to your Helm values file

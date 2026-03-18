@@ -345,6 +345,16 @@ sso:
     clientId: "<your-oidc-client-id>"
 ```
 
+If your Secret uses different key names (for example, when managed by External Secrets Operator or Sealed Secrets), override the defaults with `sso.keys`:
+
+```yaml
+sso:
+  secretName: my-existing-secret
+  keys:
+    azureAdClientSecret: my-azure-key       # default: azure-ad-client-secret
+    oidcProviderClientSecret: my-oidc-key   # default: oidc-idp-client-secret
+```
+
 The zitadel-init sidecar picks up these values, registers the identity provider in Zitadel, and adds the SSO login button automatically. For provider-specific setup instructions (redirect URIs, group claims, etc.), see the [SSO user guides](../../../user-guides/sso/).
 
 ## Upgrading
