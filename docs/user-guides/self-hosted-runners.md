@@ -85,21 +85,25 @@ Use this token only when starting the runner container. Do not commit it to sour
 
 ---
 
-## Step 3: Run the Runner Container
+## Step 3: Run the Runner
 
-You run the same Docker images StackWeaver uses for platform-hosted execution, but in **agent mode**. The container registers with the API, polls for jobs, and runs them locally.
+You run the same container images StackWeaver uses for platform-hosted execution, but in **agent mode**. The runner registers with the API, polls for jobs, and runs them locally on your infrastructure.
 
 ### Required values
 
-- **Agent pool ID**: The UUID of the pool you created (visible in the Agent Pools UI, e.g. when adding a runner or in the pool URL).
-- **API key**: The token you created in Step 2 (e.g. `tfe-xxx...`).
-- **StackWeaver server**: The base URL of your StackWeaver API (e.g. `https://app.stackweaver.io` or `https://your-stackweaver.example.com`).
+Before starting a runner, gather the following values.
 
-Replace `<pool-uuid>`, `<your-api-key>`, and the server URL in the examples below with your actual values.
+| Value | Where to find it | Example |
+|-------|-------------------|---------|
+| **Agent pool ID** | Agent Pools UI (pool detail page or URL) | `a1b2c3d4-e5f6-7890-abcd-ef1234567890` |
+| **API key** | The token you created in Step 2 | `tfe-xxx...` |
+| **StackWeaver server** | Your StackWeaver URL | `https://app.stackweaver.io` |
 
-### Ansible runner
+### Docker
 
-For Ansible jobs only:
+Use `docker run` to start a runner on any machine with Docker installed. Replace `<pool-uuid>`, `<your-api-key>`, and the server URL with your actual values.
+
+#### Ansible runner (Docker)
 
 ```bash
 docker run -d --restart unless-stopped \
@@ -111,9 +115,7 @@ docker run -d --restart unless-stopped \
   stackweaver/runner-ansible:latest
 ```
 
-### Terraform runner
-
-For Terraform runs only:
+#### Terraform runner (Docker)
 
 ```bash
 docker run -d --restart unless-stopped \
@@ -125,7 +127,122 @@ docker run -d --restart unless-stopped \
   stackweaver/runner-terraform:latest
 ```
 
+### Kubernetes
+
+To run self-hosted runners on Kubernetes, create a Secret with your API key and deploy a runner using a Deployment manifest.
+
+#### Step 3a: Create a Secret for the API key
+
+```bash
+kubectl create secret generic stackweaver-runner-token \
+  --namespace <runner-namespace> \
+  --from-literal=token=<your-api-key>
+```
+
+#### Step 3b: Deploy the runner
+
+Apply a Deployment manifest for the runner type you need. The examples below deploy a single replica; increase `replicas` to run multiple runners in the same pool.
+
+**Terraform runner (Kubernetes):**
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: stackweaver-terraform-runner
+  namespace: <runner-namespace>
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: stackweaver-terraform-runner
+  template:
+    metadata:
+      labels:
+        app: stackweaver-terraform-runner
+    spec:
+      containers:
+        - name: runner
+          image: stackweaver/runner-terraform:latest
+          env:
+            - name: RUNNER_MODE
+              value: agent
+            - name: RUNNER_AGENT_POOL_ID
+              value: "<pool-uuid>"
+            - name: STACKWEAVER_SERVER
+              value: "https://your-stackweaver.example.com"
+            - name: RUNNER_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: STACKWEAVER_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: stackweaver-runner-token
+                  key: token
+          resources:
+            requests:
+              cpu: 200m
+              memory: 256Mi
+            limits:
+              cpu: "1"
+              memory: 1Gi
+```
+
+**Ansible runner (Kubernetes):**
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: stackweaver-ansible-runner
+  namespace: <runner-namespace>
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: stackweaver-ansible-runner
+  template:
+    metadata:
+      labels:
+        app: stackweaver-ansible-runner
+    spec:
+      containers:
+        - name: runner
+          image: stackweaver/runner-ansible:latest
+          env:
+            - name: RUNNER_MODE
+              value: agent
+            - name: RUNNER_AGENT_POOL_ID
+              value: "<pool-uuid>"
+            - name: STACKWEAVER_SERVER
+              value: "https://your-stackweaver.example.com"
+            - name: RUNNER_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: STACKWEAVER_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: stackweaver-runner-token
+                  key: token
+          resources:
+            requests:
+              cpu: 200m
+              memory: 256Mi
+            limits:
+              cpu: "1"
+              memory: 1Gi
+```
+
+Apply the manifest with `kubectl apply -f runner.yaml`. The runner pod starts, registers with the API, and appears in **Settings > Runners**.
+
+> [!TIP]
+> Use `RUNNER_NAME` with `fieldRef: metadata.name` so each pod automatically gets a unique name in the UI. If you scale to multiple replicas, every pod registers as a separate runner in the same pool.
+
 ### Optional environment variables
+
+These variables work with both Docker and Kubernetes deployments.
 
 | Variable | Description | Default |
 |----------|-------------|---------|
@@ -133,10 +250,10 @@ docker run -d --restart unless-stopped \
 | `RUNNER_LABELS` | Comma-separated labels for targeting (e.g. `production,gpu`). | (none) |
 | `MAX_CONCURRENT_JOBS` | How many jobs this runner can run at once. | 1 |
 
-After the container starts, it registers with the API and appears under **Settings > Runners** with status **Online** once heartbeats are received. You can open a runner from the list to see details, labels, and recent jobs.
+After the runner starts, it registers with the API and appears under **Settings > Runners** with status **Online** once heartbeats are received. You can open a runner from the list to see details, labels, and recent jobs.
 
 > [!NOTE]
-> The **Add runner** dialog in Settings > Runners shows these same commands with your pool ID and server URL filled in. Use the copy button there to paste a ready-to-run command, then replace `<your-api-key>` with your actual token.
+> The **Add runner** dialog in Settings > Runners shows Docker commands with your pool ID and server URL filled in. Use the copy button there as a starting point, then replace `<your-api-key>` with your actual token. For Kubernetes, use the Docker commands as a reference for the environment variables to include in your manifest.
 
 ---
 

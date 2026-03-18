@@ -72,7 +72,18 @@ The claim must be a JSON array of strings. For example:
 
 StackWeaver's IDP sync webhook extracts groups from multiple sources automatically. It checks the following claim names in order: `groups`, `cognito:groups`, `roles`, `group`, and Keycloak's `realm_access.roles`. It also inspects the OAuth `id_token` and `access_token` JWTs directly, which is needed for providers like Azure AD that include groups in the token but not in the userinfo response.
 
-## Step 4: Set Environment Variables
+## Step 4: Configure StackWeaver
+
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `OIDC_IDP_NAME` | No | Display name shown on the login button (defaults to "SSO") |
+| `OIDC_IDP_ISSUER` | Yes | The OIDC issuer URL (must serve `/.well-known/openid-configuration`) |
+| `OIDC_IDP_CLIENT_ID` | Yes | OAuth 2.0 client ID from your provider |
+| `OIDC_IDP_CLIENT_SECRET` | Yes | OAuth 2.0 client secret from your provider |
+
+Choose the instructions for your deployment method.
+
+### Docker Compose
 
 Add the following variables to **`deploy/sso.env`** (this file is not overwritten by the auto-generated `deploy/.env`):
 
@@ -84,21 +95,43 @@ OIDC_IDP_CLIENT_ID=your-client-id
 OIDC_IDP_CLIENT_SECRET=your-client-secret
 ```
 
-| Variable | Required | Description |
-|----------|----------|-------------|
-| `OIDC_IDP_NAME` | No | Display name shown on the login button (defaults to "SSO") |
-| `OIDC_IDP_ISSUER` | Yes | The OIDC issuer URL (must serve `/.well-known/openid-configuration`) |
-| `OIDC_IDP_CLIENT_ID` | Yes | OAuth 2.0 client ID from your provider |
-| `OIDC_IDP_CLIENT_SECRET` | Yes | OAuth 2.0 client secret from your provider |
-
-## Step 5: Restart Services
-
-After setting the environment variables, restart the services:
+Then restart the `zitadel-init` service:
 
 ```bash
 cd deploy
 docker compose up -d --build zitadel-init
 ```
+
+### Kubernetes / Helm
+
+Create a Kubernetes Secret with the client secret:
+
+```bash
+kubectl create secret generic stackweaver-sso \
+  --namespace stackweaver \
+  --from-literal=oidc-idp-client-secret="your-client-secret"
+```
+
+Add the OIDC provider configuration to your Helm values file:
+
+```yaml
+sso:
+  secretName: stackweaver-sso
+  oidcProvider:
+    name: "My Provider"
+    issuer: "https://your-provider.example.com"
+    clientId: "your-client-id"
+```
+
+Then upgrade the release:
+
+```bash
+helm upgrade stackweaver oci://ghcr.io/vhco-pro/charts/stackweaver \
+  --namespace stackweaver \
+  --values my-values.yaml
+```
+
+### Verify the configuration
 
 The `zitadel-init` service will detect the OIDC environment variables and:
 
@@ -106,10 +139,16 @@ The `zitadel-init` service will detect the OIDC environment variables and:
 2. Add the provider to the login policy so the login button appears.
 3. Create Zitadel Actions to capture and forward group claims through the JWT.
 
-Verify the configuration:
+Check the logs to verify:
 
+**Docker Compose:**
 ```bash
 docker compose -f deploy/docker-compose.yml logs zitadel-init
+```
+
+**Kubernetes:**
+```bash
+kubectl logs -f deployment/stackweaver-zitadel -c zitadel-init --namespace stackweaver
 ```
 
 ## Step 6: Test the Integration

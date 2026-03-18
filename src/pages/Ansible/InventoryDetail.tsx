@@ -74,6 +74,7 @@ import {
   CheckCircle2,
   XCircle,
   Copy,
+  ChevronDown,
 } from 'lucide-react';
 import { vcsConnectionsApi, azureOIDCConfigApi, type VCSConnection, type AzureOIDCConfiguration } from '@/api/client';
 import { getVcsProviderIcon, getVcsRepoUrl, getVcsFileUrl } from '@/lib/vcs';
@@ -102,6 +103,11 @@ export default function InventoryDetail() {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('hosts');
   
+  // Collapsible banner state
+  const [infoBannerOpen, setInfoBannerOpen] = useState(true);
+  const [warningBannerOpen, setWarningBannerOpen] = useState(true);
+  const [errorBannerOpen, setErrorBannerOpen] = useState(true);
+
   // Edit inventory state
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -1215,13 +1221,19 @@ export default function InventoryDetail() {
           {/* Sync warning banners for dynamic inventories (stderr from sources) */}
           {inventory.type === 'dynamic' && sources.filter(s => s.status === 'successful' && s.last_sync_log).map(source => (
             <Card key={`warn-${source.id}`} className="bg-amber-500/5 border-amber-500/20">
-              <CardContent className="flex items-start gap-3 py-4">
-                <AlertCircle className="h-5 w-5 text-amber-500 shrink-0 mt-0.5" />
-                <div className="space-y-1 flex-1">
-                  <div className="flex items-center justify-between">
+              <CardContent className="py-4">
+                <div className="flex items-center gap-3">
+                  <AlertCircle className="h-5 w-5 text-amber-500 shrink-0" />
+                  <button
+                    type="button"
+                    className="flex-1 text-left cursor-pointer"
+                    onClick={() => { setWarningBannerOpen(!warningBannerOpen); }}
+                  >
                     <p className="text-sm font-medium text-amber-600 dark:text-amber-400">
                       Source &ldquo;{source.name}&rdquo; Sync Warnings
                     </p>
+                  </button>
+                  <div className="flex items-center gap-1 shrink-0">
                     <Button
                       variant="ghost"
                       size="icon"
@@ -1236,40 +1248,54 @@ export default function InventoryDetail() {
                     >
                       <Copy className="h-3.5 w-3.5" />
                     </Button>
+                    <button
+                      type="button"
+                      className="h-6 w-6 flex items-center justify-center cursor-pointer"
+                      onClick={() => { setWarningBannerOpen(!warningBannerOpen); }}
+                    >
+                      <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform duration-200 ${warningBannerOpen ? 'rotate-0' : '-rotate-90'}`} />
+                    </button>
                   </div>
-                  <pre className="text-xs text-muted-foreground whitespace-pre-wrap font-mono bg-muted/50 rounded p-2 max-h-40 overflow-y-auto">
+                </div>
+                {warningBannerOpen && (
+                  <pre className="text-xs text-muted-foreground whitespace-pre-wrap font-mono bg-muted/50 rounded p-2 max-h-40 overflow-y-auto mt-2 ml-8">
                     {source.last_sync_log}
                   </pre>
-                </div>
+                )}
               </CardContent>
             </Card>
           ))}
 
           {/* VCS inventory info banner */}
           {inventory.type === 'vcs' && (
-            <Card className={dynamicPlugin 
+            <Card className={dynamicPlugin
               ? `${dynamicPlugin.bgClassLight} ${dynamicPlugin.borderClass}`
               : 'bg-purple-500/5 border-purple-500/20'
             }>
               <CardContent className="py-4">
-                <div className="flex items-start gap-3">
+                <button
+                  type="button"
+                  className="flex items-center gap-3 w-full text-left cursor-pointer"
+                  onClick={() => { setInfoBannerOpen(!infoBannerOpen); }}
+                >
                   {dynamicPlugin ? (
-                    <img src={dynamicPlugin.iconPath} alt="" className="h-5 w-5 shrink-0 mt-0.5" />
+                    <img src={dynamicPlugin.iconPath} alt="" className="h-5 w-5 shrink-0" />
                   ) : (
-                    <Info className="h-5 w-5 text-purple-500 shrink-0 mt-0.5" />
+                    <Info className="h-5 w-5 text-purple-500 shrink-0" />
                   )}
-                  <div className="flex-1 space-y-3">
-                    <div>
-                      <p className={`text-sm font-medium mb-2 ${dynamicPlugin ? `${dynamicPlugin.textClass} ${dynamicPlugin.darkTextClass}` : 'text-purple-600 dark:text-purple-400'}`}>
-                        {dynamicPlugin ? dynamicPlugin.label : 'VCS Inventory'}
-                      </p>
-                      <p className="text-sm text-muted-foreground">
-                        {dynamicPlugin 
-                          ? `Hosts are automatically discovered from ${dynamicPlugin.provider === 'azure' ? 'Azure' : dynamicPlugin.provider === 'aws' ? 'AWS' : 'GCP'} and cached locally. Click "Sync from VCS" to refresh.${hasAzureOIDC && dynamicPlugin.provider === 'azure' ? ' Authenticated via OIDC Workload Identity.' : ''}`
-                          : 'This inventory is loaded from a Git repository. Hosts and groups are automatically parsed from the inventory file.'
-                        }
-                      </p>
-                    </div>
+                  <p className={`text-sm font-medium flex-1 ${dynamicPlugin ? `${dynamicPlugin.textClass} ${dynamicPlugin.darkTextClass}` : 'text-purple-600 dark:text-purple-400'}`}>
+                    {dynamicPlugin ? dynamicPlugin.label : 'VCS Inventory'}
+                  </p>
+                  <ChevronDown className={`h-4 w-4 text-muted-foreground shrink-0 transition-transform duration-200 ${infoBannerOpen ? 'rotate-0' : '-rotate-90'}`} />
+                </button>
+                {infoBannerOpen && (
+                  <div className="space-y-3 mt-3 pl-8">
+                    <p className="text-sm text-muted-foreground">
+                      {dynamicPlugin
+                        ? `Hosts are automatically discovered from ${dynamicPlugin.provider === 'azure' ? 'Azure' : dynamicPlugin.provider === 'aws' ? 'AWS' : 'GCP'} and cached locally. Click "Sync from VCS" to refresh.${hasAzureOIDC && dynamicPlugin.provider === 'azure' ? ' Authenticated via OIDC Workload Identity.' : ''}`
+                        : 'This inventory is loaded from a Git repository. Hosts and groups are automatically parsed from the inventory file.'
+                      }
+                    </p>
                     <div className="space-y-2">
                       {inventory.vcs_repository && (() => {
                         const repoUrl = getVcsRepoUrl(inventoryVcsConn?.provider ?? '', inventory.vcs_repository, inventoryVcsConn?.account_name);
@@ -1319,7 +1345,7 @@ export default function InventoryDetail() {
                       )}
                     </div>
                   </div>
-                </div>
+                )}
               </CardContent>
             </Card>
           )}
@@ -1327,13 +1353,19 @@ export default function InventoryDetail() {
           {/* Sync error/warning for VCS inventories */}
           {inventory.type === 'vcs' && inventory.last_sync_status === 'failed' && inventory.last_sync_error && (
             <Card className="bg-red-500/5 border-red-500/20">
-              <CardContent className="flex items-start gap-3 py-4">
-                <XCircle className="h-5 w-5 text-red-500 shrink-0 mt-0.5" />
-                <div className="space-y-1 flex-1">
-                  <div className="flex items-center justify-between">
+              <CardContent className="py-4">
+                <div className="flex items-center gap-3">
+                  <XCircle className="h-5 w-5 text-red-500 shrink-0" />
+                  <button
+                    type="button"
+                    className="flex-1 text-left cursor-pointer"
+                    onClick={() => { setErrorBannerOpen(!errorBannerOpen); }}
+                  >
                     <p className="text-sm font-medium text-red-600 dark:text-red-400">
                       Sync Failed
                     </p>
+                  </button>
+                  <div className="flex items-center gap-1 shrink-0">
                     <Button
                       variant="ghost"
                       size="icon"
@@ -1348,11 +1380,20 @@ export default function InventoryDetail() {
                     >
                       <Copy className="h-3.5 w-3.5" />
                     </Button>
+                    <button
+                      type="button"
+                      className="h-6 w-6 flex items-center justify-center cursor-pointer"
+                      onClick={() => { setErrorBannerOpen(!errorBannerOpen); }}
+                    >
+                      <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform duration-200 ${errorBannerOpen ? 'rotate-0' : '-rotate-90'}`} />
+                    </button>
                   </div>
-                  <pre className="text-xs text-muted-foreground whitespace-pre-wrap font-mono bg-muted/50 rounded p-2 max-h-40 overflow-y-auto">
+                </div>
+                {errorBannerOpen && (
+                  <pre className="text-xs text-muted-foreground whitespace-pre-wrap font-mono bg-muted/50 rounded p-2 max-h-40 overflow-y-auto mt-2 ml-8">
                     {inventory.last_sync_error}
                   </pre>
-                </div>
+                )}
               </CardContent>
             </Card>
           )}
@@ -1360,13 +1401,19 @@ export default function InventoryDetail() {
           {/* Sync log (stderr warnings) for VCS inventories */}
           {inventory.type === 'vcs' && inventory.last_sync_status === 'successful' && inventory.last_sync_log && (
             <Card className="bg-amber-500/5 border-amber-500/20">
-              <CardContent className="flex items-start gap-3 py-4">
-                <AlertCircle className="h-5 w-5 text-amber-500 shrink-0 mt-0.5" />
-                <div className="space-y-1 flex-1">
-                  <div className="flex items-center justify-between">
+              <CardContent className="py-4">
+                <div className="flex items-center gap-3">
+                  <AlertCircle className="h-5 w-5 text-amber-500 shrink-0" />
+                  <button
+                    type="button"
+                    className="flex-1 text-left cursor-pointer"
+                    onClick={() => { setWarningBannerOpen(!warningBannerOpen); }}
+                  >
                     <p className="text-sm font-medium text-amber-600 dark:text-amber-400">
                       Sync Warnings
                     </p>
+                  </button>
+                  <div className="flex items-center gap-1 shrink-0">
                     <Button
                       variant="ghost"
                       size="icon"
@@ -1381,11 +1428,20 @@ export default function InventoryDetail() {
                     >
                       <Copy className="h-3.5 w-3.5" />
                     </Button>
+                    <button
+                      type="button"
+                      className="h-6 w-6 flex items-center justify-center cursor-pointer"
+                      onClick={() => { setWarningBannerOpen(!warningBannerOpen); }}
+                    >
+                      <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform duration-200 ${warningBannerOpen ? 'rotate-0' : '-rotate-90'}`} />
+                    </button>
                   </div>
-                  <pre className="text-xs text-muted-foreground whitespace-pre-wrap font-mono bg-muted/50 rounded p-2 max-h-40 overflow-y-auto">
+                </div>
+                {warningBannerOpen && (
+                  <pre className="text-xs text-muted-foreground whitespace-pre-wrap font-mono bg-muted/50 rounded p-2 max-h-40 overflow-y-auto mt-2 ml-8">
                     {inventory.last_sync_log}
                   </pre>
-                </div>
+                )}
               </CardContent>
             </Card>
           )}

@@ -592,7 +592,7 @@ export default function PlaybookDetail() {
           </Button>
           <div>
             <div className="flex items-center gap-2">
-              <FileText className="h-6 w-6 text-blue-500" />
+              <FileText className="h-6 w-6 text-purple-600 dark:text-purple-400" />
               <h1 className="text-2xl font-bold">{playbook.name}</h1>
               {playbook.vcs_connection_id && (
                 <Badge variant="outline">VCS</Badge>
@@ -659,8 +659,8 @@ export default function PlaybookDetail() {
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-lg">
-                  <FolderGit2 className="h-5 w-5" />
-                  VCS Configuration
+                  {getVcsProviderIcon(playbook.vcs_provider ?? '', 'h-5 w-5')}
+                  {playbook.vcs_provider ? `${getVcsProviderLabel(playbook.vcs_provider)} Configuration` : 'VCS Configuration'}
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
@@ -695,19 +695,19 @@ export default function PlaybookDetail() {
                           branchUrl ? (
                             <a href={branchUrl} target="_blank" rel="noopener noreferrer"
                               className="flex items-center gap-2 text-foreground hover:underline">
-                              <GitBranch className="h-4 w-4 text-muted-foreground" />
+                              <GitBranch className="h-4 w-4 text-purple-600 dark:text-purple-400" />
                               <span>{branch}</span>
                               <ExternalLink className="h-3 w-3 text-blue-500" />
                             </a>
                           ) : (
                             <div className="flex items-center gap-2">
-                              <GitBranch className="h-4 w-4 text-muted-foreground" />
+                              <GitBranch className="h-4 w-4 text-purple-600 dark:text-purple-400" />
                               <span>{branch}</span>
                             </div>
                           )
                         ) : (
                           <div className="flex items-center gap-2">
-                            <GitBranch className="h-4 w-4 text-muted-foreground" />
+                            <GitBranch className="h-4 w-4 text-purple-600 dark:text-purple-400" />
                             <span>{branch}</span>
                           </div>
                         )}
@@ -733,7 +733,7 @@ export default function PlaybookDetail() {
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-lg">
-                  <Clock className="h-5 w-5" />
+                  <Clock className="h-5 w-5 text-blue-600 dark:text-blue-400" />
                   Sync Status
                 </CardTitle>
               </CardHeader>
@@ -844,7 +844,7 @@ export default function PlaybookDetail() {
             <CardHeader>
               <CardTitle className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <Code className="h-5 w-5" />
+                  <Code className="h-5 w-5 text-purple-600 dark:text-purple-400" />
                   {playbook.playbook_path}
                 </div>
                 <Button

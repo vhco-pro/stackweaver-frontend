@@ -310,6 +310,43 @@ Go's `crypto/x509` package scans `/etc/ssl/certs/` on Linux automatically — no
 
 The certificate is mounted into the API, Orchestrator, Terraform Runner, and Ansible Runner containers.
 
+## SSO Configuration
+
+The chart supports configuring an external identity provider (Azure AD, Okta, AWS Cognito, or any OIDC-compliant provider) for single sign-on. Client secrets are stored in a pre-existing Kubernetes Secret; non-secret values are set directly in the Helm values file.
+
+Create a Secret containing the SSO client secret(s):
+
+```bash
+# Azure AD
+kubectl create secret generic stackweaver-sso \
+  --namespace stackweaver \
+  --from-literal=azure-ad-client-secret="<your-client-secret>"
+
+# Generic OIDC (Okta, AWS Cognito, etc.)
+kubectl create secret generic stackweaver-sso \
+  --namespace stackweaver \
+  --from-literal=oidc-idp-client-secret="<your-client-secret>"
+```
+
+Then add the SSO configuration to your values file:
+
+```yaml
+sso:
+  enableOidcTeamSync: true
+  secretName: stackweaver-sso
+  # Azure AD / Entra ID
+  azureAd:
+    clientId: "<your-azure-client-id>"
+    tenantId: "<your-azure-tenant-id>"
+  # OR Generic OIDC (Okta, Cognito, Keycloak, etc.)
+  oidcProvider:
+    name: "Okta"
+    issuer: "https://dev-12345678.okta.com/oauth2/default"
+    clientId: "<your-oidc-client-id>"
+```
+
+The zitadel-init sidecar picks up these values, registers the identity provider in Zitadel, and adds the SSO login button automatically. For provider-specific setup instructions (redirect URIs, group claims, etc.), see the [SSO user guides](../../../user-guides/sso/).
+
 ## Upgrading
 
 ```bash

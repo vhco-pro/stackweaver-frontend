@@ -59,7 +59,11 @@ Cognito supports groups natively. To forward group memberships to StackWeaver:
 
 Cognito automatically includes group memberships in the `cognito:groups` claim of the ID token. No additional configuration is required. StackWeaver's group capture action handles both the standard `groups` claim and the Cognito-specific `cognito:groups` claim.
 
-## Step 5: Set Environment Variables
+## Step 5: Configure StackWeaver
+
+Choose the instructions for your deployment method.
+
+### Docker Compose
 
 Add the following variables to **`deploy/sso.env`** (this file is not overwritten by the auto-generated `deploy/.env`):
 
@@ -73,25 +77,60 @@ OIDC_IDP_CLIENT_SECRET=your-client-secret-value
 
 Replace the example values with your actual Cognito app client details.
 
-## Step 6: Restart Services
-
-After setting the environment variables, restart the services:
+Then restart the `zitadel-init` service:
 
 ```bash
 cd deploy
 docker compose up -d --build zitadel-init
 ```
 
-The `zitadel-init` service will detect the Generic OIDC environment variables and:
+### Kubernetes / Helm
+
+Create a Kubernetes Secret with the client secret:
+
+```bash
+kubectl create secret generic stackweaver-sso \
+  --namespace stackweaver \
+  --from-literal=oidc-idp-client-secret="your-client-secret-value"
+```
+
+Add the Cognito configuration to your Helm values file:
+
+```yaml
+sso:
+  secretName: stackweaver-sso
+  oidcProvider:
+    name: "AWS Cognito"
+    issuer: "https://cognito-idp.us-east-1.amazonaws.com/us-east-1_AbCdEfGhI"
+    clientId: "1a2b3c4d5e6f7g8h9i0j"
+```
+
+Then upgrade the release:
+
+```bash
+helm upgrade stackweaver oci://ghcr.io/vhco-pro/charts/stackweaver \
+  --namespace stackweaver \
+  --values my-values.yaml
+```
+
+### Verify the configuration
+
+The `zitadel-init` service will detect the OIDC environment variables and:
 
 1. Register the OIDC provider in Zitadel with the name "AWS Cognito".
 2. Add the provider to the login policy so a "Sign in with AWS Cognito" button appears.
 3. Create Zitadel Actions to capture and forward group claims (including `cognito:groups`) through the JWT.
 
-Verify the configuration by checking the container logs:
+Check the logs to verify:
 
+**Docker Compose:**
 ```bash
 docker compose -f deploy/docker-compose.yml logs zitadel-init
+```
+
+**Kubernetes:**
+```bash
+kubectl logs -f deployment/stackweaver-zitadel -c zitadel-init --namespace stackweaver
 ```
 
 ## Step 7: Test the Integration

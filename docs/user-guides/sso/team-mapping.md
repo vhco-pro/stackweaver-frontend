@@ -28,6 +28,10 @@ For more details on Zitadel Actions V2, see the [Zitadel Actions V2 documentatio
 
 ## Enabling Team Sync
 
+Choose the instructions for your deployment method.
+
+### Docker Compose
+
 Add the following environment variables to **`deploy/sso.env`** (this file is not overwritten by the auto-generated `deploy/.env`):
 
 ```bash
@@ -44,6 +48,24 @@ Then restart the API service:
 ```bash
 cd deploy
 docker compose up -d api
+```
+
+### Kubernetes / Helm
+
+Add the team sync values to your Helm values file:
+
+```yaml
+sso:
+  enableOidcTeamSync: true
+  oidcRemoveFromNonSsoTeams: false  # set to true to remove users when groups change
+```
+
+Then upgrade the release:
+
+```bash
+helm upgrade stackweaver oci://ghcr.io/vhco-pro/charts/stackweaver \
+  --namespace stackweaver \
+  --values my-values.yaml
 ```
 
 ## Configuring Team Mappings
@@ -161,11 +183,7 @@ The sync only grants membership to organizations that contain teams matching the
 
 By default, team sync only adds memberships. It does not remove users from teams, even if their IdP group claims change. This is the safe default to prevent accidental access revocation.
 
-To enable automatic removal, set:
-
-```bash
-OIDC_REMOVE_FROM_NON_SSO_TEAMS=true
-```
+To enable automatic removal, set `OIDC_REMOVE_FROM_NON_SSO_TEAMS=true` in `deploy/sso.env` (Docker Compose) or `sso.oidcRemoveFromNonSsoTeams: true` in your Helm values (Kubernetes).
 
 When enabled, on each login, StackWeaver will:
 
@@ -207,8 +225,14 @@ For Azure AD, if you configured group claims to use "Group ID" (the default), th
 
 To verify what values your provider sends, check the API logs after an SSO login:
 
+**Docker Compose:**
 ```bash
 docker compose -f deploy/docker-compose.yml logs api | grep -i "extracted.*groups"
+```
+
+**Kubernetes:**
+```bash
+kubectl logs deployment/stackweaver-api -n stackweaver | grep -i "extracted.*groups"
 ```
 
 The log will show the exact group values extracted from the IdP token.
@@ -219,38 +243,50 @@ If a user logs in via SSO but their token does not contain group claims (either 
 
 ## Environment Variable Reference
 
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `ENABLE_OIDC_TEAM_SYNC` | `false` | Enable automatic team assignment based on SSO group claims |
-| `OIDC_REMOVE_FROM_NON_SSO_TEAMS` | `false` | Remove users from SSO-managed teams when their groups change |
+| Variable | Helm value | Default | Description |
+|----------|-----------|---------|-------------|
+| `ENABLE_OIDC_TEAM_SYNC` | `sso.enableOidcTeamSync` | `false` | Enable automatic team assignment based on SSO group claims |
+| `OIDC_REMOVE_FROM_NON_SSO_TEAMS` | `sso.oidcRemoveFromNonSsoTeams` | `false` | Remove users from SSO-managed teams when their groups change |
 
 ## Troubleshooting
 
 ### User is not being added to expected teams
 
 1. Verify the team has an `sso_team_id` set, and that it exactly matches the group identifier from the IdP (case-sensitive).
-2. Verify `ENABLE_OIDC_TEAM_SYNC=true` is set in `deploy/sso.env`.
+2. Verify team sync is enabled: `ENABLE_OIDC_TEAM_SYNC=true` in `deploy/sso.env` (Docker Compose) or `sso.enableOidcTeamSync: true` in Helm values (Kubernetes).
 3. Check the API service logs for "TeamSync" messages:
    ```bash
+   # Docker Compose
    docker compose -f deploy/docker-compose.yml logs api | grep -i teamsync
+   # Kubernetes
+   kubectl logs deployment/stackweaver-api -n stackweaver | grep -i teamsync
    ```
 4. Check the API service logs for "Zitadel IDP sync webhook" messages to verify the webhook is receiving IdP claims:
    ```bash
+   # Docker Compose
    docker compose -f deploy/docker-compose.yml logs api | grep -i "idp sync webhook"
+   # Kubernetes
+   kubectl logs deployment/stackweaver-api -n stackweaver | grep -i "idp sync webhook"
    ```
 5. Check the API service logs for "complement token webhook" messages to verify the sso_groups claim is being appended:
    ```bash
+   # Docker Compose
    docker compose -f deploy/docker-compose.yml logs api | grep -i "complement token webhook"
+   # Kubernetes
+   kubectl logs deployment/stackweaver-api -n stackweaver | grep -i "complement token webhook"
    ```
 6. Verify the user's JWT contains the `sso_groups` claim. You can decode the JWT at [jwt.io](https://jwt.io) to inspect its claims.
 7. If webhooks are not being called, verify the Actions V2 targets and executions are configured in Zitadel. Check the zitadel-init logs:
    ```bash
+   # Docker Compose
    docker compose -f deploy/docker-compose.yml logs zitadel-init | grep -i "actions v2"
+   # Kubernetes
+   kubectl logs deployment/stackweaver-zitadel -c zitadel-init -n stackweaver | grep -i "actions v2"
    ```
 
 ### User is not being removed from teams
 
-Verify that `OIDC_REMOVE_FROM_NON_SSO_TEAMS=true` is set. When set to `false` (the default), users are never removed automatically.
+Verify that removal is enabled: `OIDC_REMOVE_FROM_NON_SSO_TEAMS=true` in `deploy/sso.env` (Docker Compose) or `sso.oidcRemoveFromNonSsoTeams: true` in Helm values (Kubernetes). When set to `false` (the default), users are never removed automatically.
 
 ### Changes are not taking effect
 
