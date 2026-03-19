@@ -1,6 +1,7 @@
 // Copyright (c) 2025 VH & Co BV. Licensed under the Business Source License 1.1. See LICENSE for details.
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { GitBranch, CheckCircle2, Plus, ExternalLink } from 'lucide-react';
 import { getVcsProviderIcon } from '@/lib/vcs';
 
@@ -34,24 +35,17 @@ export function VCSProviderSelector({
   showConfigureOption = true,
 }: VCSProviderSelectorProps) {
   const navigate = useNavigate();
-  const [connections, setConnections] = useState<VCSConnection[]>([]);
-  const [loading, setLoading] = useState(true);
   const [adoOrg, setAdoOrg] = useState('');
   const [adoConnecting, setAdoConnecting] = useState(false);
   const [showAdoInput, setShowAdoInput] = useState(false);
 
-  useEffect(() => {
-    void vcsConnectionsApi.list(orgName)
-      .then((conns) => {
-        setConnections(conns || []);
-        setLoading(false);
-      })
-      .catch((err) => {
-        console.error('Failed to load VCS connections:', err);
-        setConnections([]);
-        setLoading(false);
-      });
-  }, [orgName]);
+  const { data: connections = [], isLoading: loading } = useQuery({
+    queryKey: ['vcs-connections', orgName],
+    queryFn: async () => {
+      const conns = await vcsConnectionsApi.list(orgName);
+      return conns || [];
+    },
+  });
 
   const handleConnectGitHub = async () => {
     try {

@@ -1,8 +1,9 @@
 // Copyright (c) 2025 VH & Co BV. Licensed under the Business Source License 1.1. See LICENSE for details.
 
-import { useEffect, useState, useRef, useCallback } from 'react';
+import { useEffect, useState, useRef } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link, useParams, useNavigate } from 'react-router-dom';
-import { workspacesApi, runsApi, organizationsApi, projectsApi, type Organization, type Project, type Workspace } from '@/api/client';
+import { workspacesApi, organizationsApi, projectsApi, type Organization, type Project, type Workspace } from '@/api/client';
 import { EditWorkspaceDialog } from '@/components/workspace/EditWorkspaceDialog';
 import { getRunStatus, getRunOperation, getAttribute, type JsonApiResource } from '@/utils/jsonapi';
 import { useOrganization } from '@/contexts/OrganizationContext';
@@ -71,12 +72,10 @@ interface WorkspaceWithStats extends Workspace {
 export default function Workspaces() {
   const { orgName } = useParams<{ orgName: string }>();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const { currentOrg } = useOrganization();
-  const [workspaces, setWorkspaces] = useState<WorkspaceWithStats[]>([]);
-  const [loading, setLoading] = useState(true);
   // Prefer orgName from URL params, fallback to currentOrg from context
   const selectedOrg = orgName || currentOrg?.name || '';
-  const [organizations, setOrganizations] = useState<Organization[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
   const [tagFilter, setTagFilter] = useState<string>('');
@@ -89,14 +88,13 @@ export default function Workspaces() {
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [workspaceToEdit, setWorkspaceToEdit] = useState<WorkspaceWithStats | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
   const itemsPerPage = 20;
   const workspacesRef = useRef<WorkspaceWithStats[]>([]);
 
   // Check if we should reopen the dialog after GitHub redirect
   useEffect(() => {
     if (!selectedOrg || !orgName) return;
-    
+
     // Check URL parameter first (from GitHubInstalled redirect)
     const searchParams = new URLSearchParams(window.location.search);
     if (searchParams.get('openDialog') === 'true') {
@@ -107,7 +105,7 @@ export default function Workspaces() {
       localStorage.removeItem('pendingWorkspaceDialog');
       return;
     }
-    
+
     // Also check localStorage (fallback - in case URL param didn't work)
     const pendingDialog = localStorage.getItem('pendingWorkspaceDialog');
     if (pendingDialog) {
@@ -131,31 +129,26 @@ export default function Workspaces() {
   }, [selectedOrg, orgName]);
 
   // Load organizations (for org selector if multiple orgs)
+  const { data: organizationsData } = useQuery({
+    queryKey: ['organizations'],
+    queryFn: async () => {
+      const res = await organizationsApi.list();
+      return res.data || [];
+    },
+  });
+  const organizations = organizationsData ?? [];
+
+  // Redirect to first org if no org in URL
   useEffect(() => {
-    void organizationsApi.list()
-      .then((res) => {
-        const orgs = res.data || [];
-        setOrganizations(orgs);
-        // If no org in URL and we have orgs, redirect to first org
-        if (!orgName && orgs.length > 0 && !currentOrg) {
-          void navigate(`/app/${orgs[0].name}/workspaces`, { replace: true });
-        }
-      })
-      .catch((err) => {
-        console.error('Failed to load organizations:', err);
-      });
-  }, [orgName, navigate, currentOrg]);
-
-  // Reusable function to fetch and enrich workspaces with project info, latest runs, and status counts
-  const fetchWorkspaces = useCallback(async (showLoading = true) => {
-    if (!selectedOrg) {
-      setLoading(false);
-      return;
+    if (!orgName && organizations.length > 0 && !currentOrg) {
+      void navigate(`/app/${organizations[0].name}/workspaces`, { replace: true });
     }
+  }, [orgName, navigate, currentOrg, organizations]);
 
-    if (showLoading) setLoading(true);
-
-    try {
+  // Fetch and enrich workspaces with project info and latest run from server
+  const { isLoading: loading, data: workspacesData, refetch: refetchWorkspaces } = useQuery({
+    queryKey: ['workspaces', selectedOrg],
+    queryFn: async () => {
       const [workspacesRes, projectsRes] = await Promise.all([
         workspacesApi.list(selectedOrg),
         projectsApi.list(selectedOrg),
@@ -163,222 +156,120 @@ export default function Workspaces() {
       const allWorkspaces = workspacesRes.data || [];
       const projects = projectsRes.data || [];
 
-      // Enrich workspaces with project and organization info
-      const enrichedWorkspaces: WorkspaceWithStats[] = await Promise.all(
-        allWorkspaces.map(async (workspace) => {
-          const project = projects.find(p => p.id === workspace.project_id);
-          const org = organizations.find(o => o.name === selectedOrg);
+      // Enrich workspaces with project info and convert server-side latest_run
+      // to JsonApiResource format for compatibility with existing UI helpers
+      const enrichedWorkspaces: WorkspaceWithStats[] = allWorkspaces.map((workspace) => {
+        const project = projects.find(p => p.id === workspace.project_id);
+        const org = organizations.find(o => o.name === selectedOrg);
 
-          // Get latest run for each workspace
-          let latestRun: JsonApiResource | undefined;
-          const runStatusCounts = {
-            needsAttention: 0,
-            errored: 0,
-            running: 0,
-            onHold: 0,
-            success: 0,
+        let latestRun: JsonApiResource | undefined;
+        const runStatusCounts = {
+          needsAttention: 0,
+          errored: 0,
+          running: 0,
+          onHold: 0,
+          success: 0,
+        };
+
+        // Convert flat latest_run from API to JsonApiResource shape
+        if (workspace.latest_run) {
+          const lr = workspace.latest_run;
+          latestRun = {
+            id: lr.id,
+            type: 'runs',
+            attributes: {
+              'status': lr.status,
+              'operation': lr.operation,
+              'is-destroy': lr.is_destroy,
+              'plan-only': lr.plan_only,
+              'has-changes': lr.has_changes,
+              'created-at': lr.created_at,
+              'completed-at': lr.completed_at ?? null,
+              'permissions': {
+                'can-apply': !lr.plan_only && lr.status === 'planned',
+              },
+            },
           };
 
-          try {
-            const runsRes = await runsApi.list(workspace.id);
-            const runs = (Array.isArray(runsRes.data) ? runsRes.data : []);
+          // Count status for this workspace's latest run
+          const status = lr.status;
+          const isPlanOnly = lr.plan_only;
 
-            if (runs.length > 0) {
-              latestRun = runs[0]; // Already sorted by created_at DESC
-
-              // Count run statuses using JSON:API helper functions
-              // TFE-style statuses: pending, planning, planned, applying, applied, errored, canceled
-              // For plan-only runs, "planned" means finished (success)
-              // For plan-and-apply runs, "planned" means waiting for apply (on hold)
-              runs.forEach(run => {
-                const status = getRunStatus(run);
-                const operation = getRunOperation(run);
-                const isPlanOnly = operation === 'plan' || getAttribute<boolean>(run, 'plan-only', false);
-
-                switch (status) {
-                  case 'errored':
-                  case 'canceled':
-                  case 'failed': // Legacy status
-                    // Errored/canceled runs should NOT be counted as "needs attention"
-                    // They can't be applied, so they don't need user action
-                    if (status === 'errored' || status === 'failed') runStatusCounts.errored++;
-                    break;
-                  case 'planning':
-                  case 'applying':
-                  case 'running': // Legacy status
-                    runStatusCounts.running++;
-                    break;
-                  case 'pending':
-                    runStatusCounts.onHold++;
-                    break;
-                  case 'planned':
-                    // Plan-only runs are finished when planned, plan-and-apply runs are waiting for apply
-                    if (isPlanOnly) {
-                      runStatusCounts.success++;
-                    } else {
-                      runStatusCounts.onHold++;
-                    }
-                    break;
-                  case 'applied':
-                  case 'completed': // Legacy status
-                    runStatusCounts.success++;
-                    break;
-                }
-              });
-            }
-          } catch (err) {
-            console.error(`Failed to load runs for workspace ${workspace.id}:`, err);
+          switch (status) {
+            case 'errored':
+            case 'failed':
+              runStatusCounts.errored++;
+              break;
+            case 'planning':
+            case 'applying':
+            case 'running':
+              runStatusCounts.running++;
+              break;
+            case 'pending':
+              runStatusCounts.onHold++;
+              break;
+            case 'planned':
+              if (isPlanOnly) {
+                runStatusCounts.success++;
+              } else {
+                runStatusCounts.onHold++;
+              }
+              break;
+            case 'applied':
+            case 'completed':
+              runStatusCounts.success++;
+              break;
           }
+        }
 
-          return {
-            ...workspace,
-            project,
-            organization: org,
-            latestRun,
-            runStatusCounts,
-          };
-        })
-      );
+        return {
+          ...workspace,
+          project,
+          organization: org,
+          latestRun,
+          runStatusCounts,
+        };
+      });
 
-      setWorkspaces(enrichedWorkspaces);
-      workspacesRef.current = enrichedWorkspaces;
-      setTotalPages(Math.ceil(enrichedWorkspaces.length / itemsPerPage));
-    } catch (err) {
-      console.error('Failed to load workspaces:', err);
-      setWorkspaces([]);
-    } finally {
-      setLoading(false);
-    }
-  }, [selectedOrg, organizations]);
+      return enrichedWorkspaces;
+    },
+    enabled: !!selectedOrg,
+  });
 
-  // Fetch workspaces and their latest runs
-  useEffect(() => {
-    void fetchWorkspaces();
-  }, [fetchWorkspaces]);
+  // Derive workspaces from query data
+  const workspaces = workspacesData ?? [];
 
-  // Poll for active runs updates (running or pending) to refresh latestRun
+  // Keep workspacesRef in sync for polling effect
+  workspacesRef.current = workspaces;
+
+  // Poll for active runs — simply re-fetch the workspace list (server includes latest_run)
   useEffect(() => {
     if (!selectedOrg) return;
 
+    const isActiveStatus = (status: string) =>
+      ['pending', 'planning', 'planned', 'applying', 'running'].includes(status);
+
     const pollInterval = setInterval(() => {
-      void (async () => {
-        try {
-          const currentWorkspaces = workspacesRef.current;
-          if (currentWorkspaces.length === 0) return;
+      const currentWorkspaces = workspacesRef.current;
+      if (currentWorkspaces.length === 0) return;
 
-          // Check if any workspace has active runs
-          // Active statuses: pending, planning, planned (waiting for apply), applying
-          const isActiveStatus = (status: string) => 
-            ['pending', 'planning', 'planned', 'applying', 'running'].includes(status);
-          
-          const hasActiveRuns = currentWorkspaces.some(w => {
-            if (!w.latestRun) return false;
-            const status = getRunStatus(w.latestRun);
-            return isActiveStatus(status);
-          });
-        
-          if (!hasActiveRuns) {
-            clearInterval(pollInterval);
-            return;
-          }
+      const hasActiveRuns = currentWorkspaces.some(w => {
+        if (!w.latestRun) return false;
+        const status = getRunStatus(w.latestRun);
+        return isActiveStatus(status);
+      });
 
-          // Refresh latestRun for workspaces with active runs
-          const updatedWorkspaces = await Promise.all(
-          currentWorkspaces.map(async (workspace) => {
-            // Only refresh if latestRun is active
-            if (workspace.latestRun) {
-              const currentStatus = getRunStatus(workspace.latestRun);
-              if (isActiveStatus(currentStatus)) {
-                try {
-                  const runsRes = await runsApi.list(workspace.id);
-                    const runs = (Array.isArray(runsRes.data) ? runsRes.data : []);
-                  const updatedLatestRun = runs.length > 0 ? runs[0] : undefined;
-                  
-                  // Update run status counts using JSON:API helpers
-                  // TFE-style statuses: pending, planning, planned, applying, applied, errored, canceled
-                  // For plan-only runs, "planned" means finished (success)
-                  // For plan-and-apply runs, "planned" means waiting for apply (on hold)
-                  const runStatusCounts = {
-                    needsAttention: 0,
-                    errored: 0,
-                    running: 0,
-                    onHold: 0,
-                    success: 0,
-                  };
-                  
-                  runs.forEach(run => {
-                    const status = getRunStatus(run);
-                    const operation = getRunOperation(run);
-                    const isPlanOnly = operation === 'plan' || getAttribute<boolean>(run, 'plan-only', false);
-                    
-                    switch (status) {
-                      case 'errored':
-                      case 'canceled':
-                      case 'failed': // Legacy status
-                        // Errored/canceled runs should NOT be counted as "needs attention"
-                        // They can't be applied, so they don't need user action
-                        if (status === 'errored' || status === 'failed') runStatusCounts.errored++;
-                        break;
-                      case 'planning':
-                      case 'applying':
-                      case 'running': // Legacy status
-                        runStatusCounts.running++;
-                        break;
-                      case 'pending':
-                        runStatusCounts.onHold++;
-                        break;
-                      case 'planned':
-                        // Plan-only runs are finished when planned, plan-and-apply runs are waiting for apply
-                        if (isPlanOnly) {
-                          runStatusCounts.success++;
-                        } else {
-                          runStatusCounts.onHold++;
-                        }
-                        break;
-                      case 'applied':
-                      case 'completed': // Legacy status
-                        runStatusCounts.success++;
-                        break;
-                    }
-                  });
-                  
-                  return {
-                    ...workspace,
-                    latestRun: updatedLatestRun,
-                    runStatusCounts,
-                  };
-                } catch (err) {
-                  console.error(`Failed to refresh runs for workspace ${workspace.id}:`, err);
-                  return workspace;
-                }
-              }
-              return workspace;
-            }
-            // If no latestRun, return workspace unchanged
-            return workspace;
-          })
-        );
+      if (!hasActiveRuns) {
+        clearInterval(pollInterval);
+        return;
+      }
 
-          workspacesRef.current = updatedWorkspaces;
-          setWorkspaces(updatedWorkspaces);
-          
-          // Stop polling if no more active runs
-          const stillActive = updatedWorkspaces.some(w => {
-            if (!w.latestRun) return false;
-            const status = getRunStatus(w.latestRun);
-            return isActiveStatus(status);
-          });
-          if (!stillActive) {
-            clearInterval(pollInterval);
-          }
-        } catch (err) {
-          console.error('Failed to poll workspaces:', err);
-        }
-      })();
-    }, 3000); // Poll every 3 seconds
+      // Re-fetch workspace list (single API call, server includes latest_run)
+      void refetchWorkspaces();
+    }, 5000); // Poll every 5 seconds when runs are active
 
     return () => clearInterval(pollInterval);
-  }, [selectedOrg]);
+  }, [selectedOrg, refetchWorkspaces]);
 
   const handleDeleteWorkspace = async (force = false) => {
     if (!workspaceToDelete || !selectedOrg) return;
@@ -397,17 +288,15 @@ export default function Workspaces() {
       setWorkspaceToDelete(null);
       setForceDeleteMode(false);
       setDeleteConfirmName('');
-      
+
       // Optimistically remove the deleted workspace immediately so UI feels snappy
-      setWorkspaces(prev => {
-        const filtered = prev.filter(w => w.id !== workspaceToDelete.id);
-        workspacesRef.current = filtered;
-        setTotalPages(Math.ceil(filtered.length / itemsPerPage));
-        return filtered;
-      });
+      queryClient.setQueryData<WorkspaceWithStats[]>(
+        ['workspaces', selectedOrg],
+        (prev) => prev?.filter(w => w.id !== workspaceToDelete.id) ?? []
+      );
 
       // Then do a full re-fetch in background to ensure consistency (with enrichment)
-      await fetchWorkspaces(false);
+      await refetchWorkspaces();
     } catch (error: unknown) {
       console.error('Failed to delete workspace:', error);
       // Check if this is a 409 Conflict (active infrastructure)
@@ -512,7 +401,7 @@ export default function Workspaces() {
         const status = getRunStatus(workspace.latestRun);
         const operation = getRunOperation(workspace.latestRun);
         const isPlanOnly = operation === 'plan' || getAttribute<boolean>(workspace.latestRun, 'plan-only', false);
-        
+
         switch (statusFilter) {
           case 'needs_attention':
             // Needs attention = runs waiting for user action (planned runs that can be applied, pending runs)
@@ -555,11 +444,11 @@ export default function Workspaces() {
       // Workspaces with no runs should not be categorized
       return null;
     }
-    
+
     const status = getRunStatus(workspace.latestRun);
     const operation = getRunOperation(workspace.latestRun);
     const isPlanOnly = operation === 'plan' || getAttribute<boolean>(workspace.latestRun, 'plan-only', false);
-    
+
     // Map run status to workspace status category (matching filter logic)
     if (status === 'failed' || status === 'errored') {
       return 'errored';
@@ -579,7 +468,7 @@ export default function Workspaces() {
     if (status === 'completed' || status === 'applied' || (status === 'planned' && isPlanOnly)) {
       return 'success';
     }
-    
+
     return null;
   };
 
@@ -612,6 +501,9 @@ export default function Workspaces() {
     const category = getWorkspaceStatusCategory(w);
     return category === 'running';
   }).length;
+
+  // Derive totalPages from filtered workspaces
+  const totalPages = Math.ceil(filteredWorkspaces.length / itemsPerPage);
 
   // Pagination
   const paginatedWorkspaces = filteredWorkspaces.slice(
@@ -671,8 +563,8 @@ export default function Workspaces() {
                 </SelectContent>
               </Select>
             )}
-            <Button 
-              onClick={() => setCreateDialogOpen(true)} 
+            <Button
+              onClick={() => setCreateDialogOpen(true)}
               className="gap-2 bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white"
             >
               <Plus className="h-4 w-4" />
@@ -896,7 +788,7 @@ export default function Workspaces() {
                                 View Details
                               </Link>
                             </DropdownMenuItem>
-                            <DropdownMenuItem 
+                            <DropdownMenuItem
                               onClick={() => {
                                 setWorkspaceToEdit(workspace);
                                 setEditDialogOpen(true);
@@ -905,7 +797,7 @@ export default function Workspaces() {
                               <Edit className="mr-2 h-4 w-4" />
                               Edit
                             </DropdownMenuItem>
-                            <DropdownMenuItem 
+                            <DropdownMenuItem
                               className="text-destructive"
                               onClick={() => {
                                 setWorkspaceToDelete(workspace);
@@ -937,8 +829,8 @@ export default function Workspaces() {
                   : 'Create your first workspace to start managing infrastructure'}
               </p>
               {!searchQuery && statusFilter === 'all' && selectedOrg && (
-                <Button 
-                  onClick={() => setCreateDialogOpen(true)} 
+                <Button
+                  onClick={() => setCreateDialogOpen(true)}
                   className="gap-2 bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white"
                 >
                   <Plus className="h-4 w-4" />
@@ -1010,7 +902,7 @@ export default function Workspaces() {
             setCreateDialogOpen(open);
             if (!open) {
               // Refresh workspaces when dialog closes (with full enrichment)
-              void fetchWorkspaces(false);
+              void refetchWorkspaces();
             }
           }}
           orgName={orgName}
@@ -1026,14 +918,14 @@ export default function Workspaces() {
             if (!open) {
               setWorkspaceToEdit(null);
               // Refresh workspaces when dialog closes (with full enrichment)
-              void fetchWorkspaces(false);
+              void refetchWorkspaces();
             }
           }}
           orgName={orgName}
           workspace={workspaceToEdit}
           onUpdated={() => {
             // Refresh workspaces after update (with full enrichment)
-            void fetchWorkspaces(false);
+            void refetchWorkspaces();
           }}
         />
       )}
@@ -1052,14 +944,14 @@ export default function Workspaces() {
             <DialogDescription>
               {forceDeleteMode ? (
                 <>
-                  This workspace has active infrastructure. Force deleting will remove the workspace and all its data <strong>without</strong> destroying the managed resources. 
+                  This workspace has active infrastructure. Force deleting will remove the workspace and all its data <strong>without</strong> destroying the managed resources.
                   This may leave orphaned infrastructure in your cloud provider.
                   <br /><br />
                   Type <strong>{workspaceToDelete?.name}</strong> to confirm.
                 </>
               ) : (
                 <>
-                  Are you sure you want to delete the workspace &quot;{workspaceToDelete?.name}&quot;? 
+                  Are you sure you want to delete the workspace &quot;{workspaceToDelete?.name}&quot;?
                   This action cannot be undone and will delete all associated runs, state versions, and variables.
                 </>
               )}

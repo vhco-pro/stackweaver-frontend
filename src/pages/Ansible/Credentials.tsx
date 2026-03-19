@@ -1,6 +1,7 @@
 // Copyright (c) 2025 VH & Co BV. Licensed under the Business Source License 1.1. See LICENSE for details.
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { Link, useParams } from 'react-router-dom';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { 
@@ -78,10 +79,18 @@ export default function Credentials() {
   const { currentOrg } = useOrganization();
   const selectedOrg = orgName || currentOrg?.name || '';
 
-  const [credentials, setCredentials] = useState<AnsibleCredential[]>([]);
-  const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [typeFilter, setTypeFilter] = useState<CredentialType | 'all'>('all');
+
+  const { data: credentials = [], isLoading: loading, refetch: refetchCredentials } = useQuery({
+    queryKey: ['credentials', selectedOrg, typeFilter],
+    queryFn: async () => {
+      const res = await ansibleCredentialsApi.list(selectedOrg, typeFilter === 'all' ? undefined : typeFilter);
+      return (res.data || []).map(getAnsibleCredentialFromJsonApi);
+    },
+    enabled: !!selectedOrg,
+  });
+
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [credentialToDelete, setCredentialToDelete] = useState<AnsibleCredential | null>(null);
@@ -108,28 +117,6 @@ export default function Credentials() {
     type: 'ssh',
   });
 
-  // Fetch credentials
-  useEffect(() => {
-    if (!selectedOrg) {
-      setLoading(false);
-      return;
-    }
-
-    setLoading(true);
-    void ansibleCredentialsApi
-      .list(selectedOrg, typeFilter === 'all' ? undefined : typeFilter)
-      .then((res) => {
-        setCredentials((res.data || []).map(getAnsibleCredentialFromJsonApi));
-      })
-      .catch((err) => {
-        console.error('Failed to load credentials:', err);
-        toast.error('Failed to load credentials');
-      })
-      .finally(() => {
-        setLoading(false);
-      });
-  }, [selectedOrg, typeFilter]);
-
   // Filter credentials
   const filteredCredentials = credentials.filter((cred) =>
     cred.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -146,7 +133,7 @@ export default function Credentials() {
     try {
       const res = await ansibleCredentialsApi.create(selectedOrg, formData);
       const newCredential = getAnsibleCredentialFromJsonApi(res.data);
-      setCredentials([...credentials, newCredential]);
+      void refetchCredentials();
       setCreateDialogOpen(false);
       resetForm();
       toast.success('Credential created successfully');
@@ -165,7 +152,7 @@ export default function Credentials() {
     setDeleting(true);
     try {
       await ansibleCredentialsApi.delete(credentialToDelete.id);
-      setCredentials(credentials.filter((c) => c.id !== credentialToDelete.id));
+      void refetchCredentials();
       setDeleteDialogOpen(false);
       setCredentialToDelete(null);
       toast.success('Credential deleted successfully');
@@ -207,9 +194,7 @@ export default function Credentials() {
       }
       const res = await ansibleCredentialsApi.update(credentialToEdit.id, payload);
       const updated = getAnsibleCredentialFromJsonApi(res.data);
-      setCredentials(credentials.map((c) =>
-        c.id === credentialToEdit.id ? updated : c
-      ));
+      void refetchCredentials();
       setEditDialogOpen(false);
       setCredentialToEdit(null);
       setEditForm({ name: '', description: '', username: '', newPassword: '', confirmPassword: '' });

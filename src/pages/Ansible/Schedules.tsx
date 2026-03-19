@@ -1,6 +1,7 @@
 // Copyright (c) 2025 VH & Co BV. Licensed under the Business Source License 1.1. See LICENSE for details.
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { useParams } from 'react-router-dom';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { 
@@ -142,9 +143,24 @@ export default function Schedules() {
   const { currentOrg } = useOrganization();
   const selectedOrg = orgName || currentOrg?.name || '';
 
-  const [schedules, setSchedules] = useState<AnsibleSchedule[]>([]);
-  const [jobTemplates, setJobTemplates] = useState<AnsibleJobTemplate[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { data: queryData, isLoading: loading, refetch: refetchSchedules } = useQuery({
+    queryKey: ['schedules', selectedOrg],
+    queryFn: async () => {
+      const [schedulesRes, templatesRes] = await Promise.all([
+        ansibleSchedulesApi.list(selectedOrg),
+        ansibleJobTemplatesApi.listByOrganization(selectedOrg),
+      ]);
+      return {
+        schedules: (schedulesRes.data || []).map(getAnsibleScheduleFromJsonApi),
+        jobTemplates: (templatesRes.data || []).map(getAnsibleJobTemplateFromJsonApi),
+      };
+    },
+    enabled: !!selectedOrg,
+  });
+
+  const schedules = queryData?.schedules ?? [];
+  const jobTemplates = queryData?.jobTemplates ?? [];
+
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<ScheduleStatus | 'all'>('all');
   const [typeFilter, setTypeFilter] = useState<ScheduleType | 'all'>('all');
@@ -165,33 +181,6 @@ export default function Schedules() {
   const [runningId, setRunningId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
-  // Fetch schedules
-  useEffect(() => {
-    if (!selectedOrg) {
-      setLoading(false);
-      return;
-    }
-
-    const fetchData = async () => {
-      setLoading(true);
-      try {
-        const [schedulesRes, templatesRes] = await Promise.all([
-          ansibleSchedulesApi.list(selectedOrg),
-          ansibleJobTemplatesApi.listByOrganization(selectedOrg),
-        ]);
-        setSchedules((schedulesRes.data || []).map(getAnsibleScheduleFromJsonApi));
-        setJobTemplates((templatesRes.data || []).map(getAnsibleJobTemplateFromJsonApi));
-      } catch (err) {
-        console.error('Failed to load schedules:', err);
-        toast.error('Failed to load schedules');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    void fetchData();
-  }, [selectedOrg]);
-
   const handleCreate = async () => {
     if (!scheduleForm.name.trim()) {
       toast.error('Schedule name is required');
@@ -210,7 +199,7 @@ export default function Schedules() {
     try {
       const res = await ansibleSchedulesApi.create(selectedOrg, scheduleForm);
       const newSchedule = getAnsibleScheduleFromJsonApi(res.data);
-      setSchedules([newSchedule, ...schedules]);
+      void refetchSchedules();
       setCreateDialogOpen(false);
       setScheduleForm({
         name: '',
@@ -233,15 +222,11 @@ export default function Schedules() {
     try {
       if (schedule.status === 'enabled') {
         await ansibleSchedulesApi.disable(schedule.id);
-        setSchedules(schedules.map((s: AnsibleSchedule) => 
-          s.id === schedule.id ? { ...s, status: 'disabled' as ScheduleStatus } : s
-        ));
+        void refetchSchedules();
         toast.success('Schedule disabled');
       } else {
         await ansibleSchedulesApi.enable(schedule.id);
-        setSchedules(schedules.map((s: AnsibleSchedule) => 
-          s.id === schedule.id ? { ...s, status: 'enabled' as ScheduleStatus } : s
-        ));
+        void refetchSchedules();
         toast.success('Schedule enabled');
       }
     } catch (err: unknown) {
@@ -257,9 +242,7 @@ export default function Schedules() {
     try {
       await ansibleSchedulesApi.runNow(scheduleId);
       toast.success('Schedule triggered - job started');
-      // Refresh to get updated run count
-      const res = await ansibleSchedulesApi.list(selectedOrg);
-      setSchedules((res.data || []).map(getAnsibleScheduleFromJsonApi));
+      void refetchSchedules();
     } catch (err: unknown) {
       console.error('Failed to run schedule:', err);
       toast.error(err instanceof Error ? err.message : 'Failed to run schedule');
@@ -272,7 +255,7 @@ export default function Schedules() {
     setDeletingId(scheduleId);
     try {
       await ansibleSchedulesApi.delete(scheduleId);
-      setSchedules(schedules.filter((s: AnsibleSchedule) => s.id !== scheduleId));
+      void refetchSchedules();
       toast.success('Schedule deleted');
     } catch (err: unknown) {
       console.error('Failed to delete schedule:', err);

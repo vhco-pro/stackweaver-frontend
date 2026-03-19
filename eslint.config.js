@@ -35,6 +35,16 @@ export default [
         'warn',
         { allowConstantExport: true },
       ],
+      // Ban direct useEffect imports — use useMountEffect() or React Query instead
+      // Set to 'warn' during migration; upgrade to 'error' after Phase 3 (data-fetching migration)
+      // See docs/internal/analysis/useeffect-audit-and-ban-proposal.md
+      'no-restricted-imports': ['warn', {
+        paths: [{
+          name: 'react',
+          importNames: ['useEffect'],
+          message: 'Direct useEffect is banned. Use useMountEffect() from @/hooks/useMountEffect for mount effects, or React Query for data fetching. See docs/internal/analysis/useeffect-audit-and-ban-proposal.md',
+        }],
+      }],
     },
   },
   // Disable no-explicit-any for files that intentionally use 'any' for JSON:API attributes
@@ -76,6 +86,14 @@ export default [
     rules: {
       '@typescript-eslint/no-require-imports': 'off',
       'no-undef': 'off',
+    },
+  },
+  // Allow direct useEffect in hooks, contexts, and animation primitives — these are infrastructure
+  // that wrap useEffect into named abstractions consumed by the rest of the codebase
+  {
+    files: ['**/hooks/**', '**/contexts/**', '**/animate-ui/**'],
+    rules: {
+      'no-restricted-imports': 'off',
     },
   },
 ]

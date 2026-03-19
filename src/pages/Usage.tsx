@@ -1,6 +1,7 @@
 // Copyright (c) 2025 VH & Co BV. Licensed under the Business Source License 1.1. See LICENSE for details.
 
 import { useEffect, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { useParams, useNavigate } from 'react-router-dom';
 import { 
   TrendingUp, 
@@ -88,59 +89,9 @@ interface AnsibleStats {
 export default function Usage() {
   const { orgName } = useParams<{ orgName: string }>();
   const navigate = useNavigate();
-  const [loading, setLoading] = useState(true);
   const [timeRange, setTimeRange] = useState<TimeRange>('30d');
   const [selectedOrg, setSelectedOrg] = useState<string>(orgName || 'all');
-  
-  const [stats, setStats] = useState({
-    totalRuns: 0,
-    totalActivities: 0,
-    totalOrganizations: 0,
-    totalProjects: 0,
-    totalWorkspaces: 0,
-    totalAnsibleJobs: 0,
-    totalAnsiblePlaybooks: 0,
-    totalAnsibleJobTemplates: 0,
-    totalAnsibleInventories: 0,
-  });
-
-  const [runStats, setRunStats] = useState<RunStats>({
-    total: 0,
-    completed: 0,
-    failed: 0,
-    running: 0,
-    pending: 0,
-    canceled: 0,
-    successRate: 0,
-    avgDuration: 0,
-  });
-
-  const [activityStats, setActivityStats] = useState<ActivityStats>({
-    total: 0,
-    byType: {},
-    byAction: {},
-    byResource: {},
-  });
-
-  const [timeSeries, setTimeSeries] = useState<TimeSeriesData[]>([]);
-  const [runsByOrg, setRunsByOrg] = useState<Array<{ name: string; count: number; success: number; failed: number }>>([]);
-  const [recentRuns, setRecentRuns] = useState<Run[]>([]);
   const [organizations, setOrganizations] = useState<Array<{ name: string; id: string }>>([]);
-  
-  const [ansibleStats, setAnsibleStats] = useState<AnsibleStats>({
-    totalJobs: 0,
-    completedJobs: 0,
-    failedJobs: 0,
-    runningJobs: 0,
-    pendingJobs: 0,
-    canceledJobs: 0,
-    successRate: 0,
-    avgDuration: 0,
-    totalPlaybooks: 0,
-    totalJobTemplates: 0,
-    totalInventories: 0,
-  });
-  const [recentAnsibleJobs, setRecentAnsibleJobs] = useState<AnsibleJob[]>([]);
 
   const getDateRange = (range: TimeRange): Date => {
     const now = new Date();
@@ -238,11 +189,10 @@ export default function Usage() {
     }
   }, [orgName, navigate, selectedOrg]);
 
-  useEffect(() => {
-    const fetchAnalyticsData = async () => {
-      setLoading(true);
-      try {
-        const startDate = getDateRange(timeRange);
+  const { data: analyticsData, isLoading: loading } = useQuery({
+    queryKey: ['analytics', timeRange, selectedOrg],
+    queryFn: async () => {
+      const startDate = getDateRange(timeRange);
         
         // Fetch all organizations
         const orgsRes = await organizationsApi.list();
@@ -305,7 +255,6 @@ export default function Usage() {
                     allRuns.push(...runs);
                     orgRunCounts[org.name].count += runs.length;
                     runs.forEach(run => {
-                      // Count plan-only runs with 'planned' status as successful
                       const isCompleted = run.status === 'completed' || run.status === 'applied';
                       const isPlanOnlyCompleted = (run.plan_only || run.operation === 'plan-only') && run.status === 'planned';
                       if (isCompleted || isPlanOnlyCompleted) orgRunCounts[org.name].success++;
@@ -323,7 +272,6 @@ export default function Usage() {
         );
 
         // Calculate run statistics
-        // Plan-only runs with 'planned' status are considered completed (plan completed successfully)
         const completedRuns = allRuns.filter(r => {
           const isCompleted = r.status === 'completed' || r.status === 'applied';
           const isPlanOnlyCompleted = (r.plan_only || r.operation === 'plan-only') && r.status === 'planned';
@@ -331,7 +279,6 @@ export default function Usage() {
         });
         const failedRuns = allRuns.filter(r => r.status === 'failed');
         const runningRuns = allRuns.filter(r => r.status === 'running' || r.status === 'planning' || r.status === 'applying');
-        // Exclude plan-only runs with 'planned' status from pending (they're completed)
         const pendingRuns = allRuns.filter(r => {
           const isPendingStatus = r.status === 'pending' || r.status === 'planned';
           const isPlanOnlyCompleted = (r.plan_only || r.operation === 'plan-only') && r.status === 'planned';
@@ -339,13 +286,12 @@ export default function Usage() {
         });
         const canceledRuns = allRuns.filter(r => r.status === 'canceled');
 
-        // Calculate average duration
         const durations = completedRuns
           .filter(r => r.started_at && r.completed_at)
           .map(r => {
             const start = new Date(r.started_at!).getTime();
             const end = new Date(r.completed_at!).getTime();
-            return (end - start) / 1000; // seconds
+            return (end - start) / 1000;
           });
         const avgDuration = durations.length > 0
           ? durations.reduce((a, b) => a + b, 0) / durations.length
@@ -355,7 +301,7 @@ export default function Usage() {
           ? (completedRuns.length / (completedRuns.length + failedRuns.length)) * 100
           : 0;
 
-        setRunStats({
+        const computedRunStats: RunStats = {
           total: allRuns.length,
           completed: completedRuns.length,
           failed: failedRuns.length,
@@ -364,7 +310,7 @@ export default function Usage() {
           canceled: canceledRuns.length,
           successRate: Math.round(successRate * 10) / 10,
           avgDuration,
-        });
+        };
 
         // Calculate activity statistics
         const byType: Record<string, number> = {};
@@ -381,14 +327,12 @@ export default function Usage() {
           byResource[resource] = (byResource[resource] || 0) + 1;
         });
 
-        setActivityStats({
+        const computedActivityStats: ActivityStats = {
           total: allActivities.length,
           byType,
           byAction,
           byResource,
-        });
-
-        // Note: Removed runsByOperation as it's not useful
+        };
 
         // Calculate runs by organization
         const orgRuns = Object.entries(orgRunCounts).map(([name, counts]) => ({
@@ -397,13 +341,11 @@ export default function Usage() {
           success: counts.success,
           failed: counts.failed,
         })).sort((a, b) => b.count - a.count);
-        setRunsByOrg(orgRuns);
 
         // Get recent runs
         const recent = allRuns
           .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
           .slice(0, 10);
-        setRecentRuns(recent);
 
         // Fetch Ansible data
         const allAnsibleJobs: AnsibleJob[] = [];
@@ -414,7 +356,6 @@ export default function Usage() {
         await Promise.all(
           orgsToProcess.map(async (org) => {
             try {
-              // Fetch Ansible jobs
               try {
                 const jobsRes = await ansibleJobsApi.listByOrganization(org.name);
                 const jobs = (jobsRes.data || []).map(getAnsibleJobFromJsonApi).filter(j => 
@@ -425,7 +366,6 @@ export default function Usage() {
                 console.error(`Failed to load Ansible jobs for ${org.name}:`, err);
               }
 
-              // Fetch playbooks
               try {
                 const playbooksRes = await ansiblePlaybooksApi.listByOrganization(org.name);
                 totalPlaybooks += (playbooksRes.data || []).length;
@@ -433,7 +373,6 @@ export default function Usage() {
                 console.error(`Failed to load playbooks for ${org.name}:`, err);
               }
 
-              // Fetch job templates
               try {
                 const templatesRes = await ansibleJobTemplatesApi.listByOrganization(org.name);
                 totalJobTemplates += (templatesRes.data || []).length;
@@ -441,7 +380,6 @@ export default function Usage() {
                 console.error(`Failed to load job templates for ${org.name}:`, err);
               }
 
-              // Fetch inventories
               try {
                 const inventoriesRes = await ansibleInventoriesApi.list(org.name);
                 totalInventories += (inventoriesRes.data || []).length;
@@ -461,13 +399,12 @@ export default function Usage() {
         const pendingJobs = allAnsibleJobs.filter(j => j.status === 'pending');
         const canceledJobs = allAnsibleJobs.filter(j => j.status === 'canceled');
 
-        // Calculate average duration for Ansible jobs
         const jobDurations = completedJobs
           .filter(j => j.started_at && j.finished_at)
           .map(j => {
             const start = new Date(j.started_at!).getTime();
             const end = new Date(j.finished_at!).getTime();
-            return (end - start) / 1000; // seconds
+            return (end - start) / 1000;
           });
         const avgJobDuration = jobDurations.length > 0
           ? jobDurations.reduce((a, b) => a + b, 0) / jobDurations.length
@@ -477,7 +414,7 @@ export default function Usage() {
           ? (completedJobs.length / (completedJobs.length + failedJobs.length)) * 100
           : 0;
 
-        setAnsibleStats({
+        const computedAnsibleStats: AnsibleStats = {
           totalJobs: allAnsibleJobs.length,
           completedJobs: completedJobs.length,
           failedJobs: failedJobs.length,
@@ -489,39 +426,45 @@ export default function Usage() {
           totalPlaybooks,
           totalJobTemplates,
           totalInventories,
-        });
+        };
 
-        // Get recent Ansible jobs
         const recentAnsible = allAnsibleJobs
           .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
           .slice(0, 10);
-        setRecentAnsibleJobs(recentAnsible);
 
-        // Calculate time series (includes Ansible jobs)
         const series = calculateTimeSeries(allRuns, allActivities, allAnsibleJobs, startDate);
-        setTimeSeries(series);
 
-        // Set overall stats
-        setStats({
-          totalRuns: allRuns.length,
-          totalActivities: allActivities.length,
-          totalOrganizations: allOrgs.length,
-          totalProjects,
-          totalWorkspaces,
-          totalAnsibleJobs: allAnsibleJobs.length,
-          totalAnsiblePlaybooks: totalPlaybooks,
-          totalAnsibleJobTemplates: totalJobTemplates,
-          totalAnsibleInventories: totalInventories,
-        });
-      } catch (err) {
-        console.error('Failed to load analytics data:', err);
-      } finally {
-        setLoading(false);
-      }
-    };
+        return {
+          stats: {
+            totalRuns: allRuns.length,
+            totalActivities: allActivities.length,
+            totalOrganizations: allOrgs.length,
+            totalProjects,
+            totalWorkspaces,
+            totalAnsibleJobs: allAnsibleJobs.length,
+            totalAnsiblePlaybooks: totalPlaybooks,
+            totalAnsibleJobTemplates: totalJobTemplates,
+            totalAnsibleInventories: totalInventories,
+          },
+          runStats: computedRunStats,
+          activityStats: computedActivityStats,
+          timeSeries: series,
+          runsByOrg: orgRuns,
+          recentRuns: recent,
+          ansibleStats: computedAnsibleStats,
+          recentAnsibleJobs: recentAnsible,
+        };
+    },
+  });
 
-    void fetchAnalyticsData();
-  }, [timeRange, selectedOrg]);
+  const stats = analyticsData?.stats ?? { totalRuns: 0, totalActivities: 0, totalOrganizations: 0, totalProjects: 0, totalWorkspaces: 0, totalAnsibleJobs: 0, totalAnsiblePlaybooks: 0, totalAnsibleJobTemplates: 0, totalAnsibleInventories: 0 };
+  const runStats = analyticsData?.runStats ?? { total: 0, completed: 0, failed: 0, running: 0, pending: 0, canceled: 0, successRate: 0, avgDuration: 0 };
+  const activityStats = analyticsData?.activityStats ?? { total: 0, byType: {}, byAction: {}, byResource: {} };
+  const timeSeries = analyticsData?.timeSeries ?? [];
+  const runsByOrg = analyticsData?.runsByOrg ?? [];
+  const recentRuns = analyticsData?.recentRuns ?? [];
+  const ansibleStats = analyticsData?.ansibleStats ?? { totalJobs: 0, completedJobs: 0, failedJobs: 0, runningJobs: 0, pendingJobs: 0, canceledJobs: 0, successRate: 0, avgDuration: 0, totalPlaybooks: 0, totalJobTemplates: 0, totalInventories: 0 };
+  const recentAnsibleJobs = analyticsData?.recentAnsibleJobs ?? [];
 
   const SimpleBarChart = ({ data, maxValue, color = 'purple' }: { data: TimeSeriesData[], maxValue: number, color?: string }) => {
     const maxHeight = 200;

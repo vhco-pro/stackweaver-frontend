@@ -1,6 +1,6 @@
 // Copyright (c) 2025 VH & Co BV. Licensed under the Business Source License 1.1. See LICENSE for details.
 
-import { useEffect, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { useParams, useLocation } from 'react-router-dom';
 import { DocsLayout } from '@/components/docs/DocsLayout';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -22,70 +22,54 @@ interface DocsViewerProps {
 export default function DocsViewer({ docsBase = '/docs', indexFile = '/docs-index.json' }: DocsViewerProps) {
   const params = useParams<{ '*': string }>();
   const location = useLocation();
-  const [content, setContent] = useState<string>('');
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  // Track whether the resolved file was a directory README or a plain .md file
-  const [isDirectoryPage, setIsDirectoryPage] = useState(false);
 
   // Convert URL path to file path
   const docPath = params['*'] || 'README';
 
-  useEffect(() => {
-    async function loadDoc() {
-      setLoading(true);
-      setError(null);
-      setContent('');
-      setIsDirectoryPage(false);
-
-      try {
-        // Determine file path: try folder/README.md first, then fall back to path.md
-        let filePath: string;
-        let resolvedAsDirectory = true;
-        if (docPath === '' || docPath === 'README') {
-          filePath = 'README.md';
-        } else {
-          // First try as a folder with README.md
-          filePath = `${docPath}/README.md`;
-        }
-
-        let response = await fetch(`${docsBase}/${filePath}`);
-
-        // If README.md wasn't found, try lowercase readme.md (some directories use it)
-        if (docPath !== '' && docPath !== 'README' &&
-            (!response.ok || isHtmlFallback(response)) &&
-            filePath.endsWith('/README.md')) {
-          filePath = `${docPath}/readme.md`;
-          response = await fetch(`${docsBase}/${filePath}`);
-        }
-
-        // If the folder README still wasn't found, try as a regular .md file instead.
-        if (docPath !== '' && docPath !== 'README' &&
-            (!response.ok || isHtmlFallback(response))) {
-          filePath = `${docPath}.md`;
-          resolvedAsDirectory = false;
-          response = await fetch(`${docsBase}/${filePath}`);
-        }
-
-        // Validate the final response
-        if (!response.ok || isHtmlFallback(response)) {
-          throw new Error('Document not found');
-        }
-
-        const text = await response.text();
-        setContent(text);
-        setIsDirectoryPage(resolvedAsDirectory);
-      } catch (err) {
-        const message = err instanceof Error ? err.message : 'Failed to load document';
-        setError(message);
-        console.error('Error loading doc:', err);
-      } finally {
-        setLoading(false);
+  const { data: docData, isLoading: loading, error: queryError } = useQuery({
+    queryKey: ['doc', docsBase, docPath, location.pathname],
+    queryFn: async () => {
+      // Determine file path: try folder/README.md first, then fall back to path.md
+      let filePath: string;
+      let resolvedAsDirectory = true;
+      if (docPath === '' || docPath === 'README') {
+        filePath = 'README.md';
+      } else {
+        // First try as a folder with README.md
+        filePath = `${docPath}/README.md`;
       }
-    }
 
-    void loadDoc();
-  }, [docPath, location.pathname, docsBase]);
+      let response = await fetch(`${docsBase}/${filePath}`);
+
+      // If README.md wasn't found, try lowercase readme.md (some directories use it)
+      if (docPath !== '' && docPath !== 'README' &&
+          (!response.ok || isHtmlFallback(response)) &&
+          filePath.endsWith('/README.md')) {
+        filePath = `${docPath}/readme.md`;
+        response = await fetch(`${docsBase}/${filePath}`);
+      }
+
+      // If the folder README still wasn't found, try as a regular .md file instead.
+      if (docPath !== '' && docPath !== 'README' &&
+          (!response.ok || isHtmlFallback(response))) {
+        filePath = `${docPath}.md`;
+        resolvedAsDirectory = false;
+        response = await fetch(`${docsBase}/${filePath}`);
+      }
+
+      // Validate the final response
+      if (!response.ok || isHtmlFallback(response)) {
+        throw new Error('Document not found');
+      }
+
+      const text = await response.text();
+      return { content: text, isDirectoryPage: resolvedAsDirectory };
+    },
+  });
+
+  const content = docData?.content ?? '';
+  const isDirectoryPage = docData?.isDirectoryPage ?? false;
+  const error = queryError instanceof Error ? queryError.message : queryError ? 'Failed to load document' : null;
 
   if (loading) {
     return (

@@ -1,6 +1,7 @@
 // Copyright (c) 2025 VH & Co BV. Licensed under the Business Source License 1.1. See LICENSE for details.
 
 import { useEffect, useState, useRef } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { useParams, Link, useSearchParams } from 'react-router-dom';
 import { projectsApi, workspacesApi, vcsConnectionsApi, type Project, type Workspace } from '@/api/client';
 import { 
@@ -32,14 +33,6 @@ export default function ProjectDetail() {
   const orgName = params.orgName;
   const projectName = params.projectName;
   const [searchParams, setSearchParams] = useSearchParams();
-  const [project, setProject] = useState<Project | null>(null);
-  const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
-  const [inventories, setInventories] = useState<AnsibleInventory[]>([]);
-  const [playbooks, setPlaybooks] = useState<AnsiblePlaybook[]>([]);
-  const [jobTemplates, setJobTemplates] = useState<AnsibleJobTemplate[]>([]);
-  const [workflows, setWorkflows] = useState<AnsibleWorkflow[]>([]);
-  const [credentials, setCredentials] = useState<AnsibleCredential[]>([]);
-  const [loading, setLoading] = useState(true);
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
     workspaces: true,
@@ -50,65 +43,39 @@ export default function ProjectDetail() {
     credentials: false,
   });
 
-  const fetchData = () => {
-    if (!orgName || !projectName) return;
+  const { isLoading: loading, data: projectData, refetch: refetchData } = useQuery({
+    queryKey: ['projectDetail', orgName, projectName],
+    queryFn: async () => {
+      const [projectRes, workspacesRes, inventoriesRes, playbooksRes, jobTemplatesRes, workflowsRes, credentialsRes] = await Promise.all([
+        projectsApi.get(orgName!, projectName!),
+        workspacesApi.list(orgName!),
+        ansibleInventoriesApi.list(orgName!),
+        ansiblePlaybooksApi.listByOrganization(orgName!),
+        ansibleJobTemplatesApi.listByOrganization(orgName!),
+        ansibleWorkflowsApi.list(orgName!),
+        ansibleCredentialsApi.list(orgName!),
+      ]);
+      const projectWorkspaces = (workspacesRes?.data || []).filter(w => w.project_id === projectRes.id);
+      return {
+        project: projectRes,
+        workspaces: projectWorkspaces,
+        inventories: (inventoriesRes.data || []).map(getAnsibleInventoryFromJsonApi).filter(i => i.project_id === projectRes.id),
+        playbooks: (playbooksRes.data || []).map(getAnsiblePlaybookFromJsonApi).filter(p => p.project_id === projectRes.id),
+        jobTemplates: (jobTemplatesRes.data || []).map(getAnsibleJobTemplateFromJsonApi).filter(jt => jt.project_id === projectRes.id),
+        workflows: (workflowsRes.data || []).map(getAnsibleWorkflowFromJsonApi).filter(w => w.project_id === projectRes.id),
+        credentials: (credentialsRes.data || []).map(getAnsibleCredentialFromJsonApi).filter(c => c.project_id === projectRes.id),
+      };
+    },
+    enabled: !!orgName && !!projectName,
+  });
 
-    setLoading(true);
-    void Promise.all([
-      projectsApi.get(orgName, projectName),
-      workspacesApi.list(orgName), // TFE-compatible: list by organization name
-      ansibleInventoriesApi.list(orgName),
-      ansiblePlaybooksApi.listByOrganization(orgName),
-      ansibleJobTemplatesApi.listByOrganization(orgName),
-      ansibleWorkflowsApi.list(orgName),
-      ansibleCredentialsApi.list(orgName),
-    ])
-      .then(([projectRes, workspacesRes, inventoriesRes, playbooksRes, jobTemplatesRes, workflowsRes, credentialsRes]) => {
-        // projectsApi.get() returns Project directly
-        // All other APIs return JSON:API format
-        setProject(projectRes);
-        
-        // Filter all resources to only show those in this project (by project_id)
-        // Same pattern as workspaces - client-side filtering
-        const projectWorkspaces = (workspacesRes?.data || []).filter(w => w.project_id === projectRes.id);
-        setWorkspaces(projectWorkspaces);
-        
-        // Parse JSON:API responses using helper functions
-        const inventoriesData = (inventoriesRes.data || []).map(getAnsibleInventoryFromJsonApi);
-        setInventories(inventoriesData.filter(i => i.project_id === projectRes.id));
-        
-        const playbooksData = (playbooksRes.data || []).map(getAnsiblePlaybookFromJsonApi);
-        setPlaybooks(playbooksData.filter(p => p.project_id === projectRes.id));
-        
-        const jobTemplatesData = (jobTemplatesRes.data || []).map(getAnsibleJobTemplateFromJsonApi);
-        setJobTemplates(jobTemplatesData.filter(jt => jt.project_id === projectRes.id));
-        
-        const workflowsData = (workflowsRes.data || []).map(getAnsibleWorkflowFromJsonApi);
-        setWorkflows(workflowsData.filter(w => w.project_id === projectRes.id));
-        
-        const credentialsData = (credentialsRes.data || []).map(getAnsibleCredentialFromJsonApi);
-        setCredentials(credentialsData.filter(c => c.project_id === projectRes.id));
-        
-        setLoading(false);
-      })
-      .catch((err) => {
-        console.error('Failed to load data:', err);
-        // Set empty arrays on error to prevent undefined.length errors
-        setWorkspaces([]);
-        setInventories([]);
-        setPlaybooks([]);
-        setJobTemplates([]);
-        setWorkflows([]);
-        setCredentials([]);
-        setLoading(false);
-      });
-  };
-
-  useEffect(() => {
-    fetchData();
-    // fetchData is intentionally omitted - it uses orgName and projectName which are in deps
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [orgName, projectName]);
+  const project = projectData?.project ?? null;
+  const workspaces = projectData?.workspaces ?? [];
+  const inventories = projectData?.inventories ?? [];
+  const playbooks = projectData?.playbooks ?? [];
+  const jobTemplates = projectData?.jobTemplates ?? [];
+  const workflows = projectData?.workflows ?? [];
+  const credentials = projectData?.credentials ?? [];
 
   const installationHandledRef = useRef(false);
 
@@ -126,7 +93,7 @@ export default function ProjectDetail() {
         newSearchParams.delete('installation_id');
         setSearchParams(newSearchParams, { replace: true });
         // Refresh list
-        fetchData();
+        void refetchData();
       })
       .catch((err) => {
         console.error('Failed to create VCS connection from installation:', err);
@@ -232,7 +199,7 @@ export default function ProjectDetail() {
             setCreateDialogOpen(open);
             // Refresh workspaces when dialog closes (in case a workspace was created)
             if (!open) {
-              fetchData();
+              void refetchData();
             }
           }}
           orgName={orgName}

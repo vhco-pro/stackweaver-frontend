@@ -2,6 +2,7 @@
 
 // @ts-nocheck
 import React, { useEffect, useState, useRef, useMemo } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { useParams, useNavigate } from 'react-router-dom';
 import { 
   ansibleJobsApi, 
@@ -92,7 +93,6 @@ export default function JobDetail() {
   const [output, setOutput] = useState<string>('');
   const [playbook, setPlaybook] = useState<AnsiblePlaybook | null>(null);
   const [inventory, setInventory] = useState<AnsibleInventory | null>(null);
-  const [loading, setLoading] = useState(true);
   const [canceling, setCanceling] = useState(false);
   const [relaunching, setRelaunching] = useState(false);
   const [activeTab, setActiveTab] = useState('output');
@@ -107,72 +107,55 @@ export default function JobDetail() {
   const [errorCopied, setErrorCopied] = useState(false);
 
   // Fetch job details
-  useEffect(() => {
-    if (!jobId) return;
+  const { isLoading: loading } = useQuery({
+    queryKey: ['jobDetail', jobId],
+    queryFn: async () => {
+      const response = await ansibleJobsApi.get(jobId!);
+      const jobData = getAnsibleJobFromJsonApi(response.data);
+      setJob(jobData);
 
-    const fetchJob = async () => {
-      try {
-        const response = await ansibleJobsApi.get(jobId);
-        const jobData = getAnsibleJobFromJsonApi(response.data);
-        setJob(jobData);
-
-        // Fetch related data
-        if (jobData.playbook_id) {
-          try {
-            const playbookResponse = await ansiblePlaybooksApi.get(jobData.playbook_id);
-            const playbookData = getAnsiblePlaybookFromJsonApi(playbookResponse.data);
-            setPlaybook(playbookData);
-          } catch (err) {
-            console.error('Failed to load playbook:', err);
-          }
+      if (jobData.playbook_id) {
+        try {
+          const playbookResponse = await ansiblePlaybooksApi.get(jobData.playbook_id);
+          setPlaybook(getAnsiblePlaybookFromJsonApi(playbookResponse.data));
+        } catch (err) {
+          console.error('Failed to load playbook:', err);
         }
-
-        if (jobData.inventory_id) {
-          try {
-            const inventoryResponse = await ansibleInventoriesApi.get(jobData.inventory_id);
-            const inventoryData = getAnsibleInventoryFromJsonApi(inventoryResponse.data);
-            setInventory(inventoryData);
-          } catch (err) {
-            console.error('Failed to load inventory:', err);
-          }
-        }
-      } catch (err) {
-        console.error('Failed to load job:', err);
-        toast.error('Failed to load job details');
-      } finally {
-        setLoading(false);
       }
-    };
 
-    void fetchJob();
-  }, [jobId]);
+      if (jobData.inventory_id) {
+        try {
+          const inventoryResponse = await ansibleInventoriesApi.get(jobData.inventory_id);
+          setInventory(getAnsibleInventoryFromJsonApi(inventoryResponse.data));
+        } catch (err) {
+          console.error('Failed to load inventory:', err);
+        }
+      }
+      return null;
+    },
+    enabled: !!jobId,
+  });
 
   // Fetch events and output on initial load
-  useEffect(() => {
-    if (!jobId) return;
+  useQuery({
+    queryKey: ['jobEvents', jobId],
+    queryFn: async () => {
+      const [eventsRes, outputRes] = await Promise.allSettled([
+        ansibleJobsApi.getEvents(jobId!),
+        ansibleJobsApi.getOutput(jobId!)
+      ]);
 
-    // Fetch both events and output in parallel
-    const fetchData = async () => {
-      try {
-        const [eventsRes, outputRes] = await Promise.allSettled([
-          ansibleJobsApi.getEvents(jobId),
-          ansibleJobsApi.getOutput(jobId)
-        ]);
-
-        if (eventsRes.status === 'fulfilled') {
-          setEvents((eventsRes.value.data || []).map(getAnsibleJobEventFromJsonApi));
-        }
-
-        if (outputRes.status === 'fulfilled') {
-          setOutput(outputRes.value);
-        }
-      } catch (err) {
-        console.error('Failed to load job data:', err);
+      if (eventsRes.status === 'fulfilled') {
+        setEvents((eventsRes.value.data || []).map(getAnsibleJobEventFromJsonApi));
       }
-    };
 
-    void fetchData();
-  }, [jobId]);
+      if (outputRes.status === 'fulfilled') {
+        setOutput(outputRes.value);
+      }
+      return null;
+    },
+    enabled: !!jobId,
+  });
 
   // Poll for updates if job is running
   useEffect(() => {

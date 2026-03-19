@@ -1,6 +1,7 @@
 // Copyright (c) 2025 VH & Co BV. Licensed under the Business Source License 1.1. See LICENSE for details.
 
 import { useEffect, useState, useRef } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { useParams, Link, useNavigate, useSearchParams } from 'react-router-dom';
 import {
   workspacesApi,
@@ -182,7 +183,6 @@ export default function WorkspaceDetail() {
   const [stateVersions, setStateVersions] = useState<StateVersion[]>([]);
   const [variables, setVariables] = useState<Variable[]>([]);
   const [variableSets, setVariableSets] = useState<VariableSet[]>([]);
-  const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<TabType>('overview');
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
@@ -204,7 +204,6 @@ export default function WorkspaceDetail() {
   const [deletingVariable, setDeletingVariable] = useState(false);
   const [editWorkspaceDialogOpen, setEditWorkspaceDialogOpen] = useState(false);
   const [resourceFilter, setResourceFilter] = useState('');
-  const [latestRunPlanOutput, setLatestRunPlanOutput] = useState<Record<string, unknown> | null>(null);
   const [deleteResourceDialogOpen, setDeleteResourceDialogOpen] = useState(false);
   const [resourceToDelete, setResourceToDelete] = useState<string | null>(null);
   const [deletingResource, setDeletingResource] = useState(false);
@@ -222,10 +221,6 @@ export default function WorkspaceDetail() {
   const [pendingVariableCreate, setPendingVariableCreate] = useState<(() => void) | null>(null);
   const [platformVariablesSectionOpen, setPlatformVariablesSectionOpen] = useState(false);
   
-  // README state
-  const [readmeContent, setReadmeContent] = useState<string | null>(null);
-  const [readmeLoading, setReadmeLoading] = useState(false);
-
   // Inline description editing state
   const [isEditingDescription, setIsEditingDescription] = useState(false);
   const [inlineDescription, setInlineDescription] = useState('');
@@ -393,188 +388,147 @@ export default function WorkspaceDetail() {
     return summary;
   };
 
-  useEffect(() => {
-    if (!orgName || !workspaceName) {
-      console.log('WorkspaceDetail: Missing params', { orgName, workspaceName });
-      setLoading(false);
-      return;
-    }
+  // Main data fetch: workspace + runs + state versions + variables + variable sets + platform keys
+  const { isLoading: loading, refetch: refetchData } = useQuery({
+    queryKey: ['workspace-detail', orgName, workspaceName],
+    queryFn: async () => {
+      console.log('WorkspaceDetail: Fetching workspace', { orgName, workspaceName });
+      const workspaceRes = await workspacesApi.get(orgName!, workspaceName!);
+      console.log('WorkspaceDetail: Workspace fetched', workspaceRes);
+      
+      if (!workspaceRes || !workspaceRes.id) {
+        console.error('WorkspaceDetail: Invalid workspace response', workspaceRes);
+        toast.error('Failed to load workspace: Invalid response');
+        return null;
+      }
+      
+      setWorkspace(workspaceRes);
+      setInlineDescription(workspaceRes.description || '');
 
-    let isMounted = true; // Flag to prevent state updates if component unmounts
-
-    const fetchData = async () => {
-      setLoading(true);
-      try {
-        console.log('WorkspaceDetail: Fetching workspace', { orgName, workspaceName });
-        const workspaceRes = await workspacesApi.get(orgName, workspaceName);
-        console.log('WorkspaceDetail: Workspace fetched', workspaceRes);
-        if (!isMounted) return; // Don't update state if component unmounted
-        
-        if (!workspaceRes || !workspaceRes.id) {
-          console.error('WorkspaceDetail: Invalid workspace response', workspaceRes);
-          toast.error('Failed to load workspace: Invalid response');
-          setLoading(false);
-          return;
-        }
-        
-        setWorkspace(workspaceRes);
-        setInlineDescription(workspaceRes.description || '');
-
-        // Fetch all data in parallel
-        const [runsRes, statesRes, varsRes, varSetsRes, platformKeysRes] = await Promise.all([
-          runsApi.list(workspaceRes.id).catch(() => ({ data: [], meta: {} } as JsonApiResponse<JsonApiResource[]>)),
-          stateVersionsApi.list(workspaceRes.id).catch((err) => {
-            console.error('Failed to load state versions:', err);
-            return [];
-          }),
-          variablesApi.list(workspaceRes.id).catch(() => []),
-          orgName ? variableSetsApi.list(orgName).catch(() => []) : Promise.resolve([]),
-          variablesApi.getPlatformVariableKeys(workspaceRes.id).catch(() => []),
-        ]);
-
-        if (!isMounted) return; // Don't update state if component unmounted
-        
-        // Convert JSON:API format to Run objects
-        const runsData = Array.isArray(runsRes?.data) ? runsRes.data : [];
-        const runs = runsData.map((resource: JsonApiResource) => getRunFromJsonApi(resource));
-        
-        // Filter out legacy apply runs that are part of a plan-and-apply flow
-        // For plan-and-apply runs, we only show the single plan-and-apply run, not separate apply runs
-        const filteredRuns = runs.filter((run: Run) => {
-          // Keep all plan-and-apply, plan-only, and destroy runs
-          if (run.operation === 'plan-and-apply' || run.operation === 'plan-only' || run.operation === 'destroy') {
-            return true;
-          }
-          // For legacy apply runs, check if there's a corresponding plan-and-apply run with the same config version
-          if (run.operation === 'apply' && run.configuration_version_id) {
-            // Check if there's a plan-and-apply run with the same config version created before this apply run
-            const hasPlanAndApplyRun = runs.some((r: Run) => 
-              r.operation === 'plan-and-apply' &&
-              r.configuration_version_id === run.configuration_version_id &&
-              new Date(r.created_at) <= new Date(run.created_at)
-            );
-            // Filter out this apply run if there's a corresponding plan-and-apply run
-            return !hasPlanAndApplyRun;
-          }
-          // Keep legacy plan runs (for backward compatibility)
+      // Fetch all data in parallel
+      const [runsRes, statesRes, varsRes, varSetsRes, platformKeysRes] = await Promise.all([
+        runsApi.list(workspaceRes.id).catch(() => ({ data: [], meta: {} } as JsonApiResponse<JsonApiResource[]>)),
+        stateVersionsApi.list(workspaceRes.id).catch((err) => {
+          console.error('Failed to load state versions:', err);
+          return [];
+        }),
+        variablesApi.list(workspaceRes.id).catch(() => []),
+        orgName ? variableSetsApi.list(orgName).catch(() => []) : Promise.resolve([]),
+        variablesApi.getPlatformVariableKeys(workspaceRes.id).catch(() => []),
+      ]);
+      
+      // Convert JSON:API format to Run objects
+      const runsData = Array.isArray(runsRes?.data) ? runsRes.data : [];
+      const runs = runsData.map((resource: JsonApiResource) => getRunFromJsonApi(resource));
+      
+      // Filter out legacy apply runs that are part of a plan-and-apply flow
+      // For plan-and-apply runs, we only show the single plan-and-apply run, not separate apply runs
+      const filteredRuns = runs.filter((run: Run) => {
+        // Keep all plan-and-apply, plan-only, and destroy runs
+        if (run.operation === 'plan-and-apply' || run.operation === 'plan-only' || run.operation === 'destroy') {
           return true;
-        });
-        
-        // Deduplicate runs by ID to prevent duplicates from StrictMode double-rendering
-        const uniqueRuns = Array.from(
-          new Map(filteredRuns.map((run: Run) => [run.id, run])).values()
-        );
-        setRuns(uniqueRuns);
-        runsRef.current = uniqueRuns;
-        
-        // Handle state versions response - backend returns { data: StateVersion[], meta: {...} }
-        // stateVersionsApi.list() extracts .data, so statesRes should be StateVersion[]
-        // Backend returns models.StateVersion with JSON tags (snake_case), so field names should match
-        let stateVersionsData: StateVersion[] = [];
-        if (Array.isArray(statesRes)) {
-          stateVersionsData = statesRes as StateVersion[];
-        } else if (statesRes && typeof statesRes === 'object' && 'data' in statesRes) {
-          // Handle case where response wrapper wasn't unwrapped
-          const data = (statesRes as { data?: unknown }).data;
-          if (Array.isArray(data)) {
-            stateVersionsData = data as StateVersion[];
-          }
         }
-        console.log('State versions loaded:', stateVersionsData.length, stateVersionsData);
-        setStateVersions(stateVersionsData);
-        setVariables(Array.isArray(varsRes) ? varsRes : []);
-        
-        // Set platform variable keys
-        setPlatformVariableKeys(Array.isArray(platformKeysRes) ? platformKeysRes : []);
-        
-        // Filter variable sets to only show those applicable to this workspace
-        // Organization-scoped sets apply to all workspaces (unless filtered by project)
-        // Workspace-scoped sets only apply if assigned to this workspace
-        let applicableSets = Array.isArray(varSetsRes) ? varSetsRes : [];
-        
-        // Filter based on scope and assignments
-        applicableSets = applicableSets.filter(vs => {
-          // Organization-scoped: check if it applies to this workspace
-          if (vs.scope === 'organization') {
-            // If it has project assignments, check if this workspace's project is included
-            if (vs.projects && Array.isArray(vs.projects) && vs.projects.length > 0) {
-              return vs.projects.some((p: { id?: string }) => p.id === workspaceRes.project_id);
-            }
-            // No project assignments = applies to all workspaces
-            return true;
-          }
-          // Workspace-scoped: check if assigned to this workspace
-          if (vs.scope === 'workspace') {
-            // If workspaces array is loaded, check if this workspace is in it
-            if (vs.workspaces && Array.isArray(vs.workspaces) && vs.workspaces.length > 0) {
-              return vs.workspaces.some((w: { id?: string }) => w.id === workspaceRes.id);
-            }
-            // If workspaces not loaded in list response, we need to check by loading full details
-            // For now, include all workspace-scoped sets and let the detail loading filter them
-            return true;
-          }
-          return false;
-        });
-        
-        // Load full details for each variable set to ensure we have variables and correct filtering
-        const setsWithDetails = await Promise.all(
-          applicableSets.map(async (vs) => {
-            try {
-              const fullSet = await variableSetsApi.get(orgName, vs.id);
-              // Double-check workspace assignment for workspace-scoped sets
-              if (fullSet.scope === 'workspace') {
-                if (fullSet.workspaces && Array.isArray(fullSet.workspaces) && fullSet.workspaces.length > 0) {
-                  const isAssigned = fullSet.workspaces.some((w: { id?: string }) => w.id === workspaceRes.id);
-                  if (!isAssigned) {
-                    return null; // Filter out if not assigned
-                  }
-                }
-              }
-              return fullSet;
-            } catch (err) {
-              console.error(`Failed to load details for variable set ${vs.id}:`, err);
-              return vs; // Return original if fetch fails
-            }
-          })
-        );
-        
-        // Filter out null values (sets that were filtered out)
-        const filteredSets = setsWithDetails.filter((vs): vs is VariableSet => vs !== null);
-        
-        setVariableSets(filteredSets);
-      } catch (err: unknown) {
-        console.error('WorkspaceDetail: Failed to load data', err);
-        const errorMessage = (err instanceof Error && 'response' in err && typeof err.response === 'object' && err.response !== null && 'data' in err.response && typeof err.response.data === 'object' && err.response.data !== null && 'errors' in err.response.data && Array.isArray(err.response.data.errors) && err.response.data.errors.length > 0 && typeof err.response.data.errors[0] === 'object' && err.response.data.errors[0] !== null && 'detail' in err.response.data.errors[0] && typeof err.response.data.errors[0].detail === 'string') 
-          ? err.response.data.errors[0].detail 
-          : (err instanceof Error ? err.message : 'Failed to load workspace data');
-        const errorStatus = (err as { status?: number })?.status;
-        const errorResponse = (err as { response?: { data?: unknown } })?.response?.data;
-        console.error('WorkspaceDetail: Error details', { 
-          message: errorMessage, 
-          status: errorStatus, 
-          response: errorResponse,
-          orgName,
-          workspaceName
-        });
-        toast.error(errorMessage);
-        if (isMounted) {
-          setWorkspace(null);
-          setLoading(false);
+        // For legacy apply runs, check if there's a corresponding plan-and-apply run with the same config version
+        if (run.operation === 'apply' && run.configuration_version_id) {
+          // Check if there's a plan-and-apply run with the same config version created before this apply run
+          const hasPlanAndApplyRun = runs.some((r: Run) => 
+            r.operation === 'plan-and-apply' &&
+            r.configuration_version_id === run.configuration_version_id &&
+            new Date(r.created_at) <= new Date(run.created_at)
+          );
+          // Filter out this apply run if there's a corresponding plan-and-apply run
+          return !hasPlanAndApplyRun;
         }
-      } finally {
-        if (isMounted) {
-          setLoading(false);
+        // Keep legacy plan runs (for backward compatibility)
+        return true;
+      });
+      
+      // Deduplicate runs by ID to prevent duplicates from StrictMode double-rendering
+      const uniqueRuns = Array.from(
+        new Map(filteredRuns.map((run: Run) => [run.id, run])).values()
+      );
+      setRuns(uniqueRuns);
+      runsRef.current = uniqueRuns;
+      
+      // Handle state versions response - backend returns { data: StateVersion[], meta: {...} }
+      // stateVersionsApi.list() extracts .data, so statesRes should be StateVersion[]
+      // Backend returns models.StateVersion with JSON tags (snake_case), so field names should match
+      let stateVersionsData: StateVersion[] = [];
+      if (Array.isArray(statesRes)) {
+        stateVersionsData = statesRes as StateVersion[];
+      } else if (statesRes && typeof statesRes === 'object' && 'data' in statesRes) {
+        // Handle case where response wrapper wasn't unwrapped
+        const data = (statesRes as { data?: unknown }).data;
+        if (Array.isArray(data)) {
+          stateVersionsData = data as StateVersion[];
         }
       }
-    };
-
-    void fetchData();
-
-    // Cleanup function to set isMounted to false when component unmounts
-    return () => {
-      isMounted = false;
-    };
-  }, [orgName, workspaceName]);
+      console.log('State versions loaded:', stateVersionsData.length, stateVersionsData);
+      setStateVersions(stateVersionsData);
+      setVariables(Array.isArray(varsRes) ? varsRes : []);
+      
+      // Set platform variable keys
+      setPlatformVariableKeys(Array.isArray(platformKeysRes) ? platformKeysRes : []);
+      
+      // Filter variable sets to only show those applicable to this workspace
+      // Organization-scoped sets apply to all workspaces (unless filtered by project)
+      // Workspace-scoped sets only apply if assigned to this workspace
+      let applicableSets = Array.isArray(varSetsRes) ? varSetsRes : [];
+      
+      // Filter based on scope and assignments
+      applicableSets = applicableSets.filter(vs => {
+        // Organization-scoped: check if it applies to this workspace
+        if (vs.scope === 'organization') {
+          // If it has project assignments, check if this workspace's project is included
+          if (vs.projects && Array.isArray(vs.projects) && vs.projects.length > 0) {
+            return vs.projects.some((p: { id?: string }) => p.id === workspaceRes.project_id);
+          }
+          // No project assignments = applies to all workspaces
+          return true;
+        }
+        // Workspace-scoped: check if assigned to this workspace
+        if (vs.scope === 'workspace') {
+          // If workspaces array is loaded, check if this workspace is in it
+          if (vs.workspaces && Array.isArray(vs.workspaces) && vs.workspaces.length > 0) {
+            return vs.workspaces.some((w: { id?: string }) => w.id === workspaceRes.id);
+          }
+          // If workspaces not loaded in list response, we need to check by loading full details
+          // For now, include all workspace-scoped sets and let the detail loading filter them
+          return true;
+        }
+        return false;
+      });
+      
+      // Load full details for each variable set to ensure we have variables and correct filtering
+      const setsWithDetails = await Promise.all(
+        applicableSets.map(async (vs) => {
+          try {
+            const fullSet = await variableSetsApi.get(orgName!, vs.id);
+            // Double-check workspace assignment for workspace-scoped sets
+            if (fullSet.scope === 'workspace') {
+              if (fullSet.workspaces && Array.isArray(fullSet.workspaces) && fullSet.workspaces.length > 0) {
+                const isAssigned = fullSet.workspaces.some((w: { id?: string }) => w.id === workspaceRes.id);
+                if (!isAssigned) {
+                  return null; // Filter out if not assigned
+                }
+              }
+            }
+            return fullSet;
+          } catch (err) {
+            console.error(`Failed to load details for variable set ${vs.id}:`, err);
+            return vs; // Return original if fetch fails
+          }
+        })
+      );
+      
+      // Filter out null values (sets that were filtered out)
+      const filteredSets = setsWithDetails.filter((vs): vs is VariableSet => vs !== null);
+      
+      setVariableSets(filteredSets);
+      return workspaceRes;
+    },
+    enabled: !!orgName && !!workspaceName,
+  });
 
   // Read tab query parameter and set active tab
   useEffect(() => {
@@ -585,46 +539,32 @@ export default function WorkspaceDetail() {
   }, [searchParams]);
 
   // Fetch README from VCS repository
-  useEffect(() => {
-    if (!workspace?.vcs_connection_id || !workspace?.vcs_repository) return;
-
-    const parts = workspace.vcs_repository.split('/');
-    if (parts.length !== 2) return;
-    const [owner, repo] = parts;
-
-    let cancelled = false;
-    setReadmeLoading(true);
-
-    void (async () => {
-      const dir = workspace.working_directory ? `${workspace.working_directory}/` : '';
+  const { data: readmeContent, isLoading: readmeLoading } = useQuery({
+    queryKey: ['workspace-readme', workspace?.vcs_connection_id, workspace?.vcs_repository, workspace?.vcs_branch, workspace?.working_directory],
+    queryFn: async () => {
+      const parts = workspace!.vcs_repository!.split('/');
+      if (parts.length !== 2) return null;
+      const [owner, repo] = parts;
+      const dir = workspace!.working_directory ? `${workspace!.working_directory}/` : '';
       const candidates = [`${dir}README.md`, `${dir}readme.md`, `${dir}Readme.md`];
       for (const filepath of candidates) {
-        if (cancelled) return;
         try {
           const result = await vcsConnectionsApi.getFileContent(
-            workspace.vcs_connection_id!,
+            workspace!.vcs_connection_id!,
             owner,
             repo,
             filepath,
-            workspace.vcs_branch || undefined,
+            workspace!.vcs_branch || undefined,
           );
-          if (!cancelled) {
-            setReadmeContent(result.content);
-            setReadmeLoading(false);
-          }
-          return;
+          return result.content;
         } catch {
           // Try next candidate
         }
       }
-      if (!cancelled) {
-        setReadmeContent(null);
-        setReadmeLoading(false);
-      }
-    })();
-
-    return () => { cancelled = true; };
-  }, [workspace?.vcs_connection_id, workspace?.vcs_repository, workspace?.vcs_branch, workspace?.working_directory]);
+      return null;
+    },
+    enabled: !!workspace?.vcs_connection_id && !!workspace?.vcs_repository,
+  });
 
   // Poll for active runs updates (running or pending - these can change status)
   useEffect(() => {
@@ -655,43 +595,26 @@ export default function WorkspaceDetail() {
   }, [workspace]);
 
   // Fetch plan output for latest run
-  useEffect(() => {
-    const latestRun = runs.length > 0 ? runs[0] : null;
-    if (!latestRun) {
-      setLatestRunPlanOutput(null);
-      return;
-    }
-
-    // Only fetch plan output if run has completed planning phase (has plan output available)
-    const shouldFetchPlan = (
-      (latestRun.operation === 'plan-and-apply' && 
-       (latestRun.status === 'planned' || latestRun.status === 'applying' || latestRun.status === 'applied')) ||
-      ((latestRun.operation === 'plan-only' || latestRun.operation === 'plan') && 
-       (latestRun.status === 'planned' || latestRun.status === 'completed')) ||
-      (latestRun.operation === 'destroy' && 
-       (latestRun.status === 'planned' || latestRun.status === 'applying' || latestRun.status === 'applied' || latestRun.status === 'completed'))
-    );
-
-    if (shouldFetchPlan) {
-      void runsApi.getPlan(latestRun.id)
-        .then((planOutput) => {
-          if (planOutput && typeof planOutput === 'object' && Object.keys(planOutput).length > 0) {
-            setLatestRunPlanOutput(planOutput);
-          } else {
-            setLatestRunPlanOutput(null);
-          }
-        })
-        .catch((err) => {
-          // Don't show error for 404 (plan doesn't exist yet or was deleted)
-          if (err?.response?.status !== 404) {
-            console.error('Failed to fetch plan output for latest run:', err);
-          }
-          setLatestRunPlanOutput(null);
-        });
-    } else {
-      setLatestRunPlanOutput(null);
-    }
-  }, [runs]);
+  const latestRun = runs.length > 0 ? runs[0] : null;
+  const shouldFetchPlan = latestRun && (
+    (latestRun.operation === 'plan-and-apply' && 
+     (latestRun.status === 'planned' || latestRun.status === 'applying' || latestRun.status === 'applied')) ||
+    ((latestRun.operation === 'plan-only' || latestRun.operation === 'plan') && 
+     (latestRun.status === 'planned' || latestRun.status === 'completed')) ||
+    (latestRun.operation === 'destroy' && 
+     (latestRun.status === 'planned' || latestRun.status === 'applying' || latestRun.status === 'applied' || latestRun.status === 'completed'))
+  );
+  const { data: latestRunPlanOutput } = useQuery({
+    queryKey: ['plan-output', latestRun?.id, latestRun?.status],
+    queryFn: async () => {
+      const planOutput = await runsApi.getPlan(latestRun!.id);
+      if (planOutput && typeof planOutput === 'object' && Object.keys(planOutput).length > 0) {
+        return planOutput as Record<string, unknown>;
+      }
+      return null;
+    },
+    enabled: !!shouldFetchPlan,
+  });
 
   // TFE-compatible: Support "Plan only", "Plan and Apply", and "Destroy"
   // "Plan and Apply" is a single run that goes through both phases (planning → planned → applying → applied)
@@ -996,7 +919,6 @@ export default function WorkspaceDetail() {
     return matchesSearch && matchesStatus;
   });
 
-  const latestRun = runs.length > 0 ? runs[0] : null;
   const latestStateVersion = stateVersions.length > 0 ? stateVersions[0] : null;
 
   if (loading) {

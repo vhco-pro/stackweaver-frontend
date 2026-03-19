@@ -1,6 +1,7 @@
 // Copyright (c) 2025 VH & Co BV. Licensed under the Business Source License 1.1. See LICENSE for details.
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { Link, useParams, useNavigate } from 'react-router-dom';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { 
@@ -110,8 +111,14 @@ export default function Workflows() {
   const { currentOrg } = useOrganization();
   const selectedOrg = orgName || currentOrg?.name || '';
 
-  const [workflows, setWorkflows] = useState<AnsibleWorkflow[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { data: workflows = [], isLoading: loading, refetch: refetchWorkflows } = useQuery({
+    queryKey: ['workflows', selectedOrg],
+    queryFn: async () => {
+      const res = await ansibleWorkflowsApi.list(selectedOrg);
+      return (res.data || []).map(getWorkflowFromJsonApi);
+    },
+    enabled: !!selectedOrg,
+  });
   const [searchQuery, setSearchQuery] = useState('');
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [workflowToDelete, setWorkflowToDelete] = useState<AnsibleWorkflow | null>(null);
@@ -130,27 +137,6 @@ export default function Workflows() {
     survey_enabled: false,
   });
 
-  // Fetch workflows
-  useEffect(() => {
-    if (!selectedOrg) {
-      setLoading(false);
-      return;
-    }
-
-    setLoading(true);
-    void ansibleWorkflowsApi.list(selectedOrg)
-      .then((res) => {
-        setWorkflows((res.data || []).map(getWorkflowFromJsonApi));
-      })
-      .catch((err) => {
-        console.error('Failed to load workflows:', err);
-        toast.error('Failed to load workflows');
-      })
-      .finally(() => {
-        setLoading(false);
-      });
-  }, [selectedOrg]);
-
   // Filter workflows
   const filteredWorkflows = workflows.filter((wf) =>
     wf.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -167,7 +153,7 @@ export default function Workflows() {
     try {
       const res = await ansibleWorkflowsApi.create(selectedOrg, createForm);
       const newWorkflow = getWorkflowFromJsonApi(res.data);
-      setWorkflows([...workflows, newWorkflow]);
+      void refetchWorkflows();
       setCreateDialogOpen(false);
       setCreateForm({
         name: '',
@@ -195,7 +181,7 @@ export default function Workflows() {
     setDeleting(true);
     try {
       await ansibleWorkflowsApi.delete(workflowToDelete.id);
-      setWorkflows(workflows.filter((wf) => wf.id !== workflowToDelete.id));
+      void refetchWorkflows();
       toast.success('Workflow template deleted');
     } catch (err: unknown) {
       console.error('Failed to delete workflow:', err);

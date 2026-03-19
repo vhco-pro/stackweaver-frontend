@@ -1,6 +1,7 @@
 // Copyright (c) 2025 VH & Co BV. Licensed under the Business Source License 1.1. See LICENSE for details.
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
+import { useMountEffect } from '@/hooks/useMountEffect';
 import { Loader2, Clock, Zap, CheckCircle2, XCircle, AlertCircle, Activity } from 'lucide-react';
 import { activitiesApi, type Activity as ActivityData } from '@/api/client';
 import { Button } from '@/components/ui/button';
@@ -45,12 +46,9 @@ export default function Activities() {
     }
   };
 
-  useEffect(() => {
+  useMountEffect(() => {
     void fetchActivities(true);
-    // fetchActivities is intentionally omitted - it's not memoized and uses state (offset), adding it would cause infinite loops
-    // This effect should only run once on mount
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  });
 
   const formatActivityDescription = (activity: ActivityData): string => {
     const attrs = activity.attributes;

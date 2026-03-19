@@ -1,6 +1,7 @@
 // Copyright (c) 2025 VH & Co BV. Licensed under the Business Source License 1.1. See LICENSE for details.
 
 import { useEffect, useState } from 'react';
+import { useMountEffect } from '@/hooks/useMountEffect';
 import { File, Copy, Check, Download, Maximize2, Minimize2 } from 'lucide-react';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { getFileTypeIcon } from './fileTypeIcons';
@@ -176,7 +177,7 @@ export function CodeExplorer({ path, defaultFile = '' }: CodeExplorerProps) {
   const [themeMode, setThemeMode] = useState<'dark' | 'light'>(() =>
     typeof document !== 'undefined' && document.documentElement.classList.contains('dark') ? 'dark' : 'light'
   );
-  useEffect(() => {
+  useMountEffect(() => {
     if (typeof document === 'undefined') return;
     const el = document.documentElement;
     const observer = new MutationObserver(() => {
@@ -185,7 +186,7 @@ export function CodeExplorer({ path, defaultFile = '' }: CodeExplorerProps) {
     });
     observer.observe(el, { attributes: true, attributeFilter: ['class'] });
     return () => observer.disconnect();
-  }, []);
+  });
 
   // Fetch (or restore from cache) the manifest and set initial file selection
   useEffect(() => {

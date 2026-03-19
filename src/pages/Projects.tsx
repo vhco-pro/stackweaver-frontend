@@ -1,6 +1,7 @@
 // Copyright (c) 2025 VH & Co BV. Licensed under the Business Source License 1.1. See LICENSE for details.
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { projectsApi, type Project } from '@/api/client';
 import { Button } from '@/components/ui/button';
@@ -24,9 +25,6 @@ export default function Projects() {
   const orgName = params.orgName;
   const navigate = useNavigate();
   
-  const [projects, setProjects] = useState<Project[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [creating, setCreating] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -34,32 +32,16 @@ export default function Projects() {
   const [deleting, setDeleting] = useState(false);
   const [formData, setFormData] = useState({ name: '', description: '' });
 
-  const fetchProjects = () => {
-    if (!orgName) {
-      setLoading(false);
-      return;
-    }
+  const { data: projects = [], isLoading: loading, error: queryError, refetch: refetchProjects } = useQuery({
+    queryKey: ['projects', orgName],
+    queryFn: async () => {
+      const response = await projectsApi.list(orgName!);
+      return response?.data || [];
+    },
+    enabled: !!orgName,
+  });
 
-    setLoading(true);
-    setError(null);
-    void projectsApi.list(orgName)
-      .then((response) => {
-        setProjects(response?.data || []);
-        setLoading(false);
-      })
-      .catch((err) => {
-        console.error('Failed to load projects:', err);
-        setError('Failed to load projects. Please try again.');
-        setProjects([]);
-        setLoading(false);
-      });
-  };
-
-  useEffect(() => {
-    fetchProjects();
-    // fetchProjects is intentionally omitted - it uses orgName which is in deps
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [orgName]);
+  const error = queryError ? 'Failed to load projects. Please try again.' : null;
 
   const handleCreateProject = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -80,7 +62,7 @@ export default function Projects() {
       toast.success('Project created successfully');
       setCreateDialogOpen(false);
       setFormData({ name: '', description: '' });
-      fetchProjects();
+      void refetchProjects();
       // Navigate to the new project
       if (orgName) {
         void Promise.resolve(navigate(`/app/${orgName}/projects/${newProject.name}`));
@@ -113,7 +95,7 @@ export default function Projects() {
       toast.success('Project deleted successfully');
       setDeleteDialogOpen(false);
       setProjectToDelete(null);
-      fetchProjects();
+      void refetchProjects();
     } catch (err: unknown) {
       let errorMessage = 'Failed to delete project';
       if (err && typeof err === 'object') {
@@ -150,7 +132,7 @@ export default function Projects() {
       <div className="flex min-h-[400px] items-center justify-center">
         <div className="text-center space-y-4">
           <p className="text-destructive">{error}</p>
-          <Button onClick={() => fetchProjects()}>Retry</Button>
+          <Button onClick={() => { void refetchProjects(); }}>Retry</Button>
         </div>
       </div>
     );

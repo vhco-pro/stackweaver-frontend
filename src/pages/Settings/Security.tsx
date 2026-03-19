@@ -1,6 +1,7 @@
 // Copyright (c) 2025 VH & Co BV. Licensed under the Business Source License 1.1. See LICENSE for details.
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
+import { useMountEffect } from '@/hooks/useMountEffect';
 import { Link } from 'react-router-dom';
 import { ArrowLeft, Lock, Smartphone, Monitor, Trash2, Eye, EyeOff, Loader2, CheckCircle2, X, Key, Mail, MessageSquare, Shield } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -90,11 +91,11 @@ export default function SecuritySettings() {
   };
 
   // Load 2FA status, MFA devices, and sessions on mount
-  useEffect(() => {
+  useMountEffect(() => {
     void load2FAStatus();
     void loadMFADevices();
     void loadSessions();
-  }, []);
+  });
 
   const loadSessions = async () => {
     try {

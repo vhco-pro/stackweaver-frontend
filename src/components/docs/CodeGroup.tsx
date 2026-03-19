@@ -1,6 +1,7 @@
 // Copyright (c) 2025 VH & Co BV. Licensed under the Business Source License 1.1. See LICENSE for details.
 
 import { Children, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useMountEffect } from '@/hooks/useMountEffect';
 import { Check, Copy } from 'lucide-react';
 import { getLanguageIcon } from './fileTypeIcons';
 
@@ -65,7 +66,7 @@ export function CodeGroup({ children, languages, defaultTab = 0 }: CodeGroupProp
   }, [activeTab, codeBlocks]);
 
   // Track theme changes (html.dark class) so Shiki uses matching colors
-  useEffect(() => {
+  useMountEffect(() => {
     if (typeof document === 'undefined') return;
     const el = document.documentElement;
     const observer = new MutationObserver(() => {
@@ -74,7 +75,7 @@ export function CodeGroup({ children, languages, defaultTab = 0 }: CodeGroupProp
     });
     observer.observe(el, { attributes: true, attributeFilter: ['class'] });
     return () => observer.disconnect();
-  }, []);
+  });
 
   // Highlight code blocks with shiki
   useEffect(() => {

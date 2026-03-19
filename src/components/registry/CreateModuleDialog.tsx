@@ -1,6 +1,7 @@
 // Copyright (c) 2025 VH & Co BV. Licensed under the Business Source License 1.1. See LICENSE for details.
 
 import { useState, useEffect, useRef } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -39,8 +40,6 @@ export function CreateModuleDialog({
   orgName,
 }: CreateModuleDialogProps) {
   const [creating, setCreating] = useState(false);
-  const [loadingVCS, setLoadingVCS] = useState(false);
-  const [loadingRepos, setLoadingRepos] = useState(false);
 
   // Form state
   const [name, setName] = useState('');
@@ -53,38 +52,37 @@ export function CreateModuleDialog({
   const [publishMethod, setPublishMethod] = useState<'vcs' | 'manual'>('vcs');
 
   // Data state
-  const [vcsConnections, setVcsConnections] = useState<VCSConnection[]>([]);
-  const [repositories, setRepositories] = useState<Repository[]>([]);
   const [repositorySelectOpen, setRepositorySelectOpen] = useState(false);
   const repositorySearchInputRef = useRef<HTMLInputElement>(null);
 
   // Load VCS connections when dialog opens
-  useEffect(() => {
-    if (!open) return;
+  const { data: vcsConnections = [], isLoading: loadingVCS } = useQuery({
+    queryKey: ['vcs-connections-deduped', orgName],
+    queryFn: async () => {
+      const vcsRes = await vcsConnectionsApi.list(orgName);
+      const connections = Array.isArray(vcsRes) ? vcsRes : [];
+      // Deduplicate by provider + account_name + account_type to prevent duplicates
+      return Array.from(
+        new Map(
+          connections.map(conn => [
+            `${conn.provider}-${conn.account_name}-${conn.account_type}`,
+            conn
+          ])
+        ).values()
+      );
+    },
+    enabled: open,
+  });
 
-    setLoadingVCS(true);
-    void vcsConnectionsApi.list(orgName)
-      .then((vcsRes) => {
-        const connections = Array.isArray(vcsRes) ? vcsRes : [];
-        // Deduplicate by provider + account_name + account_type to prevent duplicates
-        // (same account might have multiple connection records with different IDs)
-        const uniqueConnections = Array.from(
-          new Map(
-            connections.map(conn => [
-              `${conn.provider}-${conn.account_name}-${conn.account_type}`,
-              conn
-            ])
-          ).values()
-        );
-        setVcsConnections(uniqueConnections);
-        setLoadingVCS(false);
-      })
-      .catch((err) => {
-        console.error('Failed to load VCS connections:', err);
-        toast.error('Failed to load VCS connections');
-        setLoadingVCS(false);
-      });
-  }, [open, orgName]);
+  // Load repositories when VCS connection is selected
+  const { data: repositories = [], isLoading: loadingRepos } = useQuery({
+    queryKey: ['vcs-repositories', vcsConnectionId],
+    queryFn: async () => {
+      const repos = await vcsConnectionsApi.listRepositories(vcsConnectionId, 1, 100);
+      return repos || [];
+    },
+    enabled: !!vcsConnectionId && open && publishMethod === 'vcs',
+  });
 
   // Parse Terraform module name from repository name
   // Format: terraform-<PROVIDER>-<MODULE-NAME>
@@ -106,27 +104,6 @@ export function CreateModuleDialog({
     }
     return null;
   };
-
-  // Load repositories when VCS connection is selected
-  useEffect(() => {
-    if (!vcsConnectionId || !open || publishMethod !== 'vcs') {
-      setRepositories([]);
-      setSelectedRepository('');
-      return;
-    }
-
-    setLoadingRepos(true);
-    void vcsConnectionsApi.listRepositories(vcsConnectionId, 1, 100)
-      .then((repos) => {
-        setRepositories(repos || []);
-        setLoadingRepos(false);
-      })
-      .catch((err) => {
-        console.error('Failed to load repositories:', err);
-        toast.error('Failed to load repositories');
-        setLoadingRepos(false);
-      });
-  }, [vcsConnectionId, open, publishMethod]);
 
   // Auto-detect module name and provider when repository is selected
   useEffect(() => {

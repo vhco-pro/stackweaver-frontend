@@ -1,6 +1,7 @@
 // Copyright (c) 2025 VH & Co BV. Licensed under the Business Source License 1.1. See LICENSE for details.
 
-import { useEffect, useState, useCallback } from 'react';
+import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { useParams, Link } from 'react-router-dom';
 import { Package, Plus, Trash2, Settings, Users, ChevronDown, ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -59,22 +60,47 @@ import { cn } from '@/lib/utils';
 
 export default function VariableSets() {
   const { orgName } = useParams<{ orgName: string }>();
-  const [variableSets, setVariableSets] = useState<VariableSet[]>([]);
-  const [loading, setLoading] = useState(true);
+
+  const { data: variableSets = [], isLoading: loading, refetch: refetchVariableSets } = useQuery({
+    queryKey: ['variable-sets', orgName],
+    queryFn: async () => {
+      const sets = await variableSetsApi.list(orgName!);
+      return Array.isArray(sets) ? sets : [];
+    },
+    enabled: !!orgName,
+  });
+
+  const { data: scopeData } = useQuery({
+    queryKey: ['variable-sets-scope', orgName],
+    queryFn: async () => {
+      const [projectsRes, workspacesRes] = await Promise.all([
+        projectsApi.list(orgName!),
+        workspacesApi.list(orgName!),
+      ]);
+      return {
+        projects: projectsRes?.data || [],
+        workspaces: workspacesRes?.data || [],
+      };
+    },
+    enabled: !!orgName,
+  });
+
+  const projects = scopeData?.projects ?? [];
+  const workspaces = scopeData?.workspaces ?? [];
+
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [manageDialogOpen, setManageDialogOpen] = useState(false);
   const [selectedVariableSet, setSelectedVariableSet] = useState<VariableSet | null>(null);
-  const [projects, setProjects] = useState<Project[]>([]);
-  const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
-  const [assignedProjects, setAssignedProjects] = useState<string[]>([]);
-  const [assignedWorkspaces, setAssignedWorkspaces] = useState<string[]>([]);
-  const [creating, setCreating] = useState(false);
   const [saving, setSaving] = useState(false);
   const [manageDialogTab, setManageDialogTab] = useState<'general' | 'variables' | 'assignment'>('general');
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deleteVariableDialogOpen, setDeleteVariableDialogOpen] = useState(false);
   const [variableToDelete, setVariableToDelete] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
+
+  const [creating, setCreating] = useState(false);
+  const [assignedProjects, setAssignedProjects] = useState<string[]>([]);
+  const [assignedWorkspaces, setAssignedWorkspaces] = useState<string[]>([]);
 
   const [variableSetForm, setVariableSetForm] = useState({
     name: '',
@@ -106,50 +132,6 @@ export default function VariableSets() {
     category: string;
     description: string;
   }>>([]);
-
-  const fetchVariableSets = useCallback(() => {
-    if (!orgName) {
-      setLoading(false);
-      return;
-    }
-
-    setLoading(true);
-    void variableSetsApi.list(orgName)
-      .then((sets) => {
-        const normalizedSets = Array.isArray(sets) ? sets : [];
-        setVariableSets(normalizedSets);
-        setLoading(false);
-      })
-      .catch((err) => {
-        console.error('Failed to load variable sets:', err);
-        toast.error('Failed to load variable sets');
-        setVariableSets([]);
-        setLoading(false);
-      });
-  }, [orgName]);
-
-  useEffect(() => {
-    fetchVariableSets();
-  }, [fetchVariableSets]);
-
-  // Load projects and workspaces for assignment (both create and manage dialogs)
-  useEffect(() => {
-    if (!orgName) return;
-
-    void Promise.all([
-      projectsApi.list(orgName),
-      workspacesApi.list(orgName)
-    ])
-      .then(([projectsRes, workspacesRes]) => {
-        setProjects(projectsRes?.data || []);
-        setWorkspaces(workspacesRes?.data || []);
-      })
-      .catch((err) => {
-        console.error('Failed to load projects/workspaces:', err);
-        setProjects([]);
-        setWorkspaces([]);
-      });
-  }, [orgName]);
 
   const handleCreateVariableSet = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -213,7 +195,7 @@ export default function VariableSets() {
       toast.success('Variable set created successfully');
       
       // Always reload to get the full set with variables
-      fetchVariableSets();
+      void refetchVariableSets();
       
       setCreateDialogOpen(false);
       setVariableSetForm({ name: '', description: '', global: true, priority: false, selectedProjects: [], selectedWorkspaces: [] }); // Default to global (apply to all)
@@ -314,7 +296,7 @@ export default function VariableSets() {
       
       await Promise.all(promises);
       toast.success('Variable set updated successfully');
-      fetchVariableSets();
+      void refetchVariableSets();
       // Reload the variable set to get updated data
       const fullSet = await variableSetsApi.get(orgName, selectedVariableSet.id);
       setSelectedVariableSet(fullSet);
@@ -338,7 +320,7 @@ export default function VariableSets() {
       await variableSetsApi.delete(orgName, selectedVariableSet.id);
       toast.success('Variable set deleted successfully');
       setSelectedVariableSet(null);
-      fetchVariableSets();
+      void refetchVariableSets();
       setDeleteDialogOpen(false);
     } catch (err: unknown) {
       const errorMessage = err && typeof err === 'object' && 'message' in err

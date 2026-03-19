@@ -1,6 +1,7 @@
 // Copyright (c) 2025 VH & Co BV. Licensed under the Business Source License 1.1. See LICENSE for details.
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
+import { useMountEffect } from '@/hooks/useMountEffect';
 import { Link } from 'react-router-dom';
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore - gray-matter types may not be available
@@ -24,7 +25,7 @@ export default function BlogIndex() {
   const [posts, setPosts] = useState<BlogPostMetadata[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
+  useMountEffect(() => {
     async function loadPosts() {
       try {
         const modules = import.meta.glob('/src/content/blog/*.md', { as: 'raw' });
@@ -55,7 +56,7 @@ export default function BlogIndex() {
     }
 
     void loadPosts();
-  }, []);
+  });
 
   return (
     <MarketingLayout>

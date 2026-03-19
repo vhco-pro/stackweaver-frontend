@@ -1,6 +1,7 @@
 // Copyright (c) 2025 VH & Co BV. Licensed under the Business Source License 1.1. See LICENSE for details.
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
+import { useMountEffect } from '@/hooks/useMountEffect';
 import { Link } from 'react-router-dom';
 import { ArrowLeft, Monitor, Trash2, Shield, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -17,9 +18,9 @@ export default function SessionsSettings() {
   const [success] = useState<string | null>(null);
   void success; // Suppress unused variable warning
 
-  useEffect(() => {
+  useMountEffect(() => {
     void loadSessions();
-  }, []);
+  });
 
   const loadSessions = async () => {
     try {

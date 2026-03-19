@@ -1,6 +1,7 @@
 // Copyright (c) 2025 VH & Co BV. Licensed under the Business Source License 1.1. See LICENSE for details.
 
 import { useEffect, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { useParams, useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { 
   ansibleJobTemplatesApi,
@@ -190,7 +191,6 @@ export default function JobTemplateDetail() {
     created_at: string;
     updated_at: string;
   }>>([]);
-  const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('overview');
   const [platformVariablesSectionOpen, setPlatformVariablesSectionOpen] = useState(false);
   
@@ -242,111 +242,95 @@ export default function JobTemplateDetail() {
   });
 
   // Fetch template details
-  useEffect(() => {
-    if (!templateId || !orgName) return;
+  const { isLoading: loading } = useQuery({
+    queryKey: ['jobTemplateDetail', templateId, orgName],
+    queryFn: async () => {
+      const tmplRes = await ansibleJobTemplatesApi.get(templateId!);
+      const tmpl = getAnsibleJobTemplateFromJsonApi(tmplRes.data);
+      setTemplate(tmpl);
+      setEditForm({ 
+        name: tmpl.name, 
+        description: tmpl.description || '',
+        limit: tmpl.limit || '',
+        tags: tmpl.tags || '',
+        skip_tags: tmpl.skip_tags || '',
+        verbosity: tmpl.verbosity,
+        forks: tmpl.forks,
+        credential_id: tmpl.credential_id || '',
+        inventory_id: tmpl.inventory_id || '',
+        agent_pool_id: tmpl.agent_pool_id || '',
+      });
+      setLaunchOverrides({
+        extra_vars: tmpl.extra_vars ? JSON.stringify(tmpl.extra_vars, null, 2) : '',
+        limit: tmpl.limit || '',
+        tags: tmpl.tags || '',
+        skip_tags: tmpl.skip_tags || '',
+      });
 
-    const fetchData = async () => {
-      setLoading(true);
-      try {
-        const tmplRes = await ansibleJobTemplatesApi.get(templateId);
-        const tmpl = getAnsibleJobTemplateFromJsonApi(tmplRes.data);
-        setTemplate(tmpl);
-        setEditForm({ 
-          name: tmpl.name, 
-          description: tmpl.description || '',
-          limit: tmpl.limit || '',
-          tags: tmpl.tags || '',
-          skip_tags: tmpl.skip_tags || '',
-          verbosity: tmpl.verbosity,
-          forks: tmpl.forks,
-          credential_id: tmpl.credential_id || '',
-          inventory_id: tmpl.inventory_id || '',
-          agent_pool_id: tmpl.agent_pool_id || '',
-        });
-        setLaunchOverrides({
-          extra_vars: tmpl.extra_vars ? JSON.stringify(tmpl.extra_vars, null, 2) : '',
-          limit: tmpl.limit || '',
-          tags: tmpl.tags || '',
-          skip_tags: tmpl.skip_tags || '',
-        });
-
-        // Fetch related playbook and inventory
-        if (tmpl.playbook_id) {
-          try {
-            const pbRes = await ansiblePlaybooksApi.get(tmpl.playbook_id);
-            setPlaybook(getAnsiblePlaybookFromJsonApi(pbRes.data));
-          } catch (err) {
-            console.warn('Could not load playbook:', err);
-          }
-        }
-        if (tmpl.inventory_id) {
-          try {
-            const invRes = await ansibleInventoriesApi.get(tmpl.inventory_id);
-            setInventory(getAnsibleInventoryFromJsonApi(invRes.data));
-          } catch (err) {
-            console.warn('Could not load inventory:', err);
-          }
-        }
-
-        // Fetch recent jobs (org-scoped, then filter by template)
-        const jobsRes = await ansibleJobsApi.listByOrganization(orgName);
-        const relatedJobs = (jobsRes.data || []).map(getAnsibleJobFromJsonApi)
-          .filter(j => j.job_template_id === templateId)
-          .slice(0, 10);
-        setRecentJobs(relatedJobs);
-
-        // Fetch credentials and inventories for edit dialog
+      if (tmpl.playbook_id) {
         try {
-          const [credRes, invRes] = await Promise.all([
-            ansibleCredentialsApi.list(orgName),
-            ansibleInventoriesApi.list(orgName),
-          ]);
-          setCredentials((credRes.data || []).map(getAnsibleCredentialFromJsonApi));
-          setInventories((invRes.data || []).map(getAnsibleInventoryFromJsonApi));
+          const pbRes = await ansiblePlaybooksApi.get(tmpl.playbook_id);
+          setPlaybook(getAnsiblePlaybookFromJsonApi(pbRes.data));
         } catch (err) {
-          console.warn('Failed to load credentials/inventories:', err);
+          console.warn('Could not load playbook:', err);
         }
-
-        // Fetch variable sets that apply to this job template (inherited from project)
-        try {
-          const assignedSets = await variableSetsApi.listByJobTemplate(templateId);
-          // Load full details for each variable set to get variables
-          const setsWithDetails = await Promise.all(
-            assignedSets.map(async (vs) => {
-              try {
-                const fullSet = await variableSetsApi.get(orgName, vs.id);
-                return fullSet;
-              } catch (err) {
-                console.error(`Failed to load details for variable set ${vs.id}:`, err);
-                return null;
-              }
-            })
-          );
-          const filteredSets = setsWithDetails.filter((vs): vs is VariableSet => vs !== null);
-          setVariableSets(filteredSets);
-        } catch (err) {
-          console.warn('Failed to load variable sets for job template:', err);
-          setVariableSets([]);
-        }
-
-        // Fetch template variables
-        try {
-          const vars = await ansibleJobTemplatesApi.listVariables(templateId);
-          setTemplateVariables(Array.isArray(vars) ? vars : []);
-        } catch (err) {
-          console.warn('Failed to load template variables:', err);
-          setTemplateVariables([]);
-        }
-      } catch (err) {
-        console.error('Failed to load job template:', err);
-        toast.error('Failed to load job template');
-      } finally {
-        setLoading(false);
       }
-    };
+      if (tmpl.inventory_id) {
+        try {
+          const invRes = await ansibleInventoriesApi.get(tmpl.inventory_id);
+          setInventory(getAnsibleInventoryFromJsonApi(invRes.data));
+        } catch (err) {
+          console.warn('Could not load inventory:', err);
+        }
+      }
 
-    void fetchData();
-  }, [templateId, orgName]);
+      const jobsRes = await ansibleJobsApi.listByOrganization(orgName!);
+      const relatedJobs = (jobsRes.data || []).map(getAnsibleJobFromJsonApi)
+        .filter(j => j.job_template_id === templateId)
+        .slice(0, 10);
+      setRecentJobs(relatedJobs);
+
+      try {
+        const [credRes, invListRes] = await Promise.all([
+          ansibleCredentialsApi.list(orgName!),
+          ansibleInventoriesApi.list(orgName!),
+        ]);
+        setCredentials((credRes.data || []).map(getAnsibleCredentialFromJsonApi));
+        setInventories((invListRes.data || []).map(getAnsibleInventoryFromJsonApi));
+      } catch (err) {
+        console.warn('Failed to load credentials/inventories:', err);
+      }
+
+      try {
+        const assignedSets = await variableSetsApi.listByJobTemplate(templateId!);
+        const setsWithDetails = await Promise.all(
+          assignedSets.map(async (vs) => {
+            try {
+              const fullSet = await variableSetsApi.get(orgName!, vs.id);
+              return fullSet;
+            } catch (err) {
+              console.error(`Failed to load details for variable set ${vs.id}:`, err);
+              return null;
+            }
+          })
+        );
+        setVariableSets(setsWithDetails.filter((vs): vs is VariableSet => vs !== null));
+      } catch (err) {
+        console.warn('Failed to load variable sets for job template:', err);
+        setVariableSets([]);
+      }
+
+      try {
+        const vars = await ansibleJobTemplatesApi.listVariables(templateId!);
+        setTemplateVariables(Array.isArray(vars) ? vars : []);
+      } catch (err) {
+        console.warn('Failed to load template variables:', err);
+        setTemplateVariables([]);
+      }
+      return null;
+    },
+    enabled: !!templateId && !!orgName,
+  });
 
   // Auto-open edit dialog if ?edit=true in URL
   useEffect(() => {

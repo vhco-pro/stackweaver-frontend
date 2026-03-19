@@ -1,6 +1,7 @@
 // Copyright (c) 2025 VH & Co BV. Licensed under the Business Source License 1.1. See LICENSE for details.
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { Link, useParams } from 'react-router-dom';
 import { Cpu, ArrowLeft, Plus, Trash2, Loader2, Settings2, ChevronDown, ChevronUp, Server, Circle, Copy, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -38,16 +39,12 @@ import { cn } from '@/lib/utils';
 
 export default function AgentPools() {
   const { orgName } = useParams<{ orgName: string }>();
-  const [pools, setPools] = useState<AgentPool[]>([]);
-  const [loading, setLoading] = useState(true);
   const [createOpen, setCreateOpen] = useState(false);
   const [editPool, setEditPool] = useState<AgentPool | null>(null);
   const [deletePool, setDeletePool] = useState<AgentPool | null>(null);
   const [creating, setCreating] = useState(false);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
-  const [projects, setProjects] = useState<Project[]>([]);
-  const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
 
   // Runners per pool (keyed by pool ID)
   const [poolRunners, setPoolRunners] = useState<Record<string, Runner[]>>({});
@@ -64,21 +61,33 @@ export default function AgentPools() {
     excluded_workspace_ids: string[];
   }>({ name: '', organization_scoped: true, allowed_workspace_ids: [], allowed_project_ids: [], excluded_workspace_ids: [] });
 
-  const fetchPools = useCallback(() => {
-    if (!orgName) return;
-    setLoading(true);
-    void agentPoolsApi
-      .list(orgName)
-      .then((res) => {
-        setPools(res.data || []);
-      })
-      .catch((err) => {
-        console.error('Failed to load agent pools:', err);
-        toast.error('Failed to load agent pools');
-        setPools([]);
-      })
-      .finally(() => setLoading(false));
-  }, [orgName]);
+  const { data: pools = [], isLoading: loading, refetch: refetchPools } = useQuery({
+    queryKey: ['agentPools', orgName],
+    queryFn: async () => {
+      const res = await agentPoolsApi.list(orgName!);
+      return res.data || [];
+    },
+    enabled: !!orgName,
+    refetchOnWindowFocus: true,
+  });
+
+  const { data: scopeData } = useQuery({
+    queryKey: ['agentPoolsScope', orgName],
+    queryFn: async () => {
+      const [projectsRes, workspacesRes] = await Promise.all([
+        projectsApi.list(orgName!),
+        workspacesApi.list(orgName!),
+      ]);
+      return {
+        projects: projectsRes?.data || [],
+        workspaces: workspacesRes?.data || [],
+      };
+    },
+    enabled: !!orgName,
+  });
+
+  const projects = scopeData?.projects ?? [];
+  const workspaces = scopeData?.workspaces ?? [];
 
   // Fetch runners for a specific pool
   const fetchPoolRunners = useCallback(async (poolId: string) => {
@@ -122,33 +131,6 @@ export default function AgentPools() {
     });
   };
 
-  useEffect(() => {
-    fetchPools();
-  }, [fetchPools]);
-
-  // Refetch pools when the page becomes visible so agent count badge updates after adding/removing runners elsewhere
-  useEffect(() => {
-    const onVisibilityChange = () => {
-      if (document.visibilityState === 'visible') {
-        fetchPools();
-      }
-    };
-    document.addEventListener('visibilitychange', onVisibilityChange);
-    return () => document.removeEventListener('visibilitychange', onVisibilityChange);
-  }, [fetchPools]);
-
-  useEffect(() => {
-    if (!orgName) return;
-    void Promise.all([projectsApi.list(orgName), workspacesApi.list(orgName)])
-      .then(([projectsRes, workspacesRes]) => {
-        setProjects(projectsRes?.data || []);
-        setWorkspaces(workspacesRes?.data || []);
-      })
-      .catch((err) => {
-        console.error('Failed to load projects/workspaces:', err);
-      });
-  }, [orgName]);
-
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!orgName || !createForm.name.trim()) {
@@ -164,7 +146,7 @@ export default function AgentPools() {
       toast.success('Agent pool created');
       setCreateOpen(false);
       setCreateForm({ name: '', organization_scoped: true });
-      fetchPools();
+      void refetchPools();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Failed to create pool');
     } finally {
@@ -201,7 +183,7 @@ export default function AgentPools() {
       });
       toast.success('Agent pool updated');
       setEditPool(null);
-      fetchPools();
+      void refetchPools();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Failed to update pool');
     } finally {
@@ -216,7 +198,7 @@ export default function AgentPools() {
       await agentPoolsApi.delete(deletePool.id);
       toast.success('Agent pool deleted');
       setDeletePool(null);
-      fetchPools();
+      void refetchPools();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Failed to delete pool');
     } finally {

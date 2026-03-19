@@ -1,6 +1,7 @@
 // Copyright (c) 2025 VH & Co BV. Licensed under the Business Source License 1.1. See LICENSE for details.
 
 import { useEffect, useRef, useState, useMemo } from 'react';
+import { useMountEffect } from '@/hooks/useMountEffect';
 import { useNavigate } from 'react-router-dom';
 import { ArrowRight, Zap, Shield, Cloud, Layers3, GitBranch, Cpu, KeyRound, ShieldCheck, Wrench, Database, Globe, PlugZap, Box, Container, Copy, Check, ExternalLink } from 'lucide-react';
 import { getVcsProviderIcon } from '@/lib/vcs';
@@ -101,7 +102,7 @@ export default function Landing() {
     }
   };
   
-  useEffect(() => {
+  useMountEffect(() => {
     const updatePositions = () => {
       // positions: SectionPosition[] = []; // Unused - keeping for future use
       /*
@@ -169,7 +170,7 @@ export default function Landing() {
       window.removeEventListener('scroll', handleScroll);
       window.removeEventListener('resize', updatePositions);
     };
-  }, []); // Empty dependency array - only run once on mount
+  });
 
   return (
     <div className="min-h-screen bg-transparent text-slate-950 dark:text-white transition-colors duration-500">

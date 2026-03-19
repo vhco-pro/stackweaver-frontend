@@ -1,6 +1,7 @@
 // Copyright (c) 2025 VH & Co BV. Licensed under the Business Source License 1.1. See LICENSE for details.
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { Link, useParams } from 'react-router-dom';
 import { 
   Webhook,
@@ -117,28 +118,17 @@ export default function Webhooks() {
   const { orgName } = useParams<{ orgName: string }>();
   const [copied, setCopied] = useState(false);
   const [copiedAdo, setCopiedAdo] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [recentDeliveries, setRecentDeliveries] = useState<WebhookDelivery[]>([]);
 
-  const fetchDeliveries = useCallback(async () => {
-    if (!orgName) return;
-    setLoading(true);
-    try {
+  const { data: recentDeliveries = [], isLoading: loading } = useQuery({
+    queryKey: ['webhook-deliveries', orgName],
+    queryFn: async () => {
       const response = await apiClient.get<{ data: WebhookDelivery[] }>(
         `/organizations/${orgName}/webhook-events?format=simple&page[size]=20`
       );
-      setRecentDeliveries(response.data || []);
-    } catch (err) {
-      console.error('Failed to load webhook events:', err);
-      // Don't show error toast - just silently fail if no events
-    } finally {
-      setLoading(false);
-    }
-  }, [orgName]);
-
-  useEffect(() => {
-    void fetchDeliveries();
-  }, [fetchDeliveries]);
+      return response.data || [];
+    },
+    enabled: !!orgName,
+  });
 
   // Construct webhook URLs
   const baseUrl = window.location.origin;

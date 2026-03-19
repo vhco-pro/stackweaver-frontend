@@ -1,6 +1,7 @@
 // Copyright (c) 2025 VH & Co BV. Licensed under the Business Source License 1.1. See LICENSE for details.
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { Link, useParams } from 'react-router-dom';
 import { Server, ArrowLeft, Trash2, Loader2, Settings2, Copy, Check, Terminal } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -33,10 +34,6 @@ import { cn } from '@/lib/utils';
 
 export default function Runners() {
   const { orgName } = useParams<{ orgName: string }>();
-  const [runners, setRunners] = useState<Runner[]>([]);
-  const [pools, setPools] = useState<AgentPool[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [stats, setStats] = useState<{ total: number; online: number; offline: number } | null>(null);
   const [addOpen, setAddOpen] = useState(false);
   const [editRunner, setEditRunner] = useState<Runner | null>(null);
   const [deleteRunner, setDeleteRunner] = useState<Runner | null>(null);
@@ -45,56 +42,37 @@ export default function Runners() {
   const [selectedPool, setSelectedPool] = useState<string>('');
   const [copiedCmd, setCopiedCmd] = useState<'ansible' | 'terraform' | null>(null);
 
+  const { data: runnersData, isLoading: loading, refetch: refetchRunners } = useQuery({
+    queryKey: ['runners', orgName],
+    queryFn: async () => {
+      const [runnersRes, poolsRes, statsRes] = await Promise.all([
+        runnersApi.list(orgName!),
+        agentPoolsApi.list(orgName!),
+        runnersApi.getStats(orgName!),
+      ]);
+      return {
+        runners: runnersRes.data || [],
+        pools: poolsRes.data || [],
+        stats: statsRes as { total: number; online: number; offline: number },
+      };
+    },
+    enabled: !!orgName,
+    refetchInterval: (query) => {
+      const runners = query.state.data?.runners ?? [];
+      const hasActive = runners.some((r: Runner) => r.status === 'online' || r.status === 'busy');
+      return hasActive || runners.length === 0 ? 10_000 : false;
+    },
+  });
+
+  const runners = runnersData?.runners ?? [];
+  const pools = runnersData?.pools ?? [];
+  const stats = runnersData?.stats ?? null;
+
   const [editForm, setEditForm] = useState<{
     description: string;
     labels: string[];
   }>({ description: '', labels: [] });
   const [newLabel, setNewLabel] = useState('');
-
-  const fetchRunners = useCallback(() => {
-    if (!orgName) return;
-    setLoading(true);
-    void Promise.all([
-      runnersApi.list(orgName),
-      agentPoolsApi.list(orgName),
-      runnersApi.getStats(orgName),
-    ])
-      .then(([runnersRes, poolsRes, statsRes]) => {
-        setRunners(runnersRes.data || []);
-        setPools(poolsRes.data || []);
-        setStats(statsRes);
-      })
-      .catch((err) => {
-        console.error('Failed to load runners:', err);
-        toast.error('Failed to load runners');
-        setRunners([]);
-      })
-      .finally(() => setLoading(false));
-  }, [orgName]);
-
-  useEffect(() => {
-    fetchRunners();
-  }, [fetchRunners]);
-
-  // Poll for real-time status updates (every 10 seconds)
-  useEffect(() => {
-    // Only poll if there are runners that might change status
-    const hasActiveRunners = runners.some(r => r.status === 'online' || r.status === 'busy');
-    if (!hasActiveRunners && runners.length > 0) return;
-
-    const pollInterval = setInterval(() => {
-      // Silent refresh - don't show loading state
-      if (orgName) {
-        void runnersApi.list(orgName).then(res => {
-          setRunners(res.data);
-        }).catch(() => {
-          // Silently ignore polling errors
-        });
-      }
-    }, 10000); // 10 seconds
-
-    return () => clearInterval(pollInterval);
-  }, [orgName, runners]);
 
   const openEdit = (runner: Runner) => {
     setEditRunner(runner);
@@ -116,7 +94,7 @@ export default function Runners() {
       });
       toast.success('Runner updated');
       setEditRunner(null);
-      fetchRunners();
+      void refetchRunners();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Failed to update runner');
     } finally {
@@ -131,7 +109,7 @@ export default function Runners() {
       await runnersApi.delete(deleteRunner.id);
       toast.success('Runner deleted');
       setDeleteRunner(null);
-      fetchRunners();
+      void refetchRunners();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Failed to delete runner');
     } finally {

@@ -1,6 +1,7 @@
 // Copyright (c) 2025 VH & Co BV. Licensed under the Business Source License 1.1. See LICENSE for details.
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { Link, useParams } from 'react-router-dom';
 import { Key, ArrowLeft, Plus, Copy, Trash2, Calendar, Loader2, CheckCircle2, X, Building2, FolderKanban, User, Server } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -19,19 +20,13 @@ export default function ApiKeysSettings() {
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [newKeyName, setNewKeyName] = useState('');
   const [newKeyExpiry, setNewKeyExpiry] = useState('');
-  const [apiKeys, setApiKeys] = useState<ApiKey[]>([]);
-  const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
   const [deleting, setDeleting] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [, setSuccess] = useState<string | null>(null);
   const [newlyCreatedKey, setNewlyCreatedKey] = useState<CreateApiKeyResponse | null>(null);
   
   // Scope selection state
   const [scopeType, setScopeType] = useState<ScopeType>('all');
-  const [organizations, setOrganizations] = useState<Organization[]>([]);
   const [selectedOrgId, setSelectedOrgId] = useState<string>('');
-  const [projects, setProjects] = useState<Project[]>([]);
   const [selectedProjectId, setSelectedProjectId] = useState<string>('');
   const [permissions, setPermissions] = useState<{ read: boolean; write: boolean; admin: boolean }>({
     read: false,
@@ -39,56 +34,32 @@ export default function ApiKeysSettings() {
     admin: false,
   });
 
-  useEffect(() => {
-    void loadApiKeys();
-    void loadOrganizations();
-  }, []);
-
-  useEffect(() => {
-    if (scopeType === 'project' && selectedOrgId && organizations.length > 0) {
-      void loadProjects(selectedOrgId);
-    } else {
-      setProjects([]);
-      setSelectedProjectId('');
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [scopeType, selectedOrgId, organizations]); // loadProjects intentionally excluded - it's defined in component and would cause re-renders
-
-  const loadApiKeys = async () => {
-    try {
-      setLoading(true);
-      setError(null);
+  const { data: apiKeys = [], isLoading: loading, refetch: refetchApiKeys } = useQuery({
+    queryKey: ['apiKeys'],
+    queryFn: async () => {
       const response = await settingsApi.listApiKeys();
-      setApiKeys(response.api_keys || []);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load API keys');
-      console.error('Failed to load API keys:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
+      return response.api_keys || [];
+    },
+  });
 
-  const loadOrganizations = async () => {
-    try {
+  const { data: organizations = [] } = useQuery({
+    queryKey: ['organizations'],
+    queryFn: async () => {
       const response = await organizationsApi.list();
-      setOrganizations(response.data || []);
-    } catch (err) {
-      console.error('Failed to load organizations:', err);
-    }
-  };
+      return response.data || [];
+    },
+  });
 
-  const loadProjects = async (orgId: string) => {
-    try {
-      const org = organizations.find(o => o.id === orgId);
-      if (!org) return;
-      
+  const { data: projects = [] } = useQuery({
+    queryKey: ['projects', scopeType, selectedOrgId],
+    queryFn: async () => {
+      const org = organizations.find(o => o.id === selectedOrgId);
+      if (!org) return [];
       const response = await projectsApi.list(org.name);
-      setProjects(response.data || []);
-    } catch (err) {
-      console.error('Failed to load projects:', err);
-      setProjects([]);
-    }
-  };
+      return response.data || [];
+    },
+    enabled: scopeType === 'project' && !!selectedOrgId && organizations.length > 0,
+  });
 
   const copyToClipboard = async (text: string) => {
     try {
@@ -162,8 +133,6 @@ export default function ApiKeysSettings() {
 
     try {
       setCreating(true);
-      setError(null);
-      setSuccess(null);
       
       const scopes = buildScopes();
       const data: { name: string; scopes?: string[]; expires_at?: string } = {
@@ -195,7 +164,7 @@ export default function ApiKeysSettings() {
       // Success message is shown in the detailed banner below, no need for duplicate
       
       // Reload keys
-      await loadApiKeys();
+      await refetchApiKeys();
       
       // Reset form
       setNewKeyName('');
@@ -206,7 +175,6 @@ export default function ApiKeysSettings() {
       setPermissions({ read: false, write: false, admin: false });
       setShowCreateForm(false);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to create API key');
       toast.error(err instanceof Error ? err.message : 'Failed to create API key');
     } finally {
       setCreating(false);
@@ -220,12 +188,10 @@ export default function ApiKeysSettings() {
 
     try {
       setDeleting(keyId);
-      setError(null);
       await settingsApi.deleteApiKey(keyId);
       toast.success('API key deleted successfully');
-      await loadApiKeys();
+      await refetchApiKeys();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to delete API key');
       toast.error(err instanceof Error ? err.message : 'Failed to delete API key');
     } finally {
       setDeleting(null);
@@ -298,14 +264,6 @@ export default function ApiKeysSettings() {
         </div>
       </div>
 
-      {/* Error Messages */}
-      {error && (
-        <div className="rounded-lg bg-red-500/10 border border-red-500/20 p-4 text-red-400 flex items-center gap-2">
-          <X className="h-4 w-4" />
-          {error}
-        </div>
-      )}
-
       {/* Show newly created key (only shown once) */}
       {newlyCreatedKey && (
         <div className={cn(
@@ -343,7 +301,6 @@ export default function ApiKeysSettings() {
             size="sm"
             onClick={() => {
               setNewlyCreatedKey(null);
-              setSuccess(null);
             }}
             className="w-full"
           >

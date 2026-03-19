@@ -1,7 +1,8 @@
 // Copyright (c) 2025 VH & Co BV. Licensed under the Business Source License 1.1. See LICENSE for details.
 
 import { useEffect, useState, useRef } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { Link, useParams, useNavigate } from 'react-router-dom';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { ansiblePlaybooksApi, type AnsiblePlaybook } from '@/api/ansible';
 import { getAnsiblePlaybookFromJsonApi } from '@/utils/ansible-jsonapi';
@@ -52,6 +53,7 @@ import {
   Eye,
   Clock,
   CheckCircle2,
+  ExternalLink,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -78,22 +80,22 @@ export default function Playbooks() {
   const { orgName } = useParams<{ orgName: string }>();
   const { currentOrg } = useOrganization();
   const selectedOrg = orgName || currentOrg?.name || '';
+  const queryClient = useQueryClient();
+  const navigate = useNavigate();
 
-  const [playbooks, setPlaybooks] = useState<AnsiblePlaybook[]>([]);
-  const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [playbookToDelete, setPlaybookToDelete] = useState<AnsiblePlaybook | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [syncing, setSyncing] = useState<string | null>(null);
-  
+
   // Create dialog state
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [loadingYamlFiles, setLoadingYamlFiles] = useState(false);
   const [yamlFiles, setYamlFiles] = useState<string[]>([]);
   const [creating, setCreating] = useState(false);
   const [nameTouched, setNameTouched] = useState(false); // Track if user has touched the name field
-  
+
   // VCS Integration state (mirrors CreateWorkspaceDialog pattern)
   const [loadingVCS, setLoadingVCS] = useState(false);
   const [loadingRepos, setLoadingRepos] = useState(false);
@@ -107,7 +109,7 @@ export default function Playbooks() {
   const [playbookPathSelectOpen, setPlaybookPathSelectOpen] = useState(false);
   const [playbookPathSearch, setPlaybookPathSearch] = useState('');
   const playbookPathSearchInputRef = useRef<HTMLInputElement>(null);
-  
+
   // Form state
   const [createForm, setCreateForm] = useState({
     name: '',
@@ -119,26 +121,15 @@ export default function Playbooks() {
   });
 
   // Fetch playbooks
-  useEffect(() => {
-    if (!selectedOrg) {
-      setLoading(false);
-      return;
-    }
-
-    setLoading(true);
-    void ansiblePlaybooksApi
-      .listByOrganization(selectedOrg)
-      .then((res) => {
-        setPlaybooks((res.data || []).map(getAnsiblePlaybookFromJsonApi));
-      })
-      .catch((err) => {
-        console.error('Failed to load playbooks:', err);
-        toast.error('Failed to load playbooks');
-      })
-      .finally(() => {
-        setLoading(false);
-      });
-  }, [selectedOrg]);
+  const playbooksQueryKey = ['playbooks', selectedOrg];
+  const { data: playbooks = [], isLoading: loading } = useQuery({
+    queryKey: playbooksQueryKey,
+    queryFn: async () => {
+      const res = await ansiblePlaybooksApi.listByOrganization(selectedOrg);
+      return (res.data || []).map(getAnsiblePlaybookFromJsonApi);
+    },
+    enabled: !!selectedOrg,
+  });
 
   // Check for pending dialog after GitHub auth redirect
   useEffect(() => {
@@ -179,7 +170,7 @@ export default function Playbooks() {
           ).values()
         );
         setVcsConnections(uniqueConnections);
-        
+
         // Auto-select if there's exactly one VCS connection
         if (uniqueConnections.length === 1 && !createForm.vcs_connection_id) {
           setCreateForm(prev => ({
@@ -290,16 +281,16 @@ export default function Playbooks() {
   // Auto-generate name from repo-branch-path if user hasn't touched the name field
   useEffect(() => {
     if (nameTouched || !createForm.vcs_repository) return;
-    
+
     const repoName = createForm.vcs_repository.split('/').pop() || '';
     const branch = createForm.vcs_branch || '';
     const path = createForm.playbook_path?.replace(/\.ya?ml$/i, '').replace(/\//g, '-') || '';
-    
+
     // Generate name: repo-branch-path (e.g., "my-repo-main-site" or "my-repo-main-playbooks-deploy")
     const parts = [repoName];
     if (branch) parts.push(branch);
     if (path && path !== 'site') parts.push(path);
-    
+
     const autoName = parts.join('-').toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-');
     setCreateForm(prev => ({ ...prev, name: autoName }));
   }, [createForm.vcs_repository, createForm.vcs_branch, createForm.playbook_path, nameTouched]);
@@ -317,7 +308,9 @@ export default function Playbooks() {
     setDeleting(true);
     try {
       await ansiblePlaybooksApi.delete(playbookToDelete.id);
-      setPlaybooks(playbooks.filter((pb) => pb.id !== playbookToDelete.id));
+      queryClient.setQueryData<AnsiblePlaybook[]>(playbooksQueryKey, (old) =>
+        (old || []).filter((pb) => pb.id !== playbookToDelete.id)
+      );
       setDeleteDialogOpen(false);
       setPlaybookToDelete(null);
       toast.success('Playbook deleted successfully');
@@ -352,7 +345,9 @@ export default function Playbooks() {
         playbook_path: createForm.playbook_path || 'site.yml',
       });
       const newPlaybook = getAnsiblePlaybookFromJsonApi(response.data);
-      setPlaybooks([...playbooks, newPlaybook]);
+      queryClient.setQueryData<AnsiblePlaybook[]>(playbooksQueryKey, (old) =>
+        [...(old || []), newPlaybook]
+      );
       setCreateDialogOpen(false);
       resetCreateForm();
       toast.success('Playbook created successfully');
@@ -384,7 +379,7 @@ export default function Playbooks() {
     try {
       await ansiblePlaybooksApi.sync(playbook.id);
       toast.success('Playbook sync started');
-      
+
       // Poll for updated playbook status (sync is async)
       let pollCount = 0;
       const maxPolls = 30; // 30 polls * 2 seconds = 60 seconds max
@@ -394,8 +389,10 @@ export default function Playbooks() {
           try {
           const refreshed = await ansiblePlaybooksApi.get(playbook.id);
           const updated = getAnsiblePlaybookFromJsonApi(refreshed.data);
-          setPlaybooks((prevPlaybooks) => prevPlaybooks.map((pb) => (pb.id === playbook.id ? updated : pb)));
-          
+          queryClient.setQueryData<AnsiblePlaybook[]>(playbooksQueryKey, (old) =>
+            (old || []).map((pb) => (pb.id === playbook.id ? updated : pb))
+          );
+
           // If sync is complete (not syncing anymore), stop polling
           if (updated.last_sync_status !== 'syncing') {
             clearInterval(pollInterval);
@@ -430,7 +427,7 @@ export default function Playbooks() {
       const redirectUrl = `${window.location.origin}/app/${selectedOrg}/ansible/playbooks`;
       const response = await vcsConnectionsApi.initiateInstallationWithRedirect(selectedOrg, redirectUrl);
       const installUrl = response?.install_url;
-      
+
       if (installUrl) {
         localStorage.setItem('pendingPlaybookDialog', JSON.stringify({
           orgName: selectedOrg,
@@ -718,25 +715,31 @@ export default function Playbooks() {
               ) : vcsConnections.length === 0 ? (
                 <div className="space-y-3">
                   <div className="p-4 border rounded-lg bg-gray-50 dark:bg-gray-900/50">
-                    <div className="flex items-start gap-3 mb-3">
-                      <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-gray-800 to-gray-900">
-                        {getVcsProviderIcon('github', 'h-5 w-5 text-white')}
-                      </div>
-                      <div className="flex-1">
-                        <h4 className="font-semibold text-sm mb-1">GitHub</h4>
-                        <p className="text-xs text-muted-foreground">Connect via GitHub App to access repositories</p>
-                      </div>
+                    <p className="text-sm text-muted-foreground mb-3">
+                      No VCS connections configured. Connect a VCS provider in Settings to link repositories.
+                    </p>
+                    <div className="flex gap-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => { void handleConnectGitHub(); }}
+                        className="flex-1"
+                      >
+                        {getVcsProviderIcon('github', 'h-4 w-4 mr-2')}
+                        Connect GitHub
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => { navigate(`/app/${selectedOrg}/settings/vcs`); }}
+                        className="flex-1"
+                      >
+                        <ExternalLink className="h-4 w-4 mr-2" />
+                        VCS Settings
+                      </Button>
                     </div>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => { void handleConnectGitHub(); }}
-                      className="w-full"
-                    >
-                      <Plus className="h-4 w-4 mr-2" />
-                      Connect GitHub
-                    </Button>
                   </div>
                 </div>
               ) : (
@@ -780,11 +783,11 @@ export default function Playbooks() {
                     type="button"
                     variant="ghost"
                     size="sm"
-                    onClick={() => { void handleConnectGitHub(); }}
+                    onClick={() => { navigate(`/app/${selectedOrg}/settings/vcs`); }}
                     className="w-full text-xs"
                   >
                     <Plus className="h-3 w-3 mr-2" />
-                    Connect to a different VCS
+                    Connect a different VCS provider
                   </Button>
                 </div>
               )}
@@ -970,8 +973,8 @@ export default function Playbooks() {
                   />
                 )}
                 <p className="text-xs text-muted-foreground">
-                  {yamlFiles.length > 0 
-                    ? `Select a playbook file from the repository (${yamlFiles.length} found)` 
+                  {yamlFiles.length > 0
+                    ? `Select a playbook file from the repository (${yamlFiles.length} found)`
                     : 'Path to the main playbook file within the repository (e.g., site.yml, playbooks/deploy.yml)'}
                 </p>
               </div>
@@ -981,8 +984,8 @@ export default function Playbooks() {
             <Button variant="outline" onClick={() => setCreateDialogOpen(false)}>
               Cancel
             </Button>
-            <Button 
-              onClick={() => { void handleCreate(); }} 
+            <Button
+              onClick={() => { void handleCreate(); }}
               disabled={creating || !createForm.name || !createForm.vcs_connection_id || !createForm.vcs_repository || !createForm.vcs_branch}
             >
               {creating && <Loader2 className="h-4 w-4 animate-spin mr-2" />}

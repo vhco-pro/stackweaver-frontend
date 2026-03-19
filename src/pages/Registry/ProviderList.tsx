@@ -1,6 +1,7 @@
 // Copyright (c) 2025 VH & Co BV. Licensed under the Business Source License 1.1. See LICENSE for details.
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Package, Plus, Search, Upload } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -32,39 +33,20 @@ export default function ProviderList() {
   const params = useParams<{ orgName: string }>();
   const orgName = params.orgName;
   const navigate = useNavigate();
-  const [providers, setProviders] = useState<Provider[]>([]);
-  const [loading, setLoading] = useState(true);
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [creating, setCreating] = useState(false);
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
 
-  const fetchProviders = () => {
-    if (!orgName) {
-      setLoading(false);
-      return;
-    }
-
-    setLoading(true);
-    void registryApi.providers.list(orgName)
-      .then((providersList) => {
-        setProviders(providersList || []);
-        setLoading(false);
-      })
-      .catch((err) => {
-        console.error('Failed to load providers:', err);
-        toast.error('Failed to load providers');
-        setProviders([]);
-        setLoading(false);
-      });
-  };
-
-  useEffect(() => {
-    fetchProviders();
-    // fetchProviders is intentionally omitted - it uses orgName which is in deps
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [orgName]);
+  const { data: providers = [], isLoading: loading, refetch: refetchProviders } = useQuery({
+    queryKey: ['providers', orgName],
+    queryFn: async () => {
+      const providersList = await registryApi.providers.list(orgName!);
+      return providersList || [];
+    },
+    enabled: !!orgName,
+  });
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -85,7 +67,7 @@ export default function ProviderList() {
       setCreateDialogOpen(false);
       setName('');
       setDescription('');
-      fetchProviders();
+      void refetchProviders();
     } catch (err: unknown) {
       console.error('Failed to create provider:', err);
       const errorMessage = err && typeof err === 'object' && 'message' in err

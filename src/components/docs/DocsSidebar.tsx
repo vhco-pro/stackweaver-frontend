@@ -11,6 +11,7 @@ interface DocTreeNode {
   path: string;
   title?: string;
   description?: string;
+  status?: string;
   children?: DocTreeNode[];
 }
 
@@ -27,12 +28,52 @@ interface DocsSidebarProps {
   indexFile?: string;
 }
 
+const STATUS_COLORS: Record<string, string> = {
+  planned:       'bg-blue-500',
+  'in-progress': 'bg-amber-500',
+  complete:      'bg-emerald-500',
+  draft:         'bg-purple-500',
+  archived:      'bg-slate-400',
+  abandoned:     'bg-red-500',
+  superseded:    'bg-orange-500',
+};
+
+function StatusDot({ status }: { status?: string }) {
+  if (!status) return null;
+  const color = STATUS_COLORS[status] ?? 'bg-muted-foreground';
+  const label = status.charAt(0).toUpperCase() + status.slice(1).replace('-', ' ');
+  return (
+    <span
+      className={`inline-block h-1.5 w-1.5 rounded-full flex-shrink-0 ${color}`}
+      title={label}
+    />
+  );
+}
+
+function filterTree(nodes: DocTreeNode[], hideCompleted: boolean): DocTreeNode[] {
+  if (!hideCompleted) return nodes;
+  return nodes
+    .map(node => {
+      if (node.type === 'file') {
+        return node.status === 'complete' ? null : node;
+      }
+      const children = filterTree(node.children ?? [], hideCompleted);
+      if (children.length === 0) return null;
+      return { ...node, children };
+    })
+    .filter((n): n is DocTreeNode => n !== null);
+}
+
 export function DocsSidebar({ className, onNavigate, docsBase = '/docs', indexFile = '/docs-index.json' }: DocsSidebarProps) {
   const location = useLocation();
   const navigate = useNavigate();
   const [index, setIndex] = useState<DocsIndex | null>(null);
   const [expandedDirs, setExpandedDirs] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
+  const isInternal = docsBase === '/internal-docs';
+  const [hideCompleted, setHideCompleted] = useState(() =>
+    isInternal && localStorage.getItem('internal-docs-hide-completed') === 'true'
+  );
 
   useEffect(() => {
     async function loadIndex() {
@@ -220,6 +261,7 @@ export function DocsSidebar({ className, onNavigate, docsBase = '/docs', indexFi
           style={{ paddingLeft: `${0.75 + level * 1.5}rem` }}
           title={node.description || undefined}
         >
+          {isInternal && <StatusDot status={node.status} />}
           <FileText className="h-4 w-4 flex-shrink-0" />
           <span className="truncate">{node.title || node.name.replace(/\.md$/, '')}</span>
         </Link>
@@ -245,9 +287,25 @@ export function DocsSidebar({ className, onNavigate, docsBase = '/docs', indexFi
     );
   }
 
+  const visibleTree = filterTree(index.tree, isInternal && hideCompleted);
+
   return (
     <nav className={cn('p-4 space-y-1', className)}>
-      {index.tree.map(node => renderNode(node))}
+      {isInternal && (
+        <label className="flex items-center gap-2 px-3 py-1.5 text-xs text-muted-foreground cursor-pointer select-none mb-1">
+          <input
+            type="checkbox"
+            checked={hideCompleted}
+            onChange={(e) => {
+              setHideCompleted(e.target.checked);
+              localStorage.setItem('internal-docs-hide-completed', String(e.target.checked));
+            }}
+            className="rounded border-border"
+          />
+          Hide completed
+        </label>
+      )}
+      {visibleTree.map(node => renderNode(node))}
     </nav>
   );
 }

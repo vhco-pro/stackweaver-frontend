@@ -1,6 +1,7 @@
 // Copyright (c) 2025 VH & Co BV. Licensed under the Business Source License 1.1. See LICENSE for details.
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { organizationsApi, projectsApi, type Organization, type Project } from '@/api/client';
 import { Button } from '@/components/ui/button';
@@ -21,42 +22,25 @@ import { cn } from '@/lib/utils';
 
 export default function OrganizationDetail() {
   const { name } = useParams<{ name: string }>();
-  const [organization, setOrganization] = useState<Organization | null>(null);
-  const [projects, setProjects] = useState<Project[]>([]);
-  const [loading, setLoading] = useState(true);
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [creating, setCreating] = useState(false);
   const [formData, setFormData] = useState({ name: '', description: '' });
   const navigate = useNavigate();
 
-  const fetchData = () => {
-    if (!name) return;
+  const { data: orgData, isLoading: loading, refetch: refetchData } = useQuery({
+    queryKey: ['organization-detail', name],
+    queryFn: async () => {
+      const [orgRes, projectsRes] = await Promise.all([
+        organizationsApi.get(name!),
+        projectsApi.list(name!),
+      ]);
+      return { organization: orgRes, projects: projectsRes?.data || [] };
+    },
+    enabled: !!name,
+  });
 
-    void Promise.all([
-      organizationsApi.get(name),
-      projectsApi.list(name),
-    ])
-      .then(([orgRes, projectsRes]) => {
-        // organizationsApi.get() returns Organization directly
-        // projectsApi.list() returns { data: Project[], meta: { pagination: ... } }
-        setOrganization(orgRes);
-        // Safely handle projects response - ensure it's always an array
-        setProjects(projectsRes?.data || []);
-        setLoading(false);
-      })
-      .catch((err) => {
-        console.error('Failed to load data:', err);
-        // Set empty array on error to prevent undefined.length errors
-        setProjects([]);
-        setLoading(false);
-      });
-  };
-
-  useEffect(() => {
-    fetchData();
-    // fetchData is intentionally omitted - it uses name which is in deps
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [name]);
+  const organization = orgData?.organization ?? null;
+  const projects = orgData?.projects ?? [];
 
   const handleCreateProject = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -77,7 +61,7 @@ export default function OrganizationDetail() {
       toast.success('Project created successfully');
       setCreateDialogOpen(false);
       setFormData({ name: '', description: '' });
-      fetchData();
+      void refetchData();
       // Navigate to the new project (using names)
       void Promise.resolve(navigate(`/organizations/${name}/projects/${newProject.name}`));
     } catch (err: unknown) {

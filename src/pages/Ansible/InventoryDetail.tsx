@@ -1,6 +1,7 @@
 // Copyright (c) 2025 VH & Co BV. Licensed under the Business Source License 1.1. See LICENSE for details.
 
 import { useEffect, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { 
   ansibleInventoriesApi, 
@@ -100,7 +101,6 @@ export default function InventoryDetail() {
   const [groups, setGroups] = useState<(AnsibleInventoryGroup & { hostIds?: string[] })[]>([]);
   const [sources, setSources] = useState<AnsibleInventorySource[]>([]);
   const [credentials, setCredentials] = useState<AnsibleCredential[]>([]);
-  const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('hosts');
   
   // Collapsible banner state
@@ -200,74 +200,57 @@ export default function InventoryDetail() {
   });
 
   // Fetch inventory details
-  useEffect(() => {
-    if (!inventoryId || !orgName) return;
+  const { isLoading: loading } = useQuery({
+    queryKey: ['inventoryDetail', inventoryId, orgName],
+    queryFn: async () => {
+      const invRes = await ansibleInventoriesApi.get(inventoryId!);
+      const inv = getAnsibleInventoryFromJsonApi(invRes.data);
+      setInventory(inv);
+      setEditForm({ name: inv.name, description: inv.description || '' });
+      setInlineDescription(inv.description || '');
 
-    const fetchData = async () => {
-      setLoading(true);
-      try {
-        const invRes = await ansibleInventoriesApi.get(inventoryId);
-        const inv = getAnsibleInventoryFromJsonApi(invRes.data);
-        setInventory(inv);
-        setEditForm({ name: inv.name, description: inv.description || '' });
-        setInlineDescription(inv.description || '');
+      void vcsConnectionsApi.list(orgName ?? '').then(setVcsConnections).catch(() => {});
 
-        // Load VCS connections for provider-aware URLs and icons
-        void vcsConnectionsApi.list(orgName ?? '').then(setVcsConnections).catch(() => {});
-
-        // Check if org has Azure OIDC configuration
-        void azureOIDCConfigApi.list(orgName ?? '').then(res => {
-          if (res.data.length > 0) {
-            setHasAzureOIDC(true);
-            setAzureOIDCConfig(res.data[0]);
-            setAzureAuthMethod('oidc');
-          }
-        }).catch(() => {});
-
-        // For dynamic inventories, default to sources tab
-        if (inv.type === 'dynamic') {
-          setActiveTab('sources');
+      void azureOIDCConfigApi.list(orgName ?? '').then(res => {
+        if (res.data.length > 0) {
+          setHasAzureOIDC(true);
+          setAzureOIDCConfig(res.data[0]);
+          setAzureAuthMethod('oidc');
         }
+      }).catch(() => {});
 
-        // Fetch hosts, groups, and sources
-        const [hostsRes, groupsRes, sourcesRes] = await Promise.all([
-          ansibleHostsApi.list(inventoryId),
-          ansibleGroupsApi.list(inventoryId),
-          ansibleInventorySourcesApi.list(inventoryId),
-        ]);
-        setHosts((hostsRes.data || []).map(getAnsibleHostFromJsonApi));
-        // Parse groups and extract host relationships
-        const groupsData = (groupsRes.data || []).map((groupResource: JsonApiResource) => {
-          const group = getAnsibleGroupFromJsonApi(groupResource);
-          // Extract host IDs from relationships
-          const hostRelationships = (groupResource.relationships?.hosts as { data?: Array<{ id: string }> | { id: string } })?.data;
-          const hostIds = Array.isArray(hostRelationships) 
-            ? hostRelationships.map((h: { id: string }) => h.id)
-            : hostRelationships ? [hostRelationships.id] : [];
-          return { ...group, hostIds };
-        });
-        setGroups(groupsData);
-        setSources((sourcesRes.data || []).map(getAnsibleInventorySourceFromJsonApi));
-
-        // Fetch credentials for source creation (cloud credentials)
-        try {
-          const credRes = await ansibleCredentialsApi.list(orgName);
-          const allCreds = (credRes.data || []).map(getAnsibleCredentialFromJsonApi);
-          // Filter to only cloud credentials
-          setCredentials(allCreds.filter(c => ['aws', 'azure', 'gcp', 'vmware'].includes(c.type)));
-        } catch (err) {
-          console.warn('Failed to load credentials:', err);
-        }
-      } catch (err) {
-        console.error('Failed to load inventory:', err);
-        toast.error('Failed to load inventory');
-      } finally {
-        setLoading(false);
+      if (inv.type === 'dynamic') {
+        setActiveTab('sources');
       }
-    };
 
-    void fetchData();
-  }, [inventoryId, orgName]);
+      const [hostsRes, groupsRes, sourcesRes] = await Promise.all([
+        ansibleHostsApi.list(inventoryId!),
+        ansibleGroupsApi.list(inventoryId!),
+        ansibleInventorySourcesApi.list(inventoryId!),
+      ]);
+      setHosts((hostsRes.data || []).map(getAnsibleHostFromJsonApi));
+      const groupsData = (groupsRes.data || []).map((groupResource: JsonApiResource) => {
+        const group = getAnsibleGroupFromJsonApi(groupResource);
+        const hostRelationships = (groupResource.relationships?.hosts as { data?: Array<{ id: string }> | { id: string } })?.data;
+        const hostIds = Array.isArray(hostRelationships) 
+          ? hostRelationships.map((h: { id: string }) => h.id)
+          : hostRelationships ? [hostRelationships.id] : [];
+        return { ...group, hostIds };
+      });
+      setGroups(groupsData);
+      setSources((sourcesRes.data || []).map(getAnsibleInventorySourceFromJsonApi));
+
+      try {
+        const credRes = await ansibleCredentialsApi.list(orgName!);
+        const allCreds = (credRes.data || []).map(getAnsibleCredentialFromJsonApi);
+        setCredentials(allCreds.filter(c => ['aws', 'azure', 'gcp', 'vmware'].includes(c.type)));
+      } catch (err) {
+        console.warn('Failed to load credentials:', err);
+      }
+      return null;
+    },
+    enabled: !!inventoryId && !!orgName,
+  });
 
   // Auto-open the add source dialog if setup=true (coming from create dynamic inventory)
   useEffect(() => {

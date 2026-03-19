@@ -1,6 +1,7 @@
 // Copyright (c) 2025 VH & Co BV. Licensed under the Business Source License 1.1. See LICENSE for details.
 
 import { useEffect, useState } from 'react';
+import { useMountEffect } from '@/hooks/useMountEffect';
 import { Copy, Check } from 'lucide-react';
 import { getVcsProviderIcon } from '@/lib/vcs';
 
@@ -42,7 +43,7 @@ export function GitHubSnippet({ url }: GitHubSnippetProps) {
   const [themeMode, setThemeMode] = useState<'dark' | 'light'>(() =>
     typeof document !== 'undefined' && document.documentElement.classList.contains('dark') ? 'dark' : 'light'
   );
-  useEffect(() => {
+  useMountEffect(() => {
     if (typeof document === 'undefined') return;
     const el = document.documentElement;
     const observer = new MutationObserver(() => {
@@ -51,7 +52,7 @@ export function GitHubSnippet({ url }: GitHubSnippetProps) {
     });
     observer.observe(el, { attributes: true, attributeFilter: ['class'] });
     return () => observer.disconnect();
-  }, []);
+  });
 
   // Fetch snippet data
   useEffect(() => {
