@@ -1,6 +1,7 @@
 // Copyright (c) 2025 VH & Co BV. Licensed under the Business Source License 1.1. See LICENSE for details.
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { Link, useParams } from 'react-router-dom';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { ansibleJobsApi, type AnsibleJob, type AnsibleJobStatus } from '@/api/ansible';
@@ -85,8 +86,14 @@ export default function Jobs() {
   const { currentOrg } = useOrganization();
   const selectedOrg = orgName || currentOrg?.name || '';
 
-  const [jobs, setJobs] = useState<AnsibleJob[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { data: jobs = [], isLoading: loading, refetch: refetchJobs } = useQuery({
+    queryKey: ['jobs', selectedOrg],
+    queryFn: async () => {
+      const res = await ansibleJobsApi.listByOrganization(selectedOrg);
+      return (res.data || []).map(getAnsibleJobFromJsonApi);
+    },
+    enabled: !!selectedOrg,
+  });
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<AnsibleJobStatus | 'all'>('all');
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
@@ -96,28 +103,6 @@ export default function Jobs() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [jobToDelete, setJobToDelete] = useState<AnsibleJob | null>(null);
   const [deleting, setDeleting] = useState(false);
-
-  // Fetch jobs
-  useEffect(() => {
-    if (!selectedOrg) {
-      setLoading(false);
-      return;
-    }
-
-    setLoading(true);
-    void ansibleJobsApi
-      .listByOrganization(selectedOrg)
-      .then((res) => {
-        setJobs((res.data || []).map(getAnsibleJobFromJsonApi));
-      })
-      .catch((err) => {
-        console.error('Failed to load jobs:', err);
-        toast.error('Failed to load jobs');
-      })
-      .finally(() => {
-        setLoading(false);
-      });
-  }, [selectedOrg]);
 
   // Filter jobs
   const filteredJobs = jobs.filter((job) => {
@@ -134,9 +119,7 @@ export default function Jobs() {
     setCanceling(true);
     try {
       await ansibleJobsApi.cancel(jobToCancel.id);
-      setJobs(jobs.map((j) => 
-        j.id === jobToCancel.id ? { ...j, status: 'canceled' as AnsibleJobStatus } : j
-      ));
+      void refetchJobs();
       setCancelDialogOpen(false);
       setJobToCancel(null);
       toast.success('Job canceled successfully');
@@ -153,7 +136,7 @@ export default function Jobs() {
     try {
       const response = await ansibleJobsApi.relaunch(job.id);
       const newJob = getAnsibleJobFromJsonApi(response.data);
-      setJobs([newJob, ...jobs]);
+      void refetchJobs();
       toast.success('Job relaunched successfully');
     } catch (err) {
       console.error('Failed to relaunch job:', err);
@@ -169,7 +152,7 @@ export default function Jobs() {
     setDeleting(true);
     try {
       await ansibleJobsApi.delete(jobToDelete.id);
-      setJobs(jobs.filter((j) => j.id !== jobToDelete.id));
+      void refetchJobs();
       setDeleteDialogOpen(false);
       setJobToDelete(null);
       toast.success('Job deleted successfully');

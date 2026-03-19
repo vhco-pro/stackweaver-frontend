@@ -1,6 +1,7 @@
 // Copyright (c) 2025 VH & Co BV. Licensed under the Business Source License 1.1. See LICENSE for details.
 
 import { useEffect, useState, useRef } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link, useParams, useNavigate } from 'react-router-dom';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { ansibleInventoriesApi, ansibleHostsApi, ansibleGroupsApi, type AnsibleInventory } from '@/api/ansible';
@@ -65,10 +66,7 @@ export default function Inventories() {
   const navigate = useNavigate();
   const { currentOrg } = useOrganization();
   const selectedOrg = orgName || currentOrg?.name || '';
-
-  const [inventories, setInventories] = useState<AnsibleInventory[]>([]);
-  const [inventoryCounts, setInventoryCounts] = useState<Record<string, { hosts: number; groups: number }>>({});
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
   const [searchQuery, setSearchQuery] = useState('');
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -106,50 +104,38 @@ export default function Inventories() {
   });
 
   // Fetch inventories
-  useEffect(() => {
-    if (!selectedOrg) {
-      setLoading(false);
-      return;
-    }
+  const { data: inventoriesData, isLoading: loading } = useQuery({
+    queryKey: ['inventories', selectedOrg],
+    queryFn: async () => {
+      const res = await ansibleInventoriesApi.list(selectedOrg);
+      const invs = (res.data || []).map(getAnsibleInventoryFromJsonApi);
 
-    setLoading(true);
-    void ansibleInventoriesApi
-      .list(selectedOrg)
-      .then((res) => {
-        const invs = (res.data || []).map(getAnsibleInventoryFromJsonApi);
-        setInventories(invs);
-        
-        // Fetch counts for each inventory
-        const countPromises = invs.map(async (inv) => {
-          try {
-            const [hostsRes, groupsRes] = await Promise.all([
-              ansibleHostsApi.list(inv.id).catch(() => ({ data: [], meta: { pagination: { 'total-count': 0 } } })),
-              ansibleGroupsApi.list(inv.id).catch(() => ({ data: [], meta: { pagination: { 'total-count': 0 } } })),
-            ]);
-            const hostsCount = ('meta' in hostsRes && hostsRes.meta?.pagination?.['total-count']) || (Array.isArray(hostsRes.data) ? hostsRes.data.length : 0);
-            const groupsCount = ('meta' in groupsRes && groupsRes.meta?.pagination?.['total-count']) || (Array.isArray(groupsRes.data) ? groupsRes.data.length : 0);
-            return { id: inv.id, hosts: hostsCount, groups: groupsCount };
-          } catch {
-            return { id: inv.id, hosts: 0, groups: 0 };
-          }
-        });
-        
-        void Promise.all(countPromises).then((counts) => {
-          const countsMap: Record<string, { hosts: number; groups: number }> = {};
-          counts.forEach((count) => {
-            countsMap[count.id] = { hosts: count.hosts, groups: count.groups };
-          });
-          setInventoryCounts(countsMap);
-        });
-      })
-      .catch((err) => {
-        console.error('Failed to load inventories:', err);
-        toast.error('Failed to load inventories');
-      })
-      .finally(() => {
-        setLoading(false);
+      // Fetch counts for each inventory
+      const counts = await Promise.all(invs.map(async (inv) => {
+        try {
+          const [hostsRes, groupsRes] = await Promise.all([
+            ansibleHostsApi.list(inv.id).catch(() => ({ data: [], meta: { pagination: { 'total-count': 0 } } })),
+            ansibleGroupsApi.list(inv.id).catch(() => ({ data: [], meta: { pagination: { 'total-count': 0 } } })),
+          ]);
+          const hostsCount = ('meta' in hostsRes && hostsRes.meta?.pagination?.['total-count']) || (Array.isArray(hostsRes.data) ? hostsRes.data.length : 0);
+          const groupsCount = ('meta' in groupsRes && groupsRes.meta?.pagination?.['total-count']) || (Array.isArray(groupsRes.data) ? groupsRes.data.length : 0);
+          return { id: inv.id, hosts: hostsCount, groups: groupsCount };
+        } catch {
+          return { id: inv.id, hosts: 0, groups: 0 };
+        }
+      }));
+
+      const countsMap: Record<string, { hosts: number; groups: number }> = {};
+      counts.forEach((count) => {
+        countsMap[count.id] = { hosts: count.hosts, groups: count.groups };
       });
-  }, [selectedOrg]);
+      return { inventories: invs, inventoryCounts: countsMap };
+    },
+    enabled: !!selectedOrg,
+  });
+
+  const inventories = inventoriesData?.inventories ?? [];
+  const inventoryCounts = inventoriesData?.inventoryCounts ?? {};
 
   // Filter inventories
   const filteredInventories = inventories.filter((inv) =>
@@ -412,11 +398,11 @@ export default function Inventories() {
         inventory_path: formData.inventory_path || undefined,
       });
       const newInventory = getAnsibleInventoryFromJsonApi(res.data);
-      setInventories([...inventories, newInventory]);
+      void queryClient.invalidateQueries({ queryKey: ['inventories', selectedOrg] });
       setCreateDialogOpen(false);
       resetCreateForm();
       toast.success('Inventory created successfully');
-      
+
       // For dynamic inventories, redirect to detail page with setup=true to prompt source configuration
       if (formData.type === 'dynamic') {
         void Promise.resolve(navigate(`/app/${selectedOrg}/ansible/inventories/${newInventory.id}?setup=true`));
@@ -436,7 +422,7 @@ export default function Inventories() {
     setDeleting(true);
     try {
       await ansibleInventoriesApi.delete(inventoryToDelete.id);
-      setInventories(inventories.filter((inv) => inv.id !== inventoryToDelete.id));
+      void queryClient.invalidateQueries({ queryKey: ['inventories', selectedOrg] });
       setDeleteDialogOpen(false);
       setInventoryToDelete(null);
       toast.success('Inventory deleted successfully');

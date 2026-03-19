@@ -1,6 +1,7 @@
 // Copyright (c) 2025 VH & Co BV. Licensed under the Business Source License 1.1. See LICENSE for details.
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
+import { useMountEffect } from '@/hooks/useMountEffect';
 import { Link, useNavigate } from 'react-router-dom';
 import { organizationsApi, type Organization } from '@/api/client';
 import { useOrganization } from '@/contexts/OrganizationContext';
@@ -46,9 +47,9 @@ export default function Organizations() {
       });
   };
 
-  useEffect(() => {
+  useMountEffect(() => {
     fetchOrganizations();
-  }, []);
+  });
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();

@@ -1,6 +1,7 @@
 // Copyright (c) 2025 VH & Co BV. Licensed under the Business Source License 1.1. See LICENSE for details.
 
-import { useEffect, useState, useMemo, useCallback } from 'react';
+import { useState, useMemo } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Server, Activity, Clock, Cpu, Tag, Trash2, Edit2, Loader2, BarChart3 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -24,8 +25,6 @@ import { cn } from '@/lib/utils';
 export default function RunnerDetail() {
   const { orgName, runnerId } = useParams<{ orgName: string; runnerId: string }>();
   const navigate = useNavigate();
-  const [runner, setRunner] = useState<Runner | null>(null);
-  const [loading, setLoading] = useState(true);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -36,49 +35,22 @@ export default function RunnerDetail() {
     labels: '',
   });
 
-  const loadRunner = useCallback(async () => {
-    if (!runnerId) return;
-    
-    try {
-      setLoading(true);
-      const data = await runnersApi.get(runnerId);
-      setRunner(data);
+  const { data: runner = null, isLoading: loading, refetch: refetchRunner } = useQuery({
+    queryKey: ['runner', runnerId],
+    queryFn: async () => {
+      const data = await runnersApi.get(runnerId!);
       setEditForm({
         description: data.description || '',
         labels: (data.labels || []).join(', '),
       });
-    } catch (err) {
-      console.error('Failed to load runner:', err);
-      toast.error('Failed to load runner details');
-    } finally {
-      setLoading(false);
-    }
-  }, [runnerId]);
-
-  useEffect(() => {
-    if (runnerId) {
-      void loadRunner();
-    }
-  }, [runnerId, loadRunner]);
-
-  // Poll for real-time status updates (every 10 seconds)
-  const runnerStatus = runner?.status;
-  useEffect(() => {
-    if (!runnerId || !runnerStatus) return;
-    
-    // Only poll for runners that might have status changes
-    if (runnerStatus !== 'online' && runnerStatus !== 'busy') return;
-
-    const pollInterval = setInterval(() => {
-      void runnersApi.get(runnerId).then(data => {
-        setRunner(data);
-      }).catch(() => {
-        // Silently ignore polling errors
-      });
-    }, 10000); // 10 seconds
-
-    return () => clearInterval(pollInterval);
-  }, [runnerId, runnerStatus]);
+      return data;
+    },
+    enabled: !!runnerId,
+    refetchInterval: (query) => {
+      const status = query.state.data?.status;
+      return status === 'online' || status === 'busy' ? 10_000 : false;
+    },
+  });
 
   const handleSave = async () => {
     if (!runner) return;
@@ -97,7 +69,7 @@ export default function RunnerDetail() {
       
       toast.success('Runner updated');
       setEditDialogOpen(false);
-      void loadRunner();
+      void refetchRunner();
     } catch (err) {
       console.error('Failed to update runner:', err);
       toast.error('Failed to update runner');

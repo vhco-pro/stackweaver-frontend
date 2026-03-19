@@ -1,6 +1,7 @@
 // Copyright (c) 2025 VH & Co BV. Licensed under the Business Source License 1.1. See LICENSE for details.
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Upload, ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -31,30 +32,20 @@ export default function ProviderPublish() {
   const orgName = params.orgName;
   const providerName = params.providerName;
   const navigate = useNavigate();
-  const [provider, setProvider] = useState<Provider | null>(null);
   const [versions] = useState<ProviderVersion[]>([]);
-  const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [version, setVersion] = useState('');
   const [os, setOs] = useState('');
   const [arch, setArch] = useState('');
   const [file, setFile] = useState<File | null>(null);
 
-  useEffect(() => {
-    if (!orgName || !providerName) return;
-
-    setLoading(true);
-    void registryApi.providers.get(orgName, providerName)
-      .then((providerData) => {
-        setProvider(providerData);
-        setLoading(false);
-      })
-      .catch((err) => {
-        console.error('Failed to load provider:', err);
-        toast.error('Failed to load provider');
-        setLoading(false);
-      });
-  }, [orgName, providerName]);
+  const { data: provider = null, isLoading: loading } = useQuery({
+    queryKey: ['provider', orgName, providerName],
+    queryFn: async () => {
+      return await registryApi.providers.get(orgName!, providerName!);
+    },
+    enabled: !!orgName && !!providerName,
+  });
 
   const handleUpload = async (e: React.FormEvent) => {
     e.preventDefault();

@@ -1,6 +1,7 @@
 // Copyright (c) 2025 VH & Co BV. Licensed under the Business Source License 1.1. See LICENSE for details.
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
+import { useMountEffect } from '@/hooks/useMountEffect';
 import { useParams } from 'react-router-dom';
 import { ansibleCollectionsApi, type AnsibleCollection } from '@/api/ansible';
 import type { JsonApiResource } from '@/utils/jsonapi';
@@ -17,7 +18,7 @@ export default function Collections() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
 
-  useEffect(() => {
+  useMountEffect(() => {
     const fetchCollections = async () => {
       try {
         const response = await ansibleCollectionsApi.listPreInstalled();
@@ -41,7 +42,7 @@ export default function Collections() {
     };
 
     void fetchCollections();
-  }, []);
+  });
 
   const filteredCollections = collections.filter(col => 
     col.name.toLowerCase().includes(search.toLowerCase()) ||

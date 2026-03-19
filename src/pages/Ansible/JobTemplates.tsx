@@ -1,6 +1,7 @@
 // Copyright (c) 2025 VH & Co BV. Licensed under the Business Source License 1.1. See LICENSE for details.
 
-import { useEffect, useState, useMemo } from 'react';
+import { useState, useMemo } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { Link, useParams, useNavigate } from 'react-router-dom';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { 
@@ -121,7 +122,6 @@ export default function JobTemplates() {
 
   const [templates, setTemplates] = useState<AnsibleJobTemplate[]>([]);
   const [jobs, setJobs] = useState<AnsibleJob[]>([]);
-  const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [templateToDelete, setTemplateToDelete] = useState<AnsibleJobTemplate | null>(null);
@@ -160,54 +160,38 @@ export default function JobTemplates() {
   });
 
   // Fetch templates and jobs
-  useEffect(() => {
-    if (!selectedOrg) {
-      setLoading(false);
-      return;
-    }
-
-    setLoading(true);
-    void Promise.all([
-      ansibleJobTemplatesApi.listByOrganization(selectedOrg),
-      ansibleJobsApi.listByOrganization(selectedOrg),
-    ])
-      .then(([templatesRes, jobsRes]) => {
-        setTemplates((templatesRes.data || []).map(getAnsibleJobTemplateFromJsonApi));
-        setJobs((jobsRes.data || []).map(getAnsibleJobFromJsonApi));
-      })
-      .catch((err) => {
-        console.error('Failed to load job templates:', err);
-        toast.error('Failed to load job templates');
-      })
-      .finally(() => {
-        setLoading(false);
-      });
-  }, [selectedOrg]);
+  const { isLoading: loading } = useQuery({
+    queryKey: ['jobTemplates', selectedOrg],
+    queryFn: async () => {
+      const [templatesRes, jobsRes] = await Promise.all([
+        ansibleJobTemplatesApi.listByOrganization(selectedOrg),
+        ansibleJobsApi.listByOrganization(selectedOrg),
+      ]);
+      setTemplates((templatesRes.data || []).map(getAnsibleJobTemplateFromJsonApi));
+      setJobs((jobsRes.data || []).map(getAnsibleJobFromJsonApi));
+      return null;
+    },
+    enabled: !!selectedOrg,
+  });
 
   // Fetch playbooks, inventories, credentials, and agent pools when create dialog opens
-  useEffect(() => {
-    if (createDialogOpen && selectedOrg) {
-      // Load playbooks
-      void ansiblePlaybooksApi.listByOrganization(selectedOrg)
-        .then((res) => setPlaybooks((res.data || []).map(getAnsiblePlaybookFromJsonApi)))
-        .catch((err) => console.error('Failed to load playbooks:', err));
-      
-      // Load inventories
-      void ansibleInventoriesApi.list(selectedOrg)
-        .then((res) => setInventories((res.data || []).map(getAnsibleInventoryFromJsonApi)))
-        .catch((err) => console.error('Failed to load inventories:', err));
-      
-      // Load credentials
-      void ansibleCredentialsApi.list(selectedOrg)
-        .then((res) => setCredentials((res.data || []).map(getAnsibleCredentialFromJsonApi)))
-        .catch((err) => console.error('Failed to load credentials:', err));
-
-      // Load agent pools
-      void agentPoolsApi.list(selectedOrg)
-        .then((res) => setAgentPools(res.data || []))
-        .catch((err) => console.error('Failed to load agent pools:', err));
-    }
-  }, [createDialogOpen, selectedOrg]);
+  useQuery({
+    queryKey: ['jobTemplateFormData', selectedOrg, createDialogOpen],
+    queryFn: async () => {
+      const [playbooksRes, inventoriesRes, credentialsRes, agentPoolsRes] = await Promise.all([
+        ansiblePlaybooksApi.listByOrganization(selectedOrg),
+        ansibleInventoriesApi.list(selectedOrg),
+        ansibleCredentialsApi.list(selectedOrg),
+        agentPoolsApi.list(selectedOrg),
+      ]);
+      setPlaybooks((playbooksRes.data || []).map(getAnsiblePlaybookFromJsonApi));
+      setInventories((inventoriesRes.data || []).map(getAnsibleInventoryFromJsonApi));
+      setCredentials((credentialsRes.data || []).map(getAnsibleCredentialFromJsonApi));
+      setAgentPools(agentPoolsRes.data || []);
+      return null;
+    },
+    enabled: createDialogOpen && !!selectedOrg,
+  });
 
   // Filter templates
   const filteredTemplates = templates.filter((tpl) =>

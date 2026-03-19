@@ -1,6 +1,7 @@
 // Copyright (c) 2025 VH & Co BV. Licensed under the Business Source License 1.1. See LICENSE for details.
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
+import { useMountEffect } from '@/hooks/useMountEffect';
 import { Link } from 'react-router-dom';
 import { X, Settings } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -22,13 +23,13 @@ export function CookieConsent() {
     timestamp: new Date().toISOString(),
   });
 
-  useEffect(() => {
+  useMountEffect(() => {
     const consent = localStorage.getItem('cookie-consent');
     if (!consent) {
       // Show after a small delay for better UX
       setTimeout(() => setShow(true), 1000);
     }
-  }, []);
+  });
 
   const handleAcceptAll = () => {
     const allAccepted: CookiePreferences = {

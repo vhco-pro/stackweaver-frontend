@@ -290,6 +290,7 @@ function buildTree(files) {
         title: metadata.title,
         description: metadata.description,
         type: 'file',
+        ...(metadata.status ? { status: metadata.status } : {}),
       };
       continue;
     }
@@ -310,6 +311,7 @@ function buildTree(files) {
       title: metadata.title,
       description: metadata.description,
       type: 'file',
+      ...(metadata.status ? { status: metadata.status } : {}),
     };
   }
 
@@ -357,6 +359,7 @@ function buildTree(files) {
         path: file.relativePath,
         title: metadata.title,
         description: metadata.description,
+        ...(metadata.status ? { status: metadata.status } : {}),
       });
     }
   }

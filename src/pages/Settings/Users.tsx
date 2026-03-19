@@ -1,6 +1,7 @@
 // Copyright (c) 2025 VH & Co BV. Licensed under the Business Source License 1.1. See LICENSE for details.
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Plus, Trash2, Edit, Users as UsersIcon } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -40,10 +41,6 @@ import { cn } from '@/lib/utils';
 export default function UsersSettings() {
   const { orgName } = useParams<{ orgName: string }>();
   const navigate = useNavigate();
-  const [memberships, setMemberships] = useState<OrganizationMembership[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [hasManageAccess, setHasManageAccess] = useState<boolean | null>(null);
   const [activeTab, setActiveTab] = useState('users');
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [showCreateTeamDialog, setShowCreateTeamDialog] = useState(false);
@@ -53,41 +50,31 @@ export default function UsersSettings() {
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
-  const loadMemberships = useCallback(async () => {
-    if (!orgName) return;
-    try {
-      setLoading(true);
-      setError(null);
-      const response = await organizationMembershipsApi.list(orgName);
-      setMemberships(response.data || []);
-      
-      // Permission check: If we can successfully load memberships, we have access
-      // Backend will return 403 if user doesn't have manage-membership permission
-      setHasManageAccess(true);
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to load organization members';
-      setError(errorMessage);
-      
-      // If it's a 403, user doesn't have permission to manage memberships
-      const errorWithStatus = err as Error & { status?: number };
-      if (errorWithStatus?.status === 403 && orgName) {
-        setHasManageAccess(false);
-        toast.error('Only members of the "owners" team can manage users and teams');
-        void Promise.resolve(navigate(`/app/${orgName}/settings`));
-      } else {
+  const { data: membershipData, isLoading: loading, refetch: refetchMemberships } = useQuery({
+    queryKey: ['memberships', orgName],
+    queryFn: async () => {
+      try {
+        const response = await organizationMembershipsApi.list(orgName!);
+        return { memberships: response.data || [], hasManageAccess: true as boolean | null, error: null as string | null };
+      } catch (err) {
+        const errorWithStatus = err as Error & { status?: number };
+        if (errorWithStatus?.status === 403) {
+          toast.error('Only members of the "owners" team can manage users and teams');
+          void Promise.resolve(navigate(`/app/${orgName}/settings`));
+          return { memberships: [] as OrganizationMembership[], hasManageAccess: false as boolean | null, error: null as string | null };
+        }
+        const errorMessage = err instanceof Error ? err.message : 'Failed to load organization members';
         toast.error(errorMessage);
+        return { memberships: [] as OrganizationMembership[], hasManageAccess: null as boolean | null, error: errorMessage };
       }
-    } finally {
-      setLoading(false);
-    }
-  }, [orgName, navigate]);
+    },
+    enabled: !!orgName,
+    retry: false,
+  });
 
-  // Load memberships on mount
-  useEffect(() => {
-    if (orgName) {
-      void loadMemberships();
-    }
-  }, [orgName, loadMemberships]);
+  const memberships = membershipData?.memberships ?? [];
+  const hasManageAccess = membershipData?.hasManageAccess ?? null;
+  const error = membershipData?.error ?? null;
 
   const handleAdd = async () => {
     if (!orgName || !newEmail.trim()) {
@@ -97,7 +84,6 @@ export default function UsersSettings() {
 
     try {
       setSaving(true);
-      setError(null);
       // Roles are deprecated - permissions come from team memberships
       await organizationMembershipsApi.create(orgName, {
         email: newEmail.trim(),
@@ -105,10 +91,9 @@ export default function UsersSettings() {
       toast.success('User added successfully. Add them to teams to grant permissions.');
       setShowAddDialog(false);
       setNewEmail('');
-      await loadMemberships();
+      await refetchMemberships();
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to add user';
-      setError(errorMessage);
       toast.error(errorMessage);
     } finally {
       setSaving(false);
@@ -121,15 +106,13 @@ export default function UsersSettings() {
 
     try {
       setDeleting(true);
-      setError(null);
       await organizationMembershipsApi.delete(selectedMembership.id);
       toast.success('User removed successfully');
       setShowDeleteDialog(false);
       setSelectedMembership(null);
-      await loadMemberships();
+      await refetchMemberships();
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to remove user';
-      setError(errorMessage);
       toast.error(errorMessage);
     } finally {
       setDeleting(false);
@@ -421,10 +404,21 @@ export default function UsersSettings() {
 
 // Teams Tab Component (extracted from Teams.tsx)
 function TeamsTab({ orgName, showCreateDialog, setShowCreateDialog }: { orgName: string; showCreateDialog: boolean; setShowCreateDialog: (open: boolean) => void }) {
-  const [teams, setTeams] = useState<Team[]>([]);
-  const [allMemberships, setAllMemberships] = useState<OrganizationMembership[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { data: teams = [], isLoading: loading, refetch: refetchTeams } = useQuery({
+    queryKey: ['teams', orgName],
+    queryFn: async () => {
+      const response = await teamsApi.list(orgName);
+      return response.data || [];
+    },
+  });
+
+  const { data: allMemberships = [] } = useQuery({
+    queryKey: ['allMemberships', orgName],
+    queryFn: async () => {
+      const response = await organizationMembershipsApi.list(orgName);
+      return response.data || [];
+    },
+  });
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showMembersDialog, setShowMembersDialog] = useState(false);
@@ -479,39 +473,6 @@ function TeamsTab({ orgName, showCreateDialog, setShowCreateDialog }: { orgName:
   const [updatingMembers, setUpdatingMembers] = useState(false);
   
 
-  const loadTeams = useCallback(async () => {
-    if (!orgName) return;
-    try {
-      setLoading(true);
-      setError(null);
-      const response = await teamsApi.list(orgName);
-      setTeams(response.data || []);
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to load teams';
-      setError(errorMessage);
-      toast.error(errorMessage);
-    } finally {
-      setLoading(false);
-    }
-  }, [orgName]);
-
-  const loadAllMemberships = useCallback(async () => {
-    if (!orgName) return;
-    try {
-      const response = await organizationMembershipsApi.list(orgName);
-      setAllMemberships(response.data || []);
-    } catch (err) {
-      console.error('Failed to load memberships:', err);
-    }
-  }, [orgName]);
-
-  useEffect(() => {
-    if (orgName) {
-      void loadTeams();
-      void loadAllMemberships();
-    }
-  }, [orgName, loadTeams, loadAllMemberships]);
-
   const loadTeamMembers = async (teamId: string) => {
     try {
       setLoadingMembers(true);
@@ -533,7 +494,6 @@ function TeamsTab({ orgName, showCreateDialog, setShowCreateDialog }: { orgName:
 
     try {
       setSaving(true);
-      setError(null);
       
       // Prepare organization-access object (only include true values, or all if any are true)
       const hasOrgAccess = Object.values(newTeamOrgAccess).some(v => v);
@@ -569,10 +529,9 @@ function TeamsTab({ orgName, showCreateDialog, setShowCreateDialog }: { orgName:
         'access-secret-teams': false,
         'manage-agent-pools': false,
       });
-      await loadTeams();
+      void refetchTeams();
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to create team';
-      setError(errorMessage);
       toast.error(errorMessage);
     } finally {
       setSaving(false);
@@ -584,7 +543,6 @@ function TeamsTab({ orgName, showCreateDialog, setShowCreateDialog }: { orgName:
 
     try {
       setSaving(true);
-      setError(null);
       
       // Convert TFE-style structure back to API format
       // Send ALL fields (both true and false) so backend can properly clear unchecked permissions
@@ -625,10 +583,9 @@ function TeamsTab({ orgName, showCreateDialog, setShowCreateDialog }: { orgName:
       toast.success('Team updated successfully');
       setShowEditDialog(false);
       setSelectedTeam(null);
-      await loadTeams();
+      void refetchTeams();
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to update team';
-      setError(errorMessage);
       toast.error(errorMessage);
     } finally {
       setSaving(false);
@@ -640,15 +597,13 @@ function TeamsTab({ orgName, showCreateDialog, setShowCreateDialog }: { orgName:
 
     try {
       setDeleting(true);
-      setError(null);
       await teamsApi.delete(selectedTeam.id);
       toast.success('Team deleted successfully');
       setShowDeleteDialog(false);
       setSelectedTeam(null);
-      await loadTeams();
+      void refetchTeams();
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to delete team';
-      setError(errorMessage);
       toast.error(errorMessage);
     } finally {
       setDeleting(false);
@@ -660,7 +615,6 @@ function TeamsTab({ orgName, showCreateDialog, setShowCreateDialog }: { orgName:
 
     try {
       setUpdatingMembers(true);
-      setError(null);
 
       // Add members
       if (membershipIdsToAdd.length > 0) {
@@ -676,7 +630,6 @@ function TeamsTab({ orgName, showCreateDialog, setShowCreateDialog }: { orgName:
       await loadTeamMembers(selectedTeam.id);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to update team members';
-      setError(errorMessage);
       toast.error(errorMessage);
     } finally {
       setUpdatingMembers(false);
@@ -753,13 +706,6 @@ function TeamsTab({ orgName, showCreateDialog, setShowCreateDialog }: { orgName:
 
   return (
     <div className="space-y-6">
-      {/* Error Message */}
-      {error && (
-        <div className="bg-destructive/10 border border-destructive/20 text-destructive px-4 py-3 rounded-lg">
-          {error}
-        </div>
-      )}
-
       {/* Loading State */}
       {loading ? (
         <div className="flex items-center justify-center py-12">

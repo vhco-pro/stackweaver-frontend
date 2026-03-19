@@ -1,6 +1,7 @@
 // Copyright (c) 2025 VH & Co BV. Licensed under the Business Source License 1.1. See LICENSE for details.
 
 import { useState, useEffect, useRef } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import {
@@ -45,7 +46,6 @@ export function EditWorkspaceDialog({
 }: EditWorkspaceDialogProps) {
   const navigate = useNavigate();
   const [updating, setUpdating] = useState(false);
-  const [loadingVCS, setLoadingVCS] = useState(false);
   const [loadingRepos, setLoadingRepos] = useState(false);
   const [loadingBranches, setLoadingBranches] = useState(false);
   
@@ -120,37 +120,33 @@ export function EditWorkspaceDialog({
     }
   }, [workspace, open]);
 
-  // Load VCS connections when dialog opens
-  useEffect(() => {
-    if (!open || !orgName || orgName.trim() === '') {
-      return;
-    }
+  // Load VCS connections, terraform versions, and agent pools when dialog opens
+  const { isLoading: loadingVCS } = useQuery({
+    queryKey: ['edit-workspace-data', orgName],
+    queryFn: async () => {
+      const [tfRes, poolsRes, vcsRes] = await Promise.all([
+        terraformVersionsApi.listEnabled().catch(() => ({ data: [] })),
+        agentPoolsApi.list(orgName).catch(() => ({ data: [] })),
+        vcsConnectionsApi.list(orgName),
+      ]);
 
-    setLoadingVCS(true);
-    void terraformVersionsApi.listEnabled().then((res) => { setAvailableTfVersions(Array.isArray(res?.data) ? res.data : []); }).catch(() => { /* ignore */ });
-    void agentPoolsApi.list(orgName).then((res) => { setAgentPools(Array.isArray(res?.data) ? res.data : []); }).catch(() => { /* ignore */ });
-    void vcsConnectionsApi.list(orgName)
-      .then((vcsRes) => {
-        const connections = Array.isArray(vcsRes) ? vcsRes : [];
-        // Deduplicate by provider + account_name + account_type
-        const uniqueConnections = Array.from(
-          new Map(
-            connections.map(conn => [
-              `${conn.provider}-${conn.account_name}-${conn.account_type}`,
-              conn
-            ])
-          ).values()
-        );
-        setVcsConnections(uniqueConnections);
-      })
-      .catch((error) => {
-        console.error('Failed to load VCS connections:', error);
-        toast.error('Failed to load VCS connections');
-      })
-      .finally(() => {
-        setLoadingVCS(false);
-      });
-  }, [open, orgName]);
+      setAvailableTfVersions(Array.isArray(tfRes?.data) ? tfRes.data : []);
+      setAgentPools(Array.isArray(poolsRes?.data) ? poolsRes.data : []);
+
+      const connections = Array.isArray(vcsRes) ? vcsRes : [];
+      const uniqueConnections = Array.from(
+        new Map(
+          connections.map(conn => [
+            `${conn.provider}-${conn.account_name}-${conn.account_type}`,
+            conn
+          ])
+        ).values()
+      );
+      setVcsConnections(uniqueConnections);
+      return uniqueConnections;
+    },
+    enabled: open && !!orgName,
+  });
 
   // Set VCS connection ID from workspace when connections are loaded
   // This MUST run after vcsConnections is set to ensure the card shows as selected

@@ -1,6 +1,7 @@
 // Copyright (c) 2025 VH & Co BV. Licensed under the Business Source License 1.1. See LICENSE for details.
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { Link, useParams } from 'react-router-dom';
 import { Shield, ArrowLeft, Plus, Trash2, Loader2, Settings2, Copy, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -23,8 +24,15 @@ import { cn } from '@/lib/utils';
 
 export default function OIDCConfigurations() {
   const { orgName } = useParams<{ orgName: string }>();
-  const [configs, setConfigs] = useState<AzureOIDCConfiguration[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { data: configs = [], isLoading: loading, refetch: refetchConfigs } = useQuery({
+    queryKey: ['oidc-configs', orgName],
+    queryFn: async () => {
+      const res = await azureOIDCConfigApi.list(orgName!);
+      return res.data || [];
+    },
+    enabled: !!orgName,
+  });
+
   const [createOpen, setCreateOpen] = useState(false);
   const [editConfig, setEditConfig] = useState<AzureOIDCConfiguration | null>(null);
   const [deleteConfig, setDeleteConfig] = useState<AzureOIDCConfiguration | null>(null);
@@ -51,26 +59,6 @@ export default function OIDCConfigurations() {
     tenant_id: '',
   });
 
-  const fetchConfigs = useCallback(() => {
-    if (!orgName) return;
-    setLoading(true);
-    void azureOIDCConfigApi
-      .list(orgName)
-      .then((res) => {
-        setConfigs(res.data || []);
-      })
-      .catch((err) => {
-        console.error('Failed to load OIDC configurations:', err);
-        toast.error('Failed to load OIDC configurations');
-        setConfigs([]);
-      })
-      .finally(() => setLoading(false));
-  }, [orgName]);
-
-  useEffect(() => {
-    fetchConfigs();
-  }, [fetchConfigs]);
-
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!orgName) return;
@@ -88,7 +76,7 @@ export default function OIDCConfigurations() {
       toast.success('Azure OIDC configuration created');
       setCreateOpen(false);
       setCreateForm({ client_id: '', subscription_id: '', tenant_id: '' });
-      fetchConfigs();
+      void refetchConfigs();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Failed to create OIDC configuration');
     } finally {
@@ -121,7 +109,7 @@ export default function OIDCConfigurations() {
       });
       toast.success('Azure OIDC configuration updated');
       setEditConfig(null);
-      fetchConfigs();
+      void refetchConfigs();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Failed to update OIDC configuration');
     } finally {
@@ -136,7 +124,7 @@ export default function OIDCConfigurations() {
       await azureOIDCConfigApi.delete(deleteConfig.id);
       toast.success('Azure OIDC configuration deleted');
       setDeleteConfig(null);
-      fetchConfigs();
+      void refetchConfigs();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Failed to delete OIDC configuration');
     } finally {

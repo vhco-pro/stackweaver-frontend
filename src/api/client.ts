@@ -267,6 +267,16 @@ export interface Workspace {
   run_timeout?: number; // Custom extension: timeout in seconds (default: 7200 = 2 hours)
   created_at: string;
   updated_at: string;
+  latest_run?: {
+    id: string;
+    status: string;
+    operation: string;
+    is_destroy: boolean;
+    plan_only: boolean;
+    has_changes: boolean;
+    created_at: string;
+    completed_at?: string;
+  };
 }
 
 export interface VCSConnection {
@@ -455,13 +465,88 @@ export const projectsApi = {
     apiClient.delete(`/organizations/${organizationName}/projects/${projectName}`),
 };
 
+// Parse a workspace JSON:API resource into the flat Workspace interface.
+// Maps kebab-case JSON:API attributes to snake_case TypeScript fields.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function workspaceFromJsonApi(item: JsonApiResource, included?: JsonApiResource[]): Workspace {
+  const attrs = item.attributes || {};
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const vcsRepo = attrs['vcs-repo'] as Record<string, any> | null | undefined;
+  const projectRel = getRelationship(item, 'project');
+  const agentPoolRel = getRelationship(item, 'agent-pool');
+  const lockedByRel = getRelationship(item, 'locked-by');
+  const currentRunRel = getRelationship(item, 'current-run');
+
+  // Map TFE service-provider to our vcs_provider field
+  let vcsProvider: string | undefined;
+  if (vcsRepo) {
+    const sp = String(vcsRepo['service-provider'] || '');
+    switch (sp) {
+      case 'github': vcsProvider = 'github'; break;
+      case 'ado_services': vcsProvider = 'azure_devops'; break;
+      case 'gitlab_hosted': vcsProvider = 'gitlab'; break;
+      case 'bitbucket_hosted': vcsProvider = 'bitbucket'; break;
+      default: if (sp) vcsProvider = sp;
+    }
+  }
+
+  const workspace: Workspace = {
+    id: item.id,
+    project_id: projectRel?.id || '',
+    name: String(attrs['name'] || ''),
+    description: attrs['description'] ? String(attrs['description']) : undefined,
+    vcs_connection_id: attrs['vcs-connection-id'] ? String(attrs['vcs-connection-id']) : undefined,
+    vcs_provider: vcsProvider,
+    vcs_repository: vcsRepo ? String(vcsRepo['identifier'] || '') : undefined,
+    vcs_branch: vcsRepo ? String(vcsRepo['branch'] || '') : undefined,
+    vcs_account_name: attrs['vcs-account-name'] ? String(attrs['vcs-account-name']) : undefined,
+    terraform_version: attrs['terraform-version'] ? String(attrs['terraform-version']) : undefined,
+    working_directory: attrs['working-directory'] ? String(attrs['working-directory']) : undefined,
+    auto_queue_runs: attrs['auto-queue-runs'] as boolean | undefined,
+    auto_apply: attrs['auto-apply'] as boolean | undefined,
+    execution_mode: attrs['execution-mode'] ? String(attrs['execution-mode']) : undefined,
+    agent_pool_id: agentPoolRel?.id || undefined,
+    agent_pool_name: attrs['agent-pool-name'] ? String(attrs['agent-pool-name']) : undefined,
+    locked: (attrs['locked'] as boolean) ?? false,
+    locked_by: lockedByRel?.id || undefined,
+    locked_at: attrs['locked-at'] ? String(attrs['locked-at']) : undefined,
+    locked_reason: attrs['locked-reason'] ? String(attrs['locked-reason']) : undefined,
+    force_delete: attrs['force-delete'] as boolean | undefined,
+    run_timeout: attrs['run-timeout'] as number | undefined,
+    created_at: String(attrs['created-at'] || ''),
+    updated_at: String(attrs['updated-at'] || ''),
+  };
+
+  // Resolve latest_run from included resources if current-run relationship exists
+  if (currentRunRel && included) {
+    const runResource = included.find(r => r.id === currentRunRel.id && r.type === 'runs');
+    if (runResource) {
+      const runAttrs = runResource.attributes || {};
+      workspace.latest_run = {
+        id: runResource.id,
+        status: String(runAttrs['status'] || ''),
+        operation: String(runAttrs['operation'] || ''),
+        is_destroy: (runAttrs['is-destroy'] as boolean) ?? false,
+        plan_only: (runAttrs['plan-only'] as boolean) ?? false,
+        has_changes: (runAttrs['has-changes'] as boolean) ?? false,
+        created_at: String(runAttrs['created-at'] || ''),
+        completed_at: runAttrs['completed-at'] ? String(runAttrs['completed-at']) : undefined,
+      };
+    }
+  }
+
+  return workspace;
+}
+
 export const workspacesApi = {
-  // TFE-compatible endpoints (using organization name and workspace name)
-  // Using ?format=simple for frontend compatibility (Terraform CLI uses default TFE format)
+  // TFE-compatible endpoints — always JSON:API format
   list: (organizationName: string) =>
-    apiClient.get<{ data: Workspace[]; meta: { pagination: { page: number; per_page: number; total: number } } }>(`/organizations/${organizationName}/workspaces?format=simple`),
+    apiClient.get<{ data: JsonApiResource[]; meta: { pagination: { page: number; per_page: number; total: number } }; included?: JsonApiResource[] }>(`/organizations/${organizationName}/workspaces`).then(res => ({
+      data: (res.data || []).map((item: JsonApiResource) => workspaceFromJsonApi(item, res.included)),
+      meta: res.meta,
+    })),
   get: (organizationName: string, workspaceName: string) =>
-    apiClient.get<{ data: Workspace }>(`/organizations/${organizationName}/workspaces/${workspaceName}?format=simple`).then(res => res.data),
+    apiClient.get<{ data: JsonApiResource }>(`/organizations/${organizationName}/workspaces/${workspaceName}`).then(res => workspaceFromJsonApi(res.data)),
   create: (organizationName: string, data: {
     name: string;
     description?: string;
@@ -477,7 +562,7 @@ export const workspacesApi = {
     agent_pool_id?: string;
     'run-timeout'?: number; // Custom extension: timeout in seconds
   }) =>
-    apiClient.post<{ data: Workspace }>(`/organizations/${organizationName}/workspaces?format=simple`, {
+    apiClient.post<{ data: JsonApiResource }>(`/organizations/${organizationName}/workspaces`, {
       data: {
         type: 'workspaces',
         attributes: {
@@ -496,7 +581,7 @@ export const workspacesApi = {
           'run-timeout': data['run-timeout'],
         },
       },
-    }).then(res => res.data),
+    }).then(res => workspaceFromJsonApi(res.data)),
   update: (organizationName: string, workspaceName: string, data: {
     name?: string;
     description?: string;
@@ -512,7 +597,7 @@ export const workspacesApi = {
     force_delete?: boolean;
     'run-timeout'?: number;
   }) =>
-    apiClient.patch<{ data: Workspace }>(`/organizations/${organizationName}/workspaces/${workspaceName}?format=simple`, {
+    apiClient.patch<{ data: JsonApiResource }>(`/organizations/${organizationName}/workspaces/${workspaceName}`, {
       data: {
         type: 'workspaces',
         attributes: {
@@ -531,19 +616,19 @@ export const workspacesApi = {
           ...(data['run-timeout'] !== undefined && { 'run-timeout': data['run-timeout'] }),
         },
       },
-    }).then(res => res.data),
+    }).then(res => workspaceFromJsonApi(res.data)),
   delete: (organizationName: string, workspaceName: string, force?: boolean) =>
     apiClient.delete(`/organizations/${organizationName}/workspaces/${workspaceName}${force ? '?force=true' : ''}`),
   // Internal API (using UUIDs)
   getById: (id: string) =>
-    apiClient.get<{ data: Workspace }>(`/terraform/workspaces/${id}`).then(res => res.data),
+    apiClient.get<{ data: JsonApiResource }>(`/terraform/workspaces/${id}`).then(res => workspaceFromJsonApi(res.data)),
   // Workspace actions (TFE-compatible)
   lock: (workspaceId: string, reason?: string) =>
-    apiClient.post<{ data: Workspace }>(`/workspaces/${workspaceId}/actions/lock?format=simple`, reason ? { reason } : {}).then(res => res.data),
+    apiClient.post<{ data: JsonApiResource }>(`/workspaces/${workspaceId}/actions/lock`, reason ? { reason } : {}).then(res => workspaceFromJsonApi(res.data)),
   unlock: (workspaceId: string) =>
-    apiClient.post<{ data: Workspace }>(`/workspaces/${workspaceId}/actions/unlock?format=simple`).then(res => res.data),
+    apiClient.post<{ data: JsonApiResource }>(`/workspaces/${workspaceId}/actions/unlock`).then(res => workspaceFromJsonApi(res.data)),
   forceUnlock: (workspaceId: string) =>
-    apiClient.post<{ data: Workspace }>(`/workspaces/${workspaceId}/actions/force-unlock?format=simple`).then(res => res.data),
+    apiClient.post<{ data: JsonApiResource }>(`/workspaces/${workspaceId}/actions/force-unlock`).then(res => workspaceFromJsonApi(res.data)),
 };
 
 // Agent Pools (TFE-compatible). See SELF_HOSTED_RUNNERS_DESIGN.md and AGENT_POOLS_IMPLEMENTATION_PLAN.md.

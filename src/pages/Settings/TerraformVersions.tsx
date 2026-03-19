@@ -1,6 +1,7 @@
 // Copyright (c) 2025 VH & Co BV. Licensed under the Business Source License 1.1. See LICENSE for details.
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link, useParams } from 'react-router-dom';
 import { ArrowLeft, Plus, Search, Loader2, Trash2, Tag } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -30,22 +31,17 @@ import { Switch } from '@/components/ui/switch';
 
 export default function TerraformVersions() {
   const { orgName } = useParams<{ orgName: string }>();
-  const [versions, setVersions] = useState<TerraformVersionResource[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
-  const [totalCount, setTotalCount] = useState(0);
+  const queryClient = useQueryClient();
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [newVersion, setNewVersion] = useState('');
   const [newURL, setNewURL] = useState('');
   const [adding, setAdding] = useState(false);
-  const [orgDefaultVersion, setOrgDefaultVersion] = useState('');
   const [savingDefault, setSavingDefault] = useState(false);
-  const [allEnabledVersions, setAllEnabledVersions] = useState<TerraformVersionResource[]>([]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [searchQuery, setSearchQuery] = useState('');
 
   // Semver sort: properly compares version strings like 1.13.0 > 1.9.8 > 1.5.0
-  const semverCompare = useCallback((a: string, b: string): number => {
+  const semverCompare = (a: string, b: string): number => {
     const pa = a.replace(/^v/, '').split(/[-.]/).map(p => (/^\d+$/.test(p) ? parseInt(p, 10) : p));
     const pb = b.replace(/^v/, '').split(/[-.]/).map(p => (/^\d+$/.test(p) ? parseInt(p, 10) : p));
     for (let i = 0; i < Math.max(pa.length, pb.length); i++) {
@@ -59,68 +55,56 @@ export default function TerraformVersions() {
       }
     }
     return 0;
-  }, []);
+  };
 
   // Fetch paginated versions for the table
-  const fetchVersions = useCallback(() => {
-    setLoading(true);
-    void adminTerraformVersionsApi.list({
-      page: currentPage,
-      pageSize: 20,
-      search: searchQuery || undefined,
-    })
-      .then((res) => {
-        const sorted = [...(res.data || [])].sort((a, b) => semverCompare(a.attributes.version, b.attributes.version));
-        setVersions(sorted);
-        if (res.meta?.pagination) {
-          setTotalPages(res.meta.pagination['total-pages'] || 1);
-          setTotalCount(res.meta.pagination['total-count'] || 0);
-        }
-      })
-      .catch((err) => {
-        console.error('Failed to load terraform versions:', err);
-        toast.error('Failed to load terraform versions');
-      })
-      .finally(() => { setLoading(false); });
-  }, [currentPage, searchQuery, semverCompare]);
+  const { data: versionsData, isLoading: loading, refetch: refetchVersions } = useQuery({
+    queryKey: ['terraformVersions', currentPage, searchQuery],
+    queryFn: async () => {
+      const res = await adminTerraformVersionsApi.list({
+        page: currentPage,
+        pageSize: 20,
+        search: searchQuery || undefined,
+      });
+      const sorted = [...(res.data || [])].sort((a, b) => semverCompare(a.attributes.version, b.attributes.version));
+      return {
+        versions: sorted,
+        totalPages: res.meta?.pagination?.['total-pages'] || 1,
+        totalCount: res.meta?.pagination?.['total-count'] || 0,
+      };
+    },
+  });
+
+  const versions = versionsData?.versions ?? [];
+  const totalPages = versionsData?.totalPages ?? 1;
+  const totalCount = versionsData?.totalCount ?? 0;
 
   // Fetch ALL enabled versions for the org default dropdown (not just current page)
-  const fetchAllEnabledVersions = useCallback(() => {
-    void adminTerraformVersionsApi.list({ pageSize: 100 })
-      .then((res) => {
-        const enabled = (res.data || [])
-          .filter(v => v.attributes.enabled && !v.attributes.deprecated)
-          .sort((a, b) => semverCompare(a.attributes.version, b.attributes.version));
-        setAllEnabledVersions(enabled);
-      })
-      .catch(() => { /* ignore */ });
-  }, [semverCompare]);
-
-  useEffect(() => {
-    fetchVersions();
-  }, [fetchVersions]);
-
-  useEffect(() => {
-    fetchAllEnabledVersions();
-  }, [fetchAllEnabledVersions]);
+  const { data: allEnabledVersions = [], refetch: refetchEnabledVersions } = useQuery({
+    queryKey: ['allEnabledTerraformVersions'],
+    queryFn: async () => {
+      const res = await adminTerraformVersionsApi.list({ pageSize: 100 });
+      return (res.data || [])
+        .filter(v => v.attributes.enabled && !v.attributes.deprecated)
+        .sort((a, b) => semverCompare(a.attributes.version, b.attributes.version));
+    },
+  });
 
   // Load org default terraform version
-  useEffect(() => {
-    if (!orgName) return;
-    void organizationsApi.get(orgName)
-      .then((res) => {
-        const org = res as unknown as { data?: { attributes?: Record<string, unknown> } };
-        const defaultVersion = org.data?.attributes?.['default-terraform-version'];
-        if (typeof defaultVersion === 'string') {
-          setOrgDefaultVersion(defaultVersion);
-        }
-      })
-      .catch(() => { /* ignore */ });
-  }, [orgName]);
+  const { data: orgDefaultVersion = '' } = useQuery({
+    queryKey: ['orgDefaultTerraformVersion', orgName],
+    queryFn: async () => {
+      const res = await organizationsApi.get(orgName!);
+      const org = res as unknown as { data?: { attributes?: Record<string, unknown> } };
+      const defaultVersion = org.data?.attributes?.['default-terraform-version'];
+      return typeof defaultVersion === 'string' ? defaultVersion : '';
+    },
+    enabled: !!orgName,
+  });
 
   const refreshAll = () => {
-    fetchVersions();
-    fetchAllEnabledVersions();
+    void refetchVersions();
+    void refetchEnabledVersions();
   };
 
   const handleToggleEnabled = async (version: TerraformVersionResource) => {
@@ -172,7 +156,7 @@ export default function TerraformVersions() {
           attributes: { 'default-terraform-version': version },
         },
       });
-      setOrgDefaultVersion(version);
+      queryClient.setQueryData(['orgDefaultTerraformVersion', orgName], version);
       toast.success(version ? `Organization default set to Terraform ${version}` : 'Organization default version cleared');
     } catch {
       toast.error('Failed to update organization default');

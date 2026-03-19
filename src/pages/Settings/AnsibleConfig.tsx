@@ -1,6 +1,7 @@
 // Copyright (c) 2025 VH & Co BV. Licensed under the Business Source License 1.1. See LICENSE for details.
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { Link, useParams } from 'react-router-dom';
 import { FileText, ArrowLeft, Save, Trash2, Loader2, Building2, FolderKanban, Info } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -62,7 +63,6 @@ ssh_args = -o ControlMaster=auto -o ControlPersist=60s
 
 export default function AnsibleConfiguration() {
   const { orgName } = useParams<{ orgName: string }>();
-  const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -74,100 +74,85 @@ export default function AnsibleConfiguration() {
   const [orgDirty, setOrgDirty] = useState(false);
 
   // Project configs
-  const [projects, setProjects] = useState<Project[]>([]);
   const [selectedProjectId, setSelectedProjectId] = useState<string>('');
   const [projectConfig, setProjectConfig] = useState<AnsibleConfig | null>(null);
   const [projectContent, setProjectContent] = useState('');
   const [projectDirty, setProjectDirty] = useState(false);
   const [projectLoading, setProjectLoading] = useState(false);
 
-  const fetchOrgConfig = useCallback(async () => {
-    if (!orgName) return;
-    try {
-      const response = await ansibleConfigApi.getByOrganization(orgName);
-      if (response.data) {
-        setOrgConfig({
-          id: response.data.id,
-          organization_id: response.data.attributes['organization-id'],
-          content: response.data.attributes.content,
-          created_at: response.data.attributes['created-at'],
-          updated_at: response.data.attributes['updated-at'],
-        });
-        setOrgContent(response.data.attributes.content);
+  const { isLoading: loading, refetch: refetchOrgConfig } = useQuery({
+    queryKey: ['ansibleOrgConfig', orgName],
+    queryFn: async () => {
+      try {
+        const response = await ansibleConfigApi.getByOrganization(orgName!);
+        if (response.data) {
+          setOrgConfig({
+            id: response.data.id,
+            organization_id: response.data.attributes['organization-id'],
+            content: response.data.attributes.content,
+            created_at: response.data.attributes['created-at'],
+            updated_at: response.data.attributes['updated-at'],
+          });
+          setOrgContent(response.data.attributes.content);
+        }
+      } catch (err) {
+        if ((err as { status?: number }).status !== 404) {
+          console.error('Failed to load org ansible config:', err);
+        }
+        setOrgConfig(null);
+        setOrgContent('');
       }
-    } catch (err) {
-      // 404 means no config exists yet
-      if ((err as { status?: number }).status !== 404) {
-        console.error('Failed to load org ansible config:', err);
-      }
-      setOrgConfig(null);
-      setOrgContent('');
-    }
-  }, [orgName]);
+      return null;
+    },
+    enabled: !!orgName,
+  });
 
-  const fetchProjects = useCallback(async () => {
-    if (!orgName) return;
-    try {
-      const response = await projectsApi.list(orgName);
-      setProjects(response.data || []);
-    } catch (err) {
-      console.error('Failed to load projects:', err);
-      setProjects([]);
-    }
-  }, [orgName]);
+  const { data: projects = [] } = useQuery({
+    queryKey: ['ansibleConfigProjects', orgName],
+    queryFn: async () => {
+      const response = await projectsApi.list(orgName!);
+      return response.data || [];
+    },
+    enabled: !!orgName,
+  });
 
-  const fetchProjectConfig = useCallback(async (projectId: string) => {
-    if (!projectId) {
-      setProjectConfig(null);
-      setProjectContent('');
-      return;
-    }
-    setProjectLoading(true);
-    try {
-      const response = await ansibleConfigApi.getByProject(projectId);
-      if (response.data) {
-        setProjectConfig({
-          id: response.data.id,
-          project_id: response.data.attributes['project-id'],
-          content: response.data.attributes.content,
-          created_at: response.data.attributes['created-at'],
-          updated_at: response.data.attributes['updated-at'],
-        });
-        setProjectContent(response.data.attributes.content);
-      }
-    } catch (err) {
-      if ((err as { status?: number }).status !== 404) {
-        console.error('Failed to load project ansible config:', err);
-      }
-      setProjectConfig(null);
-      setProjectContent('');
-    } finally {
-      setProjectLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    setLoading(true);
-    void Promise.all([fetchOrgConfig(), fetchProjects()])
-      .finally(() => setLoading(false));
-  }, [fetchOrgConfig, fetchProjects]);
-
-  useEffect(() => {
-    if (selectedProjectId) {
+  useQuery({
+    queryKey: ['ansibleProjectConfig', selectedProjectId],
+    queryFn: async () => {
       setProjectDirty(false);
-      void fetchProjectConfig(selectedProjectId);
-    } else {
-      setProjectConfig(null);
-      setProjectContent('');
-    }
-  }, [selectedProjectId, fetchProjectConfig]);
+      setProjectLoading(true);
+      try {
+        const response = await ansibleConfigApi.getByProject(selectedProjectId);
+        if (response.data) {
+          setProjectConfig({
+            id: response.data.id,
+            project_id: response.data.attributes['project-id'],
+            content: response.data.attributes.content,
+            created_at: response.data.attributes['created-at'],
+            updated_at: response.data.attributes['updated-at'],
+          });
+          setProjectContent(response.data.attributes.content);
+        }
+      } catch (err) {
+        if ((err as { status?: number }).status !== 404) {
+          console.error('Failed to load project ansible config:', err);
+        }
+        setProjectConfig(null);
+        setProjectContent('');
+      } finally {
+        setProjectLoading(false);
+      }
+      return null;
+    },
+    enabled: !!selectedProjectId,
+  });
 
   const handleSaveOrg = async () => {
     if (!orgName) return;
     setSaving(true);
     try {
       await ansibleConfigApi.upsertByOrganization(orgName, orgContent);
-      await fetchOrgConfig();
+      await refetchOrgConfig();
       setOrgDirty(false);
       toast.success('Organization Ansible configuration saved');
     } catch (err) {
@@ -183,7 +168,7 @@ export default function AnsibleConfiguration() {
     setSaving(true);
     try {
       await ansibleConfigApi.upsertByProject(selectedProjectId, projectContent);
-      await fetchProjectConfig(selectedProjectId);
+      // Config will refresh from query cache
       setProjectDirty(false);
       toast.success('Project Ansible configuration saved');
     } catch (err) {

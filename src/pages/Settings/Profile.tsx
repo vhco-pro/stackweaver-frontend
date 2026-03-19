@@ -1,6 +1,7 @@
 // Copyright (c) 2025 VH & Co BV. Licensed under the Business Source License 1.1. See LICENSE for details.
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
+import { useMountEffect } from '@/hooks/useMountEffect';
 import { Link } from 'react-router-dom';
 import { User, ArrowLeft, Save, Camera } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -23,9 +24,9 @@ export default function ProfileSettings() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
 
-  useEffect(() => {
+  useMountEffect(() => {
     void loadProfile();
-  }, []);
+  });
 
   const loadProfile = async () => {
     try {

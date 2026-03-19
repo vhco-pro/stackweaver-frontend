@@ -1,6 +1,7 @@
 // Copyright (c) 2025 VH & Co BV. Licensed under the Business Source License 1.1. See LICENSE for details.
 
-import { useState, useEffect } from 'react';
+import { useState, useMemo } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { Bell } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -16,64 +17,30 @@ import { cn } from '@/lib/utils';
 import { Loader2 } from 'lucide-react';
 
 export function NotificationBell() {
-  const [recentActivities, setRecentActivities] = useState<Activity[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [unseenCount, setUnseenCount] = useState(0);
   const [lastSeenId, setLastSeenId] = useState<string | null>(() => {
     return localStorage.getItem('lastSeenActivityId');
   });
 
-  const fetchRecentActivities = async () => {
-    setLoading(true);
-    try {
+  const { data: recentActivities = [], isLoading: loading, refetch: refetchActivities } = useQuery({
+    queryKey: ['recent-activities', lastSeenId],
+    queryFn: async () => {
       const response = await activitiesApi.getRecent({ limit: 10 });
-      const activities = response.data || [];
-      setRecentActivities(activities);
+      return response.data || [];
+    },
+    refetchInterval: 30000,
+  });
 
-      // Read lastSeenId from localStorage (source of truth) to avoid stale closure values
-      const currentLastSeenId = localStorage.getItem('lastSeenActivityId');
-
-      // Calculate unseen count
-      if (activities.length === 0) {
-        setUnseenCount(0);
-      } else if (!currentLastSeenId) {
-        // No last seen ID, all are unseen
-        setUnseenCount(activities.length);
-      } else {
-        // Find the index of the last seen activity
-        const lastSeenIndex = activities.findIndex(a => a.id === currentLastSeenId);
-        if (lastSeenIndex === -1) {
-          // Last seen activity not in recent list, all are unseen
-          setUnseenCount(activities.length);
-        } else {
-          // Count activities before the last seen one
-          setUnseenCount(lastSeenIndex);
-        }
-      }
-    } catch (err) {
-      console.error('Failed to fetch recent activities:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    void fetchRecentActivities();
-    // Poll for new activities every 30 seconds
-    const interval = setInterval(() => { void fetchRecentActivities(); }, 30000);
-    return () => clearInterval(interval);
-  }, []);
-
-  // Re-fetch when lastSeenId changes (e.g., after marking as seen)
-  useEffect(() => {
-    if (lastSeenId) {
-      void fetchRecentActivities();
-    }
-  }, [lastSeenId]);
+  const unseenCount = useMemo(() => {
+    if (recentActivities.length === 0) return 0;
+    const currentLastSeenId = localStorage.getItem('lastSeenActivityId');
+    if (!currentLastSeenId) return recentActivities.length;
+    const lastSeenIndex = recentActivities.findIndex(a => a.id === currentLastSeenId);
+    return lastSeenIndex === -1 ? recentActivities.length : lastSeenIndex;
+  }, [recentActivities, lastSeenId]);
 
   const handleOpenChange = (open: boolean) => {
     if (open) {
-      void fetchRecentActivities();
+      void refetchActivities();
     } else if (recentActivities.length > 0) {
       // Mark all as seen when dropdown closes
       const latestId = recentActivities[0].id;
@@ -81,7 +48,6 @@ export function NotificationBell() {
       if (latestId !== currentLastSeen) {
         setLastSeenId(latestId);
         localStorage.setItem('lastSeenActivityId', latestId);
-        setUnseenCount(0);
       }
     }
   };

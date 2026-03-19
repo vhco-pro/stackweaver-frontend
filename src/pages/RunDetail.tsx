@@ -1,8 +1,9 @@
 // Copyright (c) 2025 VH & Co BV. Licensed under the Business Source License 1.1. See LICENSE for details.
 
 import { useEffect, useState, useRef, useMemo } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { runsApi, workspacesApi, type Workspace } from '@/api/client';
+import { runsApi, workspacesApi } from '@/api/client';
 import { getRunFromJsonApi } from '@/utils/jsonapi';
 import { OutputViewer } from '@/components/runs/OutputViewer';
 import { ApplyOutputViewer } from '@/components/runs/ApplyOutputViewer';
@@ -58,29 +59,14 @@ export default function RunDetail() {
   const actionButtonsRef = useRef<HTMLDivElement | null>(null);
   const previousStatusRef = useRef<string | null>(null);
   const [isApplyStarting, setIsApplyStarting] = useState(false); // Track when apply button is clicked
-  const [workspaceData, setWorkspaceData] = useState<Workspace | null>(null);
   const [copiedRunId, setCopiedRunId] = useState(false);
-  const [runOutputs, setRunOutputs] = useState<Array<{ key: string; value: unknown; type?: string; sensitive?: boolean }> | undefined>(undefined);
-  const runOutputsFetchedForRunIdRef = useRef<string | null>(null);
 
   // Fetch workspace info for commit links
-  useEffect(() => {
-    if (!org || !wsName) return;
-
-    void workspacesApi.get(org, wsName)
-      .then(setWorkspaceData)
-      .catch((err) => {
-        console.error('Failed to fetch workspace:', err);
-        // Don't show error, just don't show commit links
-      });
-  }, [org, wsName]);
-
-  // Reset run outputs when navigating to a different run
-  useEffect(() => {
-    if (!id) return;
-    runOutputsFetchedForRunIdRef.current = null;
-    setRunOutputs(undefined);
-  }, [id]);
+  const { data: workspaceData } = useQuery({
+    queryKey: ['workspace-for-run', org, wsName],
+    queryFn: () => workspacesApi.get(org!, wsName!),
+    enabled: !!org && !!wsName,
+  });
 
   // Use real-time polling hook (TFE-like experience)
   // Poll more frequently during apply phase for better real-time updates
@@ -126,23 +112,18 @@ export default function RunDetail() {
   const loading = pollingLoading;
 
   // Fetch run outputs from state (TFE-aligned) when apply completes. 404 falls back to log parsing in ApplyOutputViewer.
-  useEffect(() => {
-    if (!id || !run) return;
-    if (run.status !== 'applied' || run.operation !== 'plan-and-apply') return;
-    if (runOutputsFetchedForRunIdRef.current === id) return;
-
-    runOutputsFetchedForRunIdRef.current = id;
-    void runsApi.getOutputs(id)
-      .then((data) => {
-        setRunOutputs(data);
-      })
-      .catch((e: { status?: number }) => {
-        if (e?.status === 404) {
-          setRunOutputs(undefined); // fall back to log parsing in ApplyOutputViewer
-        }
-        // on other errors, leave runOutputs undefined
-      });
-  }, [id, run?.status, run?.operation, run]);
+  const { data: runOutputs } = useQuery({
+    queryKey: ['run-outputs', id],
+    queryFn: async () => {
+      try {
+        return await runsApi.getOutputs(id!);
+      } catch (e: unknown) {
+        if ((e as { status?: number })?.status === 404) return undefined;
+        throw e;
+      }
+    },
+    enabled: !!id && run?.status === 'applied' && run?.operation === 'plan-and-apply',
+  });
 
   // Adjust polling frequency based on run status
   // Poll more frequently (750ms) during apply phase for better real-time resource updates

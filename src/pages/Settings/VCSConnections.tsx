@@ -1,6 +1,7 @@
 // Copyright (c) 2025 VH & Co BV. Licensed under the Business Source License 1.1. See LICENSE for details.
 
-import { useEffect, useState, useCallback, useRef } from 'react';
+import { useEffect, useState, useRef } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { GitBranch, Plus, Trash2, CheckCircle2, ArrowLeft } from 'lucide-react';
 import { getVcsProviderIcon, getVcsProviderLabel } from '@/lib/vcs';
@@ -32,8 +33,6 @@ import { cn } from '@/lib/utils';
 export default function VCSConnections() {
   const { orgName } = useParams<{ orgName: string }>();
   const [searchParams] = useSearchParams();
-  const [connections, setConnections] = useState<VCSConnection[]>([]);
-  const [loading, setLoading] = useState(true);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [connectionToDelete, setConnectionToDelete] = useState<VCSConnection | null>(null);
   const [deleting, setDeleting] = useState(false);
@@ -41,34 +40,15 @@ export default function VCSConnections() {
   const [adoOrg, setAdoOrg] = useState('');
   const [adoConnecting, setAdoConnecting] = useState(false);
 
-  const fetchConnections = useCallback(() => {
-    if (!orgName) {
-      setLoading(false);
-      return;
-    }
-
-    setLoading(true);
-    void vcsConnectionsApi.list(orgName)
-      .then((conns) => {
-        const connections = Array.isArray(conns) ? conns : [];
-        // Deduplicate by ID to prevent duplicates
-        const uniqueConnections = Array.from(
-          new Map(connections.map(conn => [conn.id, conn])).values()
-        );
-        setConnections(uniqueConnections);
-        setLoading(false);
-      })
-      .catch((err) => {
-        console.error('Failed to load VCS connections:', err);
-        toast.error('Failed to load VCS connections');
-      setConnections([]);
-      setLoading(false);
-      });
-  }, [orgName]);
-
-  useEffect(() => {
-    fetchConnections();
-  }, [fetchConnections]);
+  const { data: connections = [], isLoading: loading, refetch: refetchConnections } = useQuery({
+    queryKey: ['vcsConnections', orgName],
+    queryFn: async () => {
+      const conns = await vcsConnectionsApi.list(orgName!);
+      const arr = Array.isArray(conns) ? conns : [];
+      return Array.from(new Map(arr.map(conn => [conn.id, conn])).values());
+    },
+    enabled: !!orgName,
+  });
 
   const installationHandledRef = useRef(false);
 
@@ -86,14 +66,14 @@ export default function VCSConnections() {
         newSearchParams.delete('installation_id');
         window.history.replaceState({}, '', `${window.location.pathname}${newSearchParams.toString() ? '?' + newSearchParams.toString() : ''}`);
         // Refresh list
-        fetchConnections();
+        void refetchConnections();
         toast.success('GitHub connection established successfully');
       })
       .catch((err) => {
         console.error('Failed to create VCS connection from installation:', err);
         toast.error('Failed to create VCS connection');
       });
-  }, [searchParams, orgName, fetchConnections]);
+  }, [searchParams, orgName, refetchConnections]);
 
   const handleConnectGitHub = async () => {
     if (!orgName) {
@@ -129,7 +109,7 @@ export default function VCSConnections() {
       toast.success('VCS connection deleted successfully');
       setDeleteDialogOpen(false);
       setConnectionToDelete(null);
-      fetchConnections();
+      void refetchConnections();
     } catch (error: unknown) {
       console.error('Failed to delete VCS connection:', error);
       // Handle v2 error format: { errors: [{ detail: "...", ... }] }

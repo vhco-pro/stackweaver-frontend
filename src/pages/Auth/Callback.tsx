@@ -1,6 +1,7 @@
 // Copyright (c) 2025 VH & Co BV. Licensed under the Business Source License 1.1. See LICENSE for details.
 
-import { useEffect, useState, useRef } from 'react';
+import { useState, useRef } from 'react';
+import { useMountEffect } from '@/hooks/useMountEffect';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { exchangeCodeForTokens, storeTokens } from '@/lib/zitadel';
 import { useAuth } from '@/contexts/AuthContext';
@@ -14,7 +15,7 @@ export default function Callback() {
   const processingRef = useRef(false);
   const processedCodeRef = useRef<string | null>(null);
 
-  useEffect(() => {
+  useMountEffect(() => {
     // Prevent multiple executions
     if (processingRef.current) return;
 
@@ -84,8 +85,8 @@ export default function Callback() {
     };
 
     void handleCallback();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // Only run once on mount
+     
+  });
 
   if (error) {
     return (

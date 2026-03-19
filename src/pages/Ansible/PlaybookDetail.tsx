@@ -1,6 +1,8 @@
 // Copyright (c) 2025 VH & Co BV. Licensed under the Business Source License 1.1. See LICENSE for details.
 
 import { useEffect, useState, useRef } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { useMountEffect } from '@/hooks/useMountEffect';
 import {
   Select,
   SelectContent,
@@ -163,10 +165,6 @@ export default function PlaybookDetail() {
   const selectedOrg = orgName || currentOrg?.name || '';
   const navigate = useNavigate();
 
-  const [playbook, setPlaybook] = useState<AnsiblePlaybook | null>(null);
-  const [templates, setTemplates] = useState<AnsibleJobTemplate[]>([]);
-  const [recentJobs, setRecentJobs] = useState<AnsibleJob[]>([]);
-  const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('overview');
   
   // File content state
@@ -212,55 +210,46 @@ export default function PlaybookDetail() {
   const syncPollIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   // Fetch playbook details
-  useEffect(() => {
-    if (!playbookId || !orgName) return;
+  const { isLoading: loading, data: playbookData, refetch: refetchPlaybook } = useQuery({
+    queryKey: ['playbookDetail', playbookId, orgName],
+    queryFn: async () => {
+      const pbRes = await ansiblePlaybooksApi.get(playbookId!);
+      const pb = getAnsiblePlaybookFromJsonApi(pbRes.data);
+      setEditForm({ 
+        name: pb.name, 
+        description: pb.description || '',
+        vcs_connection_id: pb.vcs_connection_id || '',
+        vcs_repository: pb.vcs_repository || '',
+        vcs_branch: pb.vcs_branch || 'main',
+        playbook_path: pb.playbook_path || 'site.yml',
+      });
 
-    const fetchData = async () => {
-      setLoading(true);
-      try {
-        const pbRes = await ansiblePlaybooksApi.get(playbookId);
-        const pb = getAnsiblePlaybookFromJsonApi(pbRes.data);
-        setPlaybook(pb);
-        setEditForm({ 
-          name: pb.name, 
-          description: pb.description || '',
-          vcs_connection_id: pb.vcs_connection_id || '',
-          vcs_repository: pb.vcs_repository || '',
-          vcs_branch: pb.vcs_branch || 'main',
-          playbook_path: pb.playbook_path || 'site.yml',
-        });
+      const [templatesRes, jobsRes] = await Promise.all([
+        ansibleJobTemplatesApi.listByOrganization(orgName!),
+        ansibleJobsApi.listByOrganization(orgName!),
+      ]);
+      const relatedTemplates = (templatesRes.data || []).map(getAnsibleJobTemplateFromJsonApi).filter(t => t.playbook_id === playbookId);
+      const relatedJobs = (jobsRes.data || []).map(getAnsibleJobFromJsonApi)
+        .filter(j => j.playbook_id === playbookId)
+        .slice(0, 10);
+      return { playbook: pb, templates: relatedTemplates, recentJobs: relatedJobs };
+    },
+    enabled: !!playbookId && !!orgName,
+  });
 
-        // Fetch related job templates (org-scoped, then filter)
-        const templatesRes = await ansibleJobTemplatesApi.listByOrganization(orgName);
-        const relatedTemplates = (templatesRes.data || []).map(getAnsibleJobTemplateFromJsonApi).filter(t => t.playbook_id === playbookId);
-        setTemplates(relatedTemplates);
-
-        // Fetch recent jobs (org-scoped, then filter)
-        const jobsRes = await ansibleJobsApi.listByOrganization(orgName);
-        const relatedJobs = (jobsRes.data || []).map(getAnsibleJobFromJsonApi)
-          .filter(j => j.playbook_id === playbookId)
-          .slice(0, 10);
-        setRecentJobs(relatedJobs);
-      } catch (err) {
-        console.error('Failed to load playbook:', err);
-        toast.error('Failed to load playbook');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    void fetchData();
-  }, [playbookId, orgName]);
+  const playbook = playbookData?.playbook ?? null;
+  const templates = playbookData?.templates ?? [];
+  const recentJobs = playbookData?.recentJobs ?? [];
 
   // Cleanup polling interval on unmount
-  useEffect(() => {
+  useMountEffect(() => {
     return () => {
       if (syncPollIntervalRef.current) {
         clearInterval(syncPollIntervalRef.current);
         syncPollIntervalRef.current = null;
       }
     };
-  }, []);
+  });
 
   // Load VCS connections when edit dialog opens
   useEffect(() => {
@@ -424,9 +413,9 @@ export default function PlaybookDetail() {
         vcs_branch: editForm.vcs_branch || undefined,
         playbook_path: editForm.playbook_path || undefined,
       });
-      setPlaybook(getAnsiblePlaybookFromJsonApi(res.data));
       setEditDialogOpen(false);
       toast.success('Playbook updated successfully');
+      void refetchPlaybook();
     } catch (err: unknown) {
       console.error('Failed to update playbook:', err);
       toast.error(err instanceof Error ? err.message : 'Failed to update playbook');
@@ -465,7 +454,7 @@ export default function PlaybookDetail() {
       // Start the sync
       const res = await ansiblePlaybooksApi.sync(playbook.id);
       const updatedPlaybook = getAnsiblePlaybookFromJsonApi(res.data);
-      setPlaybook(updatedPlaybook);
+      void refetchPlaybook();
 
       // Poll the playbook until sync status changes from "syncing"
       syncPollIntervalRef.current = setInterval(() => {
@@ -473,7 +462,7 @@ export default function PlaybookDetail() {
           try {
             const pollRes = await ansiblePlaybooksApi.get(playbook.id);
             const polledPlaybook = getAnsiblePlaybookFromJsonApi(pollRes.data);
-            setPlaybook(polledPlaybook);
+            void refetchPlaybook();
 
           // Stop polling if sync is complete (not "syncing")
           if (polledPlaybook.last_sync_status !== 'syncing') {
@@ -1108,25 +1097,31 @@ export default function PlaybookDetail() {
               ) : vcsConnections.length === 0 ? (
                 <div className="space-y-3">
                   <div className="p-4 border rounded-lg bg-gray-50 dark:bg-gray-900/50">
-                    <div className="flex items-start gap-3 mb-3">
-                      <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-gray-800 to-gray-900">
-                        {getVcsProviderIcon('github', 'h-5 w-5 text-white')}
-                      </div>
-                      <div className="flex-1">
-                        <h4 className="font-semibold text-sm mb-1">GitHub</h4>
-                        <p className="text-xs text-muted-foreground">Connect via GitHub App to access repositories</p>
-                      </div>
+                    <p className="text-sm text-muted-foreground mb-3">
+                      No VCS connections configured. Connect a VCS provider in Settings to link repositories.
+                    </p>
+                    <div className="flex gap-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => { void handleConnectGitHub(); }}
+                        className="flex-1"
+                      >
+                        {getVcsProviderIcon('github', 'h-4 w-4 mr-2')}
+                        Connect GitHub
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => { navigate(`/app/${selectedOrg}/settings/vcs`); }}
+                        className="flex-1"
+                      >
+                        <ExternalLink className="h-4 w-4 mr-2" />
+                        VCS Settings
+                      </Button>
                     </div>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => { void handleConnectGitHub(); }}
-                      className="w-full"
-                    >
-                      <Plus className="h-4 w-4 mr-2" />
-                      Connect GitHub
-                    </Button>
                   </div>
                 </div>
               ) : (
@@ -1171,11 +1166,11 @@ export default function PlaybookDetail() {
                     type="button"
                     variant="ghost"
                     size="sm"
-                    onClick={() => { void handleConnectGitHub(); }}
+                    onClick={() => { navigate(`/app/${selectedOrg}/settings/vcs`); }}
                     className="w-full text-xs"
                   >
                     <Plus className="h-3 w-3 mr-2" />
-                    Connect to a different VCS
+                    Connect a different VCS provider
                   </Button>
                 </div>
               )}

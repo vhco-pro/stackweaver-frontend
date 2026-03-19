@@ -1,6 +1,7 @@
 // Copyright (c) 2025 VH & Co BV. Licensed under the Business Source License 1.1. See LICENSE for details.
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Package, Search, Plus, Clock, Download, GitBranch, ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -15,62 +16,37 @@ import { Checkbox } from '@/components/ui/checkbox';
 export default function Registry() {
   const { orgName } = useParams<{ orgName: string }>();
   const navigate = useNavigate();
-  const [modules, setModules] = useState<Module[]>([]);
-  const [organizations, setOrganizations] = useState<Organization[]>([]);
   const [selectedOrg, setSelectedOrg] = useState<string>(orgName || '');
-  const [loading, setLoading] = useState(true);
-  const [loadingOrgs, setLoadingOrgs] = useState(true);
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [publishTypeFilter, setPublishTypeFilter] = useState<string>('all');
   const [tagsFilter, setTagsFilter] = useState(false);
 
   // Load organizations
-  useEffect(() => {
-    void organizationsApi.list()
-      .then((res) => {
-        const orgs = res.data || [];
-        setOrganizations(orgs);
-        setLoadingOrgs(false);
-        
-        // If no org in URL but we have orgs, redirect to first org using new route
-        if (!orgName && orgs.length > 0) {
-          void navigate(`/app/${orgs[0].name}/registry`, { replace: true });
-          setSelectedOrg(orgs[0].name);
-        } else if (orgName) {
-          setSelectedOrg(orgName);
-        }
-      })
-      .catch((err) => {
-        console.error('Failed to load organizations:', err);
-        setLoadingOrgs(false);
-      });
-  }, [orgName, navigate]);
+  const { data: organizations = [], isLoading: loadingOrgs } = useQuery({
+    queryKey: ['registry-organizations', orgName],
+    queryFn: async () => {
+      const res = await organizationsApi.list();
+      const orgs = res.data || [];
+      if (!orgName && orgs.length > 0) {
+        void navigate(`/app/${orgs[0].name}/registry`, { replace: true });
+        setSelectedOrg(orgs[0].name);
+      } else if (orgName) {
+        setSelectedOrg(orgName);
+      }
+      return orgs;
+    },
+  });
 
-  const fetchModules = () => {
-    if (!selectedOrg) {
-      setLoading(false);
-      return;
-    }
-
-    setLoading(true);
-    void registryApi.modules.list(selectedOrg)
-      .then((modulesList) => {
-        setModules(modulesList || []);
-        setLoading(false);
-      })
-      .catch((err) => {
-        console.error('Failed to load modules:', err);
-        toast.error('Failed to load modules');
-        setModules([]);
-        setLoading(false);
-      });
-  };
-
-  useEffect(() => {
-    fetchModules();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedOrg]);
+  // Load modules for selected org
+  const { data: modules = [], isLoading: loading, refetch: refetchModules } = useQuery({
+    queryKey: ['modules', selectedOrg],
+    queryFn: async () => {
+      const modulesList = await registryApi.modules.list(selectedOrg);
+      return modulesList || [];
+    },
+    enabled: !!selectedOrg,
+  });
 
   const filteredModules = modules.filter(module => {
     // Search filter
@@ -355,7 +331,7 @@ export default function Registry() {
         onOpenChange={(open) => {
           setCreateDialogOpen(open);
           if (!open) {
-            fetchModules();
+            void refetchModules();
           }
         }}
         orgName={selectedOrg}

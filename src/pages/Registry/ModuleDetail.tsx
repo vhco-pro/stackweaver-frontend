@@ -27,7 +27,9 @@ import {
 } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
 import { getVcsProviderIcon, getVcsRepoUrl } from '@/lib/vcs';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { useMountEffect } from '@/hooks/useMountEffect';
 import { HclSyntaxHighlighter } from '@/components/code/HclSyntaxHighlighter';
 import { MarkdownRenderer } from '@/components/docs/MarkdownRenderer';
 
@@ -139,7 +141,7 @@ function HclTypeDisplay({ code }: { code: string }) {
   const formattedCode = formatTypeString(code);
 
   // Track theme changes (html.dark class) so Shiki uses matching colors
-  useEffect(() => {
+  useMountEffect(() => {
     if (typeof document === 'undefined') return;
     const el = document.documentElement;
     const observer = new MutationObserver(() => {
@@ -156,7 +158,7 @@ function HclTypeDisplay({ code }: { code: string }) {
     });
     observer.observe(el, { attributes: true, attributeFilter: ['class'] });
     return () => observer.disconnect();
-  }, []);
+  });
 
   useEffect(() => {
     void (async () => {
@@ -267,11 +269,8 @@ export default function ModuleDetail() {
     provider: string;
   }>();
   const navigate = useNavigate();
-  const [module, setModule] = useState<Module | null>(null);
-  const [versions, setVersions] = useState<ModuleVersion[]>([]);
   const [selectedVersion, setSelectedVersion] = useState<ModuleVersion | null>(null);
   const [activeTab, setActiveTab] = useState<TabType>('inputs');
-  const [loading, setLoading] = useState(true);
   const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [version, setVersion] = useState('');
@@ -282,33 +281,28 @@ export default function ModuleDetail() {
   const [deleting, setDeleting] = useState(false);
   const [confirmDialog, setConfirmDialog] = useState<{ kind: ConfirmKind; version?: string } | null>(null);
 
-  useEffect(() => {
-    if (!orgName || !moduleName || !provider) return;
+  const { isLoading: loading, data: moduleData, refetch: refetchModule } = useQuery({
+    queryKey: ['moduleDetail', orgName, moduleName, provider],
+    queryFn: async () => {
+      const [moduleRes, versionsData] = await Promise.all([
+        registryApi.modules.get(orgName!, moduleName!, provider!),
+        registryApi.modules.getVersions(orgName!, moduleName!, provider!).catch(() => []),
+      ]);
+      const versionsList = Array.isArray(versionsData) ? versionsData : [];
+      // Initialize UI selection state on first load
+      if (versionsList.length > 0) {
+        setSelectedVersion(prev => prev ?? versionsList[0]);
+      } else {
+        setSelectedVersion(null);
+        setActiveTab('versions');
+      }
+      return { module: moduleRes, versions: versionsList };
+    },
+    enabled: !!orgName && !!moduleName && !!provider,
+  });
 
-    setLoading(true);
-    void Promise.all([
-      registryApi.modules.get(orgName, moduleName, provider),
-      registryApi.modules.getVersions(orgName, moduleName, provider).catch(() => []),
-    ])
-      .then(([moduleData, versionsData]) => {
-        setModule(moduleData);
-        const versionsList = Array.isArray(versionsData) ? versionsData : [];
-        setVersions(versionsList);
-        // Set latest version as selected (first in list, sorted by published_at DESC)
-        if (versionsList.length > 0) {
-          setSelectedVersion(versionsList[0]);
-        } else {
-          setSelectedVersion(null);
-          setActiveTab('versions');
-        }
-        setLoading(false);
-      })
-      .catch((err: unknown) => {
-        console.error('Failed to load module:', err);
-        toast.error('Failed to load module');
-        setLoading(false);
-      });
-  }, [orgName, moduleName, provider]);
+  const module = moduleData?.module ?? null;
+  const versions = moduleData?.versions ?? [];
 
   const handleUpload = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -327,17 +321,9 @@ export default function ModuleDetail() {
       setUploadDialogOpen(false);
       setVersion('');
       setFile(null);
-      // Refresh module data and versions
-      const [moduleData, versionsData] = await Promise.all([
-        registryApi.modules.get(orgName, moduleName, provider),
-        registryApi.modules.getVersions(orgName, moduleName, provider).catch(() => []),
-      ]);
-      setModule(moduleData);
-      const versionsList = Array.isArray(versionsData) ? versionsData : [];
-      setVersions(versionsList);
-      if (versionsList.length > 0) {
-        setSelectedVersion(versionsList[0]);
-      }
+      // Refresh module data and versions via React Query
+      setSelectedVersion(null); // Reset so queryFn picks the latest version
+      void refetchModule();
     } catch (err: unknown) {
       console.error('Failed to publish version:', err);
       const errorMessage = err && typeof err === 'object' && 'message' in err

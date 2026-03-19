@@ -1,6 +1,7 @@
 // Copyright (c) 2025 VH & Co BV. Licensed under the Business Source License 1.1. See LICENSE for details.
 
-import { useEffect, useState, useMemo } from 'react';
+import { useState, useMemo } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { stateVersionsApi, type StateVersion } from '@/api/client';
 import { JsonSyntaxHighlighter } from '@/components/code/JsonSyntaxHighlighter';
@@ -143,10 +144,6 @@ export default function StateVersionDetail() {
   }>();
   const navigate = useNavigate();
   
-  const [stateVersion, setStateVersion] = useState<StateVersion | null>(null);
-  const [previousStateVersion, setPreviousStateVersion] = useState<StateVersion | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState('');
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isExpanded, setIsExpanded] = useState(true);
@@ -156,52 +153,29 @@ export default function StateVersionDetail() {
   const [deleting, setDeleting] = useState(false);
 
   // Fetch state version
-  useEffect(() => {
-    if (!stateVersionId) return;
-    
-    // Use async function pattern to avoid synchronous setState in effect
-    const fetchStateVersion = async () => {
-      setLoading(true);
-      try {
-        const data = await stateVersionsApi.get(stateVersionId);
-        setStateVersion(data);
-        setError(null);
-      } catch (err) {
-        console.error('Failed to fetch state version:', err);
-        setError('Failed to load state version');
-      } finally {
-        setLoading(false);
-      }
-    };
-    
-    void fetchStateVersion();
-  }, [stateVersionId]);
+  const { data: stateVersion = null, isLoading: loading, error: stateError } = useQuery({
+    queryKey: ['stateVersion', stateVersionId],
+    queryFn: async () => {
+      return await stateVersionsApi.get(stateVersionId!);
+    },
+    enabled: !!stateVersionId,
+  });
+
+  const error = stateError ? 'Failed to load state version' : null;
 
   // Fetch all state versions to find the previous one
-  useEffect(() => {
-    if (!stateVersion?.workspace_id) return;
-    
-    void stateVersionsApi.list(stateVersion.workspace_id)
-      .then((versions) => {
-        // Find the previous version
-        const currentIdx = versions.findIndex(v => v.id === stateVersion.id);
-        if (currentIdx >= 0 && currentIdx < versions.length - 1) {
-          // Versions are sorted by created_at DESC, so previous is at higher index
-          const prevVersion = versions[currentIdx + 1];
-          // Fetch full details of previous version
-          void stateVersionsApi.get(prevVersion.id)
-            .then((prevState) => {
-              setPreviousStateVersion(prevState);
-            })
-            .catch((err) => {
-              console.error('Failed to fetch previous state version:', err);
-            });
-        }
-      })
-      .catch((err) => {
-        console.error('Failed to list state versions:', err);
-      });
-  }, [stateVersion?.workspace_id, stateVersion?.id]);
+  const { data: previousStateVersion = null } = useQuery({
+    queryKey: ['previousStateVersion', stateVersion?.workspace_id, stateVersion?.id],
+    queryFn: async () => {
+      const versions = await stateVersionsApi.list(stateVersion!.workspace_id);
+      const currentIdx = versions.findIndex(v => v.id === stateVersion!.id);
+      if (currentIdx >= 0 && currentIdx < versions.length - 1) {
+        return await stateVersionsApi.get(versions[currentIdx + 1].id);
+      }
+      return null;
+    },
+    enabled: !!stateVersion?.workspace_id && !!stateVersion?.id,
+  });
 
   // Filter state data
   const filteredStateData = useMemo(() => {

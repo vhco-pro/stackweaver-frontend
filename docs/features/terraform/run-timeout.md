@@ -31,7 +31,7 @@ When creating or editing a workspace:
 
 ### Via API
 
-The timeout can be set when creating or updating a workspace through the API using the `run-timeout` attribute (in JSON:API format) or `run_timeout` (in simple JSON format).
+The timeout can be set when creating or updating a workspace through the API using the `run-timeout` attribute in JSON:API format.
 
 ## How It Works
 

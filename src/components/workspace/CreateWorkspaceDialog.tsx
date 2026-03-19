@@ -1,6 +1,7 @@
 // Copyright (c) 2025 VH & Co BV. Licensed under the Business Source License 1.1. See LICENSE for details.
 
 import { useState, useEffect, useRef } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import {
@@ -42,9 +43,6 @@ export function CreateWorkspaceDialog({
 }: CreateWorkspaceDialogProps) {
   const navigate = useNavigate();
   const [creating, setCreating] = useState(false);
-  const [loadingVCS, setLoadingVCS] = useState(false);
-  const [loadingRepos, setLoadingRepos] = useState(false);
-  const [loadingBranches, setLoadingBranches] = useState(false);
   
   // Form state
   const [name, setName] = useState('');
@@ -61,136 +59,102 @@ export function CreateWorkspaceDialog({
   const [agentPoolId, setAgentPoolId] = useState('');
 
   // Data state
-  const [availableTfVersions, setAvailableTfVersions] = useState<TerraformVersionResource[]>([]);
-  const [agentPools, setAgentPools] = useState<AgentPool[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
   const [vcsConnections, setVcsConnections] = useState<VCSConnection[]>([]);
   const [repositories, setRepositories] = useState<Repository[]>([]);
   const [branches, setBranches] = useState<Branch[]>([]);
+  const [agentPools, setAgentPools] = useState<AgentPool[]>([]);
+  const [availableTfVersions, setAvailableTfVersions] = useState<TerraformVersionResource[]>([]);
   const [repositorySearch, setRepositorySearch] = useState<string>('');
   const [repositorySelectOpen, setRepositorySelectOpen] = useState(false);
   const repositorySearchInputRef = useRef<HTMLInputElement>(null);
 
-  // Load projects and VCS connections when dialog opens
-  useEffect(() => {
-    if (!open || !orgName || orgName.trim() === '') {
-      if (open && (!orgName || orgName.trim() === '')) {
+  // Load projects, VCS connections, agent pools, and terraform versions when dialog opens
+  const { isLoading: loadingVCS } = useQuery({
+    queryKey: ['workspace-dialog-data', orgName],
+    queryFn: async () => {
+      if (!orgName || orgName.trim() === '') {
         console.error('CreateWorkspaceDialog: orgName is missing or empty', { orgName });
         toast.error('Organization name is required. Please ensure you are on an organization page.');
         onOpenChange(false);
+        return null;
       }
-      return;
-    }
 
-    setLoadingVCS(true);
-    void terraformVersionsApi.listEnabled().then((res) => { setAvailableTfVersions(Array.isArray(res?.data) ? res.data : []); }).catch(() => { /* ignore */ });
-    void Promise.all([
-      projectsApi.list(orgName),
-      vcsConnectionsApi.list(orgName),
-      agentPoolsApi.list(orgName),
-    ])
-      .then(([projectsRes, vcsRes, poolsRes]) => {
-        const projectsList = projectsRes?.data || [];
-        setProjects(projectsList);
-        const connections = Array.isArray(vcsRes) ? vcsRes : [];
-        // Deduplicate by provider + account_name + account_type to prevent duplicates
-        // (same account might have multiple connection records with different IDs)
-        const uniqueConnections = Array.from(
-          new Map(
-            connections.map(conn => [
-              `${conn.provider}-${conn.account_name}-${conn.account_type}`,
-              conn
-            ])
-          ).values()
-        );
-        setVcsConnections(uniqueConnections);
-        setAgentPools(Array.isArray(poolsRes?.data) ? poolsRes.data : []);
+      const [tfRes, projectsRes, vcsRes, poolsRes] = await Promise.all([
+        terraformVersionsApi.listEnabled().catch(() => ({ data: [] })),
+        projectsApi.list(orgName),
+        vcsConnectionsApi.list(orgName),
+        agentPoolsApi.list(orgName),
+      ]);
 
-        // Set default project: use provided projectId, or find "default" project, or use first project
-        if (projectId && !selectedProjectId) {
-          setSelectedProjectId(projectId);
-        } else if (projectsList.length > 0 && !selectedProjectId) {
-          // Look for a project named "default" first
-          const defaultProject = projectsList.find(p => p.name.toLowerCase() === 'default');
-          if (defaultProject) {
-            setSelectedProjectId(defaultProject.id);
-          } else {
-            // Fall back to first project
-            setSelectedProjectId(projectsList[0].id);
-          }
-        }
-        
-        setLoadingVCS(false);
-      })
-      .catch((err) => {
-        console.error('Failed to load data:', err);
-        toast.error('Failed to load projects or VCS connections');
-        setLoadingVCS(false);
-      });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, orgName, projectId]); // onOpenChange and selectedProjectId intentionally excluded - onOpenChange is stable prop, selectedProjectId is set in effect
+      const tfVersions = Array.isArray(tfRes?.data) ? tfRes.data : [];
+      setAvailableTfVersions(tfVersions);
+
+      const projectsList = projectsRes?.data || [];
+      setProjects(projectsList);
+
+      const connections = Array.isArray(vcsRes) ? vcsRes : [];
+      const uniqueConnections = Array.from(
+        new Map(
+          connections.map(conn => [
+            `${conn.provider}-${conn.account_name}-${conn.account_type}`,
+            conn
+          ])
+        ).values()
+      );
+      setVcsConnections(uniqueConnections);
+      setAgentPools(Array.isArray(poolsRes?.data) ? poolsRes.data : []);
+
+      // Set default project
+      if (projectId && !selectedProjectId) {
+        setSelectedProjectId(projectId);
+      } else if (projectsList.length > 0 && !selectedProjectId) {
+        const defaultProject = projectsList.find(p => p.name.toLowerCase() === 'default');
+        setSelectedProjectId(defaultProject ? defaultProject.id : projectsList[0].id);
+      }
+
+      return { tfVersions, projectsList, uniqueConnections };
+    },
+    enabled: open && !!orgName,
+  });
 
   // Load repositories when VCS connection is selected
-  useEffect(() => {
-    if (!vcsConnectionId || !open) {
-      setRepositories([]);
-      setBranches([]);
-      setSelectedRepository('');
-      setSelectedBranch('');
-      return;
-    }
-
-    setLoadingRepos(true);
-    // Request a larger page size to reduce extra paging for UI selection
-    void vcsConnectionsApi.listRepositories(vcsConnectionId, 1, 100)
-      .then((repos) => {
-        setRepositories(repos || []);
-        setLoadingRepos(false);
-      })
-      .catch((err) => {
-        console.error('Failed to load repositories:', err);
-        toast.error('Failed to load repositories');
-        setLoadingRepos(false);
-      });
-  }, [vcsConnectionId, open]);
+  const { isLoading: loadingRepos } = useQuery({
+    queryKey: ['vcs-repositories', vcsConnectionId],
+    queryFn: async () => {
+      const repos = await vcsConnectionsApi.listRepositories(vcsConnectionId, 1, 100);
+      setRepositories(repos || []);
+      return repos;
+    },
+    enabled: !!vcsConnectionId && open,
+  });
 
   // Load branches when repository is selected
-  useEffect(() => {
-    if (!selectedRepository || !vcsConnectionId || !open) {
-      setBranches([]);
-      setSelectedBranch('');
-      setRepositorySearch('');
-      return;
-    }
+  const { isLoading: loadingBranches } = useQuery({
+    queryKey: ['vcs-branches', vcsConnectionId, selectedRepository],
+    queryFn: async () => {
+      const connection = vcsConnections.find(c => c.id === vcsConnectionId);
+      if (!connection) return [];
 
-    const connection = vcsConnections.find(c => c.id === vcsConnectionId);
-    if (!connection) return;
+      const [owner, repo] = selectedRepository.split('/');
+      if (!owner || repo === undefined) return [];
 
-    // Parse repository full name (e.g., "owner/repo")
-    const [owner, repo] = selectedRepository.split('/');
-    if (!owner || !repo) return;
+      const brs = await vcsConnectionsApi.listBranches(vcsConnectionId, owner, repo);
+      setBranches(brs || []);
 
-    setLoadingBranches(true);
-    void vcsConnectionsApi.listBranches(vcsConnectionId, owner, repo)
-      .then((brs) => {
-        setBranches(brs || []);
-        // Set default branch if available
-        const repo = repositories.find(r => r.full_name === selectedRepository);
-        const defaultBranch = repo?.default_branch;
-        if (defaultBranch && (brs || []).some(b => b.name === defaultBranch)) {
-          setSelectedBranch(defaultBranch);
-        } else if (brs && brs.length > 0) {
-          setSelectedBranch(brs[0].name);
-        }
-        setLoadingBranches(false);
-      })
-      .catch((err) => {
-        console.error('Failed to load branches:', err);
-        toast.error('Failed to load branches');
-        setLoadingBranches(false);
-      });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedRepository, vcsConnectionId, open]); // repositories and vcsConnections intentionally excluded - they're set in other effects
+      // Set default branch if available
+      const repoData = repositories.find(r => r.full_name === selectedRepository);
+      const defaultBranch = repoData?.default_branch;
+      if (defaultBranch && (brs || []).some(b => b.name === defaultBranch)) {
+        setSelectedBranch(defaultBranch);
+      } else if (brs && brs.length > 0) {
+        setSelectedBranch(brs[0].name);
+      }
+
+      return brs;
+    },
+    enabled: !!selectedRepository && !!vcsConnectionId && open,
+  });
 
   // Auto-fill workspace name from repository when repository is selected
   useEffect(() => {

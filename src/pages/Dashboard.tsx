@@ -1,6 +1,7 @@
 // Copyright (c) 2025 VH & Co BV. Licensed under the Business Source License 1.1. See LICENSE for details.
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
+import { useMountEffect } from '@/hooks/useMountEffect';
 import { Link } from 'react-router-dom';
 import { 
   FolderKanban, 
@@ -50,7 +51,7 @@ export default function Dashboard() {
   // Enable activity notifications
   useActivityNotifications(true, 30000); // Poll every 30 seconds
 
-  useEffect(() => {
+  useMountEffect(() => {
     const fetchDashboardData = async () => {
       setLoading(true);
       try {
@@ -156,8 +157,7 @@ export default function Dashboard() {
     };
 
     void fetchDashboardData();
-     
-  }, []);
+  });
 
   // Quick actions - always show all options
   const orgName = currentOrg?.name || organizationStats[0]?.name || '';

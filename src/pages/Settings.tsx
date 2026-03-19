@@ -1,7 +1,7 @@
 // Copyright (c) 2025 VH & Co BV. Licensed under the Business Source License 1.1. See LICENSE for details.
 
 import { Link, useParams } from 'react-router-dom';
-import { useEffect, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { User, Bell, Shield, Key, Globe, ArrowRight, GitBranch, Layers, Monitor, KeyRound, Webhook, Users, Cpu, Server, FileText, Tag, Cloud, type LucideIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
@@ -137,63 +137,57 @@ const orgSettingsSections: SettingsSection[] = [
 export default function Settings() {
   const { orgName } = useParams<{ orgName?: string }>();
   const { session } = useAuth();
-  const [hasManageMembershipAccess, setHasManageMembershipAccess] = useState<boolean | null>(null);
-  const [hasManageAgentPoolsAccess, setHasManageAgentPoolsAccess] = useState<boolean | null>(null);
-  const [hasAdminAccess, setHasAdminAccess] = useState<boolean | null>(null);
 
   // Determine if we're in org context or global context
   const isOrgSettings = !!orgName;
 
-  // Check if user has access to manage membership (i.e., is in owners team)
-  useEffect(() => {
-    if (!isOrgSettings || !orgName || !session?.user?.email) {
-      setHasManageMembershipAccess(null);
-      return;
-    }
-    let cancelled = false;
-    void import('@/api/client').then(({ organizationMembershipsApi }) => organizationMembershipsApi.list(orgName))
-      .then(() => { if (!cancelled) setHasManageMembershipAccess(true); })
-      .catch((err: unknown) => {
-        if (!cancelled) {
-          const s = (err as Error & { status?: number })?.status;
-          setHasManageMembershipAccess(s === 403 ? false : null);
-          if (s !== 403) console.error('Failed to check manage membership access:', err);
-        }
-      });
-    return () => { cancelled = true; };
-  }, [isOrgSettings, orgName, session?.user?.email]);
+  // Check permissions via React Query
+  const { data: hasManageMembershipAccess = null } = useQuery<boolean | null>({
+    queryKey: ['perm-membership', orgName, session?.user?.email],
+    queryFn: async () => {
+      try {
+        const { organizationMembershipsApi } = await import('@/api/client');
+        await organizationMembershipsApi.list(orgName!);
+        return true;
+      } catch (err: unknown) {
+        const s = (err as Error & { status?: number })?.status;
+        return s === 403 ? false : null;
+      }
+    },
+    enabled: isOrgSettings && !!orgName && !!session?.user?.email,
+    retry: false,
+  });
 
-  // Check if user is admin (owners team) - required for Terraform Versions
-  useEffect(() => {
-    if (!isOrgSettings || !orgName || !session?.user?.email) {
-      setHasAdminAccess(null);
-      return;
-    }
-    let cancelled = false;
-    void import('@/api/client').then(({ adminTerraformVersionsApi }) => adminTerraformVersionsApi.list({ pageSize: 1 }))
-      .then(() => { if (!cancelled) setHasAdminAccess(true); })
-      .catch(() => { if (!cancelled) setHasAdminAccess(false); });
-    return () => { cancelled = true; };
-  }, [isOrgSettings, orgName, session?.user?.email]);
+  const { data: hasAdminAccess = null } = useQuery<boolean | null>({
+    queryKey: ['perm-admin', orgName, session?.user?.email],
+    queryFn: async () => {
+      try {
+        const { adminTerraformVersionsApi } = await import('@/api/client');
+        await adminTerraformVersionsApi.list({ pageSize: 1 });
+        return true;
+      } catch {
+        return false;
+      }
+    },
+    enabled: isOrgSettings && !!orgName && !!session?.user?.email,
+    retry: false,
+  });
 
-  // Check if user has org:manage-agent-pools (required for Agent Pools settings)
-  useEffect(() => {
-    if (!isOrgSettings || !orgName || !session?.user?.email) {
-      setHasManageAgentPoolsAccess(null);
-      return;
-    }
-    let cancelled = false;
-    void import('@/api/client').then(({ agentPoolsApi }) => agentPoolsApi.list(orgName))
-      .then(() => { if (!cancelled) setHasManageAgentPoolsAccess(true); })
-      .catch((err: unknown) => {
-        if (!cancelled) {
-          const s = (err as Error & { status?: number })?.status;
-          setHasManageAgentPoolsAccess(s === 403 ? false : null);
-          if (s !== 403) console.error('Failed to check manage agent pools access:', err);
-        }
-      });
-    return () => { cancelled = true; };
-  }, [isOrgSettings, orgName, session?.user?.email]);
+  const { data: hasManageAgentPoolsAccess = null } = useQuery<boolean | null>({
+    queryKey: ['perm-agent-pools', orgName, session?.user?.email],
+    queryFn: async () => {
+      try {
+        const { agentPoolsApi } = await import('@/api/client');
+        await agentPoolsApi.list(orgName!);
+        return true;
+      } catch (err: unknown) {
+        const s = (err as Error & { status?: number })?.status;
+        return s === 403 ? false : null;
+      }
+    },
+    enabled: isOrgSettings && !!orgName && !!session?.user?.email,
+    retry: false,
+  });
 
   // Get the appropriate settings sections, filtering by permissions
   const settingsSections: SettingsSection[] = isOrgSettings

@@ -1,6 +1,7 @@
 // Copyright (c) 2025 VH & Co BV. Licensed under the Business Source License 1.1. See LICENSE for details.
 
-import { useState, useMemo, useEffect, type ReactNode, type KeyboardEvent } from 'react';
+import { useState, useMemo, type ReactNode, type KeyboardEvent } from 'react';
+import { useMountEffect } from '@/hooks/useMountEffect';
 import { useNavigate } from 'react-router-dom';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -663,7 +664,7 @@ export function MarkdownRenderer({
   const { meta, body: markdownBody } = useMemo(() => parseFrontmatter(content), [content]);
 
   // Track theme changes (html.dark class) so Shiki uses matching colors
-  useEffect(() => {
+  useMountEffect(() => {
     if (typeof document === 'undefined') return;
     const el = document.documentElement;
     let previousTheme: 'dark' | 'light' = el.classList.contains('dark') ? 'dark' : 'light';
@@ -678,7 +679,7 @@ export function MarkdownRenderer({
     });
     observer.observe(el, { attributes: true, attributeFilter: ['class'] });
     return () => observer.disconnect();
-  }, []);
+  });
 
   // Compute current directory for relative path resolution (used by img and a handlers)
   const currentDir = (() => {
