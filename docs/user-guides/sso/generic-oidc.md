@@ -133,11 +133,23 @@ helm upgrade stackweaver oci://ghcr.io/vhco-pro/charts/stackweaver \
 
 ### Verify the configuration
 
-The `zitadel-init` service will detect the OIDC environment variables and:
+The `zitadel-init` service will detect the OIDC environment variables and configure everything:
 
-1. Register the OIDC provider in Zitadel with the configured display name.
-2. Add the provider to the login policy so the login button appears.
-3. Create Zitadel Actions to capture and forward group claims through the JWT.
+```mermaid
+flowchart LR
+    A["Detect OIDC env vars"] --> B["Register provider in Zitadel"]
+    B --> C["Add to login policy"]
+    C --> D["Create Actions for group claims"]
+```
+
+<details>
+<summary><strong>Flow Steps (Legend)</strong></summary>
+
+1. **Register** — Registers the OIDC provider in Zitadel with the configured display name.
+2. **Login policy** — Adds the provider to the login policy so the login button appears.
+3. **Actions** — Creates Zitadel Actions to capture and forward group claims through the JWT.
+
+</details>
 
 Check the logs to verify:
 
@@ -207,3 +219,7 @@ The callback URL is constructed from the request's domain context, not directly 
 1. Verify your provider sends a `groups` claim (as a JSON array of strings).
 2. Check that the claim appears in the userinfo response, not just the ID token.
 3. Some providers require explicit configuration to include group claims. See your provider's documentation.
+
+### "Errors.Target.DeniedURL" when configuring Actions (Kubernetes)
+
+See the [SSO overview troubleshooting](./README.md#errorstargetdeniedurl-when-configuring-actions) for details and fix steps.

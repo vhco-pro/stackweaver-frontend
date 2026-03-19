@@ -8,12 +8,28 @@ Instead of manually uploading playbook files, you can connect your playbooks to 
 
 ## How It Works
 
-When you configure a playbook with VCS integration:
+```mermaid
+sequenceDiagram
+    participant Dev as Developer
+    participant Git as Git Repository
+    participant SW as StackWeaver
 
-1. **Connect to Repository**: Link your playbook to a Git repository and specify the branch and file path
-2. **Automatic Sync on Push**: When you push changes to the repository, StackWeaver detects the push via webhook
-3. **Path-Based Filtering**: Sync only triggers when the specific playbook file (or related files) change
-4. **Updated Playbook**: StackWeaver downloads the latest version and updates the playbook automatically
+    Dev->>Git: Push changes
+    Git-->>SW: Webhook notification
+    SW->>SW: Path filter (playbook file changed?)
+    SW->>Git: Download latest playbook
+    SW->>SW: Update stored playbook
+```
+
+<details>
+<summary><strong>Flow Steps (Legend)</strong></summary>
+
+1. **Connect** — Link your playbook to a Git repository and specify the branch and file path.
+2. **Push** — When you push changes to the repository, StackWeaver detects the push via webhook.
+3. **Filter** — Sync only triggers when the specific playbook file (or related files) change.
+4. **Update** — StackWeaver downloads the latest version and updates the playbook automatically.
+
+</details>
 
 ## Setting Up VCS Sync
 

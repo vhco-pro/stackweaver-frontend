@@ -6,11 +6,35 @@ StackWeaver supports federated authentication through external identity provider
 
 StackWeaver uses [Zitadel](https://zitadel.com) as its identity broker. When you configure an external IdP, the authentication flow works as follows:
 
-1. The user clicks the external login button on the StackWeaver login page.
-2. Zitadel redirects the user to the external IdP (e.g., Azure AD) for authentication.
-3. The IdP authenticates the user and returns an ID token with claims (email, name, groups).
-4. Zitadel receives the token, auto-provisions or links the user, and issues a StackWeaver JWT.
-5. The StackWeaver API verifies the JWT and provisions the user in its local database.
+```mermaid
+sequenceDiagram
+    participant User
+    participant StackWeaver as StackWeaver UI
+    participant Zitadel
+    participant IdP as External IdP
+    participant API as StackWeaver API
+
+    User->>StackWeaver: Clicks external login button
+    StackWeaver->>Zitadel: Redirect to identity broker
+    Zitadel->>IdP: Redirect to external IdP
+    User->>IdP: Authenticates with corporate credentials
+    IdP-->>Zitadel: ID token (email, name, groups)
+    Zitadel->>Zitadel: Auto-provision / link user
+    Zitadel-->>StackWeaver: StackWeaver JWT
+    StackWeaver->>API: API request with JWT
+    API->>API: Verify JWT & provision user
+```
+
+<details>
+<summary><strong>Flow Steps (Legend)</strong></summary>
+
+1. **External login** — The user clicks the external login button on the StackWeaver login page.
+2. **Broker redirect** — StackWeaver redirects to Zitadel, which redirects to the external IdP (e.g., Azure AD).
+3. **Authentication** — The IdP authenticates the user and returns an ID token with claims (email, name, groups).
+4. **User linking** — Zitadel receives the token, auto-provisions or links the user, and issues a StackWeaver JWT.
+5. **API provisioning** — The StackWeaver API verifies the JWT and provisions the user in its local database.
+
+</details>
 
 Users are automatically provisioned in StackWeaver on their first login. However, they do not have access to any organization until an administrator invites them or SSO group-to-team mapping is configured.
 
@@ -165,3 +189,32 @@ The zitadel-init sidecar picks up the SSO environment variables, registers the p
 ```bash
 kubectl logs -f deployment/stackweaver-zitadel -c zitadel-init --namespace stackweaver
 ```
+
+## Troubleshooting
+
+### "Errors.Target.DeniedURL" when configuring Actions
+
+If the zitadel-init logs show an error like this:
+
+```
+❌ Failed to configure Zitadel Actions: failed to create IDP sync target:
+   failed to create target 'stackweaver-idp-sync':
+   rpc error: code = InvalidArgument desc = Errors.Target.DeniedURL (COMMAND-NcJUKo)
+```
+
+This means Zitadel is blocking the webhook target URL. Zitadel v4.x includes SSRF protection that denies requests to private/loopback IP addresses by default. The StackWeaver Helm chart already disables this deny list in the Zitadel ConfigMap (since Zitadel needs to call the in-cluster API service), but if you upgraded from an older chart version, the ConfigMap may not include this setting yet. Upgrade your Helm chart to pick up the fix, then delete the Zitadel pod so it restarts with the updated config:
+
+```bash
+helm upgrade stackweaver oci://ghcr.io/vhco-pro/charts/stackweaver \
+  --namespace stackweaver \
+  --values my-values.yaml
+kubectl delete pod -l app.kubernetes.io/component=zitadel --namespace stackweaver
+```
+
+### Login button does not appear
+
+Verify that the SSO provider's client ID is set. Check the zitadel-init logs for errors related to identity provider configuration.
+
+### User is authenticated but has no organization access
+
+This is expected behavior. SSO users are provisioned without organization membership for multi-tenant isolation. Either invite the user to an organization manually, or configure [team mapping](./team-mapping.md) to grant access automatically based on group claims.
