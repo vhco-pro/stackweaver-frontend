@@ -6,7 +6,25 @@ Dynamic inventories let Stackweaver discover hosts automatically from cloud prov
 
 Traditional Ansible inventories are static files listing hosts and groups. Dynamic inventories replace that with a plugin that queries a cloud provider's API at sync time, discovers running VMs, and caches the results in Stackweaver's database. Your Ansible jobs then run against this cached inventory without re-querying the cloud on every job.
 
-The sync flow works like this: you trigger a sync (manually or via a schedule), the Ansible runner clones your repository (for VCS type) or uses the UI-configured source settings, runs `ansible-inventory --list` with the appropriate cloud credentials, parses the discovered hosts and groups, and stores them in the database. The UI then shows the cached hosts and groups on the inventory's Hosts tab.
+```mermaid
+flowchart LR
+    A["Trigger Sync"] --> B["Clone Repo / Load Config"]
+    B --> C["Run ansible-inventory --list"]
+    C --> D["Parse Hosts & Groups"]
+    D --> E["Cache in Database"]
+    E --> F["UI Shows Hosts"]
+```
+
+<details>
+<summary><strong>Flow Steps (Legend)</strong></summary>
+
+1. **Trigger** — You trigger a sync manually or via a schedule.
+2. **Source** — The Ansible runner clones your repository (VCS type) or uses the UI-configured source settings.
+3. **Discovery** — The runner runs `ansible-inventory --list` with the appropriate cloud credentials.
+4. **Parse** — Discovered hosts and groups are parsed from the plugin output.
+5. **Cache** — Results are stored in the database; the UI shows cached hosts and groups on the inventory's Hosts tab.
+
+</details>
 
 ## Two Approaches
 

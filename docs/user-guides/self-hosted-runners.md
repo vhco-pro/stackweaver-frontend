@@ -41,10 +41,23 @@ Before you start, make sure you have:
 
 The flow is:
 
-1. Create an **agent pool** (and optionally restrict which workspaces or projects can use it).
-2. Create an **API key** with runner scopes.
-3. **Run the runner container** with that API key and the pool ID; the runner registers itself.
-4. Configure **workspaces** (Terraform) or **projects** (Ansible) to use agent execution and the correct pool so jobs are routed to your runners.
+```mermaid
+flowchart LR
+    A["Create Agent Pool"] --> B["Create API Key"]
+    B --> C["Run Runner Container"]
+    C --> D["Configure Workspaces / Projects"]
+    D --> E["Jobs Route to Runners"]
+```
+
+<details>
+<summary><strong>Flow Steps (Legend)</strong></summary>
+
+1. **Agent pool** — Create an agent pool and optionally restrict which workspaces or projects can use it.
+2. **API key** — Create an API key with runner scopes.
+3. **Runner** — Run the runner container with that API key and the pool ID; the runner registers itself.
+4. **Routing** — Configure workspaces (Terraform) or projects (Ansible) to use agent execution and the correct pool so jobs are routed to your runners.
+
+</details>
 
 ---
 

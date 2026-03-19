@@ -25,17 +25,27 @@ No manual Zitadel console steps are required.
 
 When you install the Helm chart, the following happens without any manual intervention:
 
-1. **Secrets init (PreSync Job)**: a `secrets-init` Job runs before the rest of the chart.
-   It creates the Zitadel Kubernetes Secret (containing a randomly generated 32-character `masterkey` and a `adminPassword`) only if the secret does not already exist.
-   This is idempotent — re-syncing never overwrites existing credentials.
+```mermaid
+flowchart TD
+    A["1. secrets-init Job (PreSync)"] -->|Creates K8s Secret if missing| B["2. Zitadel Starts"]
+    B -->|Reads masterkey + adminPassword| C["3. zitadel-init Sidecar"]
+    C --> D["Provisions OIDC apps, webhooks, service users"]
+    C --> E["Writes results to K8s Secret"]
+    C --> F["Restarts API, frontend, login-ui pods"]
+```
 
-2. **Zitadel starts**: the Zitadel pod waits for PostgreSQL to be ready (via an initContainer), then runs `start-from-init`.
-   It reads `masterkey` and `adminPassword` from the Kubernetes Secret via environment variables.
+<details>
+<summary><strong>Flow Steps (Legend)</strong></summary>
 
-3. **zitadel-init sidecar**: a sidecar container in the same pod as Zitadel waits for Zitadel to become ready, then provisions the OIDC apps (frontend, API), registers the production redirect URI, sets the Login V2 BaseURI via the Feature API, configures the login service user, and webhook keys, then writes the results directly into the Zitadel Kubernetes Secret.
-   It also triggers rolling restarts of the API, frontend, and login-ui pods, then enters an idle state with a health endpoint on `:8081`.
+1. **Secrets init (PreSync Job)** — A `secrets-init` Job runs before the rest of the chart. It creates the Zitadel Kubernetes Secret (containing a randomly generated 32-character `masterkey` and an `adminPassword`) only if the secret does not already exist. This is idempotent — re-syncing never overwrites existing credentials.
 
-   **PAT acquisition**: On the first boot (fresh database), Zitadel writes an admin PAT to a shared emptyDir volume. The sidecar reads this file and persists the PAT into the K8s Secret (`admin-pat` key). On subsequent pod restarts, the emptyDir is empty (Zitadel skips PAT generation for existing databases), so the sidecar falls back to reading the PAT from the K8s Secret. This three-tier fallback (`ZITADEL_PAT` env var > PAT file > K8s Secret) ensures the sidecar never crash-loops on pod restarts.
+2. **Zitadel starts** — The Zitadel pod waits for PostgreSQL to be ready (via an initContainer), then runs `start-from-init`. It reads `masterkey` and `adminPassword` from the Kubernetes Secret via environment variables.
+
+3. **zitadel-init sidecar** — A sidecar container in the same pod as Zitadel waits for Zitadel to become ready, then provisions the OIDC apps (frontend, API), registers the production redirect URI, sets the Login V2 BaseURI via the Feature API, configures the login service user, and webhook keys, then writes the results directly into the Zitadel Kubernetes Secret. It also triggers rolling restarts of the API, frontend, and login-ui pods, then enters an idle state with a health endpoint on `:8081`.
+
+</details>
+
+**PAT acquisition**: On the first boot (fresh database), Zitadel writes an admin PAT to a shared emptyDir volume. The sidecar reads this file and persists the PAT into the K8s Secret (`admin-pat` key). On subsequent pod restarts, the emptyDir is empty (Zitadel skips PAT generation for existing databases), so the sidecar falls back to reading the PAT from the K8s Secret. This three-tier fallback (`ZITADEL_PAT` env var > PAT file > K8s Secret) ensures the sidecar never crash-loops on pod restarts.
 
 ### Accessing the Zitadel Admin Console (Kubernetes)
 
@@ -243,21 +253,29 @@ The Docker Compose stack uses static credentials defined in `deploy/zitadel-init
 
 ### What `zitadel-init` Does
 
-1. Acquires an admin PAT:
-   - **Docker Compose**: Waits up to 300s for `/pat/admin.pat` (written by Zitadel during `start-from-init`).
-   - **Kubernetes (first boot)**: Waits for Zitadel readiness, then reads PAT from emptyDir (30s timeout). After provisioning, persists the PAT to the K8s Secret.
-   - **Kubernetes (pod restart)**: PAT file is absent (emptyDir is ephemeral). Falls back to reading `admin-pat` from the K8s Secret (stored during first boot).
-   - **Manual override**: If `ZITADEL_PAT` env var is set, it is used directly (highest priority).
-2. Uses the PAT to connect to Zitadel via gRPC (`localhost:8080`).
-3. Creates or updates:
-   - Organization `IAC Platform`
-   - Project `IAC Platform Project`
-   - Frontend OIDC app (PKCE) with the production redirect URI
-   - API app (client secret)
-   - Login UI service machine user + PAT (`IAM_LOGIN_CLIENT` role)
-   - Webhook signing keys
-   - Login V2 BaseURI (via Feature API — not just the DefaultInstance config)
-4. Writes the generated values to `deploy/.env`.
+```mermaid
+flowchart TD
+    A["1. Acquire Admin PAT"] --> B["2. Connect to Zitadel (gRPC)"]
+    B --> C["3. Provision Resources"]
+    C --> D["4. Write Generated Values"]
+
+    C --> C1["Organization + Project"]
+    C --> C2["OIDC Apps (Frontend PKCE, API)"]
+    C --> C3["Login UI Service User + PAT"]
+    C --> C4["Webhook Signing Keys + BaseURI"]
+```
+
+<details>
+<summary><strong>Flow Steps (Legend)</strong></summary>
+
+1. **Acquire admin PAT** — **Docker Compose**: waits up to 300s for `/pat/admin.pat` (written by Zitadel during `start-from-init`). **Kubernetes (first boot)**: waits for readiness, reads PAT from emptyDir, persists to K8s Secret. **Kubernetes (pod restart)**: falls back to `admin-pat` from K8s Secret. **Manual override**: `ZITADEL_PAT` env var takes highest priority.
+2. **Connect** — Uses the PAT to connect to Zitadel via gRPC (`localhost:8080`).
+3. **Provision** — Creates or updates: Organization `IAC Platform`, Project, Frontend OIDC app (PKCE) with production redirect URI, API app (client secret), Login UI service machine user + PAT (`IAM_LOGIN_CLIENT` role), webhook signing keys, and Login V2 BaseURI (via Feature API).
+4. **Write** — Writes the generated values to `deploy/.env`.
+
+</details>
+
+The bootstrap is idempotent — re-running it reuses existing apps and orgs.
 
 The bootstrap is idempotent — re-running it reuses existing apps and orgs.
 

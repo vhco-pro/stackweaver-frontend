@@ -117,11 +117,23 @@ helm upgrade stackweaver oci://ghcr.io/vhco-pro/charts/stackweaver \
 
 ### Verify the configuration
 
-The `zitadel-init` service will automatically detect the Azure AD environment variables and:
+The `zitadel-init` service will automatically detect the Azure AD environment variables and configure everything:
 
-1. Register the Azure AD provider in Zitadel with the name "Microsoft".
-2. Add the provider to the login policy so the "Sign in with Microsoft" button appears.
-3. Create Zitadel Actions to capture and forward group claims through the JWT.
+```mermaid
+flowchart LR
+    A["Detect Azure AD env vars"] --> B["Register provider in Zitadel"]
+    B --> C["Add to login policy"]
+    C --> D["Create Actions for group claims"]
+```
+
+<details>
+<summary><strong>Flow Steps (Legend)</strong></summary>
+
+1. **Register** — Registers the Azure AD provider in Zitadel with the name "Microsoft".
+2. **Login policy** — Adds the provider to the login policy so the "Sign in with Microsoft" button appears.
+3. **Actions** — Creates Zitadel Actions to capture and forward group claims through the JWT.
+
+</details>
 
 Check the logs to verify:
 
@@ -224,3 +236,7 @@ docker logs login-ui 2>&1 | tail -20
 ```
 
 Common causes include the login-ui failing to connect to Zitadel (check that Zitadel is healthy: `curl http://localhost:8080/debug/healthz`) or React hydration errors (usually harmless, the page should still render client-side).
+
+### "Errors.Target.DeniedURL" when configuring Actions (Kubernetes)
+
+See the [SSO overview troubleshooting](./README.md#errorstargetdeniedurl-when-configuring-actions) for details and fix steps.

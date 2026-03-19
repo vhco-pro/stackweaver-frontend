@@ -6,13 +6,32 @@ This platform uses **GitHub Apps** (not OAuth Apps) for VCS integration. This al
 
 ## How It Works
 
-1. **Platform owner creates ONE GitHub App** (one-time setup)
-2. **User clicks "Connect GitHub"** in organization settings
-3. **User is redirected** to GitHub App installation page
-4. **User installs the app** on their organization/repositories
-5. **GitHub sends webhook** with installation details
-6. **Platform stores installation ID** and generates installation tokens automatically
-7. **User can now select repositories** and branches when creating workspaces
+```mermaid
+sequenceDiagram
+    participant Owner as Platform Owner
+    participant User
+    participant SW as StackWeaver
+    participant GH as GitHub
+
+    Owner->>GH: Creates GitHub App (one-time)
+    User->>SW: Clicks "Connect GitHub"
+    SW->>GH: Redirects to install page
+    User->>GH: Installs app on org/repos
+    GH-->>SW: Webhook with installation details
+    SW->>SW: Stores installation ID, generates tokens
+    User->>SW: Selects repositories and branches
+```
+
+<details>
+<summary><strong>Flow Steps (Legend)</strong></summary>
+
+1. **App creation** — The platform owner creates a single GitHub App (one-time setup).
+2. **User connects** — A user clicks "Connect GitHub" in organization settings.
+3. **Installation** — The user is redirected to GitHub's App installation page, selects their org/repos, and installs.
+4. **Webhook** — GitHub sends a webhook with installation details; StackWeaver stores the installation ID and generates tokens automatically.
+5. **Ready** — The user can now select repositories and branches when creating workspaces.
+
+</details>
 
 ## Setup Steps
 
@@ -179,15 +198,32 @@ If instead you see the base64 key data on the same line as the header, the newli
 
 ### 3. User Flow (Self-Service)
 
-1. User navigates to Organization Settings → VCS Connections
-2. User clicks "Connect GitHub"
-3. User is redirected to GitHub App installation page
-4. User selects organization/repositories to install on
-5. User clicks "Install"
-6. GitHub redirects back to platform
-7. Platform receives webhook with installation details
-8. Platform stores installation ID
-9. User can now select repositories and branches
+```mermaid
+sequenceDiagram
+    participant User
+    participant SW as StackWeaver
+    participant GH as GitHub
+
+    User->>SW: Settings > VCS Connections
+    User->>SW: Clicks "Connect GitHub"
+    SW->>GH: Redirect to install page
+    User->>GH: Selects org/repos, clicks Install
+    GH->>SW: Redirect back to platform
+    GH-->>SW: Webhook with installation details
+    SW->>SW: Stores installation ID
+    User->>SW: Selects repositories and branches
+```
+
+<details>
+<summary><strong>Flow Steps (Legend)</strong></summary>
+
+1. **Navigate** — User goes to Organization Settings > VCS Connections.
+2. **Connect** — User clicks "Connect GitHub" and is redirected to GitHub's App installation page.
+3. **Install** — User selects organization/repositories and clicks "Install".
+4. **Callback** — GitHub redirects back to StackWeaver and sends a webhook with installation details.
+5. **Ready** — StackWeaver stores the installation ID; the user can now select repositories and branches.
+
+</details>
 
 ## Important Notes
 

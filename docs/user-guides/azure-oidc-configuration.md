@@ -4,10 +4,29 @@ Azure OIDC (OpenID Connect) configuration enables keyless authentication from St
 
 ## How It Works
 
-1. Stackweaver acts as an OIDC identity provider, exposing a signing key at `/.well-known/jwks` and a discovery document at `/.well-known/openid-configuration`.
-2. You create an Azure App Registration and configure a federated credential that trusts Stackweaver as the issuer.
-3. You register the App Registration's identifiers in Stackweaver using the TFE Terraform provider.
-4. At run time, the runner generates a short-lived JWT scoped to the specific workspace and run phase, and injects it alongside the Azure identifiers as environment variables. The `azurerm` Terraform provider and Ansible Azure collection pick these up automatically, so no stored secret is needed.
+```mermaid
+sequenceDiagram
+    participant Runner as StackWeaver Runner
+    participant SW as StackWeaver API
+    participant Azure
+
+    Note over SW: Exposes OIDC discovery + JWKS endpoints
+    Runner->>Runner: Generate short-lived JWT (workspace + phase scoped)
+    Runner->>Azure: Present JWT as federated credential
+    Azure->>SW: Fetch JWKS to verify signature
+    Azure-->>Runner: Azure access token
+    Runner->>Azure: Provision resources with access token
+```
+
+<details>
+<summary><strong>Flow Steps (Legend)</strong></summary>
+
+1. **OIDC provider** — Stackweaver exposes a signing key at `/.well-known/jwks` and a discovery document at `/.well-known/openid-configuration`.
+2. **Azure trust** — You create an Azure App Registration with a federated credential that trusts Stackweaver as the issuer.
+3. **Registration** — You register the App Registration's identifiers in Stackweaver using the TFE Terraform provider.
+4. **Run time** — The runner generates a short-lived JWT scoped to the specific workspace and run phase, and injects it alongside the Azure identifiers as environment variables. The `azurerm` Terraform provider and Ansible Azure collection pick these up automatically, so no stored secret is needed.
+
+</details>
 
 ## Prerequisites
 
