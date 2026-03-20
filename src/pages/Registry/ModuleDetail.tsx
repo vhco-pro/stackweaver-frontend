@@ -4,7 +4,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { Package, Upload, Tag, Download, ExternalLink, Clock, Settings, Code, Copy, CheckCircle2, Trash2, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { registryApi, type Module, type ModuleVersion } from '@/api/client';
+import { registryApi, type ModuleVersion } from '@/api/client';
 import { toast } from 'sonner';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -27,7 +27,8 @@ import {
 } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
 import { getVcsProviderIcon, getVcsRepoUrl } from '@/lib/vcs';
-import { useState } from 'react';
+// eslint-disable-next-line no-restricted-imports -- legitimate dependency-based effect
+import { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useMountEffect } from '@/hooks/useMountEffect';
 import { HclSyntaxHighlighter } from '@/components/code/HclSyntaxHighlighter';
@@ -1021,14 +1022,8 @@ export default function ModuleDetail() {
             if (confirmDialog.kind === 'version' && confirmDialog.version) {
               await registryApi.modules.deleteVersion(orgName, moduleName, provider, confirmDialog.version);
               toast.success(`Version ${confirmDialog.version} deleted successfully`);
-              const versionsData = await registryApi.modules.getVersions(orgName, moduleName, provider).catch(() => []);
-              const versionsList = Array.isArray(versionsData) ? versionsData : [];
-              setVersions(versionsList);
-              if (versionsList.length > 0) {
-                setSelectedVersion(versionsList[0]);
-              } else {
-                setSelectedVersion(null);
-              }
+              setSelectedVersion(null);
+              await refetchModule();
             } else if (confirmDialog.kind === 'module') {
               await registryApi.modules.delete(orgName, moduleName, provider);
               toast.success('Module deleted successfully');

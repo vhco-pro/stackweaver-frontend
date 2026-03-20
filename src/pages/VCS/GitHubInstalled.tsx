@@ -1,6 +1,7 @@
 // Copyright (c) 2025 VH & Co BV. Licensed under the Business Source License 1.1. See LICENSE for details.
 
-import { useEffect, useRef } from 'react';
+import { useRef } from 'react';
+import { useMountEffect } from '@/hooks/useMountEffect';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import { vcsConnectionsApi } from '@/api/client';
@@ -11,7 +12,7 @@ export default function GitHubInstalled() {
 
   const processedRef = useRef(false);
 
-  useEffect(() => {
+  useMountEffect(() => {
     if (processedRef.current) return;
     const installationId = searchParams.get('installation_id') || '';
     const state = searchParams.get('state') || '';
@@ -59,7 +60,7 @@ export default function GitHubInstalled() {
         toast.error(message);
         void navigate(returnPath || `/app/${orgName}/workspaces`, { replace: true });
       });
-  }, [navigate, searchParams]); // navigate and searchParams are stable from react-router
+  }); // navigate and searchParams are stable from react-router
 
   return (
     <div className="min-h-screen flex items-center justify-center">

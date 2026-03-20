@@ -1,6 +1,7 @@
 // Copyright (c) 2025 VH & Co BV. Licensed under the Business Source License 1.1. See LICENSE for details.
 
-import { useEffect, useRef } from 'react';
+import { useRef } from 'react';
+import { useMountEffect } from '@/hooks/useMountEffect';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import { vcsConnectionsApi } from '@/api/client';
@@ -10,7 +11,7 @@ export default function AzureDevOpsCallback() {
   const navigate = useNavigate();
   const processedRef = useRef(false);
 
-  useEffect(() => {
+  useMountEffect(() => {
     if (processedRef.current) return;
     processedRef.current = true;
 
@@ -63,7 +64,7 @@ export default function AzureDevOpsCallback() {
         toast.error(message);
         void navigate(returnPath, { replace: true });
       });
-  }, [navigate, searchParams]);
+  });
 
   return (
     <div className="min-h-screen flex items-center justify-center">

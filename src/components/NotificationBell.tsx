@@ -32,9 +32,8 @@ export function NotificationBell() {
 
   const unseenCount = useMemo(() => {
     if (recentActivities.length === 0) return 0;
-    const currentLastSeenId = localStorage.getItem('lastSeenActivityId');
-    if (!currentLastSeenId) return recentActivities.length;
-    const lastSeenIndex = recentActivities.findIndex(a => a.id === currentLastSeenId);
+    if (!lastSeenId) return recentActivities.length;
+    const lastSeenIndex = recentActivities.findIndex(a => a.id === lastSeenId);
     return lastSeenIndex === -1 ? recentActivities.length : lastSeenIndex;
   }, [recentActivities, lastSeenId]);
 

@@ -467,10 +467,10 @@ export const projectsApi = {
 
 // Parse a workspace JSON:API resource into the flat Workspace interface.
 // Maps kebab-case JSON:API attributes to snake_case TypeScript fields.
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+ 
 function workspaceFromJsonApi(item: JsonApiResource, included?: JsonApiResource[]): Workspace {
   const attrs = item.attributes || {};
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+   
   const vcsRepo = attrs['vcs-repo'] as Record<string, any> | null | undefined;
   const projectRel = getRelationship(item, 'project');
   const agentPoolRel = getRelationship(item, 'agent-pool');

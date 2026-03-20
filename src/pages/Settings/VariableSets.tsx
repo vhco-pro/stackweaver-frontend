@@ -14,8 +14,6 @@ import {
   projectsApi,
   workspacesApi,
   type VariableSet,
-  type Project,
-  type Workspace
 } from '@/api/client';
 import { toast } from 'sonner';
 import { Loader2 } from 'lucide-react';

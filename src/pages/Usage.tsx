@@ -1,6 +1,6 @@
 // Copyright (c) 2025 VH & Co BV. Licensed under the Business Source License 1.1. See LICENSE for details.
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useParams, useNavigate } from 'react-router-dom';
 import { 
@@ -86,11 +86,86 @@ interface AnsibleStats {
   totalInventories: number;
 }
 
+function SimpleBarChart({ data, maxValue, color = 'purple' }: { data: TimeSeriesData[], maxValue: number, color?: string }) {
+  const maxHeight = 200;
+  return (
+    <div className="flex items-end justify-between gap-1 h-[220px">
+      {data.map((item, idx) => {
+        const height = maxValue > 0 ? (item.runs / maxValue) * maxHeight : 0;
+        return (
+          <div key={idx} className="flex-1 flex flex-col items-center gap-1">
+            <div
+              className={cn(
+                "w-full rounded-t transition-all hover:opacity-80",
+                color === 'purple' && "bg-gradient-to-t from-purple-500 to-purple-400",
+                color === 'blue' && "bg-gradient-to-t from-blue-500 to-blue-400",
+                color === 'green' && "bg-gradient-to-t from-green-500 to-green-400",
+                color === 'red' && "bg-gradient-to-t from-red-500 to-red-400",
+              )}
+              style={{ height: `${Math.max(height, 2)}px` }}
+              title={`${item.date}: ${item.runs} runs`}
+            />
+            {idx % Math.ceil(data.length / 7) === 0 && (
+              <span className="text-xs text-muted-foreground transform -rotate-45 origin-top-left whitespace-nowrap">
+                {new Date(item.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+              </span>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function PieChartSegment({ label, value, total, color }: { label: string; value: number; total: number; color: string }) {
+  const percentage = total > 0 ? (value / total) * 100 : 0;
+  const radius = 32;
+  const circumference = 2 * Math.PI * radius;
+  const offset = circumference - (percentage / 100) * circumference;
+
+  return (
+    <div className="flex items-center gap-3">
+      <div className="relative w-20 h-20 flex-shrink-0">
+        <svg className="w-full h-full transform -rotate-90" viewBox="0 0 80 80" preserveAspectRatio="xMidYMid meet">
+          <circle
+            cx="40"
+            cy="40"
+            r={radius}
+            stroke="currentColor"
+            strokeWidth="8"
+            fill="none"
+            className="text-gray-200 dark:text-gray-800"
+          />
+          <circle
+            cx="40"
+            cy="40"
+            r={radius}
+            stroke="currentColor"
+            strokeWidth="8"
+            fill="none"
+            strokeDasharray={circumference}
+            strokeDashoffset={offset}
+            className={color}
+            strokeLinecap="round"
+          />
+        </svg>
+        <div className="absolute inset-0 flex items-center justify-center">
+          <span className="text-xs font-semibold">{Math.round(percentage)}%</span>
+        </div>
+      </div>
+      <div>
+        <p className="text-sm font-medium">{label}</p>
+        <p className="text-xs text-muted-foreground">{value} runs</p>
+      </div>
+    </div>
+  );
+}
+
 export default function Usage() {
   const { orgName } = useParams<{ orgName: string }>();
   const navigate = useNavigate();
   const [timeRange, setTimeRange] = useState<TimeRange>('30d');
-  const [selectedOrg, setSelectedOrg] = useState<string>(orgName || 'all');
+  const selectedOrg = orgName || 'all';
   const [organizations, setOrganizations] = useState<Array<{ name: string; id: string }>>([]);
 
   const getDateRange = (range: TimeRange): Date => {
@@ -165,29 +240,20 @@ export default function Usage() {
     return Array.from(dataMap.values()).sort((a, b) => a.date.localeCompare(b.date));
   };
 
-  // Update selectedOrg when URL param changes
-  useEffect(() => {
-    if (orgName && orgName !== selectedOrg) {
-      setSelectedOrg(orgName);
-    } else if (!orgName && selectedOrg !== 'all') {
-      // If no org in URL, redirect to first org or show all
-      void organizationsApi.list()
-        .then((res) => {
-          const orgs = res.data || [];
-          setOrganizations(orgs.map(org => ({ name: org.name, id: org.id })));
-          if (orgs.length > 0) {
-            void Promise.resolve(navigate(`/app/${orgs[0].name}/usage`, { replace: true }));
-            setSelectedOrg(orgs[0].name);
-          } else {
-            setSelectedOrg('all');
-          }
-        })
-        .catch((err) => {
-          console.error('Failed to load organizations:', err);
-          setSelectedOrg('all');
-        });
-    }
-  }, [orgName, navigate, selectedOrg]);
+  // Redirect to first org when no org is in the URL
+  useQuery({
+    queryKey: ['usage-org-redirect'],
+    queryFn: async () => {
+      const res = await organizationsApi.list();
+      const orgs = res.data || [];
+      setOrganizations(orgs.map(org => ({ name: org.name, id: org.id })));
+      if (orgs.length > 0) {
+        void Promise.resolve(navigate(`/app/${orgs[0].name}/usage`, { replace: true }));
+      }
+      return orgs;
+    },
+    enabled: !orgName,
+  });
 
   const { data: analyticsData, isLoading: loading } = useQuery({
     queryKey: ['analytics', timeRange, selectedOrg],
@@ -466,81 +532,6 @@ export default function Usage() {
   const ansibleStats = analyticsData?.ansibleStats ?? { totalJobs: 0, completedJobs: 0, failedJobs: 0, runningJobs: 0, pendingJobs: 0, canceledJobs: 0, successRate: 0, avgDuration: 0, totalPlaybooks: 0, totalJobTemplates: 0, totalInventories: 0 };
   const recentAnsibleJobs = analyticsData?.recentAnsibleJobs ?? [];
 
-  const SimpleBarChart = ({ data, maxValue, color = 'purple' }: { data: TimeSeriesData[], maxValue: number, color?: string }) => {
-    const maxHeight = 200;
-    return (
-      <div className="flex items-end justify-between gap-1 h-[220px">
-        {data.map((item, idx) => {
-          const height = maxValue > 0 ? (item.runs / maxValue) * maxHeight : 0;
-          return (
-            <div key={idx} className="flex-1 flex flex-col items-center gap-1">
-              <div 
-                className={cn(
-                  "w-full rounded-t transition-all hover:opacity-80",
-                  color === 'purple' && "bg-gradient-to-t from-purple-500 to-purple-400",
-                  color === 'blue' && "bg-gradient-to-t from-blue-500 to-blue-400",
-                  color === 'green' && "bg-gradient-to-t from-green-500 to-green-400",
-                  color === 'red' && "bg-gradient-to-t from-red-500 to-red-400",
-                )}
-                style={{ height: `${Math.max(height, 2)}px` }}
-                title={`${item.date}: ${item.runs} runs`}
-              />
-              {idx % Math.ceil(data.length / 7) === 0 && (
-                <span className="text-xs text-muted-foreground transform -rotate-45 origin-top-left whitespace-nowrap">
-                  {new Date(item.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                </span>
-              )}
-            </div>
-          );
-        })}
-      </div>
-    );
-  };
-
-  const PieChartSegment = ({ label, value, total, color }: { label: string; value: number; total: number; color: string }) => {
-    const percentage = total > 0 ? (value / total) * 100 : 0;
-    const radius = 32;
-    const circumference = 2 * Math.PI * radius;
-    const offset = circumference - (percentage / 100) * circumference;
-    
-    return (
-      <div className="flex items-center gap-3">
-        <div className="relative w-20 h-20 flex-shrink-0">
-          <svg className="w-full h-full transform -rotate-90" viewBox="0 0 80 80" preserveAspectRatio="xMidYMid meet">
-            <circle
-              cx="40"
-              cy="40"
-              r={radius}
-              stroke="currentColor"
-              strokeWidth="8"
-              fill="none"
-              className="text-gray-200 dark:text-gray-800"
-            />
-            <circle
-              cx="40"
-              cy="40"
-              r={radius}
-              stroke="currentColor"
-              strokeWidth="8"
-              fill="none"
-              strokeDasharray={circumference}
-              strokeDashoffset={offset}
-              className={color}
-              strokeLinecap="round"
-            />
-          </svg>
-          <div className="absolute inset-0 flex items-center justify-center">
-            <span className="text-xs font-semibold">{Math.round(percentage)}%</span>
-          </div>
-        </div>
-        <div>
-          <p className="text-sm font-medium">{label}</p>
-          <p className="text-xs text-muted-foreground">{value} runs</p>
-        </div>
-      </div>
-    );
-  };
-
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -554,16 +545,11 @@ export default function Usage() {
           </p>
         </div>
         <div className="flex items-center gap-3">
-          <Select 
-            value={selectedOrg} 
-            onValueChange={(orgName) => {
-              if (orgName === 'all') {
-                // For 'all', we could navigate to a global usage page or stay on current org
-                // For now, let's keep it scoped to the current org if available
-                setSelectedOrg(orgName || 'all');
-              } else {
-                void navigate(`/app/${orgName}/usage`, { replace: true });
-                setSelectedOrg(orgName);
+          <Select
+            value={selectedOrg}
+            onValueChange={(selectedOrgName) => {
+              if (selectedOrgName !== 'all') {
+                void navigate(`/app/${selectedOrgName}/usage`, { replace: true });
               }
             }}
           >

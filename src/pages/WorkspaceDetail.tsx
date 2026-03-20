@@ -1,6 +1,7 @@
 // Copyright (c) 2025 VH & Co BV. Licensed under the Business Source License 1.1. See LICENSE for details.
 
-import { useEffect, useState, useRef } from 'react';
+// eslint-disable-next-line no-restricted-imports -- legitimate dependency-based effect
+import { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useParams, Link, useNavigate, useSearchParams } from 'react-router-dom';
 import {
@@ -177,12 +178,8 @@ export default function WorkspaceDetail() {
   }>();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const [workspace, setWorkspace] = useState<Workspace | null>(null);
-  const [runs, setRuns] = useState<Run[]>([]);
-  const runsRef = useRef<Run[]>([]);
-  const [stateVersions, setStateVersions] = useState<StateVersion[]>([]);
-  const [variables, setVariables] = useState<Variable[]>([]);
-  const [variableSets, setVariableSets] = useState<VariableSet[]>([]);
+  // workspace, runs, stateVersions, variables, variableSets, platformVariableKeys
+  // are derived from the main useQuery below (workspaceData)
   const [activeTab, setActiveTab] = useState<TabType>('overview');
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
@@ -216,7 +213,6 @@ export default function WorkspaceDetail() {
     sensitive: false,
     encrypted: false, // Legacy field, kept for compatibility
   });
-  const [platformVariableKeys, setPlatformVariableKeys] = useState<string[]>([]);
   const [platformVariableOverrideWarningOpen, setPlatformVariableOverrideWarningOpen] = useState(false);
   const [pendingVariableCreate, setPendingVariableCreate] = useState<(() => void) | null>(null);
   const [platformVariablesSectionOpen, setPlatformVariablesSectionOpen] = useState(false);
@@ -389,7 +385,7 @@ export default function WorkspaceDetail() {
   };
 
   // Main data fetch: workspace + runs + state versions + variables + variable sets + platform keys
-  const { isLoading: loading, refetch: refetchData } = useQuery({
+  const { isLoading: loading, data: workspaceData, refetch: refetchData } = useQuery({
     queryKey: ['workspace-detail', orgName, workspaceName],
     queryFn: async () => {
       console.log('WorkspaceDetail: Fetching workspace', { orgName, workspaceName });
@@ -401,9 +397,6 @@ export default function WorkspaceDetail() {
         toast.error('Failed to load workspace: Invalid response');
         return null;
       }
-      
-      setWorkspace(workspaceRes);
-      setInlineDescription(workspaceRes.description || '');
 
       // Fetch all data in parallel
       const [runsRes, statesRes, varsRes, varSetsRes, platformKeysRes] = await Promise.all([
@@ -419,11 +412,11 @@ export default function WorkspaceDetail() {
       
       // Convert JSON:API format to Run objects
       const runsData = Array.isArray(runsRes?.data) ? runsRes.data : [];
-      const runs = runsData.map((resource: JsonApiResource) => getRunFromJsonApi(resource));
+      const fetchedRuns = runsData.map((resource: JsonApiResource) => getRunFromJsonApi(resource));
       
       // Filter out legacy apply runs that are part of a plan-and-apply flow
       // For plan-and-apply runs, we only show the single plan-and-apply run, not separate apply runs
-      const filteredRuns = runs.filter((run: Run) => {
+      const filteredRuns = fetchedRuns.filter((run: Run) => {
         // Keep all plan-and-apply, plan-only, and destroy runs
         if (run.operation === 'plan-and-apply' || run.operation === 'plan-only' || run.operation === 'destroy') {
           return true;
@@ -431,7 +424,7 @@ export default function WorkspaceDetail() {
         // For legacy apply runs, check if there's a corresponding plan-and-apply run with the same config version
         if (run.operation === 'apply' && run.configuration_version_id) {
           // Check if there's a plan-and-apply run with the same config version created before this apply run
-          const hasPlanAndApplyRun = runs.some((r: Run) => 
+          const hasPlanAndApplyRun = fetchedRuns.some((r: Run) => 
             r.operation === 'plan-and-apply' &&
             r.configuration_version_id === run.configuration_version_id &&
             new Date(r.created_at) <= new Date(run.created_at)
@@ -447,8 +440,6 @@ export default function WorkspaceDetail() {
       const uniqueRuns = Array.from(
         new Map(filteredRuns.map((run: Run) => [run.id, run])).values()
       );
-      setRuns(uniqueRuns);
-      runsRef.current = uniqueRuns;
       
       // Handle state versions response - backend returns { data: StateVersion[], meta: {...} }
       // stateVersionsApi.list() extracts .data, so statesRes should be StateVersion[]
@@ -464,11 +455,6 @@ export default function WorkspaceDetail() {
         }
       }
       console.log('State versions loaded:', stateVersionsData.length, stateVersionsData);
-      setStateVersions(stateVersionsData);
-      setVariables(Array.isArray(varsRes) ? varsRes : []);
-      
-      // Set platform variable keys
-      setPlatformVariableKeys(Array.isArray(platformKeysRes) ? platformKeysRes : []);
       
       // Filter variable sets to only show those applicable to this workspace
       // Organization-scoped sets apply to all workspaces (unless filtered by project)
@@ -524,11 +510,39 @@ export default function WorkspaceDetail() {
       // Filter out null values (sets that were filtered out)
       const filteredSets = setsWithDetails.filter((vs): vs is VariableSet => vs !== null);
       
-      setVariableSets(filteredSets);
-      return workspaceRes;
+      return {
+        workspace: workspaceRes,
+        runs: uniqueRuns,
+        stateVersions: stateVersionsData,
+        variables: Array.isArray(varsRes) ? varsRes as Variable[] : [],
+        variableSets: filteredSets,
+        platformVariableKeys: Array.isArray(platformKeysRes) ? platformKeysRes as string[] : [],
+      };
     },
     enabled: !!orgName && !!workspaceName,
+    // Poll every 5s while there are active runs, stop when idle
+    refetchInterval: (query) => {
+      const data = query.state.data;
+      if (!data?.runs) return false;
+      const activeStatuses = ['running', 'pending', 'planning', 'applying', 'plan_queued', 'apply_queued'];
+      return data.runs.some((r: Run) => activeStatuses.includes(r.status)) ? 5000 : false;
+    },
   });
+
+  // Derive fetched data from the query result
+  const workspace = workspaceData?.workspace ?? null;
+  const runs = workspaceData?.runs ?? [];
+  const stateVersions = workspaceData?.stateVersions ?? [];
+  const variables = workspaceData?.variables ?? [];
+  const variableSets = workspaceData?.variableSets ?? [];
+  const platformVariableKeys = workspaceData?.platformVariableKeys ?? [];
+
+  // Sync inline description when workspace data changes (e.g., after refetch)
+  useEffect(() => {
+    if (workspace) {
+      setInlineDescription(workspace.description || '');
+    }
+  }, [workspace]);
 
   // Read tab query parameter and set active tab
   useEffect(() => {
@@ -565,34 +579,6 @@ export default function WorkspaceDetail() {
     },
     enabled: !!workspace?.vcs_connection_id && !!workspace?.vcs_repository,
   });
-
-  // Poll for active runs updates (running or pending - these can change status)
-  useEffect(() => {
-    if (!workspace) return;
-
-    const pollInterval = setInterval(() => {
-      void (async () => {
-        try {
-          // Always fetch latest runs to catch status changes
-          const updatedRunsRes = await runsApi.list(workspace.id);
-        const runsData = Array.isArray(updatedRunsRes?.data) ? updatedRunsRes.data : [];
-        const updatedRuns = runsData.map((resource: JsonApiResource) => getRunFromJsonApi(resource));
-        runsRef.current = updatedRuns;
-        setRuns(updatedRuns);
-        
-          // Stop polling if no more active runs (running or pending)
-          const stillActive = updatedRuns.some(r => r.status === 'running' || r.status === 'pending');
-          if (!stillActive) {
-            clearInterval(pollInterval);
-          }
-        } catch (err) {
-          console.error('Failed to poll runs:', err);
-        }
-      })();
-    }, 2000);
-
-    return () => clearInterval(pollInterval);
-  }, [workspace]);
 
   // Fetch plan output for latest run
   const latestRun = runs.length > 0 ? runs[0] : null;
@@ -634,7 +620,7 @@ export default function WorkspaceDetail() {
       operation: isDestroy ? 'destroy' as const : (isPlanAndApply ? 'plan-and-apply' as const : 'plan-only' as const),
       auto_apply_after_plan: isPlanAndApply && (workspace.auto_apply === true),
     })
-      .then(async (runRes) => {
+      .then((runRes) => {
         // Convert JSON:API format to Run object
         const run = getRunFromJsonApi(runRes.data);
         const message = isDestroy ? 'Destroy run created' : 'Plan run created';
@@ -644,15 +630,8 @@ export default function WorkspaceDetail() {
         if (run?.id) {
           void navigate(`/app/${orgName}/workspaces/${workspaceName}/runs/${run.id}`);
         } else {
-          // Fallback: reload runs list
-          try {
-            const runsRes = await runsApi.list(workspace.id);
-            const runsData = Array.isArray(runsRes?.data) ? runsRes.data : [];
-            const runs = runsData.map((resource: JsonApiResource) => getRunFromJsonApi(resource));
-            setRuns(runs);
-          } catch (e) {
-            console.error('Failed to reload runs:', e);
-          }
+          // Fallback: reload workspace data
+          void refetchData();
         }
       })
       .catch((err) => {
@@ -677,17 +656,12 @@ export default function WorkspaceDetail() {
         // This function will be called if user confirms
         const apiCall = variablesApi.create(workspace.id, variableForm);
         void apiCall
-          .then(async () => {
+          .then(() => {
             toast.success('Variable created');
             setCreateVariableDialogOpen(false);
             setEditingVariable(null);
             setVariableForm({ key: '', value: '', description: '', category: 'terraform', hcl: false, sensitive: false, encrypted: false });
-            try {
-              const varsRes = await variablesApi.list(workspace.id);
-              setVariables(Array.isArray(varsRes) ? varsRes : []);
-            } catch (e) {
-              console.error('Failed to reload variables:', e);
-            }
+            void refetchData();
           })
           .catch((err) => {
             console.error('Failed to save variable:', err);
@@ -704,17 +678,12 @@ export default function WorkspaceDetail() {
       : variablesApi.create(workspace.id, variableForm);
 
     void apiCall
-      .then(async () => {
+      .then(() => {
         toast.success(editingVariable ? 'Variable updated' : 'Variable created');
         setCreateVariableDialogOpen(false);
         setEditingVariable(null);
         setVariableForm({ key: '', value: '', description: '', category: 'terraform', hcl: false, sensitive: false, encrypted: false });
-        try {
-          const varsRes = await variablesApi.list(workspace.id);
-          setVariables(Array.isArray(varsRes) ? varsRes : []);
-        } catch (e) {
-          console.error('Failed to reload variables:', e);
-        }
+        void refetchData();
       })
       .catch((err) => {
         console.error('Failed to save variable:', err);
@@ -731,12 +700,8 @@ export default function WorkspaceDetail() {
       toast.success(`Resource ${resourceToDelete} removed from state`);
       setDeleteResourceDialogOpen(false);
       setResourceToDelete(null);
-      // Reload state versions to refresh the resources view
-      if (workspace) {
-        void stateVersionsApi.list(workspace.id).then((states) => {
-          setStateVersions(states);
-        });
-      }
+      // Reload data to refresh the resources view
+      void refetchData();
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to remove resource from state';
       toast.error(errorMessage);
@@ -750,11 +715,11 @@ export default function WorkspaceDetail() {
 
     setSavingDescription(true);
     try {
-      const updated = await workspacesApi.update(orgName, workspaceName, {
+      await workspacesApi.update(orgName, workspaceName, {
         name: workspace.name,
         description: inlineDescription.trim() || undefined,
       });
-      setWorkspace(updated);
+      void refetchData();
       setIsEditingDescription(false);
       toast.success('Description updated successfully');
     } catch (err: unknown) {
@@ -776,16 +741,11 @@ export default function WorkspaceDetail() {
 
     setDeletingVariable(true);
     void variablesApi.delete(workspace.id, variableToDelete.id)
-      .then(async () => {
+      .then(() => {
         toast.success('Variable deleted');
         setDeleteVariableDialogOpen(false);
         setVariableToDelete(null);
-        try {
-          const varsRes = await variablesApi.list(workspace.id);
-          setVariables(Array.isArray(varsRes) ? varsRes : []);
-        } catch (e) {
-          console.error('Failed to reload variables:', e);
-        }
+        void refetchData();
       })
       .catch((err) => {
         console.error('Failed to delete variable:', err);
@@ -919,7 +879,14 @@ export default function WorkspaceDetail() {
     return matchesSearch && matchesStatus;
   });
 
-  const latestStateVersion = stateVersions.length > 0 ? stateVersions[0] : null;
+  const latestStateVersionSummary = stateVersions.length > 0 ? stateVersions[0] : null;
+
+  // Fetch full latest state version with state_data (list endpoint omits it for performance)
+  const { data: latestStateVersion } = useQuery({
+    queryKey: ['latest-state-version-full', latestStateVersionSummary?.id],
+    queryFn: () => stateVersionsApi.get(latestStateVersionSummary!.id),
+    enabled: !!latestStateVersionSummary?.id,
+  });
 
   if (loading) {
     return (
@@ -1143,8 +1110,8 @@ export default function WorkspaceDetail() {
                   if (workspace.locked) {
                     // Try normal unlock first
                     try {
-                      const updated = await workspacesApi.unlock(workspace.id);
-                      setWorkspace(updated);
+                      await workspacesApi.unlock(workspace.id);
+                      void refetchData();
                       toast.success('Workspace unlocked');
                     } catch (unlockErr: unknown) {
                       // If locked by different user, try force-unlock
@@ -1155,8 +1122,8 @@ export default function WorkspaceDetail() {
                           unlockErrResponse?.data?.errors?.[0]?.detail?.includes('different user')) {
                         const forceUnlock = confirm('This workspace is locked by a different user. Would you like to force unlock it?');
                         if (forceUnlock) {
-                          const updated = await workspacesApi.forceUnlock(workspace.id);
-                          setWorkspace(updated);
+                          await workspacesApi.forceUnlock(workspace.id);
+                          void refetchData();
                           toast.success('Workspace force unlocked');
                         }
                       } else {
@@ -2228,10 +2195,10 @@ export default function WorkspaceDetail() {
                       if (!orgName || !workspaceName) return;
                       setSavingTimeout(true);
                       try {
-                        const updated = await workspacesApi.update(orgName, workspaceName, {
+                        await workspacesApi.update(orgName, workspaceName, {
                           'run-timeout': timeoutValue,
                         });
-                        setWorkspace(updated);
+                        void refetchData();
                         setTimeoutDialogOpen(false);
                         toast.success('Run timeout updated successfully');
                       } catch (error) {
@@ -3090,8 +3057,8 @@ export default function WorkspaceDetail() {
                 void (async () => {
                   if (!workspace) return;
                   try {
-                    const updated = await workspacesApi.lock(workspace.id, lockReason || undefined);
-                    setWorkspace(updated);
+                    await workspacesApi.lock(workspace.id, lockReason || undefined);
+                    void refetchData();
                     setLockDialogOpen(false);
                     setLockReason('');
                     toast.success('Workspace locked');
@@ -3119,13 +3086,7 @@ export default function WorkspaceDetail() {
           orgName={orgName}
           workspace={workspace}
           onUpdated={() => {
-            // Reload workspace data after update
-            void workspacesApi.get(orgName, workspaceName).then((updated) => {
-              setWorkspace(updated);
-              setInlineDescription(updated.description || '');
-            }).catch((error) => {
-              console.error('Failed to reload workspace after update:', error);
-            });
+            void refetchData();
           }}
         />
       )}

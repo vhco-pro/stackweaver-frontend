@@ -119,7 +119,7 @@ export default function Webhooks() {
   const [copied, setCopied] = useState(false);
   const [copiedAdo, setCopiedAdo] = useState(false);
 
-  const { data: recentDeliveries = [], isLoading: loading } = useQuery({
+  const { data: recentDeliveries = [], isLoading: loading, refetch: fetchDeliveries } = useQuery({
     queryKey: ['webhook-deliveries', orgName],
     queryFn: async () => {
       const response = await apiClient.get<{ data: WebhookDelivery[] }>(

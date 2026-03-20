@@ -1,6 +1,6 @@
 // Copyright (c) 2025 VH & Co BV. Licensed under the Business Source License 1.1. See LICENSE for details.
 
-import { useState, useMemo, type ReactNode, type KeyboardEvent } from 'react';
+import { useState, useEffect, useRef, useMemo, type ReactNode, type KeyboardEvent } from 'react';
 import { useMountEffect } from '@/hooks/useMountEffect';
 import { useNavigate } from 'react-router-dom';
 import ReactMarkdown from 'react-markdown';
@@ -660,6 +660,50 @@ export function MarkdownRenderer({
   const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
   const [lightboxAlt, setLightboxAlt] = useState<string>('');
 
+  // Collect code blocks that need highlighting during render, process in useEffect
+  const pendingHighlightsRef = useRef<Array<{ hash: string; code: string; lang: string }>>([]);
+
+  useEffect(() => {
+    const pending = pendingHighlightsRef.current;
+    if (pending.length === 0) return;
+    pendingHighlightsRef.current = [];
+
+    let cancelled = false;
+    void (async () => {
+      try {
+        const { codeToHtml } = await import('shiki');
+        const currentMode: 'dark' | 'light' =
+          typeof document !== 'undefined' && document.documentElement.classList.contains('dark') ? 'dark' : 'light';
+        const theme = currentMode === 'dark' ? 'github-dark' : 'github-light';
+
+        const results: Record<string, string> = {};
+        for (const { hash, code, lang } of pending) {
+          if (cancelled) return;
+          const highlightLang = lang === 'text' ? 'plaintext' : lang;
+          try {
+            results[hash] = await codeToHtml(code, { lang: highlightLang, theme });
+          } catch (langError: unknown) {
+            const msg = langError instanceof Error ? langError.message : String(langError);
+            if (msg.includes('is not included in this bundle') && highlightLang !== 'plaintext') {
+              try {
+                results[hash] = await codeToHtml(code, { lang: 'plaintext', theme });
+              } catch {
+                // Ignore - will render as plain text
+              }
+            }
+          }
+        }
+        if (!cancelled && Object.keys(results).length > 0) {
+          setHighlightedCode((prev) => ({ ...prev, ...results }));
+        }
+      } catch {
+        // Ignore - will render as plain text
+      }
+    })();
+
+    return () => { cancelled = true; };
+  });
+
   // Parse frontmatter from content
   const { meta, body: markdownBody } = useMemo(() => parseFrontmatter(content), [content]);
 
@@ -1088,48 +1132,9 @@ export function MarkdownRenderer({
           );
         }
 
-        // Highlight on first render
+        // Queue for highlighting in useEffect (avoid setState during render)
         if (codeTextTrimmed) {
-          void (async () => {
-            try {
-              const { codeToHtml } = await import('shiki');
-              
-              // Get current theme mode dynamically
-              const currentMode: 'dark' | 'light' =
-                typeof document !== 'undefined' && document.documentElement.classList.contains('dark') ? 'dark' : 'light';
-              
-              // Use GitHub themes matching current mode
-              const theme = currentMode === 'dark' ? 'github-dark' : 'github-light';
-              
-              // Try to highlight with the requested language
-              const highlightLang = lang === 'text' ? 'plaintext' : lang;
-              
-              try {
-                const html = await codeToHtml(codeTextTrimmed, {
-                  lang: highlightLang,
-                  theme,
-                });
-                setHighlightedCode((prev) => ({ ...prev, [codeHash]: html }));
-              } catch (langError: unknown) {
-                // If language is not supported, fall back to plaintext
-                const errorMessage = langError instanceof Error ? langError.message : String(langError);
-                if (errorMessage.includes('is not included in this bundle') && highlightLang !== 'plaintext') {
-                  console.debug(`Language "${lang}" not supported, falling back to plaintext`);
-                  try {
-                    const html = await codeToHtml(codeTextTrimmed, {
-                      lang: 'plaintext',
-                      theme,
-                    });
-                    setHighlightedCode((prev) => ({ ...prev, [codeHash]: html }));
-                  } catch {
-                    // Ignore error - will render as plain text
-                  }
-                }
-              }
-            } catch {
-              // Ignore error - will render as plain text
-            }
-          })();
+          pendingHighlightsRef.current.push({ hash: codeHash, code: codeTextTrimmed, lang });
         }
 
         // Fallback while loading - render plain code block (always visible)

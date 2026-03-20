@@ -59,22 +59,28 @@ export function useRunPolling({
 
   const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const planFetchedRef = useRef(false);
+  const planLogsFetchedRef = useRef(false);
   const logsFetchedRef = useRef(false);
   const applyStateFetchedRef = useRef(false);
   const lastLogOffsetRef = useRef(0);
   const currentStatusRef = useRef<string | null>(null); // Use ref to track status across closures
+  const currentOperationRef = useRef<string | null>(null); // Track operation for terminal check
   const previousStatusRef = useRef<string | null>(null); // Track previous status for change detection
+  const consecutiveErrorsRef = useRef(0); // Track consecutive network errors
   const isMountedRef = useRef(true);
 
   // Reset refs when runId changes to allow fetching plan output for new runs
   useEffect(() => {
     if (runId) {
       planFetchedRef.current = false;
+      planLogsFetchedRef.current = false;
       logsFetchedRef.current = false;
       applyStateFetchedRef.current = false;
       lastLogOffsetRef.current = 0;
       currentStatusRef.current = null;
+      currentOperationRef.current = null;
       previousStatusRef.current = null;
+      consecutiveErrorsRef.current = 0;
     }
   }, [runId]);
 
@@ -86,15 +92,24 @@ export function useRunPolling({
 
     isMountedRef.current = true;
 
+    // Helper to check if current run is in a terminal state
+    const isInTerminalState = () => {
+      const status = currentStatusRef.current;
+      const operation = currentOperationRef.current;
+      if (!status) return false;
+      if (status === 'failed' || status === 'canceled') return true;
+      if (status === 'applied') return true;
+      if (status === 'planned' && operation === 'plan-only') return true;
+      if (status === 'completed') return true;
+      return false;
+    };
+
     const fetchRun = async () => {
       // Don't fetch if component is unmounted
       if (!isMountedRef.current) return;
 
       // Don't fetch if run is already in terminal state
-      // Note: Terminal states depend on operation type, but we check common ones here
-      // The full check happens after fetching the run
-      if (currentStatusRef.current && ['failed', 'canceled', 'applied'].includes(currentStatusRef.current)) {
-        // Stop polling if we have an interval running
+      if (isInTerminalState()) {
         if (pollIntervalRef.current) {
           clearInterval(pollIntervalRef.current);
           pollIntervalRef.current = null;
@@ -110,7 +125,9 @@ export function useRunPolling({
 
         const previousStatus = currentStatusRef.current;
         currentStatusRef.current = runData.status;
+        currentOperationRef.current = runData.operation;
         previousStatusRef.current = previousStatus;
+        consecutiveErrorsRef.current = 0; // Reset error count on success
         setRun(runData);
         setError(null);
 
@@ -169,9 +186,10 @@ export function useRunPolling({
         const planHasCompleted = runData['status-timestamps']?.['planned-at'] !== undefined;
         const isPlanOperation = runData.operation === 'plan-only' || runData.operation === 'plan-and-apply' || runData.operation === 'destroy';
         // Fetch plan logs if: (1) we have plan output, OR (2) plan has completed (even with no changes)
-        const shouldFetchPlanLogs = (hasPlanOutput || planHasCompleted) && !planLogs && isPlanOperation;
+        const shouldFetchPlanLogs = (hasPlanOutput || planHasCompleted) && !planLogsFetchedRef.current && isPlanOperation;
 
         if (shouldFetchPlanLogs) {
+          planLogsFetchedRef.current = true;
           try {
             // Use explicit plan logs endpoint (no phase parameter confusion)
             const fetchedLogs = await runsApi.getPlanLogs(runId);
@@ -181,7 +199,7 @@ export function useRunPolling({
             }
           } catch (err) {
             console.error('Failed to fetch plan logs:', err);
-            // Don't show error to user - logs may not be available
+            planLogsFetchedRef.current = false; // Allow retry on error
           }
         }
 
@@ -332,8 +350,15 @@ export function useRunPolling({
         }
       } catch (err) {
         if (!isMountedRef.current) return;
+        consecutiveErrorsRef.current += 1;
         setError(err instanceof Error ? err : new Error('Failed to fetch run'));
         console.error('Failed to fetch run:', err);
+        // Stop polling after 3 consecutive network errors
+        if (consecutiveErrorsRef.current >= 3 && pollIntervalRef.current) {
+          console.warn('Stopping run polling after 3 consecutive errors');
+          clearInterval(pollIntervalRef.current);
+          pollIntervalRef.current = null;
+        }
       } finally {
         if (isMountedRef.current) {
           setLoading(false);
@@ -345,14 +370,9 @@ export function useRunPolling({
     void fetchRun();
 
     // Set up polling for non-terminal states
-    // Only start polling if run is not already in terminal state
-    // Note: Terminal states depend on operation type, but we check common ones here
-    const isTerminalStatus = currentStatusRef.current && ['failed', 'canceled', 'applied'].includes(currentStatusRef.current);
-    if (!currentStatusRef.current || !isTerminalStatus) {
+    if (!isInTerminalState()) {
       pollIntervalRef.current = setInterval(() => {
-        // Check current status from ref (not closure variable)
-        // Full terminal check happens in fetchRun, but we do a quick check here
-        if (currentStatusRef.current && ['failed', 'canceled', 'applied'].includes(currentStatusRef.current)) {
+        if (isInTerminalState()) {
           if (pollIntervalRef.current) {
             clearInterval(pollIntervalRef.current);
             pollIntervalRef.current = null;

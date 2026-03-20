@@ -132,7 +132,7 @@ export default function Credentials() {
     setCreating(true);
     try {
       const res = await ansibleCredentialsApi.create(selectedOrg, formData);
-      const newCredential = getAnsibleCredentialFromJsonApi(res.data);
+      getAnsibleCredentialFromJsonApi(res.data);
       void refetchCredentials();
       setCreateDialogOpen(false);
       resetForm();
@@ -193,7 +193,7 @@ export default function Credentials() {
         payload.password = editForm.newPassword;
       }
       const res = await ansibleCredentialsApi.update(credentialToEdit.id, payload);
-      const updated = getAnsibleCredentialFromJsonApi(res.data);
+      getAnsibleCredentialFromJsonApi(res.data);
       void refetchCredentials();
       setEditDialogOpen(false);
       setCredentialToEdit(null);

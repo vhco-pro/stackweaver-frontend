@@ -9,7 +9,6 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import {
   projectsApi,
-  type Project,
 } from '@/api/client';
 import { ansibleConfigApi, type AnsibleConfig } from '@/api/ansible';
 import { toast } from 'sonner';

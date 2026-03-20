@@ -14,8 +14,6 @@ import {
   projectsApi,
   runnersApi,
   type AgentPool,
-  type Workspace,
-  type Project,
   type Runner,
 } from '@/api/client';
 import { toast } from 'sonner';

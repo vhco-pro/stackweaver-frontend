@@ -1,5 +1,6 @@
 // Copyright (c) 2025 VH & Co BV. Licensed under the Business Source License 1.1. See LICENSE for details.
 
+// eslint-disable-next-line no-restricted-imports -- legitimate dependency-based effect
 import { useEffect, useState, useCallback } from 'react';
 import { AlertTriangle, CheckCircle2, WifiOff } from 'lucide-react';
 import { cn } from '@/lib/utils';
