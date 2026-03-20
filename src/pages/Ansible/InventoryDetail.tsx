@@ -91,18 +91,24 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 
+interface InventoryDetailData {
+  inventory: AnsibleInventory;
+  vcsConnections: VCSConnection[];
+  hosts: AnsibleInventoryHost[];
+  groups: (AnsibleInventoryGroup & { hostIds?: string[] })[];
+  sources: AnsibleInventorySource[];
+  credentials: AnsibleCredential[];
+  hasAzureOIDC: boolean;
+  azureOIDCConfig: AzureOIDCConfiguration | null;
+}
+
 export default function InventoryDetail() {
   const { orgName, inventoryId } = useParams<{ orgName: string; inventoryId: string }>();
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
 
-  const [inventory, setInventory] = useState<AnsibleInventory | null>(null);
-  const [vcsConnections, setVcsConnections] = useState<VCSConnection[]>([]);
-  const [hosts, setHosts] = useState<AnsibleInventoryHost[]>([]);
-  const [groups, setGroups] = useState<(AnsibleInventoryGroup & { hostIds?: string[] })[]>([]);
-  const [sources, setSources] = useState<AnsibleInventorySource[]>([]);
-  const [credentials, setCredentials] = useState<AnsibleCredential[]>([]);
   const [activeTab, setActiveTab] = useState('hosts');
+  const [activeTabInitialized, setActiveTabInitialized] = useState(false);
   
   // Collapsible banner state
   const [infoBannerOpen, setInfoBannerOpen] = useState(true);
@@ -176,8 +182,6 @@ export default function InventoryDetail() {
   
   // Azure auth method state
   const [azureAuthMethod, setAzureAuthMethod] = useState<'oidc' | 'credential'>('credential');
-  const [hasAzureOIDC, setHasAzureOIDC] = useState(false);
-  const [azureOIDCConfig, setAzureOIDCConfig] = useState<AzureOIDCConfiguration | null>(null);
   
   // Sync state (for VCS inventories)
   const [syncing, setSyncing] = useState(false);
@@ -201,57 +205,81 @@ export default function InventoryDetail() {
   });
 
   // Fetch inventory details
-  const { isLoading: loading } = useQuery({
+  const { isLoading: loading, data: queryData, refetch } = useQuery({
     queryKey: ['inventoryDetail', inventoryId, orgName],
-    queryFn: async () => {
+    queryFn: async (): Promise<InventoryDetailData> => {
       const invRes = await ansibleInventoriesApi.get(inventoryId!);
       const inv = getAnsibleInventoryFromJsonApi(invRes.data);
-      setInventory(inv);
-      setEditForm({ name: inv.name, description: inv.description || '' });
-      setInlineDescription(inv.description || '');
 
-      void vcsConnectionsApi.list(orgName ?? '').then(setVcsConnections).catch(() => {});
-
-      void azureOIDCConfigApi.list(orgName ?? '').then(res => {
-        if (res.data.length > 0) {
-          setHasAzureOIDC(true);
-          setAzureOIDCConfig(res.data[0]);
-          setAzureAuthMethod('oidc');
-        }
-      }).catch(() => {});
-
-      if (inv.type === 'dynamic') {
-        setActiveTab('sources');
-      }
-
-      const [hostsRes, groupsRes, sourcesRes] = await Promise.all([
+      const [hostsRes, groupsRes, sourcesRes, vcsConnsResult, azureOIDCResult, credsResult] = await Promise.all([
         ansibleHostsApi.list(inventoryId!),
         ansibleGroupsApi.list(inventoryId!),
         ansibleInventorySourcesApi.list(inventoryId!),
+        vcsConnectionsApi.list(orgName ?? '').catch(() => [] as VCSConnection[]),
+        azureOIDCConfigApi.list(orgName ?? '').catch(() => ({ data: [] as AzureOIDCConfiguration[] })),
+        ansibleCredentialsApi.list(orgName!).catch((err: unknown) => {
+          console.warn('Failed to load credentials:', err);
+          return { data: [] as JsonApiResource[] };
+        }),
       ]);
-      setHosts((hostsRes.data || []).map(getAnsibleHostFromJsonApi));
+
+      const hostsData = (hostsRes.data || []).map(getAnsibleHostFromJsonApi);
       const groupsData = (groupsRes.data || []).map((groupResource: JsonApiResource) => {
         const group = getAnsibleGroupFromJsonApi(groupResource);
         const hostRelationships = (groupResource.relationships?.hosts as { data?: Array<{ id: string }> | { id: string } })?.data;
-        const hostIds = Array.isArray(hostRelationships) 
+        const hostIds = Array.isArray(hostRelationships)
           ? hostRelationships.map((h: { id: string }) => h.id)
           : hostRelationships ? [hostRelationships.id] : [];
         return { ...group, hostIds };
       });
-      setGroups(groupsData);
-      setSources((sourcesRes.data || []).map(getAnsibleInventorySourceFromJsonApi));
+      const sourcesData = (sourcesRes.data || []).map(getAnsibleInventorySourceFromJsonApi);
 
-      try {
-        const credRes = await ansibleCredentialsApi.list(orgName!);
-        const allCreds = (credRes.data || []).map(getAnsibleCredentialFromJsonApi);
-        setCredentials(allCreds.filter(c => ['aws', 'azure', 'gcp', 'vmware'].includes(c.type)));
-      } catch (err) {
-        console.warn('Failed to load credentials:', err);
-      }
-      return null;
+      const vcsConns = vcsConnsResult;
+      const azureOIDCData = azureOIDCResult.data;
+      const hasOIDC = azureOIDCData.length > 0;
+      const oidcConfig = hasOIDC ? azureOIDCData[0] : null;
+
+      const allCreds = (credsResult.data || []).map(getAnsibleCredentialFromJsonApi);
+      const filteredCreds = allCreds.filter(c => ['aws', 'azure', 'gcp', 'vmware'].includes(c.type));
+
+      return {
+        inventory: inv,
+        vcsConnections: vcsConns,
+        hosts: hostsData,
+        groups: groupsData,
+        sources: sourcesData,
+        credentials: filteredCreds,
+        hasAzureOIDC: hasOIDC,
+        azureOIDCConfig: oidcConfig,
+      };
     },
     enabled: !!inventoryId && !!orgName,
   });
+
+  // Derive server data from query result
+  const inventory = queryData?.inventory ?? null;
+  const vcsConnections = queryData?.vcsConnections ?? [];
+  const hosts = queryData?.hosts ?? [];
+  const groups = queryData?.groups ?? [];
+  const sources = queryData?.sources ?? [];
+  const credentials = queryData?.credentials ?? [];
+  const hasAzureOIDC = queryData?.hasAzureOIDC ?? false;
+  const azureOIDCConfig = queryData?.azureOIDCConfig ?? null;
+
+  // Initialize form state and active tab when query data first loads
+  useEffect(() => {
+    if (inventory && !activeTabInitialized) {
+      setEditForm({ name: inventory.name, description: inventory.description || '' });
+      setInlineDescription(inventory.description || '');
+      if (inventory.type === 'dynamic') {
+        setActiveTab('sources');
+      }
+      if (hasAzureOIDC) {
+        setAzureAuthMethod('oidc');
+      }
+      setActiveTabInitialized(true);
+    }
+  }, [inventory, hasAzureOIDC, activeTabInitialized]);
 
   // Auto-open the add source dialog if setup=true (coming from create dynamic inventory)
   useEffect(() => {
@@ -277,11 +305,11 @@ export default function InventoryDetail() {
 
     setSaving(true);
     try {
-      const res = await ansibleInventoriesApi.update(inventory.id, {
+      await ansibleInventoriesApi.update(inventory.id, {
         name: editForm.name,
         description: editForm.description || undefined,
       });
-      setInventory(getAnsibleInventoryFromJsonApi(res.data));
+      await refetch();
       setEditDialogOpen(false);
       toast.success('Inventory updated successfully');
     } catch (err: unknown) {
@@ -298,11 +326,11 @@ export default function InventoryDetail() {
 
     setSavingDescription(true);
     try {
-      const res = await ansibleInventoriesApi.update(inventory.id, {
+      await ansibleInventoriesApi.update(inventory.id, {
         name: inventory.name,
         description: inlineDescription.trim() || undefined,
       });
-      setInventory(getAnsibleInventoryFromJsonApi(res.data));
+      await refetch();
       setIsEditingDescription(false);
       toast.success('Description updated successfully');
     } catch (err: unknown) {
@@ -352,14 +380,13 @@ export default function InventoryDetail() {
 
     setAddingHost(true);
     try {
-      const res = await ansibleHostsApi.create(inventoryId, {
+      await ansibleHostsApi.create(inventoryId, {
         name: effectiveName,
         description: hostForm.description || undefined,
         hostname: hostForm.hostname || undefined,
         port: hostForm.port || 22,
       });
-      const newHost = getAnsibleHostFromJsonApi(res.data);
-      setHosts([...hosts, newHost]);
+      await refetch();
       setAddHostDialogOpen(false);
       setHostForm({ name: '', description: '', hostname: '', port: 22 });
       toast.success('Host added successfully');
@@ -375,7 +402,7 @@ export default function InventoryDetail() {
   const handleDeleteHost = async (hostId: string) => {
     try {
       await ansibleHostsApi.delete(hostId);
-      setHosts(hosts.filter((h: AnsibleInventoryHost) => h.id !== hostId));
+      await refetch();
       toast.success('Host deleted');
     } catch (err: unknown) {
       console.error('Failed to delete host:', err);
@@ -400,15 +427,14 @@ export default function InventoryDetail() {
 
     setEditingHost(true);
     try {
-      const res = await ansibleHostsApi.update(hostToEdit.id, {
+      await ansibleHostsApi.update(hostToEdit.id, {
         name: editHostForm.name,
         description: editHostForm.description || undefined,
         hostname: editHostForm.hostname || undefined,
         port: editHostForm.port,
         enabled: editHostForm.enabled,
       });
-      const updatedHost = getAnsibleHostFromJsonApi(res.data);
-      setHosts(hosts.map((h: AnsibleInventoryHost) => (h.id === hostToEdit.id ? updatedHost : h)));
+      await refetch();
       setEditHostDialogOpen(false);
       setHostToEdit(null);
       toast.success('Host updated successfully');
@@ -424,12 +450,11 @@ export default function InventoryDetail() {
     try {
       // Toggle the enabled state: if enabled (or undefined which means enabled), disable it; otherwise enable it
       const newEnabledState = host.enabled !== false ? false : true;
-      const res = await ansibleHostsApi.update(host.id, {
+      await ansibleHostsApi.update(host.id, {
         enabled: newEnabledState,
       });
-      const updatedHost = getAnsibleHostFromJsonApi(res.data);
-      setHosts(hosts.map((h: AnsibleInventoryHost) => (h.id === host.id ? updatedHost : h)));
-      toast.success(`Host ${updatedHost.enabled ? 'enabled' : 'disabled'}`);
+      await refetch();
+      toast.success(`Host ${newEnabledState ? 'enabled' : 'disabled'}`);
     } catch (err: unknown) {
       console.error('Failed to toggle host enabled state:', err);
       toast.error(err instanceof Error ? err.message : 'Failed to update host');
@@ -444,12 +469,11 @@ export default function InventoryDetail() {
 
     setAddingGroup(true);
     try {
-      const res = await ansibleGroupsApi.create(inventoryId, {
+      await ansibleGroupsApi.create(inventoryId, {
         name: groupForm.name,
         description: groupForm.description || undefined,
       });
-      const newGroup = getAnsibleGroupFromJsonApi(res.data);
-      setGroups([...groups, newGroup]);
+      await refetch();
       setAddGroupDialogOpen(false);
       setGroupForm({ name: '', description: '' });
       toast.success('Group added successfully');
@@ -465,7 +489,7 @@ export default function InventoryDetail() {
   const handleDeleteGroup = async (groupId: string) => {
     try {
       await ansibleGroupsApi.delete(groupId);
-      setGroups(groups.filter((g: AnsibleInventoryGroup) => g.id !== groupId));
+      await refetch();
       toast.success('Group deleted');
     } catch (err: unknown) {
       console.error('Failed to delete group:', err);
@@ -482,9 +506,8 @@ export default function InventoryDetail() {
 
     setAddingSource(true);
     try {
-      const res = await ansibleInventorySourcesApi.create(inventoryId, sourceForm);
-      const newSource = getAnsibleInventorySourceFromJsonApi(res.data);
-      setSources([...sources, newSource]);
+      await ansibleInventorySourcesApi.create(inventoryId, sourceForm);
+      await refetch();
       setAddSourceDialogOpen(false);
       setSourceForm({
         name: '',
@@ -508,12 +531,12 @@ export default function InventoryDetail() {
 
   const handleSync = async () => {
     if (!inventoryId || !inventory) return;
-    
+
     setSyncing(true);
     try {
       await ansibleInventoriesApi.sync(inventoryId);
       toast.success('Inventory sync started');
-      
+
       // Poll for updated inventory status (sync is async)
       let pollCount = 0;
       const maxPolls = 30; // 30 polls * 2 seconds = 60 seconds max
@@ -523,47 +546,28 @@ export default function InventoryDetail() {
           try {
             const refreshed = await ansibleInventoriesApi.get(inventoryId);
             const updated = getAnsibleInventoryFromJsonApi(refreshed.data);
-          setInventory(updated);
-          
-          // Also reload hosts and groups since they may have changed
-          try {
-            const [hostsRes, groupsRes] = await Promise.all([
-              ansibleHostsApi.list(inventoryId),
-              ansibleGroupsApi.list(inventoryId),
-            ]);
-            setHosts(hostsRes.data.map((h: JsonApiResource) => getAnsibleHostFromJsonApi(h)));
-            // Parse groups and extract host relationships
-            const groupsData = (groupsRes.data || []).map((groupResource: JsonApiResource) => {
-              const group = getAnsibleGroupFromJsonApi(groupResource);
-              const hostRelationships = (groupResource.relationships?.hosts as { data?: Array<{ id: string }> | { id: string } })?.data;
-              const hostIds = Array.isArray(hostRelationships) 
-                ? hostRelationships.map((h: { id: string }) => h.id)
-                : hostRelationships ? [hostRelationships.id] : [];
-              return { ...group, hostIds };
-            });
-            setGroups(groupsData);
-          } catch (err) {
-            console.warn('Failed to refresh hosts/groups after sync:', err);
-          }
-          
-          // If sync is complete (not syncing anymore), stop polling
-          if (updated.last_sync_status && updated.last_sync_status !== 'syncing') {
-            clearInterval(pollInterval);
-            setSyncing(false);
-            if (updated.last_sync_status === 'successful') {
-              const hostCount = updated.last_sync_hosts_discovered ?? 0;
-              if (hostCount > 0) {
-                toast.success(`Inventory synced successfully — ${hostCount} host${hostCount === 1 ? '' : 's'} discovered`);
+
+            // Refetch all data to keep query cache in sync
+            void refetch();
+
+            // If sync is complete (not syncing anymore), stop polling
+            if (updated.last_sync_status && updated.last_sync_status !== 'syncing') {
+              clearInterval(pollInterval);
+              setSyncing(false);
+              if (updated.last_sync_status === 'successful') {
+                const hostCount = updated.last_sync_hosts_discovered ?? 0;
+                if (hostCount > 0) {
+                  toast.success(`Inventory synced successfully — ${hostCount} host${hostCount === 1 ? '' : 's'} discovered`);
+                } else {
+                  toast.warning('Inventory synced successfully but 0 hosts were discovered. Check the inventory plugin configuration and authentication.');
+                }
+              } else if (updated.last_sync_status === 'failed') {
+                toast.error(`Inventory sync failed: ${updated.last_sync_error || 'Unknown error'}`);
               } else {
-                toast.warning('Inventory synced successfully but 0 hosts were discovered. Check the inventory plugin configuration and authentication.');
+                // Fallback for any other status
+                toast.info(`Inventory sync completed with status: ${updated.last_sync_status}`);
               }
-            } else if (updated.last_sync_status === 'failed') {
-              toast.error(`Inventory sync failed: ${updated.last_sync_error || 'Unknown error'}`);
-            } else {
-              // Fallback for any other status
-              toast.info(`Inventory sync completed with status: ${updated.last_sync_status}`);
-            }
-          } else if (pollCount >= maxPolls) {
+            } else if (pollCount >= maxPolls) {
               // Timeout - stop polling
               clearInterval(pollInterval);
               setSyncing(false);
@@ -599,32 +603,14 @@ export default function InventoryDetail() {
           try {
             const sourcesRes = await ansibleInventorySourcesApi.list(inventoryId!);
             const updatedSources = (sourcesRes.data || []).map(getAnsibleInventorySourceFromJsonApi);
-            setSources(updatedSources);
 
             const syncedSource = updatedSources.find(s => s.id === sourceId);
             if (syncedSource && syncedSource.status !== 'syncing') {
               clearInterval(pollInterval);
               setSyncingSourceId(null);
 
-              // Refresh hosts/groups
-              try {
-                const [hostsRes, groupsRes] = await Promise.all([
-                  ansibleHostsApi.list(inventoryId!),
-                  ansibleGroupsApi.list(inventoryId!),
-                ]);
-                setHosts((hostsRes.data || []).map(getAnsibleHostFromJsonApi));
-                const groupsData = (groupsRes.data || []).map((groupResource: JsonApiResource) => {
-                  const group = getAnsibleGroupFromJsonApi(groupResource);
-                  const hostRelationships = (groupResource.relationships?.hosts as { data?: Array<{ id: string }> | { id: string } })?.data;
-                  const hostIds = Array.isArray(hostRelationships) 
-                    ? hostRelationships.map((h: { id: string }) => h.id)
-                    : hostRelationships ? [hostRelationships.id] : [];
-                  return { ...group, hostIds };
-                });
-                setGroups(groupsData);
-              } catch (err) {
-                console.warn('Failed to refresh hosts/groups after source sync:', err);
-              }
+              // Refetch all data to keep query cache in sync
+              void refetch();
 
               if (syncedSource.status === 'successful') {
                 const hostCount = syncedSource.hosts_count ?? 0;
@@ -636,10 +622,15 @@ export default function InventoryDetail() {
               } else if (syncedSource.status === 'failed') {
                 toast.error(`Source sync failed: ${syncedSource.last_sync_error || 'Unknown error'}`);
               }
-            } else if (pollCount >= maxPolls) {
-              clearInterval(pollInterval);
-              setSyncingSourceId(null);
-              toast.warning('Sync is taking longer than expected');
+            } else {
+              // Still syncing - refetch to update UI with intermediate state
+              void refetch();
+
+              if (pollCount >= maxPolls) {
+                clearInterval(pollInterval);
+                setSyncingSourceId(null);
+                toast.warning('Sync is taking longer than expected');
+              }
             }
           } catch (err) {
             console.warn('Failed to poll source sync status:', err);
@@ -658,7 +649,7 @@ export default function InventoryDetail() {
   const handleDeleteSource = async (sourceId: string) => {
     try {
       await ansibleInventorySourcesApi.delete(sourceId);
-      setSources(sources.filter((s: AnsibleInventorySource) => s.id !== sourceId));
+      await refetch();
       toast.success('Inventory source deleted');
     } catch (err: unknown) {
       console.error('Failed to delete inventory source:', err);
@@ -709,9 +700,8 @@ export default function InventoryDetail() {
           ? ''  // Empty string signals backend to clear credential
           : editSourceForm.credential_id || undefined,
       };
-      const res = await ansibleInventorySourcesApi.update(sourceToEdit.id, updateData);
-      const updated = getAnsibleInventorySourceFromJsonApi(res.data);
-      setSources(sources.map(s => s.id === sourceToEdit.id ? updated : s));
+      await ansibleInventorySourcesApi.update(sourceToEdit.id, updateData);
+      await refetch();
       setEditSourceDialogOpen(false);
       setSourceToEdit(null);
       toast.success('Inventory source updated');
@@ -933,7 +923,12 @@ export default function InventoryDetail() {
               Sync from VCS
             </Button>
           )}
-          <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+          <Dialog open={editDialogOpen} onOpenChange={(open) => {
+              if (open && inventory) {
+                setEditForm({ name: inventory.name, description: inventory.description || '' });
+              }
+              setEditDialogOpen(open);
+            }}>
             <DialogTrigger asChild>
               <Button variant="outline">
                 <Edit className="h-4 w-4 mr-2" />
