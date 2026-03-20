@@ -1,6 +1,6 @@
 // Copyright (c) 2025 VH & Co BV. Licensed under the Business Source License 1.1. See LICENSE for details.
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link, useParams } from 'react-router-dom';
 import { FileText, ArrowLeft, Save, Trash2, Loader2, Building2, FolderKanban, Info } from 'lucide-react';
@@ -67,44 +67,59 @@ export default function AnsibleConfiguration() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deleteScope, setDeleteScope] = useState<'org' | 'project' | null>(null);
 
-  // Organization config
-  const [orgConfig, setOrgConfig] = useState<AnsibleConfig | null>(null);
+  // Organization config - form editing state
   const [orgContent, setOrgContent] = useState('');
   const [orgDirty, setOrgDirty] = useState(false);
+  const lastSyncedOrgDataRef = useRef<string | undefined>(undefined);
 
-  // Project configs
+  // Project configs - form editing state
   const [selectedProjectId, setSelectedProjectId] = useState<string>('');
-  const [projectConfig, setProjectConfig] = useState<AnsibleConfig | null>(null);
   const [projectContent, setProjectContent] = useState('');
   const [projectDirty, setProjectDirty] = useState(false);
-  const [projectLoading, setProjectLoading] = useState(false);
+  const lastSyncedProjectDataRef = useRef<string | undefined>(undefined);
 
-  const { isLoading: loading, refetch: refetchOrgConfig } = useQuery({
+  const parseOrgConfig = (response: { data: { id: string; type: string; attributes: { content: string; 'organization-id'?: string; 'created-at': string; 'updated-at': string } } }): AnsibleConfig => ({
+    id: response.data.id,
+    organization_id: response.data.attributes['organization-id'],
+    content: response.data.attributes.content,
+    created_at: response.data.attributes['created-at'],
+    updated_at: response.data.attributes['updated-at'],
+  });
+
+  const parseProjectConfig = (response: { data: { id: string; type: string; attributes: { content: string; 'project-id'?: string; 'created-at': string; 'updated-at': string } } }): AnsibleConfig => ({
+    id: response.data.id,
+    project_id: response.data.attributes['project-id'],
+    content: response.data.attributes.content,
+    created_at: response.data.attributes['created-at'],
+    updated_at: response.data.attributes['updated-at'],
+  });
+
+  const { data: orgConfig = null, isLoading: loading, refetch: refetchOrgConfig } = useQuery({
     queryKey: ['ansibleOrgConfig', orgName],
-    queryFn: async () => {
+    queryFn: async (): Promise<AnsibleConfig | null> => {
       try {
         const response = await ansibleConfigApi.getByOrganization(orgName!);
         if (response.data) {
-          setOrgConfig({
-            id: response.data.id,
-            organization_id: response.data.attributes['organization-id'],
-            content: response.data.attributes.content,
-            created_at: response.data.attributes['created-at'],
-            updated_at: response.data.attributes['updated-at'],
-          });
-          setOrgContent(response.data.attributes.content);
+          return parseOrgConfig(response);
         }
+        return null;
       } catch (err) {
         if ((err as { status?: number }).status !== 404) {
           console.error('Failed to load org ansible config:', err);
         }
-        setOrgConfig(null);
-        setOrgContent('');
+        return null;
       }
-      return null;
     },
     enabled: !!orgName,
   });
+
+  // Sync orgContent from server data when it changes (adjusting state during render)
+  const orgDataKey = orgConfig ? `${orgConfig.id}:${orgConfig.updated_at}` : 'none';
+  if (orgDataKey !== lastSyncedOrgDataRef.current) {
+    lastSyncedOrgDataRef.current = orgDataKey;
+    setOrgContent(orgConfig?.content ?? '');
+    setOrgDirty(false);
+  }
 
   const { data: projects = [] } = useQuery({
     queryKey: ['ansibleConfigProjects', orgName],
@@ -115,36 +130,32 @@ export default function AnsibleConfiguration() {
     enabled: !!orgName,
   });
 
-  useQuery({
+  const { data: projectConfig = null, isLoading: projectLoading, refetch: refetchProjectConfig } = useQuery({
     queryKey: ['ansibleProjectConfig', selectedProjectId],
-    queryFn: async () => {
-      setProjectDirty(false);
-      setProjectLoading(true);
+    queryFn: async (): Promise<AnsibleConfig | null> => {
       try {
         const response = await ansibleConfigApi.getByProject(selectedProjectId);
         if (response.data) {
-          setProjectConfig({
-            id: response.data.id,
-            project_id: response.data.attributes['project-id'],
-            content: response.data.attributes.content,
-            created_at: response.data.attributes['created-at'],
-            updated_at: response.data.attributes['updated-at'],
-          });
-          setProjectContent(response.data.attributes.content);
+          return parseProjectConfig(response);
         }
+        return null;
       } catch (err) {
         if ((err as { status?: number }).status !== 404) {
           console.error('Failed to load project ansible config:', err);
         }
-        setProjectConfig(null);
-        setProjectContent('');
-      } finally {
-        setProjectLoading(false);
+        return null;
       }
-      return null;
     },
     enabled: !!selectedProjectId,
   });
+
+  // Sync projectContent from server data when it changes (adjusting state during render)
+  const projectDataKey = projectConfig ? `${projectConfig.id}:${projectConfig.updated_at}` : `none:${selectedProjectId}`;
+  if (projectDataKey !== lastSyncedProjectDataRef.current) {
+    lastSyncedProjectDataRef.current = projectDataKey;
+    setProjectContent(projectConfig?.content ?? '');
+    setProjectDirty(false);
+  }
 
   const handleSaveOrg = async () => {
     if (!orgName) return;
@@ -167,8 +178,7 @@ export default function AnsibleConfiguration() {
     setSaving(true);
     try {
       await ansibleConfigApi.upsertByProject(selectedProjectId, projectContent);
-      // Config will refresh from query cache
-      setProjectDirty(false);
+      await refetchProjectConfig();
       toast.success('Project Ansible configuration saved');
     } catch (err) {
       console.error('Failed to save project ansible config:', err);
@@ -184,15 +194,11 @@ export default function AnsibleConfiguration() {
     try {
       if (deleteScope === 'org' && orgName) {
         await ansibleConfigApi.deleteByOrganization(orgName);
-        setOrgConfig(null);
-        setOrgContent('');
-        setOrgDirty(false);
+        await refetchOrgConfig();
         toast.success('Organization Ansible configuration deleted');
       } else if (deleteScope === 'project' && selectedProjectId) {
         await ansibleConfigApi.deleteByProject(selectedProjectId);
-        setProjectConfig(null);
-        setProjectContent('');
-        setProjectDirty(false);
+        await refetchProjectConfig();
         toast.success('Project Ansible configuration deleted');
       }
     } catch (err) {

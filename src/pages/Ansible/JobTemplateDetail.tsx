@@ -1,7 +1,7 @@
 // Copyright (c) 2025 VH & Co BV. Licensed under the Business Source License 1.1. See LICENSE for details.
 
 // eslint-disable-next-line no-restricted-imports -- legitimate dependency-based effect
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useParams, useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { 
@@ -167,39 +167,46 @@ function hasWarnings(job: AnsibleJob): boolean {
   return job.has_warnings || false;
 }
 
+// Type for template variables returned by the API
+interface TemplateVariable {
+  id: string;
+  job_template_id: string;
+  key: string;
+  value: string;
+  description?: string;
+  category?: string;
+  hcl?: boolean;
+  encrypted: boolean;
+  sensitive: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+// Shape of all server data fetched for this page
+interface TemplateDetailData {
+  template: AnsibleJobTemplate;
+  playbook: AnsiblePlaybook | null;
+  inventory: AnsibleInventory | null;
+  recentJobs: AnsibleJob[];
+  credentials: AnsibleCredential[];
+  inventories: AnsibleInventory[];
+  variableSets: VariableSet[];
+  templateVariables: TemplateVariable[];
+}
+
 export default function JobTemplateDetail() {
   const { orgName, templateId } = useParams<{ orgName: string; templateId: string }>();
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
 
-  const [template, setTemplate] = useState<AnsibleJobTemplate | null>(null);
-  const [playbook, setPlaybook] = useState<AnsiblePlaybook | null>(null);
-  const [inventory, setInventory] = useState<AnsibleInventory | null>(null);
-  const [recentJobs, setRecentJobs] = useState<AnsibleJob[]>([]);
-  const [credentials, setCredentials] = useState<AnsibleCredential[]>([]);
-  const [inventories, setInventories] = useState<AnsibleInventory[]>([]);
-  const [variableSets, setVariableSets] = useState<VariableSet[]>([]);
-  const [templateVariables, setTemplateVariables] = useState<Array<{
-    id: string;
-    job_template_id: string;
-    key: string;
-    value: string;
-    description?: string;
-    category?: string;
-    hcl?: boolean;
-    encrypted: boolean;
-    sensitive: boolean;
-    created_at: string;
-    updated_at: string;
-  }>>([]);
   const [activeTab, setActiveTab] = useState('overview');
   const [platformVariablesSectionOpen, setPlatformVariablesSectionOpen] = useState(false);
-  
+
   // Edit state
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [editForm, setEditForm] = useState({ 
-    name: '', 
+  const [editForm, setEditForm] = useState({
+    name: '',
     description: '',
     limit: '',
     tags: '',
@@ -211,11 +218,11 @@ export default function JobTemplateDetail() {
     agent_pool_id: '',
   });
   const [agentPools, setAgentPools] = useState<AgentPool[]>([]);
-  
+
   // Delete state
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
-  
+
   // Launch state
   const [launchDialogOpen, setLaunchDialogOpen] = useState(false);
   const [launching, setLaunching] = useState(false);
@@ -228,9 +235,9 @@ export default function JobTemplateDetail() {
 
   // Template Variable state
   const [createVariableDialogOpen, setCreateVariableDialogOpen] = useState(false);
-  const [editingTemplateVariable, setEditingTemplateVariable] = useState<typeof templateVariables[0] | null>(null);
+  const [editingTemplateVariable, setEditingTemplateVariable] = useState<TemplateVariable | null>(null);
   const [deleteVariableDialogOpen, setDeleteVariableDialogOpen] = useState(false);
-  const [variableToDelete, setVariableToDelete] = useState<typeof templateVariables[0] | null>(null);
+  const [variableToDelete, setVariableToDelete] = useState<TemplateVariable | null>(null);
   const [deletingVariable, setDeletingVariable] = useState(false);
   const [variableForm, setVariableForm] = useState({
     key: '',
@@ -242,44 +249,28 @@ export default function JobTemplateDetail() {
     encrypted: false,
   });
 
-  // Fetch template details
-  const { isLoading: loading } = useQuery({
+  // Fetch template details - return actual data instead of setting state
+  const { data: queryData, isLoading: loading, refetch } = useQuery({
     queryKey: ['jobTemplateDetail', templateId, orgName],
-    queryFn: async () => {
+    queryFn: async (): Promise<TemplateDetailData> => {
       const tmplRes = await ansibleJobTemplatesApi.get(templateId!);
       const tmpl = getAnsibleJobTemplateFromJsonApi(tmplRes.data);
-      setTemplate(tmpl);
-      setEditForm({ 
-        name: tmpl.name, 
-        description: tmpl.description || '',
-        limit: tmpl.limit || '',
-        tags: tmpl.tags || '',
-        skip_tags: tmpl.skip_tags || '',
-        verbosity: tmpl.verbosity,
-        forks: tmpl.forks,
-        credential_id: tmpl.credential_id || '',
-        inventory_id: tmpl.inventory_id || '',
-        agent_pool_id: tmpl.agent_pool_id || '',
-      });
-      setLaunchOverrides({
-        extra_vars: tmpl.extra_vars ? JSON.stringify(tmpl.extra_vars, null, 2) : '',
-        limit: tmpl.limit || '',
-        tags: tmpl.tags || '',
-        skip_tags: tmpl.skip_tags || '',
-      });
 
+      let fetchedPlaybook: AnsiblePlaybook | null = null;
       if (tmpl.playbook_id) {
         try {
           const pbRes = await ansiblePlaybooksApi.get(tmpl.playbook_id);
-          setPlaybook(getAnsiblePlaybookFromJsonApi(pbRes.data));
+          fetchedPlaybook = getAnsiblePlaybookFromJsonApi(pbRes.data);
         } catch (err) {
           console.warn('Could not load playbook:', err);
         }
       }
+
+      let fetchedInventory: AnsibleInventory | null = null;
       if (tmpl.inventory_id) {
         try {
           const invRes = await ansibleInventoriesApi.get(tmpl.inventory_id);
-          setInventory(getAnsibleInventoryFromJsonApi(invRes.data));
+          fetchedInventory = getAnsibleInventoryFromJsonApi(invRes.data);
         } catch (err) {
           console.warn('Could not load inventory:', err);
         }
@@ -289,19 +280,21 @@ export default function JobTemplateDetail() {
       const relatedJobs = (jobsRes.data || []).map(getAnsibleJobFromJsonApi)
         .filter(j => j.job_template_id === templateId)
         .slice(0, 10);
-      setRecentJobs(relatedJobs);
 
+      let fetchedCredentials: AnsibleCredential[] = [];
+      let fetchedInventories: AnsibleInventory[] = [];
       try {
         const [credRes, invListRes] = await Promise.all([
           ansibleCredentialsApi.list(orgName!),
           ansibleInventoriesApi.list(orgName!),
         ]);
-        setCredentials((credRes.data || []).map(getAnsibleCredentialFromJsonApi));
-        setInventories((invListRes.data || []).map(getAnsibleInventoryFromJsonApi));
+        fetchedCredentials = (credRes.data || []).map(getAnsibleCredentialFromJsonApi);
+        fetchedInventories = (invListRes.data || []).map(getAnsibleInventoryFromJsonApi);
       } catch (err) {
         console.warn('Failed to load credentials/inventories:', err);
       }
 
+      let fetchedVariableSets: VariableSet[] = [];
       try {
         const assignedSets = await variableSetsApi.listByJobTemplate(templateId!);
         const setsWithDetails = await Promise.all(
@@ -315,23 +308,42 @@ export default function JobTemplateDetail() {
             }
           })
         );
-        setVariableSets(setsWithDetails.filter((vs): vs is VariableSet => vs !== null));
+        fetchedVariableSets = setsWithDetails.filter((vs): vs is VariableSet => vs !== null);
       } catch (err) {
         console.warn('Failed to load variable sets for job template:', err);
-        setVariableSets([]);
       }
 
+      let fetchedTemplateVariables: TemplateVariable[] = [];
       try {
         const vars = await ansibleJobTemplatesApi.listVariables(templateId!);
-        setTemplateVariables(Array.isArray(vars) ? vars : []);
+        fetchedTemplateVariables = Array.isArray(vars) ? vars as TemplateVariable[] : [];
       } catch (err) {
         console.warn('Failed to load template variables:', err);
-        setTemplateVariables([]);
       }
-      return null;
+
+      return {
+        template: tmpl,
+        playbook: fetchedPlaybook,
+        inventory: fetchedInventory,
+        recentJobs: relatedJobs,
+        credentials: fetchedCredentials,
+        inventories: fetchedInventories,
+        variableSets: fetchedVariableSets,
+        templateVariables: fetchedTemplateVariables,
+      };
     },
     enabled: !!templateId && !!orgName,
   });
+
+  // Derive component variables from query data
+  const template = queryData?.template ?? null;
+  const playbook = queryData?.playbook ?? null;
+  const inventory = queryData?.inventory ?? null;
+  const recentJobs = useMemo(() => queryData?.recentJobs ?? [], [queryData?.recentJobs]);
+  const credentials = useMemo(() => queryData?.credentials ?? [], [queryData?.credentials]);
+  const inventories = useMemo(() => queryData?.inventories ?? [], [queryData?.inventories]);
+  const variableSets = useMemo(() => queryData?.variableSets ?? [], [queryData?.variableSets]);
+  const templateVariables = useMemo(() => queryData?.templateVariables ?? [], [queryData?.templateVariables]);
 
   // Auto-open edit dialog if ?edit=true in URL
   useEffect(() => {
@@ -365,6 +377,18 @@ export default function JobTemplateDetail() {
       }
     }
   }, [editDialogOpen, template, orgName]);
+
+  // Initialize launch overrides when dialog opens
+  useEffect(() => {
+    if (launchDialogOpen && template) {
+      setLaunchOverrides({
+        extra_vars: template.extra_vars ? JSON.stringify(template.extra_vars, null, 2) : '',
+        limit: template.limit || '',
+        tags: template.tags || '',
+        skip_tags: template.skip_tags || '',
+      });
+    }
+  }, [launchDialogOpen, template]);
 
   const handleUpdate = async () => {
     if (!template || !editForm.name.trim()) {
@@ -403,8 +427,8 @@ export default function JobTemplateDetail() {
         });
       }
       
-      const res = await ansibleJobTemplatesApi.update(template.id, updateData);
-      setTemplate(getAnsibleJobTemplateFromJsonApi(res.data));
+      await ansibleJobTemplatesApi.update(template.id, updateData);
+      await refetch();
       setEditDialogOpen(false);
       toast.success('Job template updated successfully');
     } catch (err: unknown) {
@@ -1163,9 +1187,8 @@ export default function JobTemplateDetail() {
                 setCreateVariableDialogOpen(false);
                 setEditingTemplateVariable(null);
                 setVariableForm({ key: '', value: '', description: '', category: 'env', hcl: false, sensitive: false, encrypted: false });
-                // Reload template variables
-                const vars = await ansibleJobTemplatesApi.listVariables(template.id);
-                setTemplateVariables(Array.isArray(vars) ? vars : []);
+                // Reload all data including template variables
+                await refetch();
               } catch (err) {
                 console.error('Failed to save template variable:', err);
                 toast.error('Failed to save template variable');
@@ -1215,9 +1238,8 @@ export default function JobTemplateDetail() {
                     toast.success('Template variable deleted');
                     setDeleteVariableDialogOpen(false);
                     setVariableToDelete(null);
-                    // Reload template variables
-                    const vars = await ansibleJobTemplatesApi.listVariables(template.id);
-                    setTemplateVariables(Array.isArray(vars) ? vars : []);
+                    // Reload all data including template variables
+                    await refetch();
                   } catch (err) {
                     console.error('Failed to delete template variable:', err);
                     toast.error('Failed to delete template variable');
