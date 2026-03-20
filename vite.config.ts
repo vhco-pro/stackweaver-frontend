@@ -28,9 +28,10 @@ export default defineConfig({
     // Allow the public hostname so Vite accepts requests via Cloudflare Tunnel / reverse proxy.
     // VITE_ALLOWED_HOST is set in docker-compose.tunnel.yml (e.g. "sw.vhco.pro").
     // Localhost is always allowed by Vite by default.
-    allowedHosts: process.env.VITE_ALLOWED_HOST
-      ? [process.env.VITE_ALLOWED_HOST]
-      : [],
+    allowedHosts: [
+      ...(process.env.VITE_ALLOWED_HOST ? [process.env.VITE_ALLOWED_HOST] : []),
+      'sw.vhco.pro',
+    ],
     watch: {
       usePolling: true, // Needed for Docker file watching
     },

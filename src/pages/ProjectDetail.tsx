@@ -1,20 +1,16 @@
 // Copyright (c) 2025 VH & Co BV. Licensed under the Business Source License 1.1. See LICENSE for details.
 
+// eslint-disable-next-line no-restricted-imports -- legitimate dependency-based effect
 import { useEffect, useState, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useParams, Link, useSearchParams } from 'react-router-dom';
-import { projectsApi, workspacesApi, vcsConnectionsApi, type Project, type Workspace } from '@/api/client';
+import { projectsApi, workspacesApi, vcsConnectionsApi } from '@/api/client';
 import { 
   ansibleInventoriesApi, 
   ansiblePlaybooksApi, 
   ansibleJobTemplatesApi, 
   ansibleWorkflowsApi, 
   ansibleCredentialsApi,
-  type AnsibleInventory,
-  type AnsiblePlaybook,
-  type AnsibleJobTemplate,
-  type AnsibleWorkflow,
-  type AnsibleCredential,
 } from '@/api/ansible';
 import {
   getAnsibleInventoryFromJsonApi,

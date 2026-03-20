@@ -18,7 +18,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { runnersApi, type Runner } from '@/api/client';
+import { runnersApi } from '@/api/client';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 

@@ -7,8 +7,7 @@ import { useOrganization } from '@/contexts/OrganizationContext';
 import { 
   ansibleSchedulesApi, 
   ansibleJobTemplatesApi,
-  type AnsibleSchedule, 
-  type AnsibleJobTemplate,
+  type AnsibleSchedule,
   type ScheduleType,
   type ScheduleStatus,
   type CreateScheduleInput,
@@ -198,7 +197,7 @@ export default function Schedules() {
     setCreating(true);
     try {
       const res = await ansibleSchedulesApi.create(selectedOrg, scheduleForm);
-      const newSchedule = getAnsibleScheduleFromJsonApi(res.data);
+      getAnsibleScheduleFromJsonApi(res.data);
       void refetchSchedules();
       setCreateDialogOpen(false);
       setScheduleForm({

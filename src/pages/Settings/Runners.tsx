@@ -11,7 +11,6 @@ import {
   runnersApi,
   agentPoolsApi,
   type Runner,
-  type AgentPool,
 } from '@/api/client';
 import { toast } from 'sonner';
 import {

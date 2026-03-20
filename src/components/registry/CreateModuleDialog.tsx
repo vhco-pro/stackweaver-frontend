@@ -1,5 +1,6 @@
 // Copyright (c) 2025 VH & Co BV. Licensed under the Business Source License 1.1. See LICENSE for details.
 
+// eslint-disable-next-line no-restricted-imports -- legitimate dependency-based effect
 import { useState, useEffect, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
@@ -24,7 +25,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from 'sonner';
 import { Loader2, GitBranch, Plus, CheckCircle2 } from 'lucide-react';
 import { getVcsProviderIcon, getVcsProviderLabel } from '@/lib/vcs';
-import { registryApi, vcsConnectionsApi, type VCSConnection, type Repository } from '@/api/client';
+import { registryApi, vcsConnectionsApi } from '@/api/client';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 

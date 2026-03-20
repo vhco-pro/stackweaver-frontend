@@ -3,7 +3,7 @@
 import { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { stateVersionsApi, type StateVersion } from '@/api/client';
+import { stateVersionsApi } from '@/api/client';
 import { JsonSyntaxHighlighter } from '@/components/code/JsonSyntaxHighlighter';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';

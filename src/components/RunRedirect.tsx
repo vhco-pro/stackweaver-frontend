@@ -1,6 +1,7 @@
 // Copyright (c) 2025 VH & Co BV. Licensed under the Business Source License 1.1. See LICENSE for details.
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
+import { useMountEffect } from '@/hooks/useMountEffect';
 import { useParams, useNavigate } from 'react-router-dom';
 import { runsApi, workspacesApi, organizationsApi } from '@/api/client';
 import { getRunWorkspaceId } from '@/utils/jsonapi';
@@ -15,7 +16,7 @@ export default function RunRedirect() {
   const navigate = useNavigate();
   const [error, setError] = useState(false);
 
-  useEffect(() => {
+  useMountEffect(() => {
     if (!id) {
       void Promise.resolve(navigate('/workspaces'));
       return;
@@ -69,7 +70,7 @@ export default function RunRedirect() {
         // Redirect to workspaces after a delay
         setTimeout(() => { void Promise.resolve(navigate('/workspaces')); }, 2000);
       });
-  }, [id, navigate]);
+  });
 
   if (error) {
     return (

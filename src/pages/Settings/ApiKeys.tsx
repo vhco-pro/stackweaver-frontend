@@ -3,14 +3,14 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link, useParams } from 'react-router-dom';
-import { Key, ArrowLeft, Plus, Copy, Trash2, Calendar, Loader2, CheckCircle2, X, Building2, FolderKanban, User, Server } from 'lucide-react';
+import { Key, ArrowLeft, Plus, Copy, Trash2, Calendar, Loader2, CheckCircle2, Building2, FolderKanban, User, Server } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
 import { cn } from '@/lib/utils';
-import { settingsApi, organizationsApi, projectsApi, type ApiKey, type CreateApiKeyResponse, type Organization, type Project } from '@/api/client';
+import { settingsApi, organizationsApi, projectsApi, type CreateApiKeyResponse } from '@/api/client';
 import { toast } from 'sonner';
 
 type ScopeType = 'all' | 'org' | 'project' | 'user' | 'runner';

@@ -16,7 +16,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
-import { vcsConnectionsApi, type VCSConnection } from '@/api/client';
+import { vcsConnectionsApi } from '@/api/client';
 import { toast } from 'sonner';
 import { Loader2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';

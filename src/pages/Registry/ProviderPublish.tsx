@@ -6,7 +6,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { Upload, ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { registryApi, type Provider, type ProviderVersion } from '@/api/client';
+import { registryApi, type ProviderVersion } from '@/api/client';
 import { toast } from 'sonner';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';

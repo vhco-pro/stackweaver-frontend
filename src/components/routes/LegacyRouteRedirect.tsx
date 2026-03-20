@@ -1,6 +1,6 @@
 // Copyright (c) 2025 VH & Co BV. Licensed under the Business Source License 1.1. See LICENSE for details.
 
-import { useEffect } from 'react';
+import { useMountEffect } from '@/hooks/useMountEffect';
 import { useParams } from 'react-router-dom';
 import { organizationsApi } from '@/api/client';
 
@@ -17,7 +17,7 @@ export function LegacyRouteRedirect({ redirectTo }: LegacyRouteRedirectProps) {
   const params = useParams();
   const orgName = params.organizationName || params.name;
 
-  useEffect(() => {
+  useMountEffect(() => {
     // If we already have an org name, redirect immediately
     if (orgName) {
       window.location.replace(redirectTo(orgName));
@@ -37,7 +37,7 @@ export function LegacyRouteRedirect({ redirectTo }: LegacyRouteRedirectProps) {
       .catch(() => {
         window.location.replace('/organizations');
       });
-  }, [orgName, redirectTo]);
+  });
 
   // Return null while redirecting
   return null;

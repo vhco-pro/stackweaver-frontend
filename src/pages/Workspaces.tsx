@@ -1,5 +1,6 @@
 // Copyright (c) 2025 VH & Co BV. Licensed under the Business Source License 1.1. See LICENSE for details.
 
+// eslint-disable-next-line no-restricted-imports -- legitimate dependency-based effect
 import { useEffect, useState, useRef } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link, useParams, useNavigate } from 'react-router-dom';
@@ -55,6 +56,7 @@ import { CreateWorkspaceDialog } from '@/components/workspace/CreateWorkspaceDia
 import { toast } from 'sonner';
 
 type StatusFilter = 'all' | 'needs_attention' | 'errored' | 'running' | 'on_hold' | 'success';
+const emptyOrganizations: Organization[] = [];
 
 interface WorkspaceWithStats extends Workspace {
   project?: Project;
@@ -136,7 +138,7 @@ export default function Workspaces() {
       return res.data || [];
     },
   });
-  const organizations = organizationsData ?? [];
+  const organizations = organizationsData ?? emptyOrganizations;
 
   // Redirect to first org if no org in URL
   useEffect(() => {

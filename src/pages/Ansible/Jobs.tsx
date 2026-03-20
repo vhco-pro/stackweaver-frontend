@@ -135,7 +135,7 @@ export default function Jobs() {
     setRelaunching(job.id);
     try {
       const response = await ansibleJobsApi.relaunch(job.id);
-      const newJob = getAnsibleJobFromJsonApi(response.data);
+      getAnsibleJobFromJsonApi(response.data);
       void refetchJobs();
       toast.success('Job relaunched successfully');
     } catch (err) {

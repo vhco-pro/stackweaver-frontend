@@ -1,13 +1,13 @@
 // Copyright (c) 2025 VH & Co BV. Licensed under the Business Source License 1.1. See LICENSE for details.
 
-import { useEffect } from 'react';
+import { useMountEffect } from '@/hooks/useMountEffect';
 import { useNavigate } from 'react-router-dom';
 import { organizationsApi } from '@/api/client';
 
 export default function WorkspacesRedirect() {
   const navigate = useNavigate();
 
-  useEffect(() => {
+  useMountEffect(() => {
     void organizationsApi.list()
       .then((res) => {
         const orgs = res.data || [];
@@ -23,7 +23,7 @@ export default function WorkspacesRedirect() {
         console.error('Failed to load organizations:', err);
         void Promise.resolve(navigate('/organizations', { replace: true }));
       });
-  }, [navigate]);
+  });
 
   return null; // Component doesn't render anything
 }

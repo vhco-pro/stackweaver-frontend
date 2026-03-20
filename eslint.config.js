@@ -88,10 +88,18 @@ export default [
       'no-undef': 'off',
     },
   },
-  // Allow direct useEffect in hooks, contexts, and animation primitives — these are infrastructure
-  // that wrap useEffect into named abstractions consumed by the rest of the codebase
+  // Allow direct useEffect in hooks, contexts, animation primitives, shadcn/ui, and
+  // components that legitimately need useEffect for DOM manipulation (scroll, animation,
+  // terminal rendering, mermaid diagrams, etc.)
   {
-    files: ['**/hooks/**', '**/contexts/**', '**/animate-ui/**'],
+    files: [
+      '**/hooks/**', '**/contexts/**', '**/animate-ui/**', '**/components/ui/**',
+      '**/lib/get-strict-context.tsx', '**/types/**',
+      '**/components/runs/**',          // Terminal output, collapsible sections, phase animations
+      '**/components/docs/**',          // Mermaid diagrams, scroll spy, code explorer async loading
+      '**/components/layout/**',        // Responsive sidebar
+      '**/components/notifications/**', // Auto-dismiss timer
+    ],
     rules: {
       'no-restricted-imports': 'off',
     },

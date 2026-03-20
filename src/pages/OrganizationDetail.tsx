@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { organizationsApi, projectsApi, type Organization, type Project } from '@/api/client';
+import { organizationsApi, projectsApi } from '@/api/client';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,

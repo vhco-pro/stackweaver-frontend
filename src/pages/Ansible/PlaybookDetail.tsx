@@ -1,5 +1,6 @@
 // Copyright (c) 2025 VH & Co BV. Licensed under the Business Source License 1.1. See LICENSE for details.
 
+// eslint-disable-next-line no-restricted-imports -- legitimate dependency-based effect
 import { useEffect, useState, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useMountEffect } from '@/hooks/useMountEffect';
@@ -16,8 +17,6 @@ import {
   ansiblePlaybooksApi, 
   ansibleJobTemplatesApi,
   ansibleJobsApi,
-  type AnsiblePlaybook,
-  type AnsibleJobTemplate,
   type AnsibleJob,
 } from '@/api/ansible';
 import { vcsConnectionsApi, type VCSConnection, type Repository, type Branch } from '@/api/client';
@@ -405,7 +404,7 @@ export default function PlaybookDetail() {
 
     setSaving(true);
     try {
-      const res = await ansiblePlaybooksApi.update(playbook.id, {
+      await ansiblePlaybooksApi.update(playbook.id, {
         name: editForm.name,
         description: editForm.description || undefined,
         vcs_connection_id: editForm.vcs_connection_id || undefined,
@@ -452,8 +451,7 @@ export default function PlaybookDetail() {
     setSyncing(true);
     try {
       // Start the sync
-      const res = await ansiblePlaybooksApi.sync(playbook.id);
-      const updatedPlaybook = getAnsiblePlaybookFromJsonApi(res.data);
+      await ansiblePlaybooksApi.sync(playbook.id);
       void refetchPlaybook();
 
       // Poll the playbook until sync status changes from "syncing"
@@ -1115,7 +1113,7 @@ export default function PlaybookDetail() {
                         type="button"
                         variant="outline"
                         size="sm"
-                        onClick={() => { navigate(`/app/${selectedOrg}/settings/vcs`); }}
+                        onClick={() => { void navigate(`/app/${selectedOrg}/settings/vcs`); }}
                         className="flex-1"
                       >
                         <ExternalLink className="h-4 w-4 mr-2" />
@@ -1166,7 +1164,7 @@ export default function PlaybookDetail() {
                     type="button"
                     variant="ghost"
                     size="sm"
-                    onClick={() => { navigate(`/app/${selectedOrg}/settings/vcs`); }}
+                    onClick={() => { void navigate(`/app/${selectedOrg}/settings/vcs`); }}
                     className="w-full text-xs"
                   >
                     <Plus className="h-3 w-3 mr-2" />

@@ -1,5 +1,6 @@
 // Copyright (c) 2025 VH & Co BV. Licensed under the Business Source License 1.1. See LICENSE for details.
 
+// eslint-disable-next-line no-restricted-imports -- legitimate dependency-based effect
 import { useEffect, useState, useRef } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link, useParams, useNavigate } from 'react-router-dom';
@@ -733,7 +734,7 @@ export default function Playbooks() {
                         type="button"
                         variant="outline"
                         size="sm"
-                        onClick={() => { navigate(`/app/${selectedOrg}/settings/vcs`); }}
+                        onClick={() => { void navigate(`/app/${selectedOrg}/settings/vcs`); }}
                         className="flex-1"
                       >
                         <ExternalLink className="h-4 w-4 mr-2" />
@@ -783,7 +784,7 @@ export default function Playbooks() {
                     type="button"
                     variant="ghost"
                     size="sm"
-                    onClick={() => { navigate(`/app/${selectedOrg}/settings/vcs`); }}
+                    onClick={() => { void navigate(`/app/${selectedOrg}/settings/vcs`); }}
                     className="w-full text-xs"
                   >
                     <Plus className="h-3 w-3 mr-2" />
