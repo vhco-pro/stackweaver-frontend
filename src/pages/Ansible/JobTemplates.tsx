@@ -4,7 +4,8 @@ import { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link, useParams, useNavigate } from 'react-router-dom';
 import { useOrganization } from '@/contexts/OrganizationContext';
-import { 
+import { usePermissions } from '@/hooks/usePermissions';
+import {
   ansibleJobTemplatesApi, 
   ansiblePlaybooksApi,
   ansibleInventoriesApi,
@@ -119,6 +120,7 @@ export default function JobTemplates() {
   const navigate = useNavigate();
   const { currentOrg } = useOrganization();
   const selectedOrg = orgName || currentOrg?.name || '';
+  const { canManageJobTemplates, canExecuteJobs } = usePermissions(selectedOrg);
 
   const [templates, setTemplates] = useState<AnsibleJobTemplate[]>([]);
   const [jobs, setJobs] = useState<AnsibleJob[]>([]);
@@ -324,16 +326,18 @@ export default function JobTemplates() {
             Manage reusable Ansible job configurations for {selectedOrg}
           </p>
         </div>
-        <div className="relative inline-flex rounded-xl bg-gradient-to-r from-violet-500 via-indigo-500 to-blue-500 p-[2px]">
-          <Button
-            variant="ghost"
-            onClick={() => setCreateDialogOpen(true)}
-            className="bg-white dark:bg-slate-950/80 dark:backdrop-blur-sm text-slate-900 dark:text-white hover:bg-slate-50 dark:hover:bg-slate-950/90 border-0 whitespace-nowrap rounded-[calc(0.75rem-2px)] px-4 py-2"
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            New Job Template
-          </Button>
-        </div>
+        {canManageJobTemplates && (
+          <div className="relative inline-flex rounded-xl bg-gradient-to-r from-violet-500 via-indigo-500 to-blue-500 p-[2px]">
+            <Button
+              variant="ghost"
+              onClick={() => setCreateDialogOpen(true)}
+              className="bg-white dark:bg-slate-950/80 dark:backdrop-blur-sm text-slate-900 dark:text-white hover:bg-slate-50 dark:hover:bg-slate-950/90 border-0 whitespace-nowrap rounded-[calc(0.75rem-2px)] px-4 py-2"
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              New Job Template
+            </Button>
+          </div>
+        )}
       </div>
 
       {/* Search */}
@@ -360,7 +364,7 @@ export default function JobTemplates() {
                 ? 'No job templates match your search criteria.'
                 : 'No job templates have been created yet. Click the button above to create your first job template.'}
             </p>
-            {!searchQuery && (
+            {!searchQuery && canManageJobTemplates && (
               <Button onClick={() => setCreateDialogOpen(true)}>
                 <Plus className="h-4 w-4 mr-2" />
                 Create Job Template
@@ -394,22 +398,24 @@ export default function JobTemplates() {
                     </div>
                   </div>
                   <div className="flex items-center gap-2 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
-                    <div className="relative inline-flex rounded-xl bg-gradient-to-r from-violet-500 via-indigo-500 to-blue-500 p-[2px]">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => { void handleLaunch(template); }}
-                        disabled={launching === template.id}
-                        className="bg-white dark:bg-slate-950/80 dark:backdrop-blur-sm text-slate-900 dark:text-white hover:bg-slate-50 dark:hover:bg-slate-950/90 border-0 whitespace-nowrap rounded-[calc(0.75rem-2px)] px-3 py-1"
-                      >
-                        {launching === template.id ? (
-                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                        ) : (
-                          <Play className="h-4 w-4 mr-2" />
-                        )}
-                        Launch
-                      </Button>
-                    </div>
+                    {canExecuteJobs && (
+                      <div className="relative inline-flex rounded-xl bg-gradient-to-r from-violet-500 via-indigo-500 to-blue-500 p-[2px]">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => { void handleLaunch(template); }}
+                          disabled={launching === template.id}
+                          className="bg-white dark:bg-slate-950/80 dark:backdrop-blur-sm text-slate-900 dark:text-white hover:bg-slate-50 dark:hover:bg-slate-950/90 border-0 whitespace-nowrap rounded-[calc(0.75rem-2px)] px-3 py-1"
+                        >
+                          {launching === template.id ? (
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          ) : (
+                            <Play className="h-4 w-4 mr-2" />
+                          )}
+                          Launch
+                        </Button>
+                      </div>
+                    )}
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <Button variant="ghost" size="icon">
@@ -423,30 +429,38 @@ export default function JobTemplates() {
                             View Details
                           </Link>
                         </DropdownMenuItem>
-                        <DropdownMenuItem asChild>
-                          <Link to={`/app/${selectedOrg}/ansible/job-templates/${template.id}?edit=true`} onClick={(e) => e.stopPropagation()}>
-                            <Edit className="h-4 w-4 mr-2" />
-                            Edit
-                          </Link>
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          onClick={() => { void handleBackgroundLaunch(template); }}
-                          disabled={launching === template.id}
-                        >
-                          <PlayCircle className="h-4 w-4 mr-2" />
-                          Background Launch
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem
-                          className="text-destructive focus:text-destructive"
-                          onClick={() => {
-                            setTemplateToDelete(template);
-                            setDeleteDialogOpen(true);
-                          }}
-                        >
-                          <Trash2 className="h-4 w-4 mr-2" />
-                          Delete
-                        </DropdownMenuItem>
+                        {canManageJobTemplates && (
+                          <DropdownMenuItem asChild>
+                            <Link to={`/app/${selectedOrg}/ansible/job-templates/${template.id}?edit=true`} onClick={(e) => e.stopPropagation()}>
+                              <Edit className="h-4 w-4 mr-2" />
+                              Edit
+                            </Link>
+                          </DropdownMenuItem>
+                        )}
+                        {canExecuteJobs && (
+                          <DropdownMenuItem
+                            onClick={() => { void handleBackgroundLaunch(template); }}
+                            disabled={launching === template.id}
+                          >
+                            <PlayCircle className="h-4 w-4 mr-2" />
+                            Background Launch
+                          </DropdownMenuItem>
+                        )}
+                        {canManageJobTemplates && (
+                          <>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem
+                              className="text-destructive focus:text-destructive"
+                              onClick={() => {
+                                setTemplateToDelete(template);
+                                setDeleteDialogOpen(true);
+                              }}
+                            >
+                              <Trash2 className="h-4 w-4 mr-2" />
+                              Delete
+                            </DropdownMenuItem>
+                          </>
+                        )}
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </div>

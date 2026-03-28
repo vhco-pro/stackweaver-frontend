@@ -4,8 +4,9 @@ import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useParams } from 'react-router-dom';
 import { useOrganization } from '@/contexts/OrganizationContext';
-import { 
-  ansibleSchedulesApi, 
+import { usePermissions } from '@/hooks/usePermissions';
+import {
+  ansibleSchedulesApi,
   ansibleJobTemplatesApi,
   type AnsibleSchedule,
   type ScheduleType,
@@ -141,6 +142,7 @@ export default function Schedules() {
   const { orgName } = useParams<{ orgName: string }>();
   const { currentOrg } = useOrganization();
   const selectedOrg = orgName || currentOrg?.name || '';
+  const { canManageSchedules } = usePermissions(selectedOrg);
 
   const { data: queryData, isLoading: loading, refetch: refetchSchedules } = useQuery({
     queryKey: ['schedules', selectedOrg],
@@ -332,12 +334,14 @@ export default function Schedules() {
           </p>
         </div>
         <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
-          <DialogTrigger asChild>
-            <Button>
-              <Plus className="h-4 w-4 mr-2" />
-              New Schedule
-            </Button>
-          </DialogTrigger>
+          {canManageSchedules && (
+            <DialogTrigger asChild>
+              <Button>
+                <Plus className="h-4 w-4 mr-2" />
+                New Schedule
+              </Button>
+            </DialogTrigger>
+          )}
           <DialogContent className="max-w-lg">
             <DialogHeader>
               <DialogTitle>Create Schedule</DialogTitle>
@@ -556,7 +560,7 @@ export default function Schedules() {
                 ? 'Create a schedule to automatically run job templates on a recurring basis.'
                 : 'No schedules match your current filters.'}
             </p>
-            {schedules.length === 0 && (
+            {schedules.length === 0 && canManageSchedules && (
               <Button onClick={() => setCreateDialogOpen(true)}>
                 <Plus className="h-4 w-4 mr-2" />
                 New Schedule
@@ -631,43 +635,51 @@ export default function Schedules() {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem
-                          onClick={() => { void handleRunNow(schedule.id); }}
-                          disabled={runningId === schedule.id}
-                        >
-                          {runningId === schedule.id ? (
-                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                          ) : (
-                            <Play className="h-4 w-4 mr-2" />
-                          )}
-                          Run Now
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                        onClick={() => { void handleToggleStatus(schedule); }}
-                        disabled={togglingId === schedule.id}
-                        >
-                          {togglingId === schedule.id ? (
-                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                          ) : schedule.status === 'enabled' ? (
-                            <Pause className="h-4 w-4 mr-2" />
-                          ) : (
-                            <Play className="h-4 w-4 mr-2" />
-                          )}
-                          {schedule.status === 'enabled' ? 'Disable' : 'Enable'}
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem
-                          className="text-destructive"
-                          onClick={() => { void handleDelete(schedule.id); }}
-                          disabled={deletingId === schedule.id}
-                        >
-                          {deletingId === schedule.id ? (
-                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                          ) : (
-                            <Trash2 className="h-4 w-4 mr-2" />
-                          )}
-                          Delete
-                        </DropdownMenuItem>
+                        {canManageSchedules && (
+                          <DropdownMenuItem
+                            onClick={() => { void handleRunNow(schedule.id); }}
+                            disabled={runningId === schedule.id}
+                          >
+                            {runningId === schedule.id ? (
+                              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                            ) : (
+                              <Play className="h-4 w-4 mr-2" />
+                            )}
+                            Run Now
+                          </DropdownMenuItem>
+                        )}
+                        {canManageSchedules && (
+                          <DropdownMenuItem
+                            onClick={() => { void handleToggleStatus(schedule); }}
+                            disabled={togglingId === schedule.id}
+                          >
+                            {togglingId === schedule.id ? (
+                              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                            ) : schedule.status === 'enabled' ? (
+                              <Pause className="h-4 w-4 mr-2" />
+                            ) : (
+                              <Play className="h-4 w-4 mr-2" />
+                            )}
+                            {schedule.status === 'enabled' ? 'Disable' : 'Enable'}
+                          </DropdownMenuItem>
+                        )}
+                        {canManageSchedules && (
+                          <>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem
+                              className="text-destructive"
+                              onClick={() => { void handleDelete(schedule.id); }}
+                              disabled={deletingId === schedule.id}
+                            >
+                              {deletingId === schedule.id ? (
+                                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                              ) : (
+                                <Trash2 className="h-4 w-4 mr-2" />
+                              )}
+                              Delete
+                            </DropdownMenuItem>
+                          </>
+                        )}
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </TableCell>

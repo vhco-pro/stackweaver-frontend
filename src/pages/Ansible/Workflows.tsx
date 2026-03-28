@@ -4,7 +4,8 @@ import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link, useParams, useNavigate } from 'react-router-dom';
 import { useOrganization } from '@/contexts/OrganizationContext';
-import { 
+import { usePermissions } from '@/hooks/usePermissions';
+import {
   ansibleWorkflowsApi,
   type AnsibleWorkflow,
   type CreateWorkflowInput,
@@ -110,6 +111,7 @@ export default function Workflows() {
   const navigate = useNavigate();
   const { currentOrg } = useOrganization();
   const selectedOrg = orgName || currentOrg?.name || '';
+  const { canManageJobTemplates } = usePermissions(selectedOrg);
 
   const { data: workflows = [], isLoading: loading, refetch: refetchWorkflows } = useQuery({
     queryKey: ['workflows', selectedOrg],
@@ -219,10 +221,12 @@ export default function Workflows() {
             Create multi-job pipelines with conditional branching
           </p>
         </div>
-        <Button onClick={() => setCreateDialogOpen(true)}>
-          <Plus className="h-4 w-4 mr-2" />
-          New Workflow
-        </Button>
+        {canManageJobTemplates && (
+          <Button onClick={() => setCreateDialogOpen(true)}>
+            <Plus className="h-4 w-4 mr-2" />
+            New Workflow
+          </Button>
+        )}
       </div>
 
       {/* Search */}
@@ -266,7 +270,7 @@ export default function Workflows() {
                   : 'Create your first workflow template to orchestrate multiple jobs'
                 }
               </p>
-              {!searchQuery && (
+              {!searchQuery && canManageJobTemplates && (
                 <Button className="mt-4" onClick={() => setCreateDialogOpen(true)}>
                   <Plus className="h-4 w-4 mr-2" />
                   Create Workflow
@@ -335,21 +339,27 @@ export default function Workflows() {
                             <Eye className="h-4 w-4 mr-2" />
                             View Details
                           </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => { void Promise.resolve(navigate(`/${selectedOrg}/ansible/workflows/${workflow.id}/edit`)); }}>
-                            <Edit className="h-4 w-4 mr-2" />
-                            Edit Workflow
-                          </DropdownMenuItem>
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem 
-                            onClick={() => {
-                              setWorkflowToDelete(workflow);
-                              setDeleteDialogOpen(true);
-                            }}
-                            className="text-destructive"
-                          >
-                            <Trash2 className="h-4 w-4 mr-2" />
-                            Delete
-                          </DropdownMenuItem>
+                          {canManageJobTemplates && (
+                            <DropdownMenuItem onClick={() => { void Promise.resolve(navigate(`/${selectedOrg}/ansible/workflows/${workflow.id}/edit`)); }}>
+                              <Edit className="h-4 w-4 mr-2" />
+                              Edit Workflow
+                            </DropdownMenuItem>
+                          )}
+                          {canManageJobTemplates && (
+                            <>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem
+                                onClick={() => {
+                                  setWorkflowToDelete(workflow);
+                                  setDeleteDialogOpen(true);
+                                }}
+                                className="text-destructive"
+                              >
+                                <Trash2 className="h-4 w-4 mr-2" />
+                                Delete
+                              </DropdownMenuItem>
+                            </>
+                          )}
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </TableCell>

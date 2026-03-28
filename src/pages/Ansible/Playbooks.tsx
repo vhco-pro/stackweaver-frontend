@@ -5,6 +5,7 @@ import { useEffect, useState, useRef } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link, useParams, useNavigate } from 'react-router-dom';
 import { useOrganization } from '@/contexts/OrganizationContext';
+import { usePermissions } from '@/hooks/usePermissions';
 import { ansiblePlaybooksApi, type AnsiblePlaybook } from '@/api/ansible';
 import { getAnsiblePlaybookFromJsonApi } from '@/utils/ansible-jsonapi';
 import { vcsConnectionsApi, type VCSConnection, type Repository, type Branch } from '@/api/client';
@@ -83,6 +84,7 @@ export default function Playbooks() {
   const selectedOrg = orgName || currentOrg?.name || '';
   const queryClient = useQueryClient();
   const navigate = useNavigate();
+  const { canManagePlaybooks } = usePermissions(selectedOrg);
 
   const [searchQuery, setSearchQuery] = useState('');
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -462,10 +464,12 @@ export default function Playbooks() {
             Manage Ansible playbooks for {selectedOrg}
           </p>
         </div>
-        <Button onClick={() => setCreateDialogOpen(true)}>
-          <Plus className="h-4 w-4 mr-2" />
-          New Playbook
-        </Button>
+        {canManagePlaybooks && (
+          <Button onClick={() => setCreateDialogOpen(true)}>
+            <Plus className="h-4 w-4 mr-2" />
+            New Playbook
+          </Button>
+        )}
       </div>
 
       {/* Search */}
@@ -492,7 +496,7 @@ export default function Playbooks() {
                 ? 'No playbooks match your search criteria.'
                 : 'No playbooks have been created yet. Click the button above to create your first playbook.'}
             </p>
-            {!searchQuery && (
+            {!searchQuery && canManagePlaybooks && (
               <Button onClick={() => setCreateDialogOpen(true)}>
                 <Plus className="h-4 w-4 mr-2" />
                 Create Playbook
@@ -552,17 +556,21 @@ export default function Playbooks() {
                           Sync from VCS
                         </DropdownMenuItem>
                       )}
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem
-                        className="text-destructive focus:text-destructive"
-                        onClick={() => {
-                          setPlaybookToDelete(playbook);
-                          setDeleteDialogOpen(true);
-                        }}
-                      >
-                        <Trash2 className="h-4 w-4 mr-2" />
-                        Delete
-                      </DropdownMenuItem>
+                      {canManagePlaybooks && (
+                        <>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem
+                            className="text-destructive focus:text-destructive"
+                            onClick={() => {
+                              setPlaybookToDelete(playbook);
+                              setDeleteDialogOpen(true);
+                            }}
+                          >
+                            <Trash2 className="h-4 w-4 mr-2" />
+                            Delete
+                          </DropdownMenuItem>
+                        </>
+                      )}
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </div>

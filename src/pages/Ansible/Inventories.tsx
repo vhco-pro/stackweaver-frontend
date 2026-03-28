@@ -5,6 +5,7 @@ import { useEffect, useState, useRef } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link, useParams, useNavigate } from 'react-router-dom';
 import { useOrganization } from '@/contexts/OrganizationContext';
+import { usePermissions } from '@/hooks/usePermissions';
 import { ansibleInventoriesApi, ansibleHostsApi, ansibleGroupsApi, type AnsibleInventory } from '@/api/ansible';
 import { getAnsibleInventoryFromJsonApi } from '@/utils/ansible-jsonapi';
 import { vcsConnectionsApi, type VCSConnection, type Repository, type Branch } from '@/api/client';
@@ -68,6 +69,7 @@ export default function Inventories() {
   const { currentOrg } = useOrganization();
   const selectedOrg = orgName || currentOrg?.name || '';
   const queryClient = useQueryClient();
+  const { canManageInventories } = usePermissions(selectedOrg);
   const [searchQuery, setSearchQuery] = useState('');
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -489,12 +491,14 @@ export default function Inventories() {
           setCreateDialogOpen(open);
           if (!open) resetCreateForm();
         }}>
-          <DialogTrigger asChild>
-            <Button>
-              <Plus className="h-4 w-4 mr-2" />
-              New Inventory
-            </Button>
-          </DialogTrigger>
+          {canManageInventories && (
+            <DialogTrigger asChild>
+              <Button>
+                <Plus className="h-4 w-4 mr-2" />
+                New Inventory
+              </Button>
+            </DialogTrigger>
+          )}
           <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Create Inventory</DialogTitle>
@@ -950,16 +954,18 @@ export default function Inventories() {
                         Edit
                       </Link>
                     </DropdownMenuItem>
-                    <DropdownMenuItem
-                      className="text-destructive"
-                      onClick={() => {
-                        setInventoryToDelete(inventory);
-                        setDeleteDialogOpen(true);
-                      }}
-                    >
-                      <Trash2 className="h-4 w-4 mr-2" />
-                      Delete
-                    </DropdownMenuItem>
+                    {canManageInventories && (
+                      <DropdownMenuItem
+                        className="text-destructive"
+                        onClick={() => {
+                          setInventoryToDelete(inventory);
+                          setDeleteDialogOpen(true);
+                        }}
+                      >
+                        <Trash2 className="h-4 w-4 mr-2" />
+                        Delete
+                      </DropdownMenuItem>
+                    )}
                   </DropdownMenuContent>
                 </DropdownMenu>
               </CardHeader>

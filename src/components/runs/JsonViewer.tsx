@@ -48,6 +48,13 @@ const JsonNode = ({ keyName, value, level, path, searchTerm = '', defaultExpande
     }
   };
 
+  const isEmptyComposite = (val: unknown): boolean => {
+    if (val === null || val === undefined) return false;
+    if (Array.isArray(val)) return val.length === 0;
+    if (typeof val === 'object') return Object.keys(val as Record<string, unknown>).length === 0;
+    return false;
+  };
+
   const getValueType = (val: unknown): string => {
     if (val === null) return 'null';
     if (Array.isArray(val)) return 'array';
@@ -80,7 +87,8 @@ const JsonNode = ({ keyName, value, level, path, searchTerm = '', defaultExpande
   const renderValue = (val: unknown, type: string) => {
     if (type === 'object' && val !== null && !Array.isArray(val)) {
       const obj = val as Record<string, unknown>;
-      const keys = Object.keys(obj);
+      // Filter out keys whose values are empty objects or empty arrays
+      const keys = Object.keys(obj).filter((key) => !isEmptyComposite(obj[key]));
       const hasChildren = keys.length > 0;
 
       return (
