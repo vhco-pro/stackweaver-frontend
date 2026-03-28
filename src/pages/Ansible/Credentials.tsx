@@ -4,8 +4,9 @@ import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link, useParams } from 'react-router-dom';
 import { useOrganization } from '@/contexts/OrganizationContext';
-import { 
-  ansibleCredentialsApi, 
+import { usePermissions } from '@/hooks/usePermissions';
+import {
+  ansibleCredentialsApi,
   type AnsibleCredential, 
   type CredentialType,
   type CreateCredentialInput 
@@ -78,6 +79,7 @@ export default function Credentials() {
   const { orgName } = useParams<{ orgName: string }>();
   const { currentOrg } = useOrganization();
   const selectedOrg = orgName || currentOrg?.name || '';
+  const { canManageCredentials } = usePermissions(selectedOrg);
 
   const [searchQuery, setSearchQuery] = useState('');
   const [typeFilter, setTypeFilter] = useState<CredentialType | 'all'>('all');
@@ -613,16 +615,18 @@ export default function Credentials() {
               Manage Ansible credentials for automation
             </p>
           </div>
-          <div className="relative inline-flex rounded-xl bg-gradient-to-r from-amber-500 via-orange-500 to-amber-500 p-[2px]">
-            <Button
-              variant="ghost"
-              onClick={() => setCreateDialogOpen(true)}
-              className="bg-white dark:bg-slate-950/80 dark:backdrop-blur-sm text-slate-900 dark:text-white hover:bg-slate-50 dark:hover:bg-slate-950/90 border-0 whitespace-nowrap rounded-[calc(0.75rem-2px)] px-4 py-2"
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              New Credential
-            </Button>
-          </div>
+          {canManageCredentials && (
+            <div className="relative inline-flex rounded-xl bg-gradient-to-r from-amber-500 via-orange-500 to-amber-500 p-[2px]">
+              <Button
+                variant="ghost"
+                onClick={() => setCreateDialogOpen(true)}
+                className="bg-white dark:bg-slate-950/80 dark:backdrop-blur-sm text-slate-900 dark:text-white hover:bg-slate-50 dark:hover:bg-slate-950/90 border-0 whitespace-nowrap rounded-[calc(0.75rem-2px)] px-4 py-2"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                New Credential
+              </Button>
+            </div>
+          )}
         </div>
       </div>
 
@@ -769,20 +773,24 @@ export default function Credentials() {
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
-                    <DropdownMenuItem onClick={() => openEditDialog(credential)}>
-                      <Edit className="h-4 w-4 mr-2" />
-                      Edit
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      className="text-destructive"
-                      onClick={() => {
-                        setCredentialToDelete(credential);
-                        setDeleteDialogOpen(true);
-                      }}
-                    >
-                      <Trash2 className="h-4 w-4 mr-2" />
-                      Delete
-                    </DropdownMenuItem>
+                    {canManageCredentials && (
+                      <DropdownMenuItem onClick={() => openEditDialog(credential)}>
+                        <Edit className="h-4 w-4 mr-2" />
+                        Edit
+                      </DropdownMenuItem>
+                    )}
+                    {canManageCredentials && (
+                      <DropdownMenuItem
+                        className="text-destructive"
+                        onClick={() => {
+                          setCredentialToDelete(credential);
+                          setDeleteDialogOpen(true);
+                        }}
+                      >
+                        <Trash2 className="h-4 w-4 mr-2" />
+                        Delete
+                      </DropdownMenuItem>
+                    )}
                   </DropdownMenuContent>
                 </DropdownMenu>
               </CardHeader>

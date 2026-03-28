@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link, useParams } from 'react-router-dom';
 import { useOrganization } from '@/contexts/OrganizationContext';
+import { usePermissions } from '@/hooks/usePermissions';
 import { ansibleJobsApi, type AnsibleJob, type AnsibleJobStatus } from '@/api/ansible';
 import { getAnsibleJobFromJsonApi } from '@/utils/ansible-jsonapi';
 import { Button } from '@/components/ui/button';
@@ -85,6 +86,7 @@ export default function Jobs() {
   const { orgName } = useParams<{ orgName: string }>();
   const { currentOrg } = useOrganization();
   const selectedOrg = orgName || currentOrg?.name || '';
+  const { canExecuteJobs } = usePermissions(selectedOrg);
 
   const { data: jobs = [], isLoading: loading, refetch: refetchJobs } = useQuery({
     queryKey: ['jobs', selectedOrg],
@@ -390,7 +392,7 @@ export default function Jobs() {
                             View Details
                           </Link>
                         </DropdownMenuItem>
-                        {(job.status === 'successful' || job.status === 'failed' || job.status === 'canceled') && (
+                        {canExecuteJobs && (job.status === 'successful' || job.status === 'failed' || job.status === 'canceled') && (
                           <DropdownMenuItem
                             onClick={() => { void handleRelaunch(job); }}
                             disabled={relaunching === job.id}
@@ -403,7 +405,7 @@ export default function Jobs() {
                             Relaunch
                           </DropdownMenuItem>
                         )}
-                        {(job.status === 'pending' || job.status === 'running') && (
+                        {canExecuteJobs && (job.status === 'pending' || job.status === 'running') && (
                           <DropdownMenuItem
                             className="text-destructive"
                             onClick={() => {
@@ -415,17 +417,21 @@ export default function Jobs() {
                             Cancel
                           </DropdownMenuItem>
                         )}
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem
-                          className="text-destructive focus:text-destructive"
-                          onClick={() => {
-                            setJobToDelete(job);
-                            setDeleteDialogOpen(true);
-                          }}
-                        >
-                          <Trash2 className="h-4 w-4 mr-2" />
-                          Delete
-                        </DropdownMenuItem>
+                        {canExecuteJobs && (
+                          <>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem
+                              className="text-destructive focus:text-destructive"
+                              onClick={() => {
+                                setJobToDelete(job);
+                                setDeleteDialogOpen(true);
+                              }}
+                            >
+                              <Trash2 className="h-4 w-4 mr-2" />
+                              Delete
+                            </DropdownMenuItem>
+                          </>
+                        )}
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </TableCell>

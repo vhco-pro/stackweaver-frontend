@@ -2754,3 +2754,41 @@ export const teamWorkspaceAccessApi = {
     }),
   delete: (id: string) => apiClient.delete(`/team-workspaces/${id}`),
 };
+
+// Effective Permissions API
+// Returns the union of all permissions from all teams the authenticated user is a member of
+export interface EffectivePermissions {
+  // Ansible fine-grained
+  'ansible:playbook:read': boolean;
+  'ansible:playbook:write': boolean;
+  'ansible:inventory:read': boolean;
+  'ansible:inventory:write': boolean;
+  'ansible:credential:read': boolean;
+  'ansible:credential:write': boolean;
+  'ansible:job-template:read': boolean;
+  'ansible:job-template:write': boolean;
+  'ansible:job:read': boolean;
+  'ansible:job:execute': boolean;
+  'ansible:schedule:read': boolean;
+  'ansible:schedule:write': boolean;
+  // Org-level
+  'org:manage-ansible': boolean;
+  'org:read-ansible': boolean;
+  'org:manage-projects': boolean;
+  'org:read-projects': boolean;
+  'org:manage-workspaces': boolean;
+  'org:read-workspaces': boolean;
+  'org:manage-teams': boolean;
+  'org:manage-membership': boolean;
+  'org:manage-agent-pools': boolean;
+  [key: string]: boolean;
+}
+
+export const permissionsApi = {
+  getEffective: async (orgName: string): Promise<EffectivePermissions> => {
+    const response = await apiClient.get<{ data: { attributes: EffectivePermissions } }>(
+      `/organizations/${orgName}/effective-permissions`
+    );
+    return response.data.attributes;
+  },
+};

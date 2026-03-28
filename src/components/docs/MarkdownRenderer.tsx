@@ -1,6 +1,6 @@
 // Copyright (c) 2025 VH & Co BV. Licensed under the Business Source License 1.1. See LICENSE for details.
 
-import { useState, useEffect, useRef, useMemo, type ReactNode, type KeyboardEvent } from 'react';
+import { useState, useRef, useMemo, type ReactNode, type KeyboardEvent } from 'react';
 import { useMountEffect } from '@/hooks/useMountEffect';
 import { useNavigate } from 'react-router-dom';
 import ReactMarkdown from 'react-markdown';
@@ -660,49 +660,53 @@ export function MarkdownRenderer({
   const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
   const [lightboxAlt, setLightboxAlt] = useState<string>('');
 
-  // Collect code blocks that need highlighting during render, process in useEffect
+  // Collect code blocks that need highlighting during render, flush via
+  // a deferred microtask (no useEffect needed). Each push schedules a single
+  // flush; the flush drains all items accumulated during that render pass.
   const pendingHighlightsRef = useRef<Array<{ hash: string; code: string; lang: string }>>([]);
+  const flushScheduledRef = useRef(false);
 
-  useEffect(() => {
-    const pending = pendingHighlightsRef.current;
-    if (pending.length === 0) return;
-    pendingHighlightsRef.current = [];
+  const scheduleHighlightFlush = useRef(() => {
+    if (flushScheduledRef.current) return;
+    flushScheduledRef.current = true;
+    queueMicrotask(() => {
+      flushScheduledRef.current = false;
+      const pending = pendingHighlightsRef.current;
+      if (pending.length === 0) return;
+      pendingHighlightsRef.current = [];
 
-    let cancelled = false;
-    void (async () => {
-      try {
-        const { codeToHtml } = await import('shiki');
-        const currentMode: 'dark' | 'light' =
-          typeof document !== 'undefined' && document.documentElement.classList.contains('dark') ? 'dark' : 'light';
-        const theme = currentMode === 'dark' ? 'github-dark' : 'github-light';
+      void (async () => {
+        try {
+          const { codeToHtml } = await import('shiki');
+          const currentMode: 'dark' | 'light' =
+            typeof document !== 'undefined' && document.documentElement.classList.contains('dark') ? 'dark' : 'light';
+          const theme = currentMode === 'dark' ? 'github-dark' : 'github-light';
 
-        const results: Record<string, string> = {};
-        for (const { hash, code, lang } of pending) {
-          if (cancelled) return;
-          const highlightLang = lang === 'text' ? 'plaintext' : lang;
-          try {
-            results[hash] = await codeToHtml(code, { lang: highlightLang, theme });
-          } catch (langError: unknown) {
-            const msg = langError instanceof Error ? langError.message : String(langError);
-            if (msg.includes('is not included in this bundle') && highlightLang !== 'plaintext') {
-              try {
-                results[hash] = await codeToHtml(code, { lang: 'plaintext', theme });
-              } catch {
-                // Ignore - will render as plain text
+          const results: Record<string, string> = {};
+          for (const { hash, code, lang } of pending) {
+            const highlightLang = lang === 'text' ? 'plaintext' : lang;
+            try {
+              results[hash] = await codeToHtml(code, { lang: highlightLang, theme });
+            } catch (langError: unknown) {
+              const msg = langError instanceof Error ? langError.message : String(langError);
+              if (msg.includes('is not included in this bundle') && highlightLang !== 'plaintext') {
+                try {
+                  results[hash] = await codeToHtml(code, { lang: 'plaintext', theme });
+                } catch {
+                  // Ignore - will render as plain text
+                }
               }
             }
           }
+          if (Object.keys(results).length > 0) {
+            setHighlightedCode((prev) => ({ ...prev, ...results }));
+          }
+        } catch {
+          // Ignore - will render as plain text
         }
-        if (!cancelled && Object.keys(results).length > 0) {
-          setHighlightedCode((prev) => ({ ...prev, ...results }));
-        }
-      } catch {
-        // Ignore - will render as plain text
-      }
-    })();
-
-    return () => { cancelled = true; };
-  });
+      })();
+    });
+  }).current;
 
   // Parse frontmatter from content
   const { meta, body: markdownBody } = useMemo(() => parseFrontmatter(content), [content]);
@@ -1132,9 +1136,10 @@ export function MarkdownRenderer({
           );
         }
 
-        // Queue for highlighting in useEffect (avoid setState during render)
+        // Queue for highlighting via deferred microtask (avoid setState during render)
         if (codeTextTrimmed) {
           pendingHighlightsRef.current.push({ hash: codeHash, code: codeTextTrimmed, lang });
+          scheduleHighlightFlush();
         }
 
         // Fallback while loading - render plain code block (always visible)
@@ -1240,7 +1245,7 @@ export function MarkdownRenderer({
         </div>
       ),
     };
-  }, [highlightedCode, docPath, docsBase, navigate, copiedCodeId, enableCallouts, enableCodeGroups, enableMermaid, onLinkClick, currentDir]);
+  }, [highlightedCode, docPath, docsBase, navigate, copiedCodeId, enableCallouts, enableCodeGroups, enableMermaid, onLinkClick, currentDir, scheduleHighlightFlush]);
 
   // Create a key based on highlighted code blocks to force ReactMarkdown to re-render
   // when highlighting completes. ReactMarkdown only re-processes when content changes,

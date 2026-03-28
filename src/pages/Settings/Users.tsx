@@ -469,6 +469,15 @@ function TeamsTab({ orgName, showCreateDialog, setShowCreateDialog }: { orgName:
   const [editingManageModules, setEditingManageModules] = useState(false);
   const [editingManageProviders, setEditingManageProviders] = useState(false);
 
+  // Ansible permissions: parent radio (none/read/manage) + fine-grained checkboxes
+  const [editingAnsiblePermission, setEditingAnsiblePermission] = useState<'none' | 'read' | 'manage' | 'custom'>('none');
+  const [editingManageAnsiblePlaybooks, setEditingManageAnsiblePlaybooks] = useState(false);
+  const [editingManageAnsibleInventories, setEditingManageAnsibleInventories] = useState(false);
+  const [editingManageAnsibleCredentials, setEditingManageAnsibleCredentials] = useState(false);
+  const [editingManageAnsibleJobTemplates, setEditingManageAnsibleJobTemplates] = useState(false);
+  const [editingManageAnsibleJobs, setEditingManageAnsibleJobs] = useState(false);
+  const [editingManageAnsibleSchedules, setEditingManageAnsibleSchedules] = useState(false);
+
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [updatingMembers, setUpdatingMembers] = useState(false);
@@ -573,6 +582,17 @@ function TeamsTab({ orgName, showCreateDialog, setShowCreateDialog }: { orgName:
       // Private registry permissions (checkboxes)
       orgAccess['manage-modules'] = editingManageModules;
       orgAccess['manage-providers'] = editingManageProviders;
+
+      // Ansible permissions
+      orgAccess['manage-ansible'] = editingAnsiblePermission === 'manage';
+      orgAccess['read-ansible'] = editingAnsiblePermission === 'read';
+      // Fine-grained ansible (only sent for custom mode, parent toggles handle the rest via backend)
+      orgAccess['manage-ansible-playbooks'] = editingAnsiblePermission === 'custom' ? editingManageAnsiblePlaybooks : false;
+      orgAccess['manage-ansible-inventories'] = editingAnsiblePermission === 'custom' ? editingManageAnsibleInventories : false;
+      orgAccess['manage-ansible-credentials'] = editingAnsiblePermission === 'custom' ? editingManageAnsibleCredentials : false;
+      orgAccess['manage-ansible-job-templates'] = editingAnsiblePermission === 'custom' ? editingManageAnsibleJobTemplates : false;
+      orgAccess['manage-ansible-jobs'] = editingAnsiblePermission === 'custom' ? editingManageAnsibleJobs : false;
+      orgAccess['manage-ansible-schedules'] = editingAnsiblePermission === 'custom' ? editingManageAnsibleSchedules : false;
 
       await teamsApi.update(selectedTeam.id, {
         name: editingTeamName,
@@ -689,7 +709,31 @@ function TeamsTab({ orgName, showCreateDialog, setShowCreateDialog }: { orgName:
     setEditingManagePrivateRegistry(orgAccess['manage-providers'] || orgAccess['manage-modules'] || false);
     setEditingManageModules(orgAccess['manage-modules'] || false);
     setEditingManageProviders(orgAccess['manage-providers'] || false);
-    
+
+    // Ansible permissions
+    const hasAnyManageAnsibleSub = orgAccess['manage-ansible-playbooks'] || orgAccess['manage-ansible-inventories'] ||
+      orgAccess['manage-ansible-credentials'] || orgAccess['manage-ansible-job-templates'] ||
+      orgAccess['manage-ansible-jobs'] || orgAccess['manage-ansible-schedules'];
+    const hasAnyReadAnsibleSub = orgAccess['read-ansible-playbooks'] || orgAccess['read-ansible-inventories'] ||
+      orgAccess['read-ansible-credentials'] || orgAccess['read-ansible-job-templates'] ||
+      orgAccess['read-ansible-jobs'] || orgAccess['read-ansible-schedules'];
+
+    if (orgAccess['manage-ansible']) {
+      setEditingAnsiblePermission('manage');
+    } else if (orgAccess['read-ansible'] && !hasAnyManageAnsibleSub) {
+      setEditingAnsiblePermission('read');
+    } else if (hasAnyManageAnsibleSub || hasAnyReadAnsibleSub) {
+      setEditingAnsiblePermission('custom');
+    } else {
+      setEditingAnsiblePermission('none');
+    }
+    setEditingManageAnsiblePlaybooks(orgAccess['manage-ansible-playbooks'] || false);
+    setEditingManageAnsibleInventories(orgAccess['manage-ansible-inventories'] || false);
+    setEditingManageAnsibleCredentials(orgAccess['manage-ansible-credentials'] || false);
+    setEditingManageAnsibleJobTemplates(orgAccess['manage-ansible-job-templates'] || false);
+    setEditingManageAnsibleJobs(orgAccess['manage-ansible-jobs'] || false);
+    setEditingManageAnsibleSchedules(orgAccess['manage-ansible-schedules'] || false);
+
     setShowEditDialog(true);
   };
 
@@ -1456,6 +1500,105 @@ function TeamsTab({ orgName, showCreateDialog, setShowCreateDialog }: { orgName:
                           <p className="text-sm text-muted-foreground">
                             Allow members to publish and delete providers in the organization&apos;s private registry
                           </p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Ansible Permissions - Parent Radio + Fine-Grained Checkboxes */}
+              <div className="space-y-3">
+                <Label className="text-base font-medium">Ansible permissions</Label>
+                <div className="space-y-2 pl-6">
+                  <div className="flex items-center space-x-2">
+                    <input type="radio" id="edit-ansible-none" name="edit-ansible-perm"
+                      checked={editingAnsiblePermission === 'none'}
+                      onChange={() => setEditingAnsiblePermission('none')}
+                      className="h-4 w-4" />
+                    <Label htmlFor="edit-ansible-none" className="font-normal cursor-pointer">None</Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <input type="radio" id="edit-ansible-read" name="edit-ansible-perm"
+                      checked={editingAnsiblePermission === 'read'}
+                      onChange={() => setEditingAnsiblePermission('read')}
+                      className="h-4 w-4" />
+                    <Label htmlFor="edit-ansible-read" className="font-normal cursor-pointer">Read all Ansible resources</Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <input type="radio" id="edit-ansible-manage" name="edit-ansible-perm"
+                      checked={editingAnsiblePermission === 'manage'}
+                      onChange={() => setEditingAnsiblePermission('manage')}
+                      className="h-4 w-4" />
+                    <Label htmlFor="edit-ansible-manage" className="font-normal cursor-pointer">Manage all Ansible resources</Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <input type="radio" id="edit-ansible-custom" name="edit-ansible-perm"
+                      checked={editingAnsiblePermission === 'custom'}
+                      onChange={() => setEditingAnsiblePermission('custom')}
+                      className="h-4 w-4" />
+                    <Label htmlFor="edit-ansible-custom" className="font-normal cursor-pointer">Custom</Label>
+                  </div>
+                  {editingAnsiblePermission === 'custom' && (
+                    <div className="space-y-3 pl-6 pt-1">
+                      <div className="flex items-start space-x-2">
+                        <Checkbox id="edit-manage-ansible-playbooks"
+                          checked={editingManageAnsiblePlaybooks}
+                          onCheckedChange={(checked) => setEditingManageAnsiblePlaybooks(checked === true)}
+                          className="mt-1" />
+                        <div className="flex-1">
+                          <Label htmlFor="edit-manage-ansible-playbooks" className="font-normal cursor-pointer">Manage playbooks</Label>
+                          <p className="text-sm text-muted-foreground">Create, update, delete, and sync playbooks</p>
+                        </div>
+                      </div>
+                      <div className="flex items-start space-x-2">
+                        <Checkbox id="edit-manage-ansible-inventories"
+                          checked={editingManageAnsibleInventories}
+                          onCheckedChange={(checked) => setEditingManageAnsibleInventories(checked === true)}
+                          className="mt-1" />
+                        <div className="flex-1">
+                          <Label htmlFor="edit-manage-ansible-inventories" className="font-normal cursor-pointer">Manage inventories</Label>
+                          <p className="text-sm text-muted-foreground">Create, update, delete, and sync inventories</p>
+                        </div>
+                      </div>
+                      <div className="flex items-start space-x-2">
+                        <Checkbox id="edit-manage-ansible-credentials"
+                          checked={editingManageAnsibleCredentials}
+                          onCheckedChange={(checked) => setEditingManageAnsibleCredentials(checked === true)}
+                          className="mt-1" />
+                        <div className="flex-1">
+                          <Label htmlFor="edit-manage-ansible-credentials" className="font-normal cursor-pointer">Manage credentials</Label>
+                          <p className="text-sm text-muted-foreground">Create, update, and delete credentials</p>
+                        </div>
+                      </div>
+                      <div className="flex items-start space-x-2">
+                        <Checkbox id="edit-manage-ansible-job-templates"
+                          checked={editingManageAnsibleJobTemplates}
+                          onCheckedChange={(checked) => setEditingManageAnsibleJobTemplates(checked === true)}
+                          className="mt-1" />
+                        <div className="flex-1">
+                          <Label htmlFor="edit-manage-ansible-job-templates" className="font-normal cursor-pointer">Manage job templates</Label>
+                          <p className="text-sm text-muted-foreground">Create, update, and delete job templates</p>
+                        </div>
+                      </div>
+                      <div className="flex items-start space-x-2">
+                        <Checkbox id="edit-manage-ansible-jobs"
+                          checked={editingManageAnsibleJobs}
+                          onCheckedChange={(checked) => setEditingManageAnsibleJobs(checked === true)}
+                          className="mt-1" />
+                        <div className="flex-1">
+                          <Label htmlFor="edit-manage-ansible-jobs" className="font-normal cursor-pointer">Execute jobs</Label>
+                          <p className="text-sm text-muted-foreground">Launch, cancel, and relaunch job runs</p>
+                        </div>
+                      </div>
+                      <div className="flex items-start space-x-2">
+                        <Checkbox id="edit-manage-ansible-schedules"
+                          checked={editingManageAnsibleSchedules}
+                          onCheckedChange={(checked) => setEditingManageAnsibleSchedules(checked === true)}
+                          className="mt-1" />
+                        <div className="flex-1">
+                          <Label htmlFor="edit-manage-ansible-schedules" className="font-normal cursor-pointer">Manage schedules</Label>
+                          <p className="text-sm text-muted-foreground">Create, update, enable, and disable schedules</p>
                         </div>
                       </div>
                     </div>
