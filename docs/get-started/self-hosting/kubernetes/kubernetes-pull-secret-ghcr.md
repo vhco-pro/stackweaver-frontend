@@ -23,12 +23,15 @@ Contact the StackWeaver team at `support@stackweaver.co` and ask to be invited t
 
 Once you are a member of `vhco-pro`, create a GitHub personal access token (PAT) scoped to read packages.
 
-1. In GitHub, open **Settings → Developer settings → Personal access tokens → Fine-grained tokens** (or classic tokens; either works).
-2. Click **Generate new token**.
+1. In GitHub, open **Settings → Developer settings → Personal access tokens → Tokens (classic)**.
+2. Click **Generate new token (classic)**.
 3. Give the token a descriptive name such as `stackweaver-k8s-pull-<cluster-name>`.
 4. Set an expiry date that matches your rotation policy (90 days is a common baseline).
-5. Under **Permissions** (fine-grained) or **Scopes** (classic), grant **read:packages**. No other permissions are required.
+5. Under **Scopes**, grant **read:packages**. No other scopes are required.
 6. Click **Generate token** and copy the value immediately. GitHub will not show it again.
+
+> [!IMPORTANT]
+> You must use a **classic** personal access token. Fine-grained tokens do not support the `read:packages` scope required for pulling container images from GHCR. See [GitHub's packages permissions documentation](https://docs.github.com/en/packages/learn-github-packages/about-permissions-for-github-packages) for details.
 
 > [!WARNING]
 > Store the token securely. Do not commit it to version control. Treat it like a password.

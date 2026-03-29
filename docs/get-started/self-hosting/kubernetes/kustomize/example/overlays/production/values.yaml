@@ -267,12 +267,12 @@ postgresql:
     username: ""
     database: ""
     sslmode: disable
-# -- Redis 7 --
+# -- Redis 8 --
 redis:
   enabled: true
   image:
     repository: redis
-    tag: 7-alpine
+    tag: 8-alpine
   resources:
     requests:
       cpu: 50m
