@@ -43,8 +43,8 @@ This directory contains the authoritative documentation for StackWeaver's Ansibl
 
 | Component | Path |
 |-----------|------|
-| Backend Models | `backend/internal/models/ansible_*.go` |
-| Backend Services | `backend/internal/services/ansible/*.go` |
+| Backend Models | `core/models/ansible_*.go` |
+| Backend Services | `core/services/ansible/*.go` |
 | API Handlers | `backend/internal/api/v2/handlers/ansible/*.go` |
 | Runner | `backend/cmd/ansible-runner/main.go` |
 | Frontend Pages | `frontend/src/pages/Ansible/*.tsx` |
