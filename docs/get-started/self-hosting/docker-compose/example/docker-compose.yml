@@ -36,7 +36,7 @@ services:
     network_mode: host
 
   redis:
-    image: redis:7-alpine
+    image: redis:8-alpine
     container_name: redis
     restart: unless-stopped
     healthcheck:
@@ -114,6 +114,7 @@ services:
   zitadel-init:
     image: ghcr.io/vhco-pro/stackweaver-zitadel-init:latest
     container_name: zitadel-init
+    user: "${UID:-1000}:${GID:-1000}"  # Image runs as nonroot; override to match host for volume writes
     env_file:
       - ./.env
       - ./sso.env
