@@ -1,0 +1,13 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["config:recommended"],
+  "packageRules": [
+    {
+      "description": "Auto-update Chainguard nginx digest",
+      "matchDatasources": ["docker"],
+      "matchPackageNames": ["cgr.dev/chainguard/nginx"],
+      "pinDigests": true,
+      "automerge": true
+    }
+  ]
+}
