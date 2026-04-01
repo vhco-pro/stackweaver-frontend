@@ -34,7 +34,10 @@ serviceAccount:
 ingress:
   enabled: true
   className: nginx
+  provider: nginx-inc       # nginx-inc | community-nginx | traefik | none
   annotations: {}
+  appAnnotations: {}
+  authAnnotations: {}
   tls:
     enabled: true
     secretName: stackweaver-tls
