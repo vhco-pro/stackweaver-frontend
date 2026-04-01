@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { ChevronRight, ChevronDown, FileText, Folder, FolderOpen } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { DocsSearch } from './DocsSearch';
 
 interface DocTreeNode {
   type: 'directory' | 'file';
@@ -291,6 +292,12 @@ export function DocsSidebar({ className, onNavigate, docsBase = '/docs', indexFi
 
   return (
     <nav className={cn('p-4 space-y-1', className)}>
+      <div className="mb-3">
+        <DocsSearch
+          docsBase={docsBase}
+          searchIndexFile={isInternal ? '/internal-docs-search-index.json' : '/docs-search-index.json'}
+        />
+      </div>
       {isInternal && (
         <label className="flex items-center gap-2 px-3 py-1.5 text-xs text-muted-foreground cursor-pointer select-none mb-1">
           <input
