@@ -528,7 +528,7 @@ export default function Credentials() {
               <Label htmlFor="gcp_service_account">Service Account JSON</Label>
               <Textarea
                 id="gcp_service_account"
-                placeholder='{"type": "service_account", ...}'
+                placeholder='{"type": "svc_account", "project_id": "...", ...}'
                 rows={5}
                 value={formData.gcp_service_account || ''}
                 onChange={(e) => setFormData({ ...formData, gcp_service_account: e.target.value })}
