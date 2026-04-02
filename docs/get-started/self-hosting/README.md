@@ -1,3 +1,8 @@
+---
+description: "Self-hosting index linking to Docker Compose, Kubernetes, and environment variable docs"
+covers: []
+---
+
 # Self-Hosting StackWeaver
 
 Choose your deployment method:

@@ -1,3 +1,10 @@
+---
+description: "High-level architecture overview covering system components, data flows, security, and deployment"
+covers:
+  - "deploy/docker-compose.yml"
+  - "scripts/zitadel-init/**"
+---
+
 # Architecture Overview
 
 This document provides a high-level overview of the Stackweaver Orchestration Platform architecture.
@@ -107,7 +114,7 @@ flowchart TB
 ### Backend API
 
 **Technology Stack**:
-- **Language**: Go 1.25+
+- **Language**: Go 1.26+
 - **Framework**: Gin (HTTP web framework)
 - **ORM**: GORM (database ORM)
 - **Authentication**: Zitadel OIDC JWT verification
@@ -126,7 +133,20 @@ flowchart TB
 <!-- - Ansible Automation Platform integration -->
 - VCS connections (GitHub App, Azure DevOps)
 
-**Directory Structure**: See `backend/` directory structure in the repository. Key directories:
+**Directory Structure**: The Go codebase is split into two modules connected by `go.work`:
+
+`core/` — shared module used by all binaries:
+- `models/` - GORM database models (Terraform, Ansible, Registry)
+- `repository/` - Data access layer (CRUD per model)
+- `queue/` - Redis job queue (LPush/BRPop pattern)
+- `storage/` - MinIO/S3 object storage interface
+- `vcs/` - VCS interfaces + github/ + gitlab/
+- `plugins/` - Plugin interfaces + terraform/
+- `crypto/` - Encryption utilities
+- `id/` - ID generation
+- `services/` - Shared services (oidc, vcs, logbuffer, logparser, state, variable, ansible)
+
+`backend/` — binary-specific code:
 - `cmd/api/` - Application entry point
 - `cmd/runner/` - Terraform runner service
 - `cmd/ansible-runner/` - Ansible runner service
@@ -135,31 +155,21 @@ flowchart TB
   - `handlers/` - HTTP request handlers (see `backend/internal/api/v2/handlers/`)
     - `terraform/` - Terraform-specific handlers (workspaces, runs, state)
     - `ansible/` - Ansible-specific handlers (playbooks, jobs, inventories)
-  - `middleware/` - HTTP middleware (auth, CORS, rate limit, RBAC, validation)
   - `routes/` - Route definitions (see `backend/internal/api/v2/routes/routes.go`)
-- `internal/models/` - Database models (Terraform, Ansible, Registry)
-- `internal/repository/` - Data access layer
-- `internal/services/` - Business logic
+- `internal/api/middleware/` - HTTP middleware (auth, CORS, rate limit, RBAC, validation)
+- `internal/services/` - API-only business logic
   - `activity/` - Activity and audit trail tracking
-  - `ansible/` - Ansible execution service
   - `apikey/` - API key generation and validation
   - `audit/` - Compliance auditing
   - `auth/` - Authentication service (JWT, TFE tokens, auto-provisioning)
-  - `logbuffer/` - Log buffering for streaming
-  - `logparser/` - Execution log parsing
-  - `oidc/` - OIDC workload identity
   - `profile/` - User profile management
   - `rbac/` - Team-based RBAC service
   - `registry/` - Terraform Registry service
   - `runner/` - Runner health checks and job assignment
   - `sessions/` - Session management
-  - `state/` - State version management
   - `team_sync/` - Automatic SSO team assignment
   - `terraform/` - Terraform execution service
-  - `variable/` - Variable management
-  - `vcs/` - VCS connection service (GitHub App, Azure DevOps)
-- `internal/storage/` - Object storage interface (MinIO)
-- `internal/queue/` - Queue interface (Redis)
+  - `totp/` - TOTP two-factor authentication
 
 ### Database (PostgreSQL)
 

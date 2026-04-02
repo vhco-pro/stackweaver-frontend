@@ -1,3 +1,8 @@
+---
+description: "Index page for all user guides"
+covers: []
+---
+
 # User Guides
 
 Practical, step-by-step guides for using StackWeaver. These guides walk you through common tasks and workflows.

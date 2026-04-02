@@ -1,3 +1,8 @@
+---
+description: "Guide for exposing StackWeaver via Cloudflare Tunnel with systemd persistence"
+covers: []
+---
+
 # Use Cloudflare tunnel to expose local service
 
 Using a Cloudflare tunnel is a free, static alternative to using something like ngrok

@@ -1,3 +1,10 @@
+---
+description: "Guide for running Zitadel on a custom domain while keeping internal service communication on localhost"
+covers:
+  - "scripts/zitadel-init/**"
+  - "deploy/docker-compose.yml"
+---
+
 # Zitadel Custom Domain Setup
 
 The main goal of this setup is to run the stack with a custom domain while ensuring that internal components never use external domain resolution to communicate with each other. All inter-service communication stays fully on the local stack using either `localhost` (Docker Compose) or Kubernetes internal services. External users reach Zitadel through the public domain (e.g. `zitadel.example.com`), but internally everything goes through `localhost:8080` with zero DNS lookups or TLS overhead between services.

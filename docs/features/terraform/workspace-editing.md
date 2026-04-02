@@ -1,3 +1,10 @@
+---
+description: "Editing workspace settings after creation including safe changes and state-affecting VCS changes"
+covers:
+  - "backend/internal/api/v2/handlers/terraform*"
+  - "frontend/src/pages/Terraform/**"
+---
+
 # Workspace Editing
 
 StackWeaver allows you to edit workspace settings after initial creation, enabling you to modify workspace configuration without needing to delete and recreate workspaces.

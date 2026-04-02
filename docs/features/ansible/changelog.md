@@ -1,3 +1,11 @@
+---
+description: "Version history and changelog for the Ansible integration"
+covers:
+  - "backend/cmd/ansible-runner/**"
+  - "core/services/ansible/**"
+  - "frontend/src/pages/Ansible/**"
+---
+
 # Changelog
 
 ### Fixed

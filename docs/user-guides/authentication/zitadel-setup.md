@@ -1,3 +1,11 @@
+---
+description: "Guide for Zitadel OIDC initialization in Docker Compose and Kubernetes deployments"
+covers:
+  - "scripts/zitadel-init/**"
+  - "deploy/docker-compose.yml"
+  - "deploy/helm/**"
+---
+
 # Zitadel Setup Guide
 
 This guide covers how Zitadel is configured and initialized in StackWeaver, for both the Kubernetes (Helm) and Docker Compose deployment paths.

@@ -7,8 +7,8 @@ priority: "high"
 created: "2026-03-08"
 updated: "2026-03-11"
 issue: "https://github.com/stackweaver/stackweaver/issues/1"
+covers: []
 ---
-
 # Code Examples Test
 
 This page exercises all code-example features added in the docs-code-examples plan.

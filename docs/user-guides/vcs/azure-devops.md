@@ -1,3 +1,10 @@
+---
+description: "Guide for connecting Azure DevOps repositories using Entra ID OAuth2 including webhook setup"
+covers:
+  - "core/vcs/**"
+  - "deploy/vcs.env.example"
+---
+
 # Azure DevOps VCS Integration
 
 This guide walks you through connecting Azure DevOps repositories to Stackweaver so it can trigger Terraform runs from code pushes and pull requests.

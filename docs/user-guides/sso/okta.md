@@ -1,3 +1,11 @@
+---
+description: "Step-by-step guide for configuring Okta as an SSO provider"
+covers:
+  - "scripts/zitadel-init/**"
+  - "deploy/sso.env.example"
+  - "deploy/helm/**"
+---
+
 # Okta SSO Setup
 
 This guide walks you through configuring Okta as an external identity provider for StackWeaver using the Generic OIDC integration.

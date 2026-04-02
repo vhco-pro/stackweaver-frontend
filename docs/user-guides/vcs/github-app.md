@@ -1,3 +1,11 @@
+---
+description: "Guide for creating and configuring a GitHub App for VCS connections"
+covers:
+  - "core/vcs/**"
+  - "deploy/vcs.env.example"
+  - "deploy/helm/**"
+---
+
 # GitHub App Setup Guide (Self-Service)
 
 ## Overview

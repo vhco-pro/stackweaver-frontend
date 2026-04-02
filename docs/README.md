@@ -1,3 +1,8 @@
+---
+description: "Top-level documentation index and navigation page"
+covers: []
+---
+
 # Documentation Index
 
 Welcome to the StackWeaver documentation. This directory contains comprehensive documentation for developers, operators, and users of the orchestration platform.

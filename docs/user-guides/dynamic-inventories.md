@@ -1,3 +1,10 @@
+---
+description: "Guide for configuring dynamic inventory sources for Ansible jobs"
+covers:
+  - "core/services/ansible/**"
+  - "frontend/src/pages/Ansible/**"
+---
+
 # Dynamic Inventories
 
 Dynamic inventories let Stackweaver discover hosts automatically from cloud providers like Azure, AWS, and GCP instead of listing them manually. This guide covers both approaches for setting up dynamic inventories: VCS-backed plugin files (recommended for teams) and UI-configured sources (quick setup).

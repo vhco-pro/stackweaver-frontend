@@ -1,3 +1,11 @@
+---
+description: "Guide for configuring any OIDC-compliant identity provider as an SSO provider"
+covers:
+  - "scripts/zitadel-init/**"
+  - "deploy/sso.env.example"
+  - "deploy/helm/**"
+---
+
 # Generic OIDC Provider Setup
 
 This guide covers configuring any OIDC-compliant identity provider with StackWeaver. Use this guide if your provider is not Azure AD, Okta, or AWS Cognito, or if the provider-specific guides do not cover your setup.

@@ -1,3 +1,12 @@
+---
+description: "Guide for running workloads on self-hosted infrastructure using agent pools and runners"
+covers:
+  - "backend/cmd/runner/**"
+  - "core/queue/**"
+  - "backend/internal/api/v2/handlers/agent*"
+  - "backend/internal/api/v2/handlers/runner*"
+---
+
 # Self-Hosted Runners
 
 Learn how to run Terraform and Ansible workloads on your own infrastructure using StackWeaver self-hosted runners. By the end of this guide, you will know how to create agent pools, register runners, and route jobs to them.

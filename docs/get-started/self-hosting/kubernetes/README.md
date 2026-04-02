@@ -1,3 +1,10 @@
+---
+description: "Kubernetes Helm chart deployment guide with secrets, ingress, SSO, and external dependencies"
+covers:
+  - "deploy/helm/**"
+  - "scripts/zitadel-init/**"
+---
+
 # Kubernetes Deployment
 
 This guide walks through deploying StackWeaver on Kubernetes using the official Helm chart.
@@ -7,7 +14,7 @@ The chart deploys all StackWeaver components and their dependencies (PostgreSQL,
 
 - Kubernetes 1.27+ cluster
 - Helm 3.12+
-- An ingress controller (nginx-ingress recommended)
+- An ingress controller (NGINX Inc, community NGINX, or Traefik)
 - Two DNS records pointing to your ingress (one for the app, one for Zitadel auth)
 - TLS certificates (cert-manager recommended, or provide your own)
 - A Kubernetes image pull secret for GHCR (see [Kubernetes Pull Secret for GHCR](./kubernetes-pull-secret-ghcr.md))
@@ -48,7 +55,7 @@ You only need to provide your domain names.
 
 ```bash
 helm install stackweaver oci://ghcr.io/vhco-pro/charts/stackweaver \
-  --version 0.3.12 \
+  --version 0.1.0 \
   --namespace stackweaver --create-namespace \
   --set ingress.hosts.app=stackweaver.example.com \
   --set ingress.hosts.auth=auth.stackweaver.example.com
@@ -67,6 +74,7 @@ For anything beyond the minimal install, create a `values.yaml` file.
 ingress:
   enabled: true
   className: nginx
+  provider: nginx-inc
   tls:
     enabled: true
     secretName: stackweaver-tls
@@ -80,10 +88,50 @@ Install with the file.
 
 ```bash
 helm install stackweaver oci://ghcr.io/vhco-pro/charts/stackweaver \
-  --version 0.3.12 \
+  --version 0.1.0 \
   --namespace stackweaver --create-namespace \
   --values my-values.yaml
 ```
+
+## Ingress Controller Provider
+
+The chart supports multiple ingress controllers through the `ingress.provider` field, which selects the correct annotation presets for your controller.
+Each provider maps the same logical settings (regex routing, body size limits, timeouts) to the annotation syntax your controller expects.
+
+| Provider | Description | Default `className` |
+|---|---|---|
+| `nginx-inc` | NGINX Inc ingress controller (`nginx.org/*` annotations) — **default** | `nginx` |
+| `community-nginx` | Community NGINX ingress controller (`nginx.ingress.kubernetes.io/*`) — sunset project | `nginx` |
+| `traefik` | Traefik ingress controller (minimal annotations; use middleware CRDs for advanced config) | `traefik` |
+| `none` | No controller-specific annotations — supply everything manually | *(user must set)* |
+
+To switch provider, set `ingress.provider` in your values file:
+
+```yaml
+ingress:
+  provider: traefik
+  className: traefik
+```
+
+> [!NOTE]
+> The default changed from community NGINX annotations to NGINX Inc annotations, reflecting the community project's sunset status.
+> If you are upgrading from an earlier chart version and use the community NGINX ingress controller, set `provider: community-nginx` to preserve the previous behavior.
+
+### Custom Annotations
+
+User-supplied annotations are always merged on top of the provider presets, so you can override or extend any preset value.
+The chart supports three levels of annotation customization:
+
+```yaml
+ingress:
+  provider: nginx-inc
+  annotations: {}          # applied to both app and auth ingress resources
+  appAnnotations: {}       # applied only to the app ingress (merged after annotations)
+  authAnnotations: {}      # applied only to the auth ingress (merged after annotations)
+```
+
+For controllers not covered by the built-in presets (HAProxy, Istio, Emissary, etc.), set `provider: none` and supply all required annotations manually.
+If your controller uses entirely different resource kinds (such as Traefik `IngressRoute` CRDs or Istio `VirtualService`), set `ingress.enabled: false` and manage routing externally.
 
 ## Secrets
 
@@ -361,7 +409,7 @@ The zitadel-init sidecar picks up these values, registers the identity provider 
 
 ```bash
 helm upgrade stackweaver oci://ghcr.io/vhco-pro/charts/stackweaver \
-  --version 0.3.12 \
+  --version 0.1.0 \
   --namespace stackweaver \
   --values my-values.yaml
 ```

@@ -1,3 +1,9 @@
+---
+description: "Step-by-step tutorial for creating an Ansible inventory, credentials, job template, and running a job"
+covers:
+  - "frontend/src/pages/Ansible/**"
+---
+
 # Your First Ansible Job
 
 Get started with Ansible automation in StackWeaver. This guide walks you through creating your first playbook, inventory, and running a job.

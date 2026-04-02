@@ -1,3 +1,11 @@
+---
+description: "Overview of SSO federation with external identity providers including architecture and multi-tenant isolation"
+covers:
+  - "scripts/zitadel-init/**"
+  - "deploy/sso.env.example"
+  - "deploy/helm/**"
+---
+
 # Single Sign-On (SSO) Integration
 
 StackWeaver supports federated authentication through external identity providers (IdPs). Users can sign in with their corporate credentials from Azure AD/Entra ID, Okta, AWS Cognito, or any OIDC-compliant provider, without creating a separate StackWeaver account.

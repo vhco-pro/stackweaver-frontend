@@ -1,3 +1,10 @@
+---
+description: "How automatic VCS-based playbook synchronization works via webhooks with path filtering"
+covers:
+  - "backend/internal/api/v2/handlers/ansible/**"
+  - "core/vcs/**"
+---
+
 # Ansible Playbook Webhook Sync
 
 StackWeaver automatically synchronizes Ansible playbooks from your Git repositories whenever you push changes. Keep your playbooks in version control and let StackWeaver handle the rest.

@@ -1,3 +1,8 @@
+---
+description: "Test page for image rendering features including dark-mode variants, captions, and lightbox"
+covers: []
+---
+
 # Image Support Test Page
 
 This page tests every image feature implemented in the docs viewer: relative path resolution, GitHub-style presentation, captions, dark-mode variants, and the click-to-zoom lightbox.

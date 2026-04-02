@@ -1,3 +1,16 @@
+---
+description: "Comprehensive reference for all environment variables across every service"
+covers:
+  - "backend/cmd/api/**"
+  - "backend/cmd/runner/**"
+  - "backend/cmd/orchestrator/**"
+  - "backend/cmd/ansible-runner/**"
+  - "scripts/zitadel-init/**"
+  - "deploy/sso.env.example"
+  - "deploy/vcs.env.example"
+  - "deploy/oidc.env.example"
+---
+
 # Environment Variables Reference
 
 This page documents every environment variable used by StackWeaver services.
@@ -172,10 +185,10 @@ The runner picks jobs from the Redis queue and executes Terraform plan/apply/des
 | `DATABASE_PASSWORD` | PostgreSQL password | `iac_password` |
 | `DATABASE_NAME` | Database name | `iac_platform` |
 | `DATABASE_SSLMODE` | SSL mode | `disable` |
-| `MINIO_ENDPOINT` | MinIO/S3 endpoint (host:port) | `localhost:9000` |
-| `MINIO_ACCESS_KEY` | Access key | `minioadmin` |
-| `MINIO_SECRET_KEY` | Secret key | `minioadmin` |
-| `MINIO_USE_SSL` | Use HTTPS | `false` |
+| `STORAGE_ENDPOINT` | MinIO/S3 endpoint (host:port) | `localhost:9000` |
+| `STORAGE_ACCESS_KEY` | Access key | `minioadmin` |
+| `STORAGE_SECRET_KEY` | Secret key | `minioadmin` |
+| `STORAGE_USE_SSL` | Use HTTPS | `false` |
 | `STORAGE_BUCKET` | Bucket for Terraform configs and registry | `terraform-registry` |
 | `ENCRYPTION_KEY` | 32-byte hex encryption key | `0000...` (insecure) |
 | `OIDC_ISSUER_URL` | OIDC issuer URL for workload identity | Falls back to `API_URL` |

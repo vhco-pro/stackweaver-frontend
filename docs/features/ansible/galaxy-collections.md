@@ -1,3 +1,9 @@
+---
+description: "Ansible Galaxy collection support including pre-installed collections and auto-install from requirements.yml"
+covers:
+  - "backend/cmd/ansible-runner/**"
+---
+
 # Ansible Galaxy Collections
 
 ## Overview

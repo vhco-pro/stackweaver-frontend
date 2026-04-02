@@ -1,3 +1,10 @@
+---
+description: "Guide for reading plan and apply outputs, interpreting resource changes, and tracking run history"
+covers:
+  - "core/plugins/terraform/**"
+  - "frontend/src/pages/Terraform/**"
+---
+
 # Understanding Terraform Runs
 
 Learn how to read plan and apply outputs, interpret resource changes, and make sense of your Terraform run history.

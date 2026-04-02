@@ -1,3 +1,11 @@
+---
+description: "Step-by-step guide for configuring AWS Cognito as an SSO provider"
+covers:
+  - "scripts/zitadel-init/**"
+  - "deploy/sso.env.example"
+  - "deploy/helm/**"
+---
+
 # AWS Cognito SSO Setup
 
 This guide walks you through configuring AWS Cognito as an external identity provider for StackWeaver using the Generic OIDC integration.

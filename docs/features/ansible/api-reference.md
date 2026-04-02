@@ -1,3 +1,10 @@
+---
+description: "REST API reference for all Ansible endpoints including inventories, credentials, playbooks, jobs, and schedules"
+covers:
+  - "backend/internal/api/v2/handlers/ansible/**"
+  - "core/services/ansible/**"
+---
+
 # API Reference
 
 ## Overview

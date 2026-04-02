@@ -1,3 +1,10 @@
+---
+description: "Ansible development roadmap covering workflow templates, surveys, and future phases"
+covers:
+  - "core/services/ansible/**"
+  - "backend/cmd/ansible-runner/**"
+---
+
 # Development Roadmap
 
 ## Completed Features

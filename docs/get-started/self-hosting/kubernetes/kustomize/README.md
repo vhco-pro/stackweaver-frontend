@@ -1,3 +1,9 @@
+---
+description: "GitOps deployment guide using Kustomize with Argo CD or Flux CD"
+covers:
+  - "deploy/helm/**"
+---
+
 # GitOps with Kustomize
 
 This guide shows how to deploy StackWeaver using Kustomize in a GitOps workflow with Argo CD or Flux CD.
@@ -26,6 +32,7 @@ Open `overlays/production/values.yaml` and replace the example host names and TL
 
 - `ingress.hosts.app`: the domain where the StackWeaver UI will be served.
 - `ingress.hosts.auth`: the domain for the Zitadel authentication service.
+- `ingress.provider`: the ingress controller type (`nginx-inc`, `community-nginx`, `traefik`, or `none`). See [Ingress Controller Provider](../README.md#ingress-controller-provider) for details.
 - `ingress.tls.secretName` and `ingress.tls.authSecretName`: the names of the Kubernetes TLS secrets for each domain.
 
 For persistent storage, `overlays/production/pv-pvc.yaml` contains an Azure Blob CSI example.

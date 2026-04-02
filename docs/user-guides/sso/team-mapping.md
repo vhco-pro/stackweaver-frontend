@@ -1,3 +1,12 @@
+---
+description: "Guide for automatic team assignment based on IdP group claims using Zitadel webhooks"
+covers:
+  - "scripts/zitadel-init/**"
+  - "deploy/sso.env.example"
+  - "deploy/helm/**"
+  - "backend/internal/services/auth/**"
+---
+
 # SSO Team Mapping
 
 StackWeaver can automatically assign users to teams based on their identity provider (IdP) group memberships. When a user logs in via SSO, their group claims are forwarded through the JWT, and StackWeaver maps those groups to teams that have a matching `sso_team_id` configured.

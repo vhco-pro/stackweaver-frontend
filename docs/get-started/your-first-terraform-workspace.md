@@ -1,3 +1,9 @@
+---
+description: "Step-by-step tutorial for creating a Terraform workspace and running a plan"
+covers:
+  - "frontend/src/pages/Terraform/**"
+---
+
 # Your First Terraform Workspace
 
 Learn how to create and run your first Terraform workspace in StackWeaver. By the end of this guide, you'll have successfully executed a plan and understand the basics of workspace management.

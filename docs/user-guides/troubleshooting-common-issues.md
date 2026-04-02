@@ -1,3 +1,8 @@
+---
+description: "Solutions for frequent Terraform, Ansible, VCS, and general platform problems"
+covers: []
+---
+
 # Troubleshooting Common Issues
 
 Solutions for the most frequent problems and questions when using StackWeaver.
