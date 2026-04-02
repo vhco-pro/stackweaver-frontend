@@ -1869,6 +1869,7 @@ export interface UserProfile {
   bio: string;
   company: string;
   location: string;
+  avatar?: string;
   created_at: string;
   updated_at: string;
 }

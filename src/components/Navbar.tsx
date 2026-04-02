@@ -6,6 +6,7 @@ import { LogOut, Menu } from 'lucide-react';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { NotificationBell } from '@/components/NotificationBell';
 import { OrganizationSelector } from '@/components/OrganizationSelector';
+import { UserAvatar } from '@/components/UserAvatar';
 import { Link, useLocation } from 'react-router-dom';
 
 interface NavbarProps {
@@ -45,11 +46,17 @@ export function Navbar({ onMenuClick }: NavbarProps) {
         {/* Right side items - pushed to the right, hidden on mobile (moved to sidebar) */}
         <div className="hidden md:flex items-center space-x-4 ml-auto">
             {isOrgScopedRoute && <OrganizationSelector />}
-            {session?.user?.email && (
+            {session?.user && (
             <Link
               to="/settings/profile"
-              className="text-sm text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+              className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
             >
+                <UserAvatar
+                  picture={session.user.picture}
+                  name={session.user.name}
+                  email={session.user.email}
+                  size="sm"
+                />
                 {session.user.email}
             </Link>
             )}

@@ -12,6 +12,7 @@ export type Session = {
     name?: string;
     given_name?: string;
     family_name?: string;
+    picture?: string;
   };
   access_token?: string;
 } | null;
@@ -67,6 +68,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               name: userInfo.name,
               given_name: userInfo.given_name,
               family_name: userInfo.family_name,
+              picture: userInfo.picture,
             },
             access_token: accessToken,
           });
@@ -98,6 +100,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                     name: userInfo.name,
                     given_name: userInfo.given_name,
                     family_name: userInfo.family_name,
+                    picture: userInfo.picture,
                   },
                   access_token: newTokens.access_token,
                 });
