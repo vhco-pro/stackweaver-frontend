@@ -28,6 +28,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { Button } from '@/components/ui/button';
 import { ThemeToggle } from '@/components/ThemeToggle';
+import { UserAvatar } from '@/components/UserAvatar';
 
 interface NavItem {
   label: string;
@@ -275,8 +276,14 @@ export function Sidebar({ isOpen = false, onClose, collapsed = false, onToggleCo
 
         {/* Mobile User Controls - only visible on mobile/tablet */}
         <div className="md:hidden border-t border-border/40 p-4 space-y-3">
-          {session?.user?.email && (
-            <div className="px-3 py-2 text-sm text-muted-foreground">
+          {session?.user && (
+            <div className="flex items-center gap-2 px-3 py-2 text-sm text-muted-foreground">
+              <UserAvatar
+                picture={session.user.picture}
+                name={session.user.name}
+                email={session.user.email}
+                size="sm"
+              />
               {session.user.email}
             </div>
           )}
