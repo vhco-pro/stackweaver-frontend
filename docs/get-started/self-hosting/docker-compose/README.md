@@ -1,3 +1,13 @@
+---
+description: "Docker Compose deployment guide covering services, configuration, and management"
+covers:
+  - "deploy/docker-compose.yml"
+  - "deploy/sso.env.example"
+  - "deploy/vcs.env.example"
+  - "deploy/oidc.env.example"
+  - "scripts/zitadel-init/**"
+---
+
 # Docker Compose Deployment
 
 This guide walks through deploying StackWeaver using Docker Compose on a single machine.

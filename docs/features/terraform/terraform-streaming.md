@@ -1,3 +1,10 @@
+---
+description: "Real-time Terraform plan and apply output streaming via SSE with persistent log storage"
+covers:
+  - "backend/cmd/runner/**"
+  - "core/queue/**"
+---
+
 # Terraform Output Streaming
 
 StackWeaver provides real-time, live streaming of Terraform output during plan and apply operations. Watch your infrastructure changes happen in real time without waiting for the entire operation to complete.

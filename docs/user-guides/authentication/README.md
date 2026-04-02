@@ -1,3 +1,8 @@
+---
+description: "Index page for authentication guides covering Zitadel setup, custom domain, and SSO"
+covers: []
+---
+
 # Authentication
 
 StackWeaver uses Zitadel as its OIDC identity provider. These guides cover setting up Zitadel, configuring a custom domain for production, and federating with an external identity provider via SSO.

@@ -1,3 +1,11 @@
+---
+description: "Step-by-step guide for configuring Azure AD / Entra ID as an SSO provider"
+covers:
+  - "scripts/zitadel-init/**"
+  - "deploy/sso.env.example"
+  - "deploy/helm/**"
+---
+
 # Azure AD / Entra ID SSO Setup
 
 This guide walks you through configuring Microsoft Azure AD (now Microsoft Entra ID) as an external identity provider for StackWeaver.

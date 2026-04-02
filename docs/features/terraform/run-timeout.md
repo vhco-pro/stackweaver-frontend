@@ -1,3 +1,9 @@
+---
+description: "Configurable apply timeout that auto-cancels long-running Terraform operations"
+covers:
+  - "backend/cmd/runner/**"
+---
+
 # Run Timeout
 
 StackWeaver includes a configurable timeout feature that automatically cancels long-running apply operations to prevent jobs from getting stuck indefinitely.

@@ -1,3 +1,8 @@
+---
+description: "Ansible integration index with feature status summary"
+covers: []
+---
+
 # Ansible Integration Documentation
 
 This directory contains the authoritative documentation for StackWeaver's Ansible integration.

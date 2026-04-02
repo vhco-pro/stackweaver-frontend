@@ -1231,6 +1231,24 @@ export function MarkdownRenderer({
           />
         );
       },
+      // Unwrap images from <p> to avoid invalid nesting (<figure> inside <p>).
+      // Markdown wraps standalone images in <p> by default, but DocImage may
+      // render a <figure> (when the image has a title), which is not valid inside <p>.
+      p: ({ children, ...props }: MarkdownBlockProps) => {
+        const childArray = Array.isArray(children) ? children : [children];
+        // If the paragraph contains only image(s) (ignoring whitespace strings), unwrap them
+        const nonWhitespace = childArray.filter(
+          (c) => !(typeof c === 'string' && c.trim() === ''),
+        );
+        const allImages = nonWhitespace.length > 0 && nonWhitespace.every((c) => {
+          if (typeof c !== 'object' || c === null) return false;
+          const el = c as ReactElementLike;
+          // Check for image elements by props (src is unique to images in markdown)
+          return el.props != null && typeof el.props === 'object' && 'src' in el.props;
+        });
+        if (allImages) return <>{children}</>;
+        return <p {...props}>{children}</p>;
+      },
       img: (props: MarkdownImageProps) => (
         <DocImage
           {...props}
@@ -1253,8 +1271,10 @@ export function MarkdownRenderer({
   const highlightedKeys = Object.keys(highlightedCode).sort().join(',');
   const markdownKey = `markdown-${highlightedKeys}`;
 
-  // Frontmatter metadata table
-  const hasMetaHeader = meta.status || meta.priority || meta.created || meta.updated || meta.author || meta.issue || meta.goal || meta['superseded-by'];
+  // Frontmatter metadata table — only rendered for internal docs (plans, analyses, etc.)
+  // User-facing docs use frontmatter for search/indexing only, not for display.
+  const isInternalDoc = docPath.startsWith('internal/');
+  const hasMetaHeader = isInternalDoc && (meta.status || meta.priority || meta.created || meta.updated || meta.author || meta.issue || meta.goal || meta['superseded-by']);
   const metaHeader = hasMetaHeader ? (() => {
     const s = meta.status ? getStatusStyle(String(meta.status)) : null;
     const statusLabel = meta.status ? String(meta.status).replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase()) : null;

@@ -1,3 +1,9 @@
+---
+description: "Guide for creating a Kubernetes image pull secret for GHCR private registry access"
+covers:
+  - "deploy/helm/**"
+---
+
 # Creating a Kubernetes Pull Secret for GHCR
 
 StackWeaver container images are hosted in the GitHub Container Registry (GHCR) under the private `vhco-pro` organisation. To pull these images in your Kubernetes cluster you need to request organisation access, create a GitHub personal access token, and register it as a Kubernetes pull secret.

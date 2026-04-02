@@ -1,3 +1,8 @@
+---
+description: "Top-level getting started guide with deployment options and setup steps"
+covers: []
+---
+
 # Get Started with StackWeaver
 
 Welcome to **StackWeaver**, the open-source DevOps platform for orchestrating infrastructure and configuration at scale. Whether you run it yourself or let us handle it, you'll be up and running in minutes.

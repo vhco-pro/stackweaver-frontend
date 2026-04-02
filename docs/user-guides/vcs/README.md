@@ -1,3 +1,8 @@
+---
+description: "Index page for VCS integration guides"
+covers: []
+---
+
 # VCS Integration
 
 Connect a version control system so StackWeaver can trigger Terraform runs from code pushes and pull requests.

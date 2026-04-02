@@ -1,3 +1,10 @@
+---
+description: "Design plan for inline code highlight styling in the docs viewer"
+covers:
+  - "frontend/src/index.css"
+  - "frontend/src/components/docs/MarkdownRenderer.tsx"
+---
+
 # Plan: Inline Code Highlight Redesign
 
 **Status:** Implemented: Indigo (Option C variant)

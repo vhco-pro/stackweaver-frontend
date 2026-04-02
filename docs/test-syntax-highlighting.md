@@ -1,3 +1,8 @@
+---
+description: "Test page for syntax highlighting, callout boxes, and code group rendering"
+covers: []
+---
+
 # Syntax Highlighting Test Page
 
 This page contains various code examples to test syntax highlighting with different languages and themes.

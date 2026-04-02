@@ -1,3 +1,10 @@
+---
+description: "How to cancel queued, planning, or applying Terraform runs and what happens to partial infrastructure changes"
+covers:
+  - "backend/cmd/runner/**"
+  - "core/queue/**"
+---
+
 # Run Cancellation
 
 StackWeaver allows you to cancel runs that are in progress, whether they're still queued, planning, or applying infrastructure changes.

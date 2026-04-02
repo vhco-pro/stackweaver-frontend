@@ -1,3 +1,10 @@
+---
+description: "Dashboard page documentation covering stats endpoint, organization cards, and getting-started guide"
+covers:
+  - "backend/internal/api/v2/handlers/dashboard*"
+  - "frontend/src/pages/Dashboard/**"
+---
+
 # Dashboard Documentation
 
 The user dashboard (`/dashboard`) is the main landing page for authenticated users in StackWeaver. It provides an overview of the user's infrastructure, operations, and quick access to common tasks.

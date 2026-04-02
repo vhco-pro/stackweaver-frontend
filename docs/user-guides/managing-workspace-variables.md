@@ -1,3 +1,10 @@
+---
+description: "Guide for setting up Terraform variables across workspaces, variable sets, and projects"
+covers:
+  - "core/services/variable/**"
+  - "backend/internal/api/v2/handlers/variable*"
+---
+
 # Managing Workspace Variables
 
 Learn how to set up, organize, and manage variables across your Terraform workspaces and projects.

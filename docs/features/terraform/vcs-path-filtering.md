@@ -1,3 +1,10 @@
+---
+description: "GitOps-style path filtering that triggers workspace runs only when files in the configured working directory change"
+covers:
+  - "core/vcs/**"
+  - "backend/cmd/orchestrator/**"
+---
+
 # VCS Path Filtering
 
 StackWeaver intelligently filters which workspaces should trigger runs based on which files actually changed in your repository. This GitOps-style filtering prevents unnecessary runs when multiple workspaces share the same repository but monitor different paths.
