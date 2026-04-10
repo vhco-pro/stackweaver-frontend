@@ -8,7 +8,7 @@ covers:
 # Kubernetes Deployment
 
 This guide walks through deploying StackWeaver on Kubernetes using the official Helm chart.
-The chart deploys all StackWeaver components and their dependencies (PostgreSQL, Redis, MinIO, Zitadel) in a single release.
+The chart deploys all StackWeaver components and their dependencies (PostgreSQL, Redis, Garage, Zitadel) in a single release.
 
 ## Prerequisites
 
@@ -32,7 +32,7 @@ The chart deploys the following resources.
 | Ansible Runner | Deployment | Executes Ansible playbooks |
 | PostgreSQL | StatefulSet | Database |
 | Redis | Deployment | Job queue and pubsub |
-| MinIO | StatefulSet | Object storage |
+| Garage | StatefulSet | S3-compatible object storage |
 | Zitadel | Deployment | OIDC identity provider |
 | Login UI | Deployment | Zitadel login interface |
 | Ingress (app) | Ingress | Routes frontend + API traffic |
@@ -62,7 +62,7 @@ helm install stackweaver oci://ghcr.io/vhco-pro/charts/stackweaver \
 ```
 
 That is it.
-The chart generates random secrets for PostgreSQL, MinIO, the encryption key, and Zitadel, and persists them in Kubernetes Secrets that survive upgrades and uninstalls.
+The chart generates random secrets for PostgreSQL, storage, the encryption key, and Zitadel, and persists them in Kubernetes Secrets that survive upgrades and uninstalls.
 
 The frontend is configured automatically; its API URL, Zitadel issuer, and OAuth2 redirect URI are all derived from the ingress host names.
 
@@ -167,11 +167,11 @@ kubectl create secret generic my-db-secret \
   --namespace $NAMESPACE \
   --from-literal=password="$(openssl rand -base64 24)"
 
-# MinIO credentials
-kubectl create secret generic my-minio-secret \
+# Storage credentials (Garage format: access-key = GK + 24 hex, secret-key = 64 hex)
+kubectl create secret generic my-storage-secret \
   --namespace $NAMESPACE \
-  --from-literal=access-key=minioadmin \
-  --from-literal=secret-key="$(openssl rand -base64 32)"
+  --from-literal=access-key="GK$(openssl rand -hex 12)" \
+  --from-literal=secret-key="$(openssl rand -hex 32)"
 
 # Encryption key (32-byte hex string)
 kubectl create secret generic my-encryption-secret \
@@ -198,8 +198,8 @@ Reference them in your values file.
 secrets:
   postgresql:
     secretName: my-db-secret
-  minio:
-    secretName: my-minio-secret
+  storage:
+    secretName: my-storage-secret
   encryption:
     secretName: my-encryption-secret
   zitadel:
@@ -237,7 +237,7 @@ Each secret must contain specific keys. If a key is missing, the dependent pods 
 | Secret | Required keys | Configurable via |
 |---|---|---|
 | PostgreSQL | `password` | `secrets.postgresql.keys.password` |
-| MinIO | `access-key`, `secret-key` | `secrets.minio.keys.accessKey`, `secrets.minio.keys.secretKey` |
+| Storage | `access-key`, `secret-key` | `secrets.storage.keys.accessKey`, `secrets.storage.keys.secretKey` |
 | Encryption | `encryption-key` | `secrets.encryption.keys.key` |
 | Zitadel (bundled) | `masterkey`, `admin-password`, `admin-username` (derived keys filled by sidecar) | `secrets.zitadel.keys.*` |
 | Zitadel (external) | `client-id`, `client-secret`, `frontend-client-id`, `login-service-user-token` | `secrets.zitadel.keys.*` |
@@ -279,9 +279,47 @@ The generated `env.js` sets these values:
 | `VITE_ZITADEL_REDIRECT_URI` | `https://<ingress.hosts.app>/auth/callback` |
 | `VITE_ZITADEL_CLIENT_ID` | `secrets.zitadel` Secret (injected at pod start) |
 
+## Deploying Without Ingress (localhost / port-forward)
+
+For local testing or environments without an ingress controller, disable ingress and override the Zitadel domain configuration.
+
+```yaml
+ingress:
+  enabled: false
+
+# Override Zitadel's ExternalDomain (normally derived from ingress.hosts.auth)
+zitadel:
+  config:
+    ExternalDomain: localhost
+    ExternalPort: 8080
+    ExternalSecure: false
+    # Without a reverse proxy handling TLS, Zitadel must use plain HTTP URLs
+    tlsMode: disabled
+    # Without ingress path routing, the Login UI is on a separate port
+    loginUIBaseURL: "http://localhost:3000/ui/v2/login"
+
+# Override frontend env vars (normally derived from ingress hosts)
+frontend:
+  env:
+    VITE_API_URL: "http://localhost:8022/api/v2"
+    VITE_ZITADEL_ISSUER: "http://localhost:8080"
+    VITE_ZITADEL_REDIRECT_URI: "http://localhost:5173/auth/callback"
+```
+
+Access the services via `kubectl port-forward`:
+
+```bash
+kubectl port-forward -n stackweaver svc/stackweaver-frontend 5173:8080 &
+kubectl port-forward -n stackweaver svc/stackweaver-api 8022:8022 &
+kubectl port-forward -n stackweaver svc/stackweaver-zitadel 8080:8080 &
+kubectl port-forward -n stackweaver svc/stackweaver-login-ui 3000:3000 &
+```
+
+Then open `http://localhost:5173`.
+
 ## Using External Dependencies
 
-To use an existing PostgreSQL, Redis, or MinIO instance instead of the bundled ones, disable the in-cluster deployment and provide external connection details.
+To use an existing PostgreSQL, Redis, or S3-compatible storage instance instead of the bundled ones, disable the in-cluster deployment and provide external connection details.
 
 ```yaml
 # External PostgreSQL
@@ -301,22 +339,21 @@ redis:
     host: my-redis.example.com
     port: 6379
 
-# External MinIO / S3
-minio:
+# External S3-compatible storage (AWS S3, R2, B2, MinIO, etc.)
+garage:
   enabled: false
-  external:
-    endpoint: s3.amazonaws.com
-    useSSL: true
 
 storage:
-  provider: s3
-  s3:
-    region: eu-west-1
+  bucket: stackweaver
+  region: eu-west-1
+  endpoint: ""          # empty = AWS default
+  useSSL: true
+  forcePathStyle: false
 ```
 
 ## Custom CA Certificates
 
-If your Zitadel instance (or any other upstream service such as an external MinIO or PostgreSQL endpoint) is signed by an internal or corporate certificate authority, the Go services will refuse TLS connections with an error like `x509: certificate signed by unknown authority`.
+If your Zitadel instance (or any other upstream service such as an external S3-compatible storage or PostgreSQL endpoint) is signed by an internal or corporate certificate authority, the Go services will refuse TLS connections with an error like `x509: certificate signed by unknown authority`.
 
 To fix this, provide the CA certificate to the chart using one of three approaches.
 
@@ -424,7 +461,7 @@ helm uninstall stackweaver --namespace stackweaver
 ```
 
 Auto-generated secrets are **not** deleted on uninstall (due to `helm.sh/resource-policy: keep`).
-PersistentVolumeClaims for PostgreSQL, MinIO, and runner workspaces are also not deleted automatically.
+PersistentVolumeClaims for PostgreSQL, Garage, and runner workspaces are also not deleted automatically.
 Remove them manually if no longer needed.
 
 > [!WARNING]
@@ -464,7 +501,7 @@ This happens if you ran `kubectl create secret generic` commands manually and th
 To resolve, delete the conflicting secrets and re-run the install. Helm will recreate them with the correct field manager.
 
 ```bash
-kubectl delete secret stackweaver-zitadel stackweaver-minio \
+kubectl delete secret stackweaver-zitadel stackweaver-storage \
   stackweaver-postgresql stackweaver-encryption \
   -n stackweaver
 ```

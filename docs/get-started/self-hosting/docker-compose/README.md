@@ -38,7 +38,7 @@ cp .env.example .env
 docker compose up -d
 ```
 
-This starts all services (PostgreSQL, Redis, MinIO, Zitadel, the API, frontend, orchestrator, runners) using Docker Compose with `network_mode: host`.
+This starts all services (PostgreSQL, Redis, Garage, Zitadel, the API, frontend, orchestrator, runners) using Docker Compose with `network_mode: host`.
 The first run takes a few minutes while Zitadel initialises and the `zitadel-init` container generates credentials.
 
 You can follow the init progress with the following command.
@@ -62,8 +62,7 @@ All services run on the host network (`network_mode: host`), so they communicate
 | Login UI | 3000 | Zitadel login interface |
 | PostgreSQL | 5432 | Database |
 | Redis | 6379 | Job queue and pubsub |
-| MinIO | 9000 | Object storage (state, configs, registry) |
-| MinIO Console | 9001 | MinIO web UI |
+| Garage | 3900 | S3-compatible object storage (state, configs, registry) |
 
 The orchestrator, Terraform runner, and Ansible runner do not expose ports. They communicate via the Redis queue and PostgreSQL.
 
@@ -153,7 +152,7 @@ Docker Compose uses named volumes for persistent data.
 | Volume | Data | Critical? |
 |---|---|---|
 | `postgres_data` | Database (all application state) | Yes; back up regularly |
-| `minio_data` | Object storage (Terraform state, configs, registry) | Yes; back up regularly |
+| `garage_data` | Object storage (Terraform state, configs, registry) | Yes; back up regularly |
 | `runner-workspaces` | Temporary workspace files | No; recreated on runs |
 | `zitadel-pat` | Zitadel admin PAT (shared with init job) | No; regenerated on init |
 
@@ -177,7 +176,7 @@ If a release includes breaking changes, the release notes will contain specific 
 
 ## Troubleshooting
 
-**Services fail to start**: Check that all required ports are free. `ss -tlnp | grep -E '5173|8022|8080|5432|6379|9000'` shows any conflicts.
+**Services fail to start**: Check that all required ports are free. `ss -tlnp | grep -E '5173|8022|8080|5432|6379|3900'` shows any conflicts.
 
 **Zitadel init fails**: The `zitadel-init` container needs Zitadel to be fully ready. Check `docker compose logs zitadel-init` and restart it with `docker compose restart zitadel-init`.
 

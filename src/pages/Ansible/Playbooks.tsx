@@ -3,7 +3,7 @@
 // eslint-disable-next-line no-restricted-imports -- legitimate dependency-based effect
 import { useEffect, useState, useRef } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Link, useParams, useNavigate } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { usePermissions } from '@/hooks/usePermissions';
 import { ansiblePlaybooksApi, type AnsiblePlaybook } from '@/api/ansible';
@@ -55,11 +55,11 @@ import {
   Eye,
   Clock,
   CheckCircle2,
-  ExternalLink,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { getVcsProviderIcon, getVcsProviderLabel, getVcsRepoUrl, getVcsBranchUrl, getVcsFileUrl, getVcsManageUrl } from '@/lib/vcs';
+import { VCSProviderSelector } from '@/components/vcs/VCSProviderSelector';
 
 // Simple relative time formatter
 function formatRelativeTime(dateString: string): string {
@@ -83,7 +83,6 @@ export default function Playbooks() {
   const { currentOrg } = useOrganization();
   const selectedOrg = orgName || currentOrg?.name || '';
   const queryClient = useQueryClient();
-  const navigate = useNavigate();
   const { canManagePlaybooks } = usePermissions(selectedOrg);
 
   const [searchQuery, setSearchQuery] = useState('');
@@ -425,27 +424,6 @@ export default function Playbooks() {
     }
   };
 
-  const handleConnectGitHub = async () => {
-    try {
-      const redirectUrl = `${window.location.origin}/app/${selectedOrg}/ansible/playbooks`;
-      const response = await vcsConnectionsApi.initiateInstallationWithRedirect(selectedOrg, redirectUrl);
-      const installUrl = response?.install_url;
-
-      if (installUrl) {
-        localStorage.setItem('pendingPlaybookDialog', JSON.stringify({
-          orgName: selectedOrg,
-          timestamp: Date.now(),
-        }));
-        window.location.href = installUrl;
-      } else {
-        toast.error('Failed to get GitHub App installation URL');
-      }
-    } catch (error: unknown) {
-      console.error('Failed to initiate GitHub App installation:', error);
-      toast.error(error instanceof Error ? error.message : 'Failed to initiate GitHub App installation');
-    }
-  };
-
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
@@ -713,7 +691,7 @@ export default function Playbooks() {
               />
             </div>
 
-            {/* VCS Connection - Reuses same pattern as Terraform Workspaces */}
+            {/* VCS Connection */}
             <div className="space-y-2">
               <Label>VCS Connection *</Label>
               {loadingVCS ? (
@@ -722,35 +700,19 @@ export default function Playbooks() {
                   Loading VCS connections...
                 </div>
               ) : vcsConnections.length === 0 ? (
-                <div className="space-y-3">
-                  <div className="p-4 border rounded-lg bg-gray-50 dark:bg-gray-900/50">
-                    <p className="text-sm text-muted-foreground mb-3">
-                      No VCS connections configured. Connect a VCS provider in Settings to link repositories.
-                    </p>
-                    <div className="flex gap-2">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => { void handleConnectGitHub(); }}
-                        className="flex-1"
-                      >
-                        {getVcsProviderIcon('github', 'h-4 w-4 mr-2')}
-                        Connect GitHub
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => { void navigate(`/app/${selectedOrg}/settings/vcs`); }}
-                        className="flex-1"
-                      >
-                        <ExternalLink className="h-4 w-4 mr-2" />
-                        VCS Settings
-                      </Button>
-                    </div>
-                  </div>
-                </div>
+                <VCSProviderSelector
+                  orgName={selectedOrg}
+                  selectedConnectionId={undefined}
+                  onConnectionSelect={(id) => {
+                    setCreateForm({
+                      ...createForm,
+                      vcs_connection_id: id || '',
+                      vcs_repository: '',
+                      vcs_branch: '',
+                    });
+                  }}
+                  showConfigureOption={false}
+                />
               ) : (
                 <div className="space-y-2">
                   {vcsConnections.map((conn) => (
@@ -792,11 +754,11 @@ export default function Playbooks() {
                     type="button"
                     variant="ghost"
                     size="sm"
-                    onClick={() => { void navigate(`/app/${selectedOrg}/settings/vcs`); }}
+                    onClick={() => { window.open(`/app/${selectedOrg}/settings/vcs-connections`, '_blank'); }}
                     className="w-full text-xs"
                   >
                     <Plus className="h-3 w-3 mr-2" />
-                    Connect a different VCS provider
+                    Connect to a different VCS
                   </Button>
                 </div>
               )}

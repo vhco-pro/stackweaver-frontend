@@ -32,7 +32,7 @@ flowchart TB
     subgraph DataLayer["Data & Storage"]
         PG["PostgreSQL<br/>(Metadata)"]
         Redis["Redis<br/>(Queue/Logs)"]
-        MinIO["MinIO<br/>(Storage)"]
+        Garage["Garage<br/>(S3 Storage)"]
     end
 
     subgraph Runners["Runner Services"]
@@ -51,10 +51,10 @@ flowchart TB
     Frontend -->|API Requests with Bearer Token| Backend
     Backend --> PG
     Backend --> Redis
-    Backend --> MinIO
+    Backend --> Garage
     PG --> Runners
     Redis --> Runners
-    MinIO --> Runners
+    Garage --> Runners
     Runners --> Zitadel
 ```
 
@@ -64,7 +64,7 @@ flowchart TB
 
 - **Workspace Management**: Full TFE-compatible workspace lifecycle
 - **Run Execution**: Plan, apply, and destroy operations
-- **State Management**: Versioned state storage in MinIO
+- **State Management**: Versioned state storage in S3-compatible storage
 - **Variable Management**: Workspace and variable set support
 - **Registry**: Private module and provider registry
 - **VCS Integration**: GitHub App and Azure DevOps for automatic configuration sync
@@ -120,7 +120,7 @@ flowchart TB
 - **Authentication**: Zitadel OIDC JWT verification
 - **Database**: PostgreSQL
 - **Cache/Queue**: Redis (queues, log buffering)
-- **Storage**: MinIO (S3-compatible object storage)
+- **Storage**: Garage (S3-compatible object storage)
 
 **Key Features**:
 - RESTful API design (v2 primary)
@@ -139,7 +139,7 @@ flowchart TB
 - `models/` - GORM database models (Terraform, Ansible, Registry)
 - `repository/` - Data access layer (CRUD per model)
 - `queue/` - Redis job queue (LPush/BRPop pattern)
-- `storage/` - MinIO/S3 object storage interface
+- `storage/` - S3-compatible object storage interface
 - `vcs/` - VCS interfaces + github/ + gitlab/
 - `plugins/` - Plugin interfaces + terraform/
 - `crypto/` - Encryption utilities
@@ -323,7 +323,7 @@ sequenceDiagram
     participant User
     participant API
     participant Database
-    participant MinIO as MinIO Storage
+    participant Garage as S3 Storage
     participant Redis as Redis Queue
     participant Orchestrator
     participant TFRunner as Terraform Runner
@@ -332,17 +332,17 @@ sequenceDiagram
 
     User->>API: Create Run (API or UI)
     API->>Database: Store Run (pending)
-    API->>MinIO: Upload Config Version
+    API->>Garage: Upload Config Version
     API->>Redis: Enqueue Run
     Orchestrator->>Redis: Pick Up Run
     Orchestrator->>TFRunner: Assign Run
-    TFRunner->>MinIO: Download Configuration
-    MinIO-->>TFRunner: Configuration
+    TFRunner->>Garage: Download Configuration
+    Garage-->>TFRunner: Configuration
     TFRunner->>TFRunner: Execute (plan/apply/destroy)
     TFRunner->>LogBuffer: Stream Logs
     Frontend->>LogBuffer: Poll for Live Output
     LogBuffer-->>Frontend: Live Logs
-    TFRunner->>MinIO: Upload State Version
+    TFRunner->>Garage: Upload State Version
     TFRunner->>Database: Update Run Status
     TFRunner-->>Orchestrator: Complete
     Frontend->>Frontend: Final Status Update
@@ -353,7 +353,7 @@ sequenceDiagram
 
 1. User creates run via API or UI
 2. Run stored in database with `pending` status
-3. Configuration version uploaded to MinIO storage
+3. Configuration version uploaded to S3-compatible storage
 4. Orchestrator picks up run from Redis queue
 5. Orchestrator assigns run to available Terraform runner
 6. Runner downloads configuration from storage
@@ -445,7 +445,7 @@ sequenceDiagram
 - **Encryption in Transit**: TLS for all connections
 - **Sensitive Variables**: Encrypted in database using AES-256-GCM
 - **Ansible Credentials**: Encrypted in database using AES-256-GCM
-- **Storage**: MinIO provides encryption at rest (configurable)
+- **Storage**: S3-compatible storage provides encryption at rest (configurable)
 
 ## Deployment Architecture
 
@@ -462,7 +462,7 @@ flowchart TB
     subgraph DataTier["Data Tier"]
         PostgreSQL["PostgreSQL<br/>:5432"]
         Redis["Redis<br/>:6379"]
-        MinIO["MinIO<br/>:9000"]
+        Garage["Garage<br/>:3900"]
     end
 
     subgraph UIServices["UI Services"]
@@ -487,7 +487,7 @@ flowchart TB
     subgraph DataTier["Data Tier"]
         PostgreSQL["PostgreSQL<br/>Primary + Replicas"]
         Redis["Redis<br/>Cluster"]
-        MinIO["MinIO<br/>Cluster"]
+        Garage["S3 Storage<br/>(Garage / External)"]
     end
 
     LB --> Frontend
@@ -495,7 +495,7 @@ flowchart TB
     LB --> Zitadel
     API --> PostgreSQL
     API --> Redis
-    API --> MinIO
+    API --> Garage
 ```
 
 ## Technology Choices
@@ -560,7 +560,7 @@ flowchart TB
 
 ## Additional Components
 
-### Storage (MinIO)
+### Storage (Garage / S3-compatible)
 
 - **Purpose**: Object storage for Terraform state, configuration versions, and registry artifacts
 - **Implementation**: S3-compatible interface
@@ -615,7 +615,7 @@ flowchart TB
 
 - **IaC Plugins**: Pulumi, OpenTofu
 - **VCS Plugins**: GitLab, Bitbucket, Gitea
-- **Storage Plugins**: S3, Azure Blob, GCS (beyond MinIO)
+- **Storage Plugins**: Azure Blob, GCS (beyond S3-compatible)
 - **Notification Plugins**: Slack, Email, Webhooks
 
 ## References

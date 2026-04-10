@@ -193,8 +193,23 @@ export function useAuth() {
     );
     
     if (isHMR) {
-      // Return a safe fallback during HMR to prevent crashes
-      console.warn('useAuth: Context undefined during HMR, returning fallback');
+      // During HMR, preserve the session from localStorage to prevent logout.
+      // The AuthProvider will re-mount and call checkSession() to restore the
+      // full session — this fallback just keeps API calls working in the meantime.
+      const storedToken = localStorage.getItem('zitadel_access_token');
+      if (storedToken) {
+        return {
+          session: {
+            id: 'hmr-fallback',
+            user: { id: 'hmr-fallback', email: '', name: '' },
+            access_token: storedToken,
+          },
+          loading: false,
+          logout: () => { clearTokens(); window.location.href = '/auth/login'; return Promise.resolve(); },
+          refresh: async () => {},
+          login: async () => {},
+        };
+      }
       return {
         session: null,
         loading: true,

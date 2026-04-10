@@ -1,0 +1,8 @@
+distribution/
+frontend/node_modules/
+.git/
+docker-release-action/
+.playwright-mcp/
+.tmp/
+logger/
+docs/internal/
