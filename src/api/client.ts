@@ -358,6 +358,7 @@ function organizationFromJsonApi(item: JsonApiResource): Organization {
     id: (item.id ?? name),
     name,
     description: item.attributes?.description,
+    default_terraform_version: (item.attributes?.['default-terraform-version'] ?? undefined) as string | undefined,
     created_at: (item.attributes?.['created-at'] ?? '') as string,
     updated_at: (item.attributes?.['updated-at'] ?? '') as string,
   };

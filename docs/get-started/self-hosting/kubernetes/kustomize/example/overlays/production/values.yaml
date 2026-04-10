@@ -14,8 +14,7 @@
 # ── Global ────────────────────────────────────────────────────────────────────
 
 global:
-  imagePullSecrets:
-    - name: ghcr-vhco-secret
+  imagePullSecrets: []
 nameOverride: ""
 fullnameOverride: ""
 # ── Service Account ───────────────────────────────────────────────────────────
@@ -34,8 +33,15 @@ serviceAccount:
 ingress:
   enabled: true
   className: nginx
-  provider: nginx-inc       # nginx-inc | community-nginx | traefik | none
+  # Ingress controller provider — selects annotation presets.
+  # Options: nginx-inc | community-nginx | traefik | none
+  #   nginx-inc:        NGINX Inc ingress controller (nginx.org/* annotations) — default
+  #   community-nginx:  Community NGINX ingress controller (nginx.ingress.kubernetes.io/*) — sunset project
+  #   traefik:          Traefik ingress controller (minimal annotations; use middleware CRDs for advanced config)
+  #   none:             No controller-specific annotations — supply everything via annotations/appAnnotations/authAnnotations
+  provider: nginx-inc
   annotations: {}
+  # Per-ingress annotation overrides (merged on top of provider presets + annotations)
   appAnnotations: {}
   authAnnotations: {}
   tls:
@@ -67,9 +73,11 @@ secrets:
     secretName: ""
     keys:
       password: password
-  # MinIO / S3 credentials
-  # Auto-generates access-key ("minioadmin") + random secret-key when empty.
-  minio:
+  # Storage / S3 credentials (only used when storage.auth=credentials)
+  # When garage.enabled=true AND secretName is empty, auto-generates credentials
+  # that match the bundled Garage init. When using external S3, provide your own secret.
+  # Ignored entirely when storage.auth=pod-identity.
+  storage:
     secretName: ""
     keys:
       accessKey: access-key
@@ -90,6 +98,7 @@ secrets:
     keys:
       masterkey: masterkey
       adminPassword: admin-password
+      adminUsername: admin-username
       clientId: client-id
       clientSecret: client-secret
       loginServiceUserToken: login-service-user-token
@@ -115,7 +124,7 @@ api:
   image:
     repository: ghcr.io/vhco-pro/stackweaver-api
     tag: latest
-    pullPolicy: Always
+    pullPolicy: IfNotPresent
   replicas: 1
   port: 8022
   server:
@@ -141,14 +150,14 @@ api:
   githubApp:
     id: ""
     name: ""
-# -- Frontend (nginx-served SPA, port 80) --
+# -- Frontend (Chainguard nginx SPA, port 8080 — non-root) --
 frontend:
   image:
     repository: ghcr.io/vhco-pro/stackweaver-frontend
     tag: latest
-    pullPolicy: Always
+    pullPolicy: IfNotPresent
   replicas: 1
-  port: 80
+  port: 8080
   resources:
     requests:
       cpu: 50m
@@ -166,7 +175,7 @@ orchestrator:
   image:
     repository: ghcr.io/vhco-pro/stackweaver-orchestrator
     tag: latest
-    pullPolicy: Always
+    pullPolicy: IfNotPresent
   replicas: 1
   resources:
     requests:
@@ -188,7 +197,7 @@ runner:
   image:
     repository: ghcr.io/vhco-pro/stackweaver-runner
     tag: latest
-    pullPolicy: Always
+    pullPolicy: IfNotPresent
   replicas: 1
   resources:
     requests:
@@ -207,7 +216,7 @@ ansibleRunner:
   image:
     repository: ghcr.io/vhco-pro/stackweaver-ansible-runner
     tag: latest
-    pullPolicy: Always
+    pullPolicy: IfNotPresent
   replicas: 1
   resources:
     requests:
@@ -222,21 +231,27 @@ ansibleRunner:
   tolerations: []
   affinity: {}
 # ── Storage ───────────────────────────────────────────────────────────────────
+# All data (state, configs, registry, logs, ansible artifacts) is stored in a
+# single S3-compatible bucket. Any S3-compatible service works: AWS S3, R2, B2,
+# MinIO, Garage, DigitalOcean Spaces, etc.
+# When garage.enabled=true (default), the chart deploys a bundled Garage instance
+# and auto-configures storage to point to it. Set garage.enabled=false to use an
+# external S3-compatible service.
 storage:
-  # "minio" or "s3"
-  provider: minio
-  stateBucket: iac-state
-  registryBucket: terraform-registry
-  ansibleBucket: ansible-artifacts
-  s3:
-    region: us-east-1
-    endpoint: ""
+  bucket: stackweaver
+  region: garage
+  endpoint: ""
+  useSSL: false
+  forcePathStyle: true
+  # Authentication: "credentials" (default) or "pod-identity" (IRSA/Workload Identity)
+  auth: credentials
+  serviceAccountAnnotations: {}
 # ── Runner Workspaces PVC ─────────────────────────────────────────────────────
 runnerWorkspaces:
   size: 10Gi
   storageClass: ""
   accessMode: ReadWriteMany
-  existingClaim: "runner-workspaces-pvc"
+  existingClaim: ""  # if set, skip PVC creation and use this pre-existing claim name
 # ── Dependencies ──────────────────────────────────────────────────────────────
 #
 # For each dependency, set enabled=true to deploy it in-cluster (bundled),
@@ -286,17 +301,19 @@ redis:
   external:
     host: ""
     port: 6379
-# -- MinIO --
-minio:
+# -- Garage (bundled S3-compatible storage) --
+# Lightweight, self-hosted, S3-compatible object store. Deployed by default.
+# Set enabled=false when using AWS S3, Cloudflare R2, or another external service.
+garage:
   enabled: true
   image:
-    repository: minio/minio
-    tag: latest
+    repository: dxflrs/garage
+    tag: v2.2.0
   storage:
     size: 10Gi
     storageClass: ""
-    existingClaim: ""  # if set, skip volumeClaimTemplate and use this pre-existing PVC
-    volumeName: ""     # if set, bind the new PVC to this specific pre-existing PV
+    existingClaim: ""
+    volumeName: ""
   resources:
     requests:
       cpu: 100m
@@ -304,32 +321,22 @@ minio:
     limits:
       cpu: 500m
       memory: 512Mi
-  consolePort: 9001
-  external:
-    endpoint: ""
-    useSSL: false
 # -- Zitadel (OIDC Identity Provider) --
 # Zitadel is REQUIRED — the stack cannot function without it.
 # Set bundled=true to deploy Zitadel in this chart, or bundled=false to use
 # an external Zitadel instance. In both cases, provide credentials in secrets.zitadel.
 zitadel:
   bundled: true
-  pat:
-    existingClaim: "zitadel-pat-pvc"
-    size: 1Mi
-    storageClass: ""
-    accessMode: ReadWriteMany
   image:
     repository: ghcr.io/zitadel/zitadel
     tag: latest
-    pullPolicy: IfNotPresent
   resources:
     requests:
-      cpu: 100m
-      memory: 256Mi
-    limits:
       cpu: 500m
       memory: 512Mi
+    limits:
+      cpu: "2"
+      memory: 1Gi
   config:
     accessTokenLifetime: 12h
     idTokenLifetime: 12h
@@ -350,9 +357,19 @@ zitadel:
     image:
       repository: ghcr.io/vhco-pro/stackweaver-zitadel-init
       tag: latest
-      pullPolicy: Always
-    adminUsername: "admin@ZITADEL.localhost"
-    resources: {}
+      pullPolicy: IfNotPresent
+    # Email address for the initial Zitadel admin account.
+    # Written to the zitadel secret under "admin-username" so operators can discover it
+    # without reading the docs. Only effective on first install — changing after
+    # install has no effect (Zitadel FirstInstance config only runs once).
+    adminUsername: "admin@stackweaver.local"
+    resources:
+      requests:
+        cpu: 50m
+        memory: 64Mi
+      limits:
+        cpu: 200m
+        memory: 256Mi
   # External Zitadel settings (when bundled=false)
   external:
     # Public issuer URL (e.g. https://auth.example.com)
@@ -364,6 +381,65 @@ oidc:
   # Issuer URL for OIDC workload identity tokens (non-secret, can be left empty)
   issuerUrl: ""
 # ── SSO Configuration ─────────────────────────────────────────────────────────
+#
+# Configure an external identity provider for SSO login.
+# Only one of azureAd or oidcProvider can be active at a time (oidcProvider
+# covers Okta, AWS Cognito, and any generic OIDC provider).
+# Azure AD can be used alongside one oidcProvider.
+#
+# Non-secret values (client IDs, tenant ID, issuer URL) are set inline.
+# Secret values (client secrets) must be provided in a pre-existing K8s Secret.
 sso:
   enableOidcTeamSync: false
   oidcRemoveFromNonSsoTeams: false
+  # Azure AD / Entra ID
+  azureAd:
+    clientId: ""
+    tenantId: ""
+  # Generic OIDC provider (Okta, AWS Cognito, Keycloak, etc.)
+  oidcProvider:
+    name: ""       # Display name on the login button (e.g. "Okta", "AWS Cognito")
+    issuer: ""     # OIDC issuer URL (must serve /.well-known/openid-configuration)
+    clientId: ""
+  # Pre-existing K8s Secret containing SSO client secrets.
+  # Both keys are needed if you configure Azure AD and a Generic OIDC provider simultaneously.
+  secretName: ""
+  # Key names within the Secret. Override these if your existing Secret uses
+  # different key names (e.g. from External Secrets Operator or Sealed Secrets).
+  keys:
+    azureAdClientSecret: azure-ad-client-secret
+    oidcProviderClientSecret: oidc-idp-client-secret
+# ── Custom CA Certificates ─────────────────────────────────────────────────
+#
+# Mount a custom CA certificate bundle into all Go service containers.
+# Required when an upstream service (e.g. an external Zitadel instance) is
+# signed by an internal/corporate CA not present in the default system trust
+# store — which causes "x509: certificate signed by unknown authority" errors.
+#
+# Three source options (evaluated in priority order):
+#
+#   existingSecret    — name of a pre-existing Kubernetes Secret
+#   existingConfigMap — name of a pre-existing Kubernetes ConfigMap
+#   cert              — PEM-encoded certificate(s) pasted inline; the chart
+#                       creates a ConfigMap from this value automatically
+#
+# The cert is mounted at /etc/ssl/certs/custom-ca.crt via subPath (so the
+# system cert directory is not replaced). Go's crypto/x509 package scans
+# /etc/ssl/certs/ automatically on Linux, so no extra env vars are needed.
+customCA:
+  # Inline PEM-encoded CA certificate(s). The chart creates a ConfigMap from
+  # this value. Ignored when existingSecret or existingConfigMap is set.
+  # Example (use | to preserve newlines in YAML):
+  #   cert: |
+  #     -----BEGIN CERTIFICATE-----
+  #     ...
+  #     -----END CERTIFICATE-----
+  cert: ""
+  # Name of a pre-existing Kubernetes ConfigMap containing the CA cert.
+  # Ignored when existingSecret is set.
+  existingConfigMap: ""
+  # Name of a pre-existing Kubernetes Secret containing the CA cert.
+  # Takes highest priority when set.
+  existingSecret: ""
+  # Key within the Secret or ConfigMap that holds the PEM-encoded cert(s).
+  key: ca.crt

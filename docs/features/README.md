@@ -29,7 +29,7 @@ Path-based filtering ensures that workspaces only trigger when files in their co
 
 ### State & Execution Management
 
-Terraform state is stored securely with versioning in the MinIO backend. State locking prevents concurrent applies that could corrupt your infrastructure state. Plan, apply, and destroy operations execute with full output streaming, while Ansible job runs provide real-time output and event tracking for complete visibility into automation workflows.
+Terraform state is stored securely with versioning in S3-compatible storage. State locking prevents concurrent applies that could corrupt your infrastructure state. Plan, apply, and destroy operations execute with full output streaming, while Ansible job runs provide real-time output and event tracking for complete visibility into automation workflows.
 
 ## Terraform Features
 

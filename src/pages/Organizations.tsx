@@ -358,21 +358,23 @@ export default function Organizations() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Delete Organization</DialogTitle>
-            <DialogDescription>
-              This action cannot be undone. This will permanently delete the organization "{organizationToDelete?.name}" 
-              and all associated resources including:
-              <ul className="list-disc list-inside mt-2 space-y-1 text-sm">
-                <li>All projects and workspaces</li>
-                <li>All runs, state versions, and configuration versions</li>
-                <li>All VCS connections</li>
-                <li>All variable sets</li>
-                <li>All registry modules and providers</li>
-                <li>All Ansible resources (workflows, inventories, credentials, schedules)</li>
-                <li>All GPG keys and API keys</li>
-              </ul>
-              <p className="mt-4 font-semibold">
-                To confirm, please type <strong>{organizationToDelete?.name}</strong> below:
-              </p>
+            <DialogDescription asChild>
+              <div className="text-sm text-muted-foreground">
+                This action cannot be undone. This will permanently delete the organization &quot;{organizationToDelete?.name}&quot;
+                and all associated resources including:
+                <ul className="list-disc list-inside mt-2 space-y-1 text-sm">
+                  <li>All projects and workspaces</li>
+                  <li>All runs, state versions, and configuration versions</li>
+                  <li>All VCS connections</li>
+                  <li>All variable sets</li>
+                  <li>All registry modules and providers</li>
+                  <li>All Ansible resources (workflows, inventories, credentials, schedules)</li>
+                  <li>All GPG keys and API keys</li>
+                </ul>
+                <p className="mt-4 font-semibold">
+                  To confirm, please type <strong>{organizationToDelete?.name}</strong> below:
+                </p>
+              </div>
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">

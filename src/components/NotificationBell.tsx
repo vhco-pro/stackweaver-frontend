@@ -15,8 +15,10 @@ import {
 import { activitiesApi, type Activity } from '@/api/client';
 import { cn } from '@/lib/utils';
 import { Loader2 } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
 
 export function NotificationBell() {
+  const { session } = useAuth();
   const [lastSeenId, setLastSeenId] = useState<string | null>(() => {
     return localStorage.getItem('lastSeenActivityId');
   });
@@ -28,6 +30,7 @@ export function NotificationBell() {
       return response.data || [];
     },
     refetchInterval: 30000,
+    enabled: !!session,
   });
 
   const unseenCount = useMemo(() => {

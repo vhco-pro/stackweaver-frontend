@@ -26,6 +26,7 @@ import { toast } from 'sonner';
 import { Loader2, GitBranch, Plus, CheckCircle2 } from 'lucide-react';
 import { getVcsProviderIcon, getVcsProviderLabel } from '@/lib/vcs';
 import { registryApi, vcsConnectionsApi } from '@/api/client';
+import { VCSProviderSelector } from '@/components/vcs/VCSProviderSelector';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 
@@ -257,43 +258,12 @@ export function CreateModuleDialog({
                   Loading VCS connections...
                 </div>
               ) : vcsConnections.length === 0 ? (
-                <div className="space-y-3">
-                  <div className="p-4 border rounded-lg bg-gray-50 dark:bg-gray-900/50">
-                    <div className="flex items-start gap-3 mb-3">
-                      <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-gray-800 to-gray-900">
-                        {getVcsProviderIcon('github', 'h-5 w-5 text-white')}
-                      </div>
-                      <div className="flex-1">
-                        <h4 className="font-semibold text-sm mb-1">GitHub</h4>
-                        <p className="text-xs text-muted-foreground">GitHub App</p>
-                      </div>
-                    </div>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => {
-                        void (async () => {
-                          try {
-                            const redirectUrl = window.location.href;
-                            const response = await vcsConnectionsApi.initiateInstallationWithRedirect(orgName, redirectUrl);
-                            const installUrl = response?.install_url;
-                            if (installUrl) {
-                              window.location.href = installUrl;
-                            }
-                          } catch (err: unknown) {
-                            const message = err instanceof Error ? err.message : 'Failed to initiate GitHub App installation';
-                            toast.error(message);
-                          }
-                        })();
-                      }}
-                      className="w-full"
-                    >
-                      <Plus className="h-4 w-4 mr-2" />
-                      Connect GitHub
-                    </Button>
-                  </div>
-                </div>
+                <VCSProviderSelector
+                  orgName={orgName}
+                  selectedConnectionId={undefined}
+                  onConnectionSelect={(id) => setVcsConnectionId(id || '')}
+                  showConfigureOption={false}
+                />
               ) : (
                 <div className="space-y-2">
                   {vcsConnections.map((conn) => (
@@ -324,21 +294,7 @@ export function CreateModuleDialog({
                     type="button"
                     variant="ghost"
                     size="sm"
-                    onClick={() => {
-                      void (async () => {
-                        try {
-                          const redirectUrl = window.location.href;
-                          const response = await vcsConnectionsApi.initiateInstallationWithRedirect(orgName, redirectUrl);
-                          const installUrl = response?.install_url;
-                          if (installUrl) {
-                            window.location.href = installUrl;
-                          }
-                        } catch (err: unknown) {
-                          const message = err instanceof Error ? err.message : 'Failed to initiate GitHub App installation';
-                          toast.error(message);
-                        }
-                      })();
-                    }}
+                    onClick={() => { window.open(`/app/${orgName}/settings/vcs-connections`, '_blank'); }}
                     className="w-full text-xs"
                   >
                     <Plus className="h-3 w-3 mr-2" />

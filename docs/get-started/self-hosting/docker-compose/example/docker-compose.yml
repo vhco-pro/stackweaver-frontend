@@ -9,7 +9,8 @@
 
 volumes:
   postgres_data:
-  minio_data:
+  garage_data:
+  garage_meta:
   runner-workspaces:
   zitadel-pat:
 
@@ -46,22 +47,65 @@ services:
       retries: 5
     network_mode: host
 
-  minio:
-    image: minio/minio:latest
-    container_name: minio
+  garage:
+    image: dxflrs/garage:v2.2.0
+    container_name: garage
     restart: unless-stopped
-    environment:
-      MINIO_ROOT_USER: ${MINIO_ACCESS_KEY:-minioadmin}
-      MINIO_ROOT_PASSWORD: ${MINIO_SECRET_KEY:-minioadmin}
-    command: server /data --console-address ":9001"
     volumes:
-      - minio_data:/data
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
-      interval: 30s
-      timeout: 20s
-      retries: 7
+      - garage_data:/var/lib/garage/data
+      - garage_meta:/var/lib/garage/meta
+      - ./garage.toml:/etc/garage.toml:ro
     network_mode: host
+
+  garage-init:
+    image: alpine:3.23
+    container_name: garage-init
+    depends_on:
+      garage:
+        condition: service_started
+    restart: "no"
+    network_mode: host
+    volumes:
+      - ./garage.toml:/etc/garage.toml:ro
+      - garage_meta:/var/lib/garage/meta:ro
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        set -e
+        KEY_ID="$${STORAGE_ACCESS_KEY}"
+        KEY_SECRET="$${STORAGE_SECRET_KEY}"
+
+        # Download Garage CLI binary
+        ARCH=$$(uname -m)
+        wget -qO /usr/local/bin/garage \
+          "https://garagehq.deuxfleurs.fr/_releases/v2.2.0/$${ARCH}-unknown-linux-musl/garage"
+        chmod +x /usr/local/bin/garage
+
+        # Wait for Garage RPC
+        echo "Waiting for Garage..."
+        until garage status 2>/dev/null | grep -qi "Hostname"; do sleep 1; done
+        echo "Garage is ready"
+
+        # Get node ID
+        NODE_ID=$$(garage status 2>/dev/null | grep -v "^=\|^ID" | head -1 | awk '{print $$1}')
+
+        # Assign layout if not yet configured
+        CURRENT_VER=$$(garage layout show 2>/dev/null \
+          | grep "Current cluster layout version:" | awk '{print $$NF}' || echo "0")
+        if [ "$${CURRENT_VER}" = "0" ]; then
+          garage layout assign -z dc1 -c 1G "$${NODE_ID}"
+          garage layout apply --version 1
+        fi
+
+        # Import key, create bucket, grant access (all idempotent)
+        garage key import --yes -n stackweaver "$${KEY_ID}" "$${KEY_SECRET}" 2>/dev/null || true
+        garage bucket create stackweaver 2>/dev/null || true
+        garage bucket allow --read --write --owner stackweaver --key "$${KEY_ID}" 2>/dev/null || true
+
+        echo "Garage initialized successfully"
+    environment:
+      - STORAGE_ACCESS_KEY=${STORAGE_ACCESS_KEY:-GK000000000000000000000000}
+      - STORAGE_SECRET_KEY=${STORAGE_SECRET_KEY:-abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789}
 
   # ── Authentication ──────────────────────────────────────────────────
 
@@ -114,14 +158,14 @@ services:
   zitadel-init:
     image: ghcr.io/vhco-pro/stackweaver-zitadel-init:latest
     container_name: zitadel-init
-    user: "${UID:-1000}:${GID:-1000}"  # Image runs as nonroot; override to match host for volume writes
+    user: "${UID:-1000}:${GID:-1000}"
     env_file:
       - ./.env
       - ./sso.env
     environment:
       ZITADEL_ISSUER: ${ZITADEL_ISSUER:-http://localhost:8080}/ui/v2/login
       ZITADEL_INTERNAL_ADDR: localhost:8080
-      # Mount maps ./ to /config/deploy so zitadel-init writes .env here
+      ZITADEL_DOMAIN: ${ZITADEL_EXTERNAL_HOST:-localhost}
       PROJECT_ROOT: /config
       ZITADEL_ADMIN_USERNAME: admin@ZITADEL.localhost
       ZITADEL_ADMIN_PASSWORD: ${ZITADEL_ADMIN_PASSWORD:-Password1!}
@@ -129,8 +173,6 @@ services:
       ZITADEL_PAT: ${ZITADEL_PAT:-}
       ZITADEL_CUSTOM_DOMAINS: ${ZITADEL_CUSTOM_DOMAINS:-}
     volumes:
-      # Map current directory as deploy/ under PROJECT_ROOT so zitadel-init
-      # writes .env to ./ and reads zitadel-init.yaml from ./
       - .:/config/deploy
       - zitadel-pat:/pat:ro
     depends_on:
@@ -163,12 +205,15 @@ services:
       ZITADEL_WEBHOOK_COMPLEMENT_TOKEN_KEY: ${ZITADEL_WEBHOOK_COMPLEMENT_TOKEN_KEY:-}
       STACKWEAVER_APP_URL: ${STACKWEAVER_APP_URL:-http://localhost:5173}
       ANSIBLE_ENCRYPTION_KEY: ${ENCRYPTION_KEY:-00000000000000000000000000000000}
-      STORAGE_BACKEND: minio
-      STORAGE_BUCKET: terraform-registry
-      MINIO_ENDPOINT: localhost:9000
-      MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY:-minioadmin}
-      MINIO_SECRET_KEY: ${MINIO_SECRET_KEY:-minioadmin}
-      MINIO_USE_SSL: "false"
+      # Storage (Garage S3-compatible)
+      STORAGE_BACKEND: s3
+      STORAGE_ENDPOINT: localhost:3900
+      STORAGE_ACCESS_KEY: ${STORAGE_ACCESS_KEY:-GK000000000000000000000000}
+      STORAGE_SECRET_KEY: ${STORAGE_SECRET_KEY:-abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789}
+      STORAGE_BUCKET: stackweaver
+      STORAGE_REGION: garage
+      STORAGE_USE_SSL: "false"
+      STORAGE_FORCE_PATH_STYLE: "true"
       # GitHub App (optional — uncomment and configure to enable)
       # GITHUB_APP_ID: ${GITHUB_APP_ID:-}
       # GITHUB_APP_NAME: ${GITHUB_APP_NAME:-}
@@ -185,6 +230,8 @@ services:
       zitadel:
         condition: service_started
       zitadel-init:
+        condition: service_completed_successfully
+      garage-init:
         condition: service_completed_successfully
     healthcheck:
       test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8022/health"]
@@ -275,12 +322,15 @@ services:
       REDIS_PORT: "6379"
       REDIS_PASSWORD: ""
       REDIS_DB: "0"
-      STORAGE_BACKEND: minio
-      STORAGE_BUCKET: terraform-registry
-      MINIO_ENDPOINT: localhost:9000
-      MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY:-minioadmin}
-      MINIO_SECRET_KEY: ${MINIO_SECRET_KEY:-minioadmin}
-      MINIO_USE_SSL: "false"
+      # Storage (Garage S3-compatible)
+      STORAGE_BACKEND: s3
+      STORAGE_ENDPOINT: localhost:3900
+      STORAGE_ACCESS_KEY: ${STORAGE_ACCESS_KEY:-GK000000000000000000000000}
+      STORAGE_SECRET_KEY: ${STORAGE_SECRET_KEY:-abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789}
+      STORAGE_BUCKET: stackweaver
+      STORAGE_REGION: garage
+      STORAGE_USE_SSL: "false"
+      STORAGE_FORCE_PATH_STYLE: "true"
       ENCRYPTION_KEY: ${ENCRYPTION_KEY:-00000000000000000000000000000000}
     volumes:
       - runner-workspaces:/home/iac/workspaces
@@ -289,8 +339,8 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
-      minio:
-        condition: service_healthy
+      garage-init:
+        condition: service_completed_successfully
       orchestrator:
         condition: service_started
     network_mode: host
@@ -312,11 +362,15 @@ services:
       DATABASE_USER: ${POSTGRES_USER:-iac}
       DATABASE_PASSWORD: ${POSTGRES_PASSWORD:-iac_password}
       DATABASE_NAME: ${POSTGRES_DB:-iac_platform}
-      STORAGE_ENDPOINT: localhost:9000
-      STORAGE_ACCESS_KEY: ${MINIO_ACCESS_KEY:-minioadmin}
-      STORAGE_SECRET_KEY: ${MINIO_SECRET_KEY:-minioadmin}
-      STORAGE_BUCKET: ansible-artifacts
+      # Storage (Garage S3-compatible)
+      STORAGE_BACKEND: s3
+      STORAGE_ENDPOINT: localhost:3900
+      STORAGE_ACCESS_KEY: ${STORAGE_ACCESS_KEY:-GK000000000000000000000000}
+      STORAGE_SECRET_KEY: ${STORAGE_SECRET_KEY:-abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789}
+      STORAGE_BUCKET: stackweaver
+      STORAGE_REGION: garage
       STORAGE_USE_SSL: "false"
+      STORAGE_FORCE_PATH_STYLE: "true"
       ANSIBLE_ENCRYPTION_KEY: ${ENCRYPTION_KEY:-00000000000000000000000000000000}
       WORKSPACES_DIR: /home/iac/workspaces
       ANSIBLE_HOST_KEY_CHECKING: "false"
@@ -329,8 +383,8 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
-      minio:
-        condition: service_healthy
+      garage-init:
+        condition: service_completed_successfully
       api:
         condition: service_started
     network_mode: host

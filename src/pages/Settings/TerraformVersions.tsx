@@ -94,10 +94,8 @@ export default function TerraformVersions() {
   const { data: orgDefaultVersion = '' } = useQuery({
     queryKey: ['orgDefaultTerraformVersion', orgName],
     queryFn: async () => {
-      const res = await organizationsApi.get(orgName!);
-      const org = res as unknown as { data?: { attributes?: Record<string, unknown> } };
-      const defaultVersion = org.data?.attributes?.['default-terraform-version'];
-      return typeof defaultVersion === 'string' ? defaultVersion : '';
+      const org = await organizationsApi.get(orgName!);
+      return org.default_terraform_version || '';
     },
     enabled: !!orgName,
   });

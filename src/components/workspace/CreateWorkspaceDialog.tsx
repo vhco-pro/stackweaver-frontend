@@ -26,6 +26,7 @@ import { toast } from 'sonner';
 import { Loader2, GitBranch, Plus, CheckCircle2 } from 'lucide-react';
 import { getVcsProviderIcon, getVcsProviderLabel, getVcsManageUrl } from '@/lib/vcs';
 import { workspacesApi, vcsConnectionsApi, projectsApi, agentPoolsApi, terraformVersionsApi, type VCSConnection, type Repository, type Branch, type Project, type AgentPool, type TerraformVersionResource } from '@/api/client';
+import { VCSProviderSelector } from '@/components/vcs/VCSProviderSelector';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 
@@ -249,37 +250,6 @@ export function CreateWorkspaceDialog({
     }
   };
 
-  const handleConnectGitHub = async () => {
-    try {
-      // Build redirect back to workspaces page (so we can reopen the dialog)
-      const redirectUrl = `${window.location.origin}/app/${orgName}/workspaces`;
-      // Use the API client to make authenticated request including redirect
-      const response = await vcsConnectionsApi.initiateInstallationWithRedirect(orgName, redirectUrl);
-      const installUrl = response?.install_url;
-      
-      if (installUrl) {
-        // Store state to reopen dialog after GitHub redirect
-        localStorage.setItem('pendingWorkspaceDialog', JSON.stringify({
-          orgName,
-          timestamp: Date.now(),
-        }));
-        
-        // Redirect to GitHub App installation page in the same tab
-        window.location.href = installUrl;
-      } else {
-        toast.error('Failed to get GitHub App installation URL');
-      }
-    } catch (error: unknown) {
-      console.error('Failed to initiate GitHub App installation:', error);
-      let errorMessage = 'Failed to initiate GitHub App installation';
-      if (error && typeof error === 'object') {
-        const err = error as { response?: { data?: { errors?: Array<{ detail?: string }> } }; message?: string };
-        errorMessage = err.response?.data?.errors?.[0]?.detail || err.message || errorMessage;
-      }
-      toast.error(errorMessage);
-    }
-  };
-
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto pb-6">
@@ -346,79 +316,61 @@ export function CreateWorkspaceDialog({
                 <Loader2 className="h-4 w-4 animate-spin" />
                 Loading VCS connections...
               </div>
+            ) : vcsConnections.length === 0 ? (
+              <VCSProviderSelector
+                orgName={orgName}
+                selectedConnectionId={undefined}
+                onConnectionSelect={(id) => {
+                  setVcsConnectionId(id || '');
+                  setSelectedRepository('');
+                  setSelectedBranch('');
+                }}
+                showConfigureOption={false}
+              />
             ) : (
-              <div className="space-y-3">
-                {/* Provider Selection Cards */}
-                {vcsConnections.length === 0 ? (
-                  <div className="space-y-3">
-                    <div className="p-4 border rounded-lg bg-gray-50 dark:bg-gray-900/50">
-                      <div className="flex items-start gap-3 mb-3">
-                        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-gray-800 to-gray-900">
-                          {getVcsProviderIcon('github', 'h-5 w-5 text-white')}
-                        </div>
-                        <div className="flex-1">
-                          <h4 className="font-semibold text-sm mb-1">GitHub</h4>
-                          <p className="text-xs text-muted-foreground">GitHub App</p>
-                        </div>
+              <div className="space-y-2">
+                {vcsConnections.map((conn) => (
+                  <div
+                    key={conn.id}
+                    className={cn(
+                      'p-3 border-2 rounded-lg cursor-pointer transition-all',
+                      vcsConnectionId === conn.id
+                        ? 'border-blue-500 bg-blue-50 dark:bg-blue-950/20'
+                        : 'border-gray-200 dark:border-white/10 hover:border-blue-300'
+                    )}
+                    onClick={() => {
+                      const newValue = vcsConnectionId === conn.id ? '' : conn.id;
+                      setVcsConnectionId(newValue);
+                      setSelectedRepository('');
+                      setSelectedBranch('');
+                    }}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        {getVcsProviderIcon(conn.provider)}
+                        <span className="text-sm font-medium">
+                          {getVcsProviderLabel(conn.provider)} - {conn.account_name}
+                        </span>
+                        <Badge variant="outline" className="text-xs">
+                          {conn.account_type}
+                        </Badge>
                       </div>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => { void handleConnectGitHub(); }}
-                        className="w-full"
-                      >
-                        <Plus className="h-4 w-4 mr-2" />
-                        Connect GitHub
-                      </Button>
+                      {vcsConnectionId === conn.id && (
+                        <CheckCircle2 className="h-4 w-4 text-blue-500" />
+                      )}
                     </div>
                   </div>
-                ) : (
-                  <div className="space-y-2">
-                    {vcsConnections.map((conn) => (
-                      <div
-                        key={conn.id}
-                        className={cn(
-                          'p-3 border-2 rounded-lg cursor-pointer transition-all',
-                          vcsConnectionId === conn.id
-                            ? 'border-blue-500 bg-blue-50 dark:bg-blue-950/20'
-                            : 'border-gray-200 dark:border-white/10 hover:border-blue-300'
-                        )}
-                        onClick={() => {
-                          const newValue = vcsConnectionId === conn.id ? '' : conn.id;
-                          setVcsConnectionId(newValue);
-                          setSelectedRepository('');
-                          setSelectedBranch('');
-                        }}
-                      >
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            {getVcsProviderIcon(conn.provider)}
-                            <span className="text-sm font-medium">
-                              {getVcsProviderLabel(conn.provider)} - {conn.account_name}
-                            </span>
-                            <Badge variant="outline" className="text-xs">
-                              {conn.account_type}
-                            </Badge>
-                          </div>
-                          {vcsConnectionId === conn.id && (
-                            <CheckCircle2 className="h-4 w-4 text-blue-500" />
-                          )}
-                        </div>
-                      </div>
-                    ))}
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => { void handleConnectGitHub(); }}
-                      className="w-full text-xs"
-                    >
-                      <Plus className="h-3 w-3 mr-2" />
-                      Connect to a different VCS
-                    </Button>
-                  </div>
-                )}
+                ))}
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => { window.open(`/app/${orgName}/settings/vcs-connections`, '_blank'); }}
+                  className="w-full text-xs"
+                >
+                  <Plus className="h-3 w-3 mr-2" />
+                  Connect to a different VCS
+                </Button>
               </div>
             )}
           </div>

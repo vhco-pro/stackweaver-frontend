@@ -3,7 +3,6 @@
 // eslint-disable-next-line no-restricted-imports -- legitimate dependency-based effect
 import { useState, useEffect, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -27,6 +26,7 @@ import { toast } from 'sonner';
 import { Loader2, GitBranch, Plus, CheckCircle2, AlertTriangle } from 'lucide-react';
 import { getVcsProviderIcon, getVcsProviderLabel, getVcsManageUrl } from '@/lib/vcs';
 import { workspacesApi, vcsConnectionsApi, agentPoolsApi, terraformVersionsApi, type VCSConnection, type Repository, type Branch, type Workspace, type AgentPool, type TerraformVersionResource } from '@/api/client';
+import { VCSProviderSelector } from '@/components/vcs/VCSProviderSelector';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 
@@ -45,7 +45,7 @@ export function EditWorkspaceDialog({
   workspace,
   onUpdated,
 }: EditWorkspaceDialogProps) {
-  const navigate = useNavigate();
+
   const [updating, setUpdating] = useState(false);
   const [loadingRepos, setLoadingRepos] = useState(false);
   const [loadingBranches, setLoadingBranches] = useState(false);
@@ -303,17 +303,6 @@ export function EditWorkspaceDialog({
     }
   }, [repositorySelectOpen]);
 
-  const handleConnectGitHub = () => {
-    try {
-      const url = `/app/${orgName}/settings/vcs-connections`;
-      void navigate(url);
-      onOpenChange(false);
-    } catch (error) {
-      console.error('Failed to navigate to VCS connections:', error);
-      toast.error('Failed to open VCS connections page');
-    }
-  };
-
   // Check if state-invalidating changes are being made
   const hasStateInvalidatingChanges = 
     (vcsConnectionId !== originalVcsConnectionId) ||
@@ -440,91 +429,70 @@ export function EditWorkspaceDialog({
                 <Loader2 className="h-4 w-4 animate-spin" />
                 Loading VCS connections...
               </div>
+            ) : vcsConnections.length === 0 ? (
+              <VCSProviderSelector
+                orgName={orgName}
+                selectedConnectionId={undefined}
+                onConnectionSelect={(id) => {
+                  setVcsConnectionId(id || '');
+                  setSelectedRepository('');
+                  setSelectedBranch('');
+                }}
+                showConfigureOption={false}
+              />
             ) : (
-              <div className="space-y-3">
-                {vcsConnections.length === 0 ? (
-                  <div className="space-y-3">
-                    <div className="p-4 border rounded-lg bg-gray-50 dark:bg-gray-900/50">
-                      <div className="flex items-start gap-3 mb-3">
-                        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-gray-800 to-gray-900">
-                          {getVcsProviderIcon('github', 'h-5 w-5 text-white')}
-                        </div>
-                        <div className="flex-1">
-                          <h4 className="font-semibold text-sm mb-1">GitHub</h4>
-                          <p className="text-xs text-muted-foreground">GitHub App</p>
-                        </div>
-                      </div>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => { void handleConnectGitHub(); }}
-                        className="w-full"
-                      >
-                        <Plus className="h-4 w-4 mr-2" />
-                        Connect GitHub
-                      </Button>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="space-y-2">
-                    {vcsConnections.map((conn) => {
-                      // Ensure consistent string comparison for selection state
-                      // Check both state and workspace value (from ref) to handle timing issues
-                      const connIdStr = String(conn.id);
-                      const stateVcsId = String(vcsConnectionId || '');
-                      const workspaceVcsId = workspace?.vcs_connection_id 
-                        ? String(workspace.vcs_connection_id) 
-                        : workspaceVcsIdRef.current;
-                      // Selected if either state matches OR workspace value matches (for initial render)
-                      const isSelected = (stateVcsId === connIdStr && stateVcsId !== '') || 
-                                        (workspaceVcsId === connIdStr && workspaceVcsId !== '');
-                      
-                      return (
-                        <div
-                          key={conn.id}
-                          className={cn(
-                            'p-3 border-2 rounded-lg cursor-pointer transition-all',
-                            isSelected
-                              ? 'border-blue-500 bg-blue-50 dark:bg-blue-950/20'
-                              : 'border-gray-200 dark:border-white/10 hover:border-blue-300'
-                          )}
-                          onClick={() => {
-                            const newValue = isSelected ? '' : connIdStr;
-                            setVcsConnectionId(newValue);
-                            setSelectedRepository('');
-                            setSelectedBranch('');
-                          }}
-                        >
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-2">
-                              {getVcsProviderIcon(conn.provider)}
-                              <span className="text-sm font-medium">
-                                {getVcsProviderLabel(conn.provider)} - {conn.account_name}
-                              </span>
-                              <Badge variant="outline" className="text-xs">
-                                {conn.account_type}
-                              </Badge>
-                            </div>
-                            {isSelected && (
-                              <CheckCircle2 className="h-4 w-4 text-blue-500" />
-                            )}
-                          </div>
-                        </div>
-                      );
-                    })}
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => { void handleConnectGitHub(); }}
-                      className="w-full text-xs"
+              <div className="space-y-2">
+                {vcsConnections.map((conn) => {
+                  const connIdStr = String(conn.id);
+                  const stateVcsId = String(vcsConnectionId || '');
+                  const workspaceVcsId = workspace?.vcs_connection_id
+                    ? String(workspace.vcs_connection_id)
+                    : workspaceVcsIdRef.current;
+                  const isSelected = (stateVcsId === connIdStr && stateVcsId !== '') ||
+                                    (workspaceVcsId === connIdStr && workspaceVcsId !== '');
+                  return (
+                    <div
+                      key={conn.id}
+                      className={cn(
+                        'p-3 border-2 rounded-lg cursor-pointer transition-all',
+                        isSelected
+                          ? 'border-blue-500 bg-blue-50 dark:bg-blue-950/20'
+                          : 'border-gray-200 dark:border-white/10 hover:border-blue-300'
+                      )}
+                      onClick={() => {
+                        const newValue = isSelected ? '' : connIdStr;
+                        setVcsConnectionId(newValue);
+                        setSelectedRepository('');
+                        setSelectedBranch('');
+                      }}
                     >
-                      <Plus className="h-3 w-3 mr-2" />
-                      Connect to a different VCS
-                    </Button>
-                  </div>
-                )}
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          {getVcsProviderIcon(conn.provider)}
+                          <span className="text-sm font-medium">
+                            {getVcsProviderLabel(conn.provider)} - {conn.account_name}
+                          </span>
+                          <Badge variant="outline" className="text-xs">
+                            {conn.account_type}
+                          </Badge>
+                        </div>
+                        {isSelected && (
+                          <CheckCircle2 className="h-4 w-4 text-blue-500" />
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => { window.open(`/app/${orgName}/settings/vcs-connections`, '_blank'); }}
+                  className="w-full text-xs"
+                >
+                  <Plus className="h-3 w-3 mr-2" />
+                  Connect to a different VCS
+                </Button>
               </div>
             )}
           </div>

@@ -61,6 +61,7 @@ import {
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { getVcsProviderIcon, getVcsProviderLabel } from '@/lib/vcs';
+import { VCSProviderSelector } from '@/components/vcs/VCSProviderSelector';
 import { detectDynamicInventoryPlugin } from '@/utils/dynamic-inventory';
 
 export default function Inventories() {
@@ -135,6 +136,14 @@ export default function Inventories() {
       return { inventories: invs, inventoryCounts: countsMap };
     },
     enabled: !!selectedOrg,
+    // Auto-refetch while any inventory is syncing so counters update after VCS sync completes
+    refetchInterval: (query) => {
+      const invs = query.state.data?.inventories;
+      if (invs?.some((inv) => inv.last_sync_status === 'syncing')) {
+        return 5000; // Poll every 5s while syncing
+      }
+      return false; // Stop polling when nothing is syncing
+    },
   });
 
   const inventories = inventoriesData?.inventories ?? [];
@@ -342,27 +351,6 @@ export default function Inventories() {
     setFormData(prev => ({ ...prev, description: autoDescription }));
   }, [formData.vcs_repository, formData.vcs_branch, formData.inventory_path, descriptionTouched, formData.type]);
 
-  const handleConnectGitHub = async () => {
-    try {
-      const redirectUrl = `${window.location.origin}/app/${selectedOrg}/ansible/inventories`;
-      const response = await vcsConnectionsApi.initiateInstallationWithRedirect(selectedOrg, redirectUrl);
-      const installUrl = response?.install_url;
-      
-      if (installUrl) {
-        localStorage.setItem('pendingInventoryDialog', JSON.stringify({
-          orgName: selectedOrg,
-          timestamp: Date.now(),
-        }));
-        window.location.href = installUrl;
-      } else {
-        toast.error('Failed to get GitHub App installation URL');
-      }
-    } catch (error: unknown) {
-      console.error('Failed to initiate GitHub App installation:', error);
-      toast.error(error instanceof Error ? error.message : 'Failed to initiate GitHub App installation');
-    }
-  };
-
   const handleCreate = async () => {
     if (!formData.name.trim()) {
       toast.error('Name is required');
@@ -401,7 +389,7 @@ export default function Inventories() {
         inventory_path: formData.inventory_path || undefined,
       });
       const newInventory = getAnsibleInventoryFromJsonApi(res.data);
-      void queryClient.invalidateQueries({ queryKey: ['inventories', selectedOrg] });
+      await queryClient.invalidateQueries({ queryKey: ['inventories', selectedOrg] });
       setCreateDialogOpen(false);
       resetCreateForm();
       toast.success('Inventory created successfully');
@@ -425,7 +413,7 @@ export default function Inventories() {
     setDeleting(true);
     try {
       await ansibleInventoriesApi.delete(inventoryToDelete.id);
-      void queryClient.invalidateQueries({ queryKey: ['inventories', selectedOrg] });
+      await queryClient.invalidateQueries({ queryKey: ['inventories', selectedOrg] });
       setDeleteDialogOpen(false);
       setInventoryToDelete(null);
       toast.success('Inventory deleted successfully');
@@ -618,29 +606,20 @@ export default function Inventories() {
                         Loading VCS connections...
                       </div>
                     ) : vcsConnections.length === 0 ? (
-                      <div className="space-y-3">
-                        <div className="p-4 border rounded-lg bg-gray-50 dark:bg-gray-900/50">
-                          <div className="flex items-start gap-3 mb-3">
-                            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-gray-800 to-gray-900">
-                              {getVcsProviderIcon('github', 'h-5 w-5 text-white')}
-                            </div>
-                            <div className="flex-1">
-                              <h4 className="font-semibold text-sm mb-1">GitHub</h4>
-                              <p className="text-xs text-muted-foreground">Connect via GitHub App to access repositories</p>
-                            </div>
-                          </div>
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            onClick={() => { void handleConnectGitHub(); }}
-                            className="w-full"
-                          >
-                            <Plus className="h-4 w-4 mr-2" />
-                            Connect GitHub
-                          </Button>
-                        </div>
-                      </div>
+                      <VCSProviderSelector
+                        orgName={selectedOrg}
+                        selectedConnectionId={undefined}
+                        onConnectionSelect={(id) => {
+                          setFormData({
+                            ...formData,
+                            vcs_connection_id: id || '',
+                            vcs_repository: '',
+                            vcs_branch: '',
+                            inventory_path: '',
+                          });
+                        }}
+                        showConfigureOption={false}
+                      />
                     ) : (
                       <div className="space-y-2">
                         {vcsConnections.map((conn) => (
@@ -683,7 +662,7 @@ export default function Inventories() {
                           type="button"
                           variant="ghost"
                           size="sm"
-                          onClick={() => { void handleConnectGitHub(); }}
+                          onClick={() => { window.open(`/app/${selectedOrg}/settings/vcs-connections`, '_blank'); }}
                           className="w-full text-xs"
                         >
                           <Plus className="h-3 w-3 mr-2" />
