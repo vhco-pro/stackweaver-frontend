@@ -125,7 +125,7 @@ function PieChartSegment({ label, value, total, color }: { label: string; value:
 
   return (
     <div className="flex items-center gap-3">
-      <div className="relative w-20 h-20 flex-shrink-0">
+      <div className="relative w-20 h-20 shrink-0">
         <svg className="w-full h-full transform -rotate-90" viewBox="0 0 80 80" preserveAspectRatio="xMidYMid meet">
           <circle
             cx="40"

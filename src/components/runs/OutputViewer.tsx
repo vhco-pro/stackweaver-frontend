@@ -169,7 +169,7 @@ function ResourceChangeCard({ resource }: { resource: ResourceChange }) {
             </div>
           </div>
           {(hasChanges || (isDataSource && resource.change?.after !== null && resource.change?.after !== undefined)) && (
-            <div className="flex items-center gap-2 flex-shrink-0">
+            <div className="flex items-center gap-2 shrink-0">
               <button
                 onClick={(e) => {
                   e.stopPropagation();
@@ -180,7 +180,7 @@ function ResourceChangeCard({ resource }: { resource: ResourceChange }) {
                     toast.error('Failed to copy to clipboard');
                   });
                 }}
-                className="p-1 hover:bg-muted rounded transition-colors"
+                className="p-1 hover:bg-muted rounded-sm transition-colors"
                 title={`Copy resource address: ${resource.address}`}
               >
                 <Copy className="h-4 w-4 text-muted-foreground" />
@@ -269,7 +269,7 @@ function OutputChangeCard({ output }: { output: OutputChange }) {
             </div>
           </div>
           {hasValues && (
-            <div className="flex items-center gap-2 flex-shrink-0">
+            <div className="flex items-center gap-2 shrink-0">
               <button
                 onClick={(e) => {
                   e.stopPropagation();
@@ -280,7 +280,7 @@ function OutputChangeCard({ output }: { output: OutputChange }) {
                     toast.error('Failed to copy to clipboard');
                   });
                 }}
-                className="p-1 hover:bg-muted rounded transition-colors"
+                className="p-1 hover:bg-muted rounded-sm transition-colors"
                 title={`Copy output name: output.${output.name}`}
               >
                 <Copy className="h-4 w-4 text-muted-foreground" />
@@ -859,7 +859,7 @@ export function OutputViewer({ data, showJsonViewer = true, title = "Terraform P
                       placeholder="Filter resources by address..."
                       value={addressFilter}
                       onChange={(e) => setAddressFilter(e.target.value)}
-                      className="w-full pl-9 pr-3 py-2 text-sm border rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-primary"
+                      className="w-full pl-9 pr-3 py-2 text-sm border rounded-md bg-background focus:outline-hidden focus:ring-2 focus:ring-primary"
                     />
                   </div>
                   <div className="relative">
@@ -869,7 +869,7 @@ export function OutputViewer({ data, showJsonViewer = true, title = "Terraform P
                       name="plan-action-filter"
                       value={actionFilter || ''}
                       onChange={(e) => setActionFilter(e.target.value || null)}
-                      className="pl-9 pr-8 py-2 text-sm border rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-primary appearance-none"
+                      className="pl-9 pr-8 py-2 text-sm border rounded-md bg-background focus:outline-hidden focus:ring-2 focus:ring-primary appearance-none"
                     >
                       <option value="">Filter by action</option>
                       <option value="create">Create</option>

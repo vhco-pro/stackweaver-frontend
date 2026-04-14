@@ -89,7 +89,7 @@ export default function DocsViewer({ docsBase = '/docs', indexFile = '/docs-inde
     return (
       <DocsLayout docsBase={docsBase} indexFile={indexFile}>
         <div className="flex items-center gap-3 p-4 rounded-lg bg-red-500/10 border border-red-500/30 text-red-400">
-          <AlertCircle className="h-5 w-5 flex-shrink-0" />
+          <AlertCircle className="h-5 w-5 shrink-0" />
           <div>
             <h2 className="font-semibold text-sm">Error loading document</h2>
             <p className="text-xs mt-1 opacity-90">{error}</p>

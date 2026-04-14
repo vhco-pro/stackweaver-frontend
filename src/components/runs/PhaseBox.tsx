@@ -137,7 +137,7 @@ export const PhaseBox = forwardRef<HTMLDivElement | null, PhaseBoxProps>(({
           'rounded-lg overflow-hidden transition-colors',
           borderStyle.border,
           borderStyle.bg,
-          !expanded && 'backdrop-blur-sm'
+          !expanded && 'backdrop-blur-xs'
         )}
       >
         {/* Header */}

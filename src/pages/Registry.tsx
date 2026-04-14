@@ -100,7 +100,7 @@ export default function Registry() {
   return (
     <div className="min-h-screen bg-background">
       {/* Breadcrumb Header */}
-      <div className="border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+      <div className="border-b border-border/40 bg-background/95 backdrop-blur-sm supports-[backdrop-filter]:bg-background/60">
         <div className="px-6 py-3">
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <span className="hover:text-foreground cursor-pointer" onClick={() => { void navigate(`/app/${selectedOrg}/workspaces`); }}>
@@ -129,7 +129,7 @@ export default function Registry() {
               placeholder="Filter providers and modules"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 rounded-lg border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+              className="w-full pl-10 pr-4 py-2 rounded-lg border border-input bg-background text-sm focus:outline-hidden focus:ring-2 focus:ring-ring focus:ring-offset-2"
             />
           </div>
           <div className="hidden sm:flex items-center gap-2 border-b border-border">
@@ -145,7 +145,7 @@ export default function Registry() {
           </div>
           {/* Responsive fallback: compact select shown when tabs don't fit */}
           <select
-            className="sm:hidden border border-input bg-background text-sm rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-ring"
+            className="sm:hidden border border-input bg-background text-sm rounded-lg px-3 py-2 focus:outline-hidden focus:ring-2 focus:ring-ring"
             onChange={(e) => {
               if (e.target.value === 'providers') {
                 void navigate(`/app/${selectedOrg}/registry/providers`);

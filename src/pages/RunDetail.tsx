@@ -500,7 +500,7 @@ export default function RunDetail() {
       <div className="flex flex-col sm:flex-row items-start justify-between gap-4">
         <div className="flex-1 min-w-0">
           <div className="flex items-start gap-3 mb-4">
-            <div className="flex-shrink-0 flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500/20 via-indigo-500/20 to-purple-500/20 border border-blue-500/30">
+            <div className="shrink-0 flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500/20 via-indigo-500/20 to-purple-500/20 border border-blue-500/30">
               <PlayCircle className="h-5 w-5 sm:h-6 sm:w-6 text-blue-600 dark:text-blue-400" />
             </div>
             <div className="min-w-0 flex-1">
@@ -523,7 +523,7 @@ export default function RunDetail() {
                   return version ? (
                     <>
                       <span className="text-muted-foreground">•</span>
-                      <span className="px-2 py-1 rounded-md bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20 backdrop-blur-sm">
+                      <span className="px-2 py-1 rounded-md bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20 backdrop-blur-xs">
                         {/* eslint-disable-next-line @typescript-eslint/no-base-to-string */}
                         v{typeof version === 'string' ? version : String(version)}
                       </span>
@@ -534,7 +534,7 @@ export default function RunDetail() {
                 {run.runner_name && (
                   <>
                     <span className="text-muted-foreground">•</span>
-                    <span className="px-2 py-1 rounded-md bg-teal-500/10 text-teal-600 dark:text-teal-400 border border-teal-500/20 backdrop-blur-sm flex items-center gap-1">
+                    <span className="px-2 py-1 rounded-md bg-teal-500/10 text-teal-600 dark:text-teal-400 border border-teal-500/20 backdrop-blur-xs flex items-center gap-1">
                       <Server className="h-3 w-3" />
                       {run.runner_name}
                     </span>
@@ -556,7 +556,7 @@ export default function RunDetail() {
                         }
                       })();
                     }}
-                    className="p-1 hover:bg-muted rounded transition-colors"
+                    className="p-1 hover:bg-muted rounded-sm transition-colors"
                     title="Copy run ID"
                   >
                     {copiedRunId ? (
@@ -570,7 +570,7 @@ export default function RunDetail() {
             </div>
           </div>
         </div>
-        <div className="flex items-center gap-2 flex-shrink-0 flex-wrap">
+        <div className="flex items-center gap-2 shrink-0 flex-wrap">
           {canCancel && (
             <Button
               variant="outline"

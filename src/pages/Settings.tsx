@@ -236,7 +236,7 @@ export default function Settings() {
                 'transition-all duration-300',
                 'hover:shadow-xl hover:shadow-purple-500/20 hover:scale-[1.02]',
                 'hover:border-purple-500/30',
-                'focus:outline-none focus:ring-2 focus:ring-purple-500/50'
+                'focus:outline-hidden focus:ring-2 focus:ring-purple-500/50'
               )}
             >
               <div className={cn(

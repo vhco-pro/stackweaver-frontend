@@ -1189,7 +1189,7 @@ export default function InventoryDetail() {
                       <Copy className="h-3.5 w-3.5" />
                     </Button>
                   </div>
-                  <pre className="text-xs text-muted-foreground whitespace-pre-wrap font-mono bg-muted/50 rounded p-2 max-h-40 overflow-y-auto">
+                  <pre className="text-xs text-muted-foreground whitespace-pre-wrap font-mono bg-muted/50 rounded-sm p-2 max-h-40 overflow-y-auto">
                     {source.last_sync_error}
                   </pre>
                 </div>
@@ -1237,7 +1237,7 @@ export default function InventoryDetail() {
                   </div>
                 </div>
                 {warningBannerOpen && (
-                  <pre className="text-xs text-muted-foreground whitespace-pre-wrap font-mono bg-muted/50 rounded p-2 max-h-40 overflow-y-auto mt-2 ml-8">
+                  <pre className="text-xs text-muted-foreground whitespace-pre-wrap font-mono bg-muted/50 rounded-sm p-2 max-h-40 overflow-y-auto mt-2 ml-8">
                     {source.last_sync_log}
                   </pre>
                 )}
@@ -1369,7 +1369,7 @@ export default function InventoryDetail() {
                   </div>
                 </div>
                 {errorBannerOpen && (
-                  <pre className="text-xs text-muted-foreground whitespace-pre-wrap font-mono bg-muted/50 rounded p-2 max-h-40 overflow-y-auto mt-2 ml-8">
+                  <pre className="text-xs text-muted-foreground whitespace-pre-wrap font-mono bg-muted/50 rounded-sm p-2 max-h-40 overflow-y-auto mt-2 ml-8">
                     {inventory.last_sync_error}
                   </pre>
                 )}
@@ -1417,7 +1417,7 @@ export default function InventoryDetail() {
                   </div>
                 </div>
                 {warningBannerOpen && (
-                  <pre className="text-xs text-muted-foreground whitespace-pre-wrap font-mono bg-muted/50 rounded p-2 max-h-40 overflow-y-auto mt-2 ml-8">
+                  <pre className="text-xs text-muted-foreground whitespace-pre-wrap font-mono bg-muted/50 rounded-sm p-2 max-h-40 overflow-y-auto mt-2 ml-8">
                     {inventory.last_sync_log}
                   </pre>
                 )}
@@ -1972,7 +1972,7 @@ export default function InventoryDetail() {
                           id="group-by-region"
                           checked={sourceForm.group_by_region}
                           onChange={(e) => setSourceForm({ ...sourceForm, group_by_region: e.target.checked })}
-                          className="rounded border-gray-300"
+                          className="rounded-sm border-gray-300"
                         />
                         <label htmlFor="group-by-region" className="text-sm">Group by region</label>
                       </div>
@@ -1982,7 +1982,7 @@ export default function InventoryDetail() {
                           id="group-by-az"
                           checked={sourceForm.group_by_availability_zone}
                           onChange={(e) => setSourceForm({ ...sourceForm, group_by_availability_zone: e.target.checked })}
-                          className="rounded border-gray-300"
+                          className="rounded-sm border-gray-300"
                         />
                         <label htmlFor="group-by-az" className="text-sm">Group by availability zone</label>
                       </div>
@@ -1992,7 +1992,7 @@ export default function InventoryDetail() {
                           id="group-by-instance-id"
                           checked={sourceForm.group_by_instance_id}
                           onChange={(e) => setSourceForm({ ...sourceForm, group_by_instance_id: e.target.checked })}
-                          className="rounded border-gray-300"
+                          className="rounded-sm border-gray-300"
                         />
                         <label htmlFor="group-by-instance-id" className="text-sm">Group by instance ID</label>
                       </div>
@@ -2015,7 +2015,7 @@ export default function InventoryDetail() {
                         id="update-on-launch"
                         checked={sourceForm.update_on_launch}
                         onChange={(e) => setSourceForm({ ...sourceForm, update_on_launch: e.target.checked })}
-                        className="rounded border-gray-300"
+                        className="rounded-sm border-gray-300"
                       />
                       <label htmlFor="update-on-launch" className="text-sm">Update on launch (sync before each job run)</label>
                     </div>
@@ -2260,7 +2260,7 @@ export default function InventoryDetail() {
                 id="edit-host-enabled"
                 checked={editHostForm.enabled}
                 onChange={(e) => setEditHostForm({ ...editHostForm, enabled: e.target.checked })}
-                className="rounded border-gray-300"
+                className="rounded-sm border-gray-300"
               />
               <label htmlFor="edit-host-enabled" className="text-sm">Host enabled</label>
             </div>
@@ -2421,7 +2421,7 @@ export default function InventoryDetail() {
                   id="edit-group-by-region"
                   checked={editSourceForm.group_by_region}
                   onChange={(e) => setEditSourceForm({ ...editSourceForm, group_by_region: e.target.checked })}
-                  className="rounded border-gray-300"
+                  className="rounded-sm border-gray-300"
                 />
                 <label htmlFor="edit-group-by-region" className="text-sm">Group by region</label>
               </div>
@@ -2431,7 +2431,7 @@ export default function InventoryDetail() {
                   id="edit-group-by-az"
                   checked={editSourceForm.group_by_availability_zone}
                   onChange={(e) => setEditSourceForm({ ...editSourceForm, group_by_availability_zone: e.target.checked })}
-                  className="rounded border-gray-300"
+                  className="rounded-sm border-gray-300"
                 />
                 <label htmlFor="edit-group-by-az" className="text-sm">Group by availability zone</label>
               </div>
@@ -2441,7 +2441,7 @@ export default function InventoryDetail() {
                   id="edit-group-by-instance-id"
                   checked={editSourceForm.group_by_instance_id}
                   onChange={(e) => setEditSourceForm({ ...editSourceForm, group_by_instance_id: e.target.checked })}
-                  className="rounded border-gray-300"
+                  className="rounded-sm border-gray-300"
                 />
                 <label htmlFor="edit-group-by-instance-id" className="text-sm">Group by instance ID</label>
               </div>
@@ -2463,7 +2463,7 @@ export default function InventoryDetail() {
                 id="edit-update-on-launch"
                 checked={editSourceForm.update_on_launch}
                 onChange={(e) => setEditSourceForm({ ...editSourceForm, update_on_launch: e.target.checked })}
-                className="rounded border-gray-300"
+                className="rounded-sm border-gray-300"
               />
               <label htmlFor="edit-update-on-launch" className="text-sm">Update on launch (sync before each job run)</label>
             </div>
@@ -2499,7 +2499,7 @@ export default function InventoryDetail() {
                 id="edit-source-enabled"
                 checked={editSourceForm.enabled}
                 onChange={(e) => setEditSourceForm({ ...editSourceForm, enabled: e.target.checked })}
-                className="rounded border-gray-300"
+                className="rounded-sm border-gray-300"
               />
               <label htmlFor="edit-source-enabled" className="text-sm">Source enabled</label>
             </div>

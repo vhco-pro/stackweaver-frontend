@@ -44,7 +44,7 @@ export function UserAvatar({ picture, name, email, size = 'sm', className }: Use
       <img
         src={picture}
         alt=""
-        className={cn('rounded-full object-cover flex-shrink-0', sizeClass, className)}
+        className={cn('rounded-full object-cover shrink-0', sizeClass, className)}
         referrerPolicy="no-referrer"
       />
     );
@@ -54,7 +54,7 @@ export function UserAvatar({ picture, name, email, size = 'sm', className }: Use
     return (
       <span
         className={cn(
-          'rounded-full flex-shrink-0 flex items-center justify-center font-medium',
+          'rounded-full shrink-0 flex items-center justify-center font-medium',
           'bg-gradient-to-br from-blue-500 to-purple-500 text-white',
           sizeClass,
           className,
@@ -68,7 +68,7 @@ export function UserAvatar({ picture, name, email, size = 'sm', className }: Use
   return (
     <span
       className={cn(
-        'rounded-full flex-shrink-0 flex items-center justify-center',
+        'rounded-full shrink-0 flex items-center justify-center',
         'bg-muted text-muted-foreground',
         sizeClass,
         className,

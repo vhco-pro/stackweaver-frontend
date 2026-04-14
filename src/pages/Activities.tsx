@@ -157,7 +157,7 @@ export default function Activities() {
       </div>
 
       {/* Activities List */}
-      <div className="rounded-xl bg-white/5 dark:bg-white/5 backdrop-blur-md border border-gray-200 dark:border-white/10 shadow-sm">
+      <div className="rounded-xl bg-white/5 dark:bg-white/5 backdrop-blur-md border border-gray-200 dark:border-white/10 shadow-xs">
         {loading ? (
           <div className="flex items-center justify-center py-12">
             <Loader2 className="h-8 w-8 animate-spin text-purple-500" />
@@ -179,7 +179,7 @@ export default function Activities() {
                   className="p-4 hover:bg-white/10 dark:hover:bg-white/5 transition-colors"
                 >
                   <div className="flex items-start gap-4">
-                    <div className="flex-shrink-0 mt-0.5">
+                    <div className="shrink-0 mt-0.5">
                       {getActivityIcon(activity)}
                     </div>
                     <div className="flex-1 min-w-0">

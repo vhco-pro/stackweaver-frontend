@@ -329,7 +329,7 @@ export default function Webhooks() {
             <p className="text-sm text-muted-foreground">
               Service hook subscriptions for Azure DevOps are registered automatically when you create or update a workspace,
               inventory, or playbook linked to an Azure DevOps repository — no manual configuration required.
-              Requires <code className="text-xs bg-muted px-1 rounded">STACKWEAVER_WEBHOOK_BASE_URL</code> to be set in <code className="text-xs bg-muted px-1 rounded">deploy/vcs.env</code>.
+              Requires <code className="text-xs bg-muted px-1 rounded-sm">STACKWEAVER_WEBHOOK_BASE_URL</code> to be set in <code className="text-xs bg-muted px-1 rounded-sm">deploy/vcs.env</code>.
             </p>
           </div>
         </CardContent>
@@ -396,10 +396,10 @@ export default function Webhooks() {
                 <span className="font-medium">2.</span> Click "Add webhook"
               </p>
               <p className="text-sm">
-                <span className="font-medium">3.</span> Set the Payload URL to: <code className="text-xs bg-muted px-1 rounded">{webhookUrl}</code>
+                <span className="font-medium">3.</span> Set the Payload URL to: <code className="text-xs bg-muted px-1 rounded-sm">{webhookUrl}</code>
               </p>
               <p className="text-sm">
-                <span className="font-medium">4.</span> Set Content type to: <code className="text-xs bg-muted px-1 rounded">application/json</code>
+                <span className="font-medium">4.</span> Set Content type to: <code className="text-xs bg-muted px-1 rounded-sm">application/json</code>
               </p>
               <p className="text-sm">
                 <span className="font-medium">5.</span> Select "Just the push event" or individual events as needed

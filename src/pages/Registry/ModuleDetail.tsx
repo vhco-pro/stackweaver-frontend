@@ -219,7 +219,7 @@ function HclTypeDisplay({ code }: { code: string }) {
   
   return (
     <span 
-      className="font-mono text-xs whitespace-pre-wrap break-words [&_pre]:!bg-transparent [&_pre]:!p-0 [&_pre]:!m-0 [&_pre]:!border-0 [&_pre]:!whitespace-pre-wrap [&_code]:!bg-transparent [&_code]:!p-0 [&_code]:!m-0 [&_code]:!border-0"
+      className="font-mono text-xs whitespace-pre-wrap break-words [&_pre]:bg-transparent! [&_pre]:p-0! [&_pre]:m-0! [&_pre]:border-0! [&_pre]:whitespace-pre-wrap! [&_code]:bg-transparent! [&_code]:p-0! [&_code]:m-0! [&_code]:border-0!"
       dangerouslySetInnerHTML={{ __html: cleanedHtml }}
     />
   );
@@ -379,7 +379,7 @@ export default function ModuleDetail() {
   return (
     <div className="min-h-screen bg-background">
       {/* Breadcrumb Header */}
-      <div className="border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+      <div className="border-b border-border/40 bg-background/95 backdrop-blur-sm supports-[backdrop-filter]:bg-background/60">
         <div className="px-6 py-3">
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <span className="hover:text-foreground cursor-pointer" onClick={() => { void Promise.resolve(navigate(`/app/${orgName}/workspaces`)); }}>
@@ -609,7 +609,7 @@ export default function ModuleDetail() {
                             {shouldDisplayTypeBelow(input.type) && (
                               <div className="mt-2 mb-2">
                                 {shouldUseShikiHighlighting(input.type) ? (
-                                  <div className="text-xs whitespace-pre-wrap break-words bg-muted/30 border border-border/50 rounded p-2">
+                                  <div className="text-xs whitespace-pre-wrap break-words bg-muted/30 border border-border/50 rounded-sm p-2">
                                     <HclTypeDisplay code={input.type || 'string'} />
                                   </div>
                                 ) : (
@@ -653,7 +653,7 @@ export default function ModuleDetail() {
                             {shouldDisplayTypeBelow(input.type) && (
                               <div className="mt-2 mb-2">
                                 {shouldUseShikiHighlighting(input.type) ? (
-                                  <div className="text-xs whitespace-pre-wrap break-words bg-muted/30 border border-border/50 rounded p-2">
+                                  <div className="text-xs whitespace-pre-wrap break-words bg-muted/30 border border-border/50 rounded-sm p-2">
                                     <HclTypeDisplay code={input.type || 'string'} />
                                   </div>
                                 ) : (
@@ -712,12 +712,12 @@ export default function ModuleDetail() {
                                 <div className="mt-3 pt-3 border-t border-border/50">
                                   <div className="flex items-center gap-2">
                                     <span className="text-xs font-medium text-foreground">Default:</span>
-                                    <code className="text-xs font-mono bg-muted/50 px-2 py-1 rounded border border-border/50 text-foreground inline-block whitespace-pre-wrap">
+                                    <code className="text-xs font-mono bg-muted/50 px-2 py-1 rounded-sm border border-border/50 text-foreground inline-block whitespace-pre-wrap">
                                       {defaultStr}
                                     </code>
                                     <button
                                       onClick={() => { void handleCopyDefault(); }}
-                                      className="flex items-center text-muted-foreground hover:text-foreground transition-colors p-1 flex-shrink-0"
+                                      className="flex items-center text-muted-foreground hover:text-foreground transition-colors p-1 shrink-0"
                                       title="Copy default value"
                                     >
                                       {copiedDefaultId === defaultId ? (

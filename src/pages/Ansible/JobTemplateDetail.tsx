@@ -1038,7 +1038,7 @@ export default function JobTemplateDetail() {
               <div className="mt-4 space-y-3">
                 <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-3">
                   <div className="flex items-start gap-2">
-                    <Info className="h-4 w-4 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
+                    <Info className="h-4 w-4 text-blue-600 dark:text-blue-400 mt-0.5 shrink-0" />
                     <p className="text-sm text-blue-600 dark:text-blue-400">
                       These are system-provided variables automatically injected when jobs are launched. They cannot be modified but can be overridden by variable sets or template extra_vars.
                     </p>

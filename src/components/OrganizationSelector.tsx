@@ -81,12 +81,12 @@ export function OrganizationSelector({ className }: OrganizationSelectorProps) {
           )}
         >
           <div className="flex items-center gap-2 truncate">
-            <Building2 className="h-4 w-4 flex-shrink-0" />
+            <Building2 className="h-4 w-4 shrink-0" />
             <span className="truncate">
               {currentOrg?.name || 'Choose an organization'}
             </span>
           </div>
-          <ChevronDown className="h-4 w-4 flex-shrink-0 text-muted-foreground" />
+          <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground" />
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start" className="w-[280px]">
@@ -104,11 +104,11 @@ export function OrganizationSelector({ className }: OrganizationSelectorProps) {
               )}
             >
               <div className="flex items-center gap-2 flex-1 min-w-0">
-                <Building2 className="h-4 w-4 flex-shrink-0 text-muted-foreground" />
+                <Building2 className="h-4 w-4 shrink-0 text-muted-foreground" />
                 <span className="truncate">{org.name}</span>
               </div>
               {isSelected && (
-                <Check className="h-4 w-4 flex-shrink-0 text-primary" />
+                <Check className="h-4 w-4 shrink-0 text-primary" />
               )}
             </DropdownMenuItem>
           );

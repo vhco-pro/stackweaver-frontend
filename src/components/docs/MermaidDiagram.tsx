@@ -98,7 +98,7 @@ export function MermaidDiagram({ code, className = '' }: MermaidDiagramProps) {
           />
         )}
         <div
-          className="absolute right-2 top-2 rounded bg-black/50 p-1.5 text-white/90 opacity-0 transition-opacity group-hover:opacity-100"
+          className="absolute right-2 top-2 rounded-sm bg-black/50 p-1.5 text-white/90 opacity-0 transition-opacity group-hover:opacity-100"
           aria-hidden
         >
           <Maximize2 className="h-4 w-4" />
@@ -149,7 +149,7 @@ function MermaidDiagramCore({ code, id, className = '' }: { code: string; id: st
 
   if (err) {
     return (
-      <div className="rounded border border-red-500/30 bg-red-500/10 p-4 text-sm text-red-400">
+      <div className="rounded-sm border border-red-500/30 bg-red-500/10 p-4 text-sm text-red-400">
         Failed to render diagram: {err}
       </div>
     );

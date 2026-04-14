@@ -163,7 +163,7 @@ function DocImage({ src, alt, title, currentDir, docsBase, onLightbox }: DocImag
       onClick={handleClick}
       onKeyDown={handleKeyDown}
       tabIndex={0}
-      className="block max-w-full h-auto rounded-md border border-border/40 my-4 cursor-zoom-in focus:outline-none focus:ring-2 focus:ring-ring"
+      className="block max-w-full h-auto rounded-md border border-border/40 my-4 cursor-zoom-in focus:outline-hidden focus:ring-2 focus:ring-ring"
     />
   );
 
@@ -179,7 +179,7 @@ function DocImage({ src, alt, title, currentDir, docsBase, onLightbox }: DocImag
           onClick={handleClick}
           onKeyDown={handleKeyDown}
           tabIndex={0}
-          className="block max-w-full h-auto rounded-md border border-border/40 cursor-zoom-in focus:outline-none focus:ring-2 focus:ring-ring"
+          className="block max-w-full h-auto rounded-md border border-border/40 cursor-zoom-in focus:outline-hidden focus:ring-2 focus:ring-ring"
         />
         <figcaption className="mt-2 text-center text-sm text-muted-foreground">
           {title}
@@ -1311,7 +1311,7 @@ export function MarkdownRenderer({
         label: 'Superseded By',
         value: (
           <span className="inline-flex items-center gap-2">
-            <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-semibold tracking-wide uppercase border bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-700/40">
+            <span className="inline-flex items-center px-2 py-0.5 rounded-sm text-[11px] font-semibold tracking-wide uppercase border bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-700/40">
               Superseded
             </span>
             <a
@@ -1330,7 +1330,7 @@ export function MarkdownRenderer({
         label: 'Status',
         value: (
           <div className="flex items-center gap-2">
-            <span className={`inline-flex items-center px-2 py-0.5 rounded text-[11px] font-semibold tracking-wide uppercase border ${s.bg} ${s.text} ${s.border}`}>
+            <span className={`inline-flex items-center px-2 py-0.5 rounded-sm text-[11px] font-semibold tracking-wide uppercase border ${s.bg} ${s.text} ${s.border}`}>
               {statusLabel}
             </span>
             {desc && <span className="text-muted-foreground">{desc}</span>}
@@ -1402,7 +1402,7 @@ export function MarkdownRenderer({
       </ReactMarkdown>
 
       <Dialog open={lightboxSrc !== null} onOpenChange={() => { setLightboxSrc(null); }}>
-        <DialogContent className="max-w-[90vw] max-h-[90vh] p-2 flex items-center justify-center bg-background/95 backdrop-blur-sm">
+        <DialogContent className="max-w-[90vw] max-h-[90vh] p-2 flex items-center justify-center bg-background/95 backdrop-blur-xs">
           {lightboxSrc && (
             <img
               src={lightboxSrc}

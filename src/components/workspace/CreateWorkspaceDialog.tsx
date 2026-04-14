@@ -541,7 +541,7 @@ export function CreateWorkspaceDialog({
                 id="auto-queue-runs"
                 checked={autoQueueRuns}
                 onChange={(e) => setAutoQueueRuns(e.target.checked)}
-                className="h-4 w-4 rounded border-gray-300"
+                className="h-4 w-4 rounded-sm border-gray-300"
               />
               <Label htmlFor="auto-queue-runs" className="cursor-pointer">
                 Automatically queue runs on VCS push
@@ -556,7 +556,7 @@ export function CreateWorkspaceDialog({
               id="auto-apply"
               checked={autoApply}
               onChange={(e) => setAutoApply(e.target.checked)}
-              className="h-4 w-4 rounded border-gray-300"
+              className="h-4 w-4 rounded-sm border-gray-300"
             />
             <Label htmlFor="auto-apply" className="cursor-pointer">
               Automatically apply successful plans

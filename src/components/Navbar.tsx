@@ -21,7 +21,7 @@ export function Navbar({ onMenuClick }: NavbarProps) {
   const isOrgScopedRoute = location.pathname.startsWith('/app/');
 
   return (
-    <nav className="h-16 border-b border-border/40 bg-white/10 dark:bg-black/10 backdrop-blur-sm">
+    <nav className="h-16 border-b border-border/40 bg-white/10 dark:bg-black/10 backdrop-blur-xs">
       <div className="flex h-full items-center justify-between px-6">
         {/* Mobile Logo and Hamburger - only visible on mobile */}
         <div className="md:hidden flex items-center gap-3">

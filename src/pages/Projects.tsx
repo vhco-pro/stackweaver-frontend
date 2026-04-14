@@ -300,7 +300,7 @@ export default function Projects() {
             >
               <div className="flex items-start justify-between mb-4">
                 <div className="flex items-center space-x-3 flex-1 min-w-0">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-purple-500/20 to-pink-500/20 group-hover:from-purple-500/30 group-hover:to-pink-500/30 transition-all duration-300 flex-shrink-0">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-purple-500/20 to-pink-500/20 group-hover:from-purple-500/30 group-hover:to-pink-500/30 transition-all duration-300 shrink-0">
                     <FolderKanban className="h-5 w-5 text-purple-600 dark:text-purple-400" />
                   </div>
                   <div className="min-w-0 flex-1">

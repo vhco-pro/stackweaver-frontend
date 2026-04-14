@@ -331,7 +331,7 @@ export default function JobTemplates() {
             <Button
               variant="ghost"
               onClick={() => setCreateDialogOpen(true)}
-              className="bg-white dark:bg-slate-950/80 dark:backdrop-blur-sm text-slate-900 dark:text-white hover:bg-slate-50 dark:hover:bg-slate-950/90 border-0 whitespace-nowrap rounded-[calc(0.75rem-2px)] px-4 py-2"
+              className="bg-white dark:bg-slate-950/80 dark:backdrop-blur-xs text-slate-900 dark:text-white hover:bg-slate-50 dark:hover:bg-slate-950/90 border-0 whitespace-nowrap rounded-[calc(0.75rem-2px)] px-4 py-2"
             >
               <Plus className="h-4 w-4 mr-2" />
               New Job Template
@@ -383,7 +383,7 @@ export default function JobTemplates() {
               <CardHeader className="pb-3">
                 <div className="flex items-start justify-between">
                   <div className="flex items-start gap-3 min-w-0 flex-1">
-                    <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-purple-500/10">
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-purple-500/10">
                       <Layers className="h-5 w-5 text-purple-500" />
                     </div>
                     <div className="min-w-0 flex-1">
@@ -397,7 +397,7 @@ export default function JobTemplates() {
                       )}
                     </div>
                   </div>
-                  <div className="flex items-center gap-2 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
+                  <div className="flex items-center gap-2 shrink-0" onClick={(e) => e.stopPropagation()}>
                     {canExecuteJobs && (
                       <div className="relative inline-flex rounded-xl bg-gradient-to-r from-violet-500 via-indigo-500 to-blue-500 p-[2px]">
                         <Button
@@ -405,7 +405,7 @@ export default function JobTemplates() {
                           size="sm"
                           onClick={() => { void handleLaunch(template); }}
                           disabled={launching === template.id}
-                          className="bg-white dark:bg-slate-950/80 dark:backdrop-blur-sm text-slate-900 dark:text-white hover:bg-slate-50 dark:hover:bg-slate-950/90 border-0 whitespace-nowrap rounded-[calc(0.75rem-2px)] px-3 py-1"
+                          className="bg-white dark:bg-slate-950/80 dark:backdrop-blur-xs text-slate-900 dark:text-white hover:bg-slate-50 dark:hover:bg-slate-950/90 border-0 whitespace-nowrap rounded-[calc(0.75rem-2px)] px-3 py-1"
                         >
                           {launching === template.id ? (
                             <Loader2 className="h-4 w-4 mr-2 animate-spin" />

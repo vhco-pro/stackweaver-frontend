@@ -565,7 +565,7 @@ function DiffLinesRenderer({
             return (
               <div 
                 key={idx} 
-                className="flex items-center cursor-pointer hover:bg-muted/50 px-1 rounded group"
+                className="flex items-center cursor-pointer hover:bg-muted/50 px-1 rounded-sm group"
                 onClick={() => handleToggleUnchanged(markerKey)}
               >
                 {isExpanded ? (

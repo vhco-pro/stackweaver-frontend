@@ -953,13 +953,13 @@ export default function JobDetail() {
               {parsedWarnings.map((warning, idx) => (
                 <div 
                   key={idx} 
-                  className={`flex items-start gap-2 px-2 py-1.5 rounded text-xs ${
+                  className={`flex items-start gap-2 px-2 py-1.5 rounded-sm text-xs ${
                     warning.type === 'deprecation' 
                       ? 'bg-orange-500/10 border border-orange-500/20' 
                       : 'bg-yellow-500/10 border border-yellow-500/20'
                   }`}
                 >
-                  <span className={`shrink-0 px-1.5 py-0.5 rounded text-[10px] font-medium uppercase ${
+                  <span className={`shrink-0 px-1.5 py-0.5 rounded-sm text-[10px] font-medium uppercase ${
                     warning.type === 'deprecation' 
                       ? 'bg-orange-500/20 text-orange-600' 
                       : 'bg-yellow-500/20 text-yellow-600'
@@ -1052,7 +1052,7 @@ export default function JobDetail() {
               {job.status === 'failed' && job.error_message && (
                 <div className="p-3 bg-red-100 border-b border-red-200 dark:bg-red-950 dark:border-red-800">
                   <div className="flex items-start gap-2 text-red-700 dark:text-red-400">
-                    <AlertCircle className="h-4 w-4 flex-shrink-0 mt-0.5" />
+                    <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
                     <div className="text-sm flex-1">
                       <span className="font-medium">Job failed: </span>
                       <span className="opacity-90">{job.error_message}</span>
@@ -1060,7 +1060,7 @@ export default function JobDetail() {
                     <Button
                       variant="ghost"
                       size="sm"
-                      className="h-7 px-2 text-red-600 hover:text-red-700 hover:bg-red-200/50 dark:text-red-400 dark:hover:text-red-300 dark:hover:bg-red-900/50 flex-shrink-0"
+                      className="h-7 px-2 text-red-600 hover:text-red-700 hover:bg-red-200/50 dark:text-red-400 dark:hover:text-red-300 dark:hover:bg-red-900/50 shrink-0"
                       onClick={() => { void handleCopyError(); }}
                       title="Copy error message to clipboard"
                     >
@@ -1094,7 +1094,7 @@ export default function JobDetail() {
                           <div key={idx} className="bg-muted/10 p-4 font-mono text-sm whitespace-pre-wrap">
                             {parts.map((part, partIdx) => 
                               part.toLowerCase() === outputSearch.toLowerCase() ? (
-                                <mark key={partIdx} className="bg-yellow-500/50 text-yellow-100 px-0.5 rounded">{part}</mark>
+                                <mark key={partIdx} className="bg-yellow-500/50 text-yellow-100 px-0.5 rounded-sm">{part}</mark>
                               ) : (
                                 <span key={partIdx}>{part}</span>
                               )
@@ -1308,7 +1308,7 @@ export default function JobDetail() {
                             {/* Show output/result if present */}
                             {hasOutput && (
                               <pre className={cn(
-                                "text-xs font-mono p-2 rounded max-h-40 overflow-auto whitespace-pre-wrap",
+                                "text-xs font-mono p-2 rounded-sm max-h-40 overflow-auto whitespace-pre-wrap",
                                 hostData.status === 'failed' || hostData.status === 'unreachable' 
                                   ? "bg-red-500/15 text-red-900 dark:bg-red-950/50 dark:text-red-200" 
                                   : hostData.status === 'changed'

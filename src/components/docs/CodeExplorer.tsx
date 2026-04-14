@@ -342,7 +342,7 @@ export function CodeExplorer({ path, defaultFile = '' }: CodeExplorerProps) {
       {Array.from({ length: 8 }).map((_, i) => (
         <div
           key={i}
-          className="h-4 rounded bg-muted/60 animate-pulse"
+          className="h-4 rounded-sm bg-muted/60 animate-pulse"
           style={{ width: `${60 + (i % 5) * 8}%` }}
         />
       ))}
@@ -360,13 +360,13 @@ export function CodeExplorer({ path, defaultFile = '' }: CodeExplorerProps) {
         href={manifest.source ? `https://github.com/${manifest.source.org}/${manifest.source.repo}/commit/${manifest.source.ref}` : '#'}
         target="_blank"
         rel="noopener noreferrer"
-        className="inline-flex items-center gap-1 ml-2 px-1.5 py-0.5 rounded text-[10px] font-mono bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 hover:bg-amber-500/20 transition-colors"
+        className="inline-flex items-center gap-1 ml-2 px-1.5 py-0.5 rounded-sm text-[10px] font-mono bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 hover:bg-amber-500/20 transition-colors"
         title={`Commit ${manifest.source?.ref ?? shortRef}`}
       >
         {shortRef}
       </a>
     ) : (
-      <span className="inline-flex items-center gap-1 ml-2 px-1.5 py-0.5 rounded text-[10px] font-medium bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+      <span className="inline-flex items-center gap-1 ml-2 px-1.5 py-0.5 rounded-sm text-[10px] font-medium bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
         {shortRef}
       </span>
     )

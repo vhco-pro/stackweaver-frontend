@@ -248,7 +248,7 @@ export default function AnsibleConfiguration() {
 
       {/* Priority Info */}
       <div className="flex items-start gap-3 p-4 rounded-lg bg-blue-500/10 border border-blue-500/20 text-sm">
-        <Info className="h-4 w-4 mt-0.5 text-blue-600 dark:text-blue-400 flex-shrink-0" />
+        <Info className="h-4 w-4 mt-0.5 text-blue-600 dark:text-blue-400 shrink-0" />
         <p className="text-muted-foreground">
           <strong className="text-foreground">Configuration Priority:</strong> Project-level configuration takes precedence over organization-level.
           When a job runs, StackWeaver uses the most specific configuration available (project → organization).

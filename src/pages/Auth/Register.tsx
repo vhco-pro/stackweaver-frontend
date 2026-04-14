@@ -49,7 +49,7 @@ export default function Register() {
               variant="ghost"
               onClick={() => { void handleRegister(); }}
               disabled={loading || isRedirecting}
-              className="w-full bg-white dark:bg-slate-900/80 dark:backdrop-blur-sm text-slate-900 dark:text-white hover:bg-slate-50 dark:hover:bg-slate-900/90 border-0 whitespace-nowrap rounded-[calc(0.75rem-3px)] dark:rounded-[calc(0.75rem-2.5px)] px-8 py-3 transition-colors duration-200"
+              className="w-full bg-white dark:bg-slate-900/80 dark:backdrop-blur-xs text-slate-900 dark:text-white hover:bg-slate-50 dark:hover:bg-slate-900/90 border-0 whitespace-nowrap rounded-[calc(0.75rem-3px)] dark:rounded-[calc(0.75rem-2.5px)] px-8 py-3 transition-colors duration-200"
               size="lg"
             >
               {isRedirecting ? (
