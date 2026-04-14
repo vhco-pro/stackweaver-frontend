@@ -135,7 +135,7 @@ export function DocsLayout({ children, docsBase = '/docs', indexFile = '/docs-in
       <PublicNav activeLink="docs" />
       
       {/* Mobile Navigation Bar - visible below lg breakpoint */}
-      <div className="lg:hidden fixed top-[6.5rem] left-0 right-0 z-30 bg-background/95 backdrop-blur-sm border-b border-border/40 px-4 py-2 flex items-center justify-between gap-2">
+      <div className="lg:hidden fixed top-[6.5rem] left-0 right-0 z-30 bg-background/95 backdrop-blur-xs border-b border-border/40 px-4 py-2 flex items-center justify-between gap-2">
         <Button
           variant="ghost"
           size="sm"
@@ -184,7 +184,7 @@ export function DocsLayout({ children, docsBase = '/docs', indexFile = '/docs-in
       <div className="pt-32 pb-8 flex">
         
         {/* Left Sidebar - Docs Navigation Tree (desktop only) */}
-        <aside className="hidden lg:block w-[18%] min-w-56 max-w-72 flex-shrink-0 border-r border-border/40 bg-background/50 sticky top-24 h-[calc(100vh-6rem)] overflow-y-auto">
+        <aside className="hidden lg:block w-[18%] min-w-56 max-w-72 shrink-0 border-r border-border/40 bg-background/50 sticky top-24 h-[calc(100vh-6rem)] overflow-y-auto">
           <DocsSidebar docsBase={docsBase} indexFile={indexFile} />
         </aside>
         
@@ -225,7 +225,7 @@ export function DocsLayout({ children, docsBase = '/docs', indexFile = '/docs-in
         </main>
         
         {/* Right Sidebar - Table of Contents (desktop only) */}
-        <aside className="hidden xl:block w-64 flex-shrink-0 border-l border-border/40 bg-background/50 sticky top-24 h-[calc(100vh-6rem)] overflow-y-auto">
+        <aside className="hidden xl:block w-64 shrink-0 border-l border-border/40 bg-background/50 sticky top-24 h-[calc(100vh-6rem)] overflow-y-auto">
           <TableOfContents />
         </aside>
       </div>

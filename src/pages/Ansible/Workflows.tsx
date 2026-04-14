@@ -306,17 +306,17 @@ export default function Workflows() {
                     <TableCell>
                       <div className="flex flex-wrap gap-1">
                         {workflow.allow_simultaneous && (
-                          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300">
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-sm text-xs bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300">
                             Concurrent
                           </span>
                         )}
                         {workflow.survey_enabled && (
-                          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300">
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-sm text-xs bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300">
                             Survey
                           </span>
                         )}
                         {workflow.ask_variables_on_launch && (
-                          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs bg-amber-100 text-amber-700 dark:bg-amber-900 dark:text-amber-300">
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-sm text-xs bg-amber-100 text-amber-700 dark:bg-amber-900 dark:text-amber-300">
                             Prompt Vars
                           </span>
                         )}

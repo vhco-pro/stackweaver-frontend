@@ -142,10 +142,10 @@ export default function ProviderList() {
             'bg-white dark:bg-white/5',
             'backdrop-blur-md border border-gray-300 dark:border-white/10',
             'text-gray-900 dark:text-white',
-            'focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 dark:focus:border-blue-500/50',
+            'focus:outline-hidden focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 dark:focus:border-blue-500/50',
             'transition-all duration-300',
             'placeholder:text-gray-400 dark:placeholder:text-muted-foreground',
-            'shadow-sm dark:shadow-none'
+            'shadow-xs dark:shadow-none'
           )}
         />
       </div>

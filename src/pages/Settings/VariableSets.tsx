@@ -461,7 +461,7 @@ export default function VariableSets() {
                   setShowSelectedWorkspaces(false);
                   setCreateDialogOpen(true);
                 }}
-                className="bg-white dark:bg-slate-950/80 dark:backdrop-blur-sm text-slate-900 dark:text-white hover:bg-slate-50 dark:hover:bg-slate-950/90 border-0 whitespace-nowrap rounded-[calc(0.75rem-2px)] px-4 py-2"
+                className="bg-white dark:bg-slate-950/80 dark:backdrop-blur-xs text-slate-900 dark:text-white hover:bg-slate-50 dark:hover:bg-slate-950/90 border-0 whitespace-nowrap rounded-[calc(0.75rem-2px)] px-4 py-2"
               >
                 <Plus className="h-4 w-4 mr-2" />
                 New Variable Set
@@ -700,7 +700,7 @@ export default function VariableSets() {
                       </p>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                          <div className="flex h-10 w-full cursor-pointer items-center rounded-md border border-dashed border-input bg-background px-3 py-2 text-sm text-muted-foreground ring-offset-background hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50">
+                          <div className="flex h-10 w-full cursor-pointer items-center rounded-md border border-dashed border-input bg-background px-3 py-2 text-sm text-muted-foreground ring-offset-background hover:bg-accent hover:text-accent-foreground focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50">
                             <ChevronDown className="mr-2 h-4 w-4 shrink-0" />
                             {variableSetForm.selectedProjects.length > 0 ? (
                               <div className="flex flex-wrap gap-1.5 flex-1">
@@ -802,7 +802,7 @@ export default function VariableSets() {
                       </p>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                          <div className="flex h-10 w-full cursor-pointer items-center rounded-md border border-dashed border-input bg-background px-3 py-2 text-sm text-muted-foreground ring-offset-background hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50">
+                          <div className="flex h-10 w-full cursor-pointer items-center rounded-md border border-dashed border-input bg-background px-3 py-2 text-sm text-muted-foreground ring-offset-background hover:bg-accent hover:text-accent-foreground focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50">
                             <ChevronDown className="mr-2 h-4 w-4 shrink-0" />
                             {variableSetForm.selectedWorkspaces.length > 0 ? (
                               <div className="flex flex-wrap gap-1.5 flex-1">
@@ -1133,7 +1133,7 @@ export default function VariableSets() {
               </div>
               {/* Note: Parent is inferred from creation context and cannot be changed */}
               {selectedVariableSet && (
-                <div className="text-sm text-muted-foreground p-2 bg-muted rounded">
+                <div className="text-sm text-muted-foreground p-2 bg-muted rounded-sm">
                   <p>
                     <strong>Ownership:</strong> This variable set is{' '}
                     {selectedVariableSet.projects && selectedVariableSet.projects.length > 0 
@@ -1367,7 +1367,7 @@ export default function VariableSets() {
                     </p>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <div className="flex h-10 w-full cursor-pointer items-center rounded-md border border-dashed border-input bg-background px-3 py-2 text-sm text-muted-foreground ring-offset-background hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50">
+                        <div className="flex h-10 w-full cursor-pointer items-center rounded-md border border-dashed border-input bg-background px-3 py-2 text-sm text-muted-foreground ring-offset-background hover:bg-accent hover:text-accent-foreground focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50">
                           <ChevronDown className="mr-2 h-4 w-4 shrink-0" />
                           {assignedProjects.length > 0 ? (
                             <div className="flex flex-wrap gap-1.5 flex-1">
@@ -1460,7 +1460,7 @@ export default function VariableSets() {
                     </p>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <div className="flex h-10 w-full cursor-pointer items-center rounded-md border border-dashed border-input bg-background px-3 py-2 text-sm text-muted-foreground ring-offset-background hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50">
+                        <div className="flex h-10 w-full cursor-pointer items-center rounded-md border border-dashed border-input bg-background px-3 py-2 text-sm text-muted-foreground ring-offset-background hover:bg-accent hover:text-accent-foreground focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50">
                           <ChevronDown className="mr-2 h-4 w-4 shrink-0" />
                           {assignedWorkspaces.length > 0 ? (
                             <div className="flex flex-wrap gap-1.5 flex-1">

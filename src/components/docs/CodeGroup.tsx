@@ -174,7 +174,7 @@ export function CodeGroup({ children, languages, defaultTab = 0 }: CodeGroupProp
                     src={iconPath}
                     alt=""
                     aria-hidden
-                    className="!h-3.5 !w-3.5 !my-0 !rounded-none opacity-90"
+                    className="h-3.5! w-3.5! my-0! rounded-none! opacity-90"
                     loading="lazy"
                   />
                 ) : null}

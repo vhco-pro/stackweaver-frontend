@@ -62,7 +62,7 @@ export function NotificationToast({ notification, onDismiss }: NotificationToast
       )}
       role="alert"
     >
-      <Icon className="h-5 w-5 flex-shrink-0 mt-0.5" />
+      <Icon className="h-5 w-5 shrink-0 mt-0.5" />
       <div className="flex-1 min-w-0">
         <p className="font-semibold text-sm">{notification.title}</p>
         {notification.message && (
@@ -74,7 +74,7 @@ export function NotificationToast({ notification, onDismiss }: NotificationToast
           setIsVisible(false);
           setTimeout(() => onDismiss(notification.id), 300);
         }}
-        className="flex-shrink-0 text-current opacity-70 hover:opacity-100 transition-opacity"
+        className="shrink-0 text-current opacity-70 hover:opacity-100 transition-opacity"
         aria-label="Dismiss"
       >
         <X className="h-4 w-4" />

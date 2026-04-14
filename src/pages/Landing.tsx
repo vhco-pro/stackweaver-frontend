@@ -247,11 +247,11 @@ export default function Landing() {
                 variant="ghost"
                 size="lg"
                 onClick={handleGetStarted}
-                className="bg-white dark:bg-slate-900/80 dark:backdrop-blur-sm text-slate-900 dark:text-white hover:bg-slate-50 dark:hover:bg-slate-900/90 border-0 whitespace-nowrap rounded-[calc(0.75rem-3px)] dark:rounded-[calc(0.75rem-2.5px)] px-8 py-3 transition-colors duration-200"
+                className="bg-white dark:bg-slate-900/80 dark:backdrop-blur-xs text-slate-900 dark:text-white hover:bg-slate-50 dark:hover:bg-slate-900/90 border-0 whitespace-nowrap rounded-[calc(0.75rem-3px)] dark:rounded-[calc(0.75rem-2.5px)] px-8 py-3 transition-colors duration-200"
               >
                 <span className="flex items-center gap-2">
                   <span>{session ? 'Go to Dashboard' : 'Get Started'}</span>
-                  <ArrowRight className="h-5 w-5 flex-shrink-0" />
+                  <ArrowRight className="h-5 w-5 shrink-0" />
                 </span>
               </Button>
             </div>
@@ -264,7 +264,7 @@ export default function Landing() {
                 className="bg-white dark:bg-white/10 backdrop-blur-md border-slate-300 dark:border-white/20 hover:bg-slate-50 dark:hover:bg-white/20 text-slate-900 dark:text-white whitespace-nowrap"
               >
                 <a href="https://github.com/michielvha/stackweaver" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2">
-                  {getVcsProviderIcon('github', 'h-5 w-5 flex-shrink-0')}
+                  {getVcsProviderIcon('github', 'h-5 w-5 shrink-0')}
                   <span>Star on GitHub</span>
                 </a>
               </Button>
@@ -308,10 +308,10 @@ export default function Landing() {
             ].map((feature, index) => (
               <div
                 key={index}
-                className="h-full rounded-xl bg-white/50 dark:bg-transparent backdrop-blur-md border border-white/20 dark:border-white/10 p-6 hover:bg-white/60 hover:border-white/30 dark:hover:border-white/20 transition-colors shadow-sm dark:shadow-none"
+                className="h-full rounded-xl bg-white/50 dark:bg-transparent backdrop-blur-md border border-white/20 dark:border-white/10 p-6 hover:bg-white/60 hover:border-white/30 dark:hover:border-white/20 transition-colors shadow-xs dark:shadow-none"
               >
                 <div className="flex items-start gap-4">
-                  <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-blue-500/20 to-cyan-500/20 dark:from-blue-500/20 dark:to-indigo-500/20 flex items-center justify-center flex-shrink-0">
+                  <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-blue-500/20 to-cyan-500/20 dark:from-blue-500/20 dark:to-indigo-500/20 flex items-center justify-center shrink-0">
                     <feature.icon className="h-6 w-6 text-blue-600 dark:text-blue-400" />
                   </div>
                   <div>
@@ -401,7 +401,7 @@ export default function Landing() {
                               key={featureIndex}
                               className="text-slate-700 dark:text-gray-400 flex items-start gap-3"
                             >
-                              <div className="w-1.5 h-1.5 rounded-full bg-blue-500 dark:bg-blue-400/60 mt-2 flex-shrink-0" />
+                              <div className="w-1.5 h-1.5 rounded-full bg-blue-500 dark:bg-blue-400/60 mt-2 shrink-0" />
                               <span>{feature}</span>
                             </li>
                           ))}
@@ -442,11 +442,11 @@ export default function Landing() {
                   variant="ghost"
                   size="lg"
                   onClick={handleGetStarted}
-                  className="bg-white dark:bg-slate-950/80 dark:backdrop-blur-sm text-slate-900 dark:text-white hover:bg-slate-50 dark:hover:bg-slate-950/90 border-0 text-lg px-8 py-6 h-auto whitespace-nowrap rounded-[calc(0.75rem-3px)] dark:rounded-[calc(0.75rem-2.5px)]"
+                  className="bg-white dark:bg-slate-950/80 dark:backdrop-blur-xs text-slate-900 dark:text-white hover:bg-slate-50 dark:hover:bg-slate-950/90 border-0 text-lg px-8 py-6 h-auto whitespace-nowrap rounded-[calc(0.75rem-3px)] dark:rounded-[calc(0.75rem-2.5px)]"
                 >
                   <span className="flex items-center gap-2">
                     <span>{session ? 'Go to Dashboard' : 'Get Started'}</span>
-                    <ArrowRight className="h-5 w-5 flex-shrink-0" />
+                    <ArrowRight className="h-5 w-5 shrink-0" />
                   </span>
                 </Button>
               </div>
@@ -457,7 +457,7 @@ export default function Landing() {
                 className="bg-white/50 dark:bg-white/10 backdrop-blur-md border-slate-200 dark:border-white/20 hover:bg-white/80 dark:hover:bg-white/20 text-slate-900 dark:text-white text-lg px-8 py-6 h-auto whitespace-nowrap"
               >
                 <a href="https://github.com/michielvha/stackweaver" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2">
-                  {getVcsProviderIcon('github', 'h-5 w-5 flex-shrink-0')}
+                  {getVcsProviderIcon('github', 'h-5 w-5 shrink-0')}
                   <span>Star on GitHub</span>
                 </a>
               </Button>
@@ -573,7 +573,7 @@ kubectl apply -f k8s/`,
                     {/* Title Block */}
                     <div>
                       <div className="flex items-start gap-4 mb-2">
-                        <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-blue-500/20 to-cyan-500/20 dark:from-blue-500/50 dark:to-indigo-500/50 flex items-center justify-center flex-shrink-0">
+                        <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-blue-500/20 to-cyan-500/20 dark:from-blue-500/50 dark:to-indigo-500/50 flex items-center justify-center shrink-0">
                           <method.icon className="h-6 w-6 text-blue-600 dark:text-white" />
                         </div>
                         <div>

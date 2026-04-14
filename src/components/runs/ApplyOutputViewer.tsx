@@ -183,24 +183,24 @@ function AppliedResourceCard({ resource }: { resource: AppliedResource }) {
               </div>
             )}
             {resource.errorMessage && expanded && (
-              <div className="mt-2 text-xs font-mono bg-red-500/10 border border-red-500/20 text-red-600 dark:text-red-400 p-2 rounded whitespace-pre-wrap">
+              <div className="mt-2 text-xs font-mono bg-red-500/10 border border-red-500/20 text-red-600 dark:text-red-400 p-2 rounded-sm whitespace-pre-wrap">
                 Error: {resource.errorMessage}
               </div>
             )}
             {resource.details && expanded && (
-              <div className="mt-2 text-xs text-muted-foreground font-mono bg-muted/30 p-2 rounded">
+              <div className="mt-2 text-xs text-muted-foreground font-mono bg-muted/30 p-2 rounded-sm">
                 {resource.details}
               </div>
             )}
           </div>
-          <div className="flex items-center gap-2 flex-shrink-0">
+          <div className="flex items-center gap-2 shrink-0">
             <button
               onClick={(e) => {
                 e.stopPropagation();
                 void navigator.clipboard.writeText(resource.address);
                 toast.success(`Copied resource address: ${resource.address}`);
               }}
-              className="p-1 hover:bg-muted rounded transition-colors"
+              className="p-1 hover:bg-muted rounded-sm transition-colors"
               title={`Copy resource address: ${resource.address}`}
             >
               <Copy className="h-4 w-4 text-muted-foreground" />
@@ -1242,7 +1242,7 @@ export function ApplyOutputViewer({ logs, showJsonViewer = true, planOutput, isA
                 placeholder="Filter resources by address..."
                 value={addressFilter}
                 onChange={(e) => setAddressFilter(e.target.value)}
-                className="w-full pl-9 pr-3 py-2 text-sm border rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-primary"
+                className="w-full pl-9 pr-3 py-2 text-sm border rounded-md bg-background focus:outline-hidden focus:ring-2 focus:ring-primary"
               />
             </div>
             <div className="relative">
@@ -1252,7 +1252,7 @@ export function ApplyOutputViewer({ logs, showJsonViewer = true, planOutput, isA
                 name="apply-action-filter"
                 value={actionFilter || ''}
                 onChange={(e) => setActionFilter(e.target.value || null)}
-                className="pl-9 pr-8 py-2 text-sm border rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-primary appearance-none"
+                className="pl-9 pr-8 py-2 text-sm border rounded-md bg-background focus:outline-hidden focus:ring-2 focus:ring-primary appearance-none"
               >
                 <option value="">Filter by action</option>
                 <option value="create">Create</option>
@@ -1469,12 +1469,12 @@ export function ApplyOutputViewer({ logs, showJsonViewer = true, planOutput, isA
                           {output.key}
                         </span>
                         {output.sensitive && (
-                          <span className="text-xs px-2 py-0.5 rounded bg-yellow-500/10 text-yellow-600 dark:text-yellow-400">
+                          <span className="text-xs px-2 py-0.5 rounded-sm bg-yellow-500/10 text-yellow-600 dark:text-yellow-400">
                             Sensitive
                           </span>
                         )}
                       </div>
-                      <div className="text-sm font-mono text-foreground bg-muted/30 p-2 rounded whitespace-pre-wrap break-all">
+                      <div className="text-sm font-mono text-foreground bg-muted/30 p-2 rounded-sm whitespace-pre-wrap break-all">
                         {displayValue}
                       </div>
                     </div>

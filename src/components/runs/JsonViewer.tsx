@@ -97,7 +97,7 @@ const JsonNode = ({ keyName, value, level, path, searchTerm = '', defaultExpande
             {hasChildren && (
               <button
                 onClick={() => setIsExpanded(!isExpanded)}
-                className="p-0.5 hover:bg-accent rounded transition-colors"
+                className="p-0.5 hover:bg-accent rounded-sm transition-colors"
                 aria-label={isExpanded ? 'Collapse' : 'Expand'}
               >
                 {isExpanded ? (
@@ -147,7 +147,7 @@ const JsonNode = ({ keyName, value, level, path, searchTerm = '', defaultExpande
             {hasChildren && (
               <button
                 onClick={() => setIsExpanded(!isExpanded)}
-                className="p-0.5 hover:bg-accent rounded transition-colors"
+                className="p-0.5 hover:bg-accent rounded-sm transition-colors"
                 aria-label={isExpanded ? 'Collapse' : 'Expand'}
               >
                 {isExpanded ? (
@@ -210,7 +210,7 @@ const JsonNode = ({ keyName, value, level, path, searchTerm = '', defaultExpande
         </span>
         <button
           onClick={() => { void handleCopy(formatted); }}
-          className="opacity-0 group-hover:opacity-100 p-1 hover:bg-accent rounded transition-all"
+          className="opacity-0 group-hover:opacity-100 p-1 hover:bg-accent rounded-sm transition-all"
           title="Copy value"
         >
           <Copy className="h-3 w-3 text-muted-foreground" />
@@ -415,7 +415,7 @@ export function JsonViewer({
               {parsedJsonl.plainLines && parsedJsonl.plainLines.length > 0 && (
                 <div className="space-y-2">
                   <div className="text-xs text-muted-foreground mb-2">Plain text output:</div>
-                  <pre className="text-sm whitespace-pre-wrap break-words bg-muted/30 p-2 rounded">
+                  <pre className="text-sm whitespace-pre-wrap break-words bg-muted/30 p-2 rounded-sm">
                     {parsedJsonl.plainLines.join('\n')}
                   </pre>
                 </div>

@@ -152,7 +152,7 @@ function WarningCard({ warning }: { warning: ParsedWarning }) {
       parts.push(
         <code
           key={match.index}
-          className={`px-1.5 py-0.5 rounded text-xs font-mono ${isDeprecation
+          className={`px-1.5 py-0.5 rounded-sm text-xs font-mono ${isDeprecation
             ? 'bg-orange-100/80 dark:bg-muted/40 text-orange-950 dark:text-foreground'
             : 'bg-yellow-100/80 dark:bg-muted/40 text-yellow-950 dark:text-foreground'
           }`}
@@ -174,13 +174,13 @@ function WarningCard({ warning }: { warning: ParsedWarning }) {
       : 'bg-yellow-500/5 border-yellow-500/20'
     }`}>
       <div className="flex items-start gap-2.5">
-        <AlertTriangle className={`h-4 w-4 flex-shrink-0 mt-0.5 ${isDeprecation
+        <AlertTriangle className={`h-4 w-4 shrink-0 mt-0.5 ${isDeprecation
           ? 'text-orange-600 dark:text-orange-500'
           : 'text-yellow-600 dark:text-yellow-500'
         }`} />
         <div className="flex-1 min-w-0 space-y-1.5">
           {/* Badge */}
-          <span className={`inline-block shrink-0 px-1.5 py-0.5 rounded text-[10px] font-medium uppercase ${isDeprecation
+          <span className={`inline-block shrink-0 px-1.5 py-0.5 rounded-sm text-[10px] font-medium uppercase ${isDeprecation
             ? 'bg-orange-500/20 text-orange-700 dark:text-orange-400'
             : 'bg-yellow-500/20 text-yellow-700 dark:text-yellow-400'
           }`}>
@@ -204,7 +204,7 @@ function WarningCard({ warning }: { warning: ParsedWarning }) {
               {warning.file && (
                 <div className="flex items-center gap-2">
                   <span className="opacity-60 min-w-[2rem]">on</span>
-                  <code className={`font-mono px-1.5 py-0.5 rounded ${isDeprecation
+                  <code className={`font-mono px-1.5 py-0.5 rounded-sm ${isDeprecation
                     ? 'bg-orange-100/80 dark:bg-muted/40'
                     : 'bg-yellow-100/80 dark:bg-muted/40'
                   }`}>
@@ -218,7 +218,7 @@ function WarningCard({ warning }: { warning: ParsedWarning }) {
               {warning.resource && (
                 <div className="flex items-center gap-2">
                   <span className="opacity-60 min-w-[2rem]">in</span>
-                  <code className={`font-mono px-1.5 py-0.5 rounded ${isDeprecation
+                  <code className={`font-mono px-1.5 py-0.5 rounded-sm ${isDeprecation
                     ? 'bg-orange-100/80 dark:bg-muted/40'
                     : 'bg-yellow-100/80 dark:bg-muted/40'
                   }`}>

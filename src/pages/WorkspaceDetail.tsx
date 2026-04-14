@@ -2023,7 +2023,7 @@ export default function WorkspaceDetail() {
                                         {valueObj?.sensitive ? (
                                           <span className="text-muted-foreground italic">(sensitive)</span>
                                         ) : (
-                                          <pre className="text-sm font-mono bg-muted/50 p-2 rounded overflow-x-auto max-w-2xl">
+                                          <pre className="text-sm font-mono bg-muted/50 p-2 rounded-sm overflow-x-auto max-w-2xl">
                                             {JSON.stringify(valueObj?.value ?? value, null, 2)}
                                           </pre>
                                         )}
@@ -2643,7 +2643,7 @@ export default function WorkspaceDetail() {
                   <div className="mt-4 space-y-3">
                     <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-3">
                       <div className="flex items-start gap-2">
-                        <Info className="h-4 w-4 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
+                        <Info className="h-4 w-4 text-blue-600 dark:text-blue-400 mt-0.5 shrink-0" />
                         <p className="text-sm text-blue-600 dark:text-blue-400">
                           These are system-provided variables. They cannot be modified, but can be overridden by creating a workspace variable with the same key.
                         </p>
@@ -2700,7 +2700,7 @@ export default function WorkspaceDetail() {
               onClick={() => { void handleCreateRun('plan-and-apply'); }}
               disabled={isCreatingRun}
             >
-              <PlayCircle className="mr-3 h-5 w-5 flex-shrink-0" />
+              <PlayCircle className="mr-3 h-5 w-5 shrink-0" />
               <div className="flex flex-col gap-0.5">
                 <span className="font-medium">Plan & Apply</span>
                 <span className="text-xs opacity-80 font-normal">Plan changes, then confirm to apply</span>
@@ -2712,7 +2712,7 @@ export default function WorkspaceDetail() {
               onClick={() => { void handleCreateRun('plan-only'); }}
               disabled={isCreatingRun}
             >
-              <FileText className="mr-3 h-5 w-5 flex-shrink-0" />
+              <FileText className="mr-3 h-5 w-5 shrink-0" />
               <div className="flex flex-col gap-0.5">
                 <span className="font-medium">Plan Only</span>
                 <span className="text-xs text-muted-foreground font-normal">Preview changes without applying</span>
@@ -2724,7 +2724,7 @@ export default function WorkspaceDetail() {
               onClick={() => { void handleCreateRun('destroy'); }}
               disabled={isCreatingRun}
             >
-              <Trash2 className="mr-3 h-5 w-5 flex-shrink-0" />
+              <Trash2 className="mr-3 h-5 w-5 shrink-0" />
               <div className="flex flex-col gap-0.5">
                 <span className="font-medium">Destroy</span>
                 <span className="text-xs opacity-80 font-normal">Remove all managed resources</span>
@@ -2842,7 +2842,7 @@ export default function WorkspaceDetail() {
               Override Platform Variable
             </DialogTitle>
             <DialogDescription>
-              This variable will override the platform-provided variable <code className="px-1.5 py-0.5 bg-muted rounded text-sm font-mono">{variableForm.key}</code>
+              This variable will override the platform-provided variable <code className="px-1.5 py-0.5 bg-muted rounded-sm text-sm font-mono">{variableForm.key}</code>
             </DialogDescription>
           </DialogHeader>
           <div className="py-4 space-y-3">
@@ -2932,7 +2932,7 @@ export default function WorkspaceDetail() {
               Are you sure you want to remove <span className="font-mono font-semibold">{resourceToDelete}</span> from Terraform state?
               <br />
               <br />
-              <strong>Warning:</strong> This action is equivalent to <code className="text-xs bg-muted px-1 py-0.5 rounded">terraform state rm {resourceToDelete}</code>.
+              <strong>Warning:</strong> This action is equivalent to <code className="text-xs bg-muted px-1 py-0.5 rounded-sm">terraform state rm {resourceToDelete}</code>.
               The resource will be removed from state but will NOT be destroyed in the actual infrastructure.
               <br />
               <br />

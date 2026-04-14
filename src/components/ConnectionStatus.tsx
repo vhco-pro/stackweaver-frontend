@@ -142,7 +142,7 @@ export function ConnectionStatus() {
           <span>Connection lost - check your network</span>
           <button
             onClick={() => window.location.reload()}
-            className="ml-2 rounded bg-red-200 px-2 py-1 text-xs hover:bg-red-300 dark:bg-red-800 dark:hover:bg-red-700"
+            className="ml-2 rounded-sm bg-red-200 px-2 py-1 text-xs hover:bg-red-300 dark:bg-red-800 dark:hover:bg-red-700"
           >
             Reload
           </button>

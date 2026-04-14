@@ -200,7 +200,7 @@ export function Sidebar({ isOpen = false, onClose, collapsed = false, onToggleCo
             <img
               src="/logo.png"
               alt="Stackweaver"
-              className="h-8 w-8 transition-transform duration-300 group-hover:scale-110 flex-shrink-0"
+              className="h-8 w-8 transition-transform duration-300 group-hover:scale-110 shrink-0"
             />
             {!collapsed && (
               <span className="bg-gradient-to-r from-blue-500 via-blue-600 to-purple-500 bg-clip-text text-lg font-bold text-transparent whitespace-nowrap">
@@ -264,7 +264,7 @@ export function Sidebar({ isOpen = false, onClose, collapsed = false, onToggleCo
                       {active && (
                         <span className="absolute left-0 top-1 bottom-1 w-1 rounded-full bg-gradient-to-b from-blue-500 via-blue-600 to-purple-500" />
                       )}
-                      <Icon className={cn('h-5 w-5 transition-transform duration-300 flex-shrink-0', active && 'scale-110 text-blue-500 dark:text-blue-400')} />
+                      <Icon className={cn('h-5 w-5 transition-transform duration-300 shrink-0', active && 'scale-110 text-blue-500 dark:text-blue-400')} />
                       {!collapsed && <span className="whitespace-nowrap">{item.label}</span>}
                     </Link>
                   );

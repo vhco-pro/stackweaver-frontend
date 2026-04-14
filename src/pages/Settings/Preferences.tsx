@@ -161,7 +161,7 @@ export default function PreferencesSettings() {
                   onChange={(e) => setPreferences(prev => ({ ...prev, language: e.target.value }))}
                   className={cn(
                     'flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm',
-                    'ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2'
+                    'ring-offset-background focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2'
                   )}
                 >
                   <option value="en">English</option>
@@ -180,7 +180,7 @@ export default function PreferencesSettings() {
                   onChange={(e) => setPreferences(prev => ({ ...prev, timezone: e.target.value }))}
                   className={cn(
                     'flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm',
-                    'ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2'
+                    'ring-offset-background focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2'
                   )}
                 >
                   <option value="UTC">UTC</option>
@@ -218,7 +218,7 @@ export default function PreferencesSettings() {
                   onChange={(e) => setPreferences(prev => ({ ...prev, dateFormat: e.target.value }))}
                   className={cn(
                     'flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm',
-                    'ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2'
+                    'ring-offset-background focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2'
                   )}
                 >
                   <option value="YYYY-MM-DD">2024-01-15</option>

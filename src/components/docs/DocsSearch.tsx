@@ -285,7 +285,7 @@ export function DocsSearch({ docsBase = '/docs', searchIndexFile = '/docs-search
       >
         <Search className="h-4 w-4 shrink-0" />
         <span className="flex-1 text-left">Search docs…</span>
-        <kbd className="hidden sm:inline-flex items-center gap-0.5 rounded border border-border/60 bg-muted/50 px-1.5 py-0.5 text-[10px] font-mono text-muted-foreground">
+        <kbd className="hidden sm:inline-flex items-center gap-0.5 rounded-sm border border-border/60 bg-muted/50 px-1.5 py-0.5 text-[10px] font-mono text-muted-foreground">
           {shortcutLabel}
         </kbd>
       </button>
@@ -316,7 +316,7 @@ export function DocsSearch({ docsBase = '/docs', searchIndexFile = '/docs-search
                 setQuery(val);
                 doSearch(val);
               }}
-              className="flex-1 bg-transparent py-3 text-sm outline-none placeholder:text-muted-foreground"
+              className="flex-1 bg-transparent py-3 text-sm outline-hidden placeholder:text-muted-foreground"
             />
             {query && (
               <button
@@ -414,7 +414,7 @@ export function DocsSearch({ docsBase = '/docs', searchIndexFile = '/docs-search
                     {snippet && (
                       <div className="text-xs text-muted-foreground/70 mt-1 line-clamp-2">
                         {snippet.before}
-                        <mark className="bg-yellow-200/60 dark:bg-yellow-500/30 text-foreground rounded-sm px-0.5">
+                        <mark className="bg-yellow-200/60 dark:bg-yellow-500/30 text-foreground rounded-xs px-0.5">
                           {snippet.match}
                         </mark>
                         {snippet.after}
@@ -432,9 +432,9 @@ export function DocsSearch({ docsBase = '/docs', searchIndexFile = '/docs-search
           {/* Footer */}
           {searchResults.length > 0 && (
             <div className="border-t border-border px-3 py-2 flex items-center gap-3 text-[10px] text-muted-foreground">
-              <span><kbd className="rounded border border-border/60 bg-muted/50 px-1 py-0.5 font-mono">↑↓</kbd> Navigate</span>
-              <span><kbd className="rounded border border-border/60 bg-muted/50 px-1 py-0.5 font-mono">↵</kbd> Open</span>
-              <span><kbd className="rounded border border-border/60 bg-muted/50 px-1 py-0.5 font-mono">Esc</kbd> Close</span>
+              <span><kbd className="rounded-sm border border-border/60 bg-muted/50 px-1 py-0.5 font-mono">↑↓</kbd> Navigate</span>
+              <span><kbd className="rounded-sm border border-border/60 bg-muted/50 px-1 py-0.5 font-mono">↵</kbd> Open</span>
+              <span><kbd className="rounded-sm border border-border/60 bg-muted/50 px-1 py-0.5 font-mono">Esc</kbd> Close</span>
             </div>
           )}
         </DialogContent>

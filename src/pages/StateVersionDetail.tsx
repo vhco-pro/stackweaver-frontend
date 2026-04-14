@@ -371,7 +371,7 @@ export default function StateVersionDetail() {
       {/* State Version Info Card */}
       <div className="border rounded-lg p-4">
         <div className="flex items-start gap-4">
-          <div className="h-10 w-10 rounded bg-purple-500/10 flex items-center justify-center">
+          <div className="h-10 w-10 rounded-sm bg-purple-500/10 flex items-center justify-center">
             <GitCommit className="h-5 w-5 text-purple-500" />
           </div>
           <div className="flex-1">

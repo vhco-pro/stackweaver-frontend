@@ -254,7 +254,7 @@ export default function ApiKeysSettings() {
               <Button
                 variant="ghost"
                 onClick={() => setShowCreateForm(!showCreateForm)}
-                className="bg-white dark:bg-slate-950/80 dark:backdrop-blur-sm text-slate-900 dark:text-white hover:bg-slate-50 dark:hover:bg-slate-950/90 border-0 whitespace-nowrap rounded-[calc(0.75rem-2px)] px-4 py-2"
+                className="bg-white dark:bg-slate-950/80 dark:backdrop-blur-xs text-slate-900 dark:text-white hover:bg-slate-50 dark:hover:bg-slate-950/90 border-0 whitespace-nowrap rounded-[calc(0.75rem-2px)] px-4 py-2"
               >
                 <Plus className="h-4 w-4 mr-2" />
                 Create API Key
@@ -465,7 +465,7 @@ export default function ApiKeysSettings() {
                   </div>
                   <p className="text-sm text-muted-foreground">
                     This key allows self-hosted runners to register with the selected organization.
-                    Use this key when starting runner agents with <code className="px-1 py-0.5 rounded bg-muted">STACKWEAVER_TOKEN</code>.
+                    Use this key when starting runner agents with <code className="px-1 py-0.5 rounded-sm bg-muted">STACKWEAVER_TOKEN</code>.
                   </p>
                 </div>
               )}

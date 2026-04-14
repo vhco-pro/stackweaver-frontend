@@ -65,7 +65,7 @@ export function CookieConsent() {
   if (!show) return null;
 
   return (
-    <div className="sticky bottom-0 left-0 right-0 z-40 border-t border-slate-200 dark:border-white/10 bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm shadow-2xl-inverted">
+    <div className="sticky bottom-0 left-0 right-0 z-40 border-t border-slate-200 dark:border-white/10 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xs shadow-2xl-inverted">
       <div className="max-w-7xl mx-auto px-3 py-1.5 md:px-4 md:py-2">
         {!showSettings ? (
           <div className="flex items-center gap-2 md:gap-3">
@@ -75,7 +75,7 @@ export function CookieConsent() {
                 <Link to="/privacy" className="text-blue-600 dark:text-blue-400 hover:text-blue-500 dark:hover:text-blue-300 underline">Learn more</Link>
               </p>
             </div>
-            <div className="flex items-center gap-2 flex-shrink-0">
+            <div className="flex items-center gap-2 shrink-0">
               <button
                 onClick={handleAcceptAll}
                 className="group relative h-8 px-4 rounded-md overflow-hidden font-medium text-xs text-white transition-all duration-300 hover:scale-105 active:scale-95 shadow-md hover:shadow-lg"
@@ -96,7 +96,7 @@ export function CookieConsent() {
               
               <button
                 onClick={handleAcceptNecessary}
-                className="group relative h-8 px-4 rounded-md font-medium text-xs transition-all duration-300 hover:scale-105 active:scale-95 bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10 text-slate-700 dark:text-white hover:bg-slate-200 dark:hover:bg-white/10 hover:border-slate-300 dark:hover:border-white/20 shadow-sm"
+                className="group relative h-8 px-4 rounded-md font-medium text-xs transition-all duration-300 hover:scale-105 active:scale-95 bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10 text-slate-700 dark:text-white hover:bg-slate-200 dark:hover:bg-white/10 hover:border-slate-300 dark:hover:border-white/20 shadow-xs"
               >
                 <span className="relative z-10">Necessary</span>
               </button>
@@ -137,9 +137,9 @@ export function CookieConsent() {
                   <h4 className="text-xs font-semibold text-slate-900 dark:text-white">Necessary</h4>
                   <p className="text-[10px] text-slate-500 dark:text-gray-400 mt-0.5">Required for the site to work.</p>
                 </div>
-                <div className="flex-shrink-0">
+                <div className="shrink-0">
                   <div className="h-5 w-9 rounded-full bg-blue-600 flex items-center justify-end px-0.5 opacity-50 cursor-not-allowed">
-                    <div className="h-4 w-4 bg-white rounded-full shadow-sm" />
+                    <div className="h-4 w-4 bg-white rounded-full shadow-xs" />
                   </div>
                 </div>
               </div>
@@ -150,7 +150,7 @@ export function CookieConsent() {
                   <h4 className="text-xs font-semibold text-slate-900 dark:text-white">Analytics</h4>
                   <p className="text-[10px] text-slate-500 dark:text-gray-400 mt-0.5">Help us improve our site.</p>
                 </div>
-                <div className="flex-shrink-0">
+                <div className="shrink-0">
                   <button
                     onClick={() => togglePreference('analytics')}
                     className={cn(
@@ -158,7 +158,7 @@ export function CookieConsent() {
                       preferences.analytics ? "bg-blue-600 justify-end" : "bg-slate-300 dark:bg-gray-600 justify-start"
                     )}
                   >
-                    <div className="h-4 w-4 bg-white rounded-full shadow-sm" />
+                    <div className="h-4 w-4 bg-white rounded-full shadow-xs" />
                   </button>
                 </div>
               </div>
@@ -169,7 +169,7 @@ export function CookieConsent() {
                   <h4 className="text-xs font-semibold text-slate-900 dark:text-white">Marketing</h4>
                   <p className="text-[10px] text-slate-500 dark:text-gray-400 mt-0.5">Personalized advertisements.</p>
                 </div>
-                <div className="flex-shrink-0">
+                <div className="shrink-0">
                   <button
                     onClick={() => togglePreference('marketing')}
                     className={cn(
@@ -177,7 +177,7 @@ export function CookieConsent() {
                       preferences.marketing ? "bg-blue-600 justify-end" : "bg-slate-300 dark:bg-gray-600 justify-start"
                     )}
                   >
-                    <div className="h-4 w-4 bg-white rounded-full shadow-sm" />
+                    <div className="h-4 w-4 bg-white rounded-full shadow-xs" />
                   </button>
                 </div>
               </div>

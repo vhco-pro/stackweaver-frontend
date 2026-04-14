@@ -598,7 +598,7 @@ export default function Schedules() {
                   </TableCell>
                   <TableCell>{getTypeBadge(schedule.type)}</TableCell>
                   <TableCell>
-                    <code className="text-sm bg-muted px-1 py-0.5 rounded">
+                    <code className="text-sm bg-muted px-1 py-0.5 rounded-sm">
                       {schedule.cron_expression}
                     </code>
                     <div className="text-xs text-muted-foreground">{schedule.timezone}</div>

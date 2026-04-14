@@ -214,7 +214,7 @@ export default function Dashboard() {
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
-        <div className="p-6 rounded-xl bg-white/5 dark:bg-white/5 backdrop-blur-md border border-gray-200 dark:border-white/10 hover:border-purple-300 dark:hover:border-white/20 transition-all shadow-sm dark:shadow-purple-500/10 hover:shadow-md dark:hover:shadow-purple-500/20">
+        <div className="p-6 rounded-xl bg-white/5 dark:bg-white/5 backdrop-blur-md border border-gray-200 dark:border-white/10 hover:border-purple-300 dark:hover:border-white/20 transition-all shadow-xs dark:shadow-purple-500/10 hover:shadow-md dark:hover:shadow-purple-500/20">
           <div className="flex items-center justify-between mb-4">
             <div className="p-3 rounded-lg bg-gradient-to-br from-purple-500 to-violet-500">
               <FolderKanban className="h-6 w-6 text-white" />
@@ -229,7 +229,7 @@ export default function Dashboard() {
           <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">Active infrastructure projects</p>
         </div>
 
-        <div className="p-6 rounded-xl bg-white/5 dark:bg-white/5 backdrop-blur-md border border-gray-200 dark:border-white/10 hover:border-violet-300 dark:hover:border-white/20 transition-all shadow-sm dark:shadow-purple-500/10 hover:shadow-md dark:hover:shadow-purple-500/20">
+        <div className="p-6 rounded-xl bg-white/5 dark:bg-white/5 backdrop-blur-md border border-gray-200 dark:border-white/10 hover:border-violet-300 dark:hover:border-white/20 transition-all shadow-xs dark:shadow-purple-500/10 hover:shadow-md dark:hover:shadow-purple-500/20">
           <div className="flex items-center justify-between mb-4">
             <div className="p-3 rounded-lg bg-gradient-to-br from-violet-500 to-indigo-500">
               <Layers className="h-6 w-6 text-white" />
@@ -244,7 +244,7 @@ export default function Dashboard() {
           <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">Terraform workspaces</p>
         </div>
 
-        <div className="p-6 rounded-xl bg-white/5 dark:bg-white/5 backdrop-blur-md border border-gray-200 dark:border-white/10 hover:border-green-300 dark:hover:border-white/20 transition-all shadow-sm dark:shadow-green-500/10 hover:shadow-md dark:hover:shadow-green-500/20">
+        <div className="p-6 rounded-xl bg-white/5 dark:bg-white/5 backdrop-blur-md border border-gray-200 dark:border-white/10 hover:border-green-300 dark:hover:border-white/20 transition-all shadow-xs dark:shadow-green-500/10 hover:shadow-md dark:hover:shadow-green-500/20">
           <div className="flex items-center justify-between mb-4">
             <div className="p-3 rounded-lg bg-gradient-to-br from-green-500 to-emerald-500">
               <BookOpen className="h-6 w-6 text-white" />
@@ -259,7 +259,7 @@ export default function Dashboard() {
           <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">Ansible playbooks</p>
         </div>
 
-        <div className="p-6 rounded-xl bg-white/5 dark:bg-white/5 backdrop-blur-md border border-gray-200 dark:border-white/10 hover:border-indigo-300 dark:hover:border-white/20 transition-all shadow-sm dark:shadow-purple-500/10 hover:shadow-md dark:hover:shadow-purple-500/20">
+        <div className="p-6 rounded-xl bg-white/5 dark:bg-white/5 backdrop-blur-md border border-gray-200 dark:border-white/10 hover:border-indigo-300 dark:hover:border-white/20 transition-all shadow-xs dark:shadow-purple-500/10 hover:shadow-md dark:hover:shadow-purple-500/20">
           <div className="flex items-center justify-between mb-4">
             <div className="p-3 rounded-lg bg-gradient-to-br from-indigo-500 to-blue-500">
               <PlayCircle className="h-6 w-6 text-white" />
@@ -282,7 +282,7 @@ export default function Dashboard() {
           </p>
         </div>
 
-        <div className="p-6 rounded-xl bg-white/5 dark:bg-white/5 backdrop-blur-md border border-gray-200 dark:border-white/10 hover:border-blue-300 dark:hover:border-white/20 transition-all shadow-sm dark:shadow-purple-500/10 hover:shadow-md dark:hover:shadow-purple-500/20">
+        <div className="p-6 rounded-xl bg-white/5 dark:bg-white/5 backdrop-blur-md border border-gray-200 dark:border-white/10 hover:border-blue-300 dark:hover:border-white/20 transition-all shadow-xs dark:shadow-purple-500/10 hover:shadow-md dark:hover:shadow-purple-500/20">
           <div className="flex items-center justify-between mb-4">
             <div className="p-3 rounded-lg bg-gradient-to-br from-blue-500 to-cyan-500">
               <CheckCircle2 className="h-6 w-6 text-white" />
@@ -316,7 +316,7 @@ export default function Dashboard() {
           <Link
                 key={action.title}
                 to={action.link}
-                className="group p-6 rounded-xl bg-white/5 dark:bg-white/5 backdrop-blur-md border border-gray-200 dark:border-white/10 hover:border-purple-300 dark:hover:border-white/20 hover:bg-white/10 dark:hover:bg-white/10 transition-all shadow-sm dark:shadow-none hover:shadow-md"
+                className="group p-6 rounded-xl bg-white/5 dark:bg-white/5 backdrop-blur-md border border-gray-200 dark:border-white/10 hover:border-purple-300 dark:hover:border-white/20 hover:bg-white/10 dark:hover:bg-white/10 transition-all shadow-xs dark:shadow-none hover:shadow-md"
           >
                 <div className={`inline-flex p-3 rounded-lg bg-gradient-to-r ${action.color} mb-4`}>
                   <Icon className="h-6 w-6 text-white" />
@@ -355,7 +355,7 @@ export default function Dashboard() {
                       <Link
                         key={org.id}
                         to={`/app/${org.name}/workspaces`}
-                        className="group p-6 rounded-xl bg-white/5 dark:bg-white/5 backdrop-blur-md border border-gray-200 dark:border-white/10 hover:border-blue-300 dark:hover:border-white/20 hover:bg-white/10 dark:hover:bg-white/10 transition-all shadow-sm dark:shadow-none hover:shadow-md"
+                        className="group p-6 rounded-xl bg-white/5 dark:bg-white/5 backdrop-blur-md border border-gray-200 dark:border-white/10 hover:border-blue-300 dark:hover:border-white/20 hover:bg-white/10 dark:hover:bg-white/10 transition-all shadow-xs dark:shadow-none hover:shadow-md"
                       >
                         <div className="flex items-start justify-between mb-4">
                           <div className="flex items-center space-x-3">
@@ -417,7 +417,7 @@ export default function Dashboard() {
                     View all
                   </Link>
                 </div>
-                <div className="p-6 rounded-xl bg-white/5 dark:bg-white/5 backdrop-blur-md border border-gray-200 dark:border-white/10 shadow-sm dark:shadow-none">
+                <div className="p-6 rounded-xl bg-white/5 dark:bg-white/5 backdrop-blur-md border border-gray-200 dark:border-white/10 shadow-xs dark:shadow-none">
                   {recentActivity.length === 0 ? (
                     <div className="text-center py-12">
                       <Activity className="h-12 w-12 text-purple-400/30 mx-auto mb-4" />
@@ -459,7 +459,7 @@ export default function Dashboard() {
                     <Link
                       key={org.id}
                       to={`/app/${org.name}/workspaces`}
-                      className="group p-6 rounded-xl bg-white/5 dark:bg-white/5 backdrop-blur-md border border-gray-200 dark:border-white/10 hover:border-blue-300 dark:hover:border-white/20 hover:bg-white/10 dark:hover:bg-white/10 transition-all shadow-sm dark:shadow-none hover:shadow-md"
+                      className="group p-6 rounded-xl bg-white/5 dark:bg-white/5 backdrop-blur-md border border-gray-200 dark:border-white/10 hover:border-blue-300 dark:hover:border-white/20 hover:bg-white/10 dark:hover:bg-white/10 transition-all shadow-xs dark:shadow-none hover:shadow-md"
                     >
                       <div className="flex items-start justify-between mb-4">
                         <div className="flex items-center space-x-3">
@@ -515,7 +515,7 @@ export default function Dashboard() {
 
             {/* Recent Activity and Getting Started */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <div className="p-6 rounded-xl bg-white/5 dark:bg-white/5 backdrop-blur-md border border-gray-200 dark:border-white/10 shadow-sm dark:shadow-none">
+              <div className="p-6 rounded-xl bg-white/5 dark:bg-white/5 backdrop-blur-md border border-gray-200 dark:border-white/10 shadow-xs dark:shadow-none">
                 <div className="flex items-center justify-between mb-4">
                   <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Recent Activity</h2>
                   <Link to="/activities" className="text-sm text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300">
@@ -548,7 +548,7 @@ export default function Dashboard() {
               </div>
 
               {/* Getting Started */}
-              <div className="p-6 rounded-xl bg-white/5 dark:bg-white/5 backdrop-blur-md border border-gray-200 dark:border-white/10 shadow-sm dark:shadow-none">
+              <div className="p-6 rounded-xl bg-white/5 dark:bg-white/5 backdrop-blur-md border border-gray-200 dark:border-white/10 shadow-xs dark:shadow-none">
                 <div className="flex items-center justify-between mb-4">
                   <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Getting Started</h2>
                 </div>
@@ -556,7 +556,7 @@ export default function Dashboard() {
                   {!hasOrganization && (
                     <div className="p-4 rounded-lg bg-white/10 dark:bg-white/5 border border-gray-200 dark:border-white/10">
                       <div className="flex items-start gap-3">
-                        <div className="flex-shrink-0 w-6 h-6 rounded-full bg-gradient-to-br from-purple-500 to-violet-500 flex items-center justify-center">
+                        <div className="shrink-0 w-6 h-6 rounded-full bg-gradient-to-br from-purple-500 to-violet-500 flex items-center justify-center">
                           <span className="text-xs font-semibold text-white">1</span>
                         </div>
                         <div>
@@ -574,7 +574,7 @@ export default function Dashboard() {
                   {hasOrganization && !hasProject && (
                     <div className="p-4 rounded-lg bg-white/10 dark:bg-white/5 border border-gray-200 dark:border-white/10">
                       <div className="flex items-start gap-3">
-                        <div className="flex-shrink-0 w-6 h-6 rounded-full bg-gradient-to-br from-violet-500 to-indigo-500 flex items-center justify-center">
+                        <div className="shrink-0 w-6 h-6 rounded-full bg-gradient-to-br from-violet-500 to-indigo-500 flex items-center justify-center">
                           <span className="text-xs font-semibold text-white">2</span>
                         </div>
                         <div>
@@ -592,7 +592,7 @@ export default function Dashboard() {
                   {hasProject && !hasWorkspace && (
                     <div className="p-4 rounded-lg bg-white/10 dark:bg-white/5 border border-gray-200 dark:border-white/10">
                       <div className="flex items-start gap-3">
-                        <div className="flex-shrink-0 w-6 h-6 rounded-full bg-gradient-to-br from-indigo-500 to-blue-500 flex items-center justify-center">
+                        <div className="shrink-0 w-6 h-6 rounded-full bg-gradient-to-br from-indigo-500 to-blue-500 flex items-center justify-center">
                           <span className="text-xs font-semibold text-white">3</span>
                         </div>
                         <div>

@@ -122,11 +122,11 @@ export function GitHubSnippet({ url }: GitHubSnippetProps) {
     return (
       <div className="not-prose my-4 rounded-md border border-border/40 overflow-hidden">
         <div className="px-3 py-2 bg-muted/30 border-b border-border/40">
-          <div className="h-4 w-64 rounded bg-muted/60 animate-pulse" />
+          <div className="h-4 w-64 rounded-sm bg-muted/60 animate-pulse" />
         </div>
         <div className="p-4 space-y-2">
           {Array.from({ length: 4 }).map((_, i) => (
-            <div key={i} className="h-4 rounded bg-muted/60 animate-pulse" style={{ width: `${50 + (i % 3) * 15}%` }} />
+            <div key={i} className="h-4 rounded-sm bg-muted/60 animate-pulse" style={{ width: `${50 + (i % 3) * 15}%` }} />
           ))}
         </div>
       </div>
@@ -165,7 +165,7 @@ export function GitHubSnippet({ url }: GitHubSnippetProps) {
             <span className="text-muted-foreground">{snippet.org}/</span>{snippet.repo}<span className="text-muted-foreground">/{snippet.path}</span>
           </a>
           {lineInfo && (
-            <span className="inline-flex items-center shrink-0 px-1.5 py-0.5 rounded text-[10px] font-mono bg-muted/60 text-muted-foreground border border-border/40">
+            <span className="inline-flex items-center shrink-0 px-1.5 py-0.5 rounded-sm text-[10px] font-mono bg-muted/60 text-muted-foreground border border-border/40">
               {lineInfo}
             </span>
           )}
@@ -174,13 +174,13 @@ export function GitHubSnippet({ url }: GitHubSnippetProps) {
               href={commitUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center shrink-0 px-1.5 py-0.5 rounded text-[10px] font-mono bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 hover:bg-amber-500/20 transition-colors"
+              className="inline-flex items-center shrink-0 px-1.5 py-0.5 rounded-sm text-[10px] font-mono bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 hover:bg-amber-500/20 transition-colors"
               title={`Commit ${snippet.ref}`}
             >
               {shortRef}
             </a>
           ) : (
-            <span className="inline-flex items-center shrink-0 px-1.5 py-0.5 rounded text-[10px] font-medium bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+            <span className="inline-flex items-center shrink-0 px-1.5 py-0.5 rounded-sm text-[10px] font-medium bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
               {shortRef}
             </span>
           )}
@@ -201,7 +201,7 @@ export function GitHubSnippet({ url }: GitHubSnippetProps) {
         ) : (
           <div className="p-4 space-y-2">
             {Array.from({ length: 3 }).map((_, i) => (
-              <div key={i} className="h-4 rounded bg-muted/60 animate-pulse" style={{ width: `${60 + (i % 3) * 10}%` }} />
+              <div key={i} className="h-4 rounded-sm bg-muted/60 animate-pulse" style={{ width: `${60 + (i % 3) * 10}%` }} />
             ))}
           </div>
         )}

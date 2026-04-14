@@ -241,7 +241,7 @@ export default function Runners() {
               <Button
                 variant="ghost"
                 onClick={() => setAddOpen(true)}
-                className="bg-white dark:bg-slate-950/80 dark:backdrop-blur-sm text-slate-900 dark:text-white hover:bg-slate-50 dark:hover:bg-slate-950/90 border-0 whitespace-nowrap rounded-[calc(0.75rem-2px)] px-4 py-2"
+                className="bg-white dark:bg-slate-950/80 dark:backdrop-blur-xs text-slate-900 dark:text-white hover:bg-slate-50 dark:hover:bg-slate-950/90 border-0 whitespace-nowrap rounded-[calc(0.75rem-2px)] px-4 py-2"
               >
                 <Terminal className="h-4 w-4 mr-2" />
                 Add runner
@@ -377,7 +377,7 @@ export default function Runners() {
               <Label>1. Create an API Key</Label>
               <p className="text-sm text-muted-foreground">
                 Go to <Link to={`/app/${orgName}/settings/api-keys`} className="text-primary hover:underline">Settings → API Keys</Link> and 
-                create a key with <code className="bg-muted px-1 rounded">runner:register</code> scope.
+                create a key with <code className="bg-muted px-1 rounded-sm">runner:register</code> scope.
               </p>
             </div>
 

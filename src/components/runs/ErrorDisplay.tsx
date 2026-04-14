@@ -44,7 +44,7 @@ export function ErrorDisplay({ logs, title = 'Error', className }: ErrorDisplayP
       return (
         <div className={`border border-red-500/50 rounded-lg p-4 bg-red-500/10 ${className || ''}`}>
           <div className="flex items-start gap-3">
-            <XCircle className="h-5 w-5 text-red-700 dark:text-red-400 flex-shrink-0 mt-0.5" />
+            <XCircle className="h-5 w-5 text-red-700 dark:text-red-400 shrink-0 mt-0.5" />
             <div className="flex-1">
               <h3 className="font-semibold text-red-700 dark:text-red-400 mb-2">{title}</h3>
               <p className="text-red-800 dark:text-red-300 text-sm mb-3">
@@ -73,7 +73,7 @@ export function ErrorDisplay({ logs, title = 'Error', className }: ErrorDisplayP
       <div className="p-4">
         <div className="flex items-start justify-between gap-3 mb-4">
           <div className="flex items-start gap-3 flex-1">
-            <XCircle className="h-5 w-5 text-red-700 dark:text-red-400 flex-shrink-0 mt-0.5" />
+            <XCircle className="h-5 w-5 text-red-700 dark:text-red-400 shrink-0 mt-0.5" />
             <div className="flex-1">
               <h3 className="font-semibold text-red-700 dark:text-red-400">
                 {title}{errors.length > 1 ? ` (${errors.length})` : ''}
@@ -169,7 +169,7 @@ function ErrorCard({ error }: { error: ParsedError }) {
       }
       // Add the quoted string as code with grey background (like TFE)
       parts.push(
-        <code key={match.index} className="bg-red-100/80 dark:bg-muted/40 px-1.5 py-0.5 rounded text-xs font-mono text-red-950 dark:text-foreground">
+        <code key={match.index} className="bg-red-100/80 dark:bg-muted/40 px-1.5 py-0.5 rounded-sm text-xs font-mono text-red-950 dark:text-foreground">
           {match[1]}
         </code>
       );
@@ -187,7 +187,7 @@ function ErrorCard({ error }: { error: ParsedError }) {
   return (
     <div className="bg-red-50 dark:bg-red-950/30 border border-red-500/30 rounded-md p-4">
       <div className="flex items-start gap-3">
-        <AlertTriangle className="h-5 w-5 text-red-600 dark:text-red-500 flex-shrink-0 mt-0.5" />
+        <AlertTriangle className="h-5 w-5 text-red-600 dark:text-red-500 shrink-0 mt-0.5" />
         <div className="flex-1 space-y-3">
           {/* Error Type - red text */}
           <div className="font-semibold text-red-700 dark:text-red-400 text-sm">
@@ -207,7 +207,7 @@ function ErrorCard({ error }: { error: ParsedError }) {
               {error.file && error.line && (
                 <div className="flex items-start gap-2">
                   <span className="text-red-800/80 dark:text-gray-300/70 min-w-[2.5rem]">on</span>
-                  <code className="text-red-950 dark:text-gray-100 font-mono bg-red-100/80 dark:bg-muted/40 px-1.5 py-0.5 rounded">
+                  <code className="text-red-950 dark:text-gray-100 font-mono bg-red-100/80 dark:bg-muted/40 px-1.5 py-0.5 rounded-sm">
                     {error.file}
                   </code>
                   <span className="text-red-800/80 dark:text-gray-300/70">line {error.line}</span>
@@ -216,7 +216,7 @@ function ErrorCard({ error }: { error: ParsedError }) {
               {error.resource && (
                 <div className="flex items-start gap-2">
                   <span className="text-red-800/80 dark:text-gray-300/70 min-w-[2.5rem]">in</span>
-                  <code className="text-red-950 dark:text-gray-100 font-mono bg-red-100/80 dark:bg-muted/40 px-1.5 py-0.5 rounded">
+                  <code className="text-red-950 dark:text-gray-100 font-mono bg-red-100/80 dark:bg-muted/40 px-1.5 py-0.5 rounded-sm">
                     {error.resource}
                   </code>
                 </div>
@@ -228,7 +228,7 @@ function ErrorCard({ error }: { error: ParsedError }) {
           {error.suggestion && (
             <div className="mt-3 pt-3 border-t border-red-500/20">
               <div className="bg-amber-500/10 dark:bg-amber-500/5 border border-amber-500/20 dark:border-amber-500/10 rounded-md p-3 flex items-start gap-2.5">
-                <Lightbulb className="h-4 w-4 text-amber-600 dark:text-amber-300 flex-shrink-0 mt-0.5 fill-amber-400/20 dark:fill-amber-300/20" />
+                <Lightbulb className="h-4 w-4 text-amber-600 dark:text-amber-300 shrink-0 mt-0.5 fill-amber-400/20 dark:fill-amber-300/20" />
                 <div className="flex-1">
                   <div className="text-xs font-medium text-amber-700 dark:text-amber-200 mb-1.5">
                     Suggestion

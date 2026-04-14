@@ -620,7 +620,7 @@ export default function Credentials() {
               <Button
                 variant="ghost"
                 onClick={() => setCreateDialogOpen(true)}
-                className="bg-white dark:bg-slate-950/80 dark:backdrop-blur-sm text-slate-900 dark:text-white hover:bg-slate-50 dark:hover:bg-slate-950/90 border-0 whitespace-nowrap rounded-[calc(0.75rem-2px)] px-4 py-2"
+                className="bg-white dark:bg-slate-950/80 dark:backdrop-blur-xs text-slate-900 dark:text-white hover:bg-slate-50 dark:hover:bg-slate-950/90 border-0 whitespace-nowrap rounded-[calc(0.75rem-2px)] px-4 py-2"
               >
                 <Plus className="h-4 w-4 mr-2" />
                 New Credential

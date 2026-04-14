@@ -77,7 +77,7 @@ export default function Collections() {
             <div className="text-sm">
               <p className="font-medium text-blue-500">Auto-Install from requirements.yml</p>
               <p className="text-muted-foreground mt-1">
-                Additional collections can be installed automatically by adding a <code className="bg-muted px-1 rounded">requirements.yml</code> file 
+                Additional collections can be installed automatically by adding a <code className="bg-muted px-1 rounded-sm">requirements.yml</code> file 
                 to your playbook repository. The runner will install them before job execution.
               </p>
             </div>

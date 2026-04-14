@@ -178,7 +178,7 @@ export function PublicNav({ activeLink = 'home' }: PublicNavProps) {
               <Button
                 variant="ghost"
                 size="icon"
-                className="w-9 h-9 text-slate-700 dark:text-white hover:bg-black/5 dark:hover:bg-white/10 border-none outline-none focus-visible:ring-0 focus-visible:ring-offset-0"
+                className="w-9 h-9 text-slate-700 dark:text-white hover:bg-black/5 dark:hover:bg-white/10 border-none outline-hidden focus-visible:ring-0 focus-visible:ring-offset-0"
               >
                 <Sun className="h-[1.2rem] w-[1.2rem] rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
                 <Moon className="absolute h-[1.2rem] w-[1.2rem] rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
@@ -215,11 +215,11 @@ export function PublicNav({ activeLink = 'home' }: PublicNavProps) {
               variant="ghost"
               size="sm"
               onClick={handleGetStarted}
-              className="bg-white dark:bg-slate-900/80 dark:backdrop-blur-sm text-slate-900 dark:text-white hover:bg-slate-50 dark:hover:bg-slate-900/90 border-0 whitespace-nowrap rounded-[calc(0.375rem-3px)] dark:rounded-[calc(0.375rem-2.5px)]"
+              className="bg-white dark:bg-slate-900/80 dark:backdrop-blur-xs text-slate-900 dark:text-white hover:bg-slate-50 dark:hover:bg-slate-900/90 border-0 whitespace-nowrap rounded-[calc(0.375rem-3px)] dark:rounded-[calc(0.375rem-2.5px)]"
             >
               <span className="flex items-center gap-2">
                 <span>{session ? 'Dashboard' : 'Get Started'}</span>
-                <ArrowRight className="h-4 w-4 flex-shrink-0" />
+                <ArrowRight className="h-4 w-4 shrink-0" />
               </span>
             </Button>
           </div>
@@ -231,7 +231,7 @@ export function PublicNav({ activeLink = 'home' }: PublicNavProps) {
             variant="ghost"
             size="icon"
             onClick={() => setMobileMenuOpen(true)}
-            className="w-10 h-10 text-slate-700 dark:text-white hover:bg-black/5 dark:hover:bg-white/10 border-none outline-none focus-visible:ring-0 focus-visible:ring-offset-0"
+            className="w-10 h-10 text-slate-700 dark:text-white hover:bg-black/5 dark:hover:bg-white/10 border-none outline-hidden focus-visible:ring-0 focus-visible:ring-offset-0"
             aria-label="Open menu"
           >
             <Menu className="h-5 w-5" />
@@ -371,7 +371,7 @@ export function PublicNav({ activeLink = 'home' }: PublicNavProps) {
                   >
                     <span className="flex items-center gap-2">
                       <span>{session ? 'Dashboard' : 'Get Started'}</span>
-                      <ArrowRight className="h-4 w-4 flex-shrink-0" />
+                      <ArrowRight className="h-4 w-4 shrink-0" />
                     </span>
                   </Button>
                 </div>

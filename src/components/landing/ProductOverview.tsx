@@ -21,7 +21,7 @@ export function ProductOverview() {
         <div className="flex flex-col gap-8">
           {/* Badge */}
           <div>
-            <span className="inline-flex items-center px-4 py-1.5 rounded-full border border-slate-200 dark:border-white/10 bg-white dark:bg-white/5 text-xs font-medium tracking-wide text-slate-600 dark:text-gray-300 uppercase shadow-sm">
+            <span className="inline-flex items-center px-4 py-1.5 rounded-full border border-slate-200 dark:border-white/10 bg-white dark:bg-white/5 text-xs font-medium tracking-wide text-slate-600 dark:text-gray-300 uppercase shadow-xs">
               Open Source Orchestration
             </span>
           </div>
@@ -58,7 +58,7 @@ export function ProductOverview() {
             ].map((feature, idx) => (
               <div 
                 key={idx} 
-                className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-white border border-slate-200 shadow-sm dark:bg-white/5 dark:border-white/10 text-sm font-medium text-slate-600 dark:text-gray-300 hover:bg-slate-50 dark:hover:bg-white/10 transition-colors cursor-default"
+                className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-white border border-slate-200 shadow-xs dark:bg-white/5 dark:border-white/10 text-sm font-medium text-slate-600 dark:text-gray-300 hover:bg-slate-50 dark:hover:bg-white/10 transition-colors cursor-default"
               >
                 <feature.icon className="w-4 h-4 text-slate-500 dark:text-gray-400" />
                 <span>{feature.label}</span>
@@ -73,7 +73,7 @@ export function ProductOverview() {
                 variant="ghost"
                 size="lg"
                 asChild
-                className="w-full sm:w-auto justify-center bg-white dark:bg-slate-900/80 dark:backdrop-blur-sm text-slate-900 dark:text-white hover:bg-slate-50 dark:hover:bg-slate-900/90 border-0 whitespace-nowrap rounded-[calc(0.75rem-3px)] dark:rounded-[calc(0.75rem-2.5px)] h-12 px-6 text-base font-semibold transition-colors duration-200"
+                className="w-full sm:w-auto justify-center bg-white dark:bg-slate-900/80 dark:backdrop-blur-xs text-slate-900 dark:text-white hover:bg-slate-50 dark:hover:bg-slate-900/90 border-0 whitespace-nowrap rounded-[calc(0.75rem-3px)] dark:rounded-[calc(0.75rem-2.5px)] h-12 px-6 text-base font-semibold transition-colors duration-200"
               >
                 <a href="https://github.com/michielvha/stackweaver" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2">
                   {getVcsProviderIcon('github', 'w-5 h-5')}
@@ -139,8 +139,8 @@ export function ProductOverview() {
                  <div className="grid grid-cols-3 gap-4">
                    {[1, 2, 3].map(i => (
                      <div key={i} className="h-24 rounded-lg bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/5 p-4">
-                       <div className="h-4 w-8 bg-blue-400/20 rounded mb-2" />
-                       <div className="h-8 w-16 bg-slate-200 dark:bg-white/10 rounded" />
+                       <div className="h-4 w-8 bg-blue-400/20 rounded-sm mb-2" />
+                       <div className="h-8 w-16 bg-slate-200 dark:bg-white/10 rounded-sm" />
                      </div>
                    ))}
                  </div>

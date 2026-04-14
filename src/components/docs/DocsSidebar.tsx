@@ -45,7 +45,7 @@ function StatusDot({ status }: { status?: string }) {
   const label = status.charAt(0).toUpperCase() + status.slice(1).replace('-', ' ');
   return (
     <span
-      className={`inline-block h-1.5 w-1.5 rounded-full flex-shrink-0 ${color}`}
+      className={`inline-block h-1.5 w-1.5 rounded-full shrink-0 ${color}`}
       title={label}
     />
   );
@@ -220,7 +220,7 @@ export function DocsSidebar({ className, onNavigate, docsBase = '/docs', indexFi
             style={{ paddingLeft: `${0.75 + level * 1.5}rem` }}
           >
             {hasChildren && (
-              <div className="chevron-container flex-shrink-0">
+              <div className="chevron-container shrink-0">
                 {isExpanded ? (
                   <ChevronDown className="h-4 w-4" />
                 ) : (
@@ -228,7 +228,7 @@ export function DocsSidebar({ className, onNavigate, docsBase = '/docs', indexFi
                 )}
               </div>
             )}
-            <div className="folder-icon-container flex-shrink-0">
+            <div className="folder-icon-container shrink-0">
               {isExpanded ? (
                 <FolderOpen className="h-4 w-4" />
               ) : (
@@ -263,7 +263,7 @@ export function DocsSidebar({ className, onNavigate, docsBase = '/docs', indexFi
           title={node.description || undefined}
         >
           {isInternal && <StatusDot status={node.status} />}
-          <FileText className="h-4 w-4 flex-shrink-0" />
+          <FileText className="h-4 w-4 shrink-0" />
           <span className="truncate">{node.title || node.name.replace(/\.md$/, '')}</span>
         </Link>
       );
@@ -273,9 +273,9 @@ export function DocsSidebar({ className, onNavigate, docsBase = '/docs', indexFi
   if (loading) {
     return (
       <div className={cn('p-4 space-y-2', className)}>
-        <div className="h-6 bg-muted/50 rounded animate-pulse" />
-        <div className="h-6 bg-muted/50 rounded animate-pulse ml-4" />
-        <div className="h-6 bg-muted/50 rounded animate-pulse ml-4" />
+        <div className="h-6 bg-muted/50 rounded-sm animate-pulse" />
+        <div className="h-6 bg-muted/50 rounded-sm animate-pulse ml-4" />
+        <div className="h-6 bg-muted/50 rounded-sm animate-pulse ml-4" />
       </div>
     );
   }
@@ -307,7 +307,7 @@ export function DocsSidebar({ className, onNavigate, docsBase = '/docs', indexFi
               setHideCompleted(e.target.checked);
               localStorage.setItem('internal-docs-hide-completed', String(e.target.checked));
             }}
-            className="rounded border-border"
+            className="rounded-sm border-border"
           />
           Hide completed
         </label>
