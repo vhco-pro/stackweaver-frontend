@@ -373,8 +373,6 @@ services:
       STORAGE_FORCE_PATH_STYLE: "true"
       ANSIBLE_ENCRYPTION_KEY: ${ENCRYPTION_KEY:-00000000000000000000000000000000}
       WORKSPACES_DIR: /home/iac/workspaces
-      ANSIBLE_HOST_KEY_CHECKING: "false"
-      ANSIBLE_RETRY_FILES_ENABLED: "false"
       ANSIBLE_RUNNER_KEEP_WORKSPACE: "true"
     volumes:
       - runner-workspaces:/home/iac/workspaces

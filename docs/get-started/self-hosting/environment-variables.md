@@ -220,8 +220,6 @@ The Ansible runner processes Ansible playbook jobs from the Redis queue.
 | `STORAGE_BUCKET` | Bucket for Ansible artifacts | `ansible-artifacts` |
 | `WORKSPACES_DIR` | Directory for workspace files | `/home/iac/workspaces` |
 | `ANSIBLE_ENCRYPTION_KEY` | 32-byte hex encryption key | Falls back to `ENCRYPTION_KEY` |
-| `ANSIBLE_HOST_KEY_CHECKING` | SSH host key checking | `false` |
-| `ANSIBLE_RETRY_FILES_ENABLED` | Create .retry files | `false` |
 | `ANSIBLE_RUNNER_KEEP_WORKSPACE` | Keep workspace after execution | `false` |
 | `ANSIBLE_BINARY_PATH` | Custom path to ansible-playbook binary | (auto-detected) |
 | `OIDC_ISSUER_URL` | OIDC issuer URL for workload identity | Falls back to `API_URL` |
