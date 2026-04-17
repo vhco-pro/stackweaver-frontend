@@ -24,7 +24,7 @@ COPY ${BUILD_ROOT}/nginx.conf /frontend/nginx.conf
 RUN npm run build
 
 # Runtime stage — Chainguard nginx: zero CVEs, non-root by default
-FROM cgr.dev/chainguard/nginx@sha256:8987b562107b4275bd594b9dcf2def36737720460b12fce90bb13c729353ca54
+FROM cgr.dev/chainguard/nginx@sha256:34d9edf274e639efbf2880fe29326710fa42d5c77106f9dd0d97bf3516354f03
 
 COPY --from=builder /frontend/dist /usr/share/nginx/html
 # Chainguard nginx ships nginx.default.conf — overwrite it with our SPA config
