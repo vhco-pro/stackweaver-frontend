@@ -25,8 +25,8 @@ serviceAccount:
 # ── Ingress ───────────────────────────────────────────────────────────────────
 #
 # Two-domain layout:
-#   - app host:  Frontend SPA + API (path-based routing)
-#   - auth host: Zitadel OIDC + Login UI (only when zitadel.bundled=true)
+#   - app host:  Frontend SPA (login UI bundled via /login/* routes) + API (with auth proxy at /auth/*)
+#   - auth host: Zitadel OIDC (only when zitadel.bundled=true)
 #
 # The API is routed via /api/v2, /.well-known/terraform.json, /v1/modules, /health.
 # Everything else on the app host goes to the frontend.

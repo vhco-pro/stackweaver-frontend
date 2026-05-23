@@ -3,7 +3,7 @@
 import { useState, useRef } from 'react';
 import { useMountEffect } from '@/hooks/useMountEffect';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { exchangeCodeForTokens, storeTokens } from '@/lib/zitadel';
+import { consumeOIDCState, exchangeCodeForTokens, storeTokens } from '@/lib/zitadel';
 import { useAuth } from '@/contexts/AuthContext';
 import { Loader2 } from 'lucide-react';
 
@@ -21,6 +21,7 @@ export default function Callback() {
 
     const handleCallback = async () => {
       const code = searchParams.get('code');
+      const stateParam = searchParams.get('state');
       const errorParam = searchParams.get('error');
 
       // Check if we've already processed this code
@@ -43,6 +44,21 @@ export default function Callback() {
 
       if (!code) {
         setError('No authorization code received');
+        setTimeout(() => {
+          void Promise.resolve(navigate('/auth/login', { replace: true }));
+        }, 3000);
+        processingRef.current = false;
+        return;
+      }
+
+      // OIDC state validation (Round 18). MUST run BEFORE token exchange:
+      // an attacker-injected callback (foreign `?code=…&state=…`) would
+      // otherwise log the victim into the attacker's session. consumeOIDCState
+      // is one-shot — it always clears the stored state, so a successful
+      // match cannot be replayed and a mismatch attempt cannot be retried.
+      if (!consumeOIDCState(stateParam)) {
+        setError('Authentication failed: state mismatch (possible CSRF)');
+        // Same redirect-after-timeout pattern as the other error branches.
         setTimeout(() => {
           void Promise.resolve(navigate('/auth/login', { replace: true }));
         }, 3000);

@@ -57,7 +57,7 @@ When both domains are registered as trusted, Zitadel responds correctly on each:
 | Request Host | OIDC Issuer | Used By |
 |---|---|---|
 | `zitadel.example.com` | `https://zitadel.example.com` | Browsers, SSO callbacks, external clients |
-| `localhost:8080` | `https://localhost:8080` | Internal services (API, login-ui, runners) |
+| `localhost:8080` | `https://localhost:8080` | Internal services (API auth proxy, runners) |
 
 The issuer always uses the scheme configured by `ExternalSecure` (https when true), regardless of whether TLS is actually terminated at Zitadel or by a reverse proxy.
 
@@ -156,11 +156,12 @@ After init writes `.env`, Docker Compose injects the issuer into each service:
 |---|---|---|---|
 | API | `ZITADEL_ISSUER` | `https://zitadel.example.com` | Validates the `iss` claim in JWTs |
 | API | `ZITADEL_INTERNAL_ADDR` | `localhost:8080` | Fetches JWKS keys internally (no external DNS) |
+| API (auth proxy) | `CUSTOM_REQUEST_HEADERS` | `x-zitadel-instance-host:zitadel.example.com` | Tells Zitadel to build IdP callbacks with the external domain |
+| API (auth proxy) | `ZITADEL_EXTERNAL_HOST` | `zitadel.example.com` | Source value for `CUSTOM_REQUEST_HEADERS` (from `.env`) |
 | Frontend | `VITE_ZITADEL_ISSUER` | `https://zitadel.example.com` | OIDC discovery and token requests from the browser |
-| Login UI | `ZITADEL_API_URL` | `http://localhost:8080` | Internal gRPC/REST calls to Zitadel |
-| Login UI | `CUSTOM_REQUEST_HEADERS` | `x-zitadel-instance-host:zitadel.example.com` | Tells Zitadel to build IdP callbacks with the external domain |
-| Login UI | `ZITADEL_EXTERNAL_HOST` | `zitadel.example.com` | Source value for `CUSTOM_REQUEST_HEADERS` (from `.env`) |
-| zitadel-init | `ZITADEL_ISSUER` | `https://zitadel.example.com/ui/v2/login` | Login redirect URL (appends login path) |
+| zitadel-init | `ZITADEL_ISSUER` | `https://zitadel.example.com` | Login redirect URL (no `/ui/v2/login` suffix — the Stackweaver SPA serves login at `/login/*` instead) |
+
+The "Login UI" rows from earlier docs revisions are gone post-cutover: the standalone `login-ui` container was retired and login is now served by the Stackweaver SPA. The auth proxy in the API container picks up the env vars that used to live on the login-ui service.
 
 The API uses a split verification approach: it fetches the JWKS signing keys from `http://localhost:8080/oauth/v2/keys` (fast, internal, no DNS/TLS overhead) but validates the `iss` claim in tokens against the external issuer URL (`https://zitadel.example.com`). This ensures tokens are valid for the public domain while keeping key fetching fast and reliable.
 
@@ -232,9 +233,9 @@ You must register this exact URL as a redirect URI in your identity provider's a
 
 > **Important:** The callback URL is **not** derived from the `ExternalDomain` config value. Zitadel constructs it from the request's domain context headers at runtime. The `CUSTOM_REQUEST_HEADERS` / `ZITADEL_EXTERNAL_HOST` mechanism described above is what makes this work correctly. Without it, the callback URL would be `https://localhost:8080/idps/callback`, which external identity providers reject.
 >
-> If you see `AADSTS50011` (Azure AD redirect URI mismatch) or similar errors, verify that `ZITADEL_EXTERNAL_HOST` is set in `deploy/.env` and that the Login UI container has `CUSTOM_REQUEST_HEADERS` in its environment. You can check with:
+> If you see `AADSTS50011` (Azure AD redirect URI mismatch) or similar errors, verify that `ZITADEL_EXTERNAL_HOST` is set in `deploy/.env` and that the API container has `CUSTOM_REQUEST_HEADERS` in its environment (consumed by the auth proxy post-cutover, formerly by the standalone login-ui container). You can check with:
 > ```bash
-> docker exec login-ui sh -c 'printenv CUSTOM_REQUEST_HEADERS'
+> docker exec api sh -c 'printenv CUSTOM_REQUEST_HEADERS'
 > # Should output: x-zitadel-instance-host:zitadel.example.com
 > ```
 
@@ -262,8 +263,8 @@ grep ZITADEL_ISSUER deploy/.env
 # ZITADEL_ISSUER=https://zitadel.example.com
 # VITE_ZITADEL_ISSUER=https://zitadel.example.com
 
-# 4. Check Login UI has the correct custom header (custom domain only)
-docker exec login-ui sh -c 'printenv CUSTOM_REQUEST_HEADERS'
+# 4. Check the auth proxy has the correct custom header (custom domain only)
+docker exec api sh -c 'printenv CUSTOM_REQUEST_HEADERS'
 # x-zitadel-instance-host:zitadel.example.com
 
 # 5. Check API health
@@ -315,9 +316,9 @@ The IdP callback URL is constructed from request headers, not from `ExternalDoma
    ```bash
    grep ZITADEL_EXTERNAL_HOST deploy/.env
    ```
-2. Verify the Login UI has the header configured:
+2. Verify the API container's auth proxy has the header configured:
    ```bash
-   docker exec login-ui sh -c 'printenv CUSTOM_REQUEST_HEADERS'
+   docker exec api sh -c 'printenv CUSTOM_REQUEST_HEADERS'
    # Expected: x-zitadel-instance-host:zitadel.example.com
    ```
 3. If missing, re-run `docker compose build zitadel-init && docker compose run --rm zitadel-init` to regenerate `.env`, then `make fresh`.

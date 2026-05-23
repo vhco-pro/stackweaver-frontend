@@ -34,9 +34,8 @@ The chart deploys the following resources.
 | Redis | Deployment | Job queue and pubsub |
 | Garage | StatefulSet | S3-compatible object storage |
 | Zitadel | Deployment | OIDC identity provider |
-| Login UI | Deployment | Zitadel login interface |
 | Ingress (app) | Ingress | Routes frontend + API traffic |
-| Ingress (auth) | Ingress | Routes Zitadel + Login UI traffic |
+| Ingress (auth) | Ingress | Routes Zitadel traffic |
 
 All services communicate via internal Kubernetes DNS names.
 No service uses `localhost`; the Helm chart automatically configures the correct internal addresses.
@@ -247,7 +246,7 @@ If your existing secret uses different key names, set the corresponding `secrets
 ## Complete Zitadel Initialization
 
 A `zitadel-init` sidecar runs alongside Zitadel in the same pod.
-It waits for Zitadel to become ready, then creates the OIDC apps, service users, and webhooks that StackWeaver needs, writes the generated credentials directly into the Zitadel Kubernetes Secret, and triggers rolling restarts of the API, frontend, and login-ui.
+It waits for Zitadel to become ready, then creates the OIDC apps, service users, and webhooks that StackWeaver needs, writes the generated credentials directly into the Zitadel Kubernetes Secret, and triggers rolling restarts of the API and frontend.
 No manual steps are required.
 
 On the first boot, the sidecar reads the admin PAT from a shared emptyDir volume (written by Zitadel during database initialization) and persists it to the K8s Secret.
@@ -295,8 +294,9 @@ zitadel:
     ExternalSecure: false
     # Without a reverse proxy handling TLS, Zitadel must use plain HTTP URLs
     tlsMode: disabled
-    # Without ingress path routing, the Login UI is on a separate port
-    loginUIBaseURL: "http://localhost:3000/ui/v2/login"
+    # The login UI is now served by the Stackweaver SPA itself; point
+    # Zitadel's LoginV2.BaseURI at the SPA's /login route.
+    loginUIBaseURL: "http://localhost:5173/login"
 
 # Override frontend env vars (normally derived from ingress hosts)
 frontend:
@@ -312,7 +312,6 @@ Access the services via `kubectl port-forward`:
 kubectl port-forward -n stackweaver svc/stackweaver-frontend 5173:8080 &
 kubectl port-forward -n stackweaver svc/stackweaver-api 8022:8022 &
 kubectl port-forward -n stackweaver svc/stackweaver-zitadel 8080:8080 &
-kubectl port-forward -n stackweaver svc/stackweaver-login-ui 3000:3000 &
 ```
 
 Then open `http://localhost:5173`.

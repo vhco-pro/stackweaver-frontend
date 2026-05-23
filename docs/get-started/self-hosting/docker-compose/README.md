@@ -130,20 +130,18 @@ flowchart LR
     Client --> AppDomain["app.example.com"]
     Client --> AuthDomain["auth.example.com"]
 
-    AppDomain -->|"/api/v2/*\n/.well-known/terraform.json\n/v1/modules/*\n/health"| API["API :8022"]
-    AppDomain -->|"Everything else"| Frontend["Frontend :5173"]
+    AppDomain -->|"/api/v2/*\n/auth/*\n/.well-known/terraform.json\n/v1/modules/*\n/health"| API["API :8022"]
+    AppDomain -->|"Everything else (incl. /login/*)"| Frontend["Frontend :5173"]
 
-    AuthDomain -->|"/ui/v2/login/*"| ZitadelUI["Zitadel UI :3000"]
-    AuthDomain -->|"Everything else"| Zitadel["Zitadel :8080"]
+    AuthDomain --> Zitadel["Zitadel :8080"]
 ```
 
 **App domain** (e.g. `app.example.com`):
-- `/api/v2/*`, `/.well-known/terraform.json`, `/v1/modules/*`, `/health` → `localhost:8022`
-- Everything else → `localhost:5173`
+- `/api/v2/*`, `/auth/*`, `/.well-known/terraform.json`, `/v1/modules/*`, `/health` → `localhost:8022`
+- Everything else (including the SPA's `/login/*` login pages) → `localhost:5173`
 
 **Auth domain** (e.g. `auth.example.com`):
-- `/ui/v2/login/*` → `localhost:3000`
-- Everything else → `localhost:8080`
+- All traffic → `localhost:8080`. The standalone Zitadel-hosted login UI on port 3000 was removed at cutover — Stackweaver now serves login via its own SPA pages under the app domain's `/login/*`, with `/auth/*` on the app domain proxying Zitadel's session + OIDC APIs.
 
 ## Data Persistence
 

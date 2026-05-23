@@ -195,19 +195,19 @@ Verify that the `AZURE_AD_CLIENT_ID` environment variable is set and non-empty. 
 
 ### Redirect URI mismatch error (AADSTS50011)
 
-Zitadel constructs the callback URL from the HTTP request's domain context, not directly from the `ExternalDomain` config. The Login UI must send the correct `x-zitadel-instance-host` header so that Zitadel builds the callback with your external domain. The expected format is:
+Zitadel constructs the callback URL from the HTTP request's domain context, not directly from the `ExternalDomain` config. The Stackweaver auth proxy (in the API container) must send the correct `x-zitadel-instance-host` header so that Zitadel builds the callback with your external domain. The expected format is:
 ```
 https://{your-domain}/idps/callback
 ```
 
-If the error shows `https://localhost:8080/idps/callback`, the `CUSTOM_REQUEST_HEADERS` on the login-ui service is not set correctly. Verify the fix:
+If the error shows `https://localhost:8080/idps/callback`, the `CUSTOM_REQUEST_HEADERS` on the API service is not set correctly. Verify the fix:
 
 ```bash
 # Check that ZITADEL_EXTERNAL_HOST is set in .env
 grep ZITADEL_EXTERNAL_HOST deploy/.env
 
-# Check that login-ui has the header configured
-docker exec login-ui sh -c 'printenv CUSTOM_REQUEST_HEADERS'
+# Check that the API container has the header configured
+docker exec api sh -c 'printenv CUSTOM_REQUEST_HEADERS'
 # Expected: x-zitadel-instance-host:zitadel.example.com
 ```
 
@@ -235,15 +235,15 @@ This is expected behavior. SSO users are provisioned without organization member
 2. Check that the user is a member of at least one Azure AD group.
 3. If you have more than 200 groups, Azure AD may return a link to the Graph API instead of inline groups. In that case, consider using "Groups assigned to the application" to limit the number of groups.
 
-### Login UI shows a blank or skeleton page
+### Login page shows a blank or skeleton page
 
-If the login page loads but shows only a blank skeleton with no content, check the login-ui container logs:
+If the login page loads but shows only a blank skeleton, check the API container logs (the login UI is now bundled into the Stackweaver SPA, and Zitadel calls go through the auth proxy in the API container):
 
 ```bash
-docker logs login-ui 2>&1 | tail -20
+docker logs api 2>&1 | tail -50 | grep -iE 'auth|zitadel|proxy'
 ```
 
-Common causes include the login-ui failing to connect to Zitadel (check that Zitadel is healthy: `curl http://localhost:8080/debug/healthz`) or React hydration errors (usually harmless, the page should still render client-side).
+Common causes include the auth proxy failing to reach Zitadel (`curl http://localhost:8080/debug/healthz` should return 200) or a missing `ZITADEL_LOGIN_SERVICE_USER_TOKEN` in `deploy/.env` (the auth proxy refuses to start without a service-account PAT).
 
 ### "Errors.Target.DeniedURL" when configuring Actions (Kubernetes)
 
