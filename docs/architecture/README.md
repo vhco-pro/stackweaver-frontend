@@ -224,11 +224,11 @@ flowchart TB
 - User management
 - Organization management
 - JWT token issuance
-- Login UI (separate service)
+
+**Login UI**: served by the Stackweaver frontend at `/login/*` rather than the upstream Zitadel hosted UI. The API container's auth proxy (`/auth/*` routes) forwards session and OIDC calls to Zitadel.
 
 **Configuration**:
 - External domain: `localhost:8080`
-- Login UI: `http://localhost:3000/ui/v2/login`
 - OAuth2 applications for frontend and backend
 
 ## Data Flow

@@ -56,6 +56,7 @@ import StateVersionDetail from './pages/StateVersionDetail';
 import RunRedirect from './components/RunRedirect';
 import TestJsonViewer from './pages/TestJsonViewer';
 import Auth from './pages/Auth';
+import LoginRouter from './pages/Login/LoginRouter';
 import Landing from './pages/Landing';
 import Privacy from './pages/Privacy';
 import GitHubInstalled from './pages/VCS/GitHubInstalled';
@@ -77,6 +78,7 @@ function AppContent() {
               <Route path="/privacy" element={<Privacy />} />
               <Route path="/vcs/github/installed" element={<GitHubInstalled />} />
               <Route path="/vcs/azure-devops/callback" element={<AzureDevOpsCallback />} />
+            <Route path="/login/*" element={<LoginRouter />} />
             <Route path="/auth/*" element={<Auth />} />
               <Route path="/" element={<Landing />} />
               <Route path="/docs" element={<DocsIndex />} />

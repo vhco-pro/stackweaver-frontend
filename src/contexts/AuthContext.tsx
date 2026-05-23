@@ -1,7 +1,8 @@
 // Copyright (c) 2025 VH & Co BV. Licensed under the Business Source License 1.1. See LICENSE for details.
 
-import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from 'react';
+import { createContext, useContext, useState, useCallback, type ReactNode } from 'react';
 import { getAccessToken, getUserInfo, getLogoutUrl, clearTokens, clearTokensIfClientChanged, isTokenExpired, refreshAccessToken } from '@/lib/zitadel';
+import { useMountEffect } from '@/hooks/useMountEffect';
 
 // Zitadel user session type
 export type Session = {
@@ -26,6 +27,30 @@ interface AuthContextType {
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+/**
+ * safeErrorSummary returns an opaque, telemetry-safe string for an
+ * unknown error value. Round 25 Wave 7 (item 7 / R24-5): the previous
+ * implementation passed the full `Error` to console.* — if a fetch
+ * `Response` rejection ever included a JSON body containing the
+ * invalid token (or if a future Sentry/Datadog browser SDK got
+ * wired in), tokens would land in telemetry. Browser extensions
+ * reading console output capture them too.
+ *
+ * The helper extracts only the type tag + HTTP status (when
+ * present) so the line is still useful for diagnosing flow-level
+ * failures without leaking the underlying request/response detail.
+ */
+function safeErrorSummary(err: unknown): string {
+  if (err instanceof Error) {
+    const status = (err as { status?: number }).status;
+    if (typeof status === 'number') {
+      return `${err.name}(status=${status})`;
+    }
+    return err.name;
+  }
+  return typeof err;
+}
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
@@ -73,16 +98,38 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             access_token: accessToken,
           });
         } catch (error) {
-          // Check if it's a token validation error
-          const isTokenError = error instanceof Error && (
-            error.message.includes('401') || 
+          // Round 24 Finding 1 (HIGH): status-code-first matching.
+          //
+          // The previous implementation substring-matched on
+          // `error.message`, so any error wrapping that dropped the
+          // status (transport errors, malformed JSON, future SDK
+          // updates, Zitadel error variants that don't include the
+          // word "Unauthorized") fell into the "keep existing
+          // session" branch — a revoked admin's window of access
+          // was up to the 5-minute periodic refresh PLUS this
+          // graceful-degrade fallback.
+          //
+          // Now we treat ANY HTTP status with a definite shape
+          // (`error.status` set) as authoritative: 4xx → token
+          // is bad, clear it. Only fall through to the
+          // "keep existing session" branch on transport-shaped
+          // errors (no status, e.g. `TypeError: Failed to fetch`)
+          // because those genuinely could be a momentary network
+          // blip rather than a revoked token.
+          const errStatus = (error as { status?: number }).status;
+          const isAuthFailure = typeof errStatus === 'number' && errStatus >= 400 && errStatus < 500;
+          // Belt-and-braces: keep the substring check so older
+          // error-throwing paths that don't carry status still
+          // get caught.
+          const messageMatchesAuthFail = error instanceof Error && (
+            error.message.includes('401') ||
             error.message.includes('Unauthorized') ||
             error.message.includes('invalid token') ||
             error.message.includes('token is not valid') ||
             error.message.includes('token has expired') ||
-            error.message.includes('access token invalid') ||
-            (error as Error & { status?: number }).status === 401
+            error.message.includes('access token invalid')
           );
+          const isTokenError = isAuthFailure || messageMatchesAuthFail;
           
           if (isTokenError) {
             // Try to refresh token before giving up
@@ -112,14 +159,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               }
             } else {
               // Refresh failed, clear tokens
-              console.error('Token validation and refresh failed:', error);
+              console.error('auth: token validation and refresh failed', safeErrorSummary(error));
               clearTokens();
               setSession(null);
             }
           } else {
             // For network or other errors, try to keep existing session if we have one
             // Don't clear tokens on temporary network issues
-            console.warn('Token validation warning (keeping existing session):', error);
+            console.warn('auth: token validation warning (keeping existing session)', safeErrorSummary(error));
             // If we don't have a session yet, don't set one, but don't clear tokens either
             // This allows the user to retry
           }
@@ -128,7 +175,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setSession(null);
       }
     } catch (error) {
-      console.error('Session check failed:', error);
+      console.error('auth: session check failed', safeErrorSummary(error));
       // Don't clear session on general errors - might be a temporary issue
     } finally {
       setLoading(false);
@@ -137,11 +184,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = async () => {
     try {
-      const { getAuthUrl } = await import('@/lib/zitadel');
-      const authUrl = await getAuthUrl();
-      window.location.href = authUrl;
+      // DR-2: Call the proxy's authorize endpoint — it intercepts Zitadel's 302
+      // and returns the authRequest ID as JSON. The SPA navigates to the login page.
+      const { authorize } = await import('@/api/auth-client');
+      const { buildAuthorizeParams } = await import('@/lib/zitadel');
+
+      // Build PKCE params (generates code_verifier + challenge, stores verifier in sessionStorage)
+      const params = await buildAuthorizeParams();
+      const authParams = Object.fromEntries(params.entries());
+
+      const response = await authorize(authParams);
+
+      // Navigate to the custom login page with the auth request context
+      const loginParams = new URLSearchParams({ authRequest: response.authRequest });
+      if (response.loginHint) loginParams.set('loginHint', response.loginHint);
+      if (response.prompt) loginParams.set('prompt', response.prompt);
+      window.location.href = `/login/loginname?${loginParams.toString()}`;
     } catch (error) {
-      console.error('Login failed:', error);
+      console.error('auth: login failed', safeErrorSummary(error));
+      // Fallback: redirect to login page without auth request
+      window.location.href = '/login/loginname';
     }
   };
 
@@ -152,14 +214,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const logoutUrl = getLogoutUrl();
       void (window.location.href = logoutUrl);
     } catch (error) {
-      console.error('Logout failed:', error);
+      console.error('auth: logout failed', safeErrorSummary(error));
       clearTokens();
       setSession(null);
       window.location.href = '/auth/login';
     }
   };
 
-  useEffect(() => {
+  useMountEffect(() => {
     // Check session on mount
     void checkSession();
 
@@ -169,7 +231,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }, 5 * 60 * 1000);
 
     return () => clearInterval(refreshInterval);
-  }, []);
+  });
 
   const refreshSession = useCallback(async (): Promise<void> => {
     return await checkSession();
@@ -193,10 +255,10 @@ export function useAuth() {
     );
     
     if (isHMR) {
-      // During HMR, preserve the session from localStorage to prevent logout.
+      // During HMR, preserve the session from sessionStorage to prevent logout.
       // The AuthProvider will re-mount and call checkSession() to restore the
       // full session — this fallback just keeps API calls working in the meantime.
-      const storedToken = localStorage.getItem('zitadel_access_token');
+      const storedToken = sessionStorage.getItem('zitadel_access_token');
       if (storedToken) {
         return {
           session: {

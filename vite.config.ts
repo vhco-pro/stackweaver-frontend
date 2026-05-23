@@ -6,13 +6,21 @@ import path from 'path'
 import tailwindcss from '@tailwindcss/vite'
 
 // https://vite.dev/config/
-export default defineConfig({
+export default defineConfig(({ mode }) => ({
   plugins: [react(), tailwindcss()],
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
     },
   },
+  // Round 25 Wave 7 (item 7 / R24-5): strip `console.*` from production
+  // builds so any auth-flow logging that slipped past the safe-summary
+  // helpers doesn't reach the browser console / extension capture /
+  // future Sentry-style telemetry. Dev keeps console for local
+  // debugging. Cast through `unknown` because Vite's ESBuildOptions
+  // type narrows the esbuild surface and doesn't expose `drop`, even
+  // though esbuild itself honours it at build time.
+  esbuild: (mode === 'production' ? { drop: ['console', 'debugger'] } : undefined) as never,
   server: {
     host: '0.0.0.0',
     port: 5173,
@@ -27,4 +35,4 @@ export default defineConfig({
       usePolling: true, // Needed for Docker file watching
     },
   },
-})
+}))

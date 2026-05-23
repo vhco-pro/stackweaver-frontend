@@ -33,7 +33,7 @@ DefaultInstance:
     LoginDefaultOrg: true
     LoginV2:
       Required: true
-      BaseURI: http://localhost:3000/ui/v2/login # point to login UI
+      BaseURI: http://localhost:5173/login # point to Stackweaver SPA login
   # OIDC Settings - Configure token lifetimes and format
   # Note: Token format (JWT vs opaque) is typically controlled at the application level
   # but these settings apply to all OIDC applications in the instance

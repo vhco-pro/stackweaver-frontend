@@ -124,8 +124,12 @@ services:
     environment:
       ZITADEL_SERVICE_USER_TOKEN: ${ZITADEL_LOGIN_SERVICE_USER_TOKEN:-}
       ZITADEL_DATABASE_POSTGRES_HOST: localhost
-      ZITADEL_LOGIN_UI_BASE_URL: ${ZITADEL_LOGIN_UI_BASE_URL:-http://localhost:3000/ui/v2/login}
-      ZITADEL_LOGIN_UI_ORIGIN: ${ZITADEL_LOGIN_UI_ORIGIN:-http://localhost:3000}
+      # Post-cutover the login UI is the Stackweaver SPA, served from
+      # the frontend container on port 5173. Zitadel's LoginV2.BaseURI
+      # points at the SPA's /login route; LoginV2 origin must match the
+      # SPA's origin for CORS/CSP to line up.
+      ZITADEL_LOGIN_UI_BASE_URL: ${ZITADEL_LOGIN_UI_BASE_URL:-http://localhost:5173/login}
+      ZITADEL_LOGIN_UI_ORIGIN: ${ZITADEL_LOGIN_UI_ORIGIN:-http://localhost:5173}
     volumes:
       - ./zitadel-defaults.yaml:/etc/zitadel/defaults.yaml:ro
       - ./zitadel-init-steps.yaml:/etc/zitadel/init-steps.yaml:ro
@@ -136,24 +140,14 @@ services:
         condition: service_healthy
     network_mode: host
 
-  login-ui:
-    image: ghcr.io/zitadel/zitadel-login:v4.11.1
-    container_name: login-ui
-    restart: unless-stopped
-    env_file:
-      - ./.env
-    environment:
-      NEXT_PUBLIC_BASE_PATH: /ui/v2/login
-      ZITADEL_API_URL: http://localhost:8080
-      ZITADEL_SERVICE_USER_TOKEN: ${ZITADEL_LOGIN_SERVICE_USER_TOKEN:-}
-      EMAIL_VERIFICATION: "false"
-      CUSTOM_REQUEST_HEADERS: "x-zitadel-instance-host:${ZITADEL_EXTERNAL_HOST:-}"
-    depends_on:
-      zitadel:
-        condition: service_started
-      zitadel-init:
-        condition: service_completed_successfully
-    network_mode: host
+  # The standalone `login-ui` container (ghcr.io/zitadel/zitadel-login)
+  # was removed in favor of the in-frontend custom login UI bundled
+  # with the Stackweaver SPA. The auth proxy in the API container
+  # (`/auth/*` routes) handles all Zitadel session API calls and OIDC
+  # endpoint forwarding. The `login-ui-service` Zitadel machine user
+  # and its PAT are still provisioned by zitadel-init below — they're
+  # consumed by the auth proxy + TOTP service + Zitadel webhook handler
+  # in the API container under the env var ZITADEL_LOGIN_SERVICE_USER_TOKEN.
 
   zitadel-init:
     image: ghcr.io/vhco-pro/stackweaver-zitadel-init:latest
@@ -163,7 +157,11 @@ services:
       - ./.env
       - ./sso.env
     environment:
-      ZITADEL_ISSUER: ${ZITADEL_ISSUER:-http://localhost:8080}/ui/v2/login
+      # ZITADEL_ISSUER is the OIDC issuer URL the SPA points at. Post-
+      # cutover this drops the legacy `/ui/v2/login` suffix because the
+      # Stackweaver SPA serves login at `/login/*` instead of the
+      # hosted Zitadel UI's `/ui/v2/login/*`.
+      ZITADEL_ISSUER: ${ZITADEL_ISSUER:-http://localhost:8080}
       ZITADEL_INTERNAL_ADDR: localhost:8080
       ZITADEL_DOMAIN: ${ZITADEL_EXTERNAL_HOST:-localhost}
       PROJECT_ROOT: /config
