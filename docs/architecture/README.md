@@ -7,7 +7,7 @@ covers:
 
 # Architecture Overview
 
-This document provides a high-level overview of the Stackweaver Orchestration Platform architecture.
+This document provides a high-level overview of the Stackweaver Orchestration Platform architecture. For the multi-repo topology (monorepo + closed `core/` + the seven satellite distribution repos), see [`repositories.md`](./repositories.md).
 
 ## System Architecture
 
