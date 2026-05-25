@@ -10,7 +10,7 @@ covers:
 
 # Sync Architecture
 
-> **Implementation status — 2026-05-25:** The two-App authorisation infrastructure described on this page (App creation, installation across all seven satellites, secret rollout) is **live**. The workflow-level enforcement (`auto-approve-sync.yml` on each satellite, PR-mode `sync-*.yml` on the monorepo, tightened branch protection) is **rolling out**. Until the workflow rollout completes, the monorepo continues to push directly to satellite `main` via the release-bot App. The verification commands at the bottom of this page will fully pass once the rollout completes; until then, they verify the App infrastructure but the branch-protection block will reflect the older settings. This banner will be removed when the rollout completes and a verification cycle has confirmed the design end-to-end.
+> **Implementation status — 2026-05-25:** Live on [`stackweaver-ansible-runner`](https://github.com/vhco-pro/stackweaver-ansible-runner) (verified end-to-end by PR [#2](https://github.com/vhco-pro/stackweaver-ansible-runner/pull/2) → release `0.5.28`). Rolling out to the remaining in-scope satellites (`api`, `frontend`, `orchestrator`, `zitadel-init`, `helm`). `stackweaver-runner` remains on direct-push until it is flipped public and migrated to OpenTofu.
 
 Stackweaver is developed as a private monorepo at `michielvha/stackweaver`. Each user-facing component is mirrored to its own public satellite repository under the `vhco-pro` organisation (`stackweaver-api`, `stackweaver-frontend`, `stackweaver-orchestrator`, `stackweaver-zitadel-init`, `stackweaver-ansible-runner`, `stackweaver-helm`, and `stackweaver-runner`). The satellites are what users build, audit and depend on; the monorepo is what we develop in.
 
@@ -23,7 +23,7 @@ The sync pipeline uses two GitHub Apps with distinct private keys and minimum-pr
 | App | Permissions | Used by | What it can do |
 |-----|-------------|---------|----------------|
 | `stackweaver-release-bot` | `contents:write`, `pull_requests:write`, `administration:read`, `metadata:read` | Monorepo `sync-*.yml` workflows | Create the `sync/<sha>` branch on the satellite and open the pull request. |
-| `stackweaver-pr-reviewer` | `pull_requests:write`, `contents:read`, `metadata:read` | Satellite `auto-approve-sync.yml` workflow | Post an approving review and call `gh pr merge --auto --squash`. Cannot push code, cannot read secrets, cannot modify workflows, cannot change repository settings. |
+| `stackweaver-pr-reviewer` | `pull_requests:write`, `contents:write`, `metadata:read` | Satellite `auto-approve-sync.yml` workflow | Post an approving review and call `gh pr merge --auto --squash`. Cannot read secrets, cannot modify workflows (`workflows:write` is **not** granted, so GitHub blocks any PR merge that touches `.github/workflows/**` when this App is the merger), cannot change repository settings. `contents:write` is required only because GitHub's `enablePullRequestAutoMerge` GraphQL mutation refuses to schedule the eventual squash commit without it — the App never pushes directly. |
 
 Two Apps are required because GitHub explicitly forbids an App from approving its own pull requests. The author of the PR (the release-bot) and the approver of the PR (the pr-reviewer) must be different identities. This separation of duties is enforced server-side by GitHub and is the foundation of the entire model.
 
