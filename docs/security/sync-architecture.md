@@ -10,6 +10,8 @@ covers:
 
 # Sync Architecture
 
+> **Implementation status — 2026-05-25:** The two-App authorisation infrastructure described on this page (App creation, installation across all seven satellites, secret rollout) is **live**. The workflow-level enforcement (`auto-approve-sync.yml` on each satellite, PR-mode `sync-*.yml` on the monorepo, tightened branch protection) is **rolling out**. Until the workflow rollout completes, the monorepo continues to push directly to satellite `main` via the release-bot App. The verification commands at the bottom of this page will fully pass once the rollout completes; until then, they verify the App infrastructure but the branch-protection block will reflect the older settings. This banner will be removed when the rollout completes and a verification cycle has confirmed the design end-to-end.
+
 Stackweaver is developed as a private monorepo at `michielvha/stackweaver`. Each user-facing component is mirrored to its own public satellite repository under the `vhco-pro` organisation (`stackweaver-api`, `stackweaver-frontend`, `stackweaver-orchestrator`, `stackweaver-zitadel-init`, `stackweaver-ansible-runner`, `stackweaver-helm`, and `stackweaver-runner`). The satellites are what users build, audit and depend on; the monorepo is what we develop in.
 
 This page documents how code travels from the monorepo to a satellite. It is the authoritative description of the trust boundary between "internal development" and "what the public consumes", so it should be read before relying on any signed artefact produced by a satellite, before performing an OSPS Baseline audit on the project, and before contributing to any sync-related workflow.
