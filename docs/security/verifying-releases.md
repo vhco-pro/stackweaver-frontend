@@ -16,6 +16,8 @@ This page only documents what has been **verified to actually work today** again
 
 If any documented verification fails against an artefact you obtained from an official location (`ghcr.io/vhco-pro/*` or a `vhco-pro/stackweaver-*` GitHub Release page), treat the artefact as untrusted and report it via a [Private Vulnerability Report](https://github.com/vhco-pro/.github/security/policy) or to `contact@vhco.pro`.
 
+For background on how code actually reaches the satellite repositories (the trust boundary between the private monorepo and the public satellites that produce these artefacts), see [Sync Architecture](./sync-architecture.md).
+
 ## What's Verifiable Today vs After the Wave-6 Flip
 
 | Artefact | Mechanism | Status |
