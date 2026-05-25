@@ -1,4 +1,4 @@
-FROM node:24-alpine AS builder
+FROM node:24-alpine@sha256:2bdb65ed1dab192432bc31c95f94155ca5ad7fc1392fb7eb7526ab682fa5bf14 AS builder
 
 # BUILD_ROOT controls where frontend source lives relative to the build context.
 # - Distribution repo (context = frontend dir):  BUILD_ROOT=. (default)
