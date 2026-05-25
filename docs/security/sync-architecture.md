@@ -22,7 +22,7 @@ The sync pipeline uses two GitHub Apps with distinct private keys and minimum-pr
 
 | App | Permissions | Used by | What it can do |
 |-----|-------------|---------|----------------|
-| `stackweaver-release-bot` | `contents:write`, `pull_requests:write`, `workflows:write` | Monorepo `sync-*.yml` workflows | Create the `sync/<sha>` branch on the satellite and open the pull request. |
+| `stackweaver-release-bot` | `contents:write`, `pull_requests:write`, `administration:read`, `metadata:read` | Monorepo `sync-*.yml` workflows | Create the `sync/<sha>` branch on the satellite and open the pull request. |
 | `stackweaver-pr-reviewer` | `pull_requests:write`, `contents:read`, `metadata:read` | Satellite `auto-approve-sync.yml` workflow | Post an approving review and call `gh pr merge --auto --squash`. Cannot push code, cannot read secrets, cannot modify workflows, cannot change repository settings. |
 
 Two Apps are required because GitHub explicitly forbids an App from approving its own pull requests. The author of the PR (the release-bot) and the approver of the PR (the pr-reviewer) must be different identities. This separation of duties is enforced server-side by GitHub and is the foundation of the entire model.
