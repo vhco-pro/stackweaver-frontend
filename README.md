@@ -1,4 +1,4 @@
-# Stackweaver™ Frontend
+# Stackweaver Frontend
 
 The React SPA for the [Stackweaver](https://github.com/vhco-pro/stackweaver) DevOps platform.
 
