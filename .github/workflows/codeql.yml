@@ -10,6 +10,8 @@ on:
     - cron: "33 4 * * 2"
 
 
+permissions: {}
+
 jobs:
   analyze:
     if: ${{ github.event.repository.visibility == 'public' }}
