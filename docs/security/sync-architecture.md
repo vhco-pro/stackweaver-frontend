@@ -10,7 +10,7 @@ covers:
 
 # Sync Architecture
 
-> **Implementation status — 2026-05-25:** Live on [`stackweaver-ansible-runner`](https://github.com/vhco-pro/stackweaver-ansible-runner) (verified end-to-end by PR [#2](https://github.com/vhco-pro/stackweaver-ansible-runner/pull/2) → release `0.5.28`). Rolling out to the remaining in-scope satellites (`api`, `frontend`, `orchestrator`, `zitadel-init`, `helm`). `stackweaver-runner` remains on direct-push until it is flipped public and migrated to OpenTofu.
+> **Implementation status — 2026-05-26:** Live on six satellites — [`api`](https://github.com/vhco-pro/stackweaver-api), [`frontend`](https://github.com/vhco-pro/stackweaver-frontend), [`orchestrator`](https://github.com/vhco-pro/stackweaver-orchestrator), [`zitadel-init`](https://github.com/vhco-pro/stackweaver-zitadel-init), [`helm`](https://github.com/vhco-pro/stackweaver-helm), and [`ansible-runner`](https://github.com/vhco-pro/stackweaver-ansible-runner). Each rollout was verified by an end-to-end smoke test: monorepo push opens a `sync/<sha>` PR authored by `stackweaver-release-bot[bot]`, the four hard gates in `auto-approve-sync.yml` pass, `stackweaver-pr-reviewer[bot]` approves, the PR squash-merges after CodeQL goes green, and the existing GitVersion → Release cascade attaches `provenance.intoto.jsonl`, `sbom.spdx.intoto.jsonl`, and `checksums.txt` to the new tag. The seventh satellite, [`stackweaver-runner`](https://github.com/vhco-pro/stackweaver-runner), is intentionally excluded — see [§ Excluded satellites](#excluded-satellites) below.
 
 Stackweaver is developed as a private monorepo at `michielvha/stackweaver`. Each user-facing component is mirrored to its own public satellite repository under the `vhco-pro` organisation (`stackweaver-api`, `stackweaver-frontend`, `stackweaver-orchestrator`, `stackweaver-zitadel-init`, `stackweaver-ansible-runner`, `stackweaver-helm`, and `stackweaver-runner`). The satellites are what users build, audit and depend on; the monorepo is what we develop in.
 
@@ -113,6 +113,12 @@ GitHub Actions distinguishes between `pull_request` (the workflow runs in the co
 ## Comparison with the previous direct-push model
 
 Before the Wave 7 hardening described above, the monorepo sync workflows used the release-bot App to push directly to the satellite `main` branch with no review and no PR. That model had three problems: a single compromised App key was sufficient for full satellite compromise, no change had a queryable review trail, and CI ran only after the merge. The PR-based model is strictly more secure on all three counts. The cost is roughly three to five minutes of added end-to-end latency per sync and one additional App to manage credentials for.
+
+## Excluded satellites
+
+The seventh satellite, [`stackweaver-runner`](https://github.com/vhco-pro/stackweaver-runner), is the only satellite currently excluded from D-SYNC-PR. It is still on the legacy direct-push sync model. The exclusion is forced by a GitHub plan constraint, not a deliberate design choice: under the GitHub Free plan, neither branch protection nor `allow_auto_merge` is available on private repositories, and both are load-bearing for D-SYNC-PR's enforcement boundary. Attempting to configure them returns `HTTP 403: "Upgrade to GitHub Pro or make this repository public to enable this feature."` The runner is held private temporarily because its Terraform-runner implementation is being rewritten on top of OpenTofu before the repository can be made public. As soon as that migration completes and the repository flips public, the same `auto-approve-sync.yml` template, monorepo `sync-runner.yml` refactor, and branch-protection ruleset already running on the other six satellites will be applied to it.
+
+Until then, the security guarantees on `stackweaver-runner` are weaker than on the other satellites: a compromised release-bot key could push directly to `main` without any approval, review trail, or PR-side CI. That is the same threat model that the other six satellites had before this Wave 7 work landed. The runner therefore inherits the *old* threat model and is documented as such in the internal audit binder; it does not change the threat model of the other six satellites.
 
 ## Independent verification
 
