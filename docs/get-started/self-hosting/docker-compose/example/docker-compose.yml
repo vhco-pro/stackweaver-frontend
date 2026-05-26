@@ -48,7 +48,7 @@ services:
     network_mode: host
 
   garage:
-    image: dxflrs/garage:v2.2.0
+    image: dxflrs/garage:v2.3.0
     container_name: garage
     restart: unless-stopped
     volumes:

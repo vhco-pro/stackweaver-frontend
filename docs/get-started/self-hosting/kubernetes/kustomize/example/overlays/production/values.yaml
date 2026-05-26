@@ -308,7 +308,7 @@ garage:
   enabled: true
   image:
     repository: dxflrs/garage
-    tag: v2.2.0
+    tag: v2.3.0
   storage:
     size: 10Gi
     storageClass: ""
@@ -345,7 +345,7 @@ zitadel:
   loginUI:
     image:
       repository: ghcr.io/zitadel/zitadel-login
-      tag: v4.11.1
+      tag: v4.15.0
     resources:
       requests:
         cpu: 50m
