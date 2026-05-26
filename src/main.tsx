@@ -10,3 +10,4 @@ createRoot(document.getElementById('root')!).render(
     <App />
   </StrictMode>,
 )
+// sync smoke test 1779753769
