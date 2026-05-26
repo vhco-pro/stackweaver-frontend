@@ -1124,27 +1124,39 @@ function updateAllReadmes(rootDir) {
  * Strip markdown syntax from content, returning plain text suitable for search indexing.
  */
 function stripMarkdown(content) {
-  return content
-    // Remove frontmatter
-    .replace(/^---[\s\S]*?---\s*/m, '')
-    // Remove custom directives
-    .replace(/^:::.*$/gm, '')
-    // Remove code fence markers (keep content inside)
-    .replace(/^```\w*\s*$/gm, '')
-    // Remove HTML tags
-    .replace(/<[^>]+>/g, '')
-    // Remove images
-    .replace(/!\[[^\]]*\]\([^)]*\)/g, '')
-    // Remove links (keep link text)
-    .replace(/\[([^\]]*)\]\([^)]*\)/g, '$1')
-    // Remove heading markers
-    .replace(/^#{1,6}\s+/gm, '')
-    // Remove emphasis markers
-    .replace(/(\*{1,3}|_{1,3}|~~)(.*?)\1/g, '$2')
-    // Remove horizontal rules
-    .replace(/^[-*_]{3,}\s*$/gm, '')
-    // Remove blockquote markers
-    .replace(/^>\s?/gm, '')
+  // Apply each pattern repeatedly until the string stabilises. This defeats
+  // bypasses where stripping a pattern reveals another instance of the same
+  // pattern (e.g. "<scr<script>ipt>" → "<script>" after one pass). CodeQL
+  // js/incomplete-multi-character-sanitization (Wave 8 / D5).
+  const patterns = [
+    /^---[\s\S]*?---\s*/m,        // frontmatter
+    /^:::.*$/gm,                   // custom directives
+    /^```\w*\s*$/gm,               // code fence markers
+    /<[^<>]*>/g,                   // HTML tags (no nested &lt; — prevents bypasses)
+    /!\[[^\]]*\]\([^)]*\)/g,       // images
+    /\[([^\]]*)\]\([^)]*\)/g,      // links (replacement handled below)
+    /^#{1,6}\s+/gm,                // heading markers
+    /(\*{1,3}|_{1,3}|~~)(.*?)\1/g, // emphasis markers (replacement below)
+    /^[-*_]{3,}\s*$/gm,            // horizontal rules
+    /^>\s?/gm,                     // blockquote markers
+  ];
+
+  let result = content;
+  let prev;
+  do {
+    prev = result;
+    for (const pat of patterns) {
+      if (pat.source === '\\[([^\\]]*)\\]\\([^)]*\\)') {
+        result = result.replace(pat, '$1');
+      } else if (pat.source === '(\\*{1,3}|_{1,3}|~~)(.*?)\\1') {
+        result = result.replace(pat, '$2');
+      } else {
+        result = result.replace(pat, '');
+      }
+    }
+  } while (result !== prev);
+
+  return result
     // Remove table formatting
     .replace(/\|/g, ' ')
     .replace(/^[-:]+$/gm, '')
