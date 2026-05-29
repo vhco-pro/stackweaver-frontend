@@ -296,7 +296,7 @@ export default function PlaybookDetail() {
     }
 
     setLoadingRepos(true);
-    void vcsConnectionsApi.listRepositories(editForm.vcs_connection_id, 1, 100)
+    void vcsConnectionsApi.listAllRepositories(editForm.vcs_connection_id)
       .then((repos) => {
         setRepositories(repos || []);
       })

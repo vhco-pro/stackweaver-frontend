@@ -124,7 +124,7 @@ export function CreateWorkspaceDialog({
   const { isLoading: loadingRepos } = useQuery({
     queryKey: ['vcs-repositories', vcsConnectionId],
     queryFn: async () => {
-      const repos = await vcsConnectionsApi.listRepositories(vcsConnectionId, 1, 100);
+      const repos = await vcsConnectionsApi.listAllRepositories(vcsConnectionId);
       setRepositories(repos || []);
       return repos;
     },

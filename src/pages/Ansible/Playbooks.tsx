@@ -201,7 +201,7 @@ export default function Playbooks() {
     }
 
     setLoadingRepos(true);
-    vcsConnectionsApi.listRepositories(createForm.vcs_connection_id, 1, 100)
+    vcsConnectionsApi.listAllRepositories(createForm.vcs_connection_id)
       .then((repos) => {
         setRepositories(repos || []);
       })

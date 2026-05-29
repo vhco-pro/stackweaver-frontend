@@ -80,7 +80,7 @@ export function CreateModuleDialog({
   const { data: repositories = [], isLoading: loadingRepos } = useQuery({
     queryKey: ['vcs-repositories', vcsConnectionId],
     queryFn: async () => {
-      const repos = await vcsConnectionsApi.listRepositories(vcsConnectionId, 1, 100);
+      const repos = await vcsConnectionsApi.listAllRepositories(vcsConnectionId);
       return repos || [];
     },
     enabled: !!vcsConnectionId && open && publishMethod === 'vcs',

@@ -998,6 +998,19 @@ export const vcsConnectionsApi = {
     const query = params.toString() ? `?${params.toString()}` : '';
     return apiClient.get<{ data: Repository[]; meta: { pagination: { page: number; per_page: number } } }>(`/vcs-connections/${id}/repositories${query}`).then(res => res.data);
   },
+  listAllRepositories: async (id: string): Promise<Repository[]> => {
+    const perPage = 100;
+    let page = 1;
+    const allRepos: Repository[] = [];
+    while (true) {
+      const res = await vcsConnectionsApi.listRepositories(id, page, perPage);
+      const repos = res || [];
+      allRepos.push(...repos);
+      if (repos.length < perPage) break;
+      page++;
+    }
+    return allRepos;
+  },
   listBranches: (id: string, owner: string, repo: string, page?: number, perPage?: number) => {
     const params = new URLSearchParams();
     if (page) params.append('page', page.toString());
