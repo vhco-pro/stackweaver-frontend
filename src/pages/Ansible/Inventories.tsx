@@ -223,7 +223,7 @@ export default function Inventories() {
     }
 
     setLoadingRepos(true);
-    vcsConnectionsApi.listRepositories(formData.vcs_connection_id, 1, 100)
+    vcsConnectionsApi.listAllRepositories(formData.vcs_connection_id)
       .then((repos) => {
         setRepositories(repos || []);
       })

@@ -203,7 +203,7 @@ export function EditWorkspaceDialog({
     }
 
     setLoadingRepos(true);
-    void vcsConnectionsApi.listRepositories(vcsConnectionId, 1, 100)
+    void vcsConnectionsApi.listAllRepositories(vcsConnectionId)
       .then((repos) => {
         setRepositories(Array.isArray(repos) ? repos : []);
         // If we have a repository from workspace, ensure it's set
