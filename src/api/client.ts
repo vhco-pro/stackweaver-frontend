@@ -881,6 +881,11 @@ export interface Branch {
   protected: boolean;
 }
 
+export interface VCSProject {
+  id: string;
+  name: string;
+}
+
 // Azure OIDC Configurations (TFE-compatible)
 // Manages keyless authentication from Terraform runs to Azure via OIDC workload identity.
 export interface AzureOIDCConfiguration {
@@ -991,19 +996,20 @@ export const vcsConnectionsApi = {
     apiClient.post<{ data: VCSConnection }>(`/organizations/${organizationName}/vcs-connections`, data).then(res => res.data),
   delete: (id: string) =>
     apiClient.delete(`/vcs-connections/${id}`),
-  listRepositories: (id: string, page?: number, perPage?: number) => {
+  listRepositories: (id: string, page?: number, perPage?: number, project?: string) => {
     const params = new URLSearchParams();
     if (page) params.append('page', page.toString());
     if (perPage) params.append('per_page', perPage.toString());
+    if (project) params.append('project', project);
     const query = params.toString() ? `?${params.toString()}` : '';
     return apiClient.get<{ data: Repository[]; meta: { pagination: { page: number; per_page: number } } }>(`/vcs-connections/${id}/repositories${query}`).then(res => res.data);
   },
-  listAllRepositories: async (id: string): Promise<Repository[]> => {
+  listAllRepositories: async (id: string, project?: string): Promise<Repository[]> => {
     const perPage = 100;
     let page = 1;
     const allRepos: Repository[] = [];
     while (true) {
-      const res = await vcsConnectionsApi.listRepositories(id, page, perPage);
+      const res = await vcsConnectionsApi.listRepositories(id, page, perPage, project);
       const repos = res || [];
       allRepos.push(...repos);
       if (repos.length < perPage) break;
@@ -1011,6 +1017,10 @@ export const vcsConnectionsApi = {
     }
     return allRepos;
   },
+  // Lists projects for a VCS connection. Only Azure DevOps has a project layer;
+  // other providers return 501, so callers should guard by provider.
+  listProjects: (id: string) =>
+    apiClient.get<{ data: VCSProject[]; meta: { pagination: { page: number; per_page: number } } }>(`/vcs-connections/${id}/projects`).then(res => res.data),
   listBranches: (id: string, owner: string, repo: string, page?: number, perPage?: number) => {
     const params = new URLSearchParams();
     if (page) params.append('page', page.toString());

@@ -60,6 +60,7 @@ import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { getVcsProviderIcon, getVcsProviderLabel, getVcsRepoUrl, getVcsBranchUrl, getVcsFileUrl, getVcsManageUrl } from '@/lib/vcs';
 import { VCSProviderSelector } from '@/components/vcs/VCSProviderSelector';
+import { VCSProjectSelect } from '@/components/vcs/VCSProjectSelect';
 
 // Simple relative time formatter
 function formatRelativeTime(dateString: string): string {
@@ -104,6 +105,7 @@ export default function Playbooks() {
   const [loadingBranches, setLoadingBranches] = useState(false);
   const [vcsConnections, setVcsConnections] = useState<VCSConnection[]>([]);
   const [repositories, setRepositories] = useState<Repository[]>([]);
+  const [selectedVcsProject, setSelectedVcsProject] = useState<string>('');
   const [branches, setBranches] = useState<Branch[]>([]);
   const [repositorySearch, setRepositorySearch] = useState('');
   const [repositorySelectOpen, setRepositorySelectOpen] = useState(false);
@@ -201,7 +203,7 @@ export default function Playbooks() {
     }
 
     setLoadingRepos(true);
-    vcsConnectionsApi.listAllRepositories(createForm.vcs_connection_id)
+    vcsConnectionsApi.listAllRepositories(createForm.vcs_connection_id, selectedVcsProject || undefined)
       .then((repos) => {
         setRepositories(repos || []);
       })
@@ -212,7 +214,7 @@ export default function Playbooks() {
       .finally(() => {
         setLoadingRepos(false);
       });
-  }, [createForm.vcs_connection_id, createDialogOpen]);
+  }, [createForm.vcs_connection_id, createDialogOpen, selectedVcsProject]);
 
   // Load branches when repository is selected
   useEffect(() => {
@@ -370,6 +372,7 @@ export default function Playbooks() {
       vcs_branch: '',
       playbook_path: 'site.yml',
     });
+    setSelectedVcsProject('');
     setNameTouched(false);
     setRepositorySearch('');
     setPlaybookPathSearch('');
@@ -704,6 +707,7 @@ export default function Playbooks() {
                   orgName={selectedOrg}
                   selectedConnectionId={undefined}
                   onConnectionSelect={(id) => {
+                    setSelectedVcsProject('');
                     setCreateForm({
                       ...createForm,
                       vcs_connection_id: id || '',
@@ -726,6 +730,7 @@ export default function Playbooks() {
                       )}
                       onClick={() => {
                         const newValue = createForm.vcs_connection_id === conn.id ? '' : conn.id;
+                        setSelectedVcsProject('');
                         setCreateForm({
                           ...createForm,
                           vcs_connection_id: newValue,
@@ -763,6 +768,19 @@ export default function Playbooks() {
                 </div>
               )}
             </div>
+
+            {/* Project Selector (Azure DevOps only) */}
+            {createForm.vcs_connection_id && (
+              <VCSProjectSelect
+                connectionId={createForm.vcs_connection_id}
+                provider={vcsConnections.find(c => c.id === createForm.vcs_connection_id)?.provider}
+                value={selectedVcsProject}
+                onChange={(project) => {
+                  setSelectedVcsProject(project);
+                  setCreateForm(prev => ({ ...prev, vcs_repository: '', vcs_branch: '' }));
+                }}
+              />
+            )}
 
             {/* Repository Selector */}
             {createForm.vcs_connection_id && (
