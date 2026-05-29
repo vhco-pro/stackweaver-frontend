@@ -27,6 +27,7 @@ import { Loader2, GitBranch, Plus, CheckCircle2 } from 'lucide-react';
 import { getVcsProviderIcon, getVcsProviderLabel, getVcsManageUrl } from '@/lib/vcs';
 import { workspacesApi, vcsConnectionsApi, projectsApi, agentPoolsApi, terraformVersionsApi, type VCSConnection, type Repository, type Branch, type Project, type AgentPool, type TerraformVersionResource } from '@/api/client';
 import { VCSProviderSelector } from '@/components/vcs/VCSProviderSelector';
+import { VCSProjectSelect } from '@/components/vcs/VCSProjectSelect';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 
@@ -51,6 +52,7 @@ export function CreateWorkspaceDialog({
   const [description, setDescription] = useState('');
   const [selectedProjectId, setSelectedProjectId] = useState<string>(projectId || '');
   const [vcsConnectionId, setVcsConnectionId] = useState<string>('');
+  const [selectedVcsProject, setSelectedVcsProject] = useState<string>('');
   const [selectedRepository, setSelectedRepository] = useState<string>('');
   const [selectedBranch, setSelectedBranch] = useState<string>('');
   const [workingDirectory, setWorkingDirectory] = useState('');
@@ -122,9 +124,9 @@ export function CreateWorkspaceDialog({
 
   // Load repositories when VCS connection is selected
   const { isLoading: loadingRepos } = useQuery({
-    queryKey: ['vcs-repositories', vcsConnectionId],
+    queryKey: ['vcs-repositories', vcsConnectionId, selectedVcsProject],
     queryFn: async () => {
-      const repos = await vcsConnectionsApi.listAllRepositories(vcsConnectionId);
+      const repos = await vcsConnectionsApi.listAllRepositories(vcsConnectionId, selectedVcsProject || undefined);
       setRepositories(repos || []);
       return repos;
     },
@@ -322,6 +324,7 @@ export function CreateWorkspaceDialog({
                 selectedConnectionId={undefined}
                 onConnectionSelect={(id) => {
                   setVcsConnectionId(id || '');
+                  setSelectedVcsProject('');
                   setSelectedRepository('');
                   setSelectedBranch('');
                 }}
@@ -341,6 +344,7 @@ export function CreateWorkspaceDialog({
                     onClick={() => {
                       const newValue = vcsConnectionId === conn.id ? '' : conn.id;
                       setVcsConnectionId(newValue);
+                      setSelectedVcsProject('');
                       setSelectedRepository('');
                       setSelectedBranch('');
                     }}
@@ -374,6 +378,20 @@ export function CreateWorkspaceDialog({
               </div>
             )}
           </div>
+
+          {/* Project scoping (Azure DevOps only) */}
+          {vcsConnectionId && (
+            <VCSProjectSelect
+              connectionId={vcsConnectionId}
+              provider={vcsConnections.find(c => c.id === vcsConnectionId)?.provider}
+              value={selectedVcsProject}
+              onChange={(project) => {
+                setSelectedVcsProject(project);
+                setSelectedRepository('');
+                setSelectedBranch('');
+              }}
+            />
+          )}
 
           {/* Repository (conditional on VCS connection) */}
           {vcsConnectionId && (

@@ -62,6 +62,7 @@ import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { getVcsProviderIcon, getVcsProviderLabel } from '@/lib/vcs';
 import { VCSProviderSelector } from '@/components/vcs/VCSProviderSelector';
+import { VCSProjectSelect } from '@/components/vcs/VCSProjectSelect';
 import { detectDynamicInventoryPlugin } from '@/utils/dynamic-inventory';
 
 export default function Inventories() {
@@ -85,6 +86,7 @@ export default function Inventories() {
   const [loadingInventoryFiles, setLoadingInventoryFiles] = useState(false);
   const [vcsConnections, setVcsConnections] = useState<VCSConnection[]>([]);
   const [repositories, setRepositories] = useState<Repository[]>([]);
+  const [selectedVcsProject, setSelectedVcsProject] = useState<string>('');
   const [branches, setBranches] = useState<Branch[]>([]);
   const [inventoryFiles, setInventoryFiles] = useState<string[]>([]);
   const [repositorySearch, setRepositorySearch] = useState('');
@@ -166,6 +168,7 @@ export default function Inventories() {
       vcs_branch: '',
       inventory_path: '',
     });
+    setSelectedVcsProject('');
     setRepositories([]);
     setBranches([]);
     setInventoryFiles([]);
@@ -223,7 +226,7 @@ export default function Inventories() {
     }
 
     setLoadingRepos(true);
-    vcsConnectionsApi.listAllRepositories(formData.vcs_connection_id)
+    vcsConnectionsApi.listAllRepositories(formData.vcs_connection_id, selectedVcsProject || undefined)
       .then((repos) => {
         setRepositories(repos || []);
       })
@@ -234,7 +237,7 @@ export default function Inventories() {
       .finally(() => {
         setLoadingRepos(false);
       });
-  }, [formData.vcs_connection_id, createDialogOpen, formData.type]);
+  }, [formData.vcs_connection_id, createDialogOpen, formData.type, selectedVcsProject]);
 
   // Load branches when repository is selected
   useEffect(() => {
@@ -610,6 +613,7 @@ export default function Inventories() {
                         orgName={selectedOrg}
                         selectedConnectionId={undefined}
                         onConnectionSelect={(id) => {
+                          setSelectedVcsProject('');
                           setFormData({
                             ...formData,
                             vcs_connection_id: id || '',
@@ -633,6 +637,7 @@ export default function Inventories() {
                             )}
                             onClick={() => {
                               const newValue = formData.vcs_connection_id === conn.id ? '' : conn.id;
+                              setSelectedVcsProject('');
                               setFormData({
                                 ...formData,
                                 vcs_connection_id: newValue,
@@ -671,6 +676,19 @@ export default function Inventories() {
                       </div>
                     )}
                   </div>
+
+                  {/* Project Selector (Azure DevOps only) */}
+                  {formData.vcs_connection_id && (
+                    <VCSProjectSelect
+                      connectionId={formData.vcs_connection_id}
+                      provider={vcsConnections.find(c => c.id === formData.vcs_connection_id)?.provider}
+                      value={selectedVcsProject}
+                      onChange={(project) => {
+                        setSelectedVcsProject(project);
+                        setFormData(prev => ({ ...prev, vcs_repository: '', vcs_branch: '', inventory_path: '' }));
+                      }}
+                    />
+                  )}
 
                   {/* Repository Selector */}
                   {formData.vcs_connection_id && (

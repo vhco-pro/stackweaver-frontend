@@ -27,6 +27,7 @@ import { Loader2, GitBranch, Plus, CheckCircle2 } from 'lucide-react';
 import { getVcsProviderIcon, getVcsProviderLabel } from '@/lib/vcs';
 import { registryApi, vcsConnectionsApi } from '@/api/client';
 import { VCSProviderSelector } from '@/components/vcs/VCSProviderSelector';
+import { VCSProjectSelect } from '@/components/vcs/VCSProjectSelect';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 
@@ -48,6 +49,7 @@ export function CreateModuleDialog({
   const [provider, setProvider] = useState('');
   const [description, setDescription] = useState('');
   const [vcsConnectionId, setVcsConnectionId] = useState<string>('');
+  const [selectedVcsProject, setSelectedVcsProject] = useState<string>('');
   const [selectedRepository, setSelectedRepository] = useState<string>('');
   const [repositorySearch, setRepositorySearch] = useState<string>('');
   const [autoPublishTags, setAutoPublishTags] = useState(true);
@@ -78,9 +80,9 @@ export function CreateModuleDialog({
 
   // Load repositories when VCS connection is selected
   const { data: repositories = [], isLoading: loadingRepos } = useQuery({
-    queryKey: ['vcs-repositories', vcsConnectionId],
+    queryKey: ['vcs-repositories', vcsConnectionId, selectedVcsProject],
     queryFn: async () => {
-      const repos = await vcsConnectionsApi.listAllRepositories(vcsConnectionId);
+      const repos = await vcsConnectionsApi.listAllRepositories(vcsConnectionId, selectedVcsProject || undefined);
       return repos || [];
     },
     enabled: !!vcsConnectionId && open && publishMethod === 'vcs',
@@ -141,6 +143,7 @@ export function CreateModuleDialog({
       setProvider('');
       setDescription('');
       setVcsConnectionId('');
+      setSelectedVcsProject('');
       setSelectedRepository('');
       setRepositorySearch('');
       setAutoPublishTags(true);
@@ -261,7 +264,7 @@ export function CreateModuleDialog({
                 <VCSProviderSelector
                   orgName={orgName}
                   selectedConnectionId={undefined}
-                  onConnectionSelect={(id) => setVcsConnectionId(id || '')}
+                  onConnectionSelect={(id) => { setVcsConnectionId(id || ''); setSelectedVcsProject(''); setSelectedRepository(''); }}
                   showConfigureOption={false}
                 />
               ) : (
@@ -275,7 +278,7 @@ export function CreateModuleDialog({
                           ? 'border-blue-500 bg-blue-50 dark:bg-blue-950/20'
                           : 'border-gray-200 dark:border-white/10 hover:border-blue-300'
                       )}
-                      onClick={() => setVcsConnectionId(vcsConnectionId === conn.id ? '' : conn.id)}
+                      onClick={() => { const newValue = vcsConnectionId === conn.id ? '' : conn.id; setVcsConnectionId(newValue); setSelectedVcsProject(''); setSelectedRepository(''); }}
                     >
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
@@ -301,6 +304,15 @@ export function CreateModuleDialog({
                     Connect to a different VCS
                   </Button>
                 </div>
+              )}
+
+              {vcsConnectionId && (
+                <VCSProjectSelect
+                  connectionId={vcsConnectionId}
+                  provider={vcsConnections.find(c => c.id === vcsConnectionId)?.provider}
+                  value={selectedVcsProject}
+                  onChange={(project) => { setSelectedVcsProject(project); setSelectedRepository(''); }}
+                />
               )}
 
               {vcsConnectionId && (

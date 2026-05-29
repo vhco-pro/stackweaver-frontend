@@ -27,6 +27,7 @@ import { Loader2, GitBranch, Plus, CheckCircle2, AlertTriangle } from 'lucide-re
 import { getVcsProviderIcon, getVcsProviderLabel, getVcsManageUrl } from '@/lib/vcs';
 import { workspacesApi, vcsConnectionsApi, agentPoolsApi, terraformVersionsApi, type VCSConnection, type Repository, type Branch, type Workspace, type AgentPool, type TerraformVersionResource } from '@/api/client';
 import { VCSProviderSelector } from '@/components/vcs/VCSProviderSelector';
+import { VCSProjectSelect } from '@/components/vcs/VCSProjectSelect';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 
@@ -54,6 +55,7 @@ export function EditWorkspaceDialog({
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [vcsConnectionId, setVcsConnectionId] = useState<string>('');
+  const [selectedVcsProject, setSelectedVcsProject] = useState<string>('');
   const [selectedRepository, setSelectedRepository] = useState<string>('');
   const [selectedBranch, setSelectedBranch] = useState<string>('');
   const [workingDirectory, setWorkingDirectory] = useState('');
@@ -111,6 +113,7 @@ export function EditWorkspaceDialog({
       setName('');
       setDescription('');
       setVcsConnectionId('');
+      setSelectedVcsProject('');
       setSelectedRepository('');
       setSelectedBranch('main');
       setWorkingDirectory('');
@@ -203,7 +206,7 @@ export function EditWorkspaceDialog({
     }
 
     setLoadingRepos(true);
-    void vcsConnectionsApi.listAllRepositories(vcsConnectionId)
+    void vcsConnectionsApi.listAllRepositories(vcsConnectionId, selectedVcsProject || undefined)
       .then((repos) => {
         setRepositories(Array.isArray(repos) ? repos : []);
         // If we have a repository from workspace, ensure it's set
@@ -231,7 +234,7 @@ export function EditWorkspaceDialog({
         setLoadingRepos(false);
       });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [vcsConnectionId, orgName, vcsConnections, loadingVCS, selectedRepository]); // workspace?.vcs_repository intentionally excluded - only set on initial load
+  }, [vcsConnectionId, orgName, vcsConnections, loadingVCS, selectedRepository, selectedVcsProject]); // workspace?.vcs_repository intentionally excluded - only set on initial load
 
   // Load branches when repository changes
   useEffect(() => {
@@ -435,6 +438,7 @@ export function EditWorkspaceDialog({
                 selectedConnectionId={undefined}
                 onConnectionSelect={(id) => {
                   setVcsConnectionId(id || '');
+                  setSelectedVcsProject('');
                   setSelectedRepository('');
                   setSelectedBranch('');
                 }}
@@ -462,6 +466,7 @@ export function EditWorkspaceDialog({
                       onClick={() => {
                         const newValue = isSelected ? '' : connIdStr;
                         setVcsConnectionId(newValue);
+                        setSelectedVcsProject('');
                         setSelectedRepository('');
                         setSelectedBranch('');
                       }}
@@ -496,6 +501,20 @@ export function EditWorkspaceDialog({
               </div>
             )}
           </div>
+
+          {/* Project scoping (Azure DevOps only) */}
+          {vcsConnectionId && (
+            <VCSProjectSelect
+              connectionId={vcsConnectionId}
+              provider={vcsConnections.find(c => c.id === vcsConnectionId)?.provider}
+              value={selectedVcsProject}
+              onChange={(project) => {
+                setSelectedVcsProject(project);
+                setSelectedRepository('');
+                setSelectedBranch('');
+              }}
+            />
+          )}
 
           {/* Repository (conditional on VCS connection) */}
           {vcsConnectionId && (

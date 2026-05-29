@@ -57,6 +57,7 @@ import {
 import { cn } from '@/lib/utils';
 import { getVcsProviderIcon, getVcsProviderLabel, getVcsRepoUrl, getVcsBranchUrl, getVcsFileUrl, getVcsCommitUrl, getVcsManageUrl } from '@/lib/vcs';
 import { VCSProviderSelector } from '@/components/vcs/VCSProviderSelector';
+import { VCSProjectSelect } from '@/components/vcs/VCSProjectSelect';
 import {
   ArrowLeft,
   FileText,
@@ -187,6 +188,7 @@ export default function PlaybookDetail() {
   const [loadingBranches, setLoadingBranches] = useState(false);
   const [vcsConnections, setVcsConnections] = useState<VCSConnection[]>([]);
   const [repositories, setRepositories] = useState<Repository[]>([]);
+  const [selectedVcsProject, setSelectedVcsProject] = useState<string>('');
   const [branches, setBranches] = useState<Branch[]>([]);
   const [repositorySearch, setRepositorySearch] = useState('');
   const [repositorySelectOpen, setRepositorySelectOpen] = useState(false);
@@ -296,7 +298,7 @@ export default function PlaybookDetail() {
     }
 
     setLoadingRepos(true);
-    void vcsConnectionsApi.listAllRepositories(editForm.vcs_connection_id)
+    void vcsConnectionsApi.listAllRepositories(editForm.vcs_connection_id, selectedVcsProject || undefined)
       .then((repos) => {
         setRepositories(repos || []);
       })
@@ -307,7 +309,7 @@ export default function PlaybookDetail() {
       .finally(() => {
         setLoadingRepos(false);
       });
-  }, [editForm.vcs_connection_id, editDialogOpen]);
+  }, [editForm.vcs_connection_id, editDialogOpen, selectedVcsProject]);
 
   // Load branches when repository is selected (or when dialog opens with existing repository)
   useEffect(() => {
@@ -1081,6 +1083,7 @@ export default function PlaybookDetail() {
                   orgName={selectedOrg}
                   selectedConnectionId={undefined}
                   onConnectionSelect={(id) => {
+                    setSelectedVcsProject('');
                     setEditForm({
                       ...editForm,
                       vcs_connection_id: id || '',
@@ -1104,6 +1107,7 @@ export default function PlaybookDetail() {
                       )}
                       onClick={() => {
                         const newValue = editForm.vcs_connection_id === conn.id ? '' : conn.id;
+                        setSelectedVcsProject('');
                         setEditForm({
                           ...editForm,
                           vcs_connection_id: newValue,
@@ -1142,6 +1146,19 @@ export default function PlaybookDetail() {
                 </div>
               )}
             </div>
+
+            {/* Project Selector (Azure DevOps only) */}
+            {editForm.vcs_connection_id && (
+              <VCSProjectSelect
+                connectionId={editForm.vcs_connection_id}
+                provider={vcsConnections.find(c => c.id === editForm.vcs_connection_id)?.provider}
+                value={selectedVcsProject}
+                onChange={(project) => {
+                  setSelectedVcsProject(project);
+                  setEditForm(prev => ({ ...prev, vcs_repository: '', vcs_branch: '', playbook_path: '' }));
+                }}
+              />
+            )}
 
             {/* Repository Selector */}
             {editForm.vcs_connection_id && (
