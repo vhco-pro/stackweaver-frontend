@@ -26,5 +26,5 @@ Both pages list the exact commands an external reviewer can run to verify the cl
 
 | Name | Description |
 |------|-------------|
-| [verifying-releases.md](./verifying-releases.md) | How to cryptographically verify a Stackweaver release — container images today, SLSA build provenance and SBOM attestations once Wave 6 of the OSPS audit completes. Uses Sigstore keyless signing; no long-lived signing keys are involved. |
+| [verifying-releases.md](./verifying-releases.md) | How to cryptographically verify a Stackweaver release — container image signatures, SLSA build provenance, and SBOM attestations. Uses Sigstore keyless signing; no long-lived signing keys are involved. |
 | [sync-architecture.md](./sync-architecture.md) | How code reaches the public Stackweaver satellite repositories. Documents the two-App, PR-based sync model, the four hard security gates that govern every automated merge, and the commands an external reviewer can run to verify the design is correctly deployed in production. |
