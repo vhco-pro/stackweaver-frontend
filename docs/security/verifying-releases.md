@@ -2,7 +2,7 @@
 Copyright (c) 2025 VH & Co BV. Licensed under the Business Source License 1.1. See LICENSE for details.
 -->
 ---
-description: "How to cryptographically verify a Stackweaver release — container images today, SLSA build provenance and SBOM attestations once Wave 6 of the OSPS audit completes. Uses Sigstore keyless signing; no long-lived signing keys are involved."
+description: "How to cryptographically verify a Stackweaver release — container image signatures, SLSA build provenance, and SBOM attestations. Uses Sigstore keyless signing; no long-lived signing keys are involved."
 covers:
   - ".github/workflows/**"
   - "deploy/helm/**"
@@ -12,23 +12,23 @@ covers:
 
 Stackweaver follows a **Sigstore-only signing policy**: there are no long-lived PGP or cosign keys to download, and no public-key fingerprint to compare against. Every signed artefact is bound to the GitHub Actions workflow that produced it via a short-lived Fulcio certificate and recorded in the Rekor public transparency log. Verification therefore proves both "this artefact really came out of the Stackweaver release pipeline" and "the transparency log agrees", in a single command, with no project-specific key material.
 
-This page only documents what has been **verified to actually work today** against the live releases on the `vhco-pro` organisation. Anything that is wired but not yet active (because it is gated on the Wave-6 visibility flip described in the [OSPS Baseline audit](https://github.com/vhco-pro/.github/blob/main/SECURITY.md)) is called out explicitly so you do not waste time running commands that are guaranteed to 404 today.
+This page only documents what has been **verified to actually work today** against the live releases on the `vhco-pro` organisation. Six of the seven satellites are public and fully verifiable. The seventh, `stackweaver-runner`, is intentionally kept private until its Terraform-runner implementation is rewritten on top of OpenTofu (see the [OSPS Baseline audit](https://github.com/vhco-pro/.github/blob/main/SECURITY.md)); its container image is still Sigstore-signed, but its GitHub-native SLSA and SBOM attestations are not published while it stays private. Every command below calls out where the runner differs so you do not waste time running calls that are guaranteed to 404 for it.
 
 If any documented verification fails against an artefact you obtained from an official location (`ghcr.io/vhco-pro/*` or a `vhco-pro/stackweaver-*` GitHub Release page), treat the artefact as untrusted and report it via a [Private Vulnerability Report](https://github.com/vhco-pro/.github/security/policy) or to `contact@vhco.pro`.
 
 For background on how code actually reaches the satellite repositories (the trust boundary between the private monorepo and the public satellites that produce these artefacts), see [Sync Architecture](./sync-architecture.md).
 
-## What's Verifiable Today vs After the Wave-6 Flip
+## What's Verifiable Today
 
 | Artefact | Mechanism | Status |
 |----------|-----------|--------|
-| Container image signature (`cosign verify`) | Sigstore keyless, signed by satellite `release.yml` workflow | ✅ **Live today** on all 6 docker satellites |
+| Container image signature (`cosign verify`) | Sigstore keyless, signed by satellite `release.yml` workflow | ✅ **Live today** on all 6 docker satellites (including the private `runner`) |
 | Sync-commit identity (`gitsign verify`) | Sigstore keyless, signed by monorepo `sync-<component>.yml` workflow | ✅ **Live today** on sync commits (not on chart-releaser auto-bumps) |
-| SLSA Build L3 provenance (`gh attestation verify`) | `actions/attest-build-provenance` from satellite `release.yml`, gated on `visibility == 'public'` | ⏳ **Active after Wave 6** — workflow steps are wired but skipped while satellites are private |
-| SBOM attestation (SPDX) | `actions/attest-sbom` from satellite `release.yml`, gated on `visibility == 'public'` | ⏳ **Active after Wave 6** — same gate |
+| SLSA Build L3 provenance (`gh attestation verify`) | `actions/attest-build-provenance` from satellite `release.yml`, gated on `visibility == 'public'` | ✅ **Live today** on the 5 public docker satellites; not published for `runner` while it stays private |
+| SBOM attestation (SPDX) | `actions/attest-sbom` from satellite `release.yml`, gated on `visibility == 'public'` | ✅ **Live today** on the 5 public docker satellites; not on `runner` |
 | Helm chart `cosign verify` (Sigstore keyless) | `stackweaver-helm/.github/workflows/release.yml` runs `cosign sign` against the OCI chart ref after `helm push` | ✅ **Live today** for chart versions ≥ `0.6.8` |
 | Helm chart SBOM (`cosign verify-attestation`, SPDX) | Same workflow runs `syft scan` → `cosign attest --type spdx` | ✅ **Live today** for chart versions ≥ `0.6.8` |
-| Helm chart `gh attestation verify` (SLSA + SBOM) | Plumbed in the same workflow but gated on `visibility == 'public'` | ⏳ **Activates on Wave-6 flip** (no code change pending) |
+| Helm chart `gh attestation verify` (SLSA + SBOM) | Same workflow, gated on `visibility == 'public'` | ✅ **Live today** (the helm satellite is public) |
 
 ## Tools
 
@@ -37,7 +37,7 @@ Install once and reuse for every release. No project-specific configuration is r
 | Tool | Used for | Install |
 |------|---------|--------|
 | `cosign` | Container-image signature verification | `go install github.com/sigstore/cosign/v2/cmd/cosign@latest` or see <https://docs.sigstore.dev/cosign/system_config/installation/> |
-| `gh` (GitHub CLI) | SLSA + SBOM attestation verification (post-Wave 6) | <https://cli.github.com/> |
+| `gh` (GitHub CLI) | SLSA + SBOM attestation verification | <https://cli.github.com/> |
 | `gitsign` | Sync-commit identity verification | `go install github.com/sigstore/gitsign@latest` or see <https://github.com/sigstore/gitsign#installation> |
 
 Verified working with `cosign v2`, `gh 2.87+`, `gitsign v0.13+`.
@@ -72,11 +72,13 @@ cosign verify \
   ghcr.io/vhco-pro/stackweaver-api:0.6.8
 ```
 
-## Verifying SLSA Build Provenance (Available After Wave 6)
+## Verifying SLSA Build Provenance (Live Today)
 
-Once the 6 currently-private docker satellites flip to public during Wave 6 of the OSPS audit, every release will additionally publish a [SLSA Build L3 provenance attestation](https://slsa.dev/spec/v1.0/levels#build-l3) binding the released container digest to the upstream monorepo commit SHA and the workflow run that built it. The `attest-build-provenance` step is already present in every satellite `release.yml` but is gated on `github.event.repository.visibility == 'public'`, so it currently no-ops on the 6 private satellites and there is no attestation to fetch yet.
+Every release from the five public docker satellites publishes a [SLSA Build L3 provenance attestation](https://slsa.dev/spec/v1.0/levels#build-l3) binding the released container digest to the upstream monorepo commit SHA and the workflow run that built it. The `attest-build-provenance` step is gated on `github.event.repository.visibility == 'public'`, so it is active on the public satellites. It is the one piece still pending for `stackweaver-runner` while that repository stays private — `gh attestation verify` against a `runner` image returns `HTTP 404` today.
 
-When live, the verification command will be:
+Attestations exist only for releases cut **after** each satellite went public; the few pre-public tags have none. For the API satellite, provenance is present from `0.6.11` onward — older tags such as `0.6.8` return `404`, so always verify against a recent tag.
+
+Replace `<component>` with one of `api`, `orchestrator`, `ansible-runner`, `frontend`, `zitadel-init` (not `runner`) and `<tag>` with the release tag:
 
 ```bash
 gh attestation verify \
@@ -88,7 +90,17 @@ Note the `-R owner/repo` form — `--repo stackweaver-<component>` (just the nam
 
 A successful verification proves four things in one shot: the image digest exists, an attestation was published for that exact digest, the attestation was issued by a workflow in the named repository, and the issuer's certificate (again from Sigstore Fulcio) is logged in Rekor.
 
-## Verifying the SBOM (Available After Wave 6)
+### A real, working example
+
+The following command produces a successful verification at the time of writing:
+
+```bash
+gh attestation verify \
+  -R vhco-pro/stackweaver-api \
+  "oci://ghcr.io/vhco-pro/stackweaver-api:0.6.32"
+```
+
+## Verifying the SBOM (Live Today)
 
 The SBOM is published as a Sigstore-signed attestation in SPDX format, **not** as a GitHub Release asset. The verification command is identical to the SLSA one, with one additional flag selecting the predicate type:
 
@@ -99,7 +111,7 @@ gh attestation verify \
   "oci://ghcr.io/vhco-pro/stackweaver-<component>:<tag>"
 ```
 
-Subject to the same Wave-6 gating as the SLSA attestation.
+This is subject to the same `visibility == 'public'` gate as the SLSA attestation, so it is live on the five public docker satellites and not yet published for the private `runner`.
 
 ## Verifying the Helm Chart
 
@@ -138,7 +150,15 @@ The decoded payload is an in-toto Statement whose `predicate` is the full SPDX-2
 
 ### GitHub-native SLSA + SBOM attestations
 
-The same workflow also produces `actions/attest-build-provenance` (SLSA L3) and `actions/attest-sbom` records, but the GitHub attestation API requires GHAS on private repositories, so these steps are gated on `github.event.repository.visibility == 'public'`. Once the satellite flips public in Wave 6, `gh attestation verify -R vhco-pro/stackweaver-helm oci://ghcr.io/vhco-pro/charts/stackweaver:<version>` will resolve for any chart cut after the flip.
+The same workflow also produces `actions/attest-build-provenance` (SLSA L3) and `actions/attest-sbom` records. The `stackweaver-helm` satellite is public, so these resolve today:
+
+```bash
+gh attestation verify \
+  -R vhco-pro/stackweaver-helm \
+  "oci://ghcr.io/vhco-pro/charts/stackweaver:<chart-version>"
+```
+
+Add `--predicate-type https://spdx.dev/Document` to verify the GitHub-native SBOM attestation instead of the SLSA provenance.
 
 ## Verifying Sync-Commit Identity
 
