@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link, useParams } from 'react-router-dom';
-import { Key, ArrowLeft, Plus, Copy, Trash2, Calendar, Loader2, CheckCircle2, Building2, FolderKanban, User, Server } from 'lucide-react';
+import { Key, ArrowLeft, Plus, Copy, Trash2, Calendar, Loader2, CheckCircle2, Building2, FolderKanban, Server } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -13,7 +13,12 @@ import { cn } from '@/lib/utils';
 import { settingsApi, organizationsApi, projectsApi, type CreateApiKeyResponse } from '@/api/client';
 import { toast } from 'sonner';
 
-type ScopeType = 'all' | 'org' | 'project' | 'user' | 'runner';
+// Every API key is bound to exactly one organization (directly, or via a
+// project/runner scope that resolves to one). The organization is always the
+// one whose settings page this is mounted under — keys cannot be minted for a
+// different org from here. There is no all-access key; a personal
+// "acts-as-user" token is a separate, user-scoped surface (`terraform login`).
+type ScopeType = 'org' | 'project' | 'runner';
 
 export default function ApiKeysSettings() {
   const { orgName } = useParams<{ orgName: string }>();
@@ -25,8 +30,7 @@ export default function ApiKeysSettings() {
   const [newlyCreatedKey, setNewlyCreatedKey] = useState<CreateApiKeyResponse | null>(null);
   
   // Scope selection state
-  const [scopeType, setScopeType] = useState<ScopeType>('all');
-  const [selectedOrgId, setSelectedOrgId] = useState<string>('');
+  const [scopeType, setScopeType] = useState<ScopeType>('org');
   const [selectedProjectId, setSelectedProjectId] = useState<string>('');
   const [permissions, setPermissions] = useState<{ read: boolean; write: boolean; admin: boolean }>({
     read: false,
@@ -50,15 +54,20 @@ export default function ApiKeysSettings() {
     },
   });
 
+  // The org this page is scoped to (always mounted under /app/:orgName). Keys
+  // are bound to this org and this org only — there is no org picker, so a
+  // key for a different org must be created from that org's own settings.
+  const effectiveOrgId = organizations.find((o) => o.name === orgName)?.id ?? '';
+
   const { data: projects = [] } = useQuery({
-    queryKey: ['projects', scopeType, selectedOrgId],
+    queryKey: ['projects', scopeType, effectiveOrgId],
     queryFn: async () => {
-      const org = organizations.find(o => o.id === selectedOrgId);
+      const org = organizations.find(o => o.id === effectiveOrgId);
       if (!org) return [];
       const response = await projectsApi.list(org.name);
       return response.data || [];
     },
-    enabled: scopeType === 'project' && !!selectedOrgId && organizations.length > 0,
+    enabled: scopeType === 'project' && !!effectiveOrgId && organizations.length > 0,
   });
 
   const copyToClipboard = async (text: string) => {
@@ -72,37 +81,24 @@ export default function ApiKeysSettings() {
   };
 
   const buildScopes = (): string[] => {
-    if (scopeType === 'all') {
-      return []; // Empty array means full access
-    }
-
     const scopes: string[] = [];
     const selectedPermissions: string[] = [];
-    
+
     if (permissions.read) selectedPermissions.push('read');
     if (permissions.write) selectedPermissions.push('write');
     if (permissions.admin) selectedPermissions.push('admin');
 
-    if (selectedPermissions.length === 0) {
-      // If no permissions selected, default to read
-      selectedPermissions.push('read');
-    }
-
-    if (scopeType === 'org' && selectedOrgId) {
-      selectedPermissions.forEach(perm => {
-        scopes.push(`org:${selectedOrgId}:${perm}`);
+    if (scopeType === 'org' && effectiveOrgId) {
+      selectedPermissions.forEach((perm) => {
+        scopes.push(`org:${effectiveOrgId}:${perm}`);
       });
     } else if (scopeType === 'project' && selectedProjectId) {
-      selectedPermissions.forEach(perm => {
+      selectedPermissions.forEach((perm) => {
         scopes.push(`project:${selectedProjectId}:${perm}`);
       });
-    } else if (scopeType === 'user') {
-      selectedPermissions.forEach(perm => {
-        scopes.push(`user:${perm}`);
-      });
-    } else if (scopeType === 'runner' && selectedOrgId) {
+    } else if (scopeType === 'runner' && effectiveOrgId) {
       // Runner scope - allows registering runners for an organization
-      scopes.push(`org:${selectedOrgId}:runner:register`);
+      scopes.push(`org:${effectiveOrgId}:runner:register`);
     }
 
     return scopes;
@@ -116,18 +112,25 @@ export default function ApiKeysSettings() {
       return;
     }
 
-    if (scopeType === 'org' && !selectedOrgId) {
+    if (scopeType === 'org' && !effectiveOrgId) {
       toast.error('Please select an organization');
       return;
     }
 
-    if (scopeType === 'project' && (!selectedOrgId || !selectedProjectId)) {
+    if (scopeType === 'project' && (!effectiveOrgId || !selectedProjectId)) {
       toast.error('Please select an organization and project');
       return;
     }
 
-    if (scopeType === 'runner' && !selectedOrgId) {
+    if (scopeType === 'runner' && !effectiveOrgId) {
       toast.error('Please select an organization for runner registration');
+      return;
+    }
+
+    // Org and project scopes must carry at least one permission — an empty
+    // scope is rejected by the backend (no all-access keys).
+    if (scopeType !== 'runner' && !permissions.read && !permissions.write && !permissions.admin) {
+      toast.error('Please select at least one permission (read, write, or admin)');
       return;
     }
 
@@ -135,9 +138,9 @@ export default function ApiKeysSettings() {
       setCreating(true);
       
       const scopes = buildScopes();
-      const data: { name: string; scopes?: string[]; expires_at?: string } = {
+      const data: { name: string; scopes: string[]; expires_at?: string } = {
         name: newKeyName.trim(),
-        ...(scopes.length > 0 && { scopes }),
+        scopes,
       };
       
       if (newKeyExpiry) {
@@ -169,8 +172,7 @@ export default function ApiKeysSettings() {
       // Reset form
       setNewKeyName('');
       setNewKeyExpiry('');
-      setScopeType('all');
-      setSelectedOrgId('');
+      setScopeType('org');
       setSelectedProjectId('');
       setPermissions({ read: false, write: false, admin: false });
       setShowCreateForm(false);
@@ -349,7 +351,6 @@ export default function ApiKeysSettings() {
                 <Label>Scope Type</Label>
                 <Select value={scopeType} onValueChange={(value) => {
                   setScopeType(value as ScopeType);
-                  setSelectedOrgId('');
                   setSelectedProjectId('');
                   setPermissions({ read: false, write: false, admin: false });
                 }} disabled={creating}>
@@ -357,12 +358,6 @@ export default function ApiKeysSettings() {
                     <SelectValue placeholder="Select scope type" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">
-                      <div className="flex items-center gap-2">
-                        <Key className="h-4 w-4" />
-                        <span>All Access</span>
-                      </div>
-                    </SelectItem>
                     <SelectItem value="org">
                       <div className="flex items-center gap-2">
                         <Building2 className="h-4 w-4" />
@@ -375,12 +370,6 @@ export default function ApiKeysSettings() {
                         <span>Project</span>
                       </div>
                     </SelectItem>
-                    <SelectItem value="user">
-                      <div className="flex items-center gap-2">
-                        <User className="h-4 w-4" />
-                        <span>User</span>
-                      </div>
-                    </SelectItem>
                     <SelectItem value="runner">
                       <div className="flex items-center gap-2">
                         <Server className="h-4 w-4" />
@@ -391,17 +380,28 @@ export default function ApiKeysSettings() {
                 </Select>
               </div>
 
-              {scopeType === 'org' && (
+              {/* The organization is fixed to the one this settings page belongs
+                  to. It is shown read-only so it's clear which org the key binds
+                  to; there is deliberately no picker to mint keys for other orgs. */}
+              <div className="space-y-2">
+                <Label>Organization</Label>
+                <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-white/5 dark:bg-black/10 border border-white/10 dark:border-white/5 text-sm">
+                  <Building2 className="h-4 w-4 text-muted-foreground" />
+                  <span>{orgName}</span>
+                </div>
+              </div>
+
+              {scopeType === 'project' && effectiveOrgId && (
                 <div className="space-y-2">
-                  <Label htmlFor="org-select">Organization</Label>
-                  <Select value={selectedOrgId} onValueChange={setSelectedOrgId} disabled={creating}>
+                  <Label htmlFor="project-select">Project</Label>
+                  <Select value={selectedProjectId} onValueChange={setSelectedProjectId} disabled={creating}>
                     <SelectTrigger>
-                      <SelectValue placeholder="Select organization" />
+                      <SelectValue placeholder="Select project" />
                     </SelectTrigger>
                     <SelectContent>
-                      {organizations.map((org) => (
-                        <SelectItem key={org.id} value={org.id}>
-                          {org.name}
+                      {projects.map((project) => (
+                        <SelectItem key={project.id} value={project.id}>
+                          {project.name}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -409,68 +409,14 @@ export default function ApiKeysSettings() {
                 </div>
               )}
 
-              {scopeType === 'project' && (
-                <>
-                  <div className="space-y-2">
-                    <Label htmlFor="org-select">Organization</Label>
-                    <Select value={selectedOrgId} onValueChange={setSelectedOrgId} disabled={creating}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select organization" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {organizations.map((org) => (
-                          <SelectItem key={org.id} value={org.id}>
-                            {org.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  {selectedOrgId && (
-                    <div className="space-y-2">
-                      <Label htmlFor="project-select">Project</Label>
-                      <Select value={selectedProjectId} onValueChange={setSelectedProjectId} disabled={creating}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select project" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {projects.map((project) => (
-                            <SelectItem key={project.id} value={project.id}>
-                              {project.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  )}
-                </>
-              )}
-
               {scopeType === 'runner' && (
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="org-select">Organization</Label>
-                    <Select value={selectedOrgId} onValueChange={setSelectedOrgId} disabled={creating}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select organization" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {organizations.map((org) => (
-                          <SelectItem key={org.id} value={org.id}>
-                            {org.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <p className="text-sm text-muted-foreground">
-                    This key allows self-hosted runners to register with the selected organization.
-                    Use this key when starting runner agents with <code className="px-1 py-0.5 rounded-sm bg-muted">STACKWEAVER_TOKEN</code>.
-                  </p>
-                </div>
+                <p className="text-sm text-muted-foreground">
+                  This key allows self-hosted runners to register with this organization.
+                  Use this key when starting runner agents with <code className="px-1 py-0.5 rounded-sm bg-muted">STACKWEAVER_TOKEN</code>.
+                </p>
               )}
 
-              {scopeType !== 'all' && scopeType !== 'runner' && (
+              {scopeType !== 'runner' && (
                 <div className="space-y-2">
                   <Label>Permissions</Label>
                   <div className="space-y-2">
@@ -526,8 +472,7 @@ export default function ApiKeysSettings() {
                   setShowCreateForm(false);
                   setNewKeyName('');
                   setNewKeyExpiry('');
-                  setScopeType('all');
-                  setSelectedOrgId('');
+                  setScopeType('org');
                   setSelectedProjectId('');
                   setPermissions({ read: false, write: false, admin: false });
                 }}

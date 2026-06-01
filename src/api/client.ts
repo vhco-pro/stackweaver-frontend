@@ -1953,6 +1953,62 @@ export const settingsApi = {
     apiClient.delete<{ message: string }>(`/settings/api-keys/${id}`),
 };
 
+// Personal (user-bound) tokens — the `terraform login` / personal access
+// token. These are minted at /api/v2/tokens (kind="user"): they act as the
+// user across all of their organization memberships and carry no scopes. This
+// is a deliberately separate surface from the scoped, org-bound API keys above.
+export interface UserToken {
+  id: string;
+  description: string;
+  last_used_at?: string;
+  expires_at?: string;
+  created_at: string;
+}
+
+export interface CreateUserTokenResponse {
+  id: string;
+  token: string; // Only shown once during creation
+  description: string;
+  expires_at?: string;
+  created_at: string;
+}
+
+interface UserTokenResource {
+  id: string;
+  type: string;
+  attributes: {
+    token?: string;
+    description: string;
+    last_used_at?: string;
+    expires_at?: string;
+    created_at: string;
+  };
+}
+
+export const tokensApi = {
+  list: async (): Promise<UserToken[]> => {
+    const response = await apiClient.get<{ data: UserTokenResource[] }>('/tokens');
+    return (response.data || []).map((t) => ({
+      id: t.id,
+      description: t.attributes.description,
+      last_used_at: t.attributes.last_used_at,
+      expires_at: t.attributes.expires_at,
+      created_at: t.attributes.created_at,
+    }));
+  },
+  create: async (data: { description: string; expires_at?: string }): Promise<CreateUserTokenResponse> => {
+    const response = await apiClient.post<{ data: UserTokenResource }>('/tokens', data);
+    return {
+      id: response.data.id,
+      token: response.data.attributes.token ?? '',
+      description: response.data.attributes.description,
+      expires_at: response.data.attributes.expires_at,
+      created_at: response.data.attributes.created_at,
+    };
+  },
+  delete: (id: string) => apiClient.delete<void>(`/tokens/${id}`),
+};
+
 // Activity Types
 export interface Activity {
   id: string;
