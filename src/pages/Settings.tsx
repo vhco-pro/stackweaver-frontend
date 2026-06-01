@@ -45,6 +45,13 @@ const userSettingsSections: SettingsSection[] = [
     path: '/settings/sessions',
   },
   {
+    title: 'API Tokens',
+    description: 'Create personal access tokens for the CLI and terraform login',
+    icon: Key,
+    gradient: 'from-purple-500 to-fuchsia-500',
+    path: '/settings/tokens',
+  },
+  {
     title: 'Preferences',
     description: 'Customize your workspace and display preferences',
     icon: Globe,

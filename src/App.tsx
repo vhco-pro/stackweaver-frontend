@@ -40,6 +40,7 @@ import DocsIndex from './pages/Docs/DocsIndex';
 import DocsViewer from './pages/Docs/DocsViewer';
 import SessionsSettings from './pages/Settings/Sessions';
 import ApiKeysSettings from './pages/Settings/ApiKeys';
+import PersonalAccessTokens from './pages/Settings/PersonalAccessTokens';
 import PreferencesSettings from './pages/Settings/Preferences';
 import VCSConnections from './pages/Settings/VCSConnections';
 import Webhooks from './pages/Settings/Webhooks';
@@ -321,11 +322,11 @@ function AppContent() {
                 }
               />
               <Route
-                path="/settings/api-keys"
+                path="/settings/tokens"
                 element={
                   <ProtectedRoute>
                     <Layout>
-                      <ApiKeysSettings />
+                      <PersonalAccessTokens />
                     </Layout>
                   </ProtectedRoute>
                 }
