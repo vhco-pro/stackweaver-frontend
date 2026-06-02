@@ -26,6 +26,7 @@ For background on how code actually reaches the satellite repositories (the trus
 | Sync-commit identity (`gitsign verify`) | Sigstore keyless, signed by monorepo `sync-<component>.yml` workflow | ✅ **Live today** on sync commits (not on chart-releaser auto-bumps) |
 | SLSA Build L3 provenance (`gh attestation verify`) | `actions/attest-build-provenance` from satellite `release.yml`, gated on `visibility == 'public'` | ✅ **Live today** on the 5 public docker satellites; not published for `runner` while it stays private |
 | SBOM attestation (SPDX) | `actions/attest-sbom` from satellite `release.yml`, gated on `visibility == 'public'` | ✅ **Live today** on the 5 public docker satellites; not on `runner` |
+| OpenVEX attestation (`gh attestation verify`) | `actions/attest` from satellite `release.yml` over `security/vex/*.openvex.json`, gated on `visibility == 'public'` | ✅ **Live today** on the public docker satellites (first verified on `stackweaver-frontend:0.12.2`); not on `runner` |
 | Helm chart `cosign verify` (Sigstore keyless) | `stackweaver-helm/.github/workflows/release.yml` runs `cosign sign` against the OCI chart ref after `helm push` | ✅ **Live today** for chart versions ≥ `0.6.8` |
 | Helm chart SBOM (`cosign verify-attestation`, SPDX) | Same workflow runs `syft scan` → `cosign attest --type spdx` | ✅ **Live today** for chart versions ≥ `0.6.8` |
 | Helm chart `gh attestation verify` (SLSA + SBOM) | Same workflow, gated on `visibility == 'public'` | ✅ **Live today** (the helm satellite is public) |
@@ -112,6 +113,28 @@ gh attestation verify \
 ```
 
 This is subject to the same `visibility == 'public'` gate as the SLSA attestation, so it is live on the five public docker satellites and not yet published for the private `runner`.
+
+## Verifying the OpenVEX Document (Live Today)
+
+Every release also publishes a signed [OpenVEX](https://openvex.dev/) document as a Sigstore-keyless attestation, binding the released image digest to the project's machine-readable statements about which known vulnerabilities do (or do not) affect it. Verify it by selecting the OpenVEX predicate type:
+
+```bash
+gh attestation verify \
+  -R vhco-pro/stackweaver-<component> \
+  --predicate-type https://openvex.dev/ns/v0.2.0 \
+  "oci://ghcr.io/vhco-pro/stackweaver-<component>:<tag>"
+```
+
+For example, against the first release that carried it:
+
+```bash
+gh attestation verify \
+  --owner vhco-pro \
+  --predicate-type https://openvex.dev/ns/v0.2.0 \
+  "oci://ghcr.io/vhco-pro/stackweaver-frontend:0.12.2"
+```
+
+Like the SLSA and SBOM attestations, the OpenVEX attestation is gated on `visibility == 'public'`, so it is live on the public docker satellites and not published for the private `runner`.
 
 ## Verifying the Helm Chart
 
