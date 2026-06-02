@@ -57,10 +57,10 @@ function Particles({
     <ParticlesProvider value={{ animate, isInView }}>
       <Component
         ref={localRef}
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment
-        style={mergedStyle as any}
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        {...(props as any)}
+         
+        style={mergedStyle}
+         
+        {...(props)}
       >
         {children}
       </Component>
@@ -145,8 +145,8 @@ function ParticlesEffect({
           return (
             <motion.div
               key={i}
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment
-              style={mergedStyle as any}
+               
+              style={mergedStyle}
               initial={{ scale: 0, opacity: 0 }}
               animate={{
                 x: `${x}px`,

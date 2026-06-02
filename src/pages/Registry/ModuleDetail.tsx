@@ -328,7 +328,7 @@ export default function ModuleDetail() {
     } catch (err: unknown) {
       console.error('Failed to publish version:', err);
       const errorMessage = err && typeof err === 'object' && 'message' in err
-        ? String((err as { message: unknown }).message)
+        ? String((err).message)
         : 'Failed to publish version';
       toast.error(errorMessage);
     } finally {
@@ -668,13 +668,12 @@ export default function ModuleDetail() {
                             )}
                             {input.default !== undefined && (() => {
                               const defaultId = `default-${input.name}-${index}`;
-                              const defaultType = typeof input.default;
                               // Handle string values that might be Go string representations
                               let defaultStr: string;
                               if (input.default === null) {
                                 defaultStr = 'null';
-                              } else if (defaultType === 'string') {
-                                const strVal = input.default as string;
+                              } else if (typeof input.default === 'string') {
+                                const strVal = input.default;
                                 // Check if it's a Go string representation like "cty.NullVal(...)"
                                 if (strVal.startsWith('cty.') || strVal.includes('cty.')) {
                                   // If it's null, show null
@@ -687,12 +686,12 @@ export default function ModuleDetail() {
                                 } else {
                                   defaultStr = strVal;
                                 }
-                              } else if (defaultType === 'object') {
+                              } else if (typeof input.default === 'object') {
                                 defaultStr = JSON.stringify(input.default, null, 2);
-                              } else if (defaultType === 'number') {
-                                defaultStr = String(input.default as number);
-                              } else if (defaultType === 'boolean') {
-                                defaultStr = String(input.default as boolean);
+                              } else if (typeof input.default === 'number') {
+                                defaultStr = String(input.default);
+                              } else if (typeof input.default === 'boolean') {
+                                defaultStr = String(input.default);
                               } else {
                                 // Fallback for unknown types - use JSON stringify to avoid [object Object]
                                 defaultStr = JSON.stringify(input.default);
@@ -1036,7 +1035,7 @@ export default function ModuleDetail() {
             setManageDialogOpen(false);
           } catch (err: unknown) {
             const errorMessage = err && typeof err === 'object' && 'message' in err
-              ? String((err as { message: unknown }).message)
+              ? String((err).message)
               : confirmDialog.kind === 'version'
                 ? 'Failed to delete version'
                 : 'Failed to delete module';

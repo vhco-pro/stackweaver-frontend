@@ -496,7 +496,7 @@ export function OutputViewer({ data, showJsonViewer = true, title = "Terraform P
       if (module.child_modules && Array.isArray(module.child_modules)) {
         module.child_modules.forEach((childModule) => {
           if (childModule && typeof childModule === 'object') {
-            resources.push(...collectResourcesFromModule(childModule as ModuleStructure));
+            resources.push(...collectResourcesFromModule(childModule));
           }
         });
       }
@@ -711,7 +711,7 @@ export function OutputViewer({ data, showJsonViewer = true, title = "Terraform P
               before_sensitive: false,
               after_sensitive: {},
             },
-          } as ResourceChange;
+          };
         });
       
       console.log('[OutputViewer] dataSources found:', dataSources.length, dataSources.map(ds => ds.address));

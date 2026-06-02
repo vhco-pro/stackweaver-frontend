@@ -133,8 +133,8 @@ function CodeBlock({
     if (!writing || !isInView) return;
     const el =
       scrollContainerRef?.current ??
-      (localRef.current?.parentElement as HTMLElement | null) ??
-      (localRef.current as unknown as HTMLElement | null);
+      (localRef.current?.parentElement) ??
+      (localRef.current);
 
     if (!el) return;
 

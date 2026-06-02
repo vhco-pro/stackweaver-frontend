@@ -76,7 +76,7 @@ function deepDiff(oldObj: unknown, newObj: unknown, path: string = ''): DiffResu
   }
   
   if (typeof oldObj === 'object' && oldObj !== null && typeof newObj === 'object' && newObj !== null) {
-    const allKeys = new Set([...Object.keys(oldObj as Record<string, unknown>), ...Object.keys(newObj as Record<string, unknown>)]);
+    const allKeys = new Set([...Object.keys(oldObj), ...Object.keys(newObj)]);
     for (const key of allKeys) {
       const keyPath = path ? `${path}.${key}` : key;
       const oldVal = (oldObj as Record<string, unknown>)[key];

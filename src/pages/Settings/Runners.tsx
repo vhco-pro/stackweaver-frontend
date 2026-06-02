@@ -52,7 +52,7 @@ export default function Runners() {
       return {
         runners: runnersRes.data || [],
         pools: poolsRes.data || [],
-        stats: statsRes as { total: number; online: number; offline: number },
+        stats: statsRes,
       };
     },
     enabled: !!orgName,

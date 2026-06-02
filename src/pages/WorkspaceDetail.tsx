@@ -17,7 +17,7 @@ import {
   type Variable,
   type VariableSet
 } from '@/api/client';
-import { getRunFromJsonApi, type JsonApiResource, type JsonApiResponse } from '@/utils/jsonapi';
+import { getRunFromJsonApi, type JsonApiResource } from '@/utils/jsonapi';
 import { MarkdownRenderer } from '@/components/docs/MarkdownRenderer';
 import { OutputViewer } from '@/components/runs/OutputViewer';
 import { RunSourceDisplay } from '@/components/runs/RunSourceDisplay';
@@ -400,7 +400,7 @@ export default function WorkspaceDetail() {
 
       // Fetch all data in parallel
       const [runsRes, statesRes, varsRes, varSetsRes, platformKeysRes] = await Promise.all([
-        runsApi.list(workspaceRes.id).catch(() => ({ data: [], meta: {} } as JsonApiResponse<JsonApiResource[]>)),
+        runsApi.list(workspaceRes.id).catch(() => ({ data: [], meta: {} })),
         stateVersionsApi.list(workspaceRes.id).catch((err) => {
           console.error('Failed to load state versions:', err);
           return [];

@@ -57,7 +57,7 @@ export const PhaseBox = forwardRef<HTMLDivElement | null, PhaseBoxProps>(({
   // Sync expanded state with defaultExpanded prop when it changes
   useEffect(() => {
     if (defaultExpanded !== undefined) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
+       
       setExpanded(defaultExpanded);
     }
   }, [defaultExpanded]);

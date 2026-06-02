@@ -160,7 +160,7 @@ export function useRunPolling({
             const planResponse = await runsApi.getPlan(runId) as unknown;
             // Check if planResponse is valid (not null/undefined and has content)
             const hasContent = planResponse && (
-              (typeof planResponse === 'object' && !Array.isArray(planResponse) && Object.keys(planResponse as Record<string, unknown>).length > 0) ||
+              (typeof planResponse === 'object' && !Array.isArray(planResponse) && Object.keys(planResponse).length > 0) ||
               (Array.isArray(planResponse) && planResponse.length > 0)
             );
             if (hasContent && isMountedRef.current && typeof planResponse === 'object' && !Array.isArray(planResponse)) {

@@ -754,7 +754,7 @@ export const ansibleJobTemplatesApi = {
       },
     }).then(res => {
       // Convert JSON:API response to simple Variable-like object
-      const attrs = res.data.attributes as { key: string; value: string; description?: string; category?: string; hcl?: boolean; sensitive: boolean };
+      const attrs = res.data.attributes;
       return {
         id: res.data.id,
         job_template_id: templateId,
@@ -793,7 +793,7 @@ export const ansibleJobTemplatesApi = {
       },
     }).then(res => {
       // Convert JSON:API response to simple Variable-like object
-      const attrs = res.data.attributes as { key: string; value: string; description?: string; category?: string; hcl?: boolean; sensitive: boolean };
+      const attrs = res.data.attributes;
       return {
         id: res.data.id,
         job_template_id: templateId,

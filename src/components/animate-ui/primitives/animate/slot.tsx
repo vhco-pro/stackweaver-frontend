@@ -71,7 +71,7 @@ function Slot<T extends HTMLElement = HTMLElement>({
   let isAlreadyMotion = false;
   if (childType && typeof childType === 'object' && childType !== null && typeof childType !== 'function') {
     try {
-      isAlreadyMotion = isMotionComponent(childType as React.ElementType);
+      isAlreadyMotion = isMotionComponent(childType);
     } catch {
       isAlreadyMotion = false;
     }
