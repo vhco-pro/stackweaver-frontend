@@ -19,6 +19,7 @@ Each page in this section is self-contained and answers a single question an ext
 
 * **"Is this artefact really from Stackweaver?"** — covered in [Verifying a Release](./verifying-releases.md).
 * **"How does code actually reach the satellite repositories I'm building?"** — covered in [Sync Architecture](./sync-architecture.md).
+* **"How does the project measure up against the OpenSSF OSPS Baseline?"** — covered in [OSPS Baseline Compliance](./osps-baseline-compliance.md).
 
 Both pages list the exact commands an external reviewer can run to verify the claims they make. If any of those commands return unexpected output against the live `vhco-pro` organisation, that is a finding worth reporting via the [Private Vulnerability Report channel](https://github.com/vhco-pro/.github/security/policy).
 
@@ -28,3 +29,4 @@ Both pages list the exact commands an external reviewer can run to verify the cl
 |------|-------------|
 | [verifying-releases.md](./verifying-releases.md) | How to cryptographically verify a Stackweaver release — container image signatures, SLSA build provenance, and SBOM attestations. Uses Sigstore keyless signing; no long-lived signing keys are involved. |
 | [sync-architecture.md](./sync-architecture.md) | How code reaches the public Stackweaver satellite repositories. Documents the two-App, PR-based sync model, the four hard security gates that govern every automated merge, and the commands an external reviewer can run to verify the design is correctly deployed in production. |
+| [osps-baseline-compliance.md](./osps-baseline-compliance.md) | Control-by-control compliance statement against the OpenSSF OSPS Baseline (Level 1 + Level 3), with copy-paste verification commands, the current OpenSSF Scorecard scores, and the project's argued deviations. The document to hand an independent auditor. |
