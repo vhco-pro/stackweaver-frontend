@@ -39,6 +39,7 @@ import UsersSettings from './pages/Settings/Users';
 import DocsIndex from './pages/Docs/DocsIndex';
 import DocsViewer from './pages/Docs/DocsViewer';
 import SessionsSettings from './pages/Settings/Sessions';
+import OAuthAuthorize from './pages/OAuthAuthorize';
 import ApiKeysSettings from './pages/Settings/ApiKeys';
 import PersonalAccessTokens from './pages/Settings/PersonalAccessTokens';
 import PreferencesSettings from './pages/Settings/Preferences';
@@ -81,6 +82,7 @@ function AppContent() {
               <Route path="/vcs/azure-devops/callback" element={<AzureDevOpsCallback />} />
             <Route path="/login/*" element={<LoginRouter />} />
             <Route path="/auth/*" element={<Auth />} />
+              <Route path="/oauth/authorize" element={<OAuthAuthorize />} />
               <Route path="/" element={<Landing />} />
               <Route path="/docs" element={<DocsIndex />} />
               <Route path="/docs/*" element={<DocsViewer />} />

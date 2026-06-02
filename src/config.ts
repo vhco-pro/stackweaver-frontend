@@ -13,7 +13,6 @@
 
 interface RuntimeConfig {
   VITE_API_URL?: string;
-  VITE_ZITADEL_ISSUER?: string;
   VITE_ZITADEL_CLIENT_ID?: string;
   VITE_ZITADEL_REDIRECT_URI?: string;
   VITE_BASE_PATH?: string;
@@ -45,7 +44,6 @@ function getConfig(key: keyof RuntimeConfig, fallback: string): string {
 
 export const config = {
   apiUrl: getConfig('VITE_API_URL', 'http://localhost:8022/api/v2'),
-  zitadelIssuer: getConfig('VITE_ZITADEL_ISSUER', 'http://localhost:8080'),
   zitadelClientId: getConfig('VITE_ZITADEL_CLIENT_ID', ''),
   zitadelRedirectUri: getConfig('VITE_ZITADEL_REDIRECT_URI', 'http://localhost:5173/auth/callback'),
   basePath: getConfig('VITE_BASE_PATH', ''),

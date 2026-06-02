@@ -274,7 +274,6 @@ The generated `env.js` sets these values:
 | Variable | Derived From |
 |---|---|
 | `VITE_API_URL` | `https://<ingress.hosts.app>/api/v2` |
-| `VITE_ZITADEL_ISSUER` | `https://<ingress.hosts.auth>` |
 | `VITE_ZITADEL_REDIRECT_URI` | `https://<ingress.hosts.app>/auth/callback` |
 | `VITE_ZITADEL_CLIENT_ID` | `secrets.zitadel` Secret (injected at pod start) |
 
@@ -302,7 +301,6 @@ zitadel:
 frontend:
   env:
     VITE_API_URL: "http://localhost:8022/api/v2"
-    VITE_ZITADEL_ISSUER: "http://localhost:8080"
     VITE_ZITADEL_REDIRECT_URI: "http://localhost:5173/auth/callback"
 ```
 

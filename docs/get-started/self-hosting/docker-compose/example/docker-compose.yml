@@ -246,7 +246,6 @@ services:
       - ./.env
     environment:
       VITE_API_URL: ${VITE_API_URL:-http://localhost:8022/api/v2}
-      VITE_ZITADEL_ISSUER: ${VITE_ZITADEL_ISSUER:-http://localhost:8080}
       VITE_ZITADEL_CLIENT_ID: ${ZITADEL_FRONTEND_CLIENT_ID:-}
       VITE_ZITADEL_REDIRECT_URI: ${VITE_ZITADEL_REDIRECT_URI:-http://localhost:5173/auth/callback}
     entrypoint: ["/bin/sh", "-c"]
@@ -256,7 +255,6 @@ services:
         cat > /usr/share/nginx/html/env.js << EOF
         window.__STACKWEAVER__ = {
           VITE_API_URL: "$$VITE_API_URL",
-          VITE_ZITADEL_ISSUER: "$$VITE_ZITADEL_ISSUER",
           VITE_ZITADEL_CLIENT_ID: "$$VITE_ZITADEL_CLIENT_ID",
           VITE_ZITADEL_REDIRECT_URI: "$$VITE_ZITADEL_REDIRECT_URI",
         };

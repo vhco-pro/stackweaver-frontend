@@ -113,7 +113,7 @@ By default StackWeaver runs on `localhost`. To use a custom domain, update the f
 
 1. Edit `zitadel-defaults.yaml` and set the `ExternalDomain`, `ExternalPort`, and `ExternalSecure` fields.
 2. Set the `ZITADEL_CUSTOM_DOMAINS` environment variable in `.env`.
-3. Update the frontend env vars (`VITE_API_URL`, `VITE_ZITADEL_ISSUER`, `VITE_ZITADEL_REDIRECT_URI`) in `.env`.
+3. Update the frontend env vars (`VITE_API_URL`, `VITE_ZITADEL_REDIRECT_URI`) in `.env`.
 4. Update `zitadel-init.yaml` with custom domain and redirect URIs.
 5. Restart all services: `docker compose down && docker compose up -d`.
 
@@ -180,7 +180,7 @@ If a release includes breaking changes, the release notes will contain specific 
 
 **API can't connect to database**: Ensure PostgreSQL is healthy. `docker compose ps postgres` should show `healthy`. Check that the database credentials in `.env` match the PostgreSQL container environment.
 
-**Frontend shows blank page**: Check browser console for CORS errors. Ensure `VITE_API_URL` and `VITE_ZITADEL_ISSUER` are set correctly in `.env`. The frontend generates `env.js` at container startup from environment variables, so a restart is sufficient after changes (`docker compose restart frontend`).
+**Frontend shows blank page**: Check browser console for CORS errors. Ensure `VITE_API_URL` is set correctly in `.env`. The frontend generates `env.js` at container startup from environment variables, so a restart is sufficient after changes (`docker compose restart frontend`).
 
 ## Development Setup
 

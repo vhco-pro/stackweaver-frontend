@@ -5,7 +5,6 @@ import { verifyMaxAge } from './oidc-helpers';
 import { config } from '@/config';
 
 // Zitadel configuration — runtime config (env.js) takes precedence over build-time env vars
-export const issuer = config.zitadelIssuer;
 export const clientId = config.zitadelClientId;
 export const redirectUri = config.zitadelRedirectUri;
 
@@ -138,13 +137,6 @@ function decodeJWTPayload(jwt: string): Record<string, unknown> {
   const padded = base64.padEnd(base64.length + ((4 - (base64.length % 4)) % 4), '=');
   return JSON.parse(atob(padded)) as Record<string, unknown>;
 }
-
-// Legacy wrapper — returns a full Zitadel authorize URL.
-// Only used as fallback if the proxy is unreachable.
-export async function getAuthUrl(): Promise<string> {
-  const params = await buildAuthorizeParams();
-  return `${issuer}/oauth/v2/authorize?${params.toString()}`;
-};
 
 export const getLogoutUrl = () => {
   const params = new URLSearchParams({
