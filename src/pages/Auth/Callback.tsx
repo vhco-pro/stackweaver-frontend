@@ -85,6 +85,25 @@ export default function Callback() {
         // Small delay to ensure session is set
         await new Promise(resolve => setTimeout(resolve, 100));
         
+        // If a deep-linked page (e.g. the Terraform CLI /oauth/authorize flow)
+        // stashed a return URL before kicking off login, honour it. It is a
+        // same-origin app path, so a full-page navigation returns the user
+        // exactly where they were, query string intact.
+        const returnUrl = sessionStorage.getItem('oauth_return_url');
+        if (returnUrl) {
+          sessionStorage.removeItem('oauth_return_url');
+          // Open-redirect guard: only honour same-origin app URLs.
+          try {
+            const parsed = new URL(returnUrl, window.location.origin);
+            if (parsed.origin === window.location.origin) {
+              window.location.href = parsed.toString();
+              return;
+            }
+          } catch {
+            // fall through to the default dashboard redirect
+          }
+        }
+
         // Redirect to dashboard
         void Promise.resolve(navigate('/dashboard', { replace: true }));
       } catch (err) {
