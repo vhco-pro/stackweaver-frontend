@@ -4,7 +4,7 @@
 import { useEffect, useRef, useState, useMemo } from 'react';
 import { useMountEffect } from '@/hooks/useMountEffect';
 import { useNavigate } from 'react-router-dom';
-import { ArrowRight, Zap, Shield, Cloud, Layers3, GitBranch, Cpu, KeyRound, ShieldCheck, Wrench, Database, Globe, PlugZap, Box, Container, Copy, Check, ExternalLink } from 'lucide-react';
+import { ArrowRight, Zap, Shield, Cloud, Layers3, GitBranch, Cpu, KeyRound, ShieldCheck, Wrench, Database, Globe, PlugZap, Container, Copy, Check, ExternalLink } from 'lucide-react';
 import { getVcsProviderIcon } from '@/lib/vcs';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
@@ -502,43 +502,41 @@ function InstallSection() {
 
   const installMethods = [
     {
+      id: 'kubernetes',
+      title: 'Kubernetes (Helm)',
+      subtitle: 'Recommended for production — deploy with the official Helm chart',
+      icon: Cloud,
+      recommended: true,
+      commands: `helm install stackweaver oci://ghcr.io/vhco-pro/charts/stackweaver \\
+  --namespace stackweaver --create-namespace \\
+  --set ingress.hosts.app=stackweaver.example.com \\
+  --set ingress.hosts.auth=auth.stackweaver.example.com`,
+      links: [
+        { label: 'Setup Guide', href: '/docs/get-started/self-hosting/kubernetes', external: false },
+        { label: 'View on GHCR', href: 'https://github.com/vhco-pro/stackweaver-helm/pkgs/container/charts%2Fstackweaver', external: true },
+      ],
+    },
+    {
       id: 'docker-compose',
       title: 'Docker Compose',
-      subtitle: 'Quick start for development and testing',
+      subtitle: 'Single-machine deployment for evaluation or small-scale use',
       icon: Container,
-      recommended: true,
-      commands: `# Clone the repository
-git clone https://github.com/michielvha/stackweaver
-cd stackweaver
-
-# Start all services
-docker compose -f deploy/docker-compose.yml up -d`,
+      commands: `# Download the bundle from the guide, extract it, then:
+cp .env.example .env
+docker compose up -d`,
       links: [
-        { label: 'View on GitHub', href: 'https://github.com/michielvha/stackweaver', external: true },
+        { label: 'Download Bundle & Guide', href: '/docs/get-started/self-hosting/docker-compose', external: false },
       ],
     },
     {
-      id: 'Helm',
-      title: 'Helm',
-      subtitle: 'Deploy with Helm',
-      icon: Box,
-      commands: `# Pull images
-helm repo add stackweaver https://charts.stackweaver.io
-helm install stackweaver stackweaver/stackweaver`,
+      id: 'kustomize',
+      title: 'Kustomize (GitOps)',
+      subtitle: 'Declarative deployment with Argo CD or Flux CD',
+      icon: GitBranch,
+      commands: `# Download the overlay bundle, commit to Git, then:
+kubectl apply -k overlays/production`,
       links: [
-        { label: 'View on GHCR', href: 'https://github.com/michielvha/stackweaver/pkgs/container/stackweaver-api', external: true },
-      ],
-    },
-    {
-      id: 'kubernetes',
-      title: 'Kubernetes',
-      subtitle: 'Deploy with manifests or Helm',
-      icon: Cloud,
-      commands: `# Using kubectl
-kubectl create namespace stackweaver
-kubectl apply -f k8s/`,
-      links: [
-        { label: 'View Manifests', href: 'https://github.com/michielvha/stackweaver/tree/main/deploy', external: true },
+        { label: 'Download Bundle & Guide', href: '/docs/get-started/self-hosting/kubernetes/kustomize', external: false },
       ],
     },
   ];
@@ -550,7 +548,7 @@ kubectl apply -f k8s/`,
           Install Stackweaver
         </h2>
         <p className="text-center text-slate-800 dark:text-gray-400 mb-8 md:mb-16 max-w-2xl mx-auto">
-          Choose your preferred installation method. Stackweaver is available via Docker Compose, Docker, or Kubernetes manifests.
+          Choose your preferred installation method. Deploy to production on Kubernetes with the official Helm chart, run a single-machine stack with Docker Compose, or manage a GitOps workflow with Kustomize. Each guide includes a downloadable deployment bundle.
         </p>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -558,7 +556,7 @@ kubectl apply -f k8s/`,
             <div
               key={method.id}
               className={`relative rounded-2xl backdrop-blur-md border transition-all duration-300 overflow-hidden ${
-                index === 0 ? 'md:col-span-2' : ''
+                method.recommended ? 'md:col-span-2' : ''
               } ${
                 method.recommended
                   ? 'bg-blue-50/80 dark:bg-transparent border-blue-400/40 shadow-lg shadow-blue-500/10'
@@ -600,7 +598,7 @@ kubectl apply -f k8s/`,
                           rel={link.external ? 'noopener noreferrer' : undefined}
                           className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-blue-100 dark:bg-blue-500/20 border border-blue-200 dark:border-blue-400/30 text-sm font-medium text-blue-700 dark:text-blue-300 hover:bg-blue-200 dark:hover:bg-blue-500/30 hover:border-blue-300 dark:hover:border-blue-400/50 transition-all"
                         >
-                          <ExternalLink className="h-3.5 w-3.5" />
+                          {link.external ? <ExternalLink className="h-3.5 w-3.5" /> : <ArrowRight className="h-3.5 w-3.5" />}
                           {link.label}
                         </a>
                       ))}

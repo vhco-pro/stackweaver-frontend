@@ -20,7 +20,7 @@ You need the following installed on your host machine.
 
 - Docker Engine 24+ with Docker Compose v2
 - At least 4 GB of free RAM (8 GB recommended)
-- Ports 5173 (frontend), 8022 (API), 8080 (Zitadel), and 3000 (Login UI) available
+- Ports 5173 (frontend), 8022 (API), and 8080 (Zitadel) available
 
 ## Example Files
 
@@ -56,15 +56,15 @@ All services run on the host network (`network_mode: host`), so they communicate
 
 | Service | Port | Description |
 |---|---|---|
-| Frontend | 5173 | React SPA (nginx) |
-| API | 8022 | Go REST API |
+| Frontend | 5173 | React SPA (nginx), includes the login UI under `/login/*` |
+| API | 8022 | Go REST API, with the auth proxy under `/auth/*` |
 | Zitadel | 8080 | OIDC identity provider |
-| Login UI | 3000 | Zitadel login interface |
 | PostgreSQL | 5432 | Database |
 | Redis | 6379 | Job queue and pubsub |
 | Garage | 3900 | S3-compatible object storage (state, configs, registry) |
 
 The orchestrator, Terraform runner, and Ansible runner do not expose ports. They communicate via the Redis queue and PostgreSQL.
+Stackweaver serves its own login experience: the frontend SPA renders the login pages under `/login/*`, and the API's auth proxy under `/auth/*` forwards Zitadel session and OIDC calls. The standalone Zitadel-hosted login UI (formerly on port 3000) has been removed.
 
 ## Service Management
 

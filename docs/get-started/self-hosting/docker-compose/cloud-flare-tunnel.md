@@ -41,7 +41,7 @@ credentials-file: /home/your-user/.cloudflared/<tunnel-id>.json
 
 ingress:
   - hostname: my-webhook.yourdomain.com  # or use a free .cfargotunnel.com domain
-    service: http://localhost:3000
+    service: http://localhost:8022
   - service: http_status:404
 ```
 
@@ -58,7 +58,7 @@ cloudflared tunnel run my-github-webhook
 **Even simpler - quick tunnel mode:**
 If you just want to test first:
 ```bash
-cloudflared tunnel --url http://localhost:3000
+cloudflared tunnel --url http://localhost:8022
 ```
 
 This gives you a temporary URL, but once you create a named tunnel as above, you get a permanent static hostname perfect for GitHub webhooks.
@@ -94,7 +94,7 @@ credentials-file: /etc/cloudflared/<tunnel-id>.json
 
 ingress:
   - hostname: my-webhook.yourdomain.com
-    service: http://localhost:3000
+    service: http://localhost:8022
   - service: http_status:404
 ```
 
@@ -154,7 +154,7 @@ If you already have a persisted tunnel and want to expose another local service 
    ```yaml
    ingress:
      - hostname: existing.example.com
-       service: http://localhost:3000
+       service: http://localhost:8022
      - hostname: zitadel.vhco.pro
        service: http://localhost:8080
      - service: http_status:404
