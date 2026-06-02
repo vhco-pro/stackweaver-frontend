@@ -55,7 +55,7 @@ function Tilt({
   const handleMouseMove = React.useCallback(
     (e: React.MouseEvent<HTMLDivElement>) => {
       onMouseMove?.(e);
-      const rect = (e.currentTarget as HTMLDivElement).getBoundingClientRect();
+      const rect = (e.currentTarget).getBoundingClientRect();
       const px = (e.clientX - rect.left) / rect.width;
       const py = (e.clientY - rect.top) / rect.height;
       const nx = px * 2 - 1;

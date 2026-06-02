@@ -203,7 +203,7 @@ export default function VariableSets() {
       setVariableForm({ key: '', value: '', sensitive: false, encrypted: false, category: 'terraform', description: '' });
     } catch (err: unknown) {
       const errorMessage = err && typeof err === 'object' && 'message' in err
-        ? String((err as { message: unknown }).message)
+        ? String((err).message)
         : 'Failed to create variable set';
       toast.error(errorMessage);
     } finally {
@@ -302,7 +302,7 @@ export default function VariableSets() {
       setManageDialogOpen(false);
     } catch (err: unknown) {
       const errorMessage = err && typeof err === 'object' && 'message' in err
-        ? String((err as { message: unknown }).message)
+        ? String((err).message)
         : 'Failed to update variable set';
       toast.error(errorMessage);
     } finally {
@@ -322,7 +322,7 @@ export default function VariableSets() {
       setDeleteDialogOpen(false);
     } catch (err: unknown) {
       const errorMessage = err && typeof err === 'object' && 'message' in err
-        ? String((err as { message: unknown }).message)
+        ? String((err).message)
         : 'Failed to delete variable set';
       toast.error(errorMessage);
     } finally {
@@ -399,7 +399,7 @@ export default function VariableSets() {
       // The API client already extracts the error detail from the backend response
       // Backend returns: { errors: [{ detail: "A variable with the key 'X' already exists..." }] }
       const errorMessage = err && typeof err === 'object' && 'message' in err
-        ? String((err as { message: unknown }).message)
+        ? String((err).message)
         : 'Failed to add variable';
       toast.error(errorMessage);
     }
@@ -419,7 +419,7 @@ export default function VariableSets() {
       setVariableToDelete(null);
     } catch (err: unknown) {
       const errorMessage = err && typeof err === 'object' && 'message' in err
-        ? String((err as { message: unknown }).message)
+        ? String((err).message)
         : 'Failed to delete variable';
       toast.error(errorMessage);
     } finally {

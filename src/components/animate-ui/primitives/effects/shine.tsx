@@ -252,7 +252,7 @@ const Shine = ({
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { ref: _ref, ...propsWithoutRef } = props as { ref?: unknown; [key: string]: unknown };
     
-    // eslint-disable-next-line react-hooks/refs
+     
     return React.cloneElement(child, {
       ...propsWithoutRef,
       className: mergedClassName,

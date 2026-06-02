@@ -71,7 +71,7 @@ export default function ProviderList() {
     } catch (err: unknown) {
       console.error('Failed to create provider:', err);
       const errorMessage = err && typeof err === 'object' && 'message' in err
-        ? String((err as { message: unknown }).message)
+        ? String((err).message)
         : 'Failed to create provider';
       toast.error(errorMessage);
     } finally {

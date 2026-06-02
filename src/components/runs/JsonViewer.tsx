@@ -51,7 +51,7 @@ const JsonNode = ({ keyName, value, level, path, searchTerm = '', defaultExpande
   const isEmptyComposite = (val: unknown): boolean => {
     if (val === null || val === undefined) return false;
     if (Array.isArray(val)) return val.length === 0;
-    if (typeof val === 'object') return Object.keys(val as Record<string, unknown>).length === 0;
+    if (typeof val === 'object') return Object.keys(val).length === 0;
     return false;
   };
 

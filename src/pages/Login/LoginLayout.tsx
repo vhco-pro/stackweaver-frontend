@@ -56,7 +56,7 @@ export default function LoginLayout({ children, title, subtitle }: LoginLayoutPr
               // If a custom logoUrl 404s (org changed branding mid-session),
               // fall back to the default rather than rendering a broken-image
               // icon — same defensive principle as the empty-data fallback.
-              onError={(e) => { (e.currentTarget as HTMLImageElement).src = DEFAULT_LOGO; }}
+              onError={(e) => { (e.currentTarget).src = DEFAULT_LOGO; }}
             />
           </div>
           {title && (

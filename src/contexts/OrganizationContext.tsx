@@ -111,7 +111,7 @@ export function OrganizationProvider({ children }: { children: ReactNode }) {
     
     // If not found, create a temporary org object (will be updated on next refresh)
     if (!org) {
-      org = { id: '', name: orgName, created_at: new Date().toISOString(), updated_at: new Date().toISOString() } as Organization;
+      org = { id: '', name: orgName, created_at: new Date().toISOString(), updated_at: new Date().toISOString() };
     }
     
     setCurrentOrg(org);

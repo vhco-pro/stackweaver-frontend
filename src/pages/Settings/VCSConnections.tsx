@@ -95,7 +95,7 @@ export default function VCSConnections() {
     } catch (error: unknown) {
       console.error('Failed to initiate GitHub App installation:', error);
       const errorMessage = error && typeof error === 'object' && 'message' in error
-        ? String((error as { message: unknown }).message)
+        ? String((error).message)
         : 'Failed to initiate GitHub App installation';
       toast.error(errorMessage);
     }
@@ -144,7 +144,7 @@ export default function VCSConnections() {
     } catch (error: unknown) {
       console.error('Failed to initiate Azure DevOps installation:', error);
       const errorMessage = error && typeof error === 'object' && 'message' in error
-        ? String((error as { message: unknown }).message)
+        ? String((error).message)
         : 'Failed to initiate Azure DevOps installation';
       toast.error(errorMessage);
       setAdoConnecting(false);

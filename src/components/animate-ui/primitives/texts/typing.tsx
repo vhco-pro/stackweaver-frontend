@@ -174,7 +174,7 @@ function TypingTextCursor({
         width: '1px',
         backgroundColor: 'currentColor',
         ...(style && typeof style === 'object' ? style as Record<string, unknown> : {}),
-      } as Record<string, unknown>}
+      }}
       {...props}
     />
   );

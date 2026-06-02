@@ -968,7 +968,7 @@ export const vcsConnectionsApi = {
           // usage of organization_id from attributes will be overwritten if present
           ...attributes, 
           organization_id: (item.relationships?.organization as any)?.data?.id || '',
-        } as VCSConnection;
+        };
       });
     }),
   initiateInstallation: (organizationName: string) =>
@@ -2370,7 +2370,7 @@ export const organizationMembershipsApi = {
               name: user.attributes?.name || '',
             } : undefined,
             teams: teams.length > 0 ? teams : undefined,
-          } as OrganizationMembership;
+          };
         }),
         meta: res.meta,
       };
@@ -2394,7 +2394,7 @@ export const organizationMembershipsApi = {
         role: item.attributes?.role || 'viewer',
         created_at: item.attributes?.['created-at'] || '',
         updated_at: item.attributes?.['updated-at'] || '',
-      } as OrganizationMembership;
+      };
     }),
   get: (id: string) =>
     apiClient.get<{ data: JsonApiResource; included?: JsonApiResource[] }>(`/organization-memberships/${id}`).then(res => {
@@ -2422,7 +2422,7 @@ export const organizationMembershipsApi = {
         created_at: item.attributes?.['created-at'] || '',
         updated_at: item.attributes?.['updated-at'] || '',
         user,
-      } as OrganizationMembership;
+      };
     }),
   update: (id: string, data: { role: 'admin' | 'member' | 'viewer' }) =>
     apiClient.patch<{ data: JsonApiResource; included?: JsonApiResource[] }>(`/organization-memberships/${id}`, {
@@ -2456,7 +2456,7 @@ export const organizationMembershipsApi = {
         created_at: item.attributes?.['created-at'] || '',
         updated_at: item.attributes?.['updated-at'] || '',
         user,
-      } as OrganizationMembership;
+      };
     }),
   delete: (id: string) => apiClient.delete(`/organization-memberships/${id}`),
 };
@@ -2532,7 +2532,7 @@ export const teamsApi = {
                 email: user.attributes?.email || '',
                 name: user.attributes?.name || '',
               } : undefined,
-            } as OrganizationMembership;
+            };
           });
       }
 
@@ -2569,7 +2569,7 @@ export const teamsApi = {
         'organization-access': item.attributes?.['organization-access'],
         created_at: item.attributes?.['created-at'] || '',
         updated_at: item.attributes?.['updated-at'] || '',
-      } as Team;
+      };
     }),
   update: (id: string, data: {
     name?: string;
@@ -2602,7 +2602,7 @@ export const teamsApi = {
         'organization-access': item.attributes?.['organization-access'],
         created_at: item.attributes?.['created-at'] || '',
         updated_at: item.attributes?.['updated-at'] || '',
-      } as Team;
+      };
     }),
   delete: (id: string) => apiClient.delete(`/teams/${id}`),
   // Team Organization Memberships (TFE-compatible)
@@ -2636,7 +2636,7 @@ export const teamsApi = {
               email: user.attributes?.email || '',
               name: user.attributes?.name || '',
             } : undefined,
-          } as OrganizationMembership;
+          };
         }),
       };
     }),
@@ -2700,7 +2700,7 @@ export const teamProjectAccessApi = {
             workspace_run_tasks: workspaceAccess?.['run-tasks'],
             created_at: attrs['created-at'] || '',
             updated_at: attrs['updated-at'] || '',
-          } as TeamProjectAccess;
+          };
         }),
       };
     });
@@ -2805,7 +2805,7 @@ export const teamWorkspaceAccessApi = {
             run_tasks: attrs['run-tasks'],
             created_at: attrs['created-at'] || '',
             updated_at: attrs['updated-at'] || '',
-          } as TeamWorkspaceAccess;
+          };
         }),
       };
     });

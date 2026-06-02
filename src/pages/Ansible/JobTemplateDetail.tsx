@@ -316,7 +316,7 @@ export default function JobTemplateDetail() {
       let fetchedTemplateVariables: TemplateVariable[] = [];
       try {
         const vars = await ansibleJobTemplatesApi.listVariables(templateId!);
-        fetchedTemplateVariables = Array.isArray(vars) ? vars as TemplateVariable[] : [];
+        fetchedTemplateVariables = Array.isArray(vars) ? vars : [];
       } catch (err) {
         console.warn('Failed to load template variables:', err);
       }

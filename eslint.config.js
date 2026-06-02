@@ -31,6 +31,18 @@ export default [
     },
     rules: {
       ...reactHooks.configs.recommended.rules,
+      // eslint-plugin-react-hooks v7.1 enables the React Compiler rule set in its
+      // `recommended` config. These flag legitimate-but-non-ideal existing patterns
+      // (setState in effects, ref access during render, mutation, etc.) across the
+      // codebase. Set to 'warn' during incremental migration so they're visible
+      // without blocking CI — mirrors the `no-restricted-imports` useEffect ban below.
+      // Track remediation in docs/internal/analysis/react-compiler-lint-migration.md.
+      'react-hooks/set-state-in-effect': 'warn',
+      'react-hooks/refs': 'warn',
+      'react-hooks/immutability': 'warn',
+      'react-hooks/purity': 'warn',
+      'react-hooks/preserve-manual-memoization': 'warn',
+      'react-hooks/static-components': 'warn',
       'react-refresh/only-export-components': [
         'warn',
         { allowConstantExport: true },

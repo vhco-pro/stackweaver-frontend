@@ -777,7 +777,7 @@ export function ApplyOutputViewer({ logs, showJsonViewer = true, planOutput, isA
       lastParsedLengthRef.current = 0;
       destroyedResourcesRef.current = new Set();
       summaryLineRef.current = null;
-      // eslint-disable-next-line react-hooks/set-state-in-effect
+       
       setResources([]);
        
       setSummary({
