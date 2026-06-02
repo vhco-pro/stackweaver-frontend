@@ -182,7 +182,7 @@ A handful of individual Scorecard checks sit below 10 for **structural** reasons
 
 | ID | Requirement | Status | Evidence & verification |
 |----|-------------|:------:|-------------------------|
-| VM-04.02 | A VEX document accompanies releases for non-affecting vulnerabilities | 🟡 | SBOMs ship with every release; OpenVEX statements are being added to the release pipeline. Until then, non-affecting findings are triaged in the vulnerability-management process rather than published as machine-readable VEX. |
+| VM-04.02 | A VEX document accompanies releases for non-affecting vulnerabilities | ✅ | Every release publishes a signed OpenVEX document as a keyless cosign/Sigstore attestation (predicate type `https://openvex.dev/ns/v0.2.0`) alongside the image, verifiable with `gh attestation verify`. Non-affecting findings are recorded in `security/vex/*.openvex.json` and attested at release time. |
 | VM-05.01 | A policy defines remediation thresholds for SCA findings | ✅ | Remediation SLOs (Critical / High / Medium / Low) are defined and wired into the release gate. |
 | VM-05.02 | A policy requires SCA violations to be addressed prior to release | ✅ | `govulncheck` and Trivy run as blocking upstream checks; a release cannot ship with an outstanding blocking finding. |
 | VM-05.03 | Changes are automatically evaluated against a malicious-dependency / known-vulnerability policy and blocked on violation | ✅ | `govulncheck` + Trivy + Dependency-Review run on every change; the OpenSSF `Vulnerabilities` and `Dependency-Update-Tool` checks score **10**. |
