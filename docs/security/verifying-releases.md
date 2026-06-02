@@ -185,24 +185,27 @@ Add `--predicate-type https://spdx.dev/Document` to verify the GitHub-native SBO
 
 ## Verifying Sync-Commit Identity
 
-Satellites are deterministic re-publications of the private monorepo, pushed by the `stackweaver-release-bot` GitHub App. Every sync commit is signed with `gitsign`, so its author identity is bound to the same Sigstore OIDC chain as the container signatures.
+Satellites are deterministic re-publications of the private monorepo, pushed by the `stackweaver-release-bot` GitHub App. The bot's sync commit is signed with `gitsign`, so its author identity is bound to the same Sigstore OIDC chain as the container signatures.
 
 There is one important subtlety: the certificate identity on a sync commit points at the **monorepo workflow that produced the sync**, not at the satellite. The signing identity is therefore `https://github.com/michielvha/stackweaver/.github/workflows/sync-<component>.yml@<ref>`, **not** `https://github.com/vhco-pro/...`. The signature is still cryptographically valid and the Rekor entry is still public; this just reflects the fact that the sync is driven by a workflow that lives in the upstream monorepo.
+
+A second subtlety matters for *where* to find the signed commit. Sync changes land on a satellite through a pull request that is **squash-merged**. Squash-merging discards the bot's original commit and writes a brand-new commit onto `main` that is signed by GitHub's own web-flow GPG key (`committer = GitHub`) with the bot preserved only as the *author*. That squashed `main` commit is therefore **not** gitsign-signed — running `gitsign verify` against it fails with `unsupported signature type: not a PEM block`. The gitsign-signed commit still exists; it lives on the pull-request head ref (`refs/pull/<n>/head`). Verify that commit instead:
 
 ```bash
 git clone https://github.com/vhco-pro/stackweaver-<component>
 cd stackweaver-<component>
 
-# Pick an actual sync commit, not a chart-releaser auto-bump. Sync commits
-# are authored by "stackweaver-release-bot[bot]"; on most satellites HEAD
-# is a sync commit, but on stackweaver-helm HEAD may be a chart-releaser
-# README bump which is not gitsign-signed.
-SYNC_COMMIT=$(git log --format='%H %ae' | grep stackweaver-release-bot | head -1 | awk '{print $1}')
+# Sync PRs are squash-merged, so the commit on `main` is a GitHub-signed
+# squash commit (committer "GitHub"). The bot's gitsign-signed commit lives
+# on the pull-request head ref. Pick a merged sync PR and fetch its head.
+PR=$(gh pr list -R vhco-pro/stackweaver-<component> --state merged \
+       --author app/stackweaver-release-bot --json number --jq '.[0].number')
+git fetch origin "refs/pull/$PR/head:sync-head"
 
 gitsign verify \
   --certificate-identity-regexp "^https://github\.com/michielvha/stackweaver/\.github/workflows/sync-<component>\.yml@.+$" \
   --certificate-oidc-issuer "https://token.actions.githubusercontent.com" \
-  "$SYNC_COMMIT"
+  sync-head
 ```
 
 A successful run prints the Rekor log index, the Fulcio certificate ID, the signing workflow URL, and the four lines:
@@ -215,11 +218,13 @@ Validated Certificate claims: true
 
 ### Known caveats
 
-**GitHub UI badge.** The GitHub web UI shows gitsign-signed commits with a yellow `Unverified` (`bad_cert`) badge because GitHub's verified-CA list does not yet include Sigstore Fulcio. The `gitsign verify` command above, together with the Rekor entry it prints, is the authoritative check. This is a documented Sigstore-GitHub interop gap, not a Stackweaver-specific problem.
+**Verify the PR head, not `main`.** Because sync PRs are squash-merged, the commit you see on `main` is GitHub's web-flow GPG signature, which the GitHub UI shows as a green `Verified` badge attributed to GitHub. That is GitHub's signature on the squash commit, not the bot's gitsign signature. The bot's gitsign-signed commit is the pull-request head ref fetched above; pointing `gitsign verify` at a `main` commit returns `not a PEM block` and is expected.
+
+**GitHub UI badge.** When you view the gitsign-signed PR head commit directly, the GitHub web UI shows it with a yellow `Unverified` (`bad_cert`) badge because GitHub's verified-CA list does not yet include Sigstore Fulcio. The `gitsign verify` command above, together with the Rekor entry it prints, is the authoritative check. This is a documented Sigstore-GitHub interop gap, not a Stackweaver-specific problem.
 
 **Monorepo source visibility.** The cert subject points at a workflow that lives in `michielvha/stackweaver`, which is intentionally private (see the OSPS audit's `D-CORE` decision and the `core/` audit-access procedure). Until the monorepo is opened, external consumers verifying a sync commit can prove the signature came from the Stackweaver sync pipeline but cannot independently inspect what that pipeline does. The Stackweaver threat model and the rationale for keeping the monorepo private are published at <https://github.com/vhco-pro/.github/blob/main/SECURITY.md>.
 
-**Non-sync commits.** Commits made by other identities — for example chart-releaser's `github-actions[bot]` README updates on `stackweaver-helm`, or direct maintainer commits — are not currently gitsign-signed and will fail verification. Always pick a `stackweaver-release-bot[bot]` commit as your verification target.
+**Non-sync commits.** Commits made by other identities — for example chart-releaser's `github-actions[bot]` README updates on `stackweaver-helm`, or direct maintainer commits — are not gitsign-signed and will fail verification. Always pick a merged sync pull request authored by `stackweaver-release-bot[bot]` and verify its head ref as shown above.
 
 ## What's Deliberately Not Here
 
