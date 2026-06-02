@@ -38,7 +38,12 @@ export function VCSProjectSelect({
 }: VCSProjectSelectProps) {
   const isAzureDevOps = provider === 'azure_devops';
 
-  const { data: projects = [], isLoading } = useQuery({
+  const {
+    data: projects = [],
+    isLoading,
+    isError,
+    error,
+  } = useQuery({
     queryKey: ['vcs-projects', connectionId],
     queryFn: async () => {
       const projects = await vcsConnectionsApi.listProjects(connectionId);
@@ -47,8 +52,32 @@ export function VCSProjectSelect({
     enabled: isAzureDevOps && !!connectionId,
   });
 
-  // Nothing to scope by: not Azure DevOps, or an org with a single project.
-  if (!isAzureDevOps || (!isLoading && projects.length <= 1)) {
+  // The project layer only exists for Azure DevOps; render nothing otherwise.
+  if (!isAzureDevOps) {
+    return null;
+  }
+
+  // While the project list is loading, render nothing rather than a transient
+  // dropdown that flashes and then disappears once the result is known.
+  if (isLoading) {
+    return null;
+  }
+
+  // Surface fetch failures (e.g. an Azure DevOps identity that has not been
+  // materialized yet) instead of silently disappearing.
+  if (isError) {
+    return (
+      <div className="space-y-2">
+        <Label htmlFor="vcs-project">Project</Label>
+        <p className="text-sm text-destructive">
+          {error instanceof Error ? error.message : 'Failed to load projects.'}
+        </p>
+      </div>
+    );
+  }
+
+  // Nothing to scope by: an org with a single project.
+  if (projects.length <= 1) {
     return null;
   }
 
@@ -58,10 +87,10 @@ export function VCSProjectSelect({
       <Select
         value={value === '' ? ALL_PROJECTS_VALUE : value}
         onValueChange={(v) => onChange(v === ALL_PROJECTS_VALUE ? '' : v)}
-        disabled={disabled || isLoading}
+        disabled={disabled}
       >
         <SelectTrigger id="vcs-project">
-          <SelectValue placeholder={isLoading ? 'Loading projects...' : 'All projects'} />
+          <SelectValue placeholder="All projects" />
         </SelectTrigger>
         <SelectContent className="max-h-[300px]">
           <SelectItem value={ALL_PROJECTS_VALUE}>All projects</SelectItem>
