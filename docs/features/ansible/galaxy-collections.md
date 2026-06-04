@@ -153,10 +153,10 @@ collections:
 - Auto-detect `requirements.yml` from playbook repos
 - Install collections before job execution
 - Events logged for Galaxy installation
+- Per-project collection caching on the shared runner workspaces volume, reused across jobs to avoid re-downloading
 
 ### 🔄 Planned
 - [ ] Show installed collections in UI
-- [ ] Collection caching per runner (avoid re-downloading)
 - [ ] Collection version pinning per playbook/template
 - [ ] Organization-level collection management
 
