@@ -230,6 +230,9 @@ ansibleRunner:
   nodeSelector: {}
   tolerations: []
   affinity: {}
+  # Size limit for the writable /tmp emptyDir (Ansible local/remote temp, SSH
+  # control sockets) under the read-only root filesystem.
+  tmpSizeLimit: 1Gi
 # ── Storage ───────────────────────────────────────────────────────────────────
 # All data (state, configs, registry, logs, ansible artifacts) is stored in a
 # single S3-compatible bucket. Any S3-compatible service works: AWS S3, R2, B2,
