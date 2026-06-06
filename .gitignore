@@ -10,6 +10,11 @@ lerna-debug.log*
 node_modules
 dist
 dist-ssr
+
+# fallow (dead-code analysis): cache + generated SARIF. The committed baseline
+# under fallow-baselines/ is intentionally tracked and must NOT be ignored.
+.fallow/
+*.sarif
 test-results/
 *.local
 

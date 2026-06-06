@@ -28,8 +28,7 @@ For background on how code actually reaches the satellite repositories (the trus
 | SBOM attestation (SPDX) | `actions/attest-sbom` from satellite `release.yml`, gated on `visibility == 'public'` | ✅ **Live today** on the 5 public docker satellites; not on `runner` |
 | OpenVEX attestation (`gh attestation verify`) | `actions/attest` from satellite `release.yml` over `security/vex/*.openvex.json`, gated on `visibility == 'public'` | ✅ **Live today** on the public docker satellites (first verified on `stackweaver-frontend:0.12.2`); not on `runner` |
 | Helm chart `cosign verify` (Sigstore keyless) | `stackweaver-helm/.github/workflows/release.yml` runs `cosign sign` against the OCI chart ref after `helm push` | ✅ **Live today** for chart versions ≥ `0.6.8` |
-| Helm chart SBOM (`cosign verify-attestation`, SPDX) | Same workflow runs `syft scan` → `cosign attest --type spdx` | ✅ **Live today** for chart versions ≥ `0.6.8` |
-| Helm chart `gh attestation verify` (SLSA + SBOM) | Same workflow, gated on `visibility == 'public'` | ✅ **Live today** (the helm satellite is public) |
+| Helm chart SLSA L3 + SBOM (SPDX) + OpenVEX (`gh attestation verify`) | `actions/attest-build-provenance` / `actions/attest-sbom` / `actions/attest` from `stackweaver-helm/.github/workflows/release.yml`, gated on `visibility == 'public'` | ✅ **Live today** for chart versions ≥ `0.7.8` (the helm satellite is public) |
 
 ## Tools
 
@@ -146,7 +145,9 @@ ghcr.io/vhco-pro/charts/stackweaver:<chart-version>
 
 (Note the path: `charts/stackweaver`, **not** `stackweaver-helm/charts/stackweaver`.)
 
-The chart is pullable today without authentication. As of chart version **`0.6.8`** (released 2026-05-24), every chart push is Sigstore-signed and ships with an SPDX SBOM attestation — both produced keylessly by the `stackweaver-helm` release workflow. Earlier chart versions are unsigned and can only be integrity-checked by digest comparison against the matching [GitHub Release](https://github.com/vhco-pro/stackweaver-helm/releases).
+The chart is pullable today without authentication. As of chart version **`0.6.8`** (released 2026-05-24), every chart push is Sigstore-signed with `cosign sign`. From chart version **`0.7.8`** (2026-06-06) the SBOM, SLSA L3 provenance, and OpenVEX are published as **GitHub-native attestations** (`actions/attest-*`), verified with `gh attestation verify`. Chart versions `0.6.8`–`0.7.0` instead carried a cosign-attested SPDX SBOM (`cosign verify-attestation`); versions `0.7.1`–`0.7.7` failed to publish and should not be used. Earlier chart versions are unsigned and can only be integrity-checked by digest comparison against the matching [GitHub Release](https://github.com/vhco-pro/stackweaver-helm/releases).
+
+> **Why the change at `0.7.8`?** cosign v3 made the new Sigstore bundle format mandatory for keyless signing, and `cosign attest` of the chart's SPDX/OpenVEX predicates fails under it (`invalid attestation: decoding json`). Since the helm satellite is public, the chart moved to the same GitHub-native attestation path the docker satellites already use. The chart *signature* is unaffected and is still verified with `cosign verify`.
 
 ### Verify the chart signature
 
@@ -159,29 +160,32 @@ cosign verify \
 
 A successful run prints the three Sigstore claims (cosign claims valid, Rekor entry exists, certificate chains to Fulcio) followed by the signed payload as JSON.
 
-### Verify the chart SBOM attestation
+### Verify the chart attestations (SLSA provenance, SBOM, OpenVEX)
+
+For chart versions **≥ `0.7.8`** the chart's SLSA L3 provenance, SPDX SBOM, and OpenVEX are GitHub-native attestations bound to the chart digest, verified with `gh attestation verify`:
 
 ```bash
-cosign verify-attestation \
-  --certificate-identity-regexp "^https://github\.com/vhco-pro/stackweaver-helm/\.github/workflows/release\.yml@refs/tags/.+$" \
-  --certificate-oidc-issuer "https://token.actions.githubusercontent.com" \
-  --type "https://spdx.dev/Document/v2.3" \
-  ghcr.io/vhco-pro/charts/stackweaver:<chart-version>
-```
-
-The decoded payload is an in-toto Statement whose `predicate` is the full SPDX-2.3 SBOM of the packaged `stackweaver-<version>.tgz` produced by syft.
-
-### GitHub-native SLSA + SBOM attestations
-
-The same workflow also produces `actions/attest-build-provenance` (SLSA L3) and `actions/attest-sbom` records. The `stackweaver-helm` satellite is public, so these resolve today:
-
-```bash
+# SLSA Build L3 provenance (default predicate)
 gh attestation verify \
   -R vhco-pro/stackweaver-helm \
   "oci://ghcr.io/vhco-pro/charts/stackweaver:<chart-version>"
+
+# SPDX SBOM
+gh attestation verify \
+  -R vhco-pro/stackweaver-helm \
+  --predicate-type https://spdx.dev/Document \
+  "oci://ghcr.io/vhco-pro/charts/stackweaver:<chart-version>"
+
+# OpenVEX
+gh attestation verify \
+  -R vhco-pro/stackweaver-helm \
+  --predicate-type https://openvex.dev/ns/v0.2.0 \
+  "oci://ghcr.io/vhco-pro/charts/stackweaver:<chart-version>"
 ```
 
-Add `--predicate-type https://spdx.dev/Document` to verify the GitHub-native SBOM attestation instead of the SLSA provenance.
+This is the same `gh attestation verify` form (and the same predicate types) used for the docker satellite images, so one command shape works fleet-wide.
+
+> **Older charts (`0.6.8`–`0.7.0`).** These carried the SBOM as a *cosign* attestation instead. Verify those with `cosign verify-attestation --type "https://spdx.dev/Document/v2.3" …` and the same certificate-identity regexp as the signature command above. New charts (`≥ 0.7.8`) do **not** have this cosign attestation — use `gh attestation verify` instead.
 
 ## Verifying Sync-Commit Identity
 
