@@ -1,0 +1,45 @@
+{
+  "$schema": "https://raw.githubusercontent.com/fallow-rs/fallow/main/schema.json",
+
+  "entry": ["index.html", "src/main.tsx"],
+
+  "ignorePatterns": ["**/*.d.ts", "public/**", "dist/**"],
+
+  "ignoreExportsUsedInFile": true,
+
+  "rules": {
+    "unused-files": "warn",
+    "unused-exports": "warn",
+    "unused-types": "warn",
+    "unused-enum-members": "warn",
+    "unused-class-members": "warn",
+    "unused-dependencies": "warn",
+    "unused-dev-dependencies": "warn",
+    "unlisted-dependencies": "warn",
+    "duplicate-exports": "warn",
+    "circular-dependencies": "warn",
+    "unresolved-imports": "error"
+  },
+
+  "overrides": [
+    {
+      "files": ["src/components/ui/**"],
+      "rules": {
+        "unused-exports": "off",
+        "unused-files": "off",
+        "unused-types": "off"
+      }
+    },
+    {
+      "files": ["**/*.test.ts", "**/*.test.tsx", "**/*.spec.ts", "**/*.spec.tsx", "src/test/**"],
+      "rules": {
+        "unused-exports": "off"
+      }
+    }
+  ],
+
+  "audit": {
+    "gate": "new-only",
+    "deadCodeBaseline": "fallow-baselines/dead-code.json"
+  }
+}

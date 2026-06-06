@@ -15,7 +15,10 @@
     "type-check": "tsc --noEmit",
     "preview": "vite preview",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "dead-code": "fallow dead-code",
+    "dead-code:audit": "fallow audit --quiet",
+    "dead-code:baseline": "fallow dead-code --quiet --save-baseline fallow-baselines/dead-code.json"
   },
   "dependencies": {
     "@radix-ui/react-checkbox": "^1.3.3",
@@ -59,6 +62,7 @@
     "eslint": "^9.39.2",
     "eslint-plugin-react-hooks": "^7.1.1",
     "eslint-plugin-react-refresh": "^0.5.0",
+    "fallow": "2.89.0",
     "globals": "^17.0.0",
     "sharp": "^0.34.2",
     "svgo": "^4.0.0",
