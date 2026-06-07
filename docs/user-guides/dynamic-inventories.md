@@ -51,9 +51,8 @@ Before creating a dynamic inventory, you need the following depending on your cl
 
 ### Azure
 
-- An Azure App Registration with sufficient RBAC permissions to list VMs in the target subscription. See the [Azure OIDC Configuration](azure-oidc-configuration.md) guide for how to set this up with keyless authentication, or configure an Azure credential in Stackweaver with a client secret.
-- If using OIDC (recommended), the `OIDC_SIGNING_KEY` and `OIDC_ISSUER_URL` must be set in `deploy/oidc.env` and at least one federated credential must be configured on the App Registration. The subject format for inventory sync is different from Terraform runs; see [OIDC Subject Formats](#oidc-subject-formats) for details. For VCS-backed inventories the subject contains the **inventory name**; for UI-configured sources it contains the **source name**, so a single inventory can have multiple sources each with their own federated credential.
-- The App Registration needs at least `Reader` role on the subscription or resource groups where VMs are deployed.
+- An Azure identity with at least the `Reader` role on the subscription or resource groups where the VMs are deployed. The kind of identity depends on the [authentication method](#azure-authentication-methods) you choose: a managed identity for Managed Identity / Workload Identity, or an App Registration (Service Principal) for the OIDC Federation and Cloud Credential methods.
+- If using **OIDC Federation**, the `OIDC_SIGNING_KEY` and `OIDC_ISSUER_URL` must be set in `deploy/oidc.env`, at least one federated credential must be configured on the App Registration, and your issuer must be publicly reachable (see [Azure OIDC Configuration](azure-oidc-configuration.md)). The subject format for inventory sync is different from Terraform runs; see [OIDC Subject Formats](#oidc-subject-formats) for details. For VCS-backed inventories the subject contains the **inventory name**; for UI-configured sources it contains the **source name**, so a single inventory can have multiple sources each with their own federated credential.
 
 ### AWS
 
@@ -169,24 +168,32 @@ Click "Sync" on the source to trigger host discovery. The process is the same as
 
 ## Authentication
 
-### OIDC Workload Identity (Recommended for Azure)
+### Azure authentication methods
 
-If your organization has an Azure OIDC configuration (set up via the Settings page or `tfe_azure_oidc_configuration` Terraform resource), the inventory sync automatically uses keyless OIDC authentication. No cloud credential needs to be stored in Stackweaver.
+Azure inventory sync supports four authentication methods. For a UI-configured (dynamic) source you choose the method from the Authentication dropdown when you add or edit the source. A VCS-backed inventory is pure passthrough: you choose the method entirely in your own `azure_rm.yml` (via `auth_source`) and the pod runtime — there is no Stackweaver auth toggle for VCS inventories, so the repository stays the single source of truth. Every method runs plain `ansible-inventory` — the `azure.azcollection.azure_rm` plugin authenticates natively (federated tokens are read directly as of collection 3.17.0, so no wrapper is involved).
 
-The runner generates a short-lived JWT at sync time, writes it to a temporary file, and sets the following environment variables on the `ansible-inventory` command:
+The most important distinction between the methods is whether they require your Stackweaver issuer to be reachable from Microsoft's public network.
 
-| Variable | Description |
-|----------|-------------|
-| `AZURE_FEDERATED_TOKEN_FILE` | Path to the JWT file |
-| `AZURE_CLIENT_ID` | App Registration client ID |
-| `AZURE_TENANT_ID` | Azure AD tenant ID |
-| `AZURE_SUBSCRIPTION_ID` | Azure subscription ID |
+| Method | Public issuer required? | Long-lived secret? | Best for |
+|--------|-------------------------|--------------------|----------|
+| Managed Identity (IMDS) | No | No | Stackweaver running inside Azure (AKS/VM) — the simplest keyless option |
+| Workload Identity (AKS) | No | No | AKS clusters wanting per-workload identity isolation |
+| OIDC Federation | Yes | No | Keyless auth from a Stackweaver that runs **outside** Azure (or a public deployment) |
+| Cloud Credential (Service Principal) | No | Yes | Anywhere outbound to Entra is allowed and no managed identity is available |
 
-The `azure.azcollection.azure_rm` plugin reads these via the `azure-identity` SDK's `WorkloadIdentityCredential` class. Set `auth_source: auto` in your inventory plugin file to enable automatic credential discovery.
+**Managed Identity** is the right choice when Stackweaver runs inside Azure but has no public ingress. The runner authenticates outbound to the Azure Instance Metadata Service, so nothing needs to be exposed and no secret is stored. The node's kubelet or VM identity (system-assigned) or a user-assigned identity must hold the `Reader` role on the target subscription; for a user-assigned identity, supply its client ID in the source's Authentication panel. The generated plugin file uses `auth_source: msi`.
+
+**Workload Identity** is the AKS-native evolution of managed identity. It federates a projected ServiceAccount token to a user-assigned managed identity through the cluster's own Azure-hosted OIDC issuer, so it is fully private from Stackweaver's perspective. Enable it on the chart with `ansibleRunner.workloadIdentity.enabled=true` and annotate the ServiceAccount with the identity's client ID (see the Kubernetes self-hosting guide).
+
+**OIDC Federation** is Stackweaver's own keyless mechanism, and it is the only method that needs a public surface: to verify the runner's Stackweaver-signed token, Microsoft Entra must reach your issuer's `/.well-known/openid-configuration` and JWKS endpoints over the public internet with a publicly trusted TLS certificate. It cannot be satisfied by Azure Private Link. Use it when the runner is not inside Azure at all (for example a multi-cloud or on-premises deployment). If your organization has an Azure OIDC configuration (set up via the Settings page or the `tfe_azure_oidc_configuration` Terraform resource), the runner generates a short-lived JWT at sync time, writes it to a temporary file, and sets `AZURE_FEDERATED_TOKEN_FILE`, `AZURE_CLIENT_ID`, `AZURE_TENANT_ID`, and `AZURE_SUBSCRIPTION_ID`.
 
 ### Cloud Credentials
 
-Alternatively, you can create an Azure, AWS, or GCP credential in Stackweaver's Credentials section and attach it to your inventory source. The credential's secret values are injected as environment variables at sync time.
+Alternatively, you can create an Azure, AWS, or GCP credential in Stackweaver's Credentials section and attach it to your inventory source. For Azure this is the Service Principal method (client ID, secret, tenant); it works on a fully private deployment because the runner authenticates outbound to Entra, at the cost of storing a long-lived secret. The credential's secret values are injected as environment variables at sync time.
+
+### Choosing a method on a private deployment
+
+If your deployment has no public ingress, use **Managed Identity** or **Workload Identity** — both authenticate outbound and need no public endpoint. **OIDC Federation** still works if you can expose just the two discovery endpoints (`/.well-known/openid-configuration` and `/.well-known/jwks`) publicly with a trusted certificate; the Helm ingress already path-scopes exactly those routes. The **Service Principal** path is the simplest interim option when none of the above is available.
 
 ## Cloud Provider Detection
 

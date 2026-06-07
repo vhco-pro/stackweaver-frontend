@@ -102,6 +102,22 @@ interface InventoryDetailData {
   azureOIDCConfig: AzureOIDCConfiguration | null;
 }
 
+// Azure dynamic-inventory auth methods. Every mode runs plain ansible-inventory; the azure_rm
+// collection authenticates natively. Persisted in the source config as `auth_method`.
+type AzureAuthMethod = 'managed_identity' | 'credential' | 'oidc' | 'workload_identity';
+
+const AZURE_AUTH_OPTIONS: ReadonlyArray<{
+  value: AzureAuthMethod;
+  label: string;
+  hint: string;
+  needsOIDC?: boolean;
+}> = [
+  { value: 'managed_identity', label: 'Managed Identity', hint: 'In-Azure, keyless via IMDS' },
+  { value: 'workload_identity', label: 'Workload Identity (AKS)', hint: 'AKS pod-federated, keyless' },
+  { value: 'oidc', label: 'OIDC Federation', hint: 'Keyless from anywhere (needs org OIDC config)', needsOIDC: true },
+  { value: 'credential', label: 'Cloud Credential', hint: 'Client ID + secret' },
+];
+
 export default function InventoryDetail() {
   const { orgName, inventoryId } = useParams<{ orgName: string; inventoryId: string }>();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -178,10 +194,10 @@ export default function InventoryDetail() {
     hostname_var: 'public_ip',
     enabled: true,
   });
-  const [editAzureAuthMethod, setEditAzureAuthMethod] = useState<'oidc' | 'credential'>('credential');
-  
+  const [editAzureAuthMethod, setEditAzureAuthMethod] = useState<AzureAuthMethod>('credential');
+
   // Azure auth method state
-  const [azureAuthMethod, setAzureAuthMethod] = useState<'oidc' | 'credential'>('credential');
+  const [azureAuthMethod, setAzureAuthMethod] = useState<AzureAuthMethod>('credential');
   
   // Sync state (for VCS inventories)
   const [syncing, setSyncing] = useState(false);
@@ -498,6 +514,25 @@ export default function InventoryDetail() {
   };
 
   // Inventory Source handlers
+  // Persist the selected Azure auth method into the source config and attach a credential only for
+  // the `credential` mode. clearValue is '' on update (signals the backend to clear) or undefined on
+  // create. No-op for non-Azure sources.
+  const withAzureAuth = (
+    form: CreateInventorySourceInput,
+    method: AzureAuthMethod,
+    clearValue: '' | undefined,
+  ): CreateInventorySourceInput => {
+    if (form.type !== 'azure') return form;
+    const config: Record<string, unknown> = { ...(form.config || {}) };
+    config.auth_method = method;
+    if (method !== 'managed_identity') delete config.managed_identity_client_id;
+    return {
+      ...form,
+      config,
+      credential_id: method === 'credential' ? (form.credential_id || undefined) : clearValue,
+    };
+  };
+
   const handleAddSource = async () => {
     if (!inventoryId || !sourceForm.name.trim()) {
       toast.error('Source name is required');
@@ -506,7 +541,7 @@ export default function InventoryDetail() {
 
     setAddingSource(true);
     try {
-      await ansibleInventorySourcesApi.create(inventoryId, sourceForm);
+      await ansibleInventorySourcesApi.create(inventoryId, withAzureAuth(sourceForm, azureAuthMethod, undefined));
       await refetch();
       setAddSourceDialogOpen(false);
       setSourceForm({
@@ -676,11 +711,15 @@ export default function InventoryDetail() {
       enabled: source.enabled,
       sync_schedule: source.sync_schedule || undefined,
     });
-    // Determine auth method: if Azure without credential and OIDC is available, it's OIDC
-    if (source.type === 'azure' && !source.credential_id && hasAzureOIDC) {
-      setEditAzureAuthMethod('oidc');
-    } else {
-      setEditAzureAuthMethod('credential');
+    // Auth method is persisted in the config; fall back to inferring from credential presence for
+    // sources created before auth_method existed.
+    const storedMethod = (source.config?.auth_method as AzureAuthMethod | undefined);
+    if (source.type === 'azure') {
+      if (storedMethod) {
+        setEditAzureAuthMethod(storedMethod);
+      } else {
+        setEditAzureAuthMethod(source.credential_id ? 'credential' : (hasAzureOIDC ? 'oidc' : 'credential'));
+      }
     }
     setEditSourceDialogOpen(true);
   };
@@ -693,13 +732,8 @@ export default function InventoryDetail() {
 
     setEditingSource(true);
     try {
-      // If switching to OIDC, clear credential_id
-      const updateData: Partial<CreateInventorySourceInput> = {
-        ...editSourceForm,
-        credential_id: editSourceForm.type === 'azure' && editAzureAuthMethod === 'oidc'
-          ? ''  // Empty string signals backend to clear credential
-          : editSourceForm.credential_id || undefined,
-      };
+      // Persist auth_method into config and clear the credential for keyless modes ('' = clear).
+      const updateData: Partial<CreateInventorySourceInput> = withAzureAuth(editSourceForm, editAzureAuthMethod, '');
       await ansibleInventorySourcesApi.update(sourceToEdit.id, updateData);
       await refetch();
       setEditSourceDialogOpen(false);
@@ -1864,40 +1898,47 @@ export default function InventoryDetail() {
                       </Select>
                     </div>
                     {/* Azure Auth Method Selection */}
-                    {sourceForm.type === 'azure' && hasAzureOIDC && (
+                    {sourceForm.type === 'azure' && (
                       <div className="space-y-2">
                         <Label>Authentication Method</Label>
-                        <div className="grid grid-cols-2 gap-2">
-                          <button
-                            type="button"
-                            className={`flex flex-col items-center gap-1 rounded-lg border-2 p-3 text-sm transition-colors ${
-                              azureAuthMethod === 'oidc'
-                                ? 'border-primary bg-primary/5'
-                                : 'border-muted hover:border-muted-foreground/25'
-                            }`}
-                            onClick={() => {
-                              setAzureAuthMethod('oidc');
+                        <Select
+                          value={azureAuthMethod}
+                          onValueChange={(value) => {
+                            const method = value as AzureAuthMethod;
+                            setAzureAuthMethod(method);
+                            if (method !== 'credential') {
                               setSourceForm({ ...sourceForm, credential_id: undefined });
-                            }}
-                          >
-                            <RefreshCw className="h-5 w-5 text-blue-500" />
-                            <span className="font-medium">OIDC Workload Identity</span>
-                            <span className="text-xs text-muted-foreground">Keyless, auto-rotating</span>
-                          </button>
-                          <button
-                            type="button"
-                            className={`flex flex-col items-center gap-1 rounded-lg border-2 p-3 text-sm transition-colors ${
-                              azureAuthMethod === 'credential'
-                                ? 'border-primary bg-primary/5'
-                                : 'border-muted hover:border-muted-foreground/25'
-                            }`}
-                            onClick={() => setAzureAuthMethod('credential')}
-                          >
-                            <FileText className="h-5 w-5 text-amber-500" />
-                            <span className="font-medium">Cloud Credential</span>
-                            <span className="text-xs text-muted-foreground">Client ID + secret</span>
-                          </button>
-                        </div>
+                            }
+                          }}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select authentication method" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {AZURE_AUTH_OPTIONS.map((opt) => (
+                              <SelectItem key={opt.value} value={opt.value} disabled={opt.needsOIDC && !hasAzureOIDC}>
+                                {opt.label}{opt.needsOIDC && !hasAzureOIDC ? ' — no org OIDC config' : ''}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <p className="text-xs text-muted-foreground">
+                          {AZURE_AUTH_OPTIONS.find((o) => o.value === azureAuthMethod)?.hint}
+                        </p>
+                        {azureAuthMethod === 'managed_identity' && (
+                          <div className="space-y-1">
+                            <Label htmlFor="source-mi-client-id" className="text-xs">User-assigned client ID (optional)</Label>
+                            <Input
+                              id="source-mi-client-id"
+                              placeholder="Leave blank for system-assigned identity"
+                              value={(sourceForm.config?.managed_identity_client_id as string) || ''}
+                              onChange={(e) => setSourceForm({
+                                ...sourceForm,
+                                config: { ...(sourceForm.config || {}), managed_identity_client_id: e.target.value },
+                              })}
+                            />
+                          </div>
+                        )}
                         {azureAuthMethod === 'oidc' && azureOIDCConfig && (
                           <div className="rounded-md bg-blue-500/10 border border-blue-500/20 p-3 text-sm">
                             <div className="flex items-start gap-2">
@@ -1916,8 +1957,8 @@ export default function InventoryDetail() {
                       </div>
                     )}
 
-                    {/* Cloud Credential (hidden when Azure OIDC is selected) */}
-                    {!(sourceForm.type === 'azure' && azureAuthMethod === 'oidc') && (
+                    {/* Cloud Credential (shown for non-Azure, or Azure with credential auth) */}
+                    {!(sourceForm.type === 'azure' && azureAuthMethod !== 'credential') && (
                       <div className="space-y-2">
                         <Label htmlFor="source-credential">Cloud Credential</Label>
                         <Select 
@@ -2314,40 +2355,47 @@ export default function InventoryDetail() {
             </div>
 
             {/* Azure Auth Method Selection */}
-            {editSourceForm.type === 'azure' && hasAzureOIDC && (
+            {editSourceForm.type === 'azure' && (
               <div className="space-y-2">
                 <Label>Authentication Method</Label>
-                <div className="grid grid-cols-2 gap-2">
-                  <button
-                    type="button"
-                    className={`flex flex-col items-center gap-1 rounded-lg border-2 p-3 text-sm transition-colors ${
-                      editAzureAuthMethod === 'oidc'
-                        ? 'border-primary bg-primary/5'
-                        : 'border-muted hover:border-muted-foreground/25'
-                    }`}
-                    onClick={() => {
-                      setEditAzureAuthMethod('oidc');
+                <Select
+                  value={editAzureAuthMethod}
+                  onValueChange={(value) => {
+                    const method = value as AzureAuthMethod;
+                    setEditAzureAuthMethod(method);
+                    if (method !== 'credential') {
                       setEditSourceForm({ ...editSourceForm, credential_id: undefined });
-                    }}
-                  >
-                    <RefreshCw className="h-5 w-5 text-blue-500" />
-                    <span className="font-medium">OIDC Workload Identity</span>
-                    <span className="text-xs text-muted-foreground">Keyless, auto-rotating</span>
-                  </button>
-                  <button
-                    type="button"
-                    className={`flex flex-col items-center gap-1 rounded-lg border-2 p-3 text-sm transition-colors ${
-                      editAzureAuthMethod === 'credential'
-                        ? 'border-primary bg-primary/5'
-                        : 'border-muted hover:border-muted-foreground/25'
-                    }`}
-                    onClick={() => setEditAzureAuthMethod('credential')}
-                  >
-                    <FileText className="h-5 w-5 text-amber-500" />
-                    <span className="font-medium">Cloud Credential</span>
-                    <span className="text-xs text-muted-foreground">Client ID + secret</span>
-                  </button>
-                </div>
+                    }
+                  }}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select authentication method" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {AZURE_AUTH_OPTIONS.map((opt) => (
+                      <SelectItem key={opt.value} value={opt.value} disabled={opt.needsOIDC && !hasAzureOIDC}>
+                        {opt.label}{opt.needsOIDC && !hasAzureOIDC ? ' — no org OIDC config' : ''}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">
+                  {AZURE_AUTH_OPTIONS.find((o) => o.value === editAzureAuthMethod)?.hint}
+                </p>
+                {editAzureAuthMethod === 'managed_identity' && (
+                  <div className="space-y-1">
+                    <Label htmlFor="edit-source-mi-client-id" className="text-xs">User-assigned client ID (optional)</Label>
+                    <Input
+                      id="edit-source-mi-client-id"
+                      placeholder="Leave blank for system-assigned identity"
+                      value={(editSourceForm.config?.managed_identity_client_id as string) || ''}
+                      onChange={(e) => setEditSourceForm({
+                        ...editSourceForm,
+                        config: { ...(editSourceForm.config || {}), managed_identity_client_id: e.target.value },
+                      })}
+                    />
+                  </div>
+                )}
                 {editAzureAuthMethod === 'oidc' && azureOIDCConfig && (
                   <div className="rounded-md bg-blue-500/10 border border-blue-500/20 p-3 text-sm">
                     <div className="flex items-start gap-2">
@@ -2366,8 +2414,8 @@ export default function InventoryDetail() {
               </div>
             )}
 
-            {/* Cloud Credential (hidden when Azure OIDC is selected) */}
-            {!(editSourceForm.type === 'azure' && editAzureAuthMethod === 'oidc') && (
+            {/* Cloud Credential (shown for non-Azure, or Azure with credential auth) */}
+            {!(editSourceForm.type === 'azure' && editAzureAuthMethod !== 'credential') && (
               <div className="space-y-2">
                 <Label htmlFor="edit-source-credential">Cloud Credential</Label>
                 <Select

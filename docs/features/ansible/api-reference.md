@@ -279,11 +279,20 @@ POST /api/v2/ansible/inventories/:id/sources
 
 **Source Types**: `aws`, `azure`, `gcp`, `vmware`, `custom`
 
-#### Azure OIDC Workload Identity
+#### Azure authentication
 
-For Azure sources, if the organization has an Azure OIDC Configuration, the system will automatically use OIDC workload identity federation for authentication instead of requiring a stored credential. The inventory source service generates a short-lived JWT token and sets the `AZURE_FEDERATED_TOKEN_FILE`, `AZURE_CLIENT_ID`, `AZURE_TENANT_ID`, and `AZURE_SUBSCRIPTION_ID` environment variables for the `azure.azcollection.azure_rm` inventory plugin. This provides keyless authentication with auto-rotating tokens.
+Azure sources select an authentication method explicitly through the `auth_method` field of the source `source-config` (one of `managed_identity`, `workload_identity`, `oidc`, or `credential`). When omitted, the source falls back to legacy behavior (OIDC if the organization has an Azure OIDC Configuration, otherwise the attached credential). For `managed_identity`, an optional `managed_identity_client_id` selects a user-assigned identity.
 
-If no OIDC configuration exists for the organization, the source falls back to credential-based authentication (client ID + client secret).
+Every method runs plain `ansible-inventory`; the `azure.azcollection.azure_rm` plugin authenticates natively (it reads `AZURE_FEDERATED_TOKEN_FILE` directly as of collection 3.17.0, so no wrapper is involved):
+
+| `auth_method` | What the runner does |
+|---------------|----------------------|
+| `managed_identity` | emits `auth_source: msi`; sets `AZURE_SUBSCRIPTION_ID` (and `AZURE_CLIENT_ID` for a user-assigned identity) — authenticates via IMDS |
+| `workload_identity` | sets `AZURE_SUBSCRIPTION_ID`; relies on the AKS workload-identity webhook to inject `AZURE_CLIENT_ID`/`AZURE_TENANT_ID`/`AZURE_FEDERATED_TOKEN_FILE` |
+| `oidc` | generates a short-lived Stackweaver JWT and sets `AZURE_FEDERATED_TOKEN_FILE`, `AZURE_CLIENT_ID`, `AZURE_TENANT_ID`, `AZURE_SUBSCRIPTION_ID` (requires an org Azure OIDC Configuration and a public issuer) |
+| `credential` | injects the attached Service Principal credential's client ID, secret, and tenant |
+
+VCS-backed Azure inventories are pure passthrough: Stackweaver injects no Azure auth and runs `ansible-inventory` directly against the repository file. The file's own `auth_source` (and the pod runtime — IMDS for Managed Identity, or the AKS workload-identity webhook's projected token for Workload Identity) determines how the plugin authenticates. Stackweaver never rewrites the repository file. To have Stackweaver mint an OIDC token, use a UI-configured (dynamic) source with `auth_method: oidc` instead.
 
 #### Dynamic Inventory via VCS
 
