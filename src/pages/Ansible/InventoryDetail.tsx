@@ -1,7 +1,7 @@
 // Copyright (c) 2025 VH & Co BV. Licensed under the Business Source License 1.1. See LICENSE for details.
 
 // eslint-disable-next-line no-restricted-imports -- legitimate dependency-based effect
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { 
@@ -25,7 +25,7 @@ import {
   getAnsibleInventorySourceFromJsonApi,
   getAnsibleCredentialFromJsonApi,
 } from '@/utils/ansible-jsonapi';
-import type { JsonApiResource } from '@/utils/jsonapi';
+import type { JsonApiResource, JsonApiListResponse } from '@/utils/jsonapi';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -77,6 +77,8 @@ import {
   XCircle,
   Copy,
   ChevronDown,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react';
 import { vcsConnectionsApi, azureOIDCConfigApi, type VCSConnection, type AzureOIDCConfiguration } from '@/api/client';
 import { getVcsProviderIcon, getVcsRepoUrl, getVcsFileUrl } from '@/lib/vcs';
@@ -96,10 +98,62 @@ interface InventoryDetailData {
   vcsConnections: VCSConnection[];
   hosts: AnsibleInventoryHost[];
   groups: (AnsibleInventoryGroup & { hostIds?: string[] })[];
+  hostsTotal: number;
+  groupsTotal: number;
   sources: AnsibleInventorySource[];
   credentials: AnsibleCredential[];
   hasAzureOIDC: boolean;
   azureOIDCConfig: AzureOIDCConfiguration | null;
+}
+
+// Hosts/groups are paginated server-side (max page size 100). Dynamic inventories can hold
+// hundreds of hosts, so we walk every page to assemble the complete set — the detail page needs
+// the full lists for accurate counts AND correct group membership (a group's host IDs reference
+// hosts that may live on any page). `total` comes from the server's pagination meta.
+async function fetchAllPages(
+  fetchPage: (page: number, pageSize: number) => Promise<JsonApiListResponse<JsonApiResource>>,
+): Promise<{ items: JsonApiResource[]; total: number }> {
+  const pageSize = 100;
+  const first = await fetchPage(1, pageSize);
+  const items = [...(first.data ?? [])];
+  const total = first.meta?.pagination?.['total-count'] ?? items.length;
+  const totalPages = first.meta?.pagination?.['total-pages'] ?? 1;
+  for (let page = 2; page <= totalPages; page++) {
+    const res = await fetchPage(page, pageSize);
+    items.push(...(res.data ?? []));
+  }
+  return { items, total };
+}
+
+// Client-side pager for the Hosts/Groups tabs. The full lists are already loaded; this just
+// windows the rendered cards so a 240-host inventory doesn't paint hundreds of cards at once.
+function Pager({ page, totalPages, onPageChange }: { page: number; totalPages: number; onPageChange: (p: number) => void }) {
+  if (totalPages <= 1) return null;
+  return (
+    <div className="flex items-center justify-center gap-2 pt-2">
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={() => onPageChange(Math.max(1, page - 1))}
+        disabled={page <= 1}
+      >
+        <ChevronLeft className="h-4 w-4 mr-1" />
+        Previous
+      </Button>
+      <span className="text-sm text-muted-foreground px-2 tabular-nums">
+        Page {page} of {totalPages}
+      </span>
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={() => onPageChange(Math.min(totalPages, page + 1))}
+        disabled={page >= totalPages}
+      >
+        Next
+        <ChevronRight className="h-4 w-4 ml-1" />
+      </Button>
+    </div>
+  );
 }
 
 // Azure dynamic-inventory auth methods. Every mode runs plain ansible-inventory; the azure_rm
@@ -125,6 +179,10 @@ export default function InventoryDetail() {
 
   const [activeTab, setActiveTab] = useState('hosts');
   const [activeTabInitialized, setActiveTabInitialized] = useState(false);
+
+  // Client-side pagination for the Hosts / Groups tabs (full lists are loaded up-front).
+  const [hostsPage, setHostsPage] = useState(1);
+  const [groupsPage, setGroupsPage] = useState(1);
   
   // Collapsible banner state
   const [infoBannerOpen, setInfoBannerOpen] = useState(true);
@@ -227,9 +285,9 @@ export default function InventoryDetail() {
       const invRes = await ansibleInventoriesApi.get(inventoryId!);
       const inv = getAnsibleInventoryFromJsonApi(invRes.data);
 
-      const [hostsRes, groupsRes, sourcesRes, vcsConnsResult, azureOIDCResult, credsResult] = await Promise.all([
-        ansibleHostsApi.list(inventoryId!),
-        ansibleGroupsApi.list(inventoryId!),
+      const [hostsAll, groupsAll, sourcesRes, vcsConnsResult, azureOIDCResult, credsResult] = await Promise.all([
+        fetchAllPages((page, pageSize) => ansibleHostsApi.list(inventoryId!, { page, pageSize })),
+        fetchAllPages((page, pageSize) => ansibleGroupsApi.list(inventoryId!, { page, pageSize })),
         ansibleInventorySourcesApi.list(inventoryId!),
         vcsConnectionsApi.list(orgName ?? '').catch(() => [] as VCSConnection[]),
         azureOIDCConfigApi.list(orgName ?? '').catch(() => ({ data: [] as AzureOIDCConfiguration[] })),
@@ -239,8 +297,8 @@ export default function InventoryDetail() {
         }),
       ]);
 
-      const hostsData = (hostsRes.data || []).map(getAnsibleHostFromJsonApi);
-      const groupsData = (groupsRes.data || []).map((groupResource: JsonApiResource) => {
+      const hostsData = hostsAll.items.map(getAnsibleHostFromJsonApi);
+      const groupsData = groupsAll.items.map((groupResource: JsonApiResource) => {
         const group = getAnsibleGroupFromJsonApi(groupResource);
         const hostRelationships = (groupResource.relationships?.hosts as { data?: Array<{ id: string }> | { id: string } })?.data;
         const hostIds = Array.isArray(hostRelationships)
@@ -263,6 +321,8 @@ export default function InventoryDetail() {
         vcsConnections: vcsConns,
         hosts: hostsData,
         groups: groupsData,
+        hostsTotal: hostsAll.total,
+        groupsTotal: groupsAll.total,
         sources: sourcesData,
         credentials: filteredCreds,
         hasAzureOIDC: hasOIDC,
@@ -277,10 +337,27 @@ export default function InventoryDetail() {
   const vcsConnections = queryData?.vcsConnections ?? [];
   const hosts = queryData?.hosts ?? [];
   const groups = queryData?.groups ?? [];
+  const hostsTotal = queryData?.hostsTotal ?? 0;
+  const groupsTotal = queryData?.groupsTotal ?? 0;
   const sources = queryData?.sources ?? [];
   const credentials = queryData?.credentials ?? [];
   const hasAzureOIDC = queryData?.hasAzureOIDC ?? false;
   const azureOIDCConfig = queryData?.azureOIDCConfig ?? null;
+
+  // Lookup of every loaded host by ID — used to resolve group membership across all pages, not
+  // just the hosts that happen to be rendered on the current Hosts-tab page.
+  const hostById = useMemo(() => new Map(hosts.map(h => [h.id, h])), [hosts]);
+
+  // Window the rendered host/group cards. Pages are clamped here so a stale page index (e.g. after
+  // a delete) never leaves the user staring at an empty grid.
+  const HOSTS_PAGE_SIZE = 24;
+  const GROUPS_PAGE_SIZE = 24;
+  const hostsTotalPages = Math.max(1, Math.ceil(hosts.length / HOSTS_PAGE_SIZE));
+  const currentHostsPage = Math.min(hostsPage, hostsTotalPages);
+  const paginatedHosts = hosts.slice((currentHostsPage - 1) * HOSTS_PAGE_SIZE, currentHostsPage * HOSTS_PAGE_SIZE);
+  const groupsTotalPages = Math.max(1, Math.ceil(groups.length / GROUPS_PAGE_SIZE));
+  const currentGroupsPage = Math.min(groupsPage, groupsTotalPages);
+  const paginatedGroups = groups.slice((currentGroupsPage - 1) * GROUPS_PAGE_SIZE, currentGroupsPage * GROUPS_PAGE_SIZE);
 
   // Initialize form state and active tab when query data first loads
   useEffect(() => {
@@ -883,12 +960,6 @@ export default function InventoryDetail() {
             <div>
               <div className="flex items-center gap-2">
                 <h1 className="text-2xl font-bold">{inventory.name}</h1>
-                {dynamicPlugin && (
-                  <Badge variant="outline" className={`${dynamicPlugin.textClass} ${dynamicPlugin.darkTextClass} border-current/30`}>
-                    <img src={dynamicPlugin.iconPath} alt="" className="h-3.5 w-3.5 mr-1" />
-                    Dynamic
-                  </Badge>
-                )}
               </div>
               {isEditingDescription ? (
                 <div className="flex items-center gap-2 mt-1">
@@ -1067,7 +1138,7 @@ export default function InventoryDetail() {
             <Server className="h-4 w-4 text-blue-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{hosts.length}</div>
+            <div className="text-2xl font-bold">{hostsTotal}</div>
           </CardContent>
         </Card>
         <Card>
@@ -1076,7 +1147,7 @@ export default function InventoryDetail() {
             <FolderTree className="h-4 w-4 text-green-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{groups.length}</div>
+            <div className="text-2xl font-bold">{groupsTotal}</div>
           </CardContent>
         </Card>
         {inventory.type === 'dynamic' && (
@@ -1157,11 +1228,11 @@ export default function InventoryDetail() {
         <TabsList>
           <TabsTrigger value="hosts">
             <Server className="h-4 w-4 mr-2" />
-            Hosts ({hosts.length})
+            Hosts ({hostsTotal})
           </TabsTrigger>
           <TabsTrigger value="groups">
             <FolderTree className="h-4 w-4 mr-2" />
-            Groups ({groups.length})
+            Groups ({groupsTotal})
           </TabsTrigger>
           {inventory.type === 'vcs' && (
             <TabsTrigger value="content">
@@ -1557,10 +1628,11 @@ export default function InventoryDetail() {
               </CardContent>
             </Card>
           ) : (
+            <>
             <div className="grid gap-3 md:grid-cols-2">
-              {hosts.map((host) => (
-                <Card 
-                  key={host.id} 
+              {paginatedHosts.map((host) => (
+                <Card
+                  key={host.id}
                   className={`group ${inventory.type === 'static' ? 'cursor-pointer hover:border-primary/50' : ''} transition-colors`}
                   onClick={() => {
                     if (inventory.type === 'static') {
@@ -1629,6 +1701,8 @@ export default function InventoryDetail() {
                 </Card>
               ))}
             </div>
+            <Pager page={currentHostsPage} totalPages={hostsTotalPages} onPageChange={setHostsPage} />
+            </>
           )}
         </TabsContent>
 
@@ -1703,13 +1777,20 @@ export default function InventoryDetail() {
               </CardContent>
             </Card>
           ) : (
+            <>
             <div className="grid gap-3 md:grid-cols-2">
-              {groups.map((group) => {
-                // Find hosts that belong to this group using hostIds from relationships
-                const groupHosts = group.hostIds 
-                  ? hosts.filter(host => group.hostIds!.includes(host.id))
-                  : [];
-                
+              {paginatedGroups.map((group) => {
+                // Resolve membership against ALL loaded hosts (via hostById), not just the current
+                // Hosts-tab page. The true member count is the relationship length; badges are
+                // capped so a large group doesn't render hundreds of chips.
+                const memberCount = group.hostIds?.length ?? 0;
+                const memberHosts = (group.hostIds ?? [])
+                  .map(id => hostById.get(id))
+                  .filter((h): h is AnsibleInventoryHost => Boolean(h));
+                const MAX_BADGES = 12;
+                const shownHosts = memberHosts.slice(0, MAX_BADGES);
+                const hiddenCount = memberCount - shownHosts.length;
+
                 return (
                   <Card key={group.id} className="group">
                     <CardContent className="p-4">
@@ -1751,22 +1832,30 @@ export default function InventoryDetail() {
                         )}
                       </div>
                       
-                      {groupHosts.length > 0 ? (
+                      {memberCount > 0 ? (
                         <div className="space-y-2">
                           <div className="flex items-center gap-2 text-xs text-muted-foreground">
                             <Server className="h-3.5 w-3.5" />
-                            <span>{groupHosts.length} host{groupHosts.length !== 1 ? 's' : ''}</span>
+                            <span>{memberCount} host{memberCount !== 1 ? 's' : ''}</span>
                           </div>
                           <div className="flex flex-wrap gap-1.5">
-                            {groupHosts.map((host) => (
-                              <Badge 
-                                key={host.id} 
-                                variant="secondary" 
+                            {shownHosts.map((host) => (
+                              <Badge
+                                key={host.id}
+                                variant="secondary"
                                 className="text-xs font-normal px-2 py-0.5"
                               >
                                 {host.name}
                               </Badge>
                             ))}
+                            {hiddenCount > 0 && (
+                              <Badge
+                                variant="outline"
+                                className="text-xs font-normal px-2 py-0.5 text-muted-foreground"
+                              >
+                                +{hiddenCount} more
+                              </Badge>
+                            )}
                           </div>
                         </div>
                       ) : (
@@ -1780,6 +1869,8 @@ export default function InventoryDetail() {
                 );
               })}
             </div>
+            <Pager page={currentGroupsPage} totalPages={groupsTotalPages} onPageChange={setGroupsPage} />
+            </>
           )}
         </TabsContent>
 

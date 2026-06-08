@@ -341,10 +341,15 @@ export const ansibleInventoriesApi = {
 
 // Host API
 export const ansibleHostsApi = {
-  list: (inventoryId: string) =>
-    apiClient.get<JsonApiListResponse<JsonApiResource>>(
-      `/ansible/inventories/${inventoryId}/hosts`
-    ),
+  list: (inventoryId: string, params?: { page?: number; pageSize?: number }) => {
+    const queryParams = new URLSearchParams();
+    if (params?.page) queryParams.append('page[number]', params.page.toString());
+    if (params?.pageSize) queryParams.append('page[size]', params.pageSize.toString());
+    const query = queryParams.toString();
+    return apiClient.get<JsonApiListResponse<JsonApiResource>>(
+      `/ansible/inventories/${inventoryId}/hosts${query ? `?${query}` : ''}`
+    );
+  },
 
   get: (id: string) =>
     apiClient.get<JsonApiResponse<JsonApiResource>>(
@@ -394,10 +399,15 @@ export const ansibleHostsApi = {
 
 // Group API
 export const ansibleGroupsApi = {
-  list: (inventoryId: string) =>
-    apiClient.get<JsonApiListResponse<JsonApiResource>>(
-      `/ansible/inventories/${inventoryId}/groups`
-    ),
+  list: (inventoryId: string, params?: { page?: number; pageSize?: number }) => {
+    const queryParams = new URLSearchParams();
+    if (params?.page) queryParams.append('page[number]', params.page.toString());
+    if (params?.pageSize) queryParams.append('page[size]', params.pageSize.toString());
+    const query = queryParams.toString();
+    return apiClient.get<JsonApiListResponse<JsonApiResource>>(
+      `/ansible/inventories/${inventoryId}/groups${query ? `?${query}` : ''}`
+    );
+  },
 
   get: (id: string) =>
     apiClient.get<JsonApiResponse<JsonApiResource>>(
