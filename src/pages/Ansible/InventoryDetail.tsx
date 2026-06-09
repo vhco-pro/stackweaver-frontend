@@ -25,7 +25,9 @@ import {
   getAnsibleInventorySourceFromJsonApi,
   getAnsibleCredentialFromJsonApi,
 } from '@/utils/ansible-jsonapi';
-import type { JsonApiResource, JsonApiListResponse } from '@/utils/jsonapi';
+import type { JsonApiResource } from '@/utils/jsonapi';
+import { fetchAllPages } from '@/lib/pagination';
+import { Pager } from '@/components/ui/pager';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -77,8 +79,6 @@ import {
   XCircle,
   Copy,
   ChevronDown,
-  ChevronLeft,
-  ChevronRight,
 } from 'lucide-react';
 import { vcsConnectionsApi, azureOIDCConfigApi, type VCSConnection, type AzureOIDCConfiguration } from '@/api/client';
 import { getVcsProviderIcon, getVcsRepoUrl, getVcsFileUrl } from '@/lib/vcs';
@@ -106,55 +106,6 @@ interface InventoryDetailData {
   azureOIDCConfig: AzureOIDCConfiguration | null;
 }
 
-// Hosts/groups are paginated server-side (max page size 100). Dynamic inventories can hold
-// hundreds of hosts, so we walk every page to assemble the complete set — the detail page needs
-// the full lists for accurate counts AND correct group membership (a group's host IDs reference
-// hosts that may live on any page). `total` comes from the server's pagination meta.
-async function fetchAllPages(
-  fetchPage: (page: number, pageSize: number) => Promise<JsonApiListResponse<JsonApiResource>>,
-): Promise<{ items: JsonApiResource[]; total: number }> {
-  const pageSize = 100;
-  const first = await fetchPage(1, pageSize);
-  const items = [...(first.data ?? [])];
-  const total = first.meta?.pagination?.['total-count'] ?? items.length;
-  const totalPages = first.meta?.pagination?.['total-pages'] ?? 1;
-  for (let page = 2; page <= totalPages; page++) {
-    const res = await fetchPage(page, pageSize);
-    items.push(...(res.data ?? []));
-  }
-  return { items, total };
-}
-
-// Client-side pager for the Hosts/Groups tabs. The full lists are already loaded; this just
-// windows the rendered cards so a 240-host inventory doesn't paint hundreds of cards at once.
-function Pager({ page, totalPages, onPageChange }: { page: number; totalPages: number; onPageChange: (p: number) => void }) {
-  if (totalPages <= 1) return null;
-  return (
-    <div className="flex items-center justify-center gap-2 pt-2">
-      <Button
-        variant="outline"
-        size="sm"
-        onClick={() => onPageChange(Math.max(1, page - 1))}
-        disabled={page <= 1}
-      >
-        <ChevronLeft className="h-4 w-4 mr-1" />
-        Previous
-      </Button>
-      <span className="text-sm text-muted-foreground px-2 tabular-nums">
-        Page {page} of {totalPages}
-      </span>
-      <Button
-        variant="outline"
-        size="sm"
-        onClick={() => onPageChange(Math.min(totalPages, page + 1))}
-        disabled={page >= totalPages}
-      >
-        Next
-        <ChevronRight className="h-4 w-4 ml-1" />
-      </Button>
-    </div>
-  );
-}
 
 // Azure dynamic-inventory auth methods. Every mode runs plain ansible-inventory; the azure_rm
 // collection authenticates natively. Persisted in the source config as `auth_method`.
@@ -288,7 +239,7 @@ export default function InventoryDetail() {
       const [hostsAll, groupsAll, sourcesRes, vcsConnsResult, azureOIDCResult, credsResult] = await Promise.all([
         fetchAllPages((page, pageSize) => ansibleHostsApi.list(inventoryId!, { page, pageSize })),
         fetchAllPages((page, pageSize) => ansibleGroupsApi.list(inventoryId!, { page, pageSize })),
-        ansibleInventorySourcesApi.list(inventoryId!),
+        fetchAllPages((page, pageSize) => ansibleInventorySourcesApi.list(inventoryId!, { page, pageSize })),
         vcsConnectionsApi.list(orgName ?? '').catch(() => [] as VCSConnection[]),
         azureOIDCConfigApi.list(orgName ?? '').catch(() => ({ data: [] as AzureOIDCConfiguration[] })),
         ansibleCredentialsApi.list(orgName!).catch((err: unknown) => {
@@ -306,7 +257,7 @@ export default function InventoryDetail() {
           : hostRelationships ? [hostRelationships.id] : [];
         return { ...group, hostIds };
       });
-      const sourcesData = (sourcesRes.data || []).map(getAnsibleInventorySourceFromJsonApi);
+      const sourcesData = sourcesRes.items.map(getAnsibleInventorySourceFromJsonApi);
 
       const vcsConns = vcsConnsResult;
       const azureOIDCData = azureOIDCResult.data;
@@ -713,8 +664,8 @@ export default function InventoryDetail() {
         void (async () => {
           pollCount++;
           try {
-            const sourcesRes = await ansibleInventorySourcesApi.list(inventoryId!);
-            const updatedSources = (sourcesRes.data || []).map(getAnsibleInventorySourceFromJsonApi);
+            const sourcesRes = await fetchAllPages((page, pageSize) => ansibleInventorySourcesApi.list(inventoryId!, { page, pageSize }));
+            const updatedSources = sourcesRes.items.map(getAnsibleInventorySourceFromJsonApi);
 
             const syncedSource = updatedSources.find(s => s.id === sourceId);
             if (syncedSource && syncedSource.status !== 'syncing') {

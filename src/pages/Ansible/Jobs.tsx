@@ -7,6 +7,8 @@ import { useOrganization } from '@/contexts/OrganizationContext';
 import { usePermissions } from '@/hooks/usePermissions';
 import { ansibleJobsApi, type AnsibleJob, type AnsibleJobStatus } from '@/api/ansible';
 import { getAnsibleJobFromJsonApi } from '@/utils/ansible-jsonapi';
+import { fetchAllPages } from '@/lib/pagination';
+import { Pager } from '@/components/ui/pager';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -91,13 +93,15 @@ export default function Jobs() {
   const { data: jobs = [], isLoading: loading, refetch: refetchJobs } = useQuery({
     queryKey: ['jobs', selectedOrg],
     queryFn: async () => {
-      const res = await ansibleJobsApi.listByOrganization(selectedOrg);
-      return (res.data || []).map(getAnsibleJobFromJsonApi);
+      const { items } = await fetchAllPages((page, pageSize) =>
+        ansibleJobsApi.listByOrganization(selectedOrg, { page, pageSize }));
+      return items.map(getAnsibleJobFromJsonApi);
     },
     enabled: !!selectedOrg,
   });
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<AnsibleJobStatus | 'all'>('all');
+  const [jobsPage, setJobsPage] = useState(1);
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
   const [jobToCancel, setJobToCancel] = useState<AnsibleJob | null>(null);
   const [canceling, setCanceling] = useState(false);
@@ -114,6 +118,14 @@ export default function Jobs() {
     const matchesStatus = statusFilter === 'all' || job.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
+
+  const JOBS_PAGE_SIZE = 15;
+  const jobsTotalPages = Math.max(1, Math.ceil(filteredJobs.length / JOBS_PAGE_SIZE));
+  const currentJobsPage = Math.min(jobsPage, jobsTotalPages);
+  const paginatedJobs = filteredJobs.slice(
+    (currentJobsPage - 1) * JOBS_PAGE_SIZE,
+    currentJobsPage * JOBS_PAGE_SIZE,
+  );
 
   const handleCancel = async () => {
     if (!jobToCancel) return;
@@ -252,13 +264,13 @@ export default function Jobs() {
           <Input
             placeholder="Search jobs..."
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+            onChange={(e) => { setSearchQuery(e.target.value); setJobsPage(1); }}
             className="pl-9"
           />
         </div>
         <Select
           value={statusFilter}
-          onValueChange={(value) => setStatusFilter(value as AnsibleJobStatus | 'all')}
+          onValueChange={(value) => { setStatusFilter(value as AnsibleJobStatus | 'all'); setJobsPage(1); }}
         >
           <SelectTrigger className="w-[180px]">
             <SelectValue placeholder="Filter by status" />
@@ -289,6 +301,7 @@ export default function Jobs() {
           </CardContent>
         </Card>
       ) : (
+        <>
         <div className="rounded-lg border">
           <Table>
             <TableHeader>
@@ -302,7 +315,7 @@ export default function Jobs() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredJobs.map((job) => (
+              {paginatedJobs.map((job) => (
                 <TableRow key={job.id} className="group">
                   <TableCell>
                     <Link
@@ -440,6 +453,8 @@ export default function Jobs() {
             </TableBody>
           </Table>
         </div>
+        <Pager page={currentJobsPage} totalPages={jobsTotalPages} onPageChange={setJobsPage} />
+        </>
       )}
 
       {/* Cancel Confirmation Dialog */}

@@ -12,6 +12,8 @@ import {
   type CreateCredentialInput 
 } from '@/api/ansible';
 import { getAnsibleCredentialFromJsonApi } from '@/utils/ansible-jsonapi';
+import { fetchAllPages } from '@/lib/pagination';
+import { Pager } from '@/components/ui/pager';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -83,12 +85,14 @@ export default function Credentials() {
 
   const [searchQuery, setSearchQuery] = useState('');
   const [typeFilter, setTypeFilter] = useState<CredentialType | 'all'>('all');
+  const [credPage, setCredPage] = useState(1);
 
   const { data: credentials = [], isLoading: loading, refetch: refetchCredentials } = useQuery({
     queryKey: ['credentials', selectedOrg, typeFilter],
     queryFn: async () => {
-      const res = await ansibleCredentialsApi.list(selectedOrg, typeFilter === 'all' ? undefined : typeFilter);
-      return (res.data || []).map(getAnsibleCredentialFromJsonApi);
+      const { items } = await fetchAllPages((page, pageSize) =>
+        ansibleCredentialsApi.list(selectedOrg, typeFilter === 'all' ? undefined : typeFilter, { page, pageSize }));
+      return items.map(getAnsibleCredentialFromJsonApi);
     },
     enabled: !!selectedOrg,
   });
@@ -123,6 +127,14 @@ export default function Credentials() {
   const filteredCredentials = credentials.filter((cred) =>
     cred.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     cred.description?.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const CRED_PAGE_SIZE = 12;
+  const credTotalPages = Math.max(1, Math.ceil(filteredCredentials.length / CRED_PAGE_SIZE));
+  const currentCredPage = Math.min(credPage, credTotalPages);
+  const paginatedCredentials = filteredCredentials.slice(
+    (currentCredPage - 1) * CRED_PAGE_SIZE,
+    currentCredPage * CRED_PAGE_SIZE,
   );
 
   const handleCreate = async () => {
@@ -705,13 +717,13 @@ export default function Credentials() {
           <Input
             placeholder="Search credentials..."
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+            onChange={(e) => { setSearchQuery(e.target.value); setCredPage(1); }}
             className="pl-9"
           />
         </div>
         <Select
           value={typeFilter}
-          onValueChange={(value) => setTypeFilter(value as CredentialType | 'all')}
+          onValueChange={(value) => { setTypeFilter(value as CredentialType | 'all'); setCredPage(1); }}
         >
           <SelectTrigger className="w-[180px]">
             <SelectValue placeholder="Filter by type" />
@@ -747,8 +759,9 @@ export default function Credentials() {
           </CardContent>
         </Card>
       ) : (
+        <>
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {filteredCredentials.map((credential) => (
+          {paginatedCredentials.map((credential) => (
             <Card
               key={credential.id}
               className="hover:shadow-md transition-shadow group"
@@ -813,6 +826,8 @@ export default function Credentials() {
             </Card>
           ))}
         </div>
+        <Pager page={currentCredPage} totalPages={credTotalPages} onPageChange={setCredPage} />
+        </>
       )}
 
       {/* Delete Confirmation Dialog */}

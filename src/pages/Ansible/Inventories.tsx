@@ -8,6 +8,8 @@ import { useOrganization } from '@/contexts/OrganizationContext';
 import { usePermissions } from '@/hooks/usePermissions';
 import { ansibleInventoriesApi, ansibleHostsApi, ansibleGroupsApi, type AnsibleInventory } from '@/api/ansible';
 import { getAnsibleInventoryFromJsonApi } from '@/utils/ansible-jsonapi';
+import { fetchAllPages } from '@/lib/pagination';
+import { Pager } from '@/components/ui/pager';
 import { vcsConnectionsApi, type VCSConnection, type Repository, type Branch } from '@/api/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -57,8 +59,6 @@ import {
   Info,
   FolderTree,
   CheckCircle2,
-  ChevronLeft,
-  ChevronRight,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -118,14 +118,8 @@ export default function Inventories() {
   const { data: inventoriesData, isLoading: loading } = useQuery({
     queryKey: ['inventories', selectedOrg],
     queryFn: async () => {
-      const pageSize = 100;
-      const first = await ansibleInventoriesApi.list(selectedOrg, { page: 1, pageSize });
-      const items = [...(first.data || [])];
-      const totalPages = first.meta?.pagination?.['total-pages'] ?? 1;
-      for (let page = 2; page <= totalPages; page++) {
-        const res = await ansibleInventoriesApi.list(selectedOrg, { page, pageSize });
-        items.push(...(res.data || []));
-      }
+      const { items } = await fetchAllPages((page, pageSize) =>
+        ansibleInventoriesApi.list(selectedOrg, { page, pageSize }));
       return { inventories: items.map(getAnsibleInventoryFromJsonApi) };
     },
     enabled: !!selectedOrg,
@@ -1018,31 +1012,7 @@ export default function Inventories() {
       )}
 
       {/* Pager — windows the inventory grid for large orgs */}
-      {invTotalPages > 1 && (
-        <div className="flex items-center justify-center gap-2 pt-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setInvPage((p) => Math.max(1, p - 1))}
-            disabled={currentInvPage <= 1}
-          >
-            <ChevronLeft className="h-4 w-4 mr-1" />
-            Previous
-          </Button>
-          <span className="text-sm text-muted-foreground px-2 tabular-nums">
-            Page {currentInvPage} of {invTotalPages}
-          </span>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setInvPage((p) => Math.min(invTotalPages, p + 1))}
-            disabled={currentInvPage >= invTotalPages}
-          >
-            Next
-            <ChevronRight className="h-4 w-4 ml-1" />
-          </Button>
-        </div>
-      )}
+      <Pager page={currentInvPage} totalPages={invTotalPages} onPageChange={setInvPage} />
 
       {/* Delete Confirmation Dialog */}
       <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>

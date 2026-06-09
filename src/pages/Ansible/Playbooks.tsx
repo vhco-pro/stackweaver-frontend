@@ -8,6 +8,8 @@ import { useOrganization } from '@/contexts/OrganizationContext';
 import { usePermissions } from '@/hooks/usePermissions';
 import { ansiblePlaybooksApi, type AnsiblePlaybook } from '@/api/ansible';
 import { getAnsiblePlaybookFromJsonApi } from '@/utils/ansible-jsonapi';
+import { fetchAllPages } from '@/lib/pagination';
+import { Pager } from '@/components/ui/pager';
 import { vcsConnectionsApi, type VCSConnection, type Repository, type Branch } from '@/api/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -87,6 +89,7 @@ export default function Playbooks() {
   const { canManagePlaybooks } = usePermissions(selectedOrg);
 
   const [searchQuery, setSearchQuery] = useState('');
+  const [pbPage, setPbPage] = useState(1);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [playbookToDelete, setPlaybookToDelete] = useState<AnsiblePlaybook | null>(null);
   const [deleting, setDeleting] = useState(false);
@@ -129,8 +132,9 @@ export default function Playbooks() {
   const { data: playbooks = [], isLoading: loading } = useQuery({
     queryKey: playbooksQueryKey,
     queryFn: async () => {
-      const res = await ansiblePlaybooksApi.listByOrganization(selectedOrg);
-      return (res.data || []).map(getAnsiblePlaybookFromJsonApi);
+      const { items } = await fetchAllPages((page, pageSize) =>
+        ansiblePlaybooksApi.listByOrganization(selectedOrg, { page, pageSize }));
+      return items.map(getAnsiblePlaybookFromJsonApi);
     },
     enabled: !!selectedOrg,
   });
@@ -306,6 +310,14 @@ export default function Playbooks() {
     pb.playbook_path?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+  const PB_PAGE_SIZE = 12;
+  const pbTotalPages = Math.max(1, Math.ceil(filteredPlaybooks.length / PB_PAGE_SIZE));
+  const currentPbPage = Math.min(pbPage, pbTotalPages);
+  const paginatedPlaybooks = filteredPlaybooks.slice(
+    (currentPbPage - 1) * PB_PAGE_SIZE,
+    currentPbPage * PB_PAGE_SIZE,
+  );
+
   const handleDelete = async () => {
     if (!playbookToDelete) return;
 
@@ -460,7 +472,7 @@ export default function Playbooks() {
           <Input
             placeholder="Search playbooks..."
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+            onChange={(e) => { setSearchQuery(e.target.value); setPbPage(1); }}
             className="pl-10"
           />
         </div>
@@ -486,8 +498,9 @@ export default function Playbooks() {
           </CardContent>
         </Card>
       ) : (
+        <>
         <div className="grid gap-4">
-          {filteredPlaybooks.map((playbook) => (
+          {paginatedPlaybooks.map((playbook) => (
             <Card key={playbook.id} className="hover:border-primary/50 transition-colors">
               <CardHeader className="pb-3">
                 <div className="flex items-start justify-between">
@@ -648,6 +661,8 @@ export default function Playbooks() {
             </Card>
           ))}
         </div>
+        <Pager page={currentPbPage} totalPages={pbTotalPages} onPageChange={setPbPage} />
+        </>
       )}
 
       {/* Create Playbook Dialog - Uses VCS Integration like Terraform Workspaces */}
