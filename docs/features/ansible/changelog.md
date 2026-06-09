@@ -8,6 +8,9 @@ covers:
 
 # Changelog
 
+### Fixed
+- **List pagination across all Ansible pages**: The Playbooks, Job Templates, Jobs (and queue), Credentials, Schedules, and inventory Sources lists all loaded only the first server page of 20 rows with no pager — so beyond 20 items, the rest were silently hidden and the page's search/filter only saw the loaded 20. Each now loads every page and windows the rendered rows with a pager (and the job-template/schedule create-form dropdowns load all options). Extracted the shared `fetchAllPages` helper (`frontend/src/lib/pagination.ts`) and `Pager` component (`frontend/src/components/ui/pager.tsx`), and migrated the inventory pages onto them. See `frontend/src/pages/Ansible/**` and `frontend/src/api/ansible.ts`.
+
 ### Changed
 - **Inventory UI — compact header & list pagination**: The inventory detail header's four stat cards and the separate tab row (which duplicated the Hosts/Groups counts) were consolidated into a single slim bar — the Hosts/Groups/Content/Sources tabs now carry the counts with a subtle active highlight, Type and Last Sync render as inline info, and the contextual Add action moved into the bar. The inventories list page now loads **all** inventories (it previously showed only the first server page of 20, stranding newly-created ones) and windows them with a pager, fetching host/group counts only for the visible page. See `frontend/src/pages/Ansible/InventoryDetail.tsx`, `frontend/src/pages/Ansible/Inventories.tsx`, and `frontend/src/api/ansible.ts`.
 

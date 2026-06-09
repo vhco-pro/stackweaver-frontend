@@ -253,6 +253,17 @@ export interface AnsibleJobEvent {
 // Components should use helpers from @/utils/jsonapi to transform data
 // ============================================================================
 
+export interface PageParams { page?: number; pageSize?: number }
+
+/** Build a `?page[number]=&page[size]=` query string (plus any extra params), or '' when empty. */
+function pageQuery(params?: PageParams, extra?: Record<string, string>): string {
+  const qp = new URLSearchParams(extra);
+  if (params?.page) qp.append('page[number]', params.page.toString());
+  if (params?.pageSize) qp.append('page[size]', params.pageSize.toString());
+  const s = qp.toString();
+  return s ? `?${s}` : '';
+}
+
 // Inventory API
 export const ansibleInventoriesApi = {
   list: (organizationName: string, params?: { page?: number; pageSize?: number }) => {
@@ -457,10 +468,10 @@ export const ansibleGroupsApi = {
 
 // Credential API
 export const ansibleCredentialsApi = {
-  list: (organizationName: string, type?: CredentialType) => {
-    const params = type ? `?type=${type}` : '';
+  list: (organizationName: string, type?: CredentialType, params?: PageParams) => {
+    const query = pageQuery(params, type ? { type } : undefined);
     return apiClient.get<JsonApiListResponse<JsonApiResource>>(
-      `/organizations/${organizationName}/ansible/credentials${params}`
+      `/organizations/${organizationName}/ansible/credentials${query}`
     );
   },
 
@@ -539,14 +550,14 @@ export const ansibleCredentialsApi = {
 
 // Playbook API
 export const ansiblePlaybooksApi = {
-  listByOrganization: (organizationName: string) =>
+  listByOrganization: (organizationName: string, params?: PageParams) =>
     apiClient.get<JsonApiListResponse<JsonApiResource>>(
-      `/organizations/${organizationName}/ansible/playbooks`
+      `/organizations/${organizationName}/ansible/playbooks${pageQuery(params)}`
     ),
 
-  list: (projectId: string) =>
+  list: (projectId: string, params?: PageParams) =>
     apiClient.get<JsonApiListResponse<JsonApiResource>>(
-      `/projects/${projectId}/ansible/playbooks`
+      `/projects/${projectId}/ansible/playbooks${pageQuery(params)}`
     ),
 
   get: (id: string) =>
@@ -618,14 +629,14 @@ export const ansiblePlaybooksApi = {
 
 // Job Template API
 export const ansibleJobTemplatesApi = {
-  listByOrganization: (organizationName: string) =>
+  listByOrganization: (organizationName: string, params?: PageParams) =>
     apiClient.get<JsonApiListResponse<JsonApiResource>>(
-      `/organizations/${organizationName}/ansible/job-templates`
+      `/organizations/${organizationName}/ansible/job-templates${pageQuery(params)}`
     ),
 
-  list: (projectId: string) =>
+  list: (projectId: string, params?: PageParams) =>
     apiClient.get<JsonApiListResponse<JsonApiResource>>(
-      `/projects/${projectId}/ansible/job-templates`
+      `/projects/${projectId}/ansible/job-templates${pageQuery(params)}`
     ),
 
   get: (id: string) =>
@@ -841,19 +852,19 @@ export const ansibleJobTemplatesApi = {
 
 // Job API
 export const ansibleJobsApi = {
-  listByProject: (projectId: string) =>
+  listByProject: (projectId: string, params?: PageParams) =>
     apiClient.get<JsonApiListResponse<JsonApiResource>>(
-      `/projects/${projectId}/ansible/jobs`
+      `/projects/${projectId}/ansible/jobs${pageQuery(params)}`
     ),
 
-  listByOrganization: (organizationName: string) =>
+  listByOrganization: (organizationName: string, params?: PageParams) =>
     apiClient.get<JsonApiListResponse<JsonApiResource>>(
-      `/organizations/${organizationName}/ansible/jobs`
+      `/organizations/${organizationName}/ansible/jobs${pageQuery(params)}`
     ),
 
-  getQueue: (organizationName: string) =>
+  getQueue: (organizationName: string, params?: PageParams) =>
     apiClient.get<JsonApiListResponse<JsonApiResource>>(
-      `/organizations/${organizationName}/ansible/jobs/queue`
+      `/organizations/${organizationName}/ansible/jobs/queue${pageQuery(params)}`
     ),
 
   get: (id: string) =>
@@ -1027,9 +1038,9 @@ export interface CreateScheduleInput {
 
 // Inventory Source API
 export const ansibleInventorySourcesApi = {
-  list: (inventoryId: string) =>
+  list: (inventoryId: string, params?: PageParams) =>
     apiClient.get<JsonApiListResponse<JsonApiResource>>(
-      `/ansible/inventories/${inventoryId}/sources`
+      `/ansible/inventories/${inventoryId}/sources${pageQuery(params)}`
     ),
 
   get: (id: string) =>
@@ -1101,9 +1112,9 @@ export const ansibleInventorySourcesApi = {
 
 // Schedule API
 export const ansibleSchedulesApi = {
-  list: (organizationName: string) =>
+  list: (organizationName: string, params?: PageParams) =>
     apiClient.get<JsonApiListResponse<JsonApiResource>>(
-      `/organizations/${organizationName}/ansible/schedules`
+      `/organizations/${organizationName}/ansible/schedules${pageQuery(params)}`
     ),
 
   get: (id: string) =>

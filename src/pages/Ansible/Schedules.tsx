@@ -17,6 +17,8 @@ import {
   getAnsibleScheduleFromJsonApi,
   getAnsibleJobTemplateFromJsonApi, 
 } from '@/utils/ansible-jsonapi';
+import { fetchAllPages } from '@/lib/pagination';
+import { Pager } from '@/components/ui/pager';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -148,12 +150,12 @@ export default function Schedules() {
     queryKey: ['schedules', selectedOrg],
     queryFn: async () => {
       const [schedulesRes, templatesRes] = await Promise.all([
-        ansibleSchedulesApi.list(selectedOrg),
-        ansibleJobTemplatesApi.listByOrganization(selectedOrg),
+        fetchAllPages((page, pageSize) => ansibleSchedulesApi.list(selectedOrg, { page, pageSize })),
+        fetchAllPages((page, pageSize) => ansibleJobTemplatesApi.listByOrganization(selectedOrg, { page, pageSize })),
       ]);
       return {
-        schedules: (schedulesRes.data || []).map(getAnsibleScheduleFromJsonApi),
-        jobTemplates: (templatesRes.data || []).map(getAnsibleJobTemplateFromJsonApi),
+        schedules: schedulesRes.items.map(getAnsibleScheduleFromJsonApi),
+        jobTemplates: templatesRes.items.map(getAnsibleJobTemplateFromJsonApi),
       };
     },
     enabled: !!selectedOrg,
@@ -165,6 +167,7 @@ export default function Schedules() {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<ScheduleStatus | 'all'>('all');
   const [typeFilter, setTypeFilter] = useState<ScheduleType | 'all'>('all');
+  const [schedPage, setSchedPage] = useState(1);
   
   // Create schedule state
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
@@ -314,6 +317,14 @@ export default function Schedules() {
     }
     return true;
   });
+
+  const SCHED_PAGE_SIZE = 15;
+  const schedTotalPages = Math.max(1, Math.ceil(filteredSchedules.length / SCHED_PAGE_SIZE));
+  const currentSchedPage = Math.min(schedPage, schedTotalPages);
+  const paginatedSchedules = filteredSchedules.slice(
+    (currentSchedPage - 1) * SCHED_PAGE_SIZE,
+    currentSchedPage * SCHED_PAGE_SIZE,
+  );
 
   if (loading) {
     return (
@@ -522,11 +533,11 @@ export default function Schedules() {
           <Input
             placeholder="Search schedules..."
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+            onChange={(e) => { setSearchQuery(e.target.value); setSchedPage(1); }}
             className="pl-9"
           />
         </div>
-        <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as ScheduleStatus | 'all')}>
+        <Select value={statusFilter} onValueChange={(v) => { setStatusFilter(v as ScheduleStatus | 'all'); setSchedPage(1); }}>
           <SelectTrigger className="w-[150px]">
             <SelectValue placeholder="Status" />
           </SelectTrigger>
@@ -536,7 +547,7 @@ export default function Schedules() {
             <SelectItem value="disabled">Disabled</SelectItem>
           </SelectContent>
         </Select>
-        <Select value={typeFilter} onValueChange={(v) => setTypeFilter(v as ScheduleType | 'all')}>
+        <Select value={typeFilter} onValueChange={(v) => { setTypeFilter(v as ScheduleType | 'all'); setSchedPage(1); }}>
           <SelectTrigger className="w-[180px]">
             <SelectValue placeholder="Type" />
           </SelectTrigger>
@@ -569,6 +580,7 @@ export default function Schedules() {
           </CardContent>
         </Card>
       ) : (
+        <>
         <Card>
           <Table>
             <TableHeader>
@@ -584,7 +596,7 @@ export default function Schedules() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredSchedules.map((schedule) => (
+              {paginatedSchedules.map((schedule) => (
                 <TableRow key={schedule.id}>
                   <TableCell>
                     <div>
@@ -688,6 +700,8 @@ export default function Schedules() {
             </TableBody>
           </Table>
         </Card>
+        <Pager page={currentSchedPage} totalPages={schedTotalPages} onPageChange={setSchedPage} />
+        </>
       )}
     </div>
   );

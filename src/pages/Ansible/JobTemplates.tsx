@@ -25,6 +25,8 @@ import {
   getAnsibleCredentialFromJsonApi,
   getAnsibleJobFromJsonApi,
 } from '@/utils/ansible-jsonapi';
+import { fetchAllPages } from '@/lib/pagination';
+import { Pager } from '@/components/ui/pager';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -125,6 +127,7 @@ export default function JobTemplates() {
   const [templates, setTemplates] = useState<AnsibleJobTemplate[]>([]);
   const [jobs, setJobs] = useState<AnsibleJob[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
+  const [tplPage, setTplPage] = useState(1);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [templateToDelete, setTemplateToDelete] = useState<AnsibleJobTemplate | null>(null);
   const [deleting, setDeleting] = useState(false);
@@ -166,11 +169,11 @@ export default function JobTemplates() {
     queryKey: ['jobTemplates', selectedOrg],
     queryFn: async () => {
       const [templatesRes, jobsRes] = await Promise.all([
-        ansibleJobTemplatesApi.listByOrganization(selectedOrg),
-        ansibleJobsApi.listByOrganization(selectedOrg),
+        fetchAllPages((page, pageSize) => ansibleJobTemplatesApi.listByOrganization(selectedOrg, { page, pageSize })),
+        fetchAllPages((page, pageSize) => ansibleJobsApi.listByOrganization(selectedOrg, { page, pageSize })),
       ]);
-      setTemplates((templatesRes.data || []).map(getAnsibleJobTemplateFromJsonApi));
-      setJobs((jobsRes.data || []).map(getAnsibleJobFromJsonApi));
+      setTemplates(templatesRes.items.map(getAnsibleJobTemplateFromJsonApi));
+      setJobs(jobsRes.items.map(getAnsibleJobFromJsonApi));
       return null;
     },
     enabled: !!selectedOrg,
@@ -181,14 +184,14 @@ export default function JobTemplates() {
     queryKey: ['jobTemplateFormData', selectedOrg, createDialogOpen],
     queryFn: async () => {
       const [playbooksRes, inventoriesRes, credentialsRes, agentPoolsRes] = await Promise.all([
-        ansiblePlaybooksApi.listByOrganization(selectedOrg),
-        ansibleInventoriesApi.list(selectedOrg),
-        ansibleCredentialsApi.list(selectedOrg),
+        fetchAllPages((page, pageSize) => ansiblePlaybooksApi.listByOrganization(selectedOrg, { page, pageSize })),
+        fetchAllPages((page, pageSize) => ansibleInventoriesApi.list(selectedOrg, { page, pageSize })),
+        fetchAllPages((page, pageSize) => ansibleCredentialsApi.list(selectedOrg, undefined, { page, pageSize })),
         agentPoolsApi.list(selectedOrg),
       ]);
-      setPlaybooks((playbooksRes.data || []).map(getAnsiblePlaybookFromJsonApi));
-      setInventories((inventoriesRes.data || []).map(getAnsibleInventoryFromJsonApi));
-      setCredentials((credentialsRes.data || []).map(getAnsibleCredentialFromJsonApi));
+      setPlaybooks(playbooksRes.items.map(getAnsiblePlaybookFromJsonApi));
+      setInventories(inventoriesRes.items.map(getAnsibleInventoryFromJsonApi));
+      setCredentials(credentialsRes.items.map(getAnsibleCredentialFromJsonApi));
       setAgentPools(agentPoolsRes.data || []);
       return null;
     },
@@ -199,6 +202,14 @@ export default function JobTemplates() {
   const filteredTemplates = templates.filter((tpl) =>
     tpl.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
     tpl.description?.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const TPL_PAGE_SIZE = 12;
+  const tplTotalPages = Math.max(1, Math.ceil(filteredTemplates.length / TPL_PAGE_SIZE));
+  const currentTplPage = Math.min(tplPage, tplTotalPages);
+  const paginatedTemplates = filteredTemplates.slice(
+    (currentTplPage - 1) * TPL_PAGE_SIZE,
+    currentTplPage * TPL_PAGE_SIZE,
   );
 
   const handleCreate = async () => {
@@ -295,8 +306,8 @@ export default function JobTemplates() {
       await ansibleJobTemplatesApi.launch(template.id);
       toast.success('Job launched in background');
       // Refresh jobs list to show the new job
-      const jobsRes = await ansibleJobsApi.listByOrganization(selectedOrg);
-      setJobs((jobsRes.data || []).map(getAnsibleJobFromJsonApi));
+      const jobsRes = await fetchAllPages((page, pageSize) => ansibleJobsApi.listByOrganization(selectedOrg, { page, pageSize }));
+      setJobs(jobsRes.items.map(getAnsibleJobFromJsonApi));
     } catch (err: unknown) {
       console.error('Failed to launch job:', err);
       const errorMessage = err instanceof Error ? err.message : 'Failed to launch job';
@@ -347,7 +358,7 @@ export default function JobTemplates() {
           <Input
             placeholder="Search job templates..."
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+            onChange={(e) => { setSearchQuery(e.target.value); setTplPage(1); }}
             className="pl-10"
           />
         </div>
@@ -373,10 +384,11 @@ export default function JobTemplates() {
           </CardContent>
         </Card>
       ) : (
+        <>
         <div className="grid gap-4">
-          {filteredTemplates.map((template) => (
-            <Card 
-              key={template.id} 
+          {paginatedTemplates.map((template) => (
+            <Card
+              key={template.id}
               className="hover:border-primary/50 transition-colors cursor-pointer"
               onClick={() => window.location.href = `/app/${selectedOrg}/ansible/job-templates/${template.id}`}
             >
@@ -554,6 +566,8 @@ export default function JobTemplates() {
             </Card>
           ))}
         </div>
+        <Pager page={currentTplPage} totalPages={tplTotalPages} onPageChange={setTplPage} />
+        </>
       )}
 
       {/* Create Job Template Dialog */}
