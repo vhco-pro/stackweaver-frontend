@@ -200,8 +200,8 @@ If your deployment has no public ingress, use **Managed Identity** or **Workload
 When you create a VCS-backed inventory pointing to a dynamic inventory plugin file, Stackweaver automatically detects the cloud provider and displays provider-specific branding throughout the UI:
 
 - The inventory card on the list page shows the cloud provider's icon (Azure, AWS, or GCP) instead of a generic VCS icon.
-- The inventory detail page header displays the provider icon and a "Dynamic" badge.
-- The type label shows the provider name (e.g., "Azure") instead of just "VCS".
+- The inventory detail page header shows the provider icon next to the inventory name.
+- In the metrics bar on the detail page, the Type indicator shows the provider name (e.g., "Azure Dynamic Inventory") instead of just "VCS".
 
 UI-configured inventory sources also display familiar cloud provider icons. The source card on the Sources tab shows the Azure, AWS, or GCP logo alongside the source name, replacing the generic cloud icon. This makes it easy to tell at a glance which provider each source targets.
 

@@ -1130,123 +1130,98 @@ export default function InventoryDetail() {
         </div>
       </div>
 
-      {/* Stats Cards */}
-      <div className="grid gap-4 md:grid-cols-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Hosts</CardTitle>
-            <Server className="h-4 w-4 text-blue-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{hostsTotal}</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Groups</CardTitle>
-            <FolderTree className="h-4 w-4 text-green-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{groupsTotal}</div>
-          </CardContent>
-        </Card>
-        {inventory.type === 'dynamic' && (
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Sources</CardTitle>
-              <Cloud className="h-4 w-4 text-cyan-500" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{sources.length}</div>
-            </CardContent>
-          </Card>
-        )}
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Type</CardTitle>
-            {inventory.type === 'static' ? (
-              <Database className="h-4 w-4 text-orange-500" />
-            ) : inventory.type === 'dynamic' ? (
-              <Cloud className="h-4 w-4 text-cyan-500" />
-            ) : dynamicPlugin ? (
-              <img src={dynamicPlugin.iconPath} alt="" className="h-4 w-4" />
-            ) : (
-              <GitBranch className="h-4 w-4 text-purple-500" />
-            )}
-          </CardHeader>
-          <CardContent>
-            {dynamicPlugin ? (
-              <Badge variant="outline" className={`${dynamicPlugin.textClass} ${dynamicPlugin.darkTextClass} border-current/30`}>
-                <img src={dynamicPlugin.iconPath} alt="" className="h-3 w-3 mr-1" />
-                {dynamicPlugin.label}
-              </Badge>
-            ) : (
-              <Badge variant="outline" className="uppercase">
-                {inventory.type === 'vcs' ? 'VCS' : inventory.type}
-              </Badge>
-            )}
-          </CardContent>
-        </Card>
-        {inventory.type === 'vcs' && inventory.last_sync_at && (
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Last Sync</CardTitle>
-              {inventory.last_sync_status === 'successful' ? (
-                <CheckCircle2 className="h-4 w-4 text-green-500" />
-              ) : inventory.last_sync_status === 'failed' ? (
-                <XCircle className="h-4 w-4 text-red-500" />
-              ) : inventory.last_sync_status === 'syncing' ? (
-                <Loader2 className="h-4 w-4 text-blue-500 animate-spin" />
-              ) : (
-                <RefreshCw className="h-4 w-4 text-muted-foreground" />
-              )}
-            </CardHeader>
-            <CardContent>
-              <div className="text-sm font-medium">
-                {inventory.last_sync_hosts_discovered !== undefined && inventory.last_sync_hosts_discovered !== null ? (
-                  <span>{inventory.last_sync_hosts_discovered} host{inventory.last_sync_hosts_discovered === 1 ? '' : 's'} discovered</span>
-                ) : (
-                  <Badge variant="outline" className={
-                    inventory.last_sync_status === 'successful' ? 'text-green-600 dark:text-green-400' :
-                    inventory.last_sync_status === 'failed' ? 'text-red-600 dark:text-red-400' :
-                    ''
-                  }>
-                    {inventory.last_sync_status}
-                  </Badge>
-                )}
-              </div>
-              <p className="text-xs text-muted-foreground mt-1">
-                {new Date(inventory.last_sync_at).toLocaleString()}
-              </p>
-            </CardContent>
-          </Card>
-        )}
-      </div>
-
-      {/* Tabs */}
+      {/* Unified bar: view selector (tabs carry the counts) + Type / Last Sync info + the
+          contextual Add action — folds the old stat-card grid and the separate tab row into one. */}
       <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-4">
-        <TabsList>
-          <TabsTrigger value="hosts">
-            <Server className="h-4 w-4 mr-2" />
-            Hosts ({hostsTotal})
-          </TabsTrigger>
-          <TabsTrigger value="groups">
-            <FolderTree className="h-4 w-4 mr-2" />
-            Groups ({groupsTotal})
-          </TabsTrigger>
-          {inventory.type === 'vcs' && (
-            <TabsTrigger value="content">
-              <FileText className="h-4 w-4 mr-2" />
-              Content
-            </TabsTrigger>
-          )}
-          {inventory.type === 'dynamic' && (
-            <TabsTrigger value="sources">
-              <Cloud className="h-4 w-4 mr-2" />
-              Sources ({sources.length})
-            </TabsTrigger>
-          )}
-        </TabsList>
+        <Card>
+          <CardContent className="flex flex-wrap items-center gap-x-4 gap-y-2 p-2">
+            {/* Tabs styled to blend into the bar: transparent track, active = subtle highlight */}
+            <TabsList className="h-auto gap-1 bg-transparent p-0">
+              <TabsTrigger value="hosts" className="gap-1.5 rounded-md px-2.5 py-1 text-muted-foreground hover:text-foreground data-[state=active]:bg-muted data-[state=active]:text-foreground data-[state=active]:shadow-none">
+                <Server className="h-4 w-4 text-blue-500" />
+                <span className="font-bold text-foreground">{hostsTotal}</span>
+                Hosts
+              </TabsTrigger>
+              <TabsTrigger value="groups" className="gap-1.5 rounded-md px-2.5 py-1 text-muted-foreground hover:text-foreground data-[state=active]:bg-muted data-[state=active]:text-foreground data-[state=active]:shadow-none">
+                <FolderTree className="h-4 w-4 text-green-500" />
+                <span className="font-bold text-foreground">{groupsTotal}</span>
+                Groups
+              </TabsTrigger>
+              {inventory.type === 'vcs' && (
+                <TabsTrigger value="content" className="gap-1.5 rounded-md px-2.5 py-1 text-muted-foreground hover:text-foreground data-[state=active]:bg-muted data-[state=active]:text-foreground data-[state=active]:shadow-none">
+                  <FileText className="h-4 w-4 text-purple-500" />
+                  Content
+                </TabsTrigger>
+              )}
+              {inventory.type === 'dynamic' && (
+                <TabsTrigger value="sources" className="gap-1.5 rounded-md px-2.5 py-1 text-muted-foreground hover:text-foreground data-[state=active]:bg-muted data-[state=active]:text-foreground data-[state=active]:shadow-none">
+                  <Cloud className="h-4 w-4 text-cyan-500" />
+                  <span className="font-bold text-foreground">{sources.length}</span>
+                  Sources
+                </TabsTrigger>
+              )}
+            </TabsList>
+
+            <div className="hidden sm:block h-5 w-px bg-border" />
+
+            <div className="flex items-center gap-1.5 text-sm">
+              <span className="text-muted-foreground">Type</span>
+              {dynamicPlugin ? (
+                <Badge variant="outline" className={`${dynamicPlugin.textClass} ${dynamicPlugin.darkTextClass} border-current/30`}>
+                  <img src={dynamicPlugin.iconPath} alt="" className="h-3 w-3 mr-1" />
+                  {dynamicPlugin.label}
+                </Badge>
+              ) : (
+                <Badge variant="outline" className="uppercase">
+                  {inventory.type === 'vcs' ? 'VCS' : inventory.type}
+                </Badge>
+              )}
+            </div>
+
+            {inventory.type === 'vcs' && inventory.last_sync_at && (
+              <div className="flex items-center gap-1.5 text-sm text-muted-foreground min-w-0">
+                {inventory.last_sync_status === 'successful' ? (
+                  <CheckCircle2 className="h-4 w-4 text-green-500 shrink-0" />
+                ) : inventory.last_sync_status === 'failed' ? (
+                  <XCircle className="h-4 w-4 text-red-500 shrink-0" />
+                ) : inventory.last_sync_status === 'syncing' ? (
+                  <Loader2 className="h-4 w-4 text-blue-500 animate-spin shrink-0" />
+                ) : (
+                  <RefreshCw className="h-4 w-4 text-muted-foreground shrink-0" />
+                )}
+                <span className="truncate">
+                  {inventory.last_sync_hosts_discovered !== undefined && inventory.last_sync_hosts_discovered !== null
+                    ? `${inventory.last_sync_hosts_discovered} host${inventory.last_sync_hosts_discovered === 1 ? '' : 's'} discovered`
+                    : inventory.last_sync_status}
+                  {' · '}
+                  {new Date(inventory.last_sync_at).toLocaleString()}
+                </span>
+              </div>
+            )}
+
+            {/* Contextual action — mirrors the active tab (replaces the per-tab Add buttons) */}
+            <div className="ml-auto flex items-center gap-2">
+              {activeTab === 'hosts' && inventory.type === 'static' && (
+                <Button size="sm" onClick={() => setAddHostDialogOpen(true)}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add Host
+                </Button>
+              )}
+              {activeTab === 'groups' && inventory.type !== 'vcs' && (
+                <Button size="sm" onClick={() => setAddGroupDialogOpen(true)}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add Group
+                </Button>
+              )}
+              {activeTab === 'sources' && (
+                <Button size="sm" onClick={() => setAddSourceDialogOpen(true)}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add Source
+                </Button>
+              )}
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Hosts Tab */}
         <TabsContent value="hosts" className="space-y-4">
@@ -1530,16 +1505,9 @@ export default function InventoryDetail() {
             </Card>
           )}
 
-          {/* Only show Add Host for static inventories */}
+          {/* Add Host dialog — opened from the toolbar action in the bar above */}
           {inventory.type === 'static' && (
-            <div className="flex justify-end">
               <Dialog open={addHostDialogOpen} onOpenChange={setAddHostDialogOpen}>
-                <DialogTrigger asChild>
-                  <Button>
-                    <Plus className="h-4 w-4 mr-2" />
-                    Add Host
-                  </Button>
-                </DialogTrigger>
                 <DialogContent>
                   <DialogHeader>
                     <DialogTitle>Add Host</DialogTitle>
@@ -1599,7 +1567,6 @@ export default function InventoryDetail() {
                   </DialogFooter>
                 </DialogContent>
               </Dialog>
-            </div>
           )}
 
           {hosts.length === 0 ? (
@@ -1708,15 +1675,9 @@ export default function InventoryDetail() {
 
         {/* Groups Tab */}
         <TabsContent value="groups" className="space-y-4">
+          {/* Add Group dialog — opened from the toolbar action in the bar above */}
           {inventory.type !== 'vcs' && (
-            <div className="flex justify-end">
               <Dialog open={addGroupDialogOpen} onOpenChange={setAddGroupDialogOpen}>
-                <DialogTrigger asChild>
-                  <Button>
-                    <Plus className="h-4 w-4 mr-2" />
-                    Add Group
-                  </Button>
-                </DialogTrigger>
                 <DialogContent>
                   <DialogHeader>
                     <DialogTitle>Add Group</DialogTitle>
@@ -1755,7 +1716,6 @@ export default function InventoryDetail() {
                   </DialogFooter>
                 </DialogContent>
               </Dialog>
-            </div>
           )}
 
           {groups.length === 0 ? (
@@ -1936,15 +1896,9 @@ export default function InventoryDetail() {
         {/* Sources Tab (for dynamic inventories) */}
         {inventory.type === 'dynamic' && (
           <TabsContent value="sources" className="space-y-4">
-            <div className="flex justify-end">
-              <Dialog open={addSourceDialogOpen} onOpenChange={setAddSourceDialogOpen}>
-                <DialogTrigger asChild>
-                  <Button>
-                    <Plus className="h-4 w-4 mr-2" />
-                    Add Source
-                  </Button>
-                </DialogTrigger>
-                <DialogContent className="max-w-lg">
+            {/* Add Source dialog — opened from the toolbar action in the bar above */}
+            <Dialog open={addSourceDialogOpen} onOpenChange={setAddSourceDialogOpen}>
+              <DialogContent className="max-w-lg">
                   <DialogHeader>
                     <DialogTitle>Add Inventory Source</DialogTitle>
                     <DialogDescription>
@@ -2190,8 +2144,7 @@ export default function InventoryDetail() {
                     </Button>
                   </DialogFooter>
                 </DialogContent>
-              </Dialog>
-            </div>
+            </Dialog>
 
             {sources.length === 0 ? (
               <Card>
