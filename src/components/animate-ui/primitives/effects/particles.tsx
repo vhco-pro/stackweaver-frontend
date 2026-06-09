@@ -48,17 +48,17 @@ function Particles({
 
   const Component = asChild ? Slot : motion.div;
 
-  const mergedStyle: Record<string, unknown> = {
+  const mergedStyle: React.CSSProperties = {
     position: 'relative',
-    ...(style as Record<string, unknown> | undefined),
+    ...(style as React.CSSProperties | undefined),
   };
 
   return (
     <ParticlesProvider value={{ animate, isInView }}>
       <Component
         ref={localRef}
-         
-        style={mergedStyle}
+
+        style={mergedStyle as HTMLMotionProps<'div'>['style']}
          
         {...(props)}
       >
@@ -113,7 +113,7 @@ function ParticlesEffect({
       ? `calc(0% - ${sideOffset}px)`
       : `calc(100% + ${sideOffset}px)`;
 
-  const containerStyle: Record<string, unknown> = {
+  const containerStyle: React.CSSProperties = {
     position: 'absolute',
     top,
     left,
@@ -122,9 +122,9 @@ function ParticlesEffect({
 
   const angleStep = (spread * (Math.PI / 180)) / Math.max(1, count - 1);
 
-  const mergedStyle: Record<string, unknown> = {
+  const mergedStyle: React.CSSProperties = {
     ...containerStyle,
-    ...(style as Record<string, unknown> | undefined),
+    ...(style as React.CSSProperties | undefined),
   };
 
   const mergedTransition = {
@@ -145,8 +145,8 @@ function ParticlesEffect({
           return (
             <motion.div
               key={i}
-               
-              style={mergedStyle}
+
+              style={mergedStyle as HTMLMotionProps<'div'>['style']}
               initial={{ scale: 0, opacity: 0 }}
               animate={{
                 x: `${x}px`,
