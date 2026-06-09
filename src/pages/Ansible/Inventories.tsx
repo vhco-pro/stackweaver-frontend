@@ -57,6 +57,8 @@ import {
   Info,
   FolderTree,
   CheckCircle2,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -73,6 +75,7 @@ export default function Inventories() {
   const queryClient = useQueryClient();
   const { canManageInventories } = usePermissions(selectedOrg);
   const [searchQuery, setSearchQuery] = useState('');
+  const [invPage, setInvPage] = useState(1);
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [inventoryToDelete, setInventoryToDelete] = useState<AnsibleInventory | null>(null);
@@ -109,33 +112,21 @@ export default function Inventories() {
     inventory_path: '',
   });
 
-  // Fetch inventories
+  // Fetch ALL inventories (walk every server page) so newly-created ones aren't stranded on a
+  // later page and never shown. Counts are fetched separately, only for the visible page (below),
+  // to avoid an N+1 host/group request storm across the whole org.
   const { data: inventoriesData, isLoading: loading } = useQuery({
     queryKey: ['inventories', selectedOrg],
     queryFn: async () => {
-      const res = await ansibleInventoriesApi.list(selectedOrg);
-      const invs = (res.data || []).map(getAnsibleInventoryFromJsonApi);
-
-      // Fetch counts for each inventory
-      const counts = await Promise.all(invs.map(async (inv) => {
-        try {
-          const [hostsRes, groupsRes] = await Promise.all([
-            ansibleHostsApi.list(inv.id).catch(() => ({ data: [], meta: { pagination: { 'total-count': 0 } } })),
-            ansibleGroupsApi.list(inv.id).catch(() => ({ data: [], meta: { pagination: { 'total-count': 0 } } })),
-          ]);
-          const hostsCount = ('meta' in hostsRes && hostsRes.meta?.pagination?.['total-count']) || (Array.isArray(hostsRes.data) ? hostsRes.data.length : 0);
-          const groupsCount = ('meta' in groupsRes && groupsRes.meta?.pagination?.['total-count']) || (Array.isArray(groupsRes.data) ? groupsRes.data.length : 0);
-          return { id: inv.id, hosts: hostsCount, groups: groupsCount };
-        } catch {
-          return { id: inv.id, hosts: 0, groups: 0 };
-        }
-      }));
-
-      const countsMap: Record<string, { hosts: number; groups: number }> = {};
-      counts.forEach((count) => {
-        countsMap[count.id] = { hosts: count.hosts, groups: count.groups };
-      });
-      return { inventories: invs, inventoryCounts: countsMap };
+      const pageSize = 100;
+      const first = await ansibleInventoriesApi.list(selectedOrg, { page: 1, pageSize });
+      const items = [...(first.data || [])];
+      const totalPages = first.meta?.pagination?.['total-pages'] ?? 1;
+      for (let page = 2; page <= totalPages; page++) {
+        const res = await ansibleInventoriesApi.list(selectedOrg, { page, pageSize });
+        items.push(...(res.data || []));
+      }
+      return { inventories: items.map(getAnsibleInventoryFromJsonApi) };
     },
     enabled: !!selectedOrg,
     // Auto-refetch while any inventory is syncing so counters update after VCS sync completes
@@ -149,13 +140,46 @@ export default function Inventories() {
   });
 
   const inventories = inventoriesData?.inventories ?? [];
-  const inventoryCounts = inventoriesData?.inventoryCounts ?? {};
 
-  // Filter inventories
+  // Filter inventories (client-side search across the full set)
   const filteredInventories = inventories.filter((inv) =>
     inv.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     inv.description?.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  // Window the rendered cards so a large org doesn't paint hundreds at once.
+  const INV_PAGE_SIZE = 12;
+  const invTotalPages = Math.max(1, Math.ceil(filteredInventories.length / INV_PAGE_SIZE));
+  const currentInvPage = Math.min(invPage, invTotalPages);
+  const paginatedInventories = filteredInventories.slice(
+    (currentInvPage - 1) * INV_PAGE_SIZE,
+    currentInvPage * INV_PAGE_SIZE,
+  );
+
+  // Host/group counts only for the visible page — keyed on those IDs so paging or searching
+  // refetches just the dozen on screen, not the whole org.
+  const visibleIdsKey = paginatedInventories.map((inv) => inv.id).join(',');
+  const { data: inventoryCounts = {} } = useQuery({
+    queryKey: ['inventoryCounts', selectedOrg, visibleIdsKey],
+    queryFn: async () => {
+      const entries = await Promise.all(paginatedInventories.map(async (inv) => {
+        try {
+          const [hostsRes, groupsRes] = await Promise.all([
+            ansibleHostsApi.list(inv.id).catch(() => ({ data: [], meta: { pagination: { 'total-count': 0 } } })),
+            ansibleGroupsApi.list(inv.id).catch(() => ({ data: [], meta: { pagination: { 'total-count': 0 } } })),
+          ]);
+          const hosts = ('meta' in hostsRes && hostsRes.meta?.pagination?.['total-count']) || (Array.isArray(hostsRes.data) ? hostsRes.data.length : 0);
+          const groups = ('meta' in groupsRes && groupsRes.meta?.pagination?.['total-count']) || (Array.isArray(groupsRes.data) ? groupsRes.data.length : 0);
+          return [inv.id, { hosts, groups }] as const;
+        } catch {
+          return [inv.id, { hosts: 0, groups: 0 }] as const;
+        }
+      }));
+      return Object.fromEntries(entries);
+    },
+    enabled: paginatedInventories.length > 0,
+    refetchInterval: () => paginatedInventories.some((inv) => inv.last_sync_status === 'syncing') ? 5000 : false,
+  });
 
   // Reset form when dialog closes
   const resetCreateForm = () => {
@@ -887,7 +911,7 @@ export default function Inventories() {
         <Input
           placeholder="Search inventories..."
           value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
+          onChange={(e) => { setSearchQuery(e.target.value); setInvPage(1); }}
           className="pl-9"
         />
       </div>
@@ -913,7 +937,7 @@ export default function Inventories() {
         </Card>
       ) : (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {filteredInventories.map((inventory) => (
+          {paginatedInventories.map((inventory) => (
             <Card
               key={inventory.id}
               className="hover:border-primary/50 transition-colors cursor-pointer group flex flex-col"
@@ -990,6 +1014,33 @@ export default function Inventories() {
               </CardContent>
             </Card>
           ))}
+        </div>
+      )}
+
+      {/* Pager — windows the inventory grid for large orgs */}
+      {invTotalPages > 1 && (
+        <div className="flex items-center justify-center gap-2 pt-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setInvPage((p) => Math.max(1, p - 1))}
+            disabled={currentInvPage <= 1}
+          >
+            <ChevronLeft className="h-4 w-4 mr-1" />
+            Previous
+          </Button>
+          <span className="text-sm text-muted-foreground px-2 tabular-nums">
+            Page {currentInvPage} of {invTotalPages}
+          </span>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setInvPage((p) => Math.min(invTotalPages, p + 1))}
+            disabled={currentInvPage >= invTotalPages}
+          >
+            Next
+            <ChevronRight className="h-4 w-4 ml-1" />
+          </Button>
         </div>
       )}
 

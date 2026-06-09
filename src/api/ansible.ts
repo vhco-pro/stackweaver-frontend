@@ -255,10 +255,15 @@ export interface AnsibleJobEvent {
 
 // Inventory API
 export const ansibleInventoriesApi = {
-  list: (organizationName: string) =>
-    apiClient.get<JsonApiListResponse<JsonApiResource>>(
-      `/organizations/${organizationName}/ansible/inventories`
-    ),
+  list: (organizationName: string, params?: { page?: number; pageSize?: number }) => {
+    const queryParams = new URLSearchParams();
+    if (params?.page) queryParams.append('page[number]', params.page.toString());
+    if (params?.pageSize) queryParams.append('page[size]', params.pageSize.toString());
+    const query = queryParams.toString();
+    return apiClient.get<JsonApiListResponse<JsonApiResource>>(
+      `/organizations/${organizationName}/ansible/inventories${query ? `?${query}` : ''}`
+    );
+  },
 
   get: (id: string) =>
     apiClient.get<JsonApiResponse<JsonApiResource>>(
