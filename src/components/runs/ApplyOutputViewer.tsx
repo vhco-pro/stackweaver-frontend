@@ -462,7 +462,7 @@ export function ApplyOutputViewer({ logs, showJsonViewer = true, planOutput, isA
           const valueMatch = valueText.match(/=\s*(.+)$/s);
           if (valueMatch) {
             const valueStr = valueMatch[1].trim();
-            let parsedValue: unknown = valueStr;
+            let parsedValue: unknown;
             try {
               // First try as JSON
               parsedValue = JSON.parse(valueStr);
@@ -553,7 +553,7 @@ export function ApplyOutputViewer({ logs, showJsonViewer = true, planOutput, isA
       const valueMatch = valueText.match(/=\s*(.+)$/s);
       if (valueMatch) {
         const valueStr = valueMatch[1].trim();
-        let parsedValue: unknown = valueStr;
+        let parsedValue: unknown;
 
         try {
           parsedValue = JSON.parse(valueStr);

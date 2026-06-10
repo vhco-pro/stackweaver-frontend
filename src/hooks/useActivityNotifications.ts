@@ -3,6 +3,7 @@
 import { useEffect, useRef } from 'react';
 import { useNotifications } from '@/contexts/NotificationContext';
 import { activitiesApi } from '@/api/client';
+import { formatActivityNotification } from '@/utils/activityFormat';
 
 export function useActivityNotifications(enabled: boolean = true, pollInterval: number = 30000) {
   const { showNotification } = useNotifications();
@@ -53,66 +54,10 @@ export function useActivityNotifications(enabled: boolean = true, pollInterval: 
         // Process new activities in reverse order (oldest first) to show them chronologically
         newActivities.reverse().forEach(activity => {
           const attrs = activity.attributes;
-          const details = attrs.details || {};
-          const resourceNameRaw = details.resource_name || attrs.resource_type;
-          let resourceNameStr = '';
-          if (resourceNameRaw) {
-            if (typeof resourceNameRaw === 'string') {
-              resourceNameStr = resourceNameRaw;
-            } else if (typeof resourceNameRaw !== 'object' && resourceNameRaw !== null) {
-              // eslint-disable-next-line @typescript-eslint/no-base-to-string
-              resourceNameStr = String(resourceNameRaw);
-            } else {
-              // eslint-disable-next-line @typescript-eslint/no-base-to-string
-              resourceNameStr = String(resourceNameRaw);
-            }
-          }
-          
-          // Format notification message
-          let title = '';
-          let message = '';
-          let type: 'success' | 'error' | 'info' | 'warning' = 'info';
-          
-          switch (attrs.action) {
-            case 'create':
-              title = `${String(attrs.resource_type)} Created`;
-              message = resourceNameStr ? `"${resourceNameStr}" was created` : `New ${String(attrs.resource_type)} created`;
-              type = 'success';
-              break;
-            case 'update':
-              title = `${String(attrs.resource_type)} Updated`;
-              message = resourceNameStr ? `"${resourceNameStr}" was updated` : `${String(attrs.resource_type)} updated`;
-              type = 'info';
-              break;
-            case 'delete':
-              title = `${String(attrs.resource_type)} Deleted`;
-              message = resourceNameStr ? `"${resourceNameStr}" was deleted` : `${String(attrs.resource_type)} deleted`;
-              type = 'warning';
-              break;
-            case 'run_plan':
-            case 'run_apply':
-            case 'run_destroy': {
-              title = 'Run Started';
-              const operationRaw = details.operation || attrs.action;
-              const statusRaw = details.status || 'started';
-              const operationStr = typeof operationRaw === 'string'
-                ? operationRaw
-                // eslint-disable-next-line @typescript-eslint/no-base-to-string
-                : (operationRaw != null && typeof operationRaw !== 'object' ? String(operationRaw) : '');
-              const statusStr = typeof statusRaw === 'string'
-                ? statusRaw
-                // eslint-disable-next-line @typescript-eslint/no-base-to-string
-                : (statusRaw != null && typeof statusRaw !== 'object' ? String(statusRaw) : 'started');
-              message = `${operationStr} run ${statusStr}`;
-              type = details.status === 'completed' ? 'success' : 'info';
-              break;
-            }
-            default:
-              title = 'Activity';
-              message = `${String(attrs.action)} ${String(attrs.resource_type)}`;
-              type = 'info';
-          }
-          
+
+          // Format notification message (pure mapping — see utils/activityFormat.ts)
+          const { title, message, type } = formatActivityNotification(attrs);
+
           // Show notification
           console.log(`[ActivityNotifications] Showing notification: ${title} - ${message}`);
           showNotification(title, message, type, 5000);

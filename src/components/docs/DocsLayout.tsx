@@ -96,10 +96,9 @@ export function DocsLayout({ children, docsBase = '/docs', indexFile = '/docs-in
 
     // Build breadcrumbs for each path segment (excluding "Docs" prefix)
     // Use folder names from path, not README titles
-    let currentPath = '';
     for (let i = 0; i < parts.length; i++) {
-      currentPath = parts.slice(0, i + 1).join('/');
-      
+      const currentPath = parts.slice(0, i + 1).join('/');
+
       // Check if this is a directory (has README) or a file
       const readmeNode = index?.flat[`${currentPath}/README.md`];
       const fileNode = index?.flat[`${currentPath}.md`];
