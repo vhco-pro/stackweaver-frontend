@@ -79,6 +79,7 @@ import {
   XCircle,
   Copy,
   ChevronDown,
+  Search,
 } from 'lucide-react';
 import { vcsConnectionsApi, azureOIDCConfigApi, type VCSConnection, type AzureOIDCConfiguration } from '@/api/client';
 import { getVcsProviderIcon, getVcsRepoUrl, getVcsFileUrl } from '@/lib/vcs';
@@ -134,7 +135,14 @@ export default function InventoryDetail() {
   // Client-side pagination for the Hosts / Groups tabs (full lists are loaded up-front).
   const [hostsPage, setHostsPage] = useState(1);
   const [groupsPage, setGroupsPage] = useState(1);
-  
+
+  // Host/group search (filters both the Hosts and Groups tabs at once)
+  const [searchQuery, setSearchQuery] = useState('');
+  // Track which host cards have their group badges expanded (keyed by host id)
+  const [expandedHostGroups, setExpandedHostGroups] = useState<Set<string>>(new Set());
+  // Track which group cards have their host badges expanded (keyed by group id)
+  const [expandedGroupHosts, setExpandedGroupHosts] = useState<Set<string>>(new Set());
+
   // Collapsible banner state
   const [infoBannerOpen, setInfoBannerOpen] = useState(true);
   const [warningBannerOpen, setWarningBannerOpen] = useState(true);
@@ -286,8 +294,10 @@ export default function InventoryDetail() {
   // Derive server data from query result
   const inventory = queryData?.inventory ?? null;
   const vcsConnections = queryData?.vcsConnections ?? [];
-  const hosts = queryData?.hosts ?? [];
-  const groups = queryData?.groups ?? [];
+  // Wrap in useMemo so the array identity is stable across renders — these feed the filter/
+  // membership useMemos below, which would otherwise recompute every render.
+  const hosts = useMemo(() => queryData?.hosts ?? [], [queryData?.hosts]);
+  const groups = useMemo(() => queryData?.groups ?? [], [queryData?.groups]);
   const hostsTotal = queryData?.hostsTotal ?? 0;
   const groupsTotal = queryData?.groupsTotal ?? 0;
   const sources = queryData?.sources ?? [];
@@ -299,16 +309,74 @@ export default function InventoryDetail() {
   // just the hosts that happen to be rendered on the current Hosts-tab page.
   const hostById = useMemo(() => new Map(hosts.map(h => [h.id, h])), [hosts]);
 
-  // Window the rendered host/group cards. Pages are clamped here so a stale page index (e.g. after
-  // a delete) never leaves the user staring at an empty grid.
+  // Map each host id to the groups it belongs to (derived from group->host relationships) so host
+  // cards can surface their group membership.
+  const hostGroupsMap = useMemo(() => {
+    const map = new Map<string, (AnsibleInventoryGroup & { hostIds?: string[] })[]>();
+    for (const group of groups) {
+      for (const hostId of group.hostIds ?? []) {
+        const existing = map.get(hostId);
+        if (existing) {
+          existing.push(group);
+        } else {
+          map.set(hostId, [group]);
+        }
+      }
+    }
+    return map;
+  }, [groups]);
+
+  // Filter hosts (by name/hostname) and groups (by group name or member host name). Filtering runs
+  // over the full loaded sets; the pager below windows the filtered result.
+  const normalizedQuery = searchQuery.trim().toLowerCase();
+  const filteredHosts = useMemo(() => {
+    if (!normalizedQuery) return hosts;
+    return hosts.filter((host) =>
+      host.name.toLowerCase().includes(normalizedQuery) ||
+      (host.hostname ?? '').toLowerCase().includes(normalizedQuery)
+    );
+  }, [hosts, normalizedQuery]);
+  const filteredGroups = useMemo(() => {
+    if (!normalizedQuery) return groups;
+    return groups.filter((group) => {
+      if (group.name.toLowerCase().includes(normalizedQuery)) return true;
+      return (group.hostIds ?? []).some((hostId) =>
+        hostById.get(hostId)?.name.toLowerCase().includes(normalizedQuery)
+      );
+    });
+  }, [groups, hostById, normalizedQuery]);
+
+  // Window the rendered host/group cards over the (possibly filtered) lists. Pages are clamped here
+  // so a stale page index (e.g. after a delete or a search) never leaves the user staring at an
+  // empty grid.
   const HOSTS_PAGE_SIZE = 24;
   const GROUPS_PAGE_SIZE = 24;
-  const hostsTotalPages = Math.max(1, Math.ceil(hosts.length / HOSTS_PAGE_SIZE));
+  const hostsTotalPages = Math.max(1, Math.ceil(filteredHosts.length / HOSTS_PAGE_SIZE));
   const currentHostsPage = Math.min(hostsPage, hostsTotalPages);
-  const paginatedHosts = hosts.slice((currentHostsPage - 1) * HOSTS_PAGE_SIZE, currentHostsPage * HOSTS_PAGE_SIZE);
-  const groupsTotalPages = Math.max(1, Math.ceil(groups.length / GROUPS_PAGE_SIZE));
+  const paginatedHosts = filteredHosts.slice((currentHostsPage - 1) * HOSTS_PAGE_SIZE, currentHostsPage * HOSTS_PAGE_SIZE);
+  const groupsTotalPages = Math.max(1, Math.ceil(filteredGroups.length / GROUPS_PAGE_SIZE));
   const currentGroupsPage = Math.min(groupsPage, groupsTotalPages);
-  const paginatedGroups = groups.slice((currentGroupsPage - 1) * GROUPS_PAGE_SIZE, currentGroupsPage * GROUPS_PAGE_SIZE);
+  const paginatedGroups = filteredGroups.slice((currentGroupsPage - 1) * GROUPS_PAGE_SIZE, currentGroupsPage * GROUPS_PAGE_SIZE);
+
+  // Max badges shown before collapsing the rest behind a "+N" overflow badge
+  const MAX_GROUP_BADGES = 4; // groups shown per host card
+  const MAX_HOST_BADGES = 12; // hosts shown per group card
+  const toggleHostGroupsExpanded = (hostId: string) => {
+    setExpandedHostGroups((prev) => {
+      const next = new Set(prev);
+      if (next.has(hostId)) next.delete(hostId);
+      else next.add(hostId);
+      return next;
+    });
+  };
+  const toggleGroupHostsExpanded = (groupId: string) => {
+    setExpandedGroupHosts((prev) => {
+      const next = new Set(prev);
+      if (next.has(groupId)) next.delete(groupId);
+      else next.add(groupId);
+      return next;
+    });
+  };
 
   // Initialize form state and active tab when query data first loads
   useEffect(() => {
@@ -1090,12 +1158,18 @@ export default function InventoryDetail() {
             <TabsList className="h-auto gap-1 bg-transparent p-0">
               <TabsTrigger value="hosts" className="gap-1.5 rounded-md px-2.5 py-1 text-muted-foreground hover:text-foreground data-[state=active]:bg-muted data-[state=active]:text-foreground data-[state=active]:shadow-none">
                 <Server className="h-4 w-4 text-blue-500" />
-                <span className="font-bold text-foreground">{hostsTotal}</span>
+                <span className="font-bold text-foreground">
+                  {normalizedQuery ? filteredHosts.length : hostsTotal}
+                </span>
+                {normalizedQuery && <span className="text-muted-foreground">/{hostsTotal}</span>}
                 Hosts
               </TabsTrigger>
               <TabsTrigger value="groups" className="gap-1.5 rounded-md px-2.5 py-1 text-muted-foreground hover:text-foreground data-[state=active]:bg-muted data-[state=active]:text-foreground data-[state=active]:shadow-none">
                 <FolderTree className="h-4 w-4 text-green-500" />
-                <span className="font-bold text-foreground">{groupsTotal}</span>
+                <span className="font-bold text-foreground">
+                  {normalizedQuery ? filteredGroups.length : groupsTotal}
+                </span>
+                {normalizedQuery && <span className="text-muted-foreground">/{groupsTotal}</span>}
                 Groups
               </TabsTrigger>
               {inventory.type === 'vcs' && (
@@ -1173,6 +1247,33 @@ export default function InventoryDetail() {
             </div>
           </CardContent>
         </Card>
+
+        {/* Search hosts and groups — filters both tabs at once */}
+        {(hosts.length > 0 || groups.length > 0) && (
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search hosts and groups..."
+              value={searchQuery}
+              onChange={(e) => {
+                setSearchQuery(e.target.value);
+                setHostsPage(1);
+                setGroupsPage(1);
+              }}
+              className="pl-9 pr-9"
+            />
+            {searchQuery && (
+              <button
+                type="button"
+                aria-label="Clear search"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                onClick={() => { setSearchQuery(''); }}
+              >
+                <X className="h-4 w-4" />
+              </button>
+            )}
+          </div>
+        )}
 
         {/* Hosts Tab */}
         <TabsContent value="hosts" className="space-y-4">
@@ -1545,10 +1646,25 @@ export default function InventoryDetail() {
                 ) : null}
               </CardContent>
             </Card>
+          ) : filteredHosts.length === 0 ? (
+            <Card>
+              <CardContent className="flex flex-col items-center justify-center py-12">
+                <Search className="h-12 w-12 text-muted-foreground mb-4" />
+                <h3 className="text-lg font-medium mb-2">No matching hosts</h3>
+                <p className="text-muted-foreground text-sm text-center max-w-md">
+                  No hosts match &ldquo;{searchQuery}&rdquo;.
+                </p>
+              </CardContent>
+            </Card>
           ) : (
             <>
             <div className="grid gap-3 md:grid-cols-2">
-              {paginatedHosts.map((host) => (
+              {paginatedHosts.map((host) => {
+                const hostGroups = hostGroupsMap.get(host.id) ?? [];
+                const groupsExpanded = expandedHostGroups.has(host.id);
+                const visibleGroups = groupsExpanded ? hostGroups : hostGroups.slice(0, MAX_GROUP_BADGES);
+                const groupsOverflow = hostGroups.length - visibleGroups.length;
+                return (
                 <Card
                   key={host.id}
                   className={`group ${inventory.type === 'static' ? 'cursor-pointer hover:border-primary/50' : ''} transition-colors`}
@@ -1615,9 +1731,55 @@ export default function InventoryDetail() {
                         )}
                       </div>
                     </div>
+
+                    {/* Group membership badges with "+N" overflow */}
+                    {hostGroups.length > 0 && (
+                      <div
+                        className="flex flex-wrap items-center gap-1.5 mt-3"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <FolderTree className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                        {visibleGroups.map((group) => (
+                          <Badge
+                            key={group.id}
+                            variant="outline"
+                            className="text-xs font-normal px-2 py-0.5 border-green-500/30 text-green-600 dark:text-green-400"
+                          >
+                            {group.name}
+                          </Badge>
+                        ))}
+                        {groupsOverflow > 0 && (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              toggleHostGroupsExpanded(host.id);
+                            }}
+                            className="cursor-pointer"
+                          >
+                            <Badge variant="secondary" className="text-xs font-normal px-2 py-0.5">
+                              +{groupsOverflow}
+                            </Badge>
+                          </button>
+                        )}
+                        {groupsExpanded && hostGroups.length > MAX_GROUP_BADGES && (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              toggleHostGroupsExpanded(host.id);
+                            }}
+                            className="text-xs text-muted-foreground hover:text-foreground cursor-pointer"
+                          >
+                            Show less
+                          </button>
+                        )}
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
-              ))}
+                );
+              })}
             </div>
             <Pager page={currentHostsPage} totalPages={hostsTotalPages} onPageChange={setHostsPage} />
             </>
@@ -1687,6 +1849,16 @@ export default function InventoryDetail() {
                 )}
               </CardContent>
             </Card>
+          ) : filteredGroups.length === 0 ? (
+            <Card>
+              <CardContent className="flex flex-col items-center justify-center py-12">
+                <Search className="h-12 w-12 text-muted-foreground mb-4" />
+                <h3 className="text-lg font-medium mb-2">No matching groups</h3>
+                <p className="text-muted-foreground text-sm text-center max-w-md">
+                  No groups match &ldquo;{searchQuery}&rdquo;.
+                </p>
+              </CardContent>
+            </Card>
           ) : (
             <>
             <div className="grid gap-3 md:grid-cols-2">
@@ -1698,8 +1870,17 @@ export default function InventoryDetail() {
                 const memberHosts = (group.hostIds ?? [])
                   .map(id => hostById.get(id))
                   .filter((h): h is AnsibleInventoryHost => Boolean(h));
-                const MAX_BADGES = 12;
-                const shownHosts = memberHosts.slice(0, MAX_BADGES);
+                // While searching, surface hosts matching the query ahead of the "+N" overflow so a
+                // match is never hidden behind the badge cap.
+                if (normalizedQuery) {
+                  memberHosts.sort((a, b) => {
+                    const aMatch = a.name.toLowerCase().includes(normalizedQuery) ? 0 : 1;
+                    const bMatch = b.name.toLowerCase().includes(normalizedQuery) ? 0 : 1;
+                    return aMatch - bMatch;
+                  });
+                }
+                const hostsExpanded = expandedGroupHosts.has(group.id);
+                const shownHosts = hostsExpanded ? memberHosts : memberHosts.slice(0, MAX_HOST_BADGES);
                 const hiddenCount = memberCount - shownHosts.length;
 
                 return (
@@ -1749,7 +1930,7 @@ export default function InventoryDetail() {
                             <Server className="h-3.5 w-3.5" />
                             <span>{memberCount} host{memberCount !== 1 ? 's' : ''}</span>
                           </div>
-                          <div className="flex flex-wrap gap-1.5">
+                          <div className="flex flex-wrap items-center gap-1.5">
                             {shownHosts.map((host) => (
                               <Badge
                                 key={host.id}
@@ -1760,12 +1941,27 @@ export default function InventoryDetail() {
                               </Badge>
                             ))}
                             {hiddenCount > 0 && (
-                              <Badge
-                                variant="outline"
-                                className="text-xs font-normal px-2 py-0.5 text-muted-foreground"
+                              <button
+                                type="button"
+                                onClick={() => toggleGroupHostsExpanded(group.id)}
+                                className="cursor-pointer"
                               >
-                                +{hiddenCount} more
-                              </Badge>
+                                <Badge
+                                  variant="outline"
+                                  className="text-xs font-normal px-2 py-0.5 border-green-500/30 text-green-600 dark:text-green-400"
+                                >
+                                  +{hiddenCount} more
+                                </Badge>
+                              </button>
+                            )}
+                            {hostsExpanded && memberHosts.length > MAX_HOST_BADGES && (
+                              <button
+                                type="button"
+                                onClick={() => toggleGroupHostsExpanded(group.id)}
+                                className="text-xs text-muted-foreground hover:text-foreground cursor-pointer"
+                              >
+                                Show less
+                              </button>
                             )}
                           </div>
                         </div>

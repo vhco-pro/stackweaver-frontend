@@ -8,6 +8,10 @@ covers:
 
 # Changelog
 
+### Added
+- **Inventory host & group search**: The inventory detail page now has a search box (above the Hosts/Groups tabs) that filters hosts by name or hostname and groups by name or member host name. Tab counts show matches as `filtered/total` while a search is active. See `frontend/src/pages/Ansible/InventoryDetail.tsx`.
+- **Group membership on host cards**: Each host card now shows the groups it belongs to as badges. Hosts and groups with more members than fit collapse the remainder behind a `+N` badge that expands them inline (host cards reveal all groups; group cards reveal all member hosts). When searching, hosts matching the query are surfaced ahead of the `+N` overflow.
+
 ### Fixed
 - **List pagination across all Ansible pages**: The Playbooks, Job Templates, Jobs (and queue), Credentials, Schedules, and inventory Sources lists all loaded only the first server page of 20 rows with no pager — so beyond 20 items, the rest were silently hidden and the page's search/filter only saw the loaded 20. Each now loads every page and windows the rendered rows with a pager (and the job-template/schedule create-form dropdowns load all options). Extracted the shared `fetchAllPages` helper (`frontend/src/lib/pagination.ts`) and `Pager` component (`frontend/src/components/ui/pager.tsx`), and migrated the inventory pages onto them. See `frontend/src/pages/Ansible/**` and `frontend/src/api/ansible.ts`.
 
