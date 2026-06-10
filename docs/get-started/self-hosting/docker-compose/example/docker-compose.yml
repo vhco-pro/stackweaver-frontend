@@ -58,7 +58,7 @@ services:
     network_mode: host
 
   garage-init:
-    image: alpine:3.23
+    image: alpine:3.24
     container_name: garage-init
     depends_on:
       garage:
