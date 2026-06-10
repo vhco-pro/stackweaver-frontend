@@ -77,6 +77,16 @@ const CREDENTIAL_TYPES: { value: CredentialType; label: string; description: str
   { value: 'vmware', label: 'VMware', description: 'VMware vSphere credentials' },
 ];
 
+// normalizePrivateKey repairs a pasted SSH private key so it loads cleanly.
+// CRLF and lone-CR line endings (common from browser/Windows pastes) and stray
+// surrounding whitespace otherwise make the key fail with "error in libcrypto"
+// on the runner. The backend normalizes too; this is a friendlier client-side
+// guard applied on submit (not while typing). Empty input is returned as-is.
+function normalizePrivateKey(key: string): string {
+  if (!key) return key;
+  return key.replace(/\r\n/g, '\n').replace(/\r/g, '').trim() + '\n';
+}
+
 export default function Credentials() {
   const { orgName } = useParams<{ orgName: string }>();
   const { currentOrg } = useOrganization();
@@ -145,7 +155,10 @@ export default function Credentials() {
 
     setCreating(true);
     try {
-      const res = await ansibleCredentialsApi.create(selectedOrg, formData);
+      const payload: CreateCredentialInput = formData.ssh_private_key
+        ? { ...formData, ssh_private_key: normalizePrivateKey(formData.ssh_private_key) }
+        : formData;
+      const res = await ansibleCredentialsApi.create(selectedOrg, payload);
       getAnsibleCredentialFromJsonApi(res.data);
       void refetchCredentials();
       setCreateDialogOpen(false);
