@@ -866,7 +866,8 @@ function AuroraCanvas({ className = '', theme = 'dark' }: { className?: string; 
         }
         
         // Calculate twinkle effect - only if this star is currently twinkling
-        let tw = 0.5; // base twinkle value
+        // (both branches below assign tw)
+        let tw: number;
         if (s.twinkleStart >= 0 && frame >= s.twinkleStart && frame < s.twinkleStart + s.twinkleDuration) {
           const twinkleProgress = (frame - s.twinkleStart) / s.twinkleDuration;
           // Smooth in-out twinkle using sine wave

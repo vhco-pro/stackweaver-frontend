@@ -89,7 +89,8 @@ export default function Dashboard() {
             const resourceNameRaw = details.resource_name || attrs.resource_type;
             
             // Format activity description based on action and resource type
-            let description = '';
+            // (every switch path below, incl. default, assigns description)
+            let description: string;
             let resourceNameStr = '';
             if (resourceNameRaw != null) {
               const resourceType = typeof resourceNameRaw;
