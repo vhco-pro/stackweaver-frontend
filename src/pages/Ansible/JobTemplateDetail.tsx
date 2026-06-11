@@ -29,6 +29,9 @@ import {
   getAnsibleInventoryFromJsonApi,
   getAnsibleCredentialFromJsonApi,
 } from '@/utils/ansible-jsonapi';
+import { fetchAllPages } from '@/lib/pagination';
+import { PlaybookSourcePicker } from '@/components/ansible/PlaybookSourcePicker';
+import { resolvePlaybookSelection, type PlaybookSelection } from '@/components/ansible/playbook-selection';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -218,6 +221,8 @@ export default function JobTemplateDetail() {
     agent_pool_id: '',
   });
   const [agentPools, setAgentPools] = useState<AgentPool[]>([]);
+  const [editPlaybooks, setEditPlaybooks] = useState<AnsiblePlaybook[]>([]);
+  const [editPlaybookSelection, setEditPlaybookSelection] = useState<PlaybookSelection>(null);
 
   // Delete state
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -369,11 +374,16 @@ export default function JobTemplateDetail() {
         inventory_id: template.inventory_id || '',
         agent_pool_id: template.agent_pool_id || '',
       });
-      // Load agent pools for the edit dialog
+      setEditPlaybookSelection(template.playbook_id ? { kind: 'registered', playbookId: template.playbook_id } : null);
+      // Load agent pools and registered playbooks for the edit dialog
       if (orgName) {
         void agentPoolsApi.list(orgName)
           .then((res) => setAgentPools(res.data || []))
           .catch((err) => console.error('Failed to load agent pools:', err));
+        void fetchAllPages((page, pageSize) =>
+          ansiblePlaybooksApi.listByOrganization(orgName, { page, pageSize }))
+          .then(({ items }) => setEditPlaybooks(items.map(getAnsiblePlaybookFromJsonApi)))
+          .catch((err) => console.error('Failed to load playbooks:', err));
       }
     }
   }, [editDialogOpen, template, orgName]);
@@ -401,8 +411,15 @@ export default function JobTemplateDetail() {
       return;
     }
 
+    if (!editPlaybookSelection) {
+      toast.error('Playbook is required');
+      return;
+    }
+
     setSaving(true);
     try {
+      // A repository-file selection registers the playbook now (find-or-create).
+      const playbookId = await resolvePlaybookSelection(orgName || '', editPlaybookSelection, template.project_id);
       const updateData = {
         name: editForm.name,
         description: editForm.description || undefined,
@@ -411,6 +428,7 @@ export default function JobTemplateDetail() {
         skip_tags: editForm.skip_tags || undefined,
         verbosity: editForm.verbosity,
         forks: editForm.forks,
+        playbook_id: playbookId,
         inventory_id: editForm.inventory_id,
         // Use empty string (not undefined) to clear the relationship, undefined to skip updating it
         credential_id: editForm.credential_id === '' ? '' : (editForm.credential_id || undefined),
@@ -1340,6 +1358,13 @@ export default function JobTemplateDetail() {
                 />
               </div>
             </div>
+            <PlaybookSourcePicker
+              key={String(editDialogOpen)}
+              organizationName={orgName || ''}
+              playbooks={editPlaybooks}
+              value={editPlaybookSelection}
+              onChange={setEditPlaybookSelection}
+            />
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="inventory_id">Inventory *</Label>

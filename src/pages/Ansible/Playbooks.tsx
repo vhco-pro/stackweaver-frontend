@@ -47,6 +47,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import {
   FileText,
+  FolderGit2,
   Search,
   Plus,
   MoreVertical,
@@ -63,6 +64,7 @@ import { cn } from '@/lib/utils';
 import { getVcsProviderIcon, getVcsProviderLabel, getVcsRepoUrl, getVcsBranchUrl, getVcsFileUrl, getVcsManageUrl } from '@/lib/vcs';
 import { VCSProviderSelector } from '@/components/vcs/VCSProviderSelector';
 import { VCSProjectSelect } from '@/components/vcs/VCSProjectSelect';
+import { PlaybookImportWizard } from '@/components/ansible/PlaybookImportWizard';
 
 // Simple relative time formatter
 function formatRelativeTime(dateString: string): string {
@@ -97,6 +99,7 @@ export default function Playbooks() {
 
   // Create dialog state
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [importDialogOpen, setImportDialogOpen] = useState(false);
   const [loadingYamlFiles, setLoadingYamlFiles] = useState(false);
   const [yamlFiles, setYamlFiles] = useState<string[]>([]);
   const [creating, setCreating] = useState(false);
@@ -461,10 +464,16 @@ export default function Playbooks() {
           </p>
         </div>
         {canManagePlaybooks && (
-          <Button onClick={() => setCreateDialogOpen(true)}>
-            <Plus className="h-4 w-4 mr-2" />
-            New Playbook
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" onClick={() => setImportDialogOpen(true)}>
+              <FolderGit2 className="h-4 w-4 mr-2" />
+              Import from repository
+            </Button>
+            <Button onClick={() => setCreateDialogOpen(true)}>
+              <Plus className="h-4 w-4 mr-2" />
+              New Playbook
+            </Button>
+          </div>
         )}
       </div>
 
@@ -1051,6 +1060,14 @@ export default function Playbooks() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Bulk import wizard */}
+      <PlaybookImportWizard
+        open={importDialogOpen}
+        onOpenChange={setImportDialogOpen}
+        organizationName={selectedOrg}
+        onImported={() => { void queryClient.invalidateQueries({ queryKey: playbooksQueryKey }); }}
+      />
     </div>
   );
 }

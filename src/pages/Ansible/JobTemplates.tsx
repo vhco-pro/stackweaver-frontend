@@ -18,6 +18,8 @@ import {
   type AnsibleJob,
 } from '@/api/ansible';
 import { agentPoolsApi, type AgentPool } from '@/api/client';
+import { PlaybookSourcePicker } from '@/components/ansible/PlaybookSourcePicker';
+import { resolvePlaybookSelection, type PlaybookSelection } from '@/components/ansible/playbook-selection';
 import {
   getAnsibleJobTemplateFromJsonApi,
   getAnsiblePlaybookFromJsonApi,
@@ -155,7 +157,6 @@ export default function JobTemplates() {
   const [createForm, setCreateForm] = useState({
     name: '',
     description: '',
-    playbook_id: '',
     inventory_id: '',
     credential_id: '',
     agent_pool_id: '',
@@ -163,6 +164,7 @@ export default function JobTemplates() {
     forks: 5,
     become: false,
   });
+  const [playbookSelection, setPlaybookSelection] = useState<PlaybookSelection>(null);
 
   // Fetch templates and jobs
   const { isLoading: loading } = useQuery({
@@ -217,7 +219,7 @@ export default function JobTemplates() {
       toast.error('Name is required');
       return;
     }
-    if (!createForm.playbook_id) {
+    if (!playbookSelection) {
       toast.error('Playbook is required');
       return;
     }
@@ -228,10 +230,12 @@ export default function JobTemplates() {
 
     setCreating(true);
     try {
+      // A repository-file selection registers the playbook now (find-or-create).
+      const playbookId = await resolvePlaybookSelection(selectedOrg, playbookSelection);
       const res = await ansibleJobTemplatesApi.create(selectedOrg, {
         name: createForm.name,
         description: createForm.description || undefined,
-        playbook_id: createForm.playbook_id,
+        playbook_id: playbookId,
         inventory_id: createForm.inventory_id,
         credential_id: createForm.credential_id || undefined,
         agent_pool_id: createForm.agent_pool_id || undefined,
@@ -245,7 +249,6 @@ export default function JobTemplates() {
       setCreateForm({
         name: '',
         description: '',
-        playbook_id: '',
         inventory_id: '',
         credential_id: '',
         agent_pool_id: '',
@@ -253,6 +256,7 @@ export default function JobTemplates() {
         forks: 5,
         become: false,
       });
+      setPlaybookSelection(null);
       toast.success('Job template created successfully');
     } catch (err: unknown) {
       console.error('Failed to create job template:', err);
@@ -572,7 +576,7 @@ export default function JobTemplates() {
 
       {/* Create Job Template Dialog */}
       <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Create Job Template</DialogTitle>
             <DialogDescription>
@@ -599,26 +603,13 @@ export default function JobTemplates() {
                 rows={2}
               />
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="playbook_id">Playbook *</Label>
-              <Select
-                value={createForm.playbook_id}
-                onValueChange={(value) => setCreateForm({ ...createForm, playbook_id: value })}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select a playbook" />
-                </SelectTrigger>
-                <SelectContent>
-                  {playbooks.length === 0 ? (
-                    <div className="px-2 py-1.5 text-sm text-muted-foreground">No playbooks available</div>
-                  ) : (
-                    playbooks.map((pb) => (
-                      <SelectItem key={pb.id} value={pb.id}>{pb.name}</SelectItem>
-                    ))
-                  )}
-                </SelectContent>
-              </Select>
-            </div>
+            <PlaybookSourcePicker
+              key={String(createDialogOpen)}
+              organizationName={selectedOrg}
+              playbooks={playbooks}
+              value={playbookSelection}
+              onChange={setPlaybookSelection}
+            />
             <div className="space-y-2">
               <Label htmlFor="inventory_id">Inventory *</Label>
               <Select
