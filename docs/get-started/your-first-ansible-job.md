@@ -66,6 +66,8 @@ If you haven't already, connect the repository containing your Ansible playbooks
 1. Ensure your GitHub connection is set up in VCS settings
 2. The repository should contain your `.yml` or `.yaml` playbook files
 
+When you create the playbook, you also choose its **Source**. In the default cached mode, StackWeaver runs from a snapshot of the playbook and its dependencies that it captures when the playbook syncs, so the playbook keeps running even if its repository is temporarily unreachable at job time. The first run with no snapshot yet syncs one automatically and then runs from it. Choose the fresh option instead if you want every run to clone the latest commit from the repository at runtime. You can change the source at any time on the playbook form, and trigger a sync manually to refresh the cached snapshot.
+
 ## Step 4: Create a Job Template
 
 Job templates define how jobs should run - which playbook, inventory, and credentials to use. This lets you save common configurations and reuse them, rather than entering the same settings every time.

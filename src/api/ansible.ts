@@ -121,10 +121,14 @@ export interface AnsiblePlaybook {
   vcs_provider?: string;
   vcs_account_name?: string;
   playbook_path: string;
+  source_mode?: string;
   last_synced_at?: string;
   last_sync_status?: string;
   last_sync_commit?: string;
   last_sync_error?: string;
+  cached_commit?: string;
+  cached_at?: string;
+  cached_size_bytes?: number;
   created_at: string;
   updated_at: string;
 }
@@ -136,6 +140,7 @@ export interface CreatePlaybookInput {
   vcs_repository?: string;
   vcs_branch?: string;
   playbook_path: string;
+  source_mode?: string;
 }
 
 export interface AnsibleJobTemplate {
@@ -577,6 +582,7 @@ export const ansiblePlaybooksApi = {
             'vcs-repository': data.vcs_repository || '',
             'vcs-branch': data.vcs_branch || 'main',
             'playbook-path': data.playbook_path || 'site.yml',
+            'source-mode': data.source_mode || 'cached',
           },
           relationships: {
             ...(data.project_id ? {
@@ -606,6 +612,7 @@ export const ansiblePlaybooksApi = {
             'vcs-repository': data.vcs_repository,
             'vcs-branch': data.vcs_branch,
             'playbook-path': data.playbook_path,
+            'source-mode': data.source_mode,
           },
           ...(data.vcs_connection_id !== undefined ? {
             relationships: {
