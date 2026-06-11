@@ -125,6 +125,7 @@ export default function Playbooks() {
     vcs_repository: '',
     vcs_branch: '',
     playbook_path: 'site.yml',
+    source_mode: 'cached',
   });
 
   // Fetch playbooks
@@ -359,6 +360,7 @@ export default function Playbooks() {
         vcs_repository: createForm.vcs_repository,
         vcs_branch: createForm.vcs_branch,
         playbook_path: createForm.playbook_path || 'site.yml',
+        source_mode: createForm.source_mode || 'cached',
       });
       const newPlaybook = getAnsiblePlaybookFromJsonApi(response.data);
       queryClient.setQueryData<AnsiblePlaybook[]>(playbooksQueryKey, (old) =>
@@ -383,6 +385,7 @@ export default function Playbooks() {
       vcs_repository: '',
       vcs_branch: '',
       playbook_path: 'site.yml',
+      source_mode: 'cached',
     });
     setSelectedVcsProject('');
     setNameTouched(false);
@@ -915,6 +918,7 @@ export default function Playbooks() {
 
             {/* Playbook Path */}
             {createForm.vcs_connection_id && createForm.vcs_repository && createForm.vcs_branch && (
+              <>
               <div className="space-y-2">
                 <Label htmlFor="playbook_path">Playbook Path</Label>
                 {loadingYamlFiles ? (
@@ -982,6 +986,27 @@ export default function Playbooks() {
                     : 'Path to the main playbook file within the repository (e.g., site.yml, playbooks/deploy.yml)'}
                 </p>
               </div>
+              <div className="space-y-2">
+                <Label htmlFor="source_mode">Source</Label>
+                <Select
+                  value={createForm.source_mode}
+                  onValueChange={(value) => setCreateForm({ ...createForm, source_mode: value })}
+                >
+                  <SelectTrigger id="source_mode">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="cached">Cached snapshot (recommended)</SelectItem>
+                    <SelectItem value="fresh">Fresh from remote</SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">
+                  {createForm.source_mode === 'fresh'
+                    ? 'Each run clones the playbook fresh from the VCS at runtime (always latest HEAD).'
+                    : 'Runs the last synced snapshot from storage; the first run syncs it automatically. Keeps critical playbooks runnable even when the VCS is unreachable.'}
+                </p>
+              </div>
+              </>
             )}
           </div>
           <DialogFooter>
