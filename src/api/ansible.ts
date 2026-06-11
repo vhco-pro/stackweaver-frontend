@@ -632,7 +632,79 @@ export const ansiblePlaybooksApi = {
     apiClient.post<JsonApiResponse<JsonApiResource>>(
       `/ansible/playbooks/${id}/actions/sync`
     ),
+
+  // Lists playbook candidate files in a connected repository, annotated with
+  // already-registered playbooks (powers the bulk-import wizard and the job
+  // template repository browser).
+  listVcsFiles: (organizationName: string, params: {
+    vcs_connection_id: string;
+    repository: string;
+    branch?: string;
+    path?: string;
+  }) => {
+    const query = new URLSearchParams({
+      vcs_connection_id: params.vcs_connection_id,
+      repository: params.repository,
+    });
+    if (params.branch) query.set('branch', params.branch);
+    if (params.path) query.set('path', params.path);
+    return apiClient.get<{ data: PlaybookFileEntry[] }>(
+      `/organizations/${organizationName}/ansible/vcs-playbook-files?${query.toString()}`
+    );
+  },
+
+  bulkImport: (organizationName: string, payload: {
+    project_id?: string;
+    vcs_connection_id: string;
+    repository: string;
+    branch?: string;
+    source_mode?: string;
+    playbooks: { path: string; name?: string }[];
+  }) =>
+    apiClient.post<{ data: BulkImportResult }>(
+      `/organizations/${organizationName}/ansible/playbooks/actions/bulk-import`,
+      payload
+    ),
+
+  // Returns the playbook registered for (project, connection, repository,
+  // branch, path), creating it when absent.
+  findOrCreate: (organizationName: string, payload: {
+    project_id?: string;
+    vcs_connection_id: string;
+    repository: string;
+    branch?: string;
+    path: string;
+    name?: string;
+    source_mode?: string;
+  }) =>
+    apiClient.post<JsonApiResponse<JsonApiResource> & { meta?: { created?: boolean } }>(
+      `/organizations/${organizationName}/ansible/playbooks/actions/find-or-create`,
+      payload
+    ),
 };
+
+// PlaybookFileEntry is one playbook candidate file from repository discovery.
+export interface PlaybookFileEntry {
+  path: string;
+  name: string;
+  registered: boolean;
+  playbook_id?: string;
+  playbook_name?: string;
+}
+
+// BulkImportResult summarizes a bulk-import action.
+export interface BulkImportResult {
+  results: {
+    path: string;
+    status: 'created' | 'skipped' | 'failed';
+    playbook_id?: string;
+    name?: string;
+    error?: string;
+  }[];
+  created: number;
+  skipped: number;
+  failed: number;
+}
 
 // Job Template API
 export const ansibleJobTemplatesApi = {
@@ -712,8 +784,13 @@ export const ansibleJobTemplatesApi = {
             forks: data.forks,
             'become-enabled': data.become,
           },
-          ...(data.inventory_id !== undefined || data.credential_id !== undefined || data.agent_pool_id !== undefined ? {
+          ...(data.playbook_id !== undefined || data.inventory_id !== undefined || data.credential_id !== undefined || data.agent_pool_id !== undefined ? {
             relationships: {
+              ...(data.playbook_id !== undefined ? {
+                playbook: {
+                  data: { id: data.playbook_id, type: 'ansible-playbooks' },
+                },
+              } : {}),
               ...(data.inventory_id !== undefined ? {
                 inventory: {
                   data: { id: data.inventory_id, type: 'ansible-inventories' },
