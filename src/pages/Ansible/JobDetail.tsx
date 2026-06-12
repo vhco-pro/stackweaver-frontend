@@ -66,6 +66,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import { fetchAllPages } from '@/lib/pagination';
 
 // Date formatting helpers
 function formatDateTime(dateString: string): string {
@@ -135,23 +136,22 @@ export default function JobDetail() {
     enabled: !!jobId,
   });
 
-  // Fetch events and output on initial load
+  // Fetch the full event history on initial load and derive the output from it.
+  // Output is the concatenation of every event's stdout (identical to the
+  // server's GetJobOutput), so deriving both the Events tab and the Output pane
+  // from the one paginated event stream keeps them consistent and lets the
+  // poll below append with `?after=<counter>` without any chance of drift or
+  // duplication (a separate full-output endpoint would re-count lines the poll
+  // also appends). Paginating also fixes the Events tab being capped at the
+  // first 100 events for already-finished jobs.
   const jobEventsQuery = useQuery({
     queryKey: ['jobEvents', jobId],
     queryFn: async () => {
-      const [eventsRes, outputRes] = await Promise.allSettled([
-        ansibleJobsApi.getEvents(jobId!),
-        ansibleJobsApi.getOutput(jobId!)
-      ]);
-
-      const eventsData = eventsRes.status === 'fulfilled'
-        ? (eventsRes.value.data || []).map(getAnsibleJobEventFromJsonApi)
-        : [];
-
-      const outputData = outputRes.status === 'fulfilled'
-        ? outputRes.value
-        : '';
-
+      const { items } = await fetchAllPages((page, pageSize) =>
+        ansibleJobsApi.getEvents(jobId!, { page, pageSize })
+      );
+      const eventsData = items.map(getAnsibleJobEventFromJsonApi);
+      const outputData = eventsData.map((e) => e.stdout || '').join('');
       return { events: eventsData, output: outputData };
     },
     enabled: !!jobId,
@@ -178,26 +178,26 @@ export default function JobDetail() {
           // Update job in the jobDetail query cache
           queryClient.setQueryData(['jobDetail', jobId], (prev: typeof jobDetailQuery.data) => prev ? { ...prev, job: updatedJob } : prev);
 
-          // Always refresh both events and output during polling for live updates
-          const [eventsRes, outputRes] = await Promise.allSettled([
-            ansibleJobsApi.getEvents(job.id),
-            ansibleJobsApi.getOutput(job.id)
-          ]);
-
-          const newEvents = eventsRes.status === 'fulfilled'
-            ? (eventsRes.value.data || []).map(getAnsibleJobEventFromJsonApi)
-            : undefined;
-          const newOutput = outputRes.status === 'fulfilled'
-            ? outputRes.value
-            : undefined;
-
-          queryClient.setQueryData(['jobEvents', jobId], (prev: typeof jobEventsQuery.data) => {
-            if (!prev) return prev;
-            return {
-              events: newEvents ?? prev.events,
-              output: newOutput ?? prev.output,
-            };
-          });
+          // Incremental live updates: fetch only events newer than the last
+          // counter we have and APPEND them (events and their stdout), instead
+          // of re-downloading the whole history every poll — keeps long runs
+          // cheap for both the browser and the API.
+          const cached = queryClient.getQueryData<typeof jobEventsQuery.data>(['jobEvents', jobId]);
+          const lastCounter = cached?.events.length
+            ? Math.max(...cached.events.map((e) => e.counter))
+            : 0;
+          const eventsRes = await ansibleJobsApi.getEvents(job.id, { after: lastCounter });
+          const freshEvents = (eventsRes.data || []).map(getAnsibleJobEventFromJsonApi);
+          if (freshEvents.length > 0) {
+            const freshOutput = freshEvents.map((e) => e.stdout || '').join('');
+            queryClient.setQueryData(['jobEvents', jobId], (prev: typeof jobEventsQuery.data) => {
+              if (!prev) return { events: freshEvents, output: freshOutput };
+              return {
+                events: [...prev.events, ...freshEvents],
+                output: prev.output + freshOutput,
+              };
+            });
+          }
 
           // When job completes, stop polling
           if (!['pending', 'running'].includes(updatedJob.status)) {

@@ -8,6 +8,7 @@ import { usePermissions } from '@/hooks/usePermissions';
 import {
   ansibleSchedulesApi,
   ansibleJobTemplatesApi,
+  ansibleWorkflowsApi,
   type AnsibleSchedule,
   type ScheduleType,
   type ScheduleStatus,
@@ -149,13 +150,15 @@ export default function Schedules() {
   const { data: queryData, isLoading: loading, refetch: refetchSchedules } = useQuery({
     queryKey: ['schedules', selectedOrg],
     queryFn: async () => {
-      const [schedulesRes, templatesRes] = await Promise.all([
+      const [schedulesRes, templatesRes, workflowsRes] = await Promise.all([
         fetchAllPages((page, pageSize) => ansibleSchedulesApi.list(selectedOrg, { page, pageSize })),
         fetchAllPages((page, pageSize) => ansibleJobTemplatesApi.listByOrganization(selectedOrg, { page, pageSize })),
+        ansibleWorkflowsApi.list(selectedOrg, { page: 1, pageSize: 100 }),
       ]);
       return {
         schedules: schedulesRes.items.map(getAnsibleScheduleFromJsonApi),
         jobTemplates: templatesRes.items.map(getAnsibleJobTemplateFromJsonApi),
+        workflows: (workflowsRes.data || []).map((w) => ({ id: w.id, name: (w.attributes?.name as string) || '' })),
       };
     },
     enabled: !!selectedOrg,
@@ -163,6 +166,7 @@ export default function Schedules() {
 
   const schedules = queryData?.schedules ?? [];
   const jobTemplates = queryData?.jobTemplates ?? [];
+  const workflows = queryData?.workflows ?? [];
 
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<ScheduleStatus | 'all'>('all');
@@ -196,6 +200,10 @@ export default function Schedules() {
     }
     if (scheduleForm.type === 'job_template' && !scheduleForm.job_template_id) {
       toast.error('Please select a job template');
+      return;
+    }
+    if (scheduleForm.type === 'workflow' && !scheduleForm.workflow_id) {
+      toast.error('Please select a workflow');
       return;
     }
 
@@ -284,6 +292,8 @@ export default function Schedules() {
         return <Badge variant="outline">Inventory Sync</Badge>;
       case 'playbook_sync':
         return <Badge variant="outline">Playbook Sync</Badge>;
+      case 'workflow':
+        return <Badge variant="outline">Workflow</Badge>;
       default:
         return <Badge variant="outline">{type}</Badge>;
     }
@@ -392,10 +402,32 @@ export default function Schedules() {
                     <SelectItem value="job_template">Job Template</SelectItem>
                     <SelectItem value="inventory_source">Inventory Source Sync</SelectItem>
                     <SelectItem value="playbook_sync">Playbook VCS Sync</SelectItem>
+                    <SelectItem value="workflow">Workflow</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
               
+              {scheduleForm.type === 'workflow' && (
+                <div className="space-y-2">
+                  <Label htmlFor="schedule-workflow">Workflow *</Label>
+                  <Select
+                    value={scheduleForm.workflow_id || ''}
+                    onValueChange={(value) => setScheduleForm({ ...scheduleForm, workflow_id: value })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select workflow" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {workflows.map((wf) => (
+                        <SelectItem key={wf.id} value={wf.id}>
+                          {wf.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+
               {scheduleForm.type === 'job_template' && (
                 <div className="space-y-2">
                   <Label htmlFor="schedule-template">Job Template *</Label>
@@ -556,6 +588,7 @@ export default function Schedules() {
             <SelectItem value="job_template">Job Template</SelectItem>
             <SelectItem value="inventory_source">Inventory Sync</SelectItem>
             <SelectItem value="playbook_sync">Playbook Sync</SelectItem>
+            <SelectItem value="workflow">Workflow</SelectItem>
           </SelectContent>
         </Select>
       </div>

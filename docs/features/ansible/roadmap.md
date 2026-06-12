@@ -33,9 +33,9 @@ covers:
 
 ## In Progress
 
-### Workflow Templates 🚧 (January 2025)
+### Workflow Templates 🚧 (June 2026)
 
-**Status**: Backend complete, Frontend list page complete, Visual builder pending
+**Status**: Execution engine complete; visual builder pending
 
 **Completed**:
 - ✅ Data models: `AnsibleWorkflow`, `AnsibleWorkflowNode`, `AnsibleWorkflowEdge`, `AnsibleWorkflowJob`, `AnsibleWorkflowNodeJob`
@@ -44,13 +44,16 @@ covers:
 - ✅ Routes registered at `/api/v2/organizations/:name/ansible/workflows` and `/api/v2/ansible/workflows/:id`
 - ✅ Frontend list page with create dialog
 - ✅ Sidebar navigation item added
+- ✅ Workflow job execution engine (on_success/on_failure/always edges, any-parent vs all-parents convergence)
+- ✅ Approval gate support (approve/deny with optional deny-on-timeout)
+- ✅ Inventory sync nodes
+- ✅ Workflow runs visualization (Launch / View Runs with per-node status and job output links)
+- ✅ Variable passing (workflow extra vars merged into node launches, node overrides win)
+- ✅ Schedulable workflows (new `workflow` schedule type)
 
 **Remaining**:
-- 🔲 Visual workflow builder (React Flow)
-- 🔲 Workflow job execution engine
-- 🔲 Workflow job status visualization
-- 🔲 Variable passing between nodes
-- 🔲 Approval gate support
+- 🔲 Visual workflow builder (React Flow) — nodes and edges are managed via the API
+- 🔲 Nested workflow nodes (rejected at runtime in v1)
 
 **Data Model**:
 ```go

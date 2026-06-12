@@ -765,3 +765,117 @@ GET /api/v2/vcs-connections/:id/repositories/:owner/:repo/contents/*path
   }
 }
 ```
+
+---
+
+## Inventory Sync History
+
+### List Syncs
+
+```
+GET /api/v2/ansible/inventories/:id/syncs
+```
+
+Returns the inventory's sync run history, newest first (output omitted). Each run carries `status`, `triggered-by` (manual, schedule, launch, workflow, webhook), `hosts-discovered`, `groups-discovered`, `started-at`, and `finished-at`.
+
+### Get Sync (with output)
+
+```
+GET /api/v2/ansible/inventory-syncs/:sync_id
+```
+
+Returns one sync run including its captured `output`. While the run is still active the output grows as the runner flushes it, so polling this endpoint tails the sync live.
+
+---
+
+## Ad Hoc Commands
+
+### Run Command
+
+```
+POST /api/v2/ansible/inventories/:id/actions/run-command
+```
+
+Runs a single module against the inventory through the normal job pipeline. Attributes: `module` (must be in the organization's allowlist), `module-args`, `limit`, `credential-id`, `agent-pool-id` (omit for platform runners), `verbosity`, `forks`, `become-enabled`, `extra-vars`, and `project-id` (defaults to the inventory's project or the organization's default project). Requires the dedicated `ansible:adhoc:execute` permission. Returns the created job.
+
+### List Allowed Modules
+
+```
+GET /api/v2/organizations/:name/ansible/adhoc-modules
+```
+
+Returns the organization's effective module allowlist (its configured comma-separated list, or the built-in AWX default).
+
+---
+
+## Job Template Credentials
+
+```
+GET    /api/v2/ansible/job-templates/:id/credentials
+POST   /api/v2/ansible/job-templates/:id/credentials
+DELETE /api/v2/ansible/job-templates/:id/credentials/:credential_id
+```
+
+Manages the template's credential set. AWX semantics are enforced on attach: at most one credential per type, except vault credentials, which may repeat with distinct vault IDs (409 on conflict).
+
+### Template Access
+
+```
+GET /api/v2/ansible/job-templates/:id/access
+```
+
+Returns which teams can read, edit, and execute the template, derived from organization and project permissions.
+
+---
+
+## Notifications
+
+```
+GET    /api/v2/organizations/:name/ansible/notification-templates
+POST   /api/v2/organizations/:name/ansible/notification-templates
+PATCH  /api/v2/ansible/notification-templates/:id
+DELETE /api/v2/ansible/notification-templates/:id
+POST   /api/v2/ansible/notification-templates/:id/actions/test
+```
+
+Organization-level notification channels of type `webhook`, `email`, or `teams`. The channel `config` is type-specific (URL and headers for webhook/Teams; SMTP host, port, from, and recipients for email); an optional `secret` (basic-auth password or SMTP password) is stored encrypted and never returned. The test action delivers a synthetic payload.
+
+```
+POST   /api/v2/organizations/:name/ansible/notification-attachments
+DELETE /api/v2/ansible/notification-attachments/:id
+GET    /api/v2/ansible/job-templates/:id/notifications
+```
+
+Attachments bind a channel to a job template or workflow with per-trigger flags (`on_started`, `on_success`, `on_failure`).
+
+---
+
+## Workflow Execution
+
+```
+POST /api/v2/ansible/workflows/:id/launch
+GET  /api/v2/ansible/workflows/:id/jobs
+GET  /api/v2/ansible/workflow-jobs/:id
+POST /api/v2/ansible/workflow-node-jobs/:id/approve
+POST /api/v2/ansible/workflow-node-jobs/:id/deny
+```
+
+Launching snapshots the workflow graph into a run; the run detail lists per-node status with links to launched jobs. Approval nodes pause the run until approved or denied (an optional timeout auto-denies). Launch, approve, and deny require execute permission on the workflow's project.
+
+---
+
+## Provisioning Callbacks
+
+```
+POST /api/v2/ansible/job-templates/:id/callback
+```
+
+Public, key-authenticated endpoint (registered outside the authenticated API group). A freshly provisioned host POSTs `{"host_config_key": "..."}`; when the template allows callbacks, the key matches, and the caller's IP corresponds to a host in the template's inventory, a job launches limited to that host.
+
+### Incremental Job Events
+
+```
+GET /api/v2/ansible/jobs/:id/events?after=<counter>
+```
+
+With `after`, returns only events whose counter is greater than the given value (capped per call) — the polling contract used by the job detail page to append live output instead of re-downloading the full history.

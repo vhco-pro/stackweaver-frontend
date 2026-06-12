@@ -64,6 +64,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import {
+  Ban,
   Layers,
   Search,
   Plus,
@@ -287,6 +288,18 @@ export default function JobTemplates() {
   };
 
   // Launch and navigate to job
+  const handleToggleEnabled = async (template: AnsibleJobTemplate) => {
+    try {
+      const res = await ansibleJobTemplatesApi.update(template.id, { enabled: !template.enabled });
+      const updated = getAnsibleJobTemplateFromJsonApi(res.data);
+      setTemplates(templates.map((tpl) => (tpl.id === template.id ? updated : tpl)));
+      toast.success(`Template ${updated.enabled ? 'enabled' : 'disabled'}`);
+    } catch (err: unknown) {
+      console.error('Failed to toggle template:', err);
+      toast.error(err instanceof Error ? err.message : 'Failed to update template');
+    }
+  };
+
   const handleLaunch = async (template: AnsibleJobTemplate) => {
     setLaunching(template.id);
     try {
@@ -403,8 +416,11 @@ export default function JobTemplates() {
                       <Layers className="h-5 w-5 text-purple-500" />
                     </div>
                     <div className="min-w-0 flex-1">
-                      <CardTitle className="text-lg truncate">
+                      <CardTitle className="text-lg truncate flex items-center gap-2">
                         {template.name}
+                        {!template.enabled && (
+                          <Badge variant="outline" className="text-muted-foreground border-dashed shrink-0">Disabled</Badge>
+                        )}
                       </CardTitle>
                       {template.description && (
                         <CardDescription className="line-clamp-2 mt-1">
@@ -420,7 +436,8 @@ export default function JobTemplates() {
                           variant="ghost"
                           size="sm"
                           onClick={() => { void handleLaunch(template); }}
-                          disabled={launching === template.id}
+                          disabled={launching === template.id || !template.enabled}
+                          title={!template.enabled ? 'This template is disabled' : undefined}
                           className="bg-white dark:bg-slate-950/80 dark:backdrop-blur-xs text-slate-900 dark:text-white hover:bg-slate-50 dark:hover:bg-slate-950/90 border-0 whitespace-nowrap rounded-[calc(0.75rem-2px)] px-3 py-1"
                         >
                           {launching === template.id ? (
@@ -456,10 +473,19 @@ export default function JobTemplates() {
                         {canExecuteJobs && (
                           <DropdownMenuItem
                             onClick={() => { void handleBackgroundLaunch(template); }}
-                            disabled={launching === template.id}
+                            disabled={launching === template.id || !template.enabled}
                           >
                             <PlayCircle className="h-4 w-4 mr-2" />
                             Background Launch
+                          </DropdownMenuItem>
+                        )}
+                        {canManageJobTemplates && (
+                          <DropdownMenuItem onClick={() => { void handleToggleEnabled(template); }}>
+                            {template.enabled ? (
+                              <><Ban className="h-4 w-4 mr-2" />Disable</>
+                            ) : (
+                              <><CheckCircle className="h-4 w-4 mr-2" />Enable</>
+                            )}
                           </DropdownMenuItem>
                         )}
                         {canManageJobTemplates && (

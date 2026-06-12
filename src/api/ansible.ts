@@ -17,7 +17,7 @@ export type CredentialType =
   | 'gcp' 
   | 'vmware';
 
-export type InventoryType = 'static' | 'dynamic' | 'vcs';
+export type InventoryType = 'static' | 'dynamic' | 'vcs' | 'constructed';
 
 export type AnsibleJobStatus = 
   | 'pending' 
@@ -45,6 +45,11 @@ export interface AnsibleInventory {
   last_sync_error?: string;
   last_sync_hosts_discovered?: number;
   last_sync_log?: string;
+  // Constructed inventory fields
+  source_vars?: string;
+  constructed_limit?: string;
+  constructed_cache_timeout?: number;
+  input_inventories?: { id: string; name: string }[];
   created_at: string;
   updated_at: string;
 }
@@ -160,6 +165,14 @@ export interface AnsibleJobTemplate {
   forks: number;
   become: boolean;
   become_user?: string;
+  enabled: boolean;
+  timeout_seconds: number;
+  allow_simultaneous: boolean;
+  retention_days?: number | null;
+  job_slice_count: number;
+  allow_callbacks: boolean;
+  launch_on_webhook: boolean;
+  host_config_key?: string;
   created_at: string;
   updated_at: string;
 }
@@ -179,6 +192,14 @@ export interface CreateJobTemplateInput {
   forks?: number;
   become?: boolean;
   become_user?: string;
+  enabled?: boolean;
+  timeout_seconds?: number;
+  allow_simultaneous?: boolean;
+  /** null/undefined = leave unchanged; -1 clears the override (inherit org). */
+  retention_days?: number;
+  job_slice_count?: number;
+  allow_callbacks?: boolean;
+  launch_on_webhook?: boolean;
 }
 
 export interface AnsibleJob {
@@ -286,7 +307,7 @@ export const ansibleInventoriesApi = {
       `/ansible/inventories/${id}`
     ),
 
-  create: (organizationName: string, data: { name: string; description?: string; type?: InventoryType; variables?: Record<string, unknown>; vcs_connection_id?: string; vcs_repository?: string; vcs_branch?: string; inventory_path?: string; project_id?: string }) =>
+  create: (organizationName: string, data: { name: string; description?: string; type?: InventoryType; variables?: Record<string, unknown>; vcs_connection_id?: string; vcs_repository?: string; vcs_branch?: string; inventory_path?: string; project_id?: string; source_vars?: string; constructed_limit?: string; constructed_cache_timeout?: number; input_inventory_ids?: string[] }) =>
     apiClient.post<JsonApiResponse<JsonApiResource>>(
       `/organizations/${organizationName}/ansible/inventories`,
       {
@@ -300,6 +321,12 @@ export const ansibleInventoriesApi = {
             vcs_repository: data.vcs_repository,
             vcs_branch: data.vcs_branch,
             inventory_path: data.inventory_path,
+            ...(data.type === 'constructed' ? {
+              'source-vars': data.source_vars || '',
+              'constructed-limit': data.constructed_limit || '',
+              'constructed-cache-timeout': data.constructed_cache_timeout ?? 0,
+              'input-inventory-ids': data.input_inventory_ids || [],
+            } : {}),
           },
           relationships: {
             ...(data.vcs_connection_id ? {
@@ -323,7 +350,7 @@ export const ansibleInventoriesApi = {
       }
     ),
 
-  update: (id: string, data: Partial<AnsibleInventory>) =>
+  update: (id: string, data: Partial<AnsibleInventory> & { input_inventory_ids?: string[] }) =>
     apiClient.patch<JsonApiResponse<JsonApiResource>>(
       `/ansible/inventories/${id}`,
       {
@@ -332,6 +359,10 @@ export const ansibleInventoriesApi = {
           attributes: {
             name: data.name,
             description: data.description,
+            'source-vars': data.source_vars,
+            'constructed-limit': data.constructed_limit,
+            'constructed-cache-timeout': data.constructed_cache_timeout,
+            'input-inventory-ids': data.input_inventory_ids,
           },
           relationships: data.project_id ? {
             project: {
@@ -767,6 +798,19 @@ export const ansibleJobTemplatesApi = {
       }
     ),
 
+  // Multi-credential attachment set (AWX-style: one per type, multiple vaults
+  // with distinct vault IDs).
+  listCredentials: (id: string) =>
+    apiClient.get<{ data: JsonApiResource[] }>(`/ansible/job-templates/${id}/credentials`),
+
+  attachCredential: (id: string, credentialId: string) =>
+    apiClient.post<{ data: JsonApiResource }>(`/ansible/job-templates/${id}/credentials`, {
+      credential_id: credentialId,
+    }),
+
+  detachCredential: (id: string, credentialId: string) =>
+    apiClient.delete(`/ansible/job-templates/${id}/credentials/${credentialId}`),
+
   update: (id: string, data: Partial<CreateJobTemplateInput>) =>
     apiClient.patch<JsonApiResponse<JsonApiResource>>(
       `/ansible/job-templates/${id}`,
@@ -783,6 +827,13 @@ export const ansibleJobTemplatesApi = {
             verbosity: data.verbosity,
             forks: data.forks,
             'become-enabled': data.become,
+            enabled: data.enabled,
+            'timeout-seconds': data.timeout_seconds,
+            'allow-simultaneous': data.allow_simultaneous,
+            'retention-days': data.retention_days,
+            'job-slice-count': data.job_slice_count,
+            'allow-callbacks': data.allow_callbacks,
+            'launch-on-webhook': data.launch_on_webhook,
           },
           ...(data.playbook_id !== undefined || data.inventory_id !== undefined || data.credential_id !== undefined || data.agent_pool_id !== undefined ? {
             relationships: {
@@ -1008,10 +1059,16 @@ export const ansibleJobsApi = {
   delete: (id: string) =>
     apiClient.delete(`/ansible/jobs/${id}`),
 
-  getEvents: (id: string) =>
-    apiClient.get<JsonApiListResponse<JsonApiResource>>(
-      `/ansible/jobs/${id}/events`
-    ),
+  getEvents: (id: string, opts?: { after?: number; page?: number; pageSize?: number }) => {
+    const qs = new URLSearchParams();
+    if (opts?.after !== undefined) qs.set('after', String(opts.after));
+    if (opts?.page !== undefined) qs.set('page[number]', String(opts.page));
+    if (opts?.pageSize !== undefined) qs.set('page[size]', String(opts.pageSize));
+    const q = qs.toString();
+    return apiClient.get<JsonApiListResponse<JsonApiResource>>(
+      `/ansible/jobs/${id}/events${q ? `?${q}` : ''}`
+    );
+  },
 
   getOutput: (id: string) =>
     apiClient.get<{ data: string }>(
@@ -1036,6 +1093,9 @@ export interface AnsibleInventorySource {
   config: Record<string, unknown>;
   update_on_launch: boolean;
   update_cache_timeout: number;
+  overwrite: boolean;
+  overwrite_vars: boolean;
+  verbosity: number;
   group_by_instance_id: boolean;
   group_by_region: boolean;
   group_by_availability_zone: boolean;
@@ -1063,6 +1123,9 @@ export interface CreateInventorySourceInput {
   config?: Record<string, unknown>;
   update_on_launch?: boolean;
   update_cache_timeout?: number;
+  overwrite?: boolean;
+  overwrite_vars?: boolean;
+  verbosity?: number;
   group_by_instance_id?: boolean;
   group_by_region?: boolean;
   group_by_availability_zone?: boolean;
@@ -1078,7 +1141,7 @@ export interface CreateInventorySourceInput {
 // Schedule Types
 // ============================================================================
 
-export type ScheduleType = 'job_template' | 'inventory_source' | 'playbook_sync';
+export type ScheduleType = 'job_template' | 'inventory_source' | 'playbook_sync' | 'workflow';
 export type ScheduleStatus = 'enabled' | 'disabled';
 
 export interface AnsibleSchedule {
@@ -1113,6 +1176,7 @@ export interface CreateScheduleInput {
   job_template_id?: string;
   inventory_source_id?: string;
   playbook_id?: string;
+  workflow_id?: string;
   cron_expression: string;
   timezone?: string;
   start_date_time?: string;
@@ -1146,6 +1210,9 @@ export const ansibleInventorySourcesApi = {
             config: data.config || {},
             'update-on-launch': data.update_on_launch ?? true,
             'update-cache-timeout': data.update_cache_timeout ?? 0,
+            overwrite: data.overwrite ?? false,
+            'overwrite-vars': data.overwrite_vars ?? false,
+            verbosity: data.verbosity ?? 0,
             'group-by-instance-id': data.group_by_instance_id ?? false,
             'group-by-region': data.group_by_region ?? true,
             'group-by-availability-zone': data.group_by_availability_zone ?? false,
@@ -1172,6 +1239,9 @@ export const ansibleInventorySourcesApi = {
             config: data.config,
             'update-on-launch': data.update_on_launch,
             'update-cache-timeout': data.update_cache_timeout,
+            overwrite: data.overwrite,
+            'overwrite-vars': data.overwrite_vars,
+            verbosity: data.verbosity,
             'group-by-instance-id': data.group_by_instance_id,
             'group-by-region': data.group_by_region,
             'group-by-availability-zone': data.group_by_availability_zone,
@@ -1191,6 +1261,70 @@ export const ansibleInventorySourcesApi = {
   sync: (id: string) =>
     apiClient.post<JsonApiResponse<JsonApiResource>>(
       `/ansible/inventory-sources/${id}/actions/sync`
+    ),
+};
+
+// ============================================================================
+// Ad Hoc Commands (AWX-style Run Command)
+// ============================================================================
+
+export interface RunAdHocCommandInput {
+  module: string;
+  module_args?: string;
+  limit?: string;
+  project_id?: string;
+  credential_id?: string;
+  agent_pool_id?: string;
+  verbosity?: number;
+  forks?: number;
+  become_enabled?: boolean;
+  extra_vars?: Record<string, unknown>;
+}
+
+export const ansibleAdHocApi = {
+  runCommand: (inventoryId: string, data: RunAdHocCommandInput) =>
+    apiClient.post<JsonApiResponse<JsonApiResource>>(
+      `/ansible/inventories/${inventoryId}/actions/run-command`,
+      {
+        data: {
+          type: 'adhoc-commands',
+          attributes: {
+            module: data.module,
+            'module-args': data.module_args || '',
+            limit: data.limit || '',
+            'project-id': data.project_id || '',
+            'credential-id': data.credential_id || '',
+            'agent-pool-id': data.agent_pool_id || '',
+            verbosity: data.verbosity ?? 0,
+            forks: data.forks ?? 5,
+            'become-enabled': data.become_enabled ?? false,
+            'extra-vars': data.extra_vars || {},
+          },
+        },
+      }
+    ),
+
+  listModules: (organizationName: string) =>
+    apiClient.get<{ data: { attributes: { modules: string[] } } }>(
+      `/organizations/${organizationName}/ansible/adhoc-modules`
+    ),
+};
+
+// ============================================================================
+// Inventory Sync History (sync runs with captured output)
+// ============================================================================
+
+export type InventorySyncRunStatus = 'pending' | 'running' | 'successful' | 'failed';
+
+export const ansibleInventorySyncsApi = {
+  list: (inventoryId: string, limit = 50) =>
+    apiClient.get<JsonApiListResponse<JsonApiResource>>(
+      `/ansible/inventories/${inventoryId}/syncs?limit=${limit}`
+    ),
+
+  get: (id: string) =>
+    apiClient.get<JsonApiResponse<JsonApiResource>>(
+      `/ansible/inventory-syncs/${id}`
     ),
 };
 
@@ -1219,6 +1353,7 @@ export const ansibleSchedulesApi = {
             'job-template-id': data.job_template_id || null,
             'inventory-source-id': data.inventory_source_id || null,
             'playbook-id': data.playbook_id || null,
+            'workflow-id': data.workflow_id || null,
             'cron-expression': data.cron_expression,
             timezone: data.timezone || 'UTC',
             'start-date-time': data.start_date_time || null,
@@ -1392,7 +1527,66 @@ export interface CreateWorkflowEdgeInput {
   condition: WorkflowEdgeCondition;
 }
 
+export const ansibleNotificationsApi = {
+  list: (orgName: string) =>
+    apiClient.get<{ data: JsonApiResource[] }>(`/organizations/${orgName}/ansible/notification-templates`),
+
+  create: (orgName: string, data: {
+    name: string;
+    description?: string;
+    type: 'webhook' | 'email' | 'teams';
+    config: Record<string, unknown>;
+    secret?: string;
+  }) =>
+    apiClient.post<{ data: JsonApiResource }>(`/organizations/${orgName}/ansible/notification-templates`, data),
+
+  delete: (id: string) =>
+    apiClient.delete(`/ansible/notification-templates/${id}`),
+
+  test: (id: string) =>
+    apiClient.post(`/ansible/notification-templates/${id}/test`, {}),
+
+  attach: (orgName: string, data: {
+    notification_template_id: string;
+    job_template_id?: string;
+    workflow_id?: string;
+    on_started?: boolean;
+    on_success?: boolean;
+    on_failure?: boolean;
+  }) =>
+    apiClient.post<{ data: JsonApiResource }>(`/organizations/${orgName}/ansible/notification-attachments`, data),
+
+  detach: (orgName: string, attachmentId: string) =>
+    apiClient.delete(`/organizations/${orgName}/ansible/notification-attachments/${attachmentId}`),
+
+  listForJobTemplate: (jobTemplateId: string) =>
+    apiClient.get<{ data: JsonApiResource[] }>(`/ansible/job-templates/${jobTemplateId}/notifications`),
+};
+
 export const ansibleWorkflowsApi = {
+  // Execution
+  launch: (id: string, extraVars?: Record<string, unknown>) =>
+    apiClient.post<JsonApiResponse<JsonApiResource>>(
+      `/ansible/workflows/${id}/launch`,
+      extraVars ? { extra_vars: extraVars } : {}
+    ),
+
+  listJobs: (id: string) =>
+    apiClient.get<{ data: JsonApiResource[]; meta?: { 'total-count'?: number } }>(
+      `/ansible/workflows/${id}/jobs`
+    ),
+
+  getJob: (workflowJobId: string) =>
+    apiClient.get<{ data: JsonApiResource; included?: JsonApiResource[] }>(
+      `/ansible/workflow-jobs/${workflowJobId}`
+    ),
+
+  approveNode: (nodeJobId: string) =>
+    apiClient.post(`/ansible/workflow-node-jobs/${nodeJobId}/approve`, {}),
+
+  denyNode: (nodeJobId: string) =>
+    apiClient.post(`/ansible/workflow-node-jobs/${nodeJobId}/deny`, {}),
+
   list: (orgName: string, params?: { page?: number; pageSize?: number }) => {
     const queryParams = new URLSearchParams();
     queryParams.append('page[number]', (params?.page || 1).toString());
