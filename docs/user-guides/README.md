@@ -31,6 +31,7 @@ Practical, step-by-step guides for using StackWeaver. These guides walk you thro
 
 - **[Dynamic Inventories](./dynamic-inventories.md)** - Configure dynamic inventory sources for Ansible jobs
 - **[Managing Ansible Playbooks](./managing-ansible-playbooks.md)** - Register playbooks one at a time, bulk-import them from a repository, or pick them straight from a repository in job template forms
+- **[Azure Key Vault from Playbooks](./azure-key-vault-from-playbooks.md)** - Read Key Vault secrets in playbooks via workload identity, with no static credentials on runners
 
 ## Organization and Access
 

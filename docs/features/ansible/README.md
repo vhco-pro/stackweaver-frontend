@@ -11,6 +11,7 @@ This directory contains the authoritative documentation for StackWeaver's Ansibl
 
 | Document | Description |
 |----------|-------------|
+| [execution-flows.md](./execution-flows.md) | How execution works: job lifecycle, runner vs agent, syncs, workflows — with diagrams |
 | [roadmap.md](./roadmap.md) | Future plans, priorities, timeline |
 | [api-reference.md](./api-reference.md) | REST API endpoints documentation |
 | [galaxy-collections.md](./galaxy-collections.md) | Ansible Galaxy collections support |
@@ -30,19 +31,31 @@ This directory contains the authoritative documentation for StackWeaver's Ansibl
 | Inventories (Dynamic) | ✅ Complete |
 | Inventories (Dynamic + OIDC) | ✅ Complete |
 | Inventories (VCS) | ✅ Complete |
-| Inventories (VCS-Backed Sources) | ✅ Complete |
+| Inventories (Constructed — combine inventories) | ✅ Complete |
+| Inventory Sources: overwrite / merge / update-on-launch | ✅ Complete |
+| Inventory Sync History + Live-Tail Output | ✅ Complete |
 | Inventory Sync Schedules | ✅ Complete |
+| Ad Hoc Commands (Run Command, module allowlist) | ✅ Complete |
 | Credentials | ✅ Complete |
-| Playbooks + VCS Sync | ✅ Complete |
+| Multiple Credentials per Template (multi-vault) | ✅ Complete |
+| Playbooks + VCS Sync + Bulk Import | ✅ Complete |
 | Job Templates | ✅ Complete |
+| Template Lifecycle (enable/disable, timeout, concurrency, retention) | ✅ Complete |
+| Job Slicing | ✅ Complete |
 | Jobs + Events | ✅ Complete |
-| Schedules | ✅ Complete |
-| Galaxy Auto-Install | ✅ Complete |
-| Live Job Output | ✅ Complete (JSONL) |
+| Live Job Output (JSONL, incremental polling) | ✅ Complete |
 | Task Grouping | ✅ Complete |
-| Workflow Templates | 🚧 In Progress |
+| Schedules (templates, syncs, workflows) | ✅ Complete |
+| Galaxy Auto-Install | ✅ Complete |
+| Workflow Execution (edges, convergence, approvals) | ✅ Complete |
+| Workflow Builder UI | 📋 Roadmap (nodes/edges via API) |
+| Notifications (webhook, email, Teams) | ✅ Complete |
+| SCM Webhook Launches | ✅ Complete |
+| Provisioning Callbacks | ✅ Complete |
+| Self-Hosted Agent Execution (jobs + ad hoc) | ✅ Complete |
+| Azure Workload Identity (syncs + playbook runs) | ✅ Complete |
 | Surveys | 📋 Roadmap |
-| Notifications | 📋 Roadmap |
+| Fact Storage / Caching | 📋 Roadmap |
 
 ## Code Locations
 

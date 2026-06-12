@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Link, useParams, useNavigate } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { usePermissions } from '@/hooks/usePermissions';
 import {
@@ -51,12 +51,13 @@ import {
   Plus,
   MoreVertical,
   Trash2,
-  Eye,
-  Edit,
+  History,
   Loader2,
   GitBranch,
+  Play,
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { WorkflowRunsDialog } from '@/components/ansible/WorkflowRunsDialog';
 import type { JsonApiResource } from '@/utils/jsonapi';
 
 // Parse workflow from JSON:API response
@@ -108,10 +109,9 @@ function formatRelativeTime(dateString: string): string {
 
 export default function Workflows() {
   const { orgName } = useParams<{ orgName: string }>();
-  const navigate = useNavigate();
   const { currentOrg } = useOrganization();
   const selectedOrg = orgName || currentOrg?.name || '';
-  const { canManageJobTemplates } = usePermissions(selectedOrg);
+  const { canManageJobTemplates, canExecuteJobs } = usePermissions(selectedOrg);
 
   const { data: workflows = [], isLoading: loading, refetch: refetchWorkflows } = useQuery({
     queryKey: ['workflows', selectedOrg],
@@ -123,6 +123,22 @@ export default function Workflows() {
   });
   const [searchQuery, setSearchQuery] = useState('');
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [runsWorkflow, setRunsWorkflow] = useState<{ id: string; name: string } | null>(null);
+  const [launchingId, setLaunchingId] = useState<string | null>(null);
+
+  const handleLaunchWorkflow = async (workflow: { id: string; name: string }) => {
+    setLaunchingId(workflow.id);
+    try {
+      await ansibleWorkflowsApi.launch(workflow.id);
+      toast.success(`Workflow "${workflow.name}" launched`);
+      setRunsWorkflow({ id: workflow.id, name: workflow.name });
+    } catch (err: unknown) {
+      console.error('Failed to launch workflow:', err);
+      toast.error(err instanceof Error ? err.message : 'Failed to launch workflow');
+    } finally {
+      setLaunchingId(null);
+    }
+  };
   const [workflowToDelete, setWorkflowToDelete] = useState<AnsibleWorkflow | null>(null);
   const [deleting, setDeleting] = useState(false);
   
@@ -167,8 +183,9 @@ export default function Workflows() {
         survey_enabled: false,
       });
       toast.success('Workflow template created successfully');
-      // Navigate to detail page to add nodes
-      void Promise.resolve(navigate(`/${selectedOrg}/ansible/workflows/${newWorkflow.id}`));
+      // Stay on the list (there is no dedicated builder page yet; nodes and
+      // edges are managed via the API).
+      void newWorkflow;
     } catch (err) {
       console.error('Failed to create workflow:', err);
       toast.error('Failed to create workflow template');
@@ -335,16 +352,19 @@ export default function Workflows() {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => { void Promise.resolve(navigate(`/${selectedOrg}/ansible/workflows/${workflow.id}`)); }}>
-                            <Eye className="h-4 w-4 mr-2" />
-                            View Details
-                          </DropdownMenuItem>
-                          {canManageJobTemplates && (
-                            <DropdownMenuItem onClick={() => { void Promise.resolve(navigate(`/${selectedOrg}/ansible/workflows/${workflow.id}/edit`)); }}>
-                              <Edit className="h-4 w-4 mr-2" />
-                              Edit Workflow
+                          {canExecuteJobs && (
+                            <DropdownMenuItem
+                              disabled={launchingId === workflow.id}
+                              onClick={() => { void handleLaunchWorkflow(workflow); }}
+                            >
+                              <Play className="h-4 w-4 mr-2" />
+                              Launch
                             </DropdownMenuItem>
                           )}
+                          <DropdownMenuItem onClick={() => { setRunsWorkflow({ id: workflow.id, name: workflow.name }); }}>
+                            <History className="h-4 w-4 mr-2" />
+                            View Runs
+                          </DropdownMenuItem>
                           {canManageJobTemplates && (
                             <>
                               <DropdownMenuSeparator />
@@ -480,6 +500,18 @@ export default function Workflows() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Run history + approvals */}
+      {runsWorkflow && (
+        <WorkflowRunsDialog
+          open={!!runsWorkflow}
+          onOpenChange={(open) => { if (!open) setRunsWorkflow(null); }}
+          workflowId={runsWorkflow.id}
+          workflowName={runsWorkflow.name}
+          orgName={selectedOrg}
+          canExecute={canExecuteJobs}
+        />
+      )}
     </div>
   );
 }

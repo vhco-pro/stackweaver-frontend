@@ -30,6 +30,10 @@ import {
   getAnsibleCredentialFromJsonApi,
 } from '@/utils/ansible-jsonapi';
 import { fetchAllPages } from '@/lib/pagination';
+import { usePermissions } from '@/hooks/usePermissions';
+import { TemplateCredentialsCard } from '@/components/ansible/TemplateCredentialsCard';
+import { TemplateNotificationsCard } from '@/components/ansible/TemplateNotificationsCard';
+import { TemplateAccessCard } from '@/components/ansible/TemplateAccessCard';
 import { PlaybookSourcePicker } from '@/components/ansible/PlaybookSourcePicker';
 import { resolvePlaybookSelection, type PlaybookSelection } from '@/components/ansible/playbook-selection';
 import { Button } from '@/components/ui/button';
@@ -50,6 +54,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import {
   Select,
@@ -203,6 +208,7 @@ export default function JobTemplateDetail() {
   const navigate = useNavigate();
 
   const [activeTab, setActiveTab] = useState('overview');
+  const { canManageJobTemplates } = usePermissions(orgName || '');
   const [platformVariablesSectionOpen, setPlatformVariablesSectionOpen] = useState(false);
 
   // Edit state
@@ -219,6 +225,13 @@ export default function JobTemplateDetail() {
     credential_id: '',
     inventory_id: '',
     agent_pool_id: '',
+    enabled: true,
+    timeout_seconds: 0,
+    allow_simultaneous: false,
+    retention_days: '', // '' = inherit org setting
+    job_slice_count: 1,
+    allow_callbacks: false,
+    launch_on_webhook: false,
   });
   const [agentPools, setAgentPools] = useState<AgentPool[]>([]);
   const [editPlaybooks, setEditPlaybooks] = useState<AnsiblePlaybook[]>([]);
@@ -373,6 +386,13 @@ export default function JobTemplateDetail() {
         credential_id: template.credential_id || '',
         inventory_id: template.inventory_id || '',
         agent_pool_id: template.agent_pool_id || '',
+        enabled: template.enabled,
+        timeout_seconds: template.timeout_seconds || 0,
+        allow_simultaneous: template.allow_simultaneous,
+        retention_days: template.retention_days == null ? '' : String(template.retention_days),
+        job_slice_count: template.job_slice_count || 1,
+        allow_callbacks: template.allow_callbacks,
+        launch_on_webhook: template.launch_on_webhook,
       });
       setEditPlaybookSelection(template.playbook_id ? { kind: 'registered', playbookId: template.playbook_id } : null);
       // Load agent pools and registered playbooks for the edit dialog
@@ -428,6 +448,14 @@ export default function JobTemplateDetail() {
         skip_tags: editForm.skip_tags || undefined,
         verbosity: editForm.verbosity,
         forks: editForm.forks,
+        enabled: editForm.enabled,
+        timeout_seconds: editForm.timeout_seconds,
+        allow_simultaneous: editForm.allow_simultaneous,
+        // '' = inherit org setting; the API clears the override on -1
+        retention_days: editForm.retention_days === '' ? -1 : Number(editForm.retention_days),
+        job_slice_count: editForm.job_slice_count,
+        allow_callbacks: editForm.allow_callbacks,
+        launch_on_webhook: editForm.launch_on_webhook,
         playbook_id: playbookId,
         inventory_id: editForm.inventory_id,
         // Use empty string (not undefined) to clear the relationship, undefined to skip updating it
@@ -560,8 +588,13 @@ export default function JobTemplateDetail() {
           </div>
         </div>
         <div className="flex items-center gap-2">
+          {!template.enabled && (
+            <Badge variant="outline" className="text-muted-foreground border-dashed">Disabled</Badge>
+          )}
           <Button
             size="sm"
+            disabled={!template.enabled}
+            title={!template.enabled ? 'This template is disabled' : undefined}
             onClick={() => setLaunchDialogOpen(true)}
           >
             <Play className="h-4 w-4 mr-2" />
@@ -686,6 +719,23 @@ export default function JobTemplateDetail() {
             </Card>
           </div>
 
+          {/* Credentials (multi-credential attachment set) */}
+          <TemplateCredentialsCard
+            templateId={template.id}
+            canManage={canManageJobTemplates}
+            orgCredentials={credentials}
+          />
+
+          {/* Notifications */}
+          <TemplateNotificationsCard
+            templateId={template.id}
+            orgName={orgName || ''}
+            canManage={canManageJobTemplates}
+          />
+
+          {/* Access */}
+          <TemplateAccessCard templateId={template.id} />
+
           {/* Extra Variables */}
           {template.extra_vars && Object.keys(template.extra_vars).length > 0 && (
             <Card>
@@ -760,7 +810,7 @@ export default function JobTemplateDetail() {
                 <p className="text-muted-foreground mb-4">
                   No jobs have been launched from this template.
                 </p>
-                <Button onClick={() => setLaunchDialogOpen(true)}>
+                <Button disabled={!template.enabled} onClick={() => setLaunchDialogOpen(true)}>
                   <Play className="h-4 w-4 mr-2" />
                   Launch First Job
                 </Button>
@@ -1322,7 +1372,7 @@ export default function JobTemplateDetail() {
                   id="verbosity"
                   type="number"
                   min="0"
-                  max="4"
+                  max="5"
                   value={editForm.verbosity}
                   onChange={(e) => setEditForm({ ...editForm, verbosity: parseInt(e.target.value) || 0 })}
                 />
@@ -1337,6 +1387,99 @@ export default function JobTemplateDetail() {
                   onChange={(e) => setEditForm({ ...editForm, forks: parseInt(e.target.value) || 5 })}
                 />
               </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="timeout_seconds">Timeout (seconds)</Label>
+                <Input
+                  id="timeout_seconds"
+                  type="number"
+                  min="0"
+                  value={editForm.timeout_seconds}
+                  onChange={(e) => setEditForm({ ...editForm, timeout_seconds: parseInt(e.target.value) || 0 })}
+                />
+                <p className="text-xs text-muted-foreground">0 = no timeout. Runs exceeding it are killed.</p>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="job_slice_count">Job slices</Label>
+                <Input
+                  id="job_slice_count"
+                  type="number"
+                  min="1"
+                  max="50"
+                  value={editForm.job_slice_count}
+                  onChange={(e) => setEditForm({ ...editForm, job_slice_count: parseInt(e.target.value) || 1 })}
+                />
+                <p className="text-xs text-muted-foreground">
+                  &gt;1 splits a launch into N jobs over an even partition of the inventory.
+                  Not for playbooks that orchestrate across hosts.
+                </p>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="retention_days">Job retention (days)</Label>
+                <Input
+                  id="retention_days"
+                  type="number"
+                  min="0"
+                  placeholder="Inherit organization setting"
+                  value={editForm.retention_days}
+                  onChange={(e) => setEditForm({ ...editForm, retention_days: e.target.value })}
+                />
+                <p className="text-xs text-muted-foreground">Empty = inherit org. 0 = keep forever.</p>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="flex items-center justify-between rounded-md border p-3">
+                <div>
+                  <Label htmlFor="template_enabled">Enabled</Label>
+                  <p className="text-xs text-muted-foreground">Disabled templates reject every launch.</p>
+                </div>
+                <Switch
+                  id="template_enabled"
+                  checked={editForm.enabled}
+                  onCheckedChange={(checked) => setEditForm({ ...editForm, enabled: checked })}
+                />
+              </div>
+              <div className="flex items-center justify-between rounded-md border p-3">
+                <div>
+                  <Label htmlFor="allow_simultaneous">Concurrent jobs</Label>
+                  <p className="text-xs text-muted-foreground">Off: new launches wait for the active run.</p>
+                </div>
+                <Switch
+                  id="allow_simultaneous"
+                  checked={editForm.allow_simultaneous}
+                  onCheckedChange={(checked) => setEditForm({ ...editForm, allow_simultaneous: checked })}
+                />
+              </div>
+            </div>
+            <div className="flex items-center justify-between rounded-md border p-3">
+              <div className="min-w-0">
+                <Label htmlFor="allow_callbacks">Provisioning callbacks</Label>
+                <p className="text-xs text-muted-foreground">
+                  Hosts can request their own configuration via the callback endpoint.
+                </p>
+                {template.allow_callbacks && template.host_config_key && (
+                  <p className="text-xs font-mono mt-1 break-all text-muted-foreground">key: {template.host_config_key}</p>
+                )}
+              </div>
+              <Switch
+                id="allow_callbacks"
+                checked={editForm.allow_callbacks}
+                onCheckedChange={(checked) => setEditForm({ ...editForm, allow_callbacks: checked })}
+              />
+            </div>
+            <div className="flex items-center justify-between rounded-md border p-3">
+              <div className="min-w-0">
+                <Label htmlFor="launch_on_webhook">Launch on push (webhook)</Label>
+                <p className="text-xs text-muted-foreground">
+                  Auto-launch this template when its playbook's repository receives a push. Pair with the playbook's "fresh" source mode to always run the pushed commit.
+                </p>
+              </div>
+              <Switch
+                id="launch_on_webhook"
+                checked={editForm.launch_on_webhook}
+                onCheckedChange={(checked) => setEditForm({ ...editForm, launch_on_webhook: checked })}
+              />
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">

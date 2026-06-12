@@ -179,6 +179,8 @@ export interface Organization {
   name: string;
   description?: string;
   default_terraform_version?: string;
+  ansible_job_retention_days?: number;
+  ansible_adhoc_modules?: string;
   created_at: string;
   updated_at: string;
 }
@@ -359,6 +361,8 @@ function organizationFromJsonApi(item: JsonApiResource): Organization {
     name,
     description: item.attributes?.description,
     default_terraform_version: (item.attributes?.['default-terraform-version'] ?? undefined) as string | undefined,
+    ansible_job_retention_days: (item.attributes?.['ansible-job-retention-days'] ?? undefined) as number | undefined,
+    ansible_adhoc_modules: (item.attributes?.['ansible-adhoc-modules'] ?? undefined) as string | undefined,
     created_at: (item.attributes?.['created-at'] ?? '') as string,
     updated_at: (item.attributes?.['updated-at'] ?? '') as string,
   };

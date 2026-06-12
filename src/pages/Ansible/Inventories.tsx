@@ -59,6 +59,7 @@ import {
   Info,
   FolderTree,
   CheckCircle2,
+  Layers,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -105,11 +106,14 @@ export default function Inventories() {
   const [formData, setFormData] = useState({
     name: '',
     description: '',
-    type: 'static' as 'static' | 'dynamic' | 'vcs',
+    type: 'static' as 'static' | 'dynamic' | 'vcs' | 'constructed',
     vcs_connection_id: '',
     vcs_repository: '',
     vcs_branch: '',
     inventory_path: '',
+    source_vars: '',
+    constructed_limit: '',
+    input_inventory_ids: [] as string[],
   });
 
   // Fetch ALL inventories (walk every server page) so newly-created ones aren't stranded on a
@@ -185,6 +189,9 @@ export default function Inventories() {
       vcs_repository: '',
       vcs_branch: '',
       inventory_path: '',
+      source_vars: '',
+      constructed_limit: '',
+      input_inventory_ids: [],
     });
     setSelectedVcsProject('');
     setRepositories([]);
@@ -398,6 +405,11 @@ export default function Inventories() {
       }
     }
 
+    if (formData.type === 'constructed' && formData.input_inventory_ids.length === 0) {
+      toast.error('Pick at least one input inventory');
+      return;
+    }
+
     setCreating(true);
     try {
       const res = await ansibleInventoriesApi.create(selectedOrg, {
@@ -408,6 +420,9 @@ export default function Inventories() {
         vcs_repository: formData.vcs_repository || undefined,
         vcs_branch: formData.vcs_branch || undefined,
         inventory_path: formData.inventory_path || undefined,
+        source_vars: formData.source_vars || undefined,
+        constructed_limit: formData.constructed_limit || undefined,
+        input_inventory_ids: formData.type === 'constructed' ? formData.input_inventory_ids : undefined,
       });
       const newInventory = getAnsibleInventoryFromJsonApi(res.data);
       await queryClient.invalidateQueries({ queryKey: ['inventories', selectedOrg] });
@@ -461,6 +476,8 @@ export default function Inventories() {
         return <Cloud className="h-4 w-4 text-cyan-500" />;
       case 'vcs':
         return <GitBranch className="h-4 w-4 text-purple-500" />;
+      case 'constructed':
+        return <Layers className="h-4 w-4 text-emerald-500" />;
       default:
         return <Server className="h-4 w-4 text-blue-500" />;
     }
@@ -586,6 +603,12 @@ export default function Inventories() {
                         <span>VCS</span>
                       </div>
                     </SelectItem>
+                    <SelectItem value="constructed">
+                      <div className="flex items-center gap-2">
+                        <Layers className="h-4 w-4 text-emerald-500" />
+                        <span>Constructed</span>
+                      </div>
+                    </SelectItem>
                   </SelectContent>
                 </Select>
                 
@@ -612,9 +635,85 @@ export default function Inventories() {
                         Load inventory from a Git repository. Keep your inventory versioned with your code.
                       </>
                     )}
+                    {formData.type === 'constructed' && (
+                      <>
+                        <span className="font-medium text-foreground">Constructed inventory:</span>{' '}
+                        Combine other inventories and derive groups/variables with ansible.builtin.constructed rules. Rebuilds before every launch.
+                      </>
+                    )}
                   </div>
                 </div>
               </div>
+
+              {/* Constructed configuration - only when type is constructed */}
+              {formData.type === 'constructed' && (
+                <>
+                  <div className="space-y-2 border-t pt-4">
+                    <Label>Input inventories * (in order)</Label>
+                    <div className="max-h-44 overflow-y-auto rounded-md border divide-y">
+                      {inventories.filter((inv) => inv.type !== 'constructed').map((inv) => {
+                        const idx = formData.input_inventory_ids.indexOf(inv.id);
+                        return (
+                          <label key={inv.id} className="flex items-center gap-2 px-3 py-2 text-sm cursor-pointer hover:bg-muted/50">
+                            <input
+                              type="checkbox"
+                              className="rounded-sm border-gray-300"
+                              checked={idx >= 0}
+                              onChange={(e) => {
+                                setFormData({
+                                  ...formData,
+                                  input_inventory_ids: e.target.checked
+                                    ? [...formData.input_inventory_ids, inv.id]
+                                    : formData.input_inventory_ids.filter((id) => id !== inv.id),
+                                });
+                              }}
+                            />
+                            <span className="flex-1 truncate">{inv.name}</span>
+                            {idx >= 0 && <Badge variant="secondary">#{idx + 1}</Badge>}
+                          </label>
+                        );
+                      })}
+                      {inventories.filter((inv) => inv.type !== 'constructed').length === 0 && (
+                        <p className="px-3 py-2 text-sm text-muted-foreground">No inventories available to combine.</p>
+                      )}
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Hosts and groups of the inputs are merged in order; the rules below derive extra groups and variables.
+                    </p>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="source-vars">Constructed rules (YAML, optional)</Label>
+                    <Textarea
+                      id="source-vars"
+                      className="font-mono text-xs min-h-32"
+                      placeholder={"# keyed_groups: a group per value of a host var\n"
+                        + "keyed_groups:\n"
+                        + "  - key: ansible_distribution | default('unknown')\n"
+                        + "    prefix: os\n"
+                        + "# groups: membership by Jinja condition\n"
+                        + "groups:\n"
+                        + "  webservers: \"'web' in inventory_hostname\"\n"
+                        + "# compose: derive new host vars\n"
+                        + "compose:\n"
+                        + "  display_name: inventory_hostname | upper"}
+                      value={formData.source_vars}
+                      onChange={(e) => { setFormData({ ...formData, source_vars: e.target.value }); }}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="constructed-limit">Limit (optional)</Label>
+                    <Input
+                      id="constructed-limit"
+                      placeholder="webservers"
+                      value={formData.constructed_limit}
+                      onChange={(e) => { setFormData({ ...formData, constructed_limit: e.target.value }); }}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Only hosts matching this pattern are kept in the constructed inventory.
+                    </p>
+                  </div>
+                </>
+              )}
 
               {/* VCS Configuration - Only show when type is vcs */}
               {formData.type === 'vcs' && (

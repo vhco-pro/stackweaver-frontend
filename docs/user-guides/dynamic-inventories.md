@@ -217,6 +217,26 @@ When you click "Sync" on a VCS inventory or a UI-configured source, Stackweaver 
 
 The polling runs for up to 60 seconds. If the sync takes longer (for example, when querying a large cloud environment), a "taking longer than expected" message appears and you can revisit the page later to see the final result.
 
+## Sync History
+
+Every sync run is recorded on the inventory's Syncs tab, whether it was started manually, by a schedule, by a workflow node, as a pre-launch dependency update, or by a VCS webhook. Each entry shows the run's status, what triggered it, how many hosts and groups it discovered, and how long it took. Clicking a run opens the captured `ansible-inventory` output; while a sync is still running the dialog tails it live (the runner flushes output every couple of seconds), which is where plugin warnings and authentication errors surface — set the source's sync verbosity (0–4, adding `-v` through `-vvvv`) when you need more diagnostic detail in that log.
+
+## Per-Source Sync Behavior
+
+Each dynamic source carries its own sync behavior settings, editable on the source dialog:
+
+- **Update on launch** syncs the source before every job that runs against the inventory. The job is created held and dispatches automatically once the sync finishes, so it always runs against fresh data. The **cache timeout** (seconds) skips that pre-launch sync while the last successful sync is newer than the window, which keeps frequent launches from hammering your cloud APIs.
+- **Overwrite** removes hosts and groups that this source previously discovered but the provider no longer reports. Pruning is strictly scoped to rows owned by the source — manually created entries and rows discovered by other sources of the same inventory are never touched, so several sources (each with its own credential or Azure subscription) can safely feed one inventory.
+- **Overwrite variables** replaces a host's variables wholesale on each sync. When it is off (the default), synced variables are merged into the existing ones — synced values win per key, but variables you added manually survive.
+
+## Running Ad Hoc Commands
+
+The Run Command button on the inventory detail page runs a single Ansible module against the inventory without creating a playbook or template — the platform generates a transient playbook and executes it through the normal job pipeline, so you get live output, events, and statistics on the standard job page. Pick a module, give it arguments (free-form for `command` and `shell`, `key=value` pairs for others), optionally limit the target hosts, choose a machine credential and where it runs (a platform runner or one of your self-hosted agent pools), and run. To target a single machine, use the terminal icon that appears on a host card in the Hosts tab — it opens the same dialog with the limit prefilled to that host. Which modules are allowed is an organization setting under Settings → Ansible (it defaults to AWX's allowlist), and running ad hoc commands requires a dedicated permission distinct from template execution.
+
+## Constructed Inventories
+
+A constructed inventory combines other inventories instead of querying a provider. When you create an inventory with the Constructed type, you pick the input inventories in order and optionally write `ansible.builtin.constructed` rules — `compose` derives new host variables, `groups` assigns membership by Jinja condition, and `keyed_groups` creates a group per value of a host variable. An optional limit pattern keeps only matching hosts. The constructed inventory rebuilds from its inputs before every job launch (bounded by its cache timeout) and on demand with the Rebuild button; each build appears in the Syncs tab with its full plugin output, which is the place to debug rule errors. Input inventories must belong to the same organization, cannot themselves be constructed, and cannot be deleted while a constructed inventory uses them.
+
 ## Viewing Synced Hosts
 
 After a successful sync, the Hosts tab on the inventory detail page shows all discovered hosts with the variables reported by the cloud provider. For Azure VMs, this typically includes:

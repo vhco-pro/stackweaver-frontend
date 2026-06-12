@@ -3,11 +3,13 @@
 import { useState, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link, useParams } from 'react-router-dom';
-import { FileText, ArrowLeft, Save, Trash2, Loader2, Building2, FolderKanban, Info } from 'lucide-react';
+import { FileText, ArrowLeft, Save, Trash2, Loader2, Building2, FolderKanban, Info, Terminal } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Input } from '@/components/ui/input';
 import {
+  organizationsApi,
   projectsApi,
 } from '@/api/client';
 import { ansibleConfigApi, type AnsibleConfig } from '@/api/ansible';
@@ -62,6 +64,63 @@ ssh_args = -o ControlMaster=auto -o ControlPersist=60s
 
 export default function AnsibleConfiguration() {
   const { orgName } = useParams<{ orgName: string }>();
+  const [retentionDays, setRetentionDays] = useState('');
+  const [retentionDirty, setRetentionDirty] = useState(false);
+  const [savingRetention, setSavingRetention] = useState(false);
+  const [adhocModules, setAdhocModules] = useState('');
+  const [adhocDirty, setAdhocDirty] = useState(false);
+  const [savingAdhoc, setSavingAdhoc] = useState(false);
+
+  useQuery({
+    queryKey: ['ansibleOrgRetention', orgName],
+    queryFn: async () => {
+      const org = await organizationsApi.get(orgName!);
+      setRetentionDays(org.ansible_job_retention_days == null ? '90' : String(org.ansible_job_retention_days));
+      setAdhocModules(org.ansible_adhoc_modules || '');
+      return null;
+    },
+    enabled: !!orgName,
+  });
+
+  const handleSaveAdhocModules = async () => {
+    if (!orgName) return;
+    setSavingAdhoc(true);
+    try {
+      await organizationsApi.update(orgName, {
+        data: {
+          type: 'organizations',
+          attributes: { 'ansible-adhoc-modules': adhocModules },
+        },
+      });
+      setAdhocDirty(false);
+      toast.success('Ad hoc module allowlist updated');
+    } catch (err: unknown) {
+      console.error('Failed to update ad hoc modules:', err);
+      toast.error(err instanceof Error ? err.message : 'Failed to update ad hoc modules');
+    } finally {
+      setSavingAdhoc(false);
+    }
+  };
+
+  const handleSaveRetention = async () => {
+    if (!orgName || retentionDays === '') return;
+    setSavingRetention(true);
+    try {
+      await organizationsApi.update(orgName, {
+        data: {
+          type: 'organizations',
+          attributes: { 'ansible-job-retention-days': Number(retentionDays) },
+        },
+      });
+      setRetentionDirty(false);
+      toast.success('Job retention updated');
+    } catch (err: unknown) {
+      console.error('Failed to update retention:', err);
+      toast.error(err instanceof Error ? err.message : 'Failed to update job retention');
+    } finally {
+      setSavingRetention(false);
+    }
+  };
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -339,6 +398,85 @@ export default function AnsibleConfiguration() {
                     Save
                   </Button>
                 </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Job retention */}
+          <Card className="mt-4">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Trash2 className="h-5 w-5" />
+                Job Retention
+              </CardTitle>
+              <CardDescription>
+                Finished Ansible jobs and their output are deleted after this many days.
+                Job templates can override it; the most recent job of every template is always kept.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              <div className="flex items-end gap-3">
+                <div className="space-y-2">
+                  <Label htmlFor="retention-days">Retention (days)</Label>
+                  <Input
+                    id="retention-days"
+                    type="number"
+                    min="0"
+                    className="w-40"
+                    value={retentionDays}
+                    onChange={(e) => { setRetentionDays(e.target.value); setRetentionDirty(true); }}
+                  />
+                </div>
+                <Button
+                  onClick={() => { void handleSaveRetention(); }}
+                  disabled={savingRetention || !retentionDirty || retentionDays === ''}
+                >
+                  {savingRetention ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <Save className="h-4 w-4 mr-2" />
+                  )}
+                  Save
+                </Button>
+              </div>
+              <p className="text-xs text-muted-foreground">0 = keep jobs forever.</p>
+            </CardContent>
+          </Card>
+
+          {/* Ad hoc command module allowlist */}
+          <Card className="mt-6">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <Terminal className="h-5 w-5" />
+                Ad Hoc Command Modules
+              </CardTitle>
+              <CardDescription>
+                Modules members may run as ad hoc commands against inventories (comma-separated).
+                Leave empty to use the built-in default list.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              <div className="flex items-end gap-3">
+                <div className="space-y-2 flex-1">
+                  <Label htmlFor="adhoc-modules">Allowed modules</Label>
+                  <Input
+                    id="adhoc-modules"
+                    placeholder="command,shell,ping,setup,..."
+                    value={adhocModules}
+                    onChange={(e) => { setAdhocModules(e.target.value); setAdhocDirty(true); }}
+                  />
+                </div>
+                <Button
+                  onClick={() => { void handleSaveAdhocModules(); }}
+                  disabled={savingAdhoc || !adhocDirty}
+                >
+                  {savingAdhoc ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <Save className="h-4 w-4 mr-2" />
+                  )}
+                  Save
+                </Button>
               </div>
             </CardContent>
           </Card>

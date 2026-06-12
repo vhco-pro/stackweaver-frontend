@@ -80,8 +80,11 @@ import {
   Copy,
   ChevronDown,
   Search,
+  Terminal,
 } from 'lucide-react';
 import { vcsConnectionsApi, azureOIDCConfigApi, type VCSConnection, type AzureOIDCConfiguration } from '@/api/client';
+import { InventorySyncsCard } from '@/components/ansible/InventorySyncsCard';
+import { RunCommandDialog } from '@/components/ansible/RunCommandDialog';
 import { getVcsProviderIcon, getVcsRepoUrl, getVcsFileUrl } from '@/lib/vcs';
 import { InventoryFileViewer } from '@/components/code/InventoryFileViewer';
 import { toast } from 'sonner';
@@ -103,6 +106,7 @@ interface InventoryDetailData {
   groupsTotal: number;
   sources: AnsibleInventorySource[];
   credentials: AnsibleCredential[];
+  allCredentials: AnsibleCredential[];
   hasAzureOIDC: boolean;
   azureOIDCConfig: AzureOIDCConfiguration | null;
 }
@@ -151,7 +155,16 @@ export default function InventoryDetail() {
   // Edit inventory state
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [editForm, setEditForm] = useState({ name: '', description: '' });
+  const [editForm, setEditForm] = useState({ name: '', description: '', source_vars: '', constructed_limit: '', input_inventory_ids: [] as string[] });
+  // All org inventories, fetched lazily when editing a constructed inventory's inputs.
+  const { data: allInventories = [] } = useQuery({
+    queryKey: ['allInventoriesForConstructed', orgName],
+    queryFn: async () => {
+      const res = await fetchAllPages((page, pageSize) => ansibleInventoriesApi.list(orgName!, { page, pageSize }));
+      return res.items.map(getAnsibleInventoryFromJsonApi);
+    },
+    enabled: !!orgName && editDialogOpen,
+  });
   
   // Inline description editing state
   const [isEditingDescription, setIsEditingDescription] = useState(false);
@@ -195,6 +208,9 @@ export default function InventoryDetail() {
 
   // Add source state (for dynamic inventories)
   const [addSourceDialogOpen, setAddSourceDialogOpen] = useState(false);
+  const [runCommandOpen, setRunCommandOpen] = useState(false);
+  // Prefills the dialog's limit field when launched from a host card ('' = whole inventory).
+  const [runCommandLimit, setRunCommandLimit] = useState('');
   
   // Edit source state
   const [editSourceDialogOpen, setEditSourceDialogOpen] = useState(false);
@@ -237,9 +253,18 @@ export default function InventoryDetail() {
     enabled: true,
   });
 
-  // Fetch inventory details
+  // Fetch inventory details. Polls while a sync/rebuild is in flight so
+  // statuses, host counts, and the last-sync bar update without a manual
+  // page refresh (syncs can be triggered here, by schedules, or by launches).
   const { isLoading: loading, data: queryData, refetch } = useQuery({
     queryKey: ['inventoryDetail', inventoryId, orgName],
+    refetchInterval: (query) => {
+      const data = query.state.data;
+      if (!data) return false;
+      const syncing = data.inventory.last_sync_status === 'syncing'
+        || data.sources.some((src) => src.status === 'syncing');
+      return syncing ? 4000 : false;
+    },
     queryFn: async (): Promise<InventoryDetailData> => {
       const invRes = await ansibleInventoriesApi.get(inventoryId!);
       const inv = getAnsibleInventoryFromJsonApi(invRes.data);
@@ -284,6 +309,7 @@ export default function InventoryDetail() {
         groupsTotal: groupsAll.total,
         sources: sourcesData,
         credentials: filteredCreds,
+        allCredentials: allCreds,
         hasAzureOIDC: hasOIDC,
         azureOIDCConfig: oidcConfig,
       };
@@ -302,6 +328,7 @@ export default function InventoryDetail() {
   const groupsTotal = queryData?.groupsTotal ?? 0;
   const sources = queryData?.sources ?? [];
   const credentials = queryData?.credentials ?? [];
+  const allCredentials = queryData?.allCredentials ?? [];
   const hasAzureOIDC = queryData?.hasAzureOIDC ?? false;
   const azureOIDCConfig = queryData?.azureOIDCConfig ?? null;
 
@@ -381,7 +408,7 @@ export default function InventoryDetail() {
   // Initialize form state and active tab when query data first loads
   useEffect(() => {
     if (inventory && !activeTabInitialized) {
-      setEditForm({ name: inventory.name, description: inventory.description || '' });
+      setEditForm({ name: inventory.name, description: inventory.description || '', source_vars: inventory.source_vars || '', constructed_limit: inventory.constructed_limit || '', input_inventory_ids: (inventory.input_inventories || []).map((i) => i.id) });
       setInlineDescription(inventory.description || '');
       if (inventory.type === 'dynamic') {
         setActiveTab('sources');
@@ -420,6 +447,11 @@ export default function InventoryDetail() {
       await ansibleInventoriesApi.update(inventory.id, {
         name: editForm.name,
         description: editForm.description || undefined,
+        ...(inventory.type === 'constructed' ? {
+          source_vars: editForm.source_vars,
+          constructed_limit: editForm.constructed_limit,
+          input_inventory_ids: editForm.input_inventory_ids,
+        } : {}),
       });
       await refetch();
       setEditDialogOpen(false);
@@ -798,6 +830,9 @@ export default function InventoryDetail() {
       config: source.config || {},
       update_on_launch: source.update_on_launch,
       update_cache_timeout: source.update_cache_timeout,
+      overwrite: source.overwrite,
+      overwrite_vars: source.overwrite_vars,
+      verbosity: source.verbosity,
       group_by_instance_id: source.group_by_instance_id,
       group_by_region: source.group_by_region,
       group_by_availability_zone: source.group_by_availability_zone,
@@ -1032,6 +1067,21 @@ export default function InventoryDetail() {
           </div>
         </div>
         <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={() => { setRunCommandLimit(''); setRunCommandOpen(true); }}>
+            <Terminal className="h-4 w-4 mr-2" />
+            Run Command
+          </Button>
+          {/* Keyed on the limit so a per-host launch remounts with a fresh prefill. */}
+          <RunCommandDialog
+            key={runCommandLimit}
+            open={runCommandOpen}
+            onOpenChange={setRunCommandOpen}
+            inventoryId={inventoryId!}
+            orgName={orgName || ''}
+            projectId={inventory.project_id || undefined}
+            credentials={allCredentials}
+            initialLimit={runCommandLimit}
+          />
           {inventory.type === 'vcs' && (
             <Button
               variant="outline"
@@ -1047,9 +1097,24 @@ export default function InventoryDetail() {
               Sync from VCS
             </Button>
           )}
+          {inventory.type === 'constructed' && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => { void handleSync(); }}
+              disabled={syncing}
+            >
+              {syncing ? (
+                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+              ) : (
+                <RefreshCw className="h-4 w-4 mr-2" />
+              )}
+              Rebuild
+            </Button>
+          )}
           <Dialog open={editDialogOpen} onOpenChange={(open) => {
               if (open && inventory) {
-                setEditForm({ name: inventory.name, description: inventory.description || '' });
+                setEditForm({ name: inventory.name, description: inventory.description || '', source_vars: inventory.source_vars || '', constructed_limit: inventory.constructed_limit || '', input_inventory_ids: (inventory.input_inventories || []).map((i) => i.id) });
               }
               setEditDialogOpen(open);
             }}>
@@ -1083,6 +1148,58 @@ export default function InventoryDetail() {
                     onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
                   />
                 </div>
+                {inventory.type === 'constructed' && (
+                  <>
+                    <div className="space-y-2">
+                      <Label>Input inventories (in order)</Label>
+                      <div className="max-h-40 overflow-y-auto rounded-md border divide-y">
+                        {allInventories.filter((inv) => inv.type !== 'constructed' && inv.id !== inventory.id).map((inv) => {
+                          const idx = editForm.input_inventory_ids.indexOf(inv.id);
+                          return (
+                            <label key={inv.id} className="flex items-center gap-2 px-3 py-2 text-sm cursor-pointer hover:bg-muted/50">
+                              <input
+                                type="checkbox"
+                                className="rounded-sm border-gray-300"
+                                checked={idx >= 0}
+                                onChange={(e) => {
+                                  setEditForm({
+                                    ...editForm,
+                                    input_inventory_ids: e.target.checked
+                                      ? [...editForm.input_inventory_ids, inv.id]
+                                      : editForm.input_inventory_ids.filter((id) => id !== inv.id),
+                                  });
+                                }}
+                              />
+                              <span className="flex-1 truncate">{inv.name}</span>
+                              {idx >= 0 && <Badge variant="secondary">#{idx + 1}</Badge>}
+                            </label>
+                          );
+                        })}
+                      </div>
+                      <p className="text-xs text-muted-foreground">Changes apply on the next rebuild.</p>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="edit-source-vars">Constructed rules (YAML)</Label>
+                      <Textarea
+                        id="edit-source-vars"
+                        className="font-mono text-xs min-h-32"
+                        value={editForm.source_vars}
+                        onChange={(e) => setEditForm({ ...editForm, source_vars: e.target.value })}
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        compose / groups / keyed_groups for ansible.builtin.constructed. Takes effect on the next rebuild.
+                      </p>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="edit-constructed-limit">Limit</Label>
+                      <Input
+                        id="edit-constructed-limit"
+                        value={editForm.constructed_limit}
+                        onChange={(e) => setEditForm({ ...editForm, constructed_limit: e.target.value })}
+                      />
+                    </div>
+                  </>
+                )}
               </div>
               <DialogFooter>
                 <Button variant="outline" onClick={() => setEditDialogOpen(false)}>
@@ -1185,6 +1302,12 @@ export default function InventoryDetail() {
                   Sources
                 </TabsTrigger>
               )}
+              {inventory.type !== 'static' && (
+                <TabsTrigger value="syncs" className="gap-1.5 rounded-md px-2.5 py-1 text-muted-foreground hover:text-foreground data-[state=active]:bg-muted data-[state=active]:text-foreground data-[state=active]:shadow-none">
+                  <RefreshCw className="h-4 w-4 text-amber-500" />
+                  Syncs
+                </TabsTrigger>
+              )}
             </TabsList>
 
             <div className="hidden sm:block h-5 w-px bg-border" />
@@ -1203,7 +1326,18 @@ export default function InventoryDetail() {
               )}
             </div>
 
-            {inventory.type === 'vcs' && inventory.last_sync_at && (
+            {inventory.type === 'constructed' && (inventory.input_inventories?.length ?? 0) > 0 && (
+              <div className="flex items-center gap-1.5 text-sm min-w-0">
+                <span className="text-muted-foreground">Inputs</span>
+                <div className="flex items-center gap-1 min-w-0 overflow-hidden">
+                  {inventory.input_inventories!.map((input) => (
+                    <Badge key={input.id} variant="secondary" className="shrink-0">{input.name}</Badge>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {(inventory.type === 'vcs' || inventory.type === 'constructed') && inventory.last_sync_at && (
               <div className="flex items-center gap-1.5 text-sm text-muted-foreground min-w-0">
                 {inventory.last_sync_status === 'successful' ? (
                   <CheckCircle2 className="h-4 w-4 text-green-500 shrink-0" />
@@ -1688,6 +1822,19 @@ export default function InventoryDetail() {
                         </div>
                       </div>
                       <div className="flex items-center gap-2 shrink-0" onClick={(e) => e.stopPropagation()}>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 opacity-0 group-hover:opacity-100"
+                          title="Run command on this host"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setRunCommandLimit(host.name);
+                            setRunCommandOpen(true);
+                          }}
+                        >
+                          <Terminal className="h-4 w-4" />
+                        </Button>
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
@@ -2040,6 +2187,13 @@ export default function InventoryDetail() {
           </TabsContent>
         )}
 
+        {/* Syncs Tab (sync run history — VCS and dynamic inventories) */}
+        {inventory.type !== 'static' && (
+          <TabsContent value="syncs" className="space-y-4">
+            <InventorySyncsCard inventoryId={inventoryId!} />
+          </TabsContent>
+        )}
+
         {/* Sources Tab (for dynamic inventories) */}
         {inventory.type === 'dynamic' && (
           <TabsContent value="sources" className="space-y-4">
@@ -2251,6 +2405,62 @@ export default function InventoryDetail() {
                         className="rounded-sm border-gray-300"
                       />
                       <label htmlFor="update-on-launch" className="text-sm">Update on launch (sync before each job run)</label>
+                    </div>
+                    {sourceForm.update_on_launch && (
+                      <div className="space-y-2">
+                        <Label htmlFor="update-cache-timeout">Cache timeout (seconds)</Label>
+                        <Input
+                          id="update-cache-timeout"
+                          type="number"
+                          min={0}
+                          value={sourceForm.update_cache_timeout ?? 0}
+                          onChange={(e) => setSourceForm({ ...sourceForm, update_cache_timeout: Number(e.target.value) || 0 })}
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          Skip the pre-launch sync when the last successful sync is newer than this. 0 always syncs.
+                        </p>
+                      </div>
+                    )}
+                    <div className="flex items-center space-x-2">
+                      <input
+                        type="checkbox"
+                        id="source-overwrite"
+                        checked={sourceForm.overwrite ?? false}
+                        onChange={(e) => setSourceForm({ ...sourceForm, overwrite: e.target.checked })}
+                        className="rounded-sm border-gray-300"
+                      />
+                      <label htmlFor="source-overwrite" className="text-sm">Overwrite (remove hosts and groups this source no longer reports)</label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <input
+                        type="checkbox"
+                        id="source-overwrite-vars"
+                        checked={sourceForm.overwrite_vars ?? false}
+                        onChange={(e) => setSourceForm({ ...sourceForm, overwrite_vars: e.target.checked })}
+                        className="rounded-sm border-gray-300"
+                      />
+                      <label htmlFor="source-overwrite-vars" className="text-sm">Overwrite variables (replace host variables instead of merging)</label>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="source-verbosity">Sync verbosity</Label>
+                      <Select
+                        value={String(sourceForm.verbosity ?? 0)}
+                        onValueChange={(value) => setSourceForm({ ...sourceForm, verbosity: Number(value) })}
+                      >
+                        <SelectTrigger id="source-verbosity">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="0">0 (normal)</SelectItem>
+                          <SelectItem value="1">1 (-v)</SelectItem>
+                          <SelectItem value="2">2 (-vv)</SelectItem>
+                          <SelectItem value="3">3 (-vvv)</SelectItem>
+                          <SelectItem value="4">4 (-vvvv)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <p className="text-xs text-muted-foreground">
+                        Diagnostic detail of ansible-inventory in the sync log.
+                      </p>
                     </div>
 
                     {/* Sync Schedule */}
@@ -2705,6 +2915,59 @@ export default function InventoryDetail() {
                 className="rounded-sm border-gray-300"
               />
               <label htmlFor="edit-update-on-launch" className="text-sm">Update on launch (sync before each job run)</label>
+            </div>
+            {editSourceForm.update_on_launch && (
+              <div className="space-y-2">
+                <Label htmlFor="edit-update-cache-timeout">Cache timeout (seconds)</Label>
+                <Input
+                  id="edit-update-cache-timeout"
+                  type="number"
+                  min={0}
+                  value={editSourceForm.update_cache_timeout ?? 0}
+                  onChange={(e) => setEditSourceForm({ ...editSourceForm, update_cache_timeout: Number(e.target.value) || 0 })}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Skip the pre-launch sync when the last successful sync is newer than this. 0 always syncs.
+                </p>
+              </div>
+            )}
+            <div className="flex items-center space-x-2">
+              <input
+                type="checkbox"
+                id="edit-source-overwrite"
+                checked={editSourceForm.overwrite ?? false}
+                onChange={(e) => setEditSourceForm({ ...editSourceForm, overwrite: e.target.checked })}
+                className="rounded-sm border-gray-300"
+              />
+              <label htmlFor="edit-source-overwrite" className="text-sm">Overwrite (remove hosts and groups this source no longer reports)</label>
+            </div>
+            <div className="flex items-center space-x-2">
+              <input
+                type="checkbox"
+                id="edit-source-overwrite-vars"
+                checked={editSourceForm.overwrite_vars ?? false}
+                onChange={(e) => setEditSourceForm({ ...editSourceForm, overwrite_vars: e.target.checked })}
+                className="rounded-sm border-gray-300"
+              />
+              <label htmlFor="edit-source-overwrite-vars" className="text-sm">Overwrite variables (replace host variables instead of merging)</label>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-source-verbosity">Sync verbosity</Label>
+              <Select
+                value={String(editSourceForm.verbosity ?? 0)}
+                onValueChange={(value) => setEditSourceForm({ ...editSourceForm, verbosity: Number(value) })}
+              >
+                <SelectTrigger id="edit-source-verbosity">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="0">0 (normal)</SelectItem>
+                  <SelectItem value="1">1 (-v)</SelectItem>
+                  <SelectItem value="2">2 (-vv)</SelectItem>
+                  <SelectItem value="3">3 (-vvv)</SelectItem>
+                  <SelectItem value="4">4 (-vvvv)</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
             {/* Sync Schedule */}
