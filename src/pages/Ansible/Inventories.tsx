@@ -82,6 +82,9 @@ export default function Inventories() {
   const [inventoryToDelete, setInventoryToDelete] = useState<AnsibleInventory | null>(null);
   const [creating, setCreating] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  // Set to the server's 409 dependency message when a plain delete is blocked;
+  // switches the delete dialog into the force-delete escalation.
+  const [forceDeleteDetail, setForceDeleteDetail] = useState<string | null>(null);
 
   // VCS Integration state
   const [loadingVCS, setLoadingVCS] = useState(false);
@@ -443,19 +446,26 @@ export default function Inventories() {
     }
   };
 
-  const handleDelete = async () => {
+  const handleDelete = async (force = false) => {
     if (!inventoryToDelete) return;
 
     setDeleting(true);
     try {
-      await ansibleInventoriesApi.delete(inventoryToDelete.id);
+      await ansibleInventoriesApi.delete(inventoryToDelete.id, { force });
       await queryClient.invalidateQueries({ queryKey: ['inventories', selectedOrg] });
       setDeleteDialogOpen(false);
       setInventoryToDelete(null);
-      toast.success('Inventory deleted successfully');
+      setForceDeleteDetail(null);
+      toast.success(force ? 'Inventory and all dependent resources deleted' : 'Inventory deleted successfully');
     } catch (err: unknown) {
       console.error('Failed to delete inventory:', err);
-      const errorMessage = err instanceof Error ? err instanceof Error ? err.message : 'Unknown error' : 'Failed to delete inventory';
+      // A 409 means dependent resources block the delete — escalate the dialog
+      // to offer force delete instead of just surfacing a toast.
+      if (!force && (err as Error & { status?: number }).status === 409) {
+        setForceDeleteDetail(err instanceof Error ? err.message : 'The inventory is referenced by other resources.');
+        return;
+      }
+      const errorMessage = err instanceof Error ? err.message : 'Failed to delete inventory';
       toast.error(errorMessage);
     } finally {
       setDeleting(false);
@@ -1113,25 +1123,49 @@ export default function Inventories() {
       {/* Pager — windows the inventory grid for large orgs */}
       <Pager page={currentInvPage} totalPages={invTotalPages} onPageChange={setInvPage} />
 
-      {/* Delete Confirmation Dialog */}
-      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+      {/* Delete Confirmation Dialog — escalates to force delete on a 409 */}
+      <Dialog open={deleteDialogOpen} onOpenChange={(open) => { setDeleteDialogOpen(open); if (!open) setForceDeleteDetail(null); }}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Delete Inventory</DialogTitle>
+            <DialogTitle>{forceDeleteDetail ? 'Inventory Is Still in Use' : 'Delete Inventory'}</DialogTitle>
             <DialogDescription>
-              Are you sure you want to delete "{inventoryToDelete?.name}"? This action
-              cannot be undone and will also delete all hosts and groups in this
-              inventory.
+              {forceDeleteDetail ? (
+                <>
+                  {forceDeleteDetail}
+                </>
+              ) : (
+                <>
+                  Are you sure you want to delete "{inventoryToDelete?.name}"? This action
+                  cannot be undone and will also delete all hosts and groups in this
+                  inventory.
+                </>
+              )}
             </DialogDescription>
           </DialogHeader>
+          {forceDeleteDetail && (
+            <div className="rounded-md border border-red-500/20 bg-red-500/5 p-3 text-sm text-muted-foreground">
+              Force delete removes the inventory <span className="font-medium text-foreground">and everything built on it</span>:
+              its job templates (with their jobs, schedules, and notification attachments),
+              jobs run against it, its sources and sync history, and any workflow steps that
+              run those templates. Constructed inventories using it as an input lose that
+              input. This cannot be undone.
+            </div>
+          )}
           <DialogFooter>
-            <Button variant="outline" onClick={() => setDeleteDialogOpen(false)}>
+            <Button variant="outline" onClick={() => { setDeleteDialogOpen(false); setForceDeleteDetail(null); }}>
               Cancel
             </Button>
-            <Button variant="destructive" onClick={() => { void handleDelete(); }} disabled={deleting}>
-              {deleting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-              Delete
-            </Button>
+            {forceDeleteDetail ? (
+              <Button variant="destructive" onClick={() => { void handleDelete(true); }} disabled={deleting}>
+                {deleting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                Force Delete Everything
+              </Button>
+            ) : (
+              <Button variant="destructive" onClick={() => { void handleDelete(); }} disabled={deleting}>
+                {deleting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                Delete
+              </Button>
+            )}
           </DialogFooter>
         </DialogContent>
       </Dialog>

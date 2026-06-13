@@ -137,7 +137,7 @@ If the sync succeeds, you will see a toast notification showing how many hosts w
 
 If the sync fails, a red error banner appears at the top of the inventory page showing the exact error output from Ansible. Click the copy icon on the banner to copy the error text for debugging.
 
-If the sync succeeds but Ansible printed warnings to stderr, an amber warning banner appears with the warning text and a copy button. Common warnings include deprecated plugin options or network timeouts that did not prevent host discovery.
+If the sync succeeds but Ansible printed warnings to stderr, the sync status indicator in the tab bar turns amber instead of green (the host count still shows, so it is clear the sync worked). Click that amber icon to jump to the Syncs tab, where the full warning text appears at the top with a copy button. Common warnings include deprecated plugin options or network timeouts that did not prevent host discovery.
 
 ### Step 4: Use the Inventory in a Job
 
@@ -237,6 +237,10 @@ The Run Command button on the inventory detail page runs a single Ansible module
 
 A constructed inventory combines other inventories instead of querying a provider. When you create an inventory with the Constructed type, you pick the input inventories in order and optionally write `ansible.builtin.constructed` rules — `compose` derives new host variables, `groups` assigns membership by Jinja condition, and `keyed_groups` creates a group per value of a host variable. An optional limit pattern keeps only matching hosts. The constructed inventory rebuilds from its inputs before every job launch (bounded by its cache timeout) and on demand with the Rebuild button; each build appears in the Syncs tab with its full plugin output, which is the place to debug rule errors. Input inventories must belong to the same organization, cannot themselves be constructed, and cannot be deleted while a constructed inventory uses them.
 
+## Deleting an Inventory
+
+Deleting an inventory normally removes only the inventory and its hosts and groups. If the inventory is still referenced by job templates, jobs, or sources, the delete is rejected and the dialog explains what depends on it. From there you can choose **Force Delete Everything**, which removes the inventory together with every dependent resource — the job templates built on it (and their schedules, attached credentials and variables, notification attachments, and the workflow steps that run them), the jobs run against it and their event history, and its inventory sources — in a single operation. A constructed inventory that uses this inventory as an input keeps working but loses that input. Force delete cannot be undone and requires organization-level Ansible management permission.
+
 ## Viewing Synced Hosts
 
 After a successful sync, the Hosts tab on the inventory detail page shows all discovered hosts with the variables reported by the cloud provider. For Azure VMs, this typically includes:
@@ -303,4 +307,4 @@ Check that the `include_vm_resource_groups` setting in your inventory file inclu
 
 ### Sync shows warnings about deprecated options
 
-Some plugin options change between Ansible collection versions. Warnings about deprecated options do not prevent host discovery. Review the amber warning banner on the inventory detail page, you can copy the warnings and update your inventory file to use the recommended alternatives.
+Some plugin options change between Ansible collection versions. Warnings about deprecated options do not prevent host discovery. Click the amber sync icon in the inventory's tab bar to open the Syncs tab, where you can read and copy the warnings and update your inventory file to use the recommended alternatives.
