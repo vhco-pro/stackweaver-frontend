@@ -118,7 +118,10 @@ PATCH /api/v2/ansible/inventories/:id
 
 ```
 DELETE /api/v2/ansible/inventories/:id
+DELETE /api/v2/ansible/inventories/:id?force=true
 ```
+
+A plain delete is rejected with 409 when the inventory is still referenced by job templates, jobs, or inventory sources, or used as an input of a constructed inventory. Adding `?force=true` cascades the delete over every dependent resource — job templates (and their schedules, credential/variable links, notification attachments, and the workflow nodes that run them), jobs run against the inventory (with their events), and inventory sources — in a single transaction. Force delete additionally requires organization-level Ansible management permission.
 
 ### Export as INI
 

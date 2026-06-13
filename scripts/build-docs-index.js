@@ -1088,8 +1088,11 @@ function updateReadme(dirPath) {
   const parts = [...before, ...tableLines];
   if (after.length > 0) parts.push('', ...after);
 
-  // Preserve trailing newline
-  const newContent = parts.join('\n') + (content.endsWith('\n') ? '\n' : '');
+  // Normalize to exactly one trailing newline. (Splitting on '\n' and joining
+  // already round-trips the original trailing newline as an empty last element,
+  // so unconditionally appending one grew files like tfe-compatibility/README.md
+  // by a blank line on every run.)
+  const newContent = parts.join('\n').replace(/\n*$/, '\n');
 
   if (newContent !== content) {
     fs.writeFileSync(readmePath, newContent, 'utf-8');

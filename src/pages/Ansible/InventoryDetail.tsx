@@ -128,6 +128,61 @@ const AZURE_AUTH_OPTIONS: ReadonlyArray<{
   { value: 'credential', label: 'Cloud Credential', hint: 'Client ID + secret' },
 ];
 
+/**
+ * Collapsible amber card showing a sync's stderr warnings, rendered at the top
+ * of the Syncs tab (warnings are diagnostic — sync failures stay as red
+ * banners in the hosts view because they mean the host list is stale).
+ */
+function SyncWarningCard({ title, log }: { title: string; log: string }) {
+  const [open, setOpen] = useState(true);
+  return (
+    <Card className="bg-amber-500/5 border-amber-500/20">
+      <CardContent className="py-4">
+        <div className="flex items-center gap-3">
+          <AlertCircle className="h-5 w-5 text-amber-500 shrink-0" />
+          <button
+            type="button"
+            className="flex-1 text-left cursor-pointer"
+            onClick={() => { setOpen(!open); }}
+          >
+            <p className="text-sm font-medium text-amber-600 dark:text-amber-400">
+              {title}
+            </p>
+          </button>
+          <div className="flex items-center gap-1 shrink-0">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-6 w-6 text-amber-500 hover:text-amber-600 hover:bg-amber-500/10"
+              onClick={() => {
+                void navigator.clipboard.writeText(log).then(() => {
+                  toast.success('Copied to clipboard');
+                }).catch(() => {
+                  toast.error('Failed to copy to clipboard');
+                });
+              }}
+            >
+              <Copy className="h-3.5 w-3.5" />
+            </Button>
+            <button
+              type="button"
+              className="h-6 w-6 flex items-center justify-center cursor-pointer"
+              onClick={() => { setOpen(!open); }}
+            >
+              <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform duration-200 ${open ? 'rotate-0' : '-rotate-90'}`} />
+            </button>
+          </div>
+        </div>
+        {open && (
+          <pre className="text-xs text-muted-foreground whitespace-pre-wrap font-mono bg-muted/50 rounded-sm p-2 max-h-40 overflow-y-auto mt-2 ml-8">
+            {log}
+          </pre>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
 export default function InventoryDetail() {
   const { orgName, inventoryId } = useParams<{ orgName: string; inventoryId: string }>();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -149,7 +204,6 @@ export default function InventoryDetail() {
 
   // Collapsible banner state
   const [infoBannerOpen, setInfoBannerOpen] = useState(true);
-  const [warningBannerOpen, setWarningBannerOpen] = useState(true);
   const [errorBannerOpen, setErrorBannerOpen] = useState(true);
 
   // Edit inventory state
@@ -173,6 +227,9 @@ export default function InventoryDetail() {
   
   // Delete inventory state
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  // Set to the server's 409 dependency message when a plain delete is blocked;
+  // switches the delete dialog into the force-delete escalation.
+  const [forceDeleteDetail, setForceDeleteDetail] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [confirmName, setConfirmName] = useState('');
   
@@ -491,7 +548,7 @@ export default function InventoryDetail() {
     setIsEditingDescription(false);
   };
 
-  const handleDelete = async () => {
+  const handleDelete = async (force = false) => {
     if (!inventory) return;
 
     if (confirmName !== inventory.name) {
@@ -501,11 +558,17 @@ export default function InventoryDetail() {
 
     setDeleting(true);
     try {
-      await ansibleInventoriesApi.delete(inventory.id);
-      toast.success('Inventory deleted successfully');
+      await ansibleInventoriesApi.delete(inventory.id, { force });
+      toast.success(force ? 'Inventory and all dependent resources deleted' : 'Inventory deleted successfully');
       void Promise.resolve(navigate(`/app/${orgName}/ansible/inventories`));
     } catch (err: unknown) {
       console.error('Failed to delete inventory:', err);
+      // A 409 means dependent resources block the delete — escalate the dialog
+      // to offer force delete instead of just surfacing a toast.
+      if (!force && (err as Error & { status?: number }).status === 409) {
+        setForceDeleteDetail(err instanceof Error ? err.message : 'The inventory is referenced by other resources.');
+        return;
+      }
       const errorMessage = err instanceof Error ? err.message : 'Failed to delete inventory';
       toast.error(errorMessage);
     } finally {
@@ -982,6 +1045,12 @@ export default function InventoryDetail() {
     );
   }
 
+  // Stderr warnings from the latest successful sync(s) — surfaced as a small
+  // icon next to the sync status in the tab bar, details in the Syncs tab.
+  const hasSyncWarnings =
+    ((inventory.type === 'vcs' || inventory.type === 'constructed') && inventory.last_sync_status === 'successful' && !!inventory.last_sync_log) ||
+    (inventory.type === 'dynamic' && sources.some(s => s.status === 'successful' && !!s.last_sync_log));
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -1212,7 +1281,7 @@ export default function InventoryDetail() {
               </DialogFooter>
             </DialogContent>
           </Dialog>
-          <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+          <Dialog open={deleteDialogOpen} onOpenChange={(open) => { setDeleteDialogOpen(open); if (!open) setForceDeleteDetail(null); }}>
             <DialogTrigger asChild>
               <Button variant="destructive">
                 <Trash2 className="h-4 w-4 mr-2" />
@@ -1221,45 +1290,71 @@ export default function InventoryDetail() {
             </DialogTrigger>
             <DialogContent>
               <DialogHeader>
-                <DialogTitle>Delete Inventory</DialogTitle>
+                <DialogTitle>{forceDeleteDetail ? 'Inventory Is Still in Use' : 'Delete Inventory'}</DialogTitle>
                 <DialogDescription>
-                  Are you sure you want to delete this inventory? This will also delete all hosts and groups. This action cannot be undone.
-                  <br /><br />
-                  To confirm, please type <strong>{inventory.name}</strong> below:
+                  {forceDeleteDetail ?? (
+                    <>
+                      Are you sure you want to delete this inventory? This will also delete all hosts and groups. This action cannot be undone.
+                      <br /><br />
+                      To confirm, please type <strong>{inventory.name}</strong> below:
+                    </>
+                  )}
                 </DialogDescription>
               </DialogHeader>
-              <div className="grid gap-4 py-4">
-                <div className="grid gap-2">
-                  <Label htmlFor="confirm-name">Inventory Name</Label>
-                  <Input
-                    id="confirm-name"
-                    value={confirmName}
-                    onChange={(e) => setConfirmName(e.target.value)}
-                    placeholder={inventory.name}
-                    disabled={deleting}
-                    className="font-mono"
-                  />
+              {forceDeleteDetail ? (
+                <div className="rounded-md border border-red-500/20 bg-red-500/5 p-3 text-sm text-muted-foreground">
+                  Force delete removes the inventory <span className="font-medium text-foreground">and everything built on it</span>:
+                  its job templates (with their jobs, schedules, and notification attachments),
+                  jobs run against it, its sources and sync history, and any workflow steps that
+                  run those templates. Constructed inventories using it as an input lose that
+                  input. This cannot be undone.
                 </div>
-              </div>
+              ) : (
+                <div className="grid gap-4 py-4">
+                  <div className="grid gap-2">
+                    <Label htmlFor="confirm-name">Inventory Name</Label>
+                    <Input
+                      id="confirm-name"
+                      value={confirmName}
+                      onChange={(e) => setConfirmName(e.target.value)}
+                      placeholder={inventory.name}
+                      disabled={deleting}
+                      className="font-mono"
+                    />
+                  </div>
+                </div>
+              )}
               <DialogFooter>
                 <Button
                   variant="outline"
                   onClick={() => {
                     setDeleteDialogOpen(false);
                     setConfirmName('');
+                    setForceDeleteDetail(null);
                   }}
                   disabled={deleting}
                 >
                   Cancel
                 </Button>
-                <Button
-                  variant="destructive"
-                  onClick={() => { void handleDelete(); }}
-                  disabled={deleting || confirmName !== inventory.name}
-                >
-                  {deleting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-                  Delete Inventory
-                </Button>
+                {forceDeleteDetail ? (
+                  <Button
+                    variant="destructive"
+                    onClick={() => { void handleDelete(true); }}
+                    disabled={deleting}
+                  >
+                    {deleting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                    Force Delete Everything
+                  </Button>
+                ) : (
+                  <Button
+                    variant="destructive"
+                    onClick={() => { void handleDelete(); }}
+                    disabled={deleting || confirmName !== inventory.name}
+                  >
+                    {deleting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                    Delete Inventory
+                  </Button>
+                )}
               </DialogFooter>
             </DialogContent>
           </Dialog>
@@ -1339,12 +1434,25 @@ export default function InventoryDetail() {
 
             {(inventory.type === 'vcs' || inventory.type === 'constructed') && inventory.last_sync_at && (
               <div className="flex items-center gap-1.5 text-sm text-muted-foreground min-w-0">
-                {inventory.last_sync_status === 'successful' ? (
-                  <CheckCircle2 className="h-4 w-4 text-green-500 shrink-0" />
+                {/* `syncing` (local, set on click) shows the spinner immediately —
+                    the 2s status poll alone misses syncs that finish faster. */}
+                {syncing || inventory.last_sync_status === 'syncing' ? (
+                  <Loader2 className="h-4 w-4 text-blue-500 animate-spin shrink-0" />
+                ) : inventory.last_sync_status === 'successful' ? (
+                  hasSyncWarnings ? (
+                    <button
+                      type="button"
+                      title="Sync completed with warnings — view in the Syncs tab"
+                      className="cursor-pointer shrink-0"
+                      onClick={() => { handleTabChange('syncs'); }}
+                    >
+                      <AlertCircle className="h-4 w-4 text-amber-500" />
+                    </button>
+                  ) : (
+                    <CheckCircle2 className="h-4 w-4 text-green-500 shrink-0" />
+                  )
                 ) : inventory.last_sync_status === 'failed' ? (
                   <XCircle className="h-4 w-4 text-red-500 shrink-0" />
-                ) : inventory.last_sync_status === 'syncing' ? (
-                  <Loader2 className="h-4 w-4 text-blue-500 animate-spin shrink-0" />
                 ) : (
                   <RefreshCw className="h-4 w-4 text-muted-foreground shrink-0" />
                 )}
@@ -1356,6 +1464,17 @@ export default function InventoryDetail() {
                   {new Date(inventory.last_sync_at).toLocaleString()}
                 </span>
               </div>
+            )}
+
+            {inventory.type === 'dynamic' && hasSyncWarnings && (
+              <button
+                type="button"
+                title="Last sync completed with warnings — view in the Syncs tab"
+                className="cursor-pointer shrink-0"
+                onClick={() => { handleTabChange('syncs'); }}
+              >
+                <AlertCircle className="h-4 w-4 text-amber-500" />
+              </button>
             )}
 
             {/* Contextual action — mirrors the active tab (replaces the per-tab Add buttons) */}
@@ -1459,54 +1578,6 @@ export default function InventoryDetail() {
                     {source.last_sync_error}
                   </pre>
                 </div>
-              </CardContent>
-            </Card>
-          ))}
-
-          {/* Sync warning banners for dynamic inventories (stderr from sources) */}
-          {inventory.type === 'dynamic' && sources.filter(s => s.status === 'successful' && s.last_sync_log).map(source => (
-            <Card key={`warn-${source.id}`} className="bg-amber-500/5 border-amber-500/20">
-              <CardContent className="py-4">
-                <div className="flex items-center gap-3">
-                  <AlertCircle className="h-5 w-5 text-amber-500 shrink-0" />
-                  <button
-                    type="button"
-                    className="flex-1 text-left cursor-pointer"
-                    onClick={() => { setWarningBannerOpen(!warningBannerOpen); }}
-                  >
-                    <p className="text-sm font-medium text-amber-600 dark:text-amber-400">
-                      Source &ldquo;{source.name}&rdquo; Sync Warnings
-                    </p>
-                  </button>
-                  <div className="flex items-center gap-1 shrink-0">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-6 w-6 text-amber-500 hover:text-amber-600 hover:bg-amber-500/10"
-                      onClick={() => {
-                        void navigator.clipboard.writeText(source.last_sync_log || '').then(() => {
-                          toast.success('Copied to clipboard');
-                        }).catch(() => {
-                          toast.error('Failed to copy to clipboard');
-                        });
-                      }}
-                    >
-                      <Copy className="h-3.5 w-3.5" />
-                    </Button>
-                    <button
-                      type="button"
-                      className="h-6 w-6 flex items-center justify-center cursor-pointer"
-                      onClick={() => { setWarningBannerOpen(!warningBannerOpen); }}
-                    >
-                      <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform duration-200 ${warningBannerOpen ? 'rotate-0' : '-rotate-90'}`} />
-                    </button>
-                  </div>
-                </div>
-                {warningBannerOpen && (
-                  <pre className="text-xs text-muted-foreground whitespace-pre-wrap font-mono bg-muted/50 rounded-sm p-2 max-h-40 overflow-y-auto mt-2 ml-8">
-                    {source.last_sync_log}
-                  </pre>
-                )}
               </CardContent>
             </Card>
           ))}
@@ -1637,54 +1708,6 @@ export default function InventoryDetail() {
                 {errorBannerOpen && (
                   <pre className="text-xs text-muted-foreground whitespace-pre-wrap font-mono bg-muted/50 rounded-sm p-2 max-h-40 overflow-y-auto mt-2 ml-8">
                     {inventory.last_sync_error}
-                  </pre>
-                )}
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Sync log (stderr warnings) for VCS inventories */}
-          {inventory.type === 'vcs' && inventory.last_sync_status === 'successful' && inventory.last_sync_log && (
-            <Card className="bg-amber-500/5 border-amber-500/20">
-              <CardContent className="py-4">
-                <div className="flex items-center gap-3">
-                  <AlertCircle className="h-5 w-5 text-amber-500 shrink-0" />
-                  <button
-                    type="button"
-                    className="flex-1 text-left cursor-pointer"
-                    onClick={() => { setWarningBannerOpen(!warningBannerOpen); }}
-                  >
-                    <p className="text-sm font-medium text-amber-600 dark:text-amber-400">
-                      Sync Warnings
-                    </p>
-                  </button>
-                  <div className="flex items-center gap-1 shrink-0">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-6 w-6 text-amber-500 hover:text-amber-600 hover:bg-amber-500/10"
-                      onClick={() => {
-                        void navigator.clipboard.writeText(inventory.last_sync_log || '').then(() => {
-                          toast.success('Copied to clipboard');
-                        }).catch(() => {
-                          toast.error('Failed to copy to clipboard');
-                        });
-                      }}
-                    >
-                      <Copy className="h-3.5 w-3.5" />
-                    </Button>
-                    <button
-                      type="button"
-                      className="h-6 w-6 flex items-center justify-center cursor-pointer"
-                      onClick={() => { setWarningBannerOpen(!warningBannerOpen); }}
-                    >
-                      <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform duration-200 ${warningBannerOpen ? 'rotate-0' : '-rotate-90'}`} />
-                    </button>
-                  </div>
-                </div>
-                {warningBannerOpen && (
-                  <pre className="text-xs text-muted-foreground whitespace-pre-wrap font-mono bg-muted/50 rounded-sm p-2 max-h-40 overflow-y-auto mt-2 ml-8">
-                    {inventory.last_sync_log}
                   </pre>
                 )}
               </CardContent>
@@ -2190,6 +2213,13 @@ export default function InventoryDetail() {
         {/* Syncs Tab (sync run history — VCS and dynamic inventories) */}
         {inventory.type !== 'static' && (
           <TabsContent value="syncs" className="space-y-4">
+            {/* Stderr warnings from the latest successful sync(s) */}
+            {inventory.type === 'vcs' && inventory.last_sync_status === 'successful' && inventory.last_sync_log && (
+              <SyncWarningCard title="Latest Sync Warnings" log={inventory.last_sync_log} />
+            )}
+            {inventory.type === 'dynamic' && sources.filter(s => s.status === 'successful' && s.last_sync_log).map(source => (
+              <SyncWarningCard key={`warn-${source.id}`} title={`Source “${source.name}” Latest Sync Warnings`} log={source.last_sync_log!} />
+            ))}
             <InventorySyncsCard inventoryId={inventoryId!} />
           </TabsContent>
         )}
