@@ -1,6 +1,6 @@
 // Copyright (c) 2025 VH & Co BV. Licensed under the Business Source License 1.1. See LICENSE for details.
 
-import { motion } from 'framer-motion';
+import { motion } from 'motion/react';
 import { Link } from 'react-router-dom';
 import { FileText, Search, Shield, LayoutDashboard, Zap } from 'lucide-react';
 import { Button } from '@/components/ui/button';
