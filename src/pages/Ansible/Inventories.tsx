@@ -10,7 +10,7 @@ import { ansibleInventoriesApi, ansibleHostsApi, ansibleGroupsApi, type AnsibleI
 import { getAnsibleInventoryFromJsonApi } from '@/utils/ansible-jsonapi';
 import { fetchAllPages } from '@/lib/pagination';
 import { Pager } from '@/components/ui/pager';
-import { vcsConnectionsApi, type VCSConnection, type Repository, type Branch } from '@/api/client';
+import { vcsConnectionsApi } from '@/api/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -87,15 +87,7 @@ export default function Inventories() {
   const [forceDeleteDetail, setForceDeleteDetail] = useState<string | null>(null);
 
   // VCS Integration state
-  const [loadingVCS, setLoadingVCS] = useState(false);
-  const [loadingRepos, setLoadingRepos] = useState(false);
-  const [loadingBranches, setLoadingBranches] = useState(false);
-  const [loadingInventoryFiles, setLoadingInventoryFiles] = useState(false);
-  const [vcsConnections, setVcsConnections] = useState<VCSConnection[]>([]);
-  const [repositories, setRepositories] = useState<Repository[]>([]);
   const [selectedVcsProject, setSelectedVcsProject] = useState<string>('');
-  const [branches, setBranches] = useState<Branch[]>([]);
-  const [inventoryFiles, setInventoryFiles] = useState<string[]>([]);
   const [repositorySearch, setRepositorySearch] = useState('');
   const [repositorySelectOpen, setRepositorySelectOpen] = useState(false);
   const repositorySearchInputRef = useRef<HTMLInputElement>(null);
@@ -197,129 +189,87 @@ export default function Inventories() {
       input_inventory_ids: [],
     });
     setSelectedVcsProject('');
-    setRepositories([]);
-    setBranches([]);
-    setInventoryFiles([]);
     setNameTouched(false);
     setDescriptionTouched(false);
     setRepositorySearch('');
     setInventoryPathSearch('');
   };
 
-  // Load VCS connections when dialog opens
-  useEffect(() => {
-    if (!createDialogOpen || !selectedOrg) return;
+  // VCS cascade for the create dialog (connection -> repos -> branches ->
+  // inventory files), loaded via React Query. Each query is scoped to the dialog
+  // being open, type === 'vcs', and the relevant selection, so stale data clears
+  // automatically — no reset-in-effect needed.
+  const isVcsType = formData.type === 'vcs';
+  const [invOwner, invRepo] = (formData.vcs_repository || '').split('/');
 
-    setLoadingVCS(true);
-    vcsConnectionsApi.list(selectedOrg)
-      .then((vcsRes) => {
+  const { data: vcsConnections = [], isLoading: loadingVCS } = useQuery({
+    queryKey: ['inv-create-vcs', selectedOrg],
+    queryFn: async () => {
+      try {
+        const vcsRes = await vcsConnectionsApi.list(selectedOrg);
         const connections = Array.isArray(vcsRes) ? vcsRes : [];
-        // Deduplicate by provider + account_name + account_type
-        const uniqueConnections = Array.from(
-          new Map(
-            connections.map(conn => [
-              `${conn.provider}-${conn.account_name}-${conn.account_type}`,
-              conn
-            ])
-          ).values()
+        return Array.from(
+          new Map(connections.map((conn) => [`${conn.provider}-${conn.account_name}-${conn.account_type}`, conn])).values(),
         );
-        setVcsConnections(uniqueConnections);
-        
-        // Auto-select if there's exactly one VCS connection and type is vcs
-        if (uniqueConnections.length === 1 && !formData.vcs_connection_id && formData.type === 'vcs') {
-          setFormData(prev => ({
-            ...prev,
-            vcs_connection_id: uniqueConnections[0].id,
-          }));
-        }
-      })
-      .catch((err) => {
+      } catch (err) {
         console.error('Failed to load VCS connections:', err);
         toast.error('Failed to load VCS connections');
-      })
-      .finally(() => {
-        setLoadingVCS(false);
-      });
-    // formData.type and formData.vcs_connection_id are intentionally omitted - formData object changes would cause infinite loops
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [createDialogOpen, selectedOrg]);
+        return [];
+      }
+    },
+    enabled: createDialogOpen && !!selectedOrg,
+  });
 
-  // Load repositories when VCS connection is selected
-  useEffect(() => {
-    if (!formData.vcs_connection_id || !createDialogOpen || formData.type !== 'vcs') {
-      setRepositories([]);
-      setBranches([]);
-      setInventoryFiles([]);
-      return;
-    }
-
-    setLoadingRepos(true);
-    vcsConnectionsApi.listAllRepositories(formData.vcs_connection_id, selectedVcsProject || undefined)
-      .then((repos) => {
-        setRepositories(repos || []);
-      })
-      .catch((err) => {
+  const { data: repositories = [], isLoading: loadingRepos } = useQuery({
+    queryKey: ['inv-create-repos', formData.vcs_connection_id, selectedVcsProject],
+    queryFn: async () => {
+      try {
+        return (await vcsConnectionsApi.listAllRepositories(formData.vcs_connection_id, selectedVcsProject || undefined)) || [];
+      } catch (err) {
         console.error('Failed to load repositories:', err);
         toast.error('Failed to load repositories');
-      })
-      .finally(() => {
-        setLoadingRepos(false);
-      });
-  }, [formData.vcs_connection_id, createDialogOpen, formData.type, selectedVcsProject]);
+        return [];
+      }
+    },
+    enabled: createDialogOpen && isVcsType && !!formData.vcs_connection_id,
+  });
 
-  // Load branches when repository is selected
-  useEffect(() => {
-    if (!formData.vcs_repository || !formData.vcs_connection_id || !createDialogOpen || formData.type !== 'vcs') {
-      setBranches([]);
-      setInventoryFiles([]);
-      return;
-    }
-
-    const [owner, repo] = formData.vcs_repository.split('/');
-    if (!owner || !repo) {
-      setBranches([]);
-      setInventoryFiles([]);
-      return;
-    }
-
-    setLoadingBranches(true);
-    vcsConnectionsApi.listBranches(formData.vcs_connection_id, owner, repo)
-      .then((brs) => {
-        setBranches(brs || []);
-      })
-      .catch((err) => {
+  const { data: branches = [], isLoading: loadingBranches } = useQuery({
+    queryKey: ['inv-create-branches', formData.vcs_connection_id, formData.vcs_repository],
+    queryFn: async () => {
+      try {
+        return (await vcsConnectionsApi.listBranches(formData.vcs_connection_id, invOwner, invRepo)) || [];
+      } catch (err) {
         console.error('Failed to load branches:', err);
         toast.error('Failed to load branches');
-      })
-      .finally(() => {
-        setLoadingBranches(false);
-      });
-  }, [formData.vcs_repository, formData.vcs_connection_id, createDialogOpen, formData.type]);
+        return [];
+      }
+    },
+    enabled: createDialogOpen && isVcsType && !!formData.vcs_connection_id && !!invOwner && !!invRepo,
+  });
 
-  // Load inventory files when repository and branch are selected
-  useEffect(() => {
-    if (!formData.vcs_connection_id || !formData.vcs_repository || !formData.vcs_branch || !createDialogOpen || formData.type !== 'vcs') {
-      setInventoryFiles([]);
-      return;
-    }
-
-    const [owner, repo] = formData.vcs_repository.split('/');
-    if (!owner || !repo) return;
-
-    setLoadingInventoryFiles(true);
-    vcsConnectionsApi.listInventoryFiles(formData.vcs_connection_id, owner, repo, formData.vcs_branch)
-      .then((files) => {
-        setInventoryFiles(files || []);
-      })
-      .catch((err) => {
+  const { data: inventoryFiles = [], isLoading: loadingInventoryFiles } = useQuery({
+    queryKey: ['inv-create-files', formData.vcs_connection_id, formData.vcs_repository, formData.vcs_branch],
+    queryFn: async () => {
+      try {
+        return (await vcsConnectionsApi.listInventoryFiles(formData.vcs_connection_id, invOwner, invRepo, formData.vcs_branch)) || [];
+      } catch (err) {
         console.error('Failed to load inventory files:', err);
-        // Don't show error toast - just continue with manual input
-        setInventoryFiles([]);
-      })
-      .finally(() => {
-        setLoadingInventoryFiles(false);
-      });
-  }, [formData.vcs_connection_id, formData.vcs_repository, formData.vcs_branch, createDialogOpen, formData.type]);
+        return [];
+      }
+    },
+    enabled: createDialogOpen && isVcsType && !!formData.vcs_connection_id && !!formData.vcs_repository && !!formData.vcs_branch && !!invOwner && !!invRepo,
+  });
+
+  // Auto-select the sole VCS connection once it loads (during render, once per load).
+  const connAutoKey = createDialogOpen && isVcsType && vcsConnections.length === 1 ? vcsConnections[0].id : null;
+  const [prevConnAutoKey, setPrevConnAutoKey] = useState<string | null>(null);
+  if (connAutoKey && connAutoKey !== prevConnAutoKey) {
+    setPrevConnAutoKey(connAutoKey);
+    if (!formData.vcs_connection_id) {
+      setFormData((prev) => ({ ...prev, vcs_connection_id: connAutoKey }));
+    }
+  }
 
   // Auto-focus search input when repository select opens
   useEffect(() => {
@@ -339,48 +289,41 @@ export default function Inventories() {
     }
   }, [inventoryPathSelectOpen]);
 
-  // Auto-generate name from repo-branch-path if user hasn't touched the name field
-  useEffect(() => {
-    if (nameTouched || !formData.vcs_repository || formData.type !== 'vcs') return;
-    
+  // Auto-generate the name from repo-branch-path while the user hasn't touched it
+  // (during render, keyed on the source fields).
+  const autoNameKey = !nameTouched && isVcsType && formData.vcs_repository
+    ? `${formData.vcs_repository}|${formData.vcs_branch}|${formData.inventory_path}`
+    : null;
+  const [prevAutoNameKey, setPrevAutoNameKey] = useState<string | null>(null);
+  if (autoNameKey !== null && autoNameKey !== prevAutoNameKey) {
+    setPrevAutoNameKey(autoNameKey);
     const repoName = formData.vcs_repository.split('/').pop() || '';
     const branch = formData.vcs_branch || '';
     const path = formData.inventory_path?.replace(/\.(ini|ya?ml|json)$/i, '').replace(/\//g, '-') || '';
-    
-    // Generate name: repo-branch-path (e.g., "my-repo-main-inventory")
     const parts = [repoName];
     if (branch) parts.push(branch);
     if (path) parts.push(path);
-    
     const autoName = parts.join('-').toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-');
-    setFormData(prev => ({ ...prev, name: autoName }));
-  }, [formData.vcs_repository, formData.vcs_branch, formData.inventory_path, nameTouched, formData.type]);
+    setFormData((prev) => ({ ...prev, name: autoName }));
+  }
 
-  // Auto-generate description from repo-branch-path if user hasn't touched the description field
-  useEffect(() => {
-    if (descriptionTouched || !formData.vcs_repository || formData.type !== 'vcs') return;
-    
+  // Auto-generate the description while the user hasn't touched it (during render).
+  const autoDescKey = !descriptionTouched && isVcsType && formData.vcs_repository
+    ? `${formData.vcs_repository}|${formData.vcs_branch}|${formData.inventory_path}`
+    : null;
+  const [prevAutoDescKey, setPrevAutoDescKey] = useState<string | null>(null);
+  if (autoDescKey !== null && autoDescKey !== prevAutoDescKey) {
+    setPrevAutoDescKey(autoDescKey);
     const repoName = formData.vcs_repository.split('/').pop() || '';
     const branch = formData.vcs_branch || '';
     const path = formData.inventory_path || '';
-    
-    // Generate description: "VCS inventory from {repo} repository, on the {branch} branch, at {path}"
     const parts: string[] = [];
-    if (repoName) {
-      parts.push(`${repoName} repository`);
-    }
-    if (branch) {
-      parts.push(`on the ${branch} branch`);
-    }
-    if (path) {
-      parts.push(`at ${path}`);
-    }
-    
-    const autoDescription = parts.length > 0 
-      ? `VCS inventory from ${parts.join(', ')}`
-      : '';
-    setFormData(prev => ({ ...prev, description: autoDescription }));
-  }, [formData.vcs_repository, formData.vcs_branch, formData.inventory_path, descriptionTouched, formData.type]);
+    if (repoName) parts.push(`${repoName} repository`);
+    if (branch) parts.push(`on the ${branch} branch`);
+    if (path) parts.push(`at ${path}`);
+    const autoDescription = parts.length > 0 ? `VCS inventory from ${parts.join(', ')}` : '';
+    setFormData((prev) => ({ ...prev, description: autoDescription }));
+  }
 
   const handleCreate = async () => {
     if (!formData.name.trim()) {

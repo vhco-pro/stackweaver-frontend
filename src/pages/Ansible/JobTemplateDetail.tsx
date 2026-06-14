@@ -213,6 +213,7 @@ export default function JobTemplateDetail() {
 
   // Edit state
   const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [editParamHandled, setEditParamHandled] = useState(false);
   const [saving, setSaving] = useState(false);
   const [editForm, setEditForm] = useState({
     name: '',
@@ -363,17 +364,23 @@ export default function JobTemplateDetail() {
   const variableSets = useMemo(() => queryData?.variableSets ?? [], [queryData?.variableSets]);
   const templateVariables = useMemo(() => queryData?.templateVariables ?? [], [queryData?.templateVariables]);
 
-  // Auto-open edit dialog if ?edit=true in URL
+  // Auto-open edit dialog if ?edit=true in URL. The open is a guarded during-render
+  // state set; the URL param is cleared in an effect (router navigation, not state).
+  if (!loading && searchParams.get('edit') === 'true' && !editParamHandled) {
+    setEditParamHandled(true);
+    setEditDialogOpen(true);
+  }
   useEffect(() => {
-    if (!loading && searchParams.get('edit') === 'true') {
-      setEditDialogOpen(true);
-      // Remove the edit param from URL
+    if (editParamHandled && searchParams.get('edit') === 'true') {
       setSearchParams({});
     }
-  }, [loading, searchParams, setSearchParams]);
+  }, [editParamHandled, searchParams, setSearchParams]);
 
-  // Initialize edit form when dialog opens or template changes
-  useEffect(() => {
+  // Initialize the edit form each time the dialog opens (during-render reset keyed
+  // on the previous open state).
+  const [prevEditDialogOpen, setPrevEditDialogOpen] = useState(editDialogOpen);
+  if (editDialogOpen !== prevEditDialogOpen) {
+    setPrevEditDialogOpen(editDialogOpen);
     if (editDialogOpen && template) {
       setEditForm({
         name: template.name || '',
@@ -395,21 +402,26 @@ export default function JobTemplateDetail() {
         launch_on_webhook: template.launch_on_webhook,
       });
       setEditPlaybookSelection(template.playbook_id ? { kind: 'registered', playbookId: template.playbook_id } : null);
-      // Load agent pools and registered playbooks for the edit dialog
-      if (orgName) {
-        void agentPoolsApi.list(orgName)
-          .then((res) => setAgentPools(res.data || []))
-          .catch((err) => console.error('Failed to load agent pools:', err));
-        void fetchAllPages((page, pageSize) =>
-          ansiblePlaybooksApi.listByOrganization(orgName, { page, pageSize }))
-          .then(({ items }) => setEditPlaybooks(items.map(getAnsiblePlaybookFromJsonApi)))
-          .catch((err) => console.error('Failed to load playbooks:', err));
-      }
     }
-  }, [editDialogOpen, template, orgName]);
+  }
 
-  // Initialize launch overrides when dialog opens
+  // Load agent pools and registered playbooks while the edit dialog is open (async
+  // setState in .then — not a synchronous effect set).
   useEffect(() => {
+    if (!editDialogOpen || !orgName) return;
+    void agentPoolsApi.list(orgName)
+      .then((res) => setAgentPools(res.data || []))
+      .catch((err) => console.error('Failed to load agent pools:', err));
+    void fetchAllPages((page, pageSize) =>
+      ansiblePlaybooksApi.listByOrganization(orgName, { page, pageSize }))
+      .then(({ items }) => setEditPlaybooks(items.map(getAnsiblePlaybookFromJsonApi)))
+      .catch((err) => console.error('Failed to load playbooks:', err));
+  }, [editDialogOpen, orgName]);
+
+  // Initialize launch overrides each time the launch dialog opens.
+  const [prevLaunchDialogOpen, setPrevLaunchDialogOpen] = useState(launchDialogOpen);
+  if (launchDialogOpen !== prevLaunchDialogOpen) {
+    setPrevLaunchDialogOpen(launchDialogOpen);
     if (launchDialogOpen && template) {
       setLaunchOverrides({
         extra_vars: template.extra_vars ? JSON.stringify(template.extra_vars, null, 2) : '',
@@ -418,7 +430,7 @@ export default function JobTemplateDetail() {
         skip_tags: template.skip_tags || '',
       });
     }
-  }, [launchDialogOpen, template]);
+  }
 
   const handleUpdate = async () => {
     if (!template || !editForm.name.trim()) {

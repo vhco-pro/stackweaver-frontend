@@ -1,6 +1,6 @@
 // Copyright (c) 2025 VH & Co BV. Licensed under the Business Source License 1.1. See LICENSE for details.
 
-import { useRef, useState } from 'react';
+import { useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -33,24 +33,21 @@ export default function PasswordSet() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
-  // Capture-then-strip: read the params from the URL exactly once,
-  // then clear them from the address bar. `useRef` keeps the values
-  // stable across re-renders; we never re-read from `searchParams`.
-  const userIdRef = useRef(searchParams.get('userId') ?? '');
-  const codeRef = useRef(searchParams.get('code') ?? '');
-  const authRequestIdRef = useRef(searchParams.get('authRequest') ?? '');
-  const isInitialRef = useRef(searchParams.get('initial') === 'true');
+  // Capture-then-strip: read the params from the URL exactly once via lazy
+  // useState initialisers, then clear them from the address bar. The values
+  // never change after mount (no setter), so they stay stable across
+  // re-renders and are safe to read during render — we never re-read from
+  // `searchParams`.
+  const [userId] = useState(() => searchParams.get('userId') ?? '');
+  const [code] = useState(() => searchParams.get('code') ?? '');
+  const [authRequestId] = useState(() => searchParams.get('authRequest') ?? '');
+  const [isInitial] = useState(() => searchParams.get('initial') === 'true');
 
   useMountEffect(() => {
-    if (codeRef.current || userIdRef.current) {
+    if (code || userId) {
       window.history.replaceState({}, '', window.location.pathname);
     }
   });
-
-  const userId = userIdRef.current;
-  const code = codeRef.current;
-  const authRequestId = authRequestIdRef.current;
-  const isInitial = isInitialRef.current;
 
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');

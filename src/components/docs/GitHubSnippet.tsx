@@ -1,6 +1,7 @@
 // Copyright (c) 2025 VH & Co BV. Licensed under the Business Source License 1.1. See LICENSE for details.
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { useMountEffect } from '@/hooks/useMountEffect';
 import { Copy, Check } from 'lucide-react';
 import { getVcsProviderIcon } from '@/lib/vcs';
@@ -26,17 +27,11 @@ function snippetHash(str: string): string {
   return Math.abs(hash).toString(36);
 }
 
-// Module-level cache (survives remounts)
-const snippetCache = new Map<string, SnippetData>();
-
 export interface GitHubSnippetProps {
   url: string;
 }
 
 export function GitHubSnippet({ url }: GitHubSnippetProps) {
-  const [snippet, setSnippet] = useState<SnippetData | null>(() => snippetCache.get(url) ?? null);
-  const [highlightedHtml, setHighlightedHtml] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
 
   // Track theme
@@ -54,54 +49,40 @@ export function GitHubSnippet({ url }: GitHubSnippetProps) {
     return () => observer.disconnect();
   });
 
-  // Fetch snippet data
-  useEffect(() => {
-    if (snippetCache.has(url)) {
-      setSnippet(snippetCache.get(url)!);
-      return;
-    }
-    let cancelled = false;
-    const hash = snippetHash(url);
-    fetch(`/docs/_snippets/${hash}.snippet.json`)
-      .then(res => {
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        return res.json() as Promise<SnippetData>;
-      })
-      .then(data => {
-        if (cancelled) return;
-        snippetCache.set(url, data);
-        setSnippet(data);
-      })
-      .catch(() => {
-        if (!cancelled) setError('Snippet not found.');
-      });
-    return () => { cancelled = true; };
-  }, [url]);
+  // Fetch snippet data (immutable per URL → cache forever, no retry).
+  const { data: snippet = null, isError: error } = useQuery({
+    queryKey: ['docs-github-snippet', url],
+    queryFn: async (): Promise<SnippetData> => {
+      const hash = snippetHash(url);
+      const res = await fetch(`/docs/_snippets/${hash}.snippet.json`);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      return (await res.json()) as SnippetData;
+    },
+    staleTime: Infinity,
+    gcTime: Infinity,
+    retry: false,
+  });
 
-  // Syntax highlight
-  useEffect(() => {
-    if (!snippet) return;
-    let cancelled = false;
-    setHighlightedHtml(null);
-
-    void (async () => {
+  // Syntax highlight (theme-dependent transform). Keyed by url + theme so a theme
+  // toggle re-highlights; null while a new highlight resolves (skeleton shows).
+  const { data: highlightedHtml = null } = useQuery({
+    queryKey: ['docs-github-snippet-highlight', url, themeMode],
+    queryFn: async (): Promise<string> => {
+      const content = snippet!.content;
       try {
         const { codeToHtml } = await import('shiki');
-        const html = await codeToHtml(snippet.content, {
-          lang: snippet.lang || 'text',
+        return await codeToHtml(content, {
+          lang: snippet!.lang || 'text',
           theme: themeMode === 'dark' ? 'github-dark' : 'github-light',
         });
-        if (!cancelled) setHighlightedHtml(html);
       } catch {
         // Fallback: render as plain text
-        if (!cancelled) {
-          setHighlightedHtml(`<pre><code>${snippet.content.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</code></pre>`);
-        }
+        return `<pre><code>${content.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</code></pre>`;
       }
-    })();
-
-    return () => { cancelled = true; };
-  }, [snippet, themeMode]);
+    },
+    enabled: !!snippet,
+    staleTime: Infinity,
+  });
 
   const handleCopy = async () => {
     if (!snippet) return;
@@ -113,7 +94,7 @@ export function GitHubSnippet({ url }: GitHubSnippetProps) {
   if (error) {
     return (
       <div className="not-prose my-4 rounded-md border border-border/40 p-4 text-sm text-muted-foreground">
-        Code snippet not available: {error}
+        Code snippet not available: Snippet not found.
       </div>
     );
   }

@@ -38,66 +38,6 @@ export default function LoginName() {
   // fall-through "Sign in" CTA navigates back without the prompt.
   const showPromptNoneError = prompt === 'none';
 
-  // Fetch login settings and IdP providers on mount
-  useMountEffect(() => {
-    let cancelled = false;
-
-    // Prompt-based routing happens before any settings fetch — the
-    // destination pages do their own settings load, so don't waste a
-    // round-trip here just to immediately navigate away.
-    if (prompt === 'create') {
-      const params = new URLSearchParams();
-      if (authRequestId) params.set('authRequest', authRequestId);
-      if (loginHint) params.set('loginHint', loginHint);
-      void navigate(`/login/register${params.toString() ? `?${params.toString()}` : ''}`, { replace: true });
-      return () => { cancelled = true; };
-    }
-    if (prompt === 'select_account') {
-      const params = new URLSearchParams();
-      if (authRequestId) params.set('authRequest', authRequestId);
-      void navigate(`/login/accounts${params.toString() ? `?${params.toString()}` : ''}`, { replace: true });
-      return () => { cancelled = true; };
-    }
-    if (prompt === 'none') {
-      // Zitadel only redirects to the login UI for `prompt=none` when it
-      // can't silent-renew (no session, expired, MFA required, etc.).
-      // The failure UI is rendered directly from the URL (`prompt === 'none'`)
-      // so a fall-through navigation back to /login/loginname without the
-      // prompt re-renders the form. Skip settings/IdP fetches here because
-      // we never render the form on this branch.
-      return () => { cancelled = true; };
-    }
-
-    const init = async () => {
-      // Fetch settings and providers in parallel
-      const [settingsResult, providersResult] = await Promise.allSettled([
-        getLoginSettings(),
-        listIdpProviders(),
-      ]);
-
-      if (cancelled) return;
-
-      if (settingsResult.status === 'fulfilled') {
-        setSettings(settingsResult.value);
-      }
-      if (providersResult.status === 'fulfilled') {
-        setIdpProviders(providersResult.value.result ?? []);
-      }
-
-      // Auto-submit if login_hint is provided (AC-27).
-      // `prompt=login` suppresses the auto-submit even when loginHint is
-      // present — the OIDC spec requires re-authentication and silently
-      // walking past the loginname step would defeat that intent.
-      if (loginHint && !autoSubmittedRef.current && prompt !== 'login') {
-        autoSubmittedRef.current = true;
-        await doSubmit(loginHint, settingsResult.status === 'fulfilled' ? settingsResult.value : null);
-      }
-    };
-
-    void init();
-    return () => { cancelled = true; };
-  });
-
   const doSubmit = async (name: string, currentSettings: LoginSettings | null) => {
     if (loading) return; // Guard against double-submit race
     const trimmed = name.trim();
@@ -159,6 +99,66 @@ export default function LoginName() {
       setLoading(false);
     }
   };
+
+  // Fetch login settings and IdP providers on mount
+  useMountEffect(() => {
+    let cancelled = false;
+
+    // Prompt-based routing happens before any settings fetch — the
+    // destination pages do their own settings load, so don't waste a
+    // round-trip here just to immediately navigate away.
+    if (prompt === 'create') {
+      const params = new URLSearchParams();
+      if (authRequestId) params.set('authRequest', authRequestId);
+      if (loginHint) params.set('loginHint', loginHint);
+      void navigate(`/login/register${params.toString() ? `?${params.toString()}` : ''}`, { replace: true });
+      return () => { cancelled = true; };
+    }
+    if (prompt === 'select_account') {
+      const params = new URLSearchParams();
+      if (authRequestId) params.set('authRequest', authRequestId);
+      void navigate(`/login/accounts${params.toString() ? `?${params.toString()}` : ''}`, { replace: true });
+      return () => { cancelled = true; };
+    }
+    if (prompt === 'none') {
+      // Zitadel only redirects to the login UI for `prompt=none` when it
+      // can't silent-renew (no session, expired, MFA required, etc.).
+      // The failure UI is rendered directly from the URL (`prompt === 'none'`)
+      // so a fall-through navigation back to /login/loginname without the
+      // prompt re-renders the form. Skip settings/IdP fetches here because
+      // we never render the form on this branch.
+      return () => { cancelled = true; };
+    }
+
+    const init = async () => {
+      // Fetch settings and providers in parallel
+      const [settingsResult, providersResult] = await Promise.allSettled([
+        getLoginSettings(),
+        listIdpProviders(),
+      ]);
+
+      if (cancelled) return;
+
+      if (settingsResult.status === 'fulfilled') {
+        setSettings(settingsResult.value);
+      }
+      if (providersResult.status === 'fulfilled') {
+        setIdpProviders(providersResult.value.result ?? []);
+      }
+
+      // Auto-submit if login_hint is provided (AC-27).
+      // `prompt=login` suppresses the auto-submit even when loginHint is
+      // present — the OIDC spec requires re-authentication and silently
+      // walking past the loginname step would defeat that intent.
+      if (loginHint && !autoSubmittedRef.current && prompt !== 'login') {
+        autoSubmittedRef.current = true;
+        await doSubmit(loginHint, settingsResult.status === 'fulfilled' ? settingsResult.value : null);
+      }
+    };
+
+    void init();
+    return () => { cancelled = true; };
+  });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

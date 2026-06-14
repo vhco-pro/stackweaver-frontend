@@ -71,7 +71,7 @@ export default function Accounts() {
           sessionId: sessionResp.sessionId,
           sessionToken: sessionResp.sessionToken,
         });
-        window.location.href = finalizeResp.callbackUrl;
+        window.location.assign(finalizeResp.callbackUrl);
       } else {
         void navigate('/dashboard');
       }

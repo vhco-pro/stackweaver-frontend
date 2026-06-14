@@ -1,7 +1,6 @@
 // Copyright (c) 2025 VH & Co BV. Licensed under the Business Source License 1.1. See LICENSE for details.
 
-// eslint-disable-next-line no-restricted-imports -- legitimate dependency-based effect
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useParams, Link, useNavigate, useSearchParams } from 'react-router-dom';
 import {
@@ -18,6 +17,8 @@ import {
   type VariableSet
 } from '@/api/client';
 import { getRunFromJsonApi, type JsonApiResource } from '@/utils/jsonapi';
+import { calculateRunDuration, isRunActive } from './WorkspaceDetail.helpers';
+import { useNow } from '@/hooks/useNow';
 import { MarkdownRenderer } from '@/components/docs/MarkdownRenderer';
 import { OutputViewer } from '@/components/runs/OutputViewer';
 import { RunSourceDisplay } from '@/components/runs/RunSourceDisplay';
@@ -180,7 +181,15 @@ export default function WorkspaceDetail() {
   const [searchParams] = useSearchParams();
   // workspace, runs, stateVersions, variables, variableSets, platformVariableKeys
   // are derived from the main useQuery below (workspaceData)
-  const [activeTab, setActiveTab] = useState<TabType>('overview');
+  // Seed the active tab from the URL `?tab=` once (lazy init). Nothing in-app
+  // mutates `?tab` after mount, so a sync effect isn't needed — tab clicks below
+  // drive `setActiveTab` directly. Avoids set-state-in-effect.
+  const [activeTab, setActiveTab] = useState<TabType>(() => {
+    const tabParam = searchParams.get('tab');
+    return tabParam && ['overview', 'runs', 'states', 'variables'].includes(tabParam)
+      ? (tabParam as TabType)
+      : 'overview';
+  });
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [createRunDialogOpen, setCreateRunDialogOpen] = useState(false);
@@ -223,18 +232,6 @@ export default function WorkspaceDetail() {
   const [savingDescription, setSavingDescription] = useState(false);
 
   // Helper function to format duration
-  const formatDuration = (ms: number): string => {
-    if (ms < 1000) return `${ms}ms`;
-    const seconds = Math.floor(ms / 1000);
-    if (seconds < 60) return `${seconds}s`;
-    const minutes = Math.floor(seconds / 60);
-    const remainingSeconds = seconds % 60;
-    if (minutes < 60) return `${minutes}m ${remainingSeconds}s`;
-    const hours = Math.floor(minutes / 60);
-    const remainingMinutes = minutes % 60;
-    return `${hours}h ${remainingMinutes}m`;
-  };
-
   // Helper function to construct commit URL for state versions
   const getCommitUrl = (hash: string): string | null =>
     getVcsCommitUrl(
@@ -243,88 +240,6 @@ export default function WorkspaceDetail() {
       hash,
       workspace?.vcs_account_name,
     );
-
-  // Helper function to calculate plan & apply duration
-  const calculateRunDuration = (run: Run): string | null => {
-    const statusTimestamps = run['status-timestamps'];
-    
-    // For plan-and-apply runs: from planning-at to applied-at (or current time if still running)
-    if (run.operation === 'plan-and-apply') {
-      const planningAt = statusTimestamps?.['planning-at'] || run.started_at;
-      const appliedAt = statusTimestamps?.['applied-at'] || run.completed_at;
-      
-      if (planningAt) {
-        const startTime = new Date(planningAt).getTime();
-        const endTime = appliedAt ? new Date(appliedAt).getTime() : Date.now();
-        
-        if (endTime >= startTime) {
-          return formatDuration(endTime - startTime);
-        }
-      }
-      
-      // Fallback: use started_at and completed_at if status-timestamps not available
-      if (run.started_at) {
-        const startTime = new Date(run.started_at).getTime();
-        const endTime = run.completed_at ? new Date(run.completed_at).getTime() : Date.now();
-        
-        if (endTime >= startTime) {
-          return formatDuration(endTime - startTime);
-        }
-      }
-    }
-    
-    // For plan-only runs: from planning-at to planned-at (or current time if still running)
-    if (run.operation === 'plan-only' || run.operation === 'plan') {
-      const planningAt = statusTimestamps?.['planning-at'] || run.started_at;
-      const plannedAt = statusTimestamps?.['planned-at'] || run.completed_at;
-      
-      if (planningAt) {
-        const startTime = new Date(planningAt).getTime();
-        const endTime = plannedAt ? new Date(plannedAt).getTime() : Date.now();
-        
-        if (endTime >= startTime) {
-          return formatDuration(endTime - startTime);
-        }
-      }
-      
-      // Fallback: use started_at and completed_at
-      if (run.started_at) {
-        const startTime = new Date(run.started_at).getTime();
-        const endTime = run.completed_at ? new Date(run.completed_at).getTime() : Date.now();
-        
-        if (endTime >= startTime) {
-          return formatDuration(endTime - startTime);
-        }
-      }
-    }
-    
-    // For destroy runs: TFE-compatible two-phase flow (same as plan-and-apply)
-    if (run.operation === 'destroy') {
-      const planningAt = statusTimestamps?.['planning-at'] || run.started_at;
-      const appliedAt = statusTimestamps?.['applied-at'] || run.completed_at;
-      
-      if (planningAt) {
-        const startTime = new Date(planningAt).getTime();
-        const endTime = appliedAt ? new Date(appliedAt).getTime() : Date.now();
-        
-        if (endTime >= startTime) {
-          return formatDuration(endTime - startTime);
-        }
-      }
-      
-      // Fallback
-      if (run.started_at) {
-        const startTime = new Date(run.started_at).getTime();
-        const endTime = run.completed_at ? new Date(run.completed_at).getTime() : Date.now();
-        
-        if (endTime >= startTime) {
-          return formatDuration(endTime - startTime);
-        }
-      }
-    }
-    
-    return null;
-  };
 
   // Helper function to count resources changed - removed unused function
 
@@ -537,20 +452,10 @@ export default function WorkspaceDetail() {
   const variableSets = workspaceData?.variableSets ?? [];
   const platformVariableKeys = workspaceData?.platformVariableKeys ?? [];
 
-  // Sync inline description when workspace data changes (e.g., after refetch)
-  useEffect(() => {
-    if (workspace) {
-      setInlineDescription(workspace.description || '');
-    }
-  }, [workspace]);
-
-  // Read tab query parameter and set active tab
-  useEffect(() => {
-    const tabParam = searchParams.get('tab');
-    if (tabParam && ['overview', 'runs', 'states', 'variables'].includes(tabParam)) {
-      setActiveTab(tabParam as TabType);
-    }
-  }, [searchParams]);
+  // `inlineDescription` is seeded when editing starts (the "Add description"
+  // button) and reset on cancel; the read-only view renders workspace.description
+  // directly. So no sync effect is needed — and removing it avoids clobbering an
+  // in-progress edit when a poll refetch returns a new workspace object.
 
   // Fetch README from VCS repository
   const { data: readmeContent, isLoading: readmeLoading } = useQuery({
@@ -582,6 +487,10 @@ export default function WorkspaceDetail() {
 
   // Fetch plan output for latest run
   const latestRun = runs.length > 0 ? runs[0] : null;
+  // Ticking clock for the live run-duration display — only ticks while the
+  // latest run is in progress. Passed into the pure calculateRunDuration so it
+  // never calls Date.now() during render (react-hooks/purity).
+  const now = useNow(!!latestRun && isRunActive(latestRun));
   const shouldFetchPlan = latestRun && (
     (latestRun.operation === 'plan-and-apply' && 
      (latestRun.status === 'planned' || latestRun.status === 'applying' || latestRun.status === 'applied')) ||
@@ -1223,7 +1132,7 @@ export default function WorkspaceDetail() {
                   </div>
                   <div className="flex flex-col items-center">
                     <div className="text-muted-foreground mb-2 text-center">Plan & apply duration</div>
-                    <div className="font-medium text-center">{calculateRunDuration(latestRun) ?? '—'}</div>
+                    <div className="font-medium text-center">{calculateRunDuration(latestRun, now) ?? '—'}</div>
                   </div>
                   <div className="flex flex-col items-center">
                     <div className="text-muted-foreground mb-2 text-center">

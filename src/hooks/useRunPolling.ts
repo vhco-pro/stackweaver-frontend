@@ -84,9 +84,15 @@ export function useRunPolling({
     }
   }, [runId]);
 
+  // When there's nothing to poll, clear the loading flag during render rather than
+  // in the effect below (avoids set-state-in-effect). Loading otherwise only flips
+  // false once a fetch settles (see the fetch's finally).
+  if ((!runId || !enabled) && loading) {
+    setLoading(false);
+  }
+
   useEffect(() => {
     if (!runId || !enabled) {
-      setLoading(false);
       return;
     }
 

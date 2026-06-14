@@ -55,14 +55,19 @@ function CodeBlock({
   const [highlightedCode, setHighlightedCode] = React.useState('');
   const [isDone, setIsDone] = React.useState(false);
 
+  // When not animating, the displayed code is simply the full `code` (derived,
+  // so the non-writing case needs no setState in an effect). While writing, the
+  // animation grows `visibleCode` character by character.
+  const displayCode = writing ? visibleCode : code;
+
   React.useEffect(() => {
-    if (!visibleCode.length || !isInView) return;
+    if (!displayCode.length || !isInView) return;
 
     const loadHighlightedCode = async () => {
       try {
         const { codeToHtml } = await import('shiki');
 
-        const highlighted = await codeToHtml(visibleCode, {
+        const highlighted = await codeToHtml(displayCode, {
           lang,
           themes,
           defaultColor: theme,
@@ -75,15 +80,20 @@ function CodeBlock({
     };
 
     void loadHighlightedCode();
-  }, [lang, themes, writing, isInView, duration, delay, visibleCode, theme]);
+  }, [lang, themes, writing, isInView, duration, delay, displayCode, theme]);
+
+  // Non-writing mode: fire the completion callbacks once (no state to set —
+  // displayCode already reflects the full code during render).
+  React.useEffect(() => {
+    if (writing) return;
+    onDone?.();
+    onWrite?.({ index: code.length, length: code.length, done: true });
+  }, [writing, code, onDone, onWrite]);
 
   React.useEffect(() => {
-    if (!writing) {
-      setVisibleCode(code);
-      onDone?.();
-      onWrite?.({ index: code.length, length: code.length, done: true });
-      return;
-    }
+    // Non-writing mode is handled by deriving displayCode + the notification
+    // effect above; this effect only drives the typewriter animation.
+    if (!writing) return;
 
     if (!code.length || !isInView) return;
 

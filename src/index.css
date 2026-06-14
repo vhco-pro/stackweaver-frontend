@@ -194,6 +194,18 @@
   @apply mb-4 leading-relaxed;
 }
 
+/* Callout boxes own their padding; zero the trailing bottom margin of their last
+   block (paragraph, list, or the last item of a trailing list) so the box doesn't
+   end up with more empty space at the bottom than the top. More specific than the
+   `.markdown-content p`/`li` rules so it wins. */
+.markdown-content [role='alert'] p:last-child,
+.markdown-content [role='alert'] ul:last-child,
+.markdown-content [role='alert'] ol:last-child,
+.markdown-content [role='alert'] ul:last-child li:last-child,
+.markdown-content [role='alert'] ol:last-child li:last-child {
+  margin-bottom: 0;
+}
+
 .dark .markdown-content p {
   color: #d7dfe9;
 }

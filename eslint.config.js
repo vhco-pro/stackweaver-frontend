@@ -37,14 +37,19 @@ export default [
       // codebase. Set to 'warn' during incremental migration so they're visible
       // without blocking CI — mirrors the `no-restricted-imports` useEffect ban below.
       // Track remediation in docs/internal/analysis/react-compiler-lint-migration.md.
-      'react-hooks/set-state-in-effect': 'warn',
-      'react-hooks/refs': 'warn',
-      'react-hooks/immutability': 'warn',
-      'react-hooks/purity': 'warn',
-      'react-hooks/preserve-manual-memoization': 'warn',
-      'react-hooks/static-components': 'warn',
+      // Remediated to zero (#360) — promoted to error to prevent regressions.
+      'react-hooks/set-state-in-effect': 'error',
+      // Remediated to zero (#360) — promoted to error to prevent regressions.
+      'react-hooks/refs': 'error',
+      // Remediated to zero (#360) — promoted to error to prevent regressions.
+      'react-hooks/immutability': 'error',
+      // Remediated to zero (#360) — promoted to error to prevent regressions.
+      'react-hooks/purity': 'error',
+      'react-hooks/preserve-manual-memoization': 'error',
+      'react-hooks/static-components': 'error',
+      // Remediated to zero (#360) — promoted to error to prevent regressions.
       'react-refresh/only-export-components': [
-        'warn',
+        'error',
         { allowConstantExport: true },
       ],
       // Ban direct useEffect imports — use useMountEffect() or React Query instead

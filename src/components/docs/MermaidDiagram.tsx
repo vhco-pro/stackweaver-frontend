@@ -1,6 +1,7 @@
 // Copyright (c) 2025 VH & Co BV. Licensed under the Business Source License 1.1. See LICENSE for details.
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { Maximize2 } from 'lucide-react';
 import {
   Dialog,
@@ -34,33 +35,23 @@ function mermaidConfig() {
  * In inline mode: click to open an enlarged view in a modal.
  */
 export function MermaidDiagram({ code, className = '' }: MermaidDiagramProps) {
-  const [svg, setSvg] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [expandOpen, setExpandOpen] = useState(false);
   const [id] = useState(() => `mermaid-${Math.random().toString(36).slice(2, 11)}`);
 
-  useEffect(() => {
-    if (!code.trim()) return;
-
-    setSvg(null);
-    setLoading(true);
-    setError(null);
-
-    void (async () => {
-      try {
-        const mermaid = (await import('mermaid')).default;
-        mermaid.initialize(mermaidConfig());
-        const result = await mermaid.render(id, code);
-        setSvg(result.svg);
-      } catch (err) {
-        const msg = err instanceof Error ? err.message : String(err);
-        setError(msg);
-      } finally {
-        setLoading(false);
-      }
-    })();
-  }, [code, id]);
+  const { data: svg = null, isLoading: loading, error: renderError } = useQuery({
+    queryKey: ['docs-mermaid', id, code],
+    queryFn: async (): Promise<string> => {
+      const mermaid = (await import('mermaid')).default;
+      mermaid.initialize(mermaidConfig());
+      const result = await mermaid.render(id, code);
+      return result.svg;
+    },
+    enabled: !!code.trim(),
+    staleTime: Infinity,
+    gcTime: Infinity,
+    retry: false,
+  });
+  const error = renderError ? (renderError instanceof Error ? renderError.message : String(renderError)) : null;
 
   if (error) {
     return (
@@ -121,31 +112,20 @@ export function MermaidDiagram({ code, className = '' }: MermaidDiagramProps) {
 
 /** Renders the mermaid SVG. Only mounted when the enlarge dialog is open. */
 function MermaidDiagramCore({ code, id, className = '' }: { code: string; id: string; className?: string }) {
-  const [svg, setSvg] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [err, setErr] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!code.trim()) return;
-
-    setSvg(null);
-    setLoading(true);
-    setErr(null);
-
-    void (async () => {
-      try {
-        const mermaid = (await import('mermaid')).default;
-        mermaid.initialize(mermaidConfig());
-        const result = await mermaid.render(id, code);
-        setSvg(result.svg);
-      } catch (e) {
-        const msg = e instanceof Error ? e.message : String(e);
-        setErr(msg);
-      } finally {
-        setLoading(false);
-      }
-    })();
-  }, [code, id]);
+  const { data: svg = null, isLoading: loading, error: renderError } = useQuery({
+    queryKey: ['docs-mermaid', id, code],
+    queryFn: async (): Promise<string> => {
+      const mermaid = (await import('mermaid')).default;
+      mermaid.initialize(mermaidConfig());
+      const result = await mermaid.render(id, code);
+      return result.svg;
+    },
+    enabled: !!code.trim(),
+    staleTime: Infinity,
+    gcTime: Infinity,
+    retry: false,
+  });
+  const err = renderError ? (renderError instanceof Error ? renderError.message : String(renderError)) : null;
 
   if (err) {
     return (

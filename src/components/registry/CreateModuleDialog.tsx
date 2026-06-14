@@ -109,22 +109,18 @@ export function CreateModuleDialog({
     return null;
   };
 
-  // Auto-detect module name and provider when repository is selected
-  useEffect(() => {
-    if (!selectedRepository || publishMethod !== 'vcs') return;
-
-    const parsed = parseModuleName(selectedRepository);
+  // Auto-detect module name and provider from the repo the user selects (only
+  // filling empty fields, so manual input is preserved). Handled at the selection
+  // event rather than in an effect, per "you don't need an effect for user events".
+  const handleRepositorySelect = (value: string) => {
+    setSelectedRepository(value);
+    if (publishMethod !== 'vcs') return;
+    const parsed = parseModuleName(value);
     if (parsed) {
-      // Only auto-fill if fields are empty (allow manual override)
-      if (!name.trim()) {
-        setName(parsed.name);
-      }
-      if (!provider.trim()) {
-        setProvider(parsed.provider);
-      }
+      if (!name.trim()) setName(parsed.name);
+      if (!provider.trim()) setProvider(parsed.provider);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedRepository, publishMethod]); // name and provider intentionally excluded to prevent overwriting user input
+  };
 
   // Auto-focus search input when repository select opens
   useEffect(() => {
@@ -136,8 +132,11 @@ export function CreateModuleDialog({
     }
   }, [repositorySelectOpen]);
 
-  // Reset form when dialog closes
-  useEffect(() => {
+  // Reset the form when the dialog closes. Done as a during-render reset keyed on
+  // the previous open state (React's blessed pattern) rather than in an effect.
+  const [prevOpen, setPrevOpen] = useState(open);
+  if (open !== prevOpen) {
+    setPrevOpen(open);
     if (!open) {
       setName('');
       setProvider('');
@@ -149,7 +148,7 @@ export function CreateModuleDialog({
       setAutoPublishTags(true);
       setPublishMethod('vcs');
     }
-  }, [open]);
+  }
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -331,7 +330,7 @@ export function CreateModuleDialog({
                     <div className="space-y-2">
                       <Select 
                         value={selectedRepository} 
-                        onValueChange={setSelectedRepository}
+                        onValueChange={handleRepositorySelect}
                         open={repositorySelectOpen}
                         onOpenChange={setRepositorySelectOpen}
                       >

@@ -48,12 +48,19 @@ const Shine = ({
   const [isHovered, setIsHovered] = React.useState(false);
   const [currentDelay, setCurrentDelay] = React.useState(delay);
 
-  React.useEffect(() => {
+  // Re-sync the animation state when the always-on/delay props change. Done as a
+  // during-render adjustment keyed on the previous prop values (React's blessed
+  // pattern) rather than in an effect — see
+  // https://react.dev/reference/react/useState#storing-information-from-previous-renders
+  const [prevSyncKey, setPrevSyncKey] = React.useState(`${String(isAlwaysOn)}:${delay}`);
+  const syncKey = `${String(isAlwaysOn)}:${delay}`;
+  if (syncKey !== prevSyncKey) {
+    setPrevSyncKey(syncKey);
     setAnimateState(isAlwaysOn ? 'shine' : 'initial');
     if (isAlwaysOn) {
       setCurrentDelay(delay);
     }
-  }, [isAlwaysOn, delay]);
+  }
 
   React.useEffect(() => {
     return () => {

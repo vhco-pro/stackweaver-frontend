@@ -30,6 +30,7 @@ import { VCSProviderSelector } from '@/components/vcs/VCSProviderSelector';
 import { VCSProjectSelect } from '@/components/vcs/VCSProjectSelect';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
+import { autoFillWorkspaceName } from './CreateWorkspaceDialog.helpers';
 
 interface CreateWorkspaceDialogProps {
   open: boolean;
@@ -160,20 +161,16 @@ export function CreateWorkspaceDialog({
     enabled: !!selectedRepository && !!vcsConnectionId && open,
   });
 
-  // Auto-fill workspace name from repository when repository is selected
-  useEffect(() => {
-    if (!selectedRepository || !open) return;
-    
-    // Only auto-fill if name is empty (don't overwrite user input)
-    if (name.trim()) return;
-    
-    // Extract repo name from full name (e.g., "owner/repo-name" -> "repo-name")
-    const [, repoName] = selectedRepository.split('/');
-    if (repoName) {
-      setName(repoName);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedRepository, open]); // name intentionally excluded to prevent overwriting user input
+  // Auto-fill the workspace name from a repository the user picks, only when the
+  // name field is still empty (don't overwrite typed input). Handled at the
+  // selection event (see the repository Select's onValueChange) rather than in an
+  // effect, per the React "you don't need an effect for user events" guidance.
+  const handleRepositorySelect = (value: string) => {
+    setSelectedRepository(value);
+    setSelectedBranch('');
+    const autoName = autoFillWorkspaceName(name, value);
+    if (autoName) setName(autoName);
+  };
 
   // Auto-focus search input when repository select opens
   useEffect(() => {
@@ -425,10 +422,7 @@ export function CreateWorkspaceDialog({
               ) : (
                 <Select
                   value={selectedRepository}
-                  onValueChange={(value) => {
-                    setSelectedRepository(value);
-                    setSelectedBranch('');
-                  }}
+                  onValueChange={handleRepositorySelect}
                   open={repositorySelectOpen}
                   onOpenChange={setRepositorySelectOpen}
                   required

@@ -193,6 +193,8 @@ function SlidingNumber({
   );
 
   React.useEffect(() => {
+    // Non-animated mode is derived during render (see displayNumber below); this
+    // effect only subscribes to the spring while animating.
     if (hasAnimated) {
       const inferredDecimals =
         typeof decimalPlaces === 'number' && decimalPlaces >= 0
@@ -217,10 +219,6 @@ function SlidingNumber({
         }
       });
       return () => unsubscribe();
-    } else {
-      setEffectiveNumber(
-        initiallyStable ? initialNumeric : !isInView ? 0 : initialNumeric,
-      );
     }
   }, [
     hasAnimated,
@@ -230,9 +228,13 @@ function SlidingNumber({
     decimalPlaces,
     onNumberChange,
     effectiveNumber,
-    initiallyStable,
-    initialNumeric,
   ]);
+
+  // When not animating, the displayed value comes straight from the props
+  // (derived during render — no setState in an effect). While animating it tracks
+  // the spring via effectiveNumber.
+  const staticNumber = initiallyStable ? initialNumeric : !isInView ? 0 : initialNumeric;
+  const displayNumber = hasAnimated ? effectiveNumber : staticNumber;
 
   const formatNumber = React.useCallback(
     (num: number) =>
@@ -240,7 +242,7 @@ function SlidingNumber({
     [decimalPlaces],
   );
 
-  const numberStr = formatNumber(effectiveNumber);
+  const numberStr = formatNumber(displayNumber);
   const [newIntStrRaw, newDecStrRaw = ''] = numberStr.split('.');
 
   const finalIntLength = padStart
@@ -277,9 +279,9 @@ function SlidingNumber({
 
   React.useEffect(() => {
     if (isInView || initiallyStable) {
-      prevNumberRef.current = effectiveNumber;
+      prevNumberRef.current = displayNumber;
     }
-  }, [effectiveNumber, isInView, initiallyStable]);
+  }, [displayNumber, isInView, initiallyStable]);
 
   const intPlaces = React.useMemo(
     () =>
