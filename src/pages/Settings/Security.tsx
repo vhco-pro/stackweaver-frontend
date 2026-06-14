@@ -12,6 +12,28 @@ import { twoFactorApi, settingsApi, type MFADevice, type Session } from '@/api/c
 import QRCode from 'qrcode';
 import { useAuth } from '@/contexts/AuthContext';
 
+// Module-scope so it isn't re-created on every SecuritySettings render (it closes
+// over nothing but its props and the module-level `cn`).
+function ToggleSwitch({ enabled, onChange }: { enabled: boolean; onChange: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onChange}
+      className={cn(
+        'relative inline-flex h-6 w-11 items-center rounded-full transition-colors',
+        enabled ? 'bg-gradient-to-r from-blue-500 to-cyan-500' : 'bg-gray-300 dark:bg-gray-600'
+      )}
+    >
+      <span
+        className={cn(
+          'inline-block h-4 w-4 transform rounded-full bg-white transition-transform',
+          enabled ? 'translate-x-6' : 'translate-x-1'
+        )}
+      />
+    </button>
+  );
+}
+
 export default function SecuritySettings() {
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
@@ -90,13 +112,6 @@ export default function SecuritySettings() {
     }
   };
 
-  // Load 2FA status, MFA devices, and sessions on mount
-  useMountEffect(() => {
-    void load2FAStatus();
-    void loadMFADevices();
-    void loadSessions();
-  });
-
   const loadSessions = async () => {
     try {
       setLoadingSessions(true);
@@ -142,6 +157,13 @@ export default function SecuritySettings() {
       setLoading2FA(false);
     }
   };
+
+  // Load 2FA status, MFA devices, and sessions on mount
+  useMountEffect(() => {
+    void load2FAStatus();
+    void loadMFADevices();
+    void loadSessions();
+  });
 
   const start2FASetup = async () => {
     try {
@@ -242,24 +264,6 @@ export default function SecuritySettings() {
       setRevoking(null);
     }
   };
-
-  const ToggleSwitch = ({ enabled, onChange }: { enabled: boolean; onChange: () => void }) => (
-    <button
-      type="button"
-      onClick={onChange}
-      className={cn(
-        'relative inline-flex h-6 w-11 items-center rounded-full transition-colors',
-        enabled ? 'bg-gradient-to-r from-blue-500 to-cyan-500' : 'bg-gray-300 dark:bg-gray-600'
-      )}
-    >
-      <span
-        className={cn(
-          'inline-block h-4 w-4 transform rounded-full bg-white transition-transform',
-          enabled ? 'translate-x-6' : 'translate-x-1'
-        )}
-      />
-    </button>
-  );
 
   return (
     <div className="space-y-8">

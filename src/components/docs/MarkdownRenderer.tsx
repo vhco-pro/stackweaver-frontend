@@ -528,9 +528,13 @@ function parseCallout(children: ReactNode): ParsedCallout {
           // The pattern allows for optional whitespace/newline but will capture content that starts immediately
           const markerMatch = node.match(/\[!(\w+)\](.*)/s);
           if (markerMatch && markerMatch[2] !== undefined) {
-            // Return content after [!NOTE], removing leading whitespace/newlines but preserving other content
-            // This handles cases like [!IMPORTANT]** or [!IMPORTANT] ** or [!IMPORTANT]\n**
-            const afterMarker = markerMatch[2].replace(/^\s*(?:\n|\r\n?)?/, '').trimStart();
+            // When the marker line also carries a title (same-line title rendered as
+            // the heading), drop the entire first line so it isn't repeated in the
+            // body; otherwise just strip the [!TYPE] marker. The latter handles
+            // cases like [!IMPORTANT]** or [!IMPORTANT] ** or [!IMPORTANT]\n**.
+            const afterMarker = title
+              ? markerMatch[2].replace(/^[^\n]*(?:\r?\n|$)/, '').trimStart()
+              : markerMatch[2].replace(/^\s*(?:\n|\r\n?)?/, '').trimStart();
             return afterMarker || null;
           }
           // If string doesn't contain [!NOTE] marker, keep it

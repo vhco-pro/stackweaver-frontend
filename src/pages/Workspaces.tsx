@@ -1,12 +1,14 @@
 // Copyright (c) 2025 VH & Co BV. Licensed under the Business Source License 1.1. See LICENSE for details.
 
 // eslint-disable-next-line no-restricted-imports -- legitimate dependency-based effect
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState } from 'react';
+import { useMountEffect } from '@/hooks/useMountEffect';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link, useParams, useNavigate } from 'react-router-dom';
 import { workspacesApi, organizationsApi, projectsApi, type Organization, type Project, type Workspace } from '@/api/client';
 import { EditWorkspaceDialog } from '@/components/workspace/EditWorkspaceDialog';
 import { getRunStatus, getRunOperation, getAttribute, type JsonApiResource } from '@/utils/jsonapi';
+import { hasActiveWorkspaceRun, evaluatePendingCreateDialog } from './Workspaces.helpers';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -91,44 +93,18 @@ export default function Workspaces() {
   const [workspaceToEdit, setWorkspaceToEdit] = useState<WorkspaceWithStats | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 20;
-  const workspacesRef = useRef<WorkspaceWithStats[]>([]);
 
-  // Check if we should reopen the dialog after GitHub redirect
-  useEffect(() => {
-    if (!selectedOrg || !orgName) return;
-
-    // Check URL parameter first (from GitHubInstalled redirect)
-    const searchParams = new URLSearchParams(window.location.search);
-    if (searchParams.get('openDialog') === 'true') {
-      setCreateDialogOpen(true);
-      // Clean up URL
-      window.history.replaceState({}, '', window.location.pathname);
-      // Clear localStorage
-      localStorage.removeItem('pendingWorkspaceDialog');
-      return;
-    }
-
-    // Also check localStorage (fallback - in case URL param didn't work)
-    const pendingDialog = localStorage.getItem('pendingWorkspaceDialog');
-    if (pendingDialog) {
-      try {
-        const parsed = JSON.parse(pendingDialog) as { orgName: string; timestamp: number };
-        const { orgName: pendingOrg, timestamp } = parsed;
-        // Only reopen if it's recent (within last 5 minutes) and matches current org
-        if (Date.now() - timestamp < 5 * 60 * 1000 && pendingOrg === selectedOrg) {
-          setCreateDialogOpen(true);
-          // Clear the pending state
-          localStorage.removeItem('pendingWorkspaceDialog');
-        } else {
-          // Clear stale state
-          localStorage.removeItem('pendingWorkspaceDialog');
-        }
-      } catch (err) {
-        console.error('Failed to parse pending dialog state:', err);
-        localStorage.removeItem('pendingWorkspaceDialog');
-      }
-    }
-  }, [selectedOrg, orgName]);
+  // Reopen the Create Workspace dialog after a GitHub OAuth install redirect.
+  // The redirect is a full page load (the OAuth flow navigates away and back), so
+  // this is genuinely a mount-once concern: `selectedOrg`/`orgName` come from the
+  // URL and are available at mount, and the `openDialog` param only exists right
+  // after the redirect (client-side org navigation never carries it).
+  useMountEffect(() => {
+    const { open, clearUrl, clearStorage } = evaluatePendingCreateDialog(selectedOrg, orgName);
+    if (open) setCreateDialogOpen(true);
+    if (clearUrl) window.history.replaceState({}, '', window.location.pathname);
+    if (clearStorage) localStorage.removeItem('pendingWorkspaceDialog');
+  });
 
   // Load organizations (for org selector if multiple orgs)
   const { data: organizationsData } = useQuery({
@@ -236,42 +212,14 @@ export default function Workspaces() {
       return enrichedWorkspaces;
     },
     enabled: !!selectedOrg,
+    // Poll every 5s while any workspace has an active run; stop once none do.
+    // React Query re-evaluates this after each fetch, so it resumes when a new
+    // run appears (replaces the old setInterval + latest-workspaces ref).
+    refetchInterval: (query) => (hasActiveWorkspaceRun(query.state.data ?? []) ? 5000 : false),
   });
 
   // Derive workspaces from query data
   const workspaces = workspacesData ?? [];
-
-  // Keep workspacesRef in sync for polling effect
-  workspacesRef.current = workspaces;
-
-  // Poll for active runs — simply re-fetch the workspace list (server includes latest_run)
-  useEffect(() => {
-    if (!selectedOrg) return;
-
-    const isActiveStatus = (status: string) =>
-      ['pending', 'planning', 'planned', 'applying', 'running'].includes(status);
-
-    const pollInterval = setInterval(() => {
-      const currentWorkspaces = workspacesRef.current;
-      if (currentWorkspaces.length === 0) return;
-
-      const hasActiveRuns = currentWorkspaces.some(w => {
-        if (!w.latestRun) return false;
-        const status = getRunStatus(w.latestRun);
-        return isActiveStatus(status);
-      });
-
-      if (!hasActiveRuns) {
-        clearInterval(pollInterval);
-        return;
-      }
-
-      // Re-fetch workspace list (single API call, server includes latest_run)
-      void refetchWorkspaces();
-    }, 5000); // Poll every 5 seconds when runs are active
-
-    return () => clearInterval(pollInterval);
-  }, [selectedOrg, refetchWorkspaces]);
 
   const handleDeleteWorkspace = async (force = false) => {
     if (!workspaceToDelete || !selectedOrg) return;

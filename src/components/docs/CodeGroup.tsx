@@ -30,15 +30,18 @@ export function CodeGroup({ children, languages, defaultTab = 0 }: CodeGroupProp
   );
   const [copied, setCopied] = useState(false);
 
-  // Extract code blocks from children (expects <code className="language-...">...</code> nodes)
-  const codeBlocks = Children.toArray(children).filter((child: ReactNode) => {
+  // Extract code blocks from children (expects <code className="language-...">...</code> nodes).
+  // Memoized so the array identity is stable across renders — otherwise the
+  // `activeCodeText` useMemo below depends on a value recreated every render and
+  // its manual memoization can't be preserved (react-hooks/preserve-manual-memoization).
+  const codeBlocks = useMemo(() => Children.toArray(children).filter((child: ReactNode) => {
     if (typeof child === 'object' && child !== null && 'props' in child) {
       const className = (child as { props?: { className?: string | string[] } }).props?.className;
       const classNameStr = Array.isArray(className) ? className.join(' ') : className;
       return typeof classNameStr === 'string' && classNameStr.includes('language-');
     }
     return false;
-  });
+  }), [children]);
 
   // Extract language from className (e.g., "language-kubernetes" -> "kubernetes")
   const getLanguage = (index: number): string => {

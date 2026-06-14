@@ -19,7 +19,7 @@ import {
   ansibleJobsApi,
   type AnsibleJob,
 } from '@/api/ansible';
-import { vcsConnectionsApi, type VCSConnection, type Repository, type Branch } from '@/api/client';
+import { vcsConnectionsApi } from '@/api/client';
 import {
   getAnsiblePlaybookFromJsonApi,
   getAnsibleJobTemplateFromJsonApi,
@@ -176,20 +176,12 @@ export default function PlaybookDetail() {
   // Edit playbook state
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [loadingYamlFiles, setLoadingYamlFiles] = useState(false);
-  const [yamlFiles, setYamlFiles] = useState<string[]>([]);
   const [playbookPathSelectOpen, setPlaybookPathSelectOpen] = useState(false);
   const [playbookPathSearch, setPlaybookPathSearch] = useState('');
   const playbookPathSearchInputRef = useRef<HTMLInputElement>(null);
-  
+
   // VCS Integration state (mirrors create view)
-  const [loadingVCS, setLoadingVCS] = useState(false);
-  const [loadingRepos, setLoadingRepos] = useState(false);
-  const [loadingBranches, setLoadingBranches] = useState(false);
-  const [vcsConnections, setVcsConnections] = useState<VCSConnection[]>([]);
-  const [repositories, setRepositories] = useState<Repository[]>([]);
   const [selectedVcsProject, setSelectedVcsProject] = useState<string>('');
-  const [branches, setBranches] = useState<Branch[]>([]);
   const [repositorySearch, setRepositorySearch] = useState('');
   const [repositorySelectOpen, setRepositorySelectOpen] = useState(false);
   const repositorySearchInputRef = useRef<HTMLInputElement>(null);
@@ -253,116 +245,73 @@ export default function PlaybookDetail() {
     };
   });
 
-  // Load VCS connections when edit dialog opens
-  useEffect(() => {
-    if (!editDialogOpen || !selectedOrg) {
-      // Reset when dialog closes
-      setVcsConnections([]);
-      setRepositories([]);
-      setBranches([]);
-      setYamlFiles([]);
-      return;
-    }
+  // VCS cascade for the edit dialog (connection -> repositories -> branches ->
+  // YAML files), loaded via React Query. Each query is scoped to the dialog being
+  // open and the relevant selection, so stale data clears automatically when a
+  // selection is reset — no synchronous reset-in-effect needed.
+  const [pbOwner, pbRepo] = (editForm.vcs_repository || '').split('/');
 
-    setLoadingVCS(true);
-    void vcsConnectionsApi.list(selectedOrg)
-      .then((vcsRes) => {
+  const { data: vcsConnections = [], isLoading: loadingVCS } = useQuery({
+    queryKey: ['pb-edit-vcs', selectedOrg],
+    queryFn: async () => {
+      try {
+        const vcsRes = await vcsConnectionsApi.list(selectedOrg);
         const connections = Array.isArray(vcsRes) ? vcsRes : [];
-        // Deduplicate by provider + account_name + account_type
-        const uniqueConnections = Array.from(
+        return Array.from(
           new Map(
-            connections.map(conn => [
-              `${conn.provider}-${conn.account_name}-${conn.account_type}`,
-              conn
-            ])
-          ).values()
+            connections.map((conn) => [`${conn.provider}-${conn.account_name}-${conn.account_type}`, conn]),
+          ).values(),
         );
-        setVcsConnections(uniqueConnections);
-      })
-      .catch((err) => {
+      } catch (err) {
         console.error('Failed to load VCS connections:', err);
         toast.error('Failed to load VCS connections');
-      })
-      .finally(() => {
-        setLoadingVCS(false);
-      });
-  }, [editDialogOpen, selectedOrg]);
+        return [];
+      }
+    },
+    enabled: editDialogOpen && !!selectedOrg,
+  });
 
-  // Load repositories when VCS connection is selected (or when dialog opens with existing connection)
-  useEffect(() => {
-    if (!editForm.vcs_connection_id || !editDialogOpen) {
-      setRepositories([]);
-      setBranches([]);
-      setYamlFiles([]);
-      return;
-    }
-
-    setLoadingRepos(true);
-    void vcsConnectionsApi.listAllRepositories(editForm.vcs_connection_id, selectedVcsProject || undefined)
-      .then((repos) => {
-        setRepositories(repos || []);
-      })
-      .catch((err) => {
+  const { data: repositories = [], isLoading: loadingRepos } = useQuery({
+    queryKey: ['pb-edit-repos', editForm.vcs_connection_id, selectedVcsProject],
+    queryFn: async () => {
+      try {
+        return (await vcsConnectionsApi.listAllRepositories(editForm.vcs_connection_id, selectedVcsProject || undefined)) || [];
+      } catch (err) {
         console.error('Failed to load repositories:', err);
         toast.error('Failed to load repositories');
-      })
-      .finally(() => {
-        setLoadingRepos(false);
-      });
-  }, [editForm.vcs_connection_id, editDialogOpen, selectedVcsProject]);
+        return [];
+      }
+    },
+    enabled: editDialogOpen && !!editForm.vcs_connection_id,
+  });
 
-  // Load branches when repository is selected (or when dialog opens with existing repository)
-  useEffect(() => {
-    if (!editForm.vcs_repository || !editForm.vcs_connection_id || !editDialogOpen) {
-      setBranches([]);
-      setYamlFiles([]);
-      return;
-    }
-
-    const [owner, repo] = editForm.vcs_repository.split('/');
-    if (!owner || !repo) {
-      setBranches([]);
-      setYamlFiles([]);
-      return;
-    }
-
-    setLoadingBranches(true);
-    vcsConnectionsApi.listBranches(editForm.vcs_connection_id, owner, repo)
-      .then((brs) => {
-        setBranches(brs || []);
-      })
-      .catch((err) => {
+  const { data: branches = [], isLoading: loadingBranches } = useQuery({
+    queryKey: ['pb-edit-branches', editForm.vcs_connection_id, editForm.vcs_repository],
+    queryFn: async () => {
+      try {
+        return (await vcsConnectionsApi.listBranches(editForm.vcs_connection_id, pbOwner, pbRepo)) || [];
+      } catch (err) {
         console.error('Failed to load branches:', err);
         toast.error('Failed to load branches');
-      })
-      .finally(() => {
-        setLoadingBranches(false);
-      });
-  }, [editForm.vcs_repository, editForm.vcs_connection_id, editDialogOpen]);
+        return [];
+      }
+    },
+    enabled: editDialogOpen && !!editForm.vcs_connection_id && !!pbOwner && !!pbRepo,
+  });
 
-  // Load YAML files when repository and branch are selected (or when dialog opens with existing values)
-  useEffect(() => {
-    if (!editForm.vcs_connection_id || !editForm.vcs_repository || !editForm.vcs_branch || !editDialogOpen) {
-      setYamlFiles([]);
-      return;
-    }
-
-    const [owner, repo] = editForm.vcs_repository.split('/');
-    if (!owner || !repo) return;
-
-    setLoadingYamlFiles(true);
-    vcsConnectionsApi.listYamlFiles(editForm.vcs_connection_id, owner, repo, editForm.vcs_branch)
-      .then((files) => {
-        setYamlFiles(files || []);
-      })
-      .catch((err) => {
+  const { data: yamlFiles = [], isLoading: loadingYamlFiles } = useQuery({
+    queryKey: ['pb-edit-yaml', editForm.vcs_connection_id, editForm.vcs_repository, editForm.vcs_branch],
+    queryFn: async () => {
+      try {
+        return (await vcsConnectionsApi.listYamlFiles(editForm.vcs_connection_id, pbOwner, pbRepo, editForm.vcs_branch)) || [];
+      } catch (err) {
+        // Silent — fall back to manual input
         console.error('Failed to load YAML files:', err);
-        setYamlFiles([]);
-      })
-      .finally(() => {
-        setLoadingYamlFiles(false);
-      });
-  }, [editDialogOpen, editForm.vcs_connection_id, editForm.vcs_repository, editForm.vcs_branch]);
+        return [];
+      }
+    },
+    enabled: editDialogOpen && !!editForm.vcs_connection_id && !!editForm.vcs_repository && !!editForm.vcs_branch && !!pbOwner && !!pbRepo,
+  });
 
   // Auto-focus search input when repository select opens
   useEffect(() => {

@@ -1,6 +1,6 @@
 // Copyright (c) 2025 VH & Co BV. Licensed under the Business Source License 1.1. See LICENSE for details.
 
-import { useState, useRef } from 'react';
+import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link, useParams } from 'react-router-dom';
 import { FileText, ArrowLeft, Save, Trash2, Loader2, Building2, FolderKanban, Info, Terminal } from 'lucide-react';
@@ -129,13 +129,16 @@ export default function AnsibleConfiguration() {
   // Organization config - form editing state
   const [orgContent, setOrgContent] = useState('');
   const [orgDirty, setOrgDirty] = useState(false);
-  const lastSyncedOrgDataRef = useRef<string | undefined>(undefined);
+  // Previous server-data key, stored in state (not a ref) so the "reset editable
+  // state when server data changes" sync can run during render the React-blessed
+  // way — see https://react.dev/reference/react/useState#storing-information-from-previous-renders
+  const [lastSyncedOrgDataKey, setLastSyncedOrgDataKey] = useState<string | undefined>(undefined);
 
   // Project configs - form editing state
   const [selectedProjectId, setSelectedProjectId] = useState<string>('');
   const [projectContent, setProjectContent] = useState('');
   const [projectDirty, setProjectDirty] = useState(false);
-  const lastSyncedProjectDataRef = useRef<string | undefined>(undefined);
+  const [lastSyncedProjectDataKey, setLastSyncedProjectDataKey] = useState<string | undefined>(undefined);
 
   const parseOrgConfig = (response: { data: { id: string; type: string; attributes: { content: string; 'organization-id'?: string; 'created-at': string; 'updated-at': string } } }): AnsibleConfig => ({
     id: response.data.id,
@@ -174,8 +177,8 @@ export default function AnsibleConfiguration() {
 
   // Sync orgContent from server data when it changes (adjusting state during render)
   const orgDataKey = orgConfig ? `${orgConfig.id}:${orgConfig.updated_at}` : 'none';
-  if (orgDataKey !== lastSyncedOrgDataRef.current) {
-    lastSyncedOrgDataRef.current = orgDataKey;
+  if (orgDataKey !== lastSyncedOrgDataKey) {
+    setLastSyncedOrgDataKey(orgDataKey);
     setOrgContent(orgConfig?.content ?? '');
     setOrgDirty(false);
   }
@@ -210,8 +213,8 @@ export default function AnsibleConfiguration() {
 
   // Sync projectContent from server data when it changes (adjusting state during render)
   const projectDataKey = projectConfig ? `${projectConfig.id}:${projectConfig.updated_at}` : `none:${selectedProjectId}`;
-  if (projectDataKey !== lastSyncedProjectDataRef.current) {
-    lastSyncedProjectDataRef.current = projectDataKey;
+  if (projectDataKey !== lastSyncedProjectDataKey) {
+    setLastSyncedProjectDataKey(projectDataKey);
     setProjectContent(projectConfig?.content ?? '');
     setProjectDirty(false);
   }

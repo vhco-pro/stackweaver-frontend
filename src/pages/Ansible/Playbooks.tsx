@@ -3,6 +3,7 @@
 // eslint-disable-next-line no-restricted-imports -- legitimate dependency-based effect
 import { useEffect, useState, useRef } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMountEffect } from '@/hooks/useMountEffect';
 import { Link, useParams } from 'react-router-dom';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { usePermissions } from '@/hooks/usePermissions';
@@ -10,7 +11,7 @@ import { ansiblePlaybooksApi, type AnsiblePlaybook } from '@/api/ansible';
 import { getAnsiblePlaybookFromJsonApi } from '@/utils/ansible-jsonapi';
 import { fetchAllPages } from '@/lib/pagination';
 import { Pager } from '@/components/ui/pager';
-import { vcsConnectionsApi, type VCSConnection, type Repository, type Branch } from '@/api/client';
+import { vcsConnectionsApi } from '@/api/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -100,19 +101,11 @@ export default function Playbooks() {
   // Create dialog state
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [importDialogOpen, setImportDialogOpen] = useState(false);
-  const [loadingYamlFiles, setLoadingYamlFiles] = useState(false);
-  const [yamlFiles, setYamlFiles] = useState<string[]>([]);
   const [creating, setCreating] = useState(false);
   const [nameTouched, setNameTouched] = useState(false); // Track if user has touched the name field
 
   // VCS Integration state (mirrors CreateWorkspaceDialog pattern)
-  const [loadingVCS, setLoadingVCS] = useState(false);
-  const [loadingRepos, setLoadingRepos] = useState(false);
-  const [loadingBranches, setLoadingBranches] = useState(false);
-  const [vcsConnections, setVcsConnections] = useState<VCSConnection[]>([]);
-  const [repositories, setRepositories] = useState<Repository[]>([]);
   const [selectedVcsProject, setSelectedVcsProject] = useState<string>('');
-  const [branches, setBranches] = useState<Branch[]>([]);
   const [repositorySearch, setRepositorySearch] = useState('');
   const [repositorySelectOpen, setRepositorySelectOpen] = useState(false);
   const repositorySearchInputRef = useRef<HTMLInputElement>(null);
@@ -143,143 +136,110 @@ export default function Playbooks() {
     enabled: !!selectedOrg,
   });
 
-  // Check for pending dialog after GitHub auth redirect
-  useEffect(() => {
+  // Reopen the create dialog after a GitHub OAuth redirect (a full page load, so
+  // this is genuinely mount-once). localStorage-only signal.
+  useMountEffect(() => {
     const pendingDialog = localStorage.getItem('pendingPlaybookDialog');
-    if (pendingDialog) {
-      try {
-        const parsed = JSON.parse(pendingDialog) as { orgName: string; timestamp: number };
-        const { orgName: pendingOrg, timestamp } = parsed;
-        // Only reopen if it's recent (within last 5 minutes) and matches current org
-        if (Date.now() - timestamp < 5 * 60 * 1000 && pendingOrg === selectedOrg) {
-          setCreateDialogOpen(true);
-          localStorage.removeItem('pendingPlaybookDialog');
-        } else {
-          localStorage.removeItem('pendingPlaybookDialog');
-        }
-      } catch (err) {
-        console.error('Failed to parse pending dialog state:', err);
-        localStorage.removeItem('pendingPlaybookDialog');
+    if (!pendingDialog) return;
+    try {
+      const parsed = JSON.parse(pendingDialog) as { orgName: string; timestamp: number };
+      if (Date.now() - parsed.timestamp < 5 * 60 * 1000 && parsed.orgName === selectedOrg) {
+        setCreateDialogOpen(true);
       }
+    } catch (err) {
+      console.error('Failed to parse pending dialog state:', err);
     }
-  }, [selectedOrg]);
+    localStorage.removeItem('pendingPlaybookDialog');
+  });
 
-  // Load VCS connections when dialog opens
-  useEffect(() => {
-    if (!createDialogOpen || !selectedOrg) return;
+  // VCS cascade for the create dialog, loaded via React Query. Each query is scoped
+  // to the dialog being open and the relevant selection, so stale data clears
+  // automatically — no reset-in-effect needed.
+  const [pbOwner, pbRepo] = (createForm.vcs_repository || '').split('/');
 
-    setLoadingVCS(true);
-    void vcsConnectionsApi.list(selectedOrg)
-      .then((vcsRes) => {
+  const { data: vcsConnections = [], isLoading: loadingVCS } = useQuery({
+    queryKey: ['pb-create-vcs', selectedOrg],
+    queryFn: async () => {
+      try {
+        const vcsRes = await vcsConnectionsApi.list(selectedOrg);
         const connections = Array.isArray(vcsRes) ? vcsRes : [];
-        // Deduplicate by provider + account_name + account_type
-        const uniqueConnections = Array.from(
-          new Map(
-            connections.map(conn => [
-              `${conn.provider}-${conn.account_name}-${conn.account_type}`,
-              conn
-            ])
-          ).values()
+        return Array.from(
+          new Map(connections.map((conn) => [`${conn.provider}-${conn.account_name}-${conn.account_type}`, conn])).values(),
         );
-        setVcsConnections(uniqueConnections);
-
-        // Auto-select if there's exactly one VCS connection
-        if (uniqueConnections.length === 1 && !createForm.vcs_connection_id) {
-          setCreateForm(prev => ({
-            ...prev,
-            vcs_connection_id: uniqueConnections[0].id,
-          }));
-        }
-      })
-      .catch((err) => {
+      } catch (err) {
         console.error('Failed to load VCS connections:', err);
         toast.error('Failed to load VCS connections');
-      })
-      .finally(() => {
-        setLoadingVCS(false);
-      });
-    // createForm.vcs_connection_id is intentionally omitted - createForm object changes would cause infinite loops
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [createDialogOpen, selectedOrg]);
+        return [];
+      }
+    },
+    enabled: createDialogOpen && !!selectedOrg,
+  });
 
-  // Load repositories when VCS connection is selected
-  useEffect(() => {
-    if (!createForm.vcs_connection_id || !createDialogOpen) {
-      setRepositories([]);
-      setBranches([]);
-      return;
-    }
-
-    setLoadingRepos(true);
-    vcsConnectionsApi.listAllRepositories(createForm.vcs_connection_id, selectedVcsProject || undefined)
-      .then((repos) => {
-        setRepositories(repos || []);
-      })
-      .catch((err) => {
+  const { data: repositories = [], isLoading: loadingRepos } = useQuery({
+    queryKey: ['pb-create-repos', createForm.vcs_connection_id, selectedVcsProject],
+    queryFn: async () => {
+      try {
+        return (await vcsConnectionsApi.listAllRepositories(createForm.vcs_connection_id, selectedVcsProject || undefined)) || [];
+      } catch (err) {
         console.error('Failed to load repositories:', err);
         toast.error('Failed to load repositories');
-      })
-      .finally(() => {
-        setLoadingRepos(false);
-      });
-  }, [createForm.vcs_connection_id, createDialogOpen, selectedVcsProject]);
+        return [];
+      }
+    },
+    enabled: createDialogOpen && !!createForm.vcs_connection_id,
+  });
 
-  // Load branches when repository is selected
-  useEffect(() => {
-    if (!createForm.vcs_repository || !createForm.vcs_connection_id || !createDialogOpen) {
-      setBranches([]);
-      return;
-    }
-
-    const [owner, repo] = createForm.vcs_repository.split('/');
-    if (!owner || !repo) return;
-
-    setLoadingBranches(true);
-    vcsConnectionsApi.listBranches(createForm.vcs_connection_id, owner, repo)
-      .then((brs) => {
-        setBranches(brs || []);
-        // Set default branch if available
-        const repoObj = repositories.find(r => r.full_name === createForm.vcs_repository);
-        const defaultBranch = repoObj?.default_branch;
-        if (defaultBranch && (brs || []).some(b => b.name === defaultBranch)) {
-          setCreateForm(prev => ({ ...prev, vcs_branch: defaultBranch }));
-        } else if (brs && brs.length > 0) {
-          setCreateForm(prev => ({ ...prev, vcs_branch: brs[0].name }));
-        }
-      })
-      .catch((err) => {
+  const { data: branches = [], isLoading: loadingBranches } = useQuery({
+    queryKey: ['pb-create-branches', createForm.vcs_connection_id, createForm.vcs_repository],
+    queryFn: async () => {
+      try {
+        return (await vcsConnectionsApi.listBranches(createForm.vcs_connection_id, pbOwner, pbRepo)) || [];
+      } catch (err) {
         console.error('Failed to load branches:', err);
         toast.error('Failed to load branches');
-      })
-      .finally(() => {
-        setLoadingBranches(false);
-      });
-  }, [createForm.vcs_repository, createForm.vcs_connection_id, createDialogOpen, repositories]);
+        return [];
+      }
+    },
+    enabled: createDialogOpen && !!createForm.vcs_connection_id && !!pbOwner && !!pbRepo,
+  });
 
-  // Load YAML files when repository and branch are selected
-  useEffect(() => {
-    if (!createForm.vcs_connection_id || !createForm.vcs_repository || !createForm.vcs_branch || !createDialogOpen) {
-      setYamlFiles([]);
-      return;
-    }
-
-    const [owner, repo] = createForm.vcs_repository.split('/');
-    if (!owner || !repo) return;
-
-    setLoadingYamlFiles(true);
-    vcsConnectionsApi.listYamlFiles(createForm.vcs_connection_id, owner, repo, createForm.vcs_branch)
-      .then((files) => {
-        setYamlFiles(files || []);
-      })
-      .catch((err) => {
+  const { data: yamlFiles = [], isLoading: loadingYamlFiles } = useQuery({
+    queryKey: ['pb-create-yaml', createForm.vcs_connection_id, createForm.vcs_repository, createForm.vcs_branch],
+    queryFn: async () => {
+      try {
+        return (await vcsConnectionsApi.listYamlFiles(createForm.vcs_connection_id, pbOwner, pbRepo, createForm.vcs_branch)) || [];
+      } catch (err) {
         console.error('Failed to load YAML files:', err);
-        // Don't show error toast - just continue with manual input
-        setYamlFiles([]);
-      })
-      .finally(() => {
-        setLoadingYamlFiles(false);
-      });
-  }, [createForm.vcs_connection_id, createForm.vcs_repository, createForm.vcs_branch, createDialogOpen]);
+        return [];
+      }
+    },
+    enabled: createDialogOpen && !!createForm.vcs_connection_id && !!createForm.vcs_repository && !!createForm.vcs_branch && !!pbOwner && !!pbRepo,
+  });
+
+  // Auto-select the sole VCS connection once it loads (during render, once per load).
+  const connAutoKey = createDialogOpen && vcsConnections.length === 1 ? vcsConnections[0].id : null;
+  const [prevConnAutoKey, setPrevConnAutoKey] = useState<string | null>(null);
+  if (connAutoKey && connAutoKey !== prevConnAutoKey) {
+    setPrevConnAutoKey(connAutoKey);
+    if (!createForm.vcs_connection_id) {
+      setCreateForm((prev) => ({ ...prev, vcs_connection_id: connAutoKey }));
+    }
+  }
+
+  // Default the branch once a repo's branches load (during render, once per repo).
+  const branchDefaultKey = createForm.vcs_repository && branches.length > 0
+    ? `${createForm.vcs_connection_id}|${createForm.vcs_repository}`
+    : null;
+  const [prevBranchDefaultKey, setPrevBranchDefaultKey] = useState<string | null>(null);
+  if (branchDefaultKey && branchDefaultKey !== prevBranchDefaultKey) {
+    setPrevBranchDefaultKey(branchDefaultKey);
+    const repoObj = repositories.find((r) => r.full_name === createForm.vcs_repository);
+    const defaultBranch = repoObj?.default_branch;
+    let nextBranch = '';
+    if (defaultBranch && branches.some((b) => b.name === defaultBranch)) nextBranch = defaultBranch;
+    else if (branches.length > 0) nextBranch = branches[0].name;
+    if (nextBranch) setCreateForm((prev) => ({ ...prev, vcs_branch: nextBranch }));
+  }
 
   // Auto-focus search input when repository select opens
   useEffect(() => {
@@ -290,22 +250,23 @@ export default function Playbooks() {
     }
   }, [repositorySelectOpen]);
 
-  // Auto-generate name from repo-branch-path if user hasn't touched the name field
-  useEffect(() => {
-    if (nameTouched || !createForm.vcs_repository) return;
-
+  // Auto-generate the name from repo-branch-path while the user hasn't touched it
+  // (during render, keyed on the source fields).
+  const autoNameKey = !nameTouched && createForm.vcs_repository
+    ? `${createForm.vcs_repository}|${createForm.vcs_branch}|${createForm.playbook_path}`
+    : null;
+  const [prevAutoNameKey, setPrevAutoNameKey] = useState<string | null>(null);
+  if (autoNameKey !== null && autoNameKey !== prevAutoNameKey) {
+    setPrevAutoNameKey(autoNameKey);
     const repoName = createForm.vcs_repository.split('/').pop() || '';
     const branch = createForm.vcs_branch || '';
     const path = createForm.playbook_path?.replace(/\.ya?ml$/i, '').replace(/\//g, '-') || '';
-
-    // Generate name: repo-branch-path (e.g., "my-repo-main-site" or "my-repo-main-playbooks-deploy")
     const parts = [repoName];
     if (branch) parts.push(branch);
     if (path && path !== 'site') parts.push(path);
-
     const autoName = parts.join('-').toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-');
-    setCreateForm(prev => ({ ...prev, name: autoName }));
-  }, [createForm.vcs_repository, createForm.vcs_branch, createForm.playbook_path, nameTouched]);
+    setCreateForm((prev) => ({ ...prev, name: autoName }));
+  }
 
   // Filter playbooks
   const filteredPlaybooks = playbooks.filter((pb) =>
@@ -394,7 +355,6 @@ export default function Playbooks() {
     setNameTouched(false);
     setRepositorySearch('');
     setPlaybookPathSearch('');
-    setYamlFiles([]);
   };
 
   const handleSync = async (playbook: AnsiblePlaybook) => {

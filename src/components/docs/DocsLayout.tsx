@@ -66,11 +66,14 @@ export function DocsLayout({ children, docsBase = '/docs', indexFile = '/docs-in
     window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
   }, [location.key]);
 
-  // Close mobile drawers on navigation
-  useEffect(() => {
+  // Close mobile drawers on navigation. Done as a during-render reset keyed on the
+  // previous location (React's blessed pattern) rather than in an effect.
+  const [prevLocationKey, setPrevLocationKey] = useState(location.key);
+  if (location.key !== prevLocationKey) {
+    setPrevLocationKey(location.key);
     setMobileSidebarOpen(false);
     setMobileTocOpen(false);
-  }, [location.key]);
+  }
 
   // Build breadcrumbs from current path - only for subfolders (nested paths)
   const getBreadcrumbs = () => {

@@ -93,13 +93,16 @@ export function DocsSidebar({ className, onNavigate, docsBase = '/docs', indexFi
     void loadIndex();
   }, [indexFile]);
 
-  // Auto-expand directories that contain the current path when location changes
-  useEffect(() => {
-    if (!index) return;
-    
+  // Auto-expand directories that contain the current path when the location (or
+  // the freshly-loaded index) changes. Done as a during-render merge keyed on the
+  // previous path (React's blessed pattern) rather than in an effect — it only
+  // adds ancestors, so user-toggled expansions are preserved.
+  const expandKey = index ? `${docsBase}|${location.pathname}` : null;
+  const [prevExpandKey, setPrevExpandKey] = useState<string | null>(null);
+  if (expandKey !== null && expandKey !== prevExpandKey) {
+    setPrevExpandKey(expandKey);
     const currentPath = location.pathname.replace(new RegExp(`^${docsBase}/?`), '').replace(/\/$/, '') || 'README.md';
     const parts = currentPath.split('/').filter(Boolean);
-    
     // Expand all ancestor directories and the current directory itself
     // (so navigating to a folder via prev/next also opens it)
     setExpandedDirs(prev => {
@@ -109,7 +112,7 @@ export function DocsSidebar({ className, onNavigate, docsBase = '/docs', indexFi
       }
       return next;
     });
-  }, [location.pathname, index, docsBase]);
+  }
 
   const toggleDir = (path: string) => {
     setExpandedDirs(prev => {

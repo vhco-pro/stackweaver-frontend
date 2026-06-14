@@ -18,10 +18,6 @@ export default function SessionsSettings() {
   const [success] = useState<string | null>(null);
   void success; // Suppress unused variable warning
 
-  useMountEffect(() => {
-    void loadSessions();
-  });
-
   const loadSessions = async () => {
     try {
       setLoading(true);
@@ -34,6 +30,10 @@ export default function SessionsSettings() {
       setLoading(false);
     }
   };
+
+  useMountEffect(() => {
+    void loadSessions();
+  });
 
   const handleRevoke = async (sessionId: string) => {
     if (!confirm('Are you sure you want to revoke this session? You will be logged out from that device.')) {

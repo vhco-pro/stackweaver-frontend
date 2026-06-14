@@ -1,6 +1,7 @@
 // Copyright (c) 2025 VH & Co BV. Licensed under the Business Source License 1.1. See LICENSE for details.
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { useMountEffect } from '@/hooks/useMountEffect';
 import { File, Copy, Check, Download, Maximize2, Minimize2 } from 'lucide-react';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
@@ -152,23 +153,14 @@ function FileTree({ nodes, selectedPath, onSelect, depth = 0 }: FileTreeProps) {
   );
 }
 
-// Module-level cache: survives ReactMarkdown remounts caused by markdownKey changes
-// (each code block highlight triggers a remount of the entire tree).
-const manifestCache = new Map<string, ExplorerManifest>();
-
 export interface CodeExplorerProps {
   path: string;
   defaultFile?: string;
 }
 
 export function CodeExplorer({ path, defaultFile = '' }: CodeExplorerProps) {
-  const [manifest, setManifest] = useState<ExplorerManifest | null>(() => manifestCache.get(path) ?? null);
-  const [error, setError] = useState<string | null>(null);
   const [selectedFile, setSelectedFile] = useState<string>(defaultFile);
   const [selectedLang, setSelectedLang] = useState<string>('text');
-  const [fileContent, setFileContent] = useState<string | null>(null);
-  const [highlightedHtml, setHighlightedHtml] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState(false);
   const [downloading, setDownloading] = useState(false);
   const [expanded, setExpanded] = useState(false);
@@ -188,83 +180,71 @@ export function CodeExplorer({ path, defaultFile = '' }: CodeExplorerProps) {
     return () => observer.disconnect();
   });
 
-  // Fetch (or restore from cache) the manifest and set initial file selection
-  useEffect(() => {
-    let cancelled = false;
-    const cached = manifestCache.get(path);
-    if (cached) {
-      setManifest(cached);
-      const first = defaultFile || cached.files[0]?.path || '';
-      const firstLang = cached.files.find((f) => f.path === first)?.lang || cached.files[0]?.lang || 'text';
-      setSelectedFile(first);
-      setSelectedLang(firstLang);
-      return;
-    }
-    fetch(`/docs/${path}.explorer.json`)
-      .then((r) => {
-        if (!r.ok) throw new Error(`${r.status}`);
-        return r.json() as Promise<ExplorerManifest>;
-      })
-      .then((data) => {
-        if (cancelled) return;
-        manifestCache.set(path, data);
-        setManifest(data);
-        const first = defaultFile || data.files[0]?.path || '';
-        const firstLang = data.files.find((f) => f.path === first)?.lang || data.files[0]?.lang || 'text';
-        setSelectedFile(first);
-        setSelectedLang(firstLang);
-      })
-      .catch(() => {
-        if (cancelled) return;
-        const root = path.split('/').pop() || path;
-        setError(`Code explorer: example directory "${root}" not found.`);
-        setLoading(false);
-      });
-    return () => { cancelled = true; };
-  }, [path, defaultFile]);
+  // Fetch the manifest (immutable per path → cache forever, no retry). React
+  // Query's cache (app-root QueryClient) survives the ReactMarkdown remounts that
+  // markdownKey changes trigger, so a manual module cache is no longer needed.
+  const { data: manifest = null, isError: manifestError } = useQuery({
+    queryKey: ['docs-code-explorer', path],
+    queryFn: async (): Promise<ExplorerManifest> => {
+      const r = await fetch(`/docs/${path}.explorer.json`);
+      if (!r.ok) throw new Error(`${r.status}`);
+      return (await r.json()) as ExplorerManifest;
+    },
+    staleTime: Infinity,
+    gcTime: Infinity,
+    retry: false,
+  });
 
-  // Fetch file content when selection changes
-  useEffect(() => {
-    if (!selectedFile || !manifest) return;
-    let cancelled = false;
-    setLoading(true);
-    setHighlightedHtml(null);
-    fetch(`/docs/${path}/${selectedFile}`)
-      .then((r) => {
-        if (!r.ok) throw new Error(`${r.status}`);
-        return r.text();
-      })
-      .then((text) => {
-        if (!cancelled) setFileContent(text);
-      })
-      .catch(() => {
-        if (!cancelled) { setFileContent(null); setLoading(false); }
-      });
-    return () => { cancelled = true; };
-  }, [path, selectedFile, manifest]);
+  // Initialize the file selection once the manifest is available (and re-init when
+  // the explorer path/defaultFile changes) — during render, keyed on the previous
+  // values, so a later user selection via handleSelectFile is preserved.
+  const selInitKey = `${path}|${defaultFile}`;
+  const [prevSelInitKey, setPrevSelInitKey] = useState<string | null>(null);
+  if (manifest && selInitKey !== prevSelInitKey) {
+    setPrevSelInitKey(selInitKey);
+    const first = defaultFile || manifest.files[0]?.path || '';
+    const firstLang = manifest.files.find((f) => f.path === first)?.lang || manifest.files[0]?.lang || 'text';
+    setSelectedFile(first);
+    setSelectedLang(firstLang);
+  }
 
-  // Highlight with Shiki when file content or theme changes
-  useEffect(() => {
-    if (fileContent === null) return;
-    let cancelled = false;
-    setLoading(true);
-    void (async () => {
+  // Fetch the selected file's content.
+  const { data: fileContent = null, isError: contentError } = useQuery({
+    queryKey: ['docs-code-explorer-file', path, selectedFile],
+    queryFn: async (): Promise<string> => {
+      const r = await fetch(`/docs/${path}/${selectedFile}`);
+      if (!r.ok) throw new Error(`${r.status}`);
+      return await r.text();
+    },
+    enabled: !!selectedFile && !!manifest,
+    staleTime: Infinity,
+    gcTime: Infinity,
+    retry: false,
+  });
+
+  // Highlight with Shiki (theme-dependent transform); re-runs on file/lang/theme.
+  const { data: highlightedHtml = null } = useQuery({
+    queryKey: ['docs-code-explorer-hl', path, selectedFile, selectedLang, themeMode],
+    queryFn: async (): Promise<string> => {
+      const content = fileContent!;
       try {
         const { codeToHtml } = await import('shiki');
-        if (cancelled) return;
         const theme = themeMode === 'dark' ? 'github-dark' : 'github-light';
         const lang = selectedLang === 'text' || !selectedLang ? 'plaintext' : selectedLang;
-        const html = await codeToHtml(fileContent, { lang, theme });
-        if (cancelled) return;
-        setHighlightedHtml(html);
+        return await codeToHtml(content, { lang, theme });
       } catch {
-        if (!cancelled) setHighlightedHtml(`<pre><code>${fileContent.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</code></pre>`);
-      } finally {
-        if (!cancelled) setLoading(false);
+        return `<pre><code>${content.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</code></pre>`;
       }
-    })();
-    return () => { cancelled = true; };
-  }, [fileContent, selectedLang, themeMode]);
+    },
+    enabled: fileContent !== null,
+    staleTime: Infinity,
+  });
+
+  const error = manifestError
+    ? `Code explorer: example directory "${path.split('/').pop() || path}" not found.`
+    : null;
+  // Show the skeleton while a selected file's content/highlight is still resolving.
+  const loading = !!selectedFile && !!manifest && !contentError && highlightedHtml === null;
 
   const handleSelectFile = (filePath: string, lang: string) => {
     setSelectedFile(filePath);

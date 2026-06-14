@@ -126,15 +126,14 @@ export default function RunDetail() {
     enabled: !!id && run?.status === 'applied' && run?.operation === 'plan-and-apply',
   });
 
-  // Adjust polling frequency based on run status
-  // Poll more frequently (750ms) during apply phase for better real-time resource updates
-  useEffect(() => {
-    if (run?.status === 'applying') {
-      setPollInterval(750); // 750ms = 1.33x per second during apply
-    } else {
-      setPollInterval(2000); // 2 seconds for other phases
-    }
-  }, [run?.status]);
+  // Adjust polling frequency based on run status — poll faster (750ms) during the
+  // apply phase for real-time resource updates, 2s otherwise. Derived during render
+  // and synced (the hook consumes pollInterval, so it can't be a plain derivation);
+  // the `!==` guard makes it converge.
+  const desiredPollInterval = run?.status === 'applying' ? 750 : 2000;
+  if (pollInterval !== desiredPollInterval) {
+    setPollInterval(desiredPollInterval);
+  }
 
   // Get user preferences for run display
   const { preferences: runDisplayPrefs } = useRunDisplayPreferences();
@@ -143,10 +142,13 @@ export default function RunDetail() {
   // Local state to track terminal view (can override preference)
   const [showTerminalView, setShowTerminalView] = useState<boolean>(preferenceShowTerminal);
 
-  // Sync with preference when it changes (but allow local override)
-  useEffect(() => {
+  // Sync with the preference when it changes (but allow a local override in between)
+  // — during-render reset keyed on the previous preference value.
+  const [prevPreferenceShowTerminal, setPrevPreferenceShowTerminal] = useState(preferenceShowTerminal);
+  if (preferenceShowTerminal !== prevPreferenceShowTerminal) {
+    setPrevPreferenceShowTerminal(preferenceShowTerminal);
     setShowTerminalView(preferenceShowTerminal);
-  }, [preferenceShowTerminal]);
+  }
 
   // Local state for plan logs during planning (for terminal view streaming)
   // Once plan completes, use planLogs from polling hook (which persists on reload)
@@ -182,13 +184,20 @@ export default function RunDetail() {
 
       return () => clearInterval(interval);
     }
+  }, [id, run?.status, planOutput, showTerminalView]);
 
-    // Clear streaming logs when plan completes (use persisted logs from hook instead)
-    if (planOutput && streamingPlanLogs) {
+  // Clear streaming logs once the plan completes (display then uses the persisted
+  // planLogs from the hook) — during-render reset on the plan-complete transition.
+  // The offset ref isn't reset here (refs can't be written in render); it's
+  // re-initialized on the next run's mount, and polling has already stopped.
+  const planComplete = !!planOutput;
+  const [prevPlanComplete, setPrevPlanComplete] = useState(planComplete);
+  if (planComplete !== prevPlanComplete) {
+    setPrevPlanComplete(planComplete);
+    if (planComplete && streamingPlanLogs) {
       setStreamingPlanLogs('');
-      planLogsLengthRef.current = 0;
     }
-  }, [id, run?.status, planOutput, showTerminalView, streamingPlanLogs]);
+  }
 
   // Use streaming logs during planning, or persisted logs from hook after plan completes
   // Always use polled plan logs if available (persists on reload)
@@ -228,15 +237,16 @@ export default function RunDetail() {
 
   // Note: For plan-and-apply runs, the polling hook handles fetching both plan output and apply logs for the same run
 
+  // Once the run status reaches 'applying', the real status has caught up with the
+  // optimistic apply click — clear the flag during render (converges once false).
+  if (run?.status === 'applying' && isApplyStarting) {
+    setIsApplyStarting(false);
+  }
+
   // Update ref when run status changes
   useEffect(() => {
     if (run) {
       runStatusRef.current = run.status;
-
-      // When status changes to 'applying', clear the isApplyStarting flag (status has updated)
-      if (run.status === 'applying') {
-        setIsApplyStarting(false);
-      }
 
       // Auto-scroll to action buttons when plan completes
       if (run.operation === 'plan-and-apply' &&

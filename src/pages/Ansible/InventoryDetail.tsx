@@ -190,6 +190,7 @@ export default function InventoryDetail() {
 
   const [activeTab, setActiveTab] = useState('hosts');
   const [activeTabInitialized, setActiveTabInitialized] = useState(false);
+  const [setupParamHandled, setSetupParamHandled] = useState(false);
 
   // Client-side pagination for the Hosts / Groups tabs (full lists are loaded up-front).
   const [hostsPage, setHostsPage] = useState(1);
@@ -462,36 +463,45 @@ export default function InventoryDetail() {
     });
   };
 
-  // Initialize form state and active tab when query data first loads
-  useEffect(() => {
-    if (inventory && !activeTabInitialized) {
-      setEditForm({ name: inventory.name, description: inventory.description || '', source_vars: inventory.source_vars || '', constructed_limit: inventory.constructed_limit || '', input_inventory_ids: (inventory.input_inventories || []).map((i) => i.id) });
-      setInlineDescription(inventory.description || '');
-      if (inventory.type === 'dynamic') {
-        setActiveTab('sources');
-      }
-      if (hasAzureOIDC) {
-        setAzureAuthMethod('oidc');
-      }
-      setActiveTabInitialized(true);
+  // Initialize form state and active tab once the query data first loads. Done as a
+  // during-render init guarded by a flag (React's blessed pattern) instead of in an
+  // effect.
+  if (inventory && !activeTabInitialized) {
+    setActiveTabInitialized(true);
+    setEditForm({ name: inventory.name, description: inventory.description || '', source_vars: inventory.source_vars || '', constructed_limit: inventory.constructed_limit || '', input_inventory_ids: (inventory.input_inventories || []).map((i) => i.id) });
+    setInlineDescription(inventory.description || '');
+    if (inventory.type === 'dynamic') {
+      setActiveTab('sources');
     }
-  }, [inventory, hasAzureOIDC, activeTabInitialized]);
+    if (hasAzureOIDC) {
+      setAzureAuthMethod('oidc');
+    }
+  }
 
-  // Auto-open the add source dialog if setup=true (coming from create dynamic inventory)
+  // Auto-open the add source dialog if setup=true (coming from create dynamic
+  // inventory). The open is a during-render state set (guarded so it fires once);
+  // the URL param is cleared in an effect since that's router navigation, not state.
+  const shouldAutoOpenSetup =
+    !loading && inventory?.type === 'dynamic' && searchParams.get('setup') === 'true' && !setupParamHandled;
+  if (shouldAutoOpenSetup) {
+    setSetupParamHandled(true);
+    setAddSourceDialogOpen(true);
+  }
   useEffect(() => {
-    if (!loading && inventory?.type === 'dynamic' && searchParams.get('setup') === 'true') {
-      setAddSourceDialogOpen(true);
-      // Remove the setup param from URL
+    if (setupParamHandled && searchParams.get('setup') === 'true') {
       setSearchParams({});
     }
-  }, [loading, inventory, searchParams, setSearchParams]);
+  }, [setupParamHandled, searchParams, setSearchParams]);
 
-  // Reset confirmation name when delete dialog opens
-  useEffect(() => {
+  // Reset confirmation name when the delete dialog opens (during-render reset keyed
+  // on the previous open state).
+  const [prevDeleteDialogOpen, setPrevDeleteDialogOpen] = useState(deleteDialogOpen);
+  if (deleteDialogOpen !== prevDeleteDialogOpen) {
+    setPrevDeleteDialogOpen(deleteDialogOpen);
     if (deleteDialogOpen) {
       setConfirmName('');
     }
-  }, [deleteDialogOpen]);
+  }
 
   const handleUpdate = async () => {
     if (!inventory || !editForm.name.trim()) {

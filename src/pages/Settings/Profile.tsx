@@ -24,10 +24,6 @@ export default function ProfileSettings() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
 
-  useMountEffect(() => {
-    void loadProfile();
-  });
-
   const loadProfile = async () => {
     try {
       setLoading(true);
@@ -48,6 +44,10 @@ export default function ProfileSettings() {
       setLoading(false);
     }
   };
+
+  useMountEffect(() => {
+    void loadProfile();
+  });
 
   const handleChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));

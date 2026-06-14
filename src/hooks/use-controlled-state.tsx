@@ -15,20 +15,21 @@ export function useControlledState<T, Rest extends any[] = []>(
 ): readonly [T, (next: T, ...args: Rest) => void] {
   const { value, defaultValue, onChange } = props;
 
-  const [state, setInternalState] = React.useState<T>(
-    value !== undefined ? value : (defaultValue as T),
-  );
-
-  React.useEffect(() => {
-    if (value !== undefined) setInternalState(value);
-  }, [value]);
+  // Controlled when `value` is provided: read it directly so the prop is the
+  // single source of truth (no effect mirroring it into state — that's the
+  // set-state-in-effect the React Compiler flags). Uncontrolled: own internal state.
+  const isControlled = value !== undefined;
+  const [internalState, setInternalState] = React.useState<T>(defaultValue as T);
+  const state = isControlled ? value : internalState;
 
   const setState = React.useCallback(
     (next: T, ...args: Rest) => {
-      setInternalState(next);
+      // In controlled mode the parent owns the value; it updates via onChange and
+      // re-renders with a new `value`. Only track internally when uncontrolled.
+      if (value === undefined) setInternalState(next);
       onChange?.(next, ...args);
     },
-    [onChange],
+    [value, onChange],
   );
 
   return [state, setState] as const;
