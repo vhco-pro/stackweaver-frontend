@@ -12,6 +12,7 @@ volumes:
   garage_data:
   garage_meta:
   runner-workspaces:
+  ansible-workspaces:  # isolated from the terraform runner so neither can read the other's staged credentials
   zitadel-pat:
 
 services:
@@ -367,11 +368,23 @@ services:
       STORAGE_REGION: garage
       STORAGE_USE_SSL: "false"
       STORAGE_FORCE_PATH_STYLE: "true"
-      ANSIBLE_ENCRYPTION_KEY: ${ENCRYPTION_KEY:-00000000000000000000000000000000}
+      # Required: the runner refuses to start with a missing or all-zero key.
+      # Compose fails fast here until ENCRYPTION_KEY is set in .env.
+      ANSIBLE_ENCRYPTION_KEY: "${ENCRYPTION_KEY:?set ENCRYPTION_KEY in .env — generate one with openssl rand -hex 32}"
       WORKSPACES_DIR: /home/iac/workspaces
-      ANSIBLE_RUNNER_KEEP_WORKSPACE: "true"
+      # Clean each job's scratch dir (SSH keys, vault passwords, inventory
+      # secrets) on completion. Set to "true" only for short-lived debugging.
+      ANSIBLE_RUNNER_KEEP_WORKSPACE: "false"
     volumes:
-      - runner-workspaces:/home/iac/workspaces
+      - ansible-workspaces:/home/iac/workspaces
+    # Defense-in-depth: the runner needs no Linux capabilities (Ansible privilege
+    # escalation happens on the target host over SSH, not in this container), and
+    # a PID cap blunts fork-bomb / runaway-playbook resource exhaustion.
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    pids_limit: 512
     depends_on:
       postgres:
         condition: service_healthy

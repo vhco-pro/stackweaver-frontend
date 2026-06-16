@@ -8,6 +8,9 @@ covers:
 
 # Changelog
 
+### Security
+- **Ansible runner hardening**: The platform ansible runner now isolates and cleans up the sensitive material a job touches. Each job's scratch directory (which briefly holds SSH keys, vault passwords, and inventory secrets) is an ephemeral per-job directory removed on completion, on a volume isolated from the terraform runner so neither can read the other's staged credentials. The per-project Ansible Galaxy cache lives on its own dedicated volume, is namespaced per project, and is evicted by a background janitor once idle past a configurable TTL (`GALAXY_CACHE_TTL_DAYS`). The container drops all Linux capabilities, forbids privilege escalation, and runs under the default seccomp profile, on top of the existing read-only root filesystem and non-root user. Credential encryption is now enforced: the runner refuses to start with a missing or all-zero encryption key instead of silently using a publicly known one. See the [Kubernetes self-hosting guide](../../get-started/self-hosting/kubernetes/README.md#runner-security-and-isolation) and `backend/cmd/ansible-runner/main.go`.
+
 ### Added
 - **Force delete inventories**: Deleting an inventory that is still referenced (job templates, jobs, sources) is rejected with a clear dependency message; the delete dialog then offers **Force Delete Everything**, which cascades over every dependent resource — templates and their schedules, credential/variable links, notification attachments, and workflow nodes; jobs and their events; and inventory sources — in one transaction. Constructed inventories using it as an input lose that input but are kept. Force delete requires organization-level Ansible management permission (`DELETE …/inventories/:id?force=true`). See `core/repository/ansible_inventory.go` and `backend/internal/api/v2/handlers/ansible/inventories.go`.
 

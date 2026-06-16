@@ -153,7 +153,7 @@ collections:
 - Auto-detect `requirements.yml` from playbook repos
 - Install collections before job execution
 - Events logged for Galaxy installation
-- Per-project collection caching on the shared runner workspaces volume, reused across jobs to avoid re-downloading
+- Per-project collection caching on a dedicated cache volume (isolated from the terraform runner and from each job's scratch dir), reused across jobs to avoid re-downloading. Each project's cache is namespaced separately so collections are never shared across tenants, and a background janitor evicts caches left idle beyond a configurable TTL (`GALAXY_CACHE_TTL_DAYS`, default 14 days) so the volume cannot grow without bound.
 
 ### 🔄 Planned
 - [ ] Show installed collections in UI

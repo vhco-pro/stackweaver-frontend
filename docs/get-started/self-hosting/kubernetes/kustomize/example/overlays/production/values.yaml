@@ -233,6 +233,18 @@ ansibleRunner:
   # Size limit for the writable /tmp emptyDir (Ansible local/remote temp, SSH
   # control sockets) under the read-only root filesystem.
   tmpSizeLimit: 1Gi
+  # Per-job scratch (playbook checkout, inventory, staged credentials) runs on an
+  # ephemeral emptyDir isolated from the terraform runner — it holds no run
+  # history, so nothing is lost when a pod reschedules. Bound its size here.
+  workspacesSizeLimit: 5Gi
+  # The Ansible Galaxy cache is a regenerable performance cache. This static-PV
+  # example keeps it on an ephemeral emptyDir (enabled: false) so it needs no
+  # extra pre-provisioned volume — collections simply re-download on a cold pod.
+  # To keep it warm across restarts, set enabled: true and point existingClaim at
+  # a pre-created PVC (and add it to pv-pvc.yaml).
+  galaxyCache:
+    enabled: false
+    sizeLimit: 5Gi
 # ── Storage ───────────────────────────────────────────────────────────────────
 # All data (state, configs, registry, logs, ansible artifacts) is stored in a
 # single S3-compatible bucket. Any S3-compatible service works: AWS S3, R2, B2,

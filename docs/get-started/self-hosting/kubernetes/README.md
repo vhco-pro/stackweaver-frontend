@@ -40,6 +40,18 @@ The chart deploys the following resources.
 All services communicate via internal Kubernetes DNS names.
 No service uses `localhost`; the Helm chart automatically configures the correct internal addresses.
 
+## Runner security and isolation
+
+The Ansible and Terraform runners execute Infrastructure-as-Code and connect to your hosts and cloud accounts, so the chart applies several isolation controls by default. You do not need to configure any of them, but it is worth knowing what protects a multi-tenant deployment.
+
+Each runner container runs as a non-root user with a read-only root filesystem, drops all Linux capabilities, forbids privilege escalation, and runs under the default seccomp profile. The Ansible runner needs no capabilities of its own, because privilege escalation for a playbook (Ansible `become`) happens on the target host over SSH rather than inside the runner.
+
+The Ansible runner's per-job working directory — which briefly holds SSH keys, vault passwords, and inventory secrets while a job runs — lives on an ephemeral volume that is isolated from the Terraform runner and is removed when the job finishes. It deliberately does not share the Terraform runner's workspace volume, so a compromised run in one runner cannot read the other's staged credentials. Because run output, status, and history are persisted to PostgreSQL and object storage rather than this scratch volume, nothing you see in the UI is lost when a runner pod is rescheduled.
+
+The Ansible runner keeps a per-project Ansible Galaxy collection cache on a dedicated PersistentVolumeClaim (`ansibleRunner.galaxyCache`, enabled by default). The cache is namespaced per project so one tenant's collections are never served to another, and a background janitor evicts any project cache that has been idle longer than `GALAXY_CACHE_TTL_DAYS` (14 days by default; set to `0` to disable) so it cannot grow without bound. The cache is purely a download optimization — set `ansibleRunner.galaxyCache.enabled` to `false` to use an ephemeral cache instead, at the cost of re-downloading collections after a pod restart. For more than one Ansible runner replica, set `ansibleRunner.galaxyCache.accessMode` to `ReadWriteMany`.
+
+Credential encryption is enforced rather than assumed. The Ansible runner refuses to start unless it is given a real 32-byte encryption key, instead of silently falling back to an insecure all-zero key. The chart provisions a strong key automatically (see [Secrets](#secrets)); if you bring your own, it must be a 32-byte value, which is a 64-character hex string.
+
 ## Chart Distribution
 
 The Helm chart is published to an OCI registry for distribution. Since we are already on github we have opted to use [GHCR](https://github.com/vhco-pro/stackweaver-helm/pkgs/container/charts%2Fstackweaver).
@@ -458,7 +470,7 @@ helm uninstall stackweaver --namespace stackweaver
 ```
 
 Auto-generated secrets are **not** deleted on uninstall (due to `helm.sh/resource-policy: keep`).
-PersistentVolumeClaims for PostgreSQL, Garage, and runner workspaces are also not deleted automatically.
+PersistentVolumeClaims for PostgreSQL, Garage, runner workspaces, and the Ansible Galaxy cache are also not deleted automatically.
 Remove them manually if no longer needed.
 
 > [!WARNING]

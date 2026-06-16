@@ -31,10 +31,16 @@ The complete Docker Compose setup is shown below. Download or copy these files i
 
 ## Quick Start
 
-Copy the example files into a directory and start all services.
+Copy the example files into a directory, generate an encryption key, and start all services.
 
 ```bash
 cp .env.example .env
+
+# Generate a unique 32-byte encryption key. This is required: the Ansible runner
+# refuses to start with a missing or all-zero key, and Compose will not bring the
+# stack up until it is set. The key encrypts stored credentials at rest.
+sed -i "s/^ENCRYPTION_KEY=.*/ENCRYPTION_KEY=$(openssl rand -hex 32)/" .env
+
 docker compose up -d
 ```
 
