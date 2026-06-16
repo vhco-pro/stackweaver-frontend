@@ -78,8 +78,11 @@ The API is the primary Go backend serving the REST API, managing authentication,
 
 | Variable | Description | Default |
 |---|---|---|
-| `ENCRYPTION_KEY` | 32-byte hex key for encrypting sensitive data | `0000...` (insecure) |
+| `ENCRYPTION_KEY` | 32-byte hex key (64 hex chars) for encrypting sensitive data at rest. **Required** — the API and runners refuse to start with a missing, too-short, or all-zero key. Generate one with `openssl rand -hex 32`. | (required) |
 | `ANSIBLE_ENCRYPTION_KEY` | Alias for `ENCRYPTION_KEY` (checked first) | Falls back to `ENCRYPTION_KEY` |
+| `DEV_INSECURE_KEY` | Set to `1` to allow starting with a missing/insecure key, falling back to an all-zero key. **Local development only — never set in production.** | unset |
+
+The Helm chart provisions a strong `ENCRYPTION_KEY` automatically into a Kubernetes Secret (preserved across upgrades and uninstall), or you can bring your own — see the [Kubernetes guide](kubernetes/README.md#secrets). Self-hosted *agent* runners (`RUNNER_MODE=agent`) do not need this key: they receive already-decrypted job artifacts over the API.
 
 ### OIDC Workload Identity
 
@@ -191,7 +194,7 @@ The runner picks jobs from the Redis queue and executes Terraform plan/apply/des
 | `STORAGE_SECRET_KEY` | Secret key | (auto-generated) |
 | `STORAGE_USE_SSL` | Use HTTPS | `false` |
 | `STORAGE_BUCKET` | Bucket for Terraform configs and registry | `stackweaver` |
-| `ENCRYPTION_KEY` | 32-byte hex encryption key | `0000...` (insecure) |
+| `ENCRYPTION_KEY` | 32-byte hex encryption key (**required**; `openssl rand -hex 32`) | (required) |
 | `OIDC_ISSUER_URL` | OIDC issuer URL for workload identity | Falls back to `API_URL` |
 
 ---
