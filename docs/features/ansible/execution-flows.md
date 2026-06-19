@@ -87,7 +87,7 @@ Both paths run the same playbook with the same options — the difference is **h
 | | Platform runner | Self-hosted agent |
 |---|---|---|
 | Transport | Redis queue (`ansible_jobs`) | Outbound HTTPS polling (heartbeat) |
-| Job assignment | Any platform runner takes the next queued job | Only jobs whose template targets the agent's pool |
+| Job assignment | Any platform runner takes the next queued job | Only jobs whose template targets the agent's pool, offered up to the agent's free capacity and claimed atomically on start so exactly one agent runs each job (or slice) |
 | Inputs | Reads playbook/inventory/credentials from the database and object storage itself | Downloads one artifacts bundle: rendered inventory, decrypted credentials and vault passwords, cloud auth environment, playbook (VCS clone info, or generated content for ad hoc) |
 | Results | Writes job events and status directly to the database | Posts events and status back over HTTPS |
 | Network position | Inside the Stackweaver deployment | Anywhere with outbound HTTPS to the API |
@@ -118,9 +118,11 @@ sequenceDiagram
     participant DB as PostgreSQL
     loop every heartbeat
         Agent->>API: heartbeat (pool, capacity)
-        API->>DB: pending released jobs for this pool
+        API->>DB: pending released jobs for this pool (bounded by free capacity)
         API-->>Agent: job id (if any)
     end
+    Agent->>API: POST job start (atomic claim)
+    API-->>Agent: 200 claimed / 409 already taken → skip
     Agent->>API: GET job artifacts
     API-->>Agent: inventory content (sliced), credentials,<br/>vault passwords, env vars, playbook info/content
     Note over Agent: clone repo (VCS) or write<br/>shipped playbook content (ad hoc)
@@ -134,7 +136,8 @@ sequenceDiagram
 1. **Held jobs apply to both** — agents only see jobs that the gates have released, so concurrency limits and dependency syncs behave identically.
 2. **Credentials never rest on the agent** — they arrive decrypted in the artifacts response, are written to files for the duration of the run, and the workspace is cleaned afterwards.
 3. **Ad hoc on agents** — the transient playbook is generated server-side and shipped as content in the artifacts bundle, so no repository access is needed.
-4. **Choosing the path** — set an agent pool on the job template (or pick a runner in the Run Command dialog); leave it empty to run on platform runners.
+4. **One agent per job** — when several agents share a pool, the API only offers an agent as many jobs as it has free capacity, and the start call claims the job atomically. A second agent that was offered the same job loses the race and skips it, so a job (or a slice) never runs twice.
+5. **Choosing the path** — set an agent pool on the job template (or pick a runner in the Run Command dialog); leave it empty to run on platform runners.
 
 </details>
 
