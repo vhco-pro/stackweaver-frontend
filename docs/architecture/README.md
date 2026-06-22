@@ -182,7 +182,7 @@ flowchart TB
   - **Workspaces**: Terraform workspaces
   - **Runs**: Terraform execution runs (plan, apply, destroy)
   - **Configuration Versions**: Workspace configuration versions
-  - **State Versions**: Terraform state version metadata (serial, lineage, version). The raw state JSON lives only in object storage; outputs and resources are extracted into dedicated `state_version_outputs` / `state_version_resources` tables for fast, permission-scoped serving (mirrors HashiCorp TFE's state model).
+  - **State Versions**: Terraform state version metadata (serial, lineage, version). The raw state JSON lives only in object storage, encrypted at rest with AES-256-GCM (legacy plaintext is read transparently); outputs and resources are extracted into dedicated `state_version_outputs` / `state_version_resources` tables for fast, permission-scoped serving (mirrors HashiCorp TFE's state model). Sensitive output values are encrypted at rest in `state_version_outputs`.
   - **Variables**: Workspace variables (encrypted)
   - **Variable Sets**: Reusable variable sets
 - **Ansible Resources**:
@@ -199,7 +199,7 @@ flowchart TB
   - **Module Versions**: Module version tracking
   - **Provider Versions**: Provider version tracking
 - **VCS Resources**:
-  - **VCS Connections**: GitHub App and Azure DevOps connections
+  - **VCS Connections**: GitHub App and Azure DevOps connections (access/refresh tokens encrypted at rest)
   - **Webhook Events**: VCS event tracking
 - **Platform Resources**:
   - **API Keys**: API authentication tokens
