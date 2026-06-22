@@ -172,6 +172,18 @@ function RunCard({ run, formatTimeAgo, getRunStatusBadge, orgName, workspaceName
   );
 }
 
+// cleanStateProvider shortens a Terraform provider reference for display, e.g.
+// `provider["registry.terraform.io/hashicorp/null"]` → `hashicorp/null`.
+function cleanStateProvider(provider: string | undefined): string {
+  if (!provider) return 'unknown';
+  const match = provider.match(/provider\["([^"]+)"\]/);
+  if (match) provider = match[1];
+  if (provider.includes('/')) {
+    return provider.split('/').slice(-2).join('/');
+  }
+  return provider;
+}
+
 export default function WorkspaceDetail() {
   const { orgName, workspaceName } = useParams<{
     orgName: string;
@@ -790,12 +802,31 @@ export default function WorkspaceDetail() {
 
   const latestStateVersionSummary = stateVersions.length > 0 ? stateVersions[0] : null;
 
-  // Fetch full latest state version with state_data (list endpoint omits it for performance)
+  // Fetch latest state version metadata (created_at, version) — used for the CREATED column
+  // and as an existence guard. Resources/outputs come from the materialized endpoints below,
+  // not from the (deprecated) inline state_data blob.
   const { data: latestStateVersion } = useQuery({
     queryKey: ['latest-state-version-full', latestStateVersionSummary?.id],
     queryFn: () => stateVersionsApi.get(latestStateVersionSummary!.id),
     enabled: !!latestStateVersionSummary?.id,
   });
+
+  // Materialized current-state resources/outputs (State Storage Rework) — served from the
+  // dedicated tables, so the tabs/counts no longer parse the raw state blob.
+  const { data: currentResourcesData } = useQuery({
+    queryKey: ['current-state-resources', workspace?.id],
+    queryFn: () => stateVersionsApi.currentResources(workspace!.id),
+    enabled: !!workspace?.id,
+  });
+  const { data: currentOutputsData } = useQuery({
+    queryKey: ['current-state-outputs', workspace?.id],
+    queryFn: () => stateVersionsApi.currentOutputs(workspace!.id),
+    enabled: !!workspace?.id,
+  });
+  const managedResources = (currentResourcesData ?? []).filter(r => r.mode === 'managed');
+  const dataSources = (currentResourcesData ?? []).filter(r => r.mode === 'data');
+  const stateOutputs = currentOutputsData ?? [];
+  const stateCreatedAt = latestStateVersion?.created_at;
 
   if (loading) {
     return (
@@ -935,52 +966,11 @@ export default function WorkspaceDetail() {
             </div>
             <div className="flex items-center gap-1.5 text-muted-foreground">
               <FolderOpen className="h-4 w-4" />
-              <span>Resources {(() => {
-                if (!latestStateVersion?.state_data?.resources) return 0;
-                const resources = latestStateVersion.state_data.resources;
-                const extractResources = (data: unknown): Record<string, unknown>[] => {
-                  if (Array.isArray(data)) return data.filter((item): item is Record<string, unknown> => typeof item === 'object' && item !== null);
-                  if (typeof data === 'object' && data !== null) {
-                    // Terraform state format: resources are in modules
-                    const allResources: Record<string, unknown>[] = [];
-                    const traverse = (obj: unknown) => {
-                      if (Array.isArray(obj)) {
-                        obj.forEach(item => {
-                          if (item && typeof item === 'object' && item !== null && ('type' in item || 'address' in item)) {
-                            allResources.push(item as Record<string, unknown>);
-                          }
-                        });
-                      } else if (typeof obj === 'object' && obj !== null) {
-                        Object.values(obj).forEach(val => traverse(val));
-                      }
-                    };
-                    traverse(data);
-                    return allResources;
-                  }
-                  return [];
-                };
-                const resourceList = extractResources(resources);
-                // Filter out data sources (they have mode: "data" or address starts with "data.")
-                const managedResources = resourceList.filter((r) => {
-                  const mode = r.mode;
-                  const address = r.address;
-                  if (mode === 'data') return false;
-                  if (typeof address === 'string' && address.startsWith('data.')) return false;
-                  return true;
-                });
-                return managedResources.length;
-              })()}</span>
+              <span>Resources {managedResources.length}</span>
             </div>
             <div className="flex items-center gap-1.5 text-muted-foreground">
               <Tag className="h-4 w-4" />
-              <span>Outputs {(() => {
-                if (!latestStateVersion?.state_data?.outputs) return 0;
-                const outputs = latestStateVersion.state_data.outputs;
-                if (typeof outputs === 'object' && outputs !== null) {
-                  return Object.keys(outputs).length;
-                }
-                return 0;
-              })()}</span>
+              <span>Outputs {stateOutputs.length}</span>
             </div>
             {workspace.terraform_version && (
               <div className="flex items-center gap-1.5 text-muted-foreground">
@@ -1215,282 +1205,34 @@ export default function WorkspaceDetail() {
             <Tabs defaultValue="resources" className="w-full">
               <TabsList>
                 <TabsTrigger value="resources">
-                  Resources {(() => {
-                    if (!latestStateVersion?.state_data?.resources) return '(0)';
-                    const resources = latestStateVersion.state_data.resources;
-                    const extractResources = (data: unknown): Record<string, unknown>[] => {
-                      if (Array.isArray(data)) return data.filter((item): item is Record<string, unknown> => typeof item === 'object' && item !== null);
-                      if (typeof data === 'object' && data !== null) {
-                        // Terraform state format: resources are in modules
-                        const allResources: Record<string, unknown>[] = [];
-                        const traverse = (obj: unknown) => {
-                          if (Array.isArray(obj)) {
-                            obj.forEach(item => {
-                              if (item && typeof item === 'object' && item !== null && ('type' in item || 'address' in item)) {
-                                allResources.push(item as Record<string, unknown>);
-                              }
-                            });
-                          } else if (typeof obj === 'object' && obj !== null) {
-                            Object.values(obj).forEach(val => traverse(val));
-                          }
-                        };
-                        traverse(data);
-                        return allResources;
-                      }
-                      return [];
-                    };
-                    const resourceList = extractResources(resources);
-                    // Filter out data sources (they have mode: "data" or address starts with "data.")
-                    const managedResources = resourceList.filter((r) => {
-                      const mode = r.mode;
-                      const address = r.address;
-                      if (mode === 'data') return false;
-                      if (typeof address === 'string' && address.startsWith('data.')) return false;
-                      return true;
-                    });
-                    return `(${managedResources.length})`;
-                  })()}
+                  Resources ({managedResources.length})
                 </TabsTrigger>
                 <TabsTrigger value="data-sources">
-                  Data Sources {(() => {
-                    if (!latestStateVersion?.state_data?.resources) return '(0)';
-                    const resources = latestStateVersion.state_data.resources;
-                    const extractResources = (data: unknown): Record<string, unknown>[] => {
-                      if (Array.isArray(data)) return data.filter((item): item is Record<string, unknown> => typeof item === 'object' && item !== null);
-                      if (typeof data === 'object' && data !== null) {
-                        // Terraform state format: resources are in modules
-                        const allResources: Record<string, unknown>[] = [];
-                        const traverse = (obj: unknown) => {
-                          if (Array.isArray(obj)) {
-                            obj.forEach(item => {
-                              if (item && typeof item === 'object' && item !== null && ('type' in item || 'address' in item)) {
-                                allResources.push(item as Record<string, unknown>);
-                              }
-                            });
-                          } else if (typeof obj === 'object' && obj !== null) {
-                            Object.values(obj).forEach(val => traverse(val));
-                          }
-                        };
-                        traverse(data);
-                        return allResources;
-                      }
-                      return [];
-                    };
-                    const resourceList = extractResources(resources);
-                    // Filter for data sources only (they have mode: "data" or address starts with "data.")
-                    const dataSources = resourceList.filter((r) => {
-                      const mode = r.mode;
-                      const address = r.address;
-                      if (mode === 'data') return true;
-                      if (typeof address === 'string' && address.startsWith('data.')) return true;
-                      return false;
-                    });
-                    return `(${dataSources.length})`;
-                  })()}
+                  Data Sources ({dataSources.length})
                 </TabsTrigger>
                 <TabsTrigger value="outputs">
-                  Outputs {(() => {
-                    if (!latestStateVersion?.state_data?.outputs) return '(0)';
-                    const outputs = latestStateVersion.state_data.outputs;
-                    if (typeof outputs === 'object' && outputs !== null) {
-                      return `(${Object.keys(outputs).length})`;
-                    }
-                    return '(0)';
-                  })()}
+                  Outputs ({stateOutputs.length})
                 </TabsTrigger>
               </TabsList>
               
               <TabsContent value="resources" className="mt-4">
                 <div className="border rounded-lg overflow-hidden">
-                  {(() => {
-                    if (!latestStateVersion?.state_data?.resources) {
-                      return (
-                        <div className="p-8 text-center text-muted-foreground">
-                          <p>This workspace does not have any resources.</p>
-                          <p className="text-sm mt-2">Resources will appear here after you apply your first Terraform configuration.</p>
-                        </div>
-                      );
-                    }
-                    
-                    const resources = latestStateVersion.state_data.resources;
-                    const extractResources = (data: unknown): Record<string, unknown>[] => {
-                      if (Array.isArray(data)) {
-                        // Direct array of resources
-                        return data.filter((item): item is Record<string, unknown> => typeof item === 'object' && item !== null).map((item) => {
-                                const itemType = item.type;
-                                const itemName = item.name;
-                                // eslint-disable-next-line @typescript-eslint/no-base-to-string
-                                const typeStr = typeof itemType === 'string' ? itemType : (itemType ? String(itemType) : 'unknown');
-                                // eslint-disable-next-line @typescript-eslint/no-base-to-string
-                                const nameStr = typeof itemName === 'string' ? itemName : (itemName ? String(itemName) : 'unknown');
-                                const address = item.address || itemName || `${typeStr}.${nameStr}`;
-                                const type = typeStr;
-                                const provider = item.provider_name || item.provider || item.provider_config_key || 'unknown';
-                                const module = item.module_address || 'root';
-                                const created = item.created || latestStateVersion.created_at;
-                                
-                                return {
-                                  address,
-                                  type,
-                                  provider: provider,
-                                  module: module === '' ? 'root' : module,
-                                  created,
-                                  ...item
-                                };
-                        });
-                      }
-                      
-                      if (typeof data === 'object' && data !== null) {
-                        // Terraform state format: resources can be nested in modules
-                        const allResources: Record<string, unknown>[] = [];
-                        
-                        // Helper to extract module name from address
-                        const getModuleName = (address: string | undefined): string => {
-                          if (!address) return 'root';
-                          // Module addresses look like "module.submodule", resources look like "resource.type.name"
-                          const parts = address.split('.');
-                          if (parts[0] === 'module') {
-                            return address;
-                          }
-                          return 'root';
-                        };
-                        
-                        const traverse = (obj: unknown, modulePrefix = 'root') => {
-                          if (Array.isArray(obj)) {
-                            // Array of resources
-                            obj.filter((item): item is Record<string, unknown> => typeof item === 'object' && item !== null).forEach((item) => {
-                              if (item && typeof item === 'object') {
-                                const address = item.address || item.name || '';
-                                const type = item.type || '';
-                                const provider = item.provider_name || item.provider || item.provider_config_key || '';
-                                
-                                if (type || address) {
-                                  const moduleAddrRaw = item.module_address || modulePrefix || '';
-                                  // eslint-disable-next-line @typescript-eslint/no-base-to-string
-                                  const moduleAddr = typeof moduleAddrRaw === 'string' ? moduleAddrRaw : String(moduleAddrRaw);
-                                  const itemName = item.name;
-                                  // eslint-disable-next-line @typescript-eslint/no-base-to-string
-                                  const itemNameStr = typeof itemName === 'string' ? itemName : (itemName ? String(itemName) : 'unknown');
-                                  // eslint-disable-next-line @typescript-eslint/no-base-to-string
-                                  const typeStr = typeof type === 'string' ? type : (type ? String(type) : 'unknown');
-                                  allResources.push({
-                                    address: address || `${typeStr}.${itemNameStr}`,
-                                    type: typeStr,
-                                    provider: provider,
-                                    module: getModuleName(moduleAddr || undefined),
-                                    created: latestStateVersion.created_at,
-                                    ...item
-                                  });
-                                }
-                              }
-                            });
-                          } else if (typeof obj === 'object' && obj !== null) {
-                            // Check if this is a module with resources
-                            if ('resources' in obj && Array.isArray(obj.resources)) {
-                              const moduleName = ('address' in obj && typeof obj.address === 'string' ? obj.address : ('module' in obj && typeof obj.module === 'string' ? obj.module : modulePrefix));
-                              obj.resources.filter((item): item is Record<string, unknown> => typeof item === 'object' && item !== null).forEach((item) => {
-                                const address = item.address || item.name || '';
-                                const type = item.type || '';
-                                const provider = item.provider_name || item.provider || item.provider_config_key || '';
-                                
-                                if (type || address) {
-                                  const itemName = item.name;
-                                  // eslint-disable-next-line @typescript-eslint/no-base-to-string
-                                  const itemNameStr = typeof itemName === 'string' ? itemName : String(itemName || 'unknown');
-                                  // eslint-disable-next-line @typescript-eslint/no-base-to-string
-                                  const typeStr = typeof type === 'string' ? type : String(type || 'unknown');
-                                  const moduleNameStr = typeof moduleName === 'string' ? moduleName : String(moduleName || '');
-                                  allResources.push({
-                                    address: address || `${typeStr}.${itemNameStr}`,
-                                    type: typeStr,
-                                    provider: provider || 'unknown',
-                                    module: getModuleName(moduleNameStr || undefined),
-                                    created: latestStateVersion.created_at,
-                                    ...item
-                                  });
-                                }
-                              });
-                            }
-                            
-                            // Traverse child modules
-                            if ('child_modules' in obj && Array.isArray(obj.child_modules)) {
-                              obj.child_modules.filter((child): child is Record<string, unknown> => typeof child === 'object' && child !== null).forEach((child) => {
-                                const childModuleRaw = child.address || child.module || modulePrefix || '';
-                                // eslint-disable-next-line @typescript-eslint/no-base-to-string
-                                const childModule = typeof childModuleRaw === 'string' ? childModuleRaw : String(childModuleRaw || '');
-                                traverse(child, childModule || 'root');
-                              });
-                            }
-                            
-                            // Also check root_module if present
-                            const objRecord = obj as Record<string, unknown>;
-                            if ('root_module' in objRecord && objRecord.root_module) {
-                              traverse(objRecord.root_module, 'root');
-                            }
-                          }
-                        };
-                        
-                        traverse(data);
-                        return allResources;
-                      }
-                      return [];
-                    };
-                    
-                    const resourceList = extractResources(resources);
-                    
-                    // Filter out data sources (they have mode: "data" or address starts with "data.")
-                    const managedResources = resourceList.filter((r) => {
-                      const mode = r.mode;
-                      const address = r.address;
-                      if (mode === 'data') return false;
-                      if (typeof address === 'string' && address.startsWith('data.')) return false;
-                      return true;
+                  {managedResources.length === 0 ? (
+                    <div className="p-8 text-center text-muted-foreground">
+                      <p>This workspace does not have any resources.</p>
+                      <p className="text-sm mt-2">Resources will appear here after you apply your first Terraform configuration.</p>
+                    </div>
+                  ) : (() => {
+                    const created = stateCreatedAt
+                      ? new Date(stateCreatedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+                      : '—';
+                    const filtered = managedResources.filter((resource) => {
+                      if (!resourceFilter.trim()) return true;
+                      const f = resourceFilter.toLowerCase();
+                      return resource.address.toLowerCase().includes(f) ||
+                             resource.type.toLowerCase().includes(f) ||
+                             cleanStateProvider(resource.provider).toLowerCase().includes(f);
                     });
-                    
-                    if (managedResources.length === 0) {
-                      return (
-                        <div className="p-8 text-center text-muted-foreground">
-                          <p>No resources found in state data.</p>
-                        </div>
-                      );
-                    }
-                    
-                    // Sort by created date (most recent first)
-                    managedResources.sort((a, b) => {
-                      const aDate = new Date((a.created as string) || 0).getTime();
-                      const bDate = new Date((b.created as string) || 0).getTime();
-                      return bDate - aDate;
-                    });
-                    
-                    const formatDate = (dateStr: string | undefined) => {
-                      if (!dateStr) return '—';
-                      try {
-                        const date = new Date(dateStr);
-                        return date.toLocaleDateString('en-US', { 
-                          month: 'short', 
-                          day: 'numeric',
-                          year: 'numeric'
-                        });
-                      } catch {
-                        return '—';
-                      }
-                    };
-                    
-                    const cleanProvider = (provider: string | undefined): string => {
-                      if (!provider) return 'unknown';
-                      // Remove provider["..."] wrapper if present
-                      const match = provider.match(/provider\["([^"]+)"\]/);
-                      if (match) {
-                        provider = match[1];
-                      }
-                      // Extract just the provider name (e.g., "hashicorp/aws" from "registry.terraform.io/hashicorp/aws")
-                      if (provider.includes('/')) {
-                        const parts = provider.split('/');
-                        return parts.slice(-2).join('/'); // Get last two parts (namespace/name)
-                      }
-                      return provider;
-                    };
-                    
                     return (
                       <>
                         <div className="p-4 border-b bg-muted/30 flex items-center justify-between">
@@ -1519,59 +1261,29 @@ export default function WorkspaceDetail() {
                               </tr>
                             </thead>
                             <tbody>
-                              {managedResources
-                                .filter((resource) => {
-                                  if (!resourceFilter.trim()) return true;
-                                  const filterLower = resourceFilter.toLowerCase();
-                                  const addressRaw = resource.address;
-                                  const typeRaw = resource.type;
-                                  const providerRaw = resource.provider;
-                                  // eslint-disable-next-line @typescript-eslint/no-base-to-string
-                                  const address = (typeof addressRaw === 'string' ? addressRaw : String(addressRaw || '')).toLowerCase();
-                                  // eslint-disable-next-line @typescript-eslint/no-base-to-string
-                                  const type = (typeof typeRaw === 'string' ? typeRaw : String(typeRaw || '')).toLowerCase();
-                                  // eslint-disable-next-line @typescript-eslint/no-base-to-string
-                                  const provider = (typeof providerRaw === 'string' ? providerRaw : String(providerRaw || '')).toLowerCase();
-                                  return address.includes(filterLower) || 
-                                         type.includes(filterLower) || 
-                                         provider.includes(filterLower);
-                                })
-                                .map((resource, idx) => {
-                                  const addressRaw = resource.address;
-                                  const typeRaw = resource.type;
-                                  const providerRaw = resource.provider;
-                                  const moduleRaw = resource.module;
-                                  // eslint-disable-next-line @typescript-eslint/no-base-to-string
-                                  const address = typeof addressRaw === 'string' ? addressRaw : String(addressRaw || '');
-                                  // eslint-disable-next-line @typescript-eslint/no-base-to-string
-                                  const type = typeof typeRaw === 'string' ? typeRaw : String(typeRaw || '');
-                                  // eslint-disable-next-line @typescript-eslint/no-base-to-string
-                                  const provider = typeof providerRaw === 'string' ? providerRaw : String(providerRaw || '');
-                                  // eslint-disable-next-line @typescript-eslint/no-base-to-string
-                                  const module = typeof moduleRaw === 'string' ? moduleRaw : String(moduleRaw || 'root');
-                                  return (
+                              {filtered.map((resource, idx) => (
                                 <tr key={idx} className="border-b hover:bg-muted/30 transition-colors">
                                   <td className="px-4 py-3">
-                                    <div className="font-mono text-sm">{address}</div>
+                                    <div className="font-mono text-sm">{resource.address}</div>
                                   </td>
                                   <td className="px-4 py-3">
-                                    <div className="text-sm text-muted-foreground">{cleanProvider(provider)}</div>
+                                    <div className="text-sm text-muted-foreground">{cleanStateProvider(resource.provider)}</div>
                                   </td>
                                   <td className="px-4 py-3">
-                                    <div className="text-sm">{type}</div>
+                                    <div className="text-sm">{resource.type}</div>
                                   </td>
                                   <td className="px-4 py-3">
-                                    <div className="text-sm text-muted-foreground">{module}</div>
+                                    <div className="text-sm text-muted-foreground">{resource.module || 'root'}</div>
                                   </td>
                                   <td className="px-4 py-3">
-                                    <div className="text-sm text-muted-foreground">{formatDate(resource.created as string | undefined)}</div>
+                                    <div className="text-sm text-muted-foreground">{created}</div>
                                   </td>
                                   <td className="px-4 py-3 text-right">
                                     <Button
                                       variant="ghost"
                                       size="sm"
                                       onClick={() => {
-                                        setResourceToDelete(address);
+                                        setResourceToDelete(resource.address);
                                         setDeleteResourceDialogOpen(true);
                                       }}
                                       className="text-destructive hover:text-destructive"
@@ -1580,8 +1292,7 @@ export default function WorkspaceDetail() {
                                     </Button>
                                   </td>
                                 </tr>
-                                  );
-                                })}
+                              ))}
                             </tbody>
                           </table>
                         </div>
@@ -1593,195 +1304,22 @@ export default function WorkspaceDetail() {
               
               <TabsContent value="data-sources" className="mt-4">
                 <div className="border rounded-lg overflow-hidden">
-                  {(() => {
-                    if (!latestStateVersion?.state_data?.resources) {
-                      return (
-                        <div className="p-8 text-center text-muted-foreground">
-                          <p>This workspace does not have any data sources.</p>
-                          <p className="text-sm mt-2">Data sources will appear here after you apply your first Terraform configuration.</p>
-                        </div>
-                      );
-                    }
-                    
-                    const resources = latestStateVersion.state_data.resources;
-                    const extractResources = (data: unknown): Record<string, unknown>[] => {
-                      if (Array.isArray(data)) {
-                        // Direct array of resources
-                        return data.filter((item): item is Record<string, unknown> => typeof item === 'object' && item !== null).map((item) => {
-                                const itemType = item.type;
-                                const itemName = item.name;
-                                // eslint-disable-next-line @typescript-eslint/no-base-to-string
-                                const typeStr = typeof itemType === 'string' ? itemType : (itemType ? String(itemType) : 'unknown');
-                                // eslint-disable-next-line @typescript-eslint/no-base-to-string
-                                const nameStr = typeof itemName === 'string' ? itemName : (itemName ? String(itemName) : 'unknown');
-                                const address = item.address || itemName || `${typeStr}.${nameStr}`;
-                                const type = typeStr;
-                                const provider = item.provider_name || item.provider || item.provider_config_key || 'unknown';
-                                const module = item.module_address || 'root';
-                                const created = item.created || latestStateVersion.created_at;
-                                
-                                return {
-                                  address,
-                                  type,
-                                  provider: provider,
-                                  module: module === '' ? 'root' : module,
-                                  created,
-                                  ...item
-                                };
-                        });
-                      }
-                      
-                      if (typeof data === 'object' && data !== null) {
-                        // Terraform state format: resources can be nested in modules
-                        const allResources: Record<string, unknown>[] = [];
-                        
-                        // Helper to extract module name from address
-                        const getModuleName = (address: string | undefined): string => {
-                          if (!address) return 'root';
-                          // Module addresses look like "module.submodule", resources look like "resource.type.name"
-                          const parts = address.split('.');
-                          if (parts[0] === 'module') {
-                            return address;
-                          }
-                          return 'root';
-                        };
-                        
-                        const traverse = (obj: unknown, modulePrefix = 'root') => {
-                          if (Array.isArray(obj)) {
-                            // Array of resources
-                            obj.filter((item): item is Record<string, unknown> => typeof item === 'object' && item !== null).forEach((item) => {
-                              if (item && typeof item === 'object') {
-                                const address = item.address || item.name || '';
-                                const type = item.type || '';
-                                const provider = item.provider_name || item.provider || item.provider_config_key || '';
-                                
-                                if (type || address) {
-                                  const moduleAddrRaw = item.module_address || modulePrefix || '';
-                                  // eslint-disable-next-line @typescript-eslint/no-base-to-string
-                                  const moduleAddr = typeof moduleAddrRaw === 'string' ? moduleAddrRaw : String(moduleAddrRaw);
-                                  const itemName = item.name;
-                                  // eslint-disable-next-line @typescript-eslint/no-base-to-string
-                                  const itemNameStr = typeof itemName === 'string' ? itemName : (itemName ? String(itemName) : 'unknown');
-                                  // eslint-disable-next-line @typescript-eslint/no-base-to-string
-                                  const typeStr = typeof type === 'string' ? type : (type ? String(type) : 'unknown');
-                                  allResources.push({
-                                    address: address || `${typeStr}.${itemNameStr}`,
-                                    type: typeStr,
-                                    provider: provider,
-                                    module: getModuleName(moduleAddr || undefined),
-                                    created: latestStateVersion.created_at,
-                                    ...item
-                                  });
-                                }
-                              }
-                            });
-                          } else if (typeof obj === 'object' && obj !== null) {
-                            // Check if this is a module with resources
-                            if ('resources' in obj && Array.isArray(obj.resources)) {
-                              const moduleName = ('address' in obj && typeof obj.address === 'string' ? obj.address : ('module' in obj && typeof obj.module === 'string' ? obj.module : modulePrefix));
-                              obj.resources.filter((item): item is Record<string, unknown> => typeof item === 'object' && item !== null).forEach((item) => {
-                                const address = item.address || item.name || '';
-                                const type = item.type || '';
-                                const provider = item.provider_name || item.provider || item.provider_config_key || '';
-                                
-                                if (type || address) {
-                                  const itemName = item.name;
-                                  // eslint-disable-next-line @typescript-eslint/no-base-to-string
-                                  const itemNameStr = typeof itemName === 'string' ? itemName : String(itemName || 'unknown');
-                                  // eslint-disable-next-line @typescript-eslint/no-base-to-string
-                                  const typeStr = typeof type === 'string' ? type : String(type || 'unknown');
-                                  const moduleNameStr = typeof moduleName === 'string' ? moduleName : String(moduleName || '');
-                                  allResources.push({
-                                    address: address || `${typeStr}.${itemNameStr}`,
-                                    type: typeStr,
-                                    provider: provider || 'unknown',
-                                    module: getModuleName(moduleNameStr || undefined),
-                                    created: latestStateVersion.created_at,
-                                    ...item
-                                  });
-                                }
-                              });
-                            }
-                            
-                            // Traverse child modules
-                            if ('child_modules' in obj && Array.isArray(obj.child_modules)) {
-                              obj.child_modules.filter((child): child is Record<string, unknown> => typeof child === 'object' && child !== null).forEach((child) => {
-                                const childModuleRaw = child.address || child.module || modulePrefix || '';
-                                // eslint-disable-next-line @typescript-eslint/no-base-to-string
-                                const childModule = typeof childModuleRaw === 'string' ? childModuleRaw : String(childModuleRaw || '');
-                                traverse(child, childModule || 'root');
-                              });
-                            }
-                            
-                            // Also check root_module if present
-                            const objRecord = obj as Record<string, unknown>;
-                            if ('root_module' in objRecord && objRecord.root_module) {
-                              traverse(objRecord.root_module, 'root');
-                            }
-                          }
-                        };
-                        
-                        traverse(data);
-                        return allResources;
-                      }
-                      return [];
-                    };
-                    
-                    const resourceList = extractResources(resources);
-                    
-                    // Filter for data sources only (they have mode: "data" or address starts with "data.")
-                    const dataSources = resourceList.filter((r) => {
-                      const mode = r.mode;
-                      const address = r.address;
-                      if (mode === 'data') return true;
-                      if (typeof address === 'string' && address.startsWith('data.')) return true;
-                      return false;
+                  {dataSources.length === 0 ? (
+                    <div className="p-8 text-center text-muted-foreground">
+                      <p>This workspace does not have any data sources.</p>
+                      <p className="text-sm mt-2">Data sources will appear here after you apply your first Terraform configuration.</p>
+                    </div>
+                  ) : (() => {
+                    const created = stateCreatedAt
+                      ? new Date(stateCreatedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+                      : '—';
+                    const filtered = dataSources.filter((resource) => {
+                      if (!resourceFilter.trim()) return true;
+                      const f = resourceFilter.toLowerCase();
+                      return resource.address.toLowerCase().includes(f) ||
+                             resource.type.toLowerCase().includes(f) ||
+                             cleanStateProvider(resource.provider).toLowerCase().includes(f);
                     });
-                    
-                    if (dataSources.length === 0) {
-                      return (
-                        <div className="p-8 text-center text-muted-foreground">
-                          <p>No data sources found in state data.</p>
-                        </div>
-                      );
-                    }
-                    
-                    // Sort by created date (most recent first)
-                    dataSources.sort((a, b) => {
-                      const aDate = new Date((a.created as string) || 0).getTime();
-                      const bDate = new Date((b.created as string) || 0).getTime();
-                      return bDate - aDate;
-                    });
-                    
-                    const formatDate = (dateStr: string | undefined) => {
-                      if (!dateStr) return '—';
-                      try {
-                        const date = new Date(dateStr);
-                        return date.toLocaleDateString('en-US', { 
-                          month: 'short', 
-                          day: 'numeric',
-                          year: 'numeric'
-                        });
-                      } catch {
-                        return '—';
-                      }
-                    };
-                    
-                    const cleanProvider = (provider: string | undefined): string => {
-                      if (!provider) return 'unknown';
-                      // Remove provider["..."] wrapper if present
-                      const match = provider.match(/provider\["([^"]+)"\]/);
-                      if (match) {
-                        provider = match[1];
-                      }
-                      // Extract just the provider name (e.g., "hashicorp/aws" from "registry.terraform.io/hashicorp/aws")
-                      if (provider.includes('/')) {
-                        const parts = provider.split('/');
-                        return parts.slice(-2).join('/'); // Get last two parts (namespace/name)
-                      }
-                      return provider;
-                    };
-                    
                     return (
                       <>
                         <div className="p-4 border-b bg-muted/30 flex items-center justify-between">
@@ -1809,61 +1347,25 @@ export default function WorkspaceDetail() {
                               </tr>
                             </thead>
                             <tbody>
-                              {dataSources
-                                .filter((resource) => {
-                                  if (!resourceFilter.trim()) return true;
-                                  const filterLower = resourceFilter.toLowerCase();
-                                  const addressRaw = resource.address;
-                                  const typeRaw = resource.type;
-                                  const providerRaw = resource.provider;
-                                  // eslint-disable-next-line @typescript-eslint/no-base-to-string
-                                  const address = (typeof addressRaw === 'string' ? addressRaw : String(addressRaw || '')).toLowerCase();
-                                  // eslint-disable-next-line @typescript-eslint/no-base-to-string
-                                  const type = (typeof typeRaw === 'string' ? typeRaw : String(typeRaw || '')).toLowerCase();
-                                  // eslint-disable-next-line @typescript-eslint/no-base-to-string
-                                  const provider = (typeof providerRaw === 'string' ? providerRaw : String(providerRaw || '')).toLowerCase();
-                                  return address.includes(filterLower) || 
-                                         type.includes(filterLower) || 
-                                         provider.includes(filterLower);
-                                })
-                                .map((resource, idx) => {
-                                  const addressRaw = resource.address;
-                                  const typeRaw = resource.type;
-                                  const providerRaw = resource.provider;
-                                  const moduleRaw = resource.module;
-                                  // eslint-disable-next-line @typescript-eslint/no-base-to-string
-                                  const address = typeof addressRaw === 'string' ? addressRaw : String(addressRaw || '');
-                                  // eslint-disable-next-line @typescript-eslint/no-base-to-string
-                                  const type = typeof typeRaw === 'string' ? typeRaw : String(typeRaw || '');
-                                  // eslint-disable-next-line @typescript-eslint/no-base-to-string
-                                  const provider = typeof providerRaw === 'string' ? providerRaw : String(providerRaw || '');
-                                  // eslint-disable-next-line @typescript-eslint/no-base-to-string
-                                  const module = typeof moduleRaw === 'string' ? moduleRaw : String(moduleRaw || '');
-                                  
-                                  // Extract name from address (e.g., "data.proxmox_virtual_environment_version.version" -> "version")
-                                  const nameParts = address.split('.');
-                                  const name = nameParts.length > 0 ? nameParts[nameParts.length - 1] : address;
-                                  
-                                  return (
-                                    <tr key={`${address}-${idx}`} className="border-b hover:bg-muted/30 transition-colors">
-                                      <td className="px-4 py-3">
-                                        <div className="font-mono text-sm">{name}</div>
-                                      </td>
-                                      <td className="px-4 py-3">
-                                        <div className="text-sm">{cleanProvider(provider)}</div>
-                                      </td>
-                                      <td className="px-4 py-3">
-                                        <div className="text-sm">{type}</div>
-                                      </td>
-                                      <td className="px-4 py-3">
-                                        <div className="text-sm text-muted-foreground">{module}</div>
-                                      </td>
-                                      <td className="px-4 py-3">
-                                        <div className="text-sm text-muted-foreground">{formatDate(resource.created as string | undefined)}</div>
-                                      </td>
-                                    </tr>
-                                  );
-                                })}
+                              {filtered.map((resource, idx) => (
+                                <tr key={`${resource.address}-${idx}`} className="border-b hover:bg-muted/30 transition-colors">
+                                  <td className="px-4 py-3">
+                                    <div className="font-mono text-sm">{resource.name}</div>
+                                  </td>
+                                  <td className="px-4 py-3">
+                                    <div className="text-sm">{cleanStateProvider(resource.provider)}</div>
+                                  </td>
+                                  <td className="px-4 py-3">
+                                    <div className="text-sm">{resource.type}</div>
+                                  </td>
+                                  <td className="px-4 py-3">
+                                    <div className="text-sm text-muted-foreground">{resource.module || 'root'}</div>
+                                  </td>
+                                  <td className="px-4 py-3">
+                                    <div className="text-sm text-muted-foreground">{created}</div>
+                                  </td>
+                                </tr>
+                              ))}
                             </tbody>
                           </table>
                         </div>
@@ -1875,78 +1377,50 @@ export default function WorkspaceDetail() {
               
               <TabsContent value="outputs" className="mt-4">
                 <div className="border rounded-lg overflow-hidden">
-                  {(() => {
-                    if (!latestStateVersion?.state_data?.outputs) {
-                      return (
-                        <div className="p-8 text-center text-muted-foreground">
-                          <p>No outputs available.</p>
-                          <p className="text-sm mt-2">Outputs will appear here when defined in your Terraform configuration.</p>
-                        </div>
-                      );
-                    }
-                    
-                    const outputs = latestStateVersion.state_data.outputs;
-                    if (typeof outputs !== 'object' || outputs === null) {
-                      return (
-                        <div className="p-8 text-center text-muted-foreground">
-                          <p>No outputs available.</p>
-                        </div>
-                      );
-                    }
-                    
-                    const outputEntries = Object.entries(outputs);
-                    
-                    if (outputEntries.length === 0) {
-                      return (
-                        <div className="p-8 text-center text-muted-foreground">
-                          <p>No outputs defined.</p>
-                        </div>
-                      );
-                    }
-                    
-                    return (
-                      <>
-                        <div className="p-4 border-b bg-muted/30">
-                          <p className="text-sm text-muted-foreground">
-                            Current as of the most recent state version.
-                          </p>
-                        </div>
-                        <div className="overflow-x-auto">
-                          <table className="w-full">
-                            <thead className="bg-muted/50 border-b">
-                              <tr>
-                                <th className="text-left px-4 py-3 text-sm font-semibold">NAME</th>
-                                <th className="text-left px-4 py-3 text-sm font-semibold">VALUE</th>
+                  {stateOutputs.length === 0 ? (
+                    <div className="p-8 text-center text-muted-foreground">
+                      <p>No outputs available.</p>
+                      <p className="text-sm mt-2">Outputs will appear here when defined in your Terraform configuration.</p>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="p-4 border-b bg-muted/30">
+                        <p className="text-sm text-muted-foreground">
+                          Current as of the most recent state version.
+                        </p>
+                      </div>
+                      <div className="overflow-x-auto">
+                        <table className="w-full">
+                          <thead className="bg-muted/50 border-b">
+                            <tr>
+                              <th className="text-left px-4 py-3 text-sm font-semibold">NAME</th>
+                              <th className="text-left px-4 py-3 text-sm font-semibold">VALUE</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {stateOutputs.map((output) => (
+                              <tr key={output.name} className="border-b hover:bg-muted/30 transition-colors">
+                                <td className="px-4 py-3">
+                                  <div className="font-mono text-sm font-medium">{output.name}</div>
+                                </td>
+                                <td className="px-4 py-3">
+                                  <div className="text-sm">
+                                    {output.sensitive ? (
+                                      <span className="text-muted-foreground italic">(sensitive)</span>
+                                    ) : (
+                                      <pre className="text-sm font-mono bg-muted/50 p-2 rounded-sm overflow-x-auto max-w-2xl">
+                                        {JSON.stringify(output.value, null, 2)}
+                                      </pre>
+                                    )}
+                                  </div>
+                                </td>
                               </tr>
-                            </thead>
-                            <tbody>
-                              {outputEntries.map(([key, value]: [string, unknown]) => {
-                                const valueObj = value as { sensitive?: boolean; value?: unknown; type?: unknown } | undefined;
-                                return (
-                                  <tr key={key} className="border-b hover:bg-muted/30 transition-colors">
-                                    <td className="px-4 py-3">
-                                      <div className="font-mono text-sm font-medium">{key}</div>
-                                    </td>
-                                    <td className="px-4 py-3">
-                                      <div className="text-sm">
-                                        {valueObj?.sensitive ? (
-                                          <span className="text-muted-foreground italic">(sensitive)</span>
-                                        ) : (
-                                          <pre className="text-sm font-mono bg-muted/50 p-2 rounded-sm overflow-x-auto max-w-2xl">
-                                            {JSON.stringify(valueObj?.value ?? value, null, 2)}
-                                          </pre>
-                                        )}
-                                      </div>
-                                    </td>
-                                  </tr>
-                                );
-                              })}
-                            </tbody>
-                          </table>
-                        </div>
-                      </>
-                    );
-                  })()}
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </>
+                  )}
                 </div>
               </TabsContent>
             </Tabs>

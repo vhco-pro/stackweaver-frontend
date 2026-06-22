@@ -1067,7 +1067,6 @@ export interface StateVersion {
   workspace_id: string;
   run_id?: string; // Link to the run that created this state version
   version: number;
-  state_data: Record<string, unknown>;
   serial?: number;
   lineage?: string;
   commit_hash?: string; // Git commit hash that triggered this state version
@@ -1275,6 +1274,25 @@ export const runsApi = {
     apiClient.patch<Run>(`/workspaces/${workspaceId}/runs/${id}/status`, data),
 };
 
+// Materialized state outputs/resources (State Storage Rework) — served from dedicated
+// tables, so the workspace tabs/counts no longer parse the raw state blob.
+export interface StateVersionOutput {
+  name: string;
+  value: unknown;
+  type?: string;
+  sensitive: boolean;
+}
+
+export interface StateVersionResource {
+  address: string;
+  mode: 'managed' | 'data';
+  type: string;
+  name: string;
+  provider?: string;
+  module?: string;
+  instanceCount: number;
+}
+
 export const stateVersionsApi = {
   list: (workspaceId: string) =>
     apiClient.get<{ data: StateVersion[] }>(`/workspaces/${workspaceId}/state-versions`).then(res => res.data || []),
@@ -1290,6 +1308,34 @@ export const stateVersionsApi = {
     apiClient.post<{ data: { message: string } }>(`/workspaces/${workspaceId}/state-versions/remove-resource`, { address }).then(res => res.data),
   delete: (id: string) =>
     apiClient.delete<void>(`/state-versions/${id}`),
+  // Raw Terraform state JSON for a version, via the TFE hosted-state-download-url target
+  // (object storage). Used by the state viewer/diff/download — the inline state_data blob
+  // is being removed from API responses (State Storage Rework).
+  getRawState: (id: string) =>
+    apiClient.get<Record<string, unknown>>(`/state-versions/${id}/download`),
+  // Current (latest) state version outputs, from the materialized table.
+  currentOutputs: (workspaceId: string) =>
+    apiClient.get<{ data: Array<{ id: string; attributes: { name: string; value: unknown; type?: string; sensitive?: boolean } }> }>(`/workspaces/${workspaceId}/current-state-version-outputs`).then(res =>
+      (res.data || []).map<StateVersionOutput>(item => ({
+        name: item.attributes.name,
+        value: item.attributes.value,
+        type: item.attributes.type,
+        sensitive: item.attributes.sensitive ?? false,
+      }))),
+  // Current (latest) state version resources, from the materialized table. mode filters managed|data.
+  currentResources: (workspaceId: string, mode?: 'managed' | 'data') =>
+    apiClient.get<{ data: Array<{ id: string; attributes: { address: string; mode: string; type: string; name: string; provider?: string; module?: string; 'instance-count'?: number } }> }>(
+      `/workspaces/${workspaceId}/current-state-version-resources${mode ? `?mode=${mode}` : ''}`,
+    ).then(res =>
+      (res.data || []).map<StateVersionResource>(item => ({
+        address: item.attributes.address,
+        mode: item.attributes.mode === 'data' ? 'data' : 'managed',
+        type: item.attributes.type,
+        name: item.attributes.name,
+        provider: item.attributes.provider,
+        module: item.attributes.module,
+        instanceCount: item.attributes['instance-count'] ?? 1,
+      }))),
 };
 
 export interface VariableSet {

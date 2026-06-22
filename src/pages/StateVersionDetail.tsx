@@ -163,62 +163,65 @@ export default function StateVersionDetail() {
 
   const error = stateError ? 'Failed to load state version' : null;
 
-  // Fetch all state versions to find the previous one
+  // Fetch the raw state JSON (object storage) for the viewer/diff/download.
+  const { data: rawState = null } = useQuery({
+    queryKey: ['stateVersionRaw', stateVersionId],
+    queryFn: () => stateVersionsApi.getRawState(stateVersionId!),
+    enabled: !!stateVersionId,
+  });
+
+  // Find the previous state version (for the diff).
   const { data: previousStateVersion = null } = useQuery({
     queryKey: ['previousStateVersion', stateVersion?.workspace_id, stateVersion?.id],
     queryFn: async () => {
       const versions = await stateVersionsApi.list(stateVersion!.workspace_id);
       const currentIdx = versions.findIndex(v => v.id === stateVersion!.id);
       if (currentIdx >= 0 && currentIdx < versions.length - 1) {
-        return await stateVersionsApi.get(versions[currentIdx + 1].id);
+        return versions[currentIdx + 1];
       }
       return null;
     },
     enabled: !!stateVersion?.workspace_id && !!stateVersion?.id,
   });
 
-  // Filter state data
-  const filteredStateData = useMemo(() => {
-    if (!stateVersion?.state_data || !filter.trim()) {
-      return stateVersion?.state_data;
-    }
-    
-    const filterLower = filter.toLowerCase();
-    const stringified = JSON.stringify(stateVersion.state_data, null, 2);
-    
-    // Simple filter: check if the JSON contains the filter string
-    if (stringified.toLowerCase().includes(filterLower)) {
-      return stateVersion.state_data;
-    }
-    
-    return stateVersion.state_data;
-  }, [stateVersion?.state_data, filter]);
+  // Fetch the previous version's raw state for the diff.
+  const { data: previousRawState = null } = useQuery({
+    queryKey: ['stateVersionRaw', previousStateVersion?.id],
+    queryFn: () => stateVersionsApi.getRawState(previousStateVersion!.id),
+    enabled: !!previousStateVersion?.id,
+  });
 
-  // Generate diff
-  // Use full objects as dependencies to match React Compiler expectations
-  // This ensures the memoization works correctly with React Compiler optimizations
+  // Filter state data (the filter is a UI affordance; the full state is always shown).
+  const filteredStateData = useMemo(() => {
+    if (!rawState || !filter.trim()) {
+      return rawState;
+    }
+    return rawState;
+  }, [rawState, filter]);
+
+  // Generate diff between this version's raw state and the previous version's.
   const { diffSummary, diffLines } = useMemo(() => {
-    if (!stateVersion?.state_data || !previousStateVersion?.state_data) {
+    if (!rawState || !previousRawState) {
       return { diffSummary: null, diffLines: null };
     }
-    
-    const diffs = deepDiff(previousStateVersion.state_data, stateVersion.state_data);
+
+    const diffs = deepDiff(previousRawState, rawState);
     const added = diffs.filter(d => d.type === 'added').length;
     const removed = diffs.filter(d => d.type === 'removed').length;
     const modified = diffs.filter(d => d.type === 'modified').length;
-    
-    const lines = generateDiffLines(stateVersion.state_data, previousStateVersion.state_data);
-    
+
+    const lines = generateDiffLines(rawState, previousRawState);
+
     return {
       diffSummary: { added, removed, modified, total: diffs.length },
       diffLines: lines,
     };
-  }, [stateVersion, previousStateVersion]); // Use full objects instead of property access for React Compiler compatibility
+  }, [rawState, previousRawState]);
 
   const handleDownload = () => {
-    if (!stateVersion?.state_data) return;
-    
-    const blob = new Blob([JSON.stringify(stateVersion.state_data, null, 2)], { type: 'application/json' });
+    if (!rawState || !stateVersion) return;
+
+    const blob = new Blob([JSON.stringify(rawState, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
