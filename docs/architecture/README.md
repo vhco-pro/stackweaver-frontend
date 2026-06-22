@@ -182,7 +182,7 @@ flowchart TB
   - **Workspaces**: Terraform workspaces
   - **Runs**: Terraform execution runs (plan, apply, destroy)
   - **Configuration Versions**: Workspace configuration versions
-  - **State Versions**: Terraform state versions
+  - **State Versions**: Terraform state version metadata (serial, lineage, version). The raw state JSON lives only in object storage; outputs and resources are extracted into dedicated `state_version_outputs` / `state_version_resources` tables for fast, permission-scoped serving (mirrors HashiCorp TFE's state model).
   - **Variables**: Workspace variables (encrypted)
   - **Variable Sets**: Reusable variable sets
 - **Ansible Resources**:
