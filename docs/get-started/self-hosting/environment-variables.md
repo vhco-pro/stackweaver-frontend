@@ -82,7 +82,11 @@ The API is the primary Go backend serving the REST API, managing authentication,
 | `ANSIBLE_ENCRYPTION_KEY` | Alias for `ENCRYPTION_KEY` (checked first) | Falls back to `ENCRYPTION_KEY` |
 | `DEV_INSECURE_KEY` | Set to `1` to allow starting with a missing/insecure key, falling back to an all-zero key. **Local development only — never set in production.** | unset |
 
-The Helm chart provisions a strong `ENCRYPTION_KEY` automatically into a Kubernetes Secret (preserved across upgrades and uninstall), or you can bring your own — see the [Kubernetes guide](kubernetes/README.md#secrets). Self-hosted *agent* runners (`RUNNER_MODE=agent`) do not need this key: they receive already-decrypted job artifacts over the API.
+This single key encrypts all sensitive data at rest: workspace and variable-set variables, Ansible credentials, Terraform **state files** in object storage, sensitive Terraform **output values**, and **VCS connection tokens** in the database. Use the same value across every service that handles this data so they can read each other's ciphertext. The **orchestrator** also reads it to decrypt VCS tokens when refreshing OAuth tokens and building clone URLs; unlike the API and runners it does not hard-require the key (a missing key only disables encrypted-VCS support there rather than refusing to start), but set it consistently whenever VCS integration is used.
+
+The Helm chart provisions a strong `ENCRYPTION_KEY` automatically into a Kubernetes Secret (preserved across upgrades and uninstall) and injects it into the API, runners, **and orchestrator**, or you can bring your own — see the [Kubernetes guide](kubernetes/README.md#secrets). Self-hosted *agent* runners (`RUNNER_MODE=agent`) do not need this key: they receive already-decrypted job artifacts over the API.
+
+Existing data written before encryption was enabled stays readable: state files and VCS tokens are decrypted on a best-effort basis (plaintext is tolerated) and re-encrypted on the next write, so no migration step is required.
 
 ### OIDC Workload Identity
 
