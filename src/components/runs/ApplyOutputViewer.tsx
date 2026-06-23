@@ -1,6 +1,7 @@
 // Copyright (c) 2025 VH & Co BV. Licensed under the Business Source License 1.1. See LICENSE for details.
 
 import { useMemo, useState, useEffect, useRef } from 'react';
+import { resolveTerminalResourceStatus, type ResourceStatus } from './applyResourceStatus';
 import {
   Plus,
   Minus,
@@ -60,7 +61,7 @@ interface AppliedResource {
   id?: string;
   details?: string;
   errorMessage?: string; // Error message if status is failed
-  status: 'pending' | 'applying' | 'completed' | 'failed' | 'cancelled'; // Status for interactive display
+  status: ResourceStatus; // Status for interactive display
   type?: string; // Resource type from plan
 }
 
@@ -144,6 +145,12 @@ function AppliedResourceCard({ resource }: { resource: AppliedResource }) {
 
   return (
     <div
+      // Stable hooks for tests/automation to assert the per-resource rendered status
+      // (the box color/icon) deterministically, since that status is parsed client-side
+      // from the apply log and is the surface where bugs like the never-resolving
+      // "applying" spinner on a cancelled run show up.
+      data-resource-address={resource.address}
+      data-resource-status={resource.status}
       className={cn(
         "border rounded-lg overflow-hidden hover:border-primary/50 transition-colors",
         resource.status === 'applying' && "border-blue-500/30 bg-blue-500/5",
@@ -1287,7 +1294,9 @@ export function ApplyOutputViewer({ logs, showJsonViewer = true, planOutput, isA
                 // Status map is updated in real-time as logs are parsed
                 const statusFromMap = resourceStatuses.get(planned.address);
                 // Priority: status map (from logs) > applied resource status > pending
-                const status = statusFromMap || (appliedResource?.status && appliedResource.status !== 'pending' ? appliedResource.status : 'pending');
+                const rawStatus = statusFromMap || (appliedResource?.status && appliedResource.status !== 'pending' ? appliedResource.status : 'pending');
+                // Terminal-run override so a resource can't spin/idle forever after the run ends.
+                const status = resolveTerminalResourceStatus(rawStatus, { isCancelled, isFailed });
 
                 // Determine action from planned actions
                 const hasReplace = planned.actions.includes('delete') && planned.actions.includes('create');
@@ -1334,9 +1343,13 @@ export function ApplyOutputViewer({ logs, showJsonViewer = true, planOutput, isA
             Applied Resources ({totalResources})
           </h4>
           <div className="space-y-3">
-            {resources.map((resource, idx) => (
-              <AppliedResourceCard key={`${resource.address}-${idx}`} resource={resource} />
-            ))}
+            {resources.map((resource, idx) => {
+              // Same terminal-run override as the planned-resource view.
+              const status = resolveTerminalResourceStatus(resource.status, { isCancelled, isFailed });
+              return (
+                <AppliedResourceCard key={`${resource.address}-${idx}`} resource={{ ...resource, status }} />
+              );
+            })}
           </div>
         </div>
       ) : (
