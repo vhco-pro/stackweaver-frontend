@@ -59,10 +59,18 @@ export function useRunPolling({
 
   const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const planFetchedRef = useRef(false);
-  const planLogsFetchedRef = useRef(false);
-  const logsFetchedRef = useRef(false);
   const applyStateFetchedRef = useRef(false);
-  const lastLogOffsetRef = useRef(0);
+  // Per-phase incremental log cursors. Each phase (plan, apply) is its own log stream and
+  // is fetched with ?offset=<bytesReceived> + append, so a poll transfers only the new tail
+  // instead of re-downloading the whole (growing) log. Offsets are RAW byte counts (markers
+  // included) to match the server's byte-based slicing; the text mirrors hold the assembled
+  // log so we can append without reading possibly-stale state; the done flags latch on ETX.
+  const planLogOffsetRef = useRef(0);
+  const planLogsRef = useRef('');
+  const planLogDoneRef = useRef(false);
+  const applyLogOffsetRef = useRef(0);
+  const applyLogsRef = useRef('');
+  const applyLogDoneRef = useRef(false);
   const currentStatusRef = useRef<string | null>(null); // Use ref to track status across closures
   const currentOperationRef = useRef<string | null>(null); // Track operation for terminal check
   const previousStatusRef = useRef<string | null>(null); // Track previous status for change detection
@@ -73,10 +81,13 @@ export function useRunPolling({
   useEffect(() => {
     if (runId) {
       planFetchedRef.current = false;
-      planLogsFetchedRef.current = false;
-      logsFetchedRef.current = false;
       applyStateFetchedRef.current = false;
-      lastLogOffsetRef.current = 0;
+      planLogOffsetRef.current = 0;
+      planLogsRef.current = '';
+      planLogDoneRef.current = false;
+      applyLogOffsetRef.current = 0;
+      applyLogsRef.current = '';
+      applyLogDoneRef.current = false;
       currentStatusRef.current = null;
       currentOperationRef.current = null;
       previousStatusRef.current = null;
@@ -137,13 +148,14 @@ export function useRunPolling({
         setRun(runData);
         setError(null);
 
-        // Reset log offset when status changes from planned to applying (for plan-and-apply runs)
+        // On the plan→apply transition the apply phase begins its own fresh log stream;
+        // start its cursor at 0 (plan cursor stays independent and keeps its assembled text).
         if (runData.operation === 'plan-and-apply' &&
           previousStatus === 'planned' &&
           runData.status === 'applying') {
-          // Status just changed from planned to applying, reset log offset to fetch fresh logs
-          lastLogOffsetRef.current = 0;
-          logsFetchedRef.current = false;
+          applyLogOffsetRef.current = 0;
+          applyLogsRef.current = '';
+          applyLogDoneRef.current = false;
         }
 
         // Notify status change
@@ -183,29 +195,29 @@ export function useRunPolling({
           }
         }
 
-        // Fetch plan logs when we have plan output but no plan logs in state
-        // Use phase=plan parameter to explicitly request plan logs, even when status is 'applying'/'applied'
-        // This allows fetching plan logs on page reload after apply starts
-        // Also fetch if plan has completed (has planned-at timestamp) even if planOutput is null (no changes case)
-        const hasPlanOutput = (planOutput && typeof planOutput === 'object' && Object.keys(planOutput).length > 0) ||
-          (runData.plan_output && typeof runData.plan_output === 'object' && Object.keys(runData.plan_output).length > 0);
-        const planHasCompleted = runData['status-timestamps']?.['planned-at'] !== undefined;
-        const isPlanOperation = runData.operation === 'plan-only' || runData.operation === 'plan-and-apply' || runData.operation === 'destroy';
-        // Fetch plan logs if: (1) we have plan output, OR (2) plan has completed (even with no changes)
-        const shouldFetchPlanLogs = (hasPlanOutput || planHasCompleted) && !planLogsFetchedRef.current && isPlanOperation;
-
-        if (shouldFetchPlanLogs) {
-          planLogsFetchedRef.current = true;
+        // Stream plan-phase logs incrementally for any plan-having operation, from the start
+        // of the plan phase through completion (and on reload of a finished run, where a single
+        // offset-0 fetch returns the whole framed log). The explicit plan endpoint never
+        // returns apply logs, so there's no phase confusion. Poll with the byte offset, append
+        // the new tail, and latch done on ETX so we stop re-requesting once the stream ends.
+        const isPlanOperation = runData.operation === 'plan-only' || runData.operation === 'plan' || runData.operation === 'plan-and-apply' || runData.operation === 'destroy';
+        if (isPlanOperation && !planLogDoneRef.current) {
           try {
-            // Use explicit plan logs endpoint (no phase parameter confusion)
-            const fetchedLogs = await runsApi.getPlanLogs(runId);
-            if (isMountedRef.current && fetchedLogs) {
-              setPlanLogs(fetchedLogs);
-              onPlanLogsChange?.(fetchedLogs);
+            const chunk = await runsApi.getPlanLogs(runId, { offset: planLogOffsetRef.current });
+            if (isMountedRef.current) {
+              if (chunk.bytes > 0) {
+                planLogOffsetRef.current += chunk.bytes;
+                if (chunk.text) {
+                  const next = planLogsRef.current + chunk.text;
+                  planLogsRef.current = next;
+                  setPlanLogs(next);
+                  onPlanLogsChange?.(next);
+                }
+              }
+              if (chunk.done) planLogDoneRef.current = true;
             }
           } catch (err) {
             console.error('Failed to fetch plan logs:', err);
-            planLogsFetchedRef.current = false; // Allow retry on error
           }
         }
 
@@ -261,80 +273,47 @@ export function useRunPolling({
           }
         }
 
-        // Fetch logs for apply/destroy runs (incrementally)
-        // TFE-compatible: Both plan-and-apply and destroy runs follow the same two-phase flow
-        // Fetch apply/destroy phase logs when in applying/applied status
-        // Also fetch logs when run has failed or was cancelled during apply (to show error/cancellation details)
-        const shouldFetchLogs = (
-          ((runData.operation === 'plan-and-apply' || runData.operation === 'destroy') &&
+        // Stream apply/destroy-phase logs incrementally. The apply phase is a separate log
+        // stream from plan; getApplyLogs returns apply-phase output only (never plan logs), so
+        // a cancelled/failed run with no apply output shows empty rather than leaking the plan
+        // log into the apply terminal. Poll with the byte offset, append the new tail, and
+        // latch done on ETX. plan-only/apply runs without a distinct apply phase fall back to
+        // the generic endpoint.
+        const isTwoPhaseOp = runData.operation === 'plan-and-apply' || runData.operation === 'destroy';
+        const shouldStreamApply = (
+          (isTwoPhaseOp &&
             (runData.status === 'applying' || runData.status === 'applied' || wasCancelledDuringApply)) ||
-          ((runData.operation === 'apply') &&
+          (runData.operation === 'apply' &&
             (runData.status === 'running' || runData.status === 'completed')) ||
-          runData.status === 'failed' // Fetch logs when run fails to show error details
+          runData.status === 'failed' // surface error output when a run fails
         );
 
-        if (shouldFetchLogs) {
+        if (shouldStreamApply && !applyLogDoneRef.current) {
           try {
-            // For plan-and-apply and destroy runs, use explicit apply logs endpoint
-            // TFE-compatible: destroy runs use plan + apply phases (apply logs for the destroy execution)
-            let currentLogs: string;
-            if (runData.operation === 'plan-and-apply' || runData.operation === 'destroy') {
-              currentLogs = await runsApi.getApplyLogs(runId);
-            } else {
-              // For other operations (plan-only), use generic endpoint
-              currentLogs = await runsApi.getLogs(runId);
-            }
+            const chunk = isTwoPhaseOp
+              ? await runsApi.getApplyLogs(runId, { offset: applyLogOffsetRef.current })
+              : await runsApi.getLogs(runId, { offset: applyLogOffsetRef.current });
             if (isMountedRef.current) {
-              // For applying status, always update logs to show streaming progress
-              // For applied/completed status, only update if we have new content
-              const isApplying = (runData.operation === 'plan-and-apply' || runData.operation === 'destroy') && runData.status === 'applying';
-
-              // Always update logs if we're applying (to show real-time progress)
-              // or if we have new content (longer logs)
-              // For cancelled/failed runs, always update if we have logs (to show what happened)
-              // IMPORTANT: Only set apply logs here - never set plan logs to the logs state
-              const isCancelledOrFailed = runData.status === 'canceled' || runData.status === 'failed';
-              if (isApplying || isCancelledOrFailed) {
-                // During apply, cancelled, or failed - always update logs to trigger re-parsing and status updates
-                // For cancelled runs, if no apply logs exist, set to empty string (don't show plan logs)
-                // getApplyLogs() ensures we only get apply logs, never plan logs (no fallback)
-                // CRITICAL: For cancelled runs, explicitly set empty string if no apply logs exist
-                // This prevents any plan logs from being shown in the apply phase terminal view
-                if (isCancelledOrFailed && (!currentLogs || currentLogs.trim().length === 0)) {
-                  // Cancelled/failed with no apply logs - explicitly set empty to prevent plan log leakage
-                  setLogs('');
-                  onLogsChange?.('');
-                  lastLogOffsetRef.current = 0;
-                } else {
-                  // We have apply logs, use them
-                  const applyLogs = currentLogs || '';
-                  setLogs(applyLogs);
-                  onLogsChange?.(applyLogs);
-                  if (applyLogs) {
-                    lastLogOffsetRef.current = applyLogs.length;
-                  } else {
-                    lastLogOffsetRef.current = 0;
-                  }
+              if (chunk.bytes > 0) {
+                applyLogOffsetRef.current += chunk.bytes;
+                if (chunk.text) {
+                  const next = applyLogsRef.current + chunk.text;
+                  applyLogsRef.current = next;
+                  setLogs(next);
+                  onLogsChange?.(next);
                 }
-              } else if (currentLogs && currentLogs.trim().length > 0) {
-                // For other statuses, only update if we have new content
-                if (currentLogs.length > lastLogOffsetRef.current) {
-                  setLogs(currentLogs);
-                  onLogsChange?.(currentLogs);
-                  lastLogOffsetRef.current = currentLogs.length;
-                }
+              } else if ((runData.status === 'canceled' || runData.status === 'failed') &&
+                applyLogOffsetRef.current === 0) {
+                // Cancelled/failed before any apply output was produced — show empty rather
+                // than leaving stale content; never fall back to the plan log.
+                applyLogsRef.current = '';
+                setLogs('');
+                onLogsChange?.('');
               }
-            }
-            // Only mark as fetched if we're not actively applying (to allow continuous polling)
-            if (runData.status !== 'applying') {
-              logsFetchedRef.current = true;
+              if (chunk.done) applyLogDoneRef.current = true;
             }
           } catch (err) {
             console.error('Failed to fetch logs:', err);
-            // Don't mark as fetched on error if we're applying, allow retry
-            if (runData.status !== 'applying') {
-              logsFetchedRef.current = true;
-            }
           }
         }
 
@@ -399,7 +378,7 @@ export function useRunPolling({
      
     // planLogs and planOutput are intentionally omitted - they're state set by this effect,
     // and adding them would cause infinite re-renders
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [runId, enabled, pollInterval, onStatusChange, onPlanOutputChange, onLogsChange, onPlanLogsChange]);
 
   return {

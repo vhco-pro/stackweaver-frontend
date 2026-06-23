@@ -1074,6 +1074,44 @@ export interface StateVersion {
   created_at: string;
 }
 
+// Terraform Enterprise frames run logs with STX (0x02) start-of-text and ETX (0x03)
+// end-of-text control characters. The terraform CLI consumes them to detect the stream
+// boundaries, but they must not be rendered in the web UI, so strip them from log text
+// returned to frontend callers.
+// eslint-disable-next-line no-control-regex -- STX/ETX are intentional control chars
+const stripLogMarkers = (text: string): string => text.replace(/[\x02\x03]/g, '');
+
+const ETX_BYTE = 0x03;
+
+// A windowed chunk of a run log, returned by the log endpoints for incremental polling.
+export interface LogChunk {
+  // Display text for this chunk, with the STX/ETX framing markers stripped out.
+  text: string;
+  // Number of **raw** bytes consumed (markers included). Add to the running offset and
+  // pass it back as `?offset=` on the next poll. Must be bytes, not `text.length` — the
+  // server slices the log by byte position (TFE-compatible), markers are real bytes, and
+  // terraform output contains multi-byte UTF-8, so a JS string length would drift.
+  bytes: number;
+  // True once the ETX end-of-text marker has been seen — the phase stream is complete and
+  // polling can stop. Mirrors go-tfe's LogReader, which uses ETX to detect end-of-stream.
+  done: boolean;
+}
+
+// Turn the raw bytes of a log response into a LogChunk: count raw bytes for offset
+// accounting (the offset is byte-based and markers are real bytes, so this must be the
+// buffer length, not the decoded string length), detect the trailing ETX end-of-stream
+// marker, and strip framing markers from the displayed text. Pure/synchronous so the
+// byte-accounting + marker logic can be unit-tested without a Response.
+export const parseLogChunk = (buf: Uint8Array): LogChunk => {
+  const done = buf.length > 0 && buf[buf.length - 1] === ETX_BYTE;
+  const text = stripLogMarkers(new TextDecoder().decode(buf));
+  return { text, bytes: buf.length, done };
+};
+
+// Read a log response as a LogChunk for incremental polling.
+const readLogChunk = async (response: Response): Promise<LogChunk> =>
+  parseLogChunk(new Uint8Array(await response.arrayBuffer()));
+
 export const runsApi = {
   // TFE-compatible: List runs by workspace ID
   // Returns JSON:API format directly - pages should use helper functions
@@ -1177,7 +1215,7 @@ export const runsApi = {
   // Supports phase parameter to explicitly request plan or apply logs
   // NOTE: This is the generic endpoint (backward compatible)
   // For explicit phase logs, use getPlanLogs() or getApplyLogs()
-  getLogs: async (id: string, options?: { offset?: number; limit?: number; phase?: 'plan' | 'apply' }): Promise<string> => {
+  getLogs: async (id: string, options?: { offset?: number; limit?: number; phase?: 'plan' | 'apply' }): Promise<LogChunk> => {
     const url = new URL(`${API_BASE_URL}/runs/${id}/logs`);
     if (options?.offset !== undefined) {
       url.searchParams.append('offset', options.offset.toString());
@@ -1205,11 +1243,11 @@ export const runsApi = {
       throw new Error(`Failed to fetch logs: ${response.statusText}`);
     }
     
-    return await response.text();
+    return readLogChunk(response);
   },
   // Get plan logs explicitly (always returns plan logs or empty)
   // GET /api/v2/runs/:id/logs/plan
-  getPlanLogs: async (id: string, options?: { offset?: number; limit?: number }): Promise<string> => {
+  getPlanLogs: async (id: string, options?: { offset?: number; limit?: number }): Promise<LogChunk> => {
     const url = new URL(`${API_BASE_URL}/runs/${id}/logs/plan`);
     if (options?.offset !== undefined) {
       url.searchParams.append('offset', options.offset.toString());
@@ -1234,11 +1272,11 @@ export const runsApi = {
       throw new Error(`Failed to fetch plan logs: ${response.statusText}`);
     }
     
-    return await response.text();
+    return readLogChunk(response);
   },
   // Get apply logs explicitly (always returns apply logs or empty)
   // GET /api/v2/runs/:id/logs/apply
-  getApplyLogs: async (id: string, options?: { offset?: number; limit?: number }): Promise<string> => {
+  getApplyLogs: async (id: string, options?: { offset?: number; limit?: number }): Promise<LogChunk> => {
     const url = new URL(`${API_BASE_URL}/runs/${id}/logs/apply`);
     if (options?.offset !== undefined) {
       url.searchParams.append('offset', options.offset.toString());
@@ -1263,7 +1301,7 @@ export const runsApi = {
       throw new Error(`Failed to fetch apply logs: ${response.statusText}`);
     }
     
-    return await response.text();
+    return readLogChunk(response);
   },
   // Legacy: Update run status (internal API)
   updateStatus: (workspaceId: string, id: string, data: {

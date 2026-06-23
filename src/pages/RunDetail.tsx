@@ -150,61 +150,9 @@ export default function RunDetail() {
     setShowTerminalView(preferenceShowTerminal);
   }
 
-  // Local state for plan logs during planning (for terminal view streaming)
-  // Once plan completes, use planLogs from polling hook (which persists on reload)
-  const [streamingPlanLogs, setStreamingPlanLogs] = useState<string>('');
-  const planLogsLengthRef = useRef<number>(0);
-
-  // Poll logs during planning if terminal view is enabled
-  // After plan completes, use planLogs from polling hook (persisted)
-  useEffect(() => {
-    if (!id) return;
-
-    // During planning: poll logs if terminal view is enabled
-    if (run?.status === 'planning' && !planOutput && showTerminalView) {
-      // Poll logs endpoint every 1 second during planning (faster than status polling)
-      // Use incremental updates with offset for better performance
-      const interval = setInterval(() => {
-        void (async () => {
-          try {
-            const newLogs = await runsApi.getLogs(id, { offset: planLogsLengthRef.current });
-            if (newLogs) {
-              setStreamingPlanLogs(prev => {
-                const updated = prev + newLogs;
-                planLogsLengthRef.current = updated.length;
-                return updated;
-              });
-            }
-          } catch (err) {
-            // Log error but don't show to user (logs may not be available yet)
-            console.error('Failed to fetch plan logs:', err);
-          }
-        })();
-      }, 1000);
-
-      return () => clearInterval(interval);
-    }
-  }, [id, run?.status, planOutput, showTerminalView]);
-
-  // Clear streaming logs once the plan completes (display then uses the persisted
-  // planLogs from the hook) — during-render reset on the plan-complete transition.
-  // The offset ref isn't reset here (refs can't be written in render); it's
-  // re-initialized on the next run's mount, and polling has already stopped.
-  const planComplete = !!planOutput;
-  const [prevPlanComplete, setPrevPlanComplete] = useState(planComplete);
-  if (planComplete !== prevPlanComplete) {
-    setPrevPlanComplete(planComplete);
-    if (planComplete && streamingPlanLogs) {
-      setStreamingPlanLogs('');
-    }
-  }
-
-  // Use streaming logs during planning, or persisted logs from hook after plan completes
-  // Always use polled plan logs if available (persists on reload)
-  // Only use streaming logs during active planning phase
-  const displayPlanLogs = (run?.status === 'planning' && !planOutput && streamingPlanLogs) 
-    ? streamingPlanLogs 
-    : (planLogs || '');
+  // Plan-phase logs are streamed incrementally by useRunPolling (per-phase byte offset +
+  // append), live during planning and persisted on reload, so there's no separate poll here.
+  const displayPlanLogs = planLogs || '';
 
   // Check if plan has changes (add/change/destroy/outputs) — used for apply button and "No changes" message
   const planHasChanges = useMemo(() => {
