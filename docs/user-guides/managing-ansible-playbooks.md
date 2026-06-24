@@ -15,6 +15,12 @@ A playbook in Stackweaver is a registered pointer to a playbook file in a connec
 
 On the Playbooks page, the "New Playbook" button opens a form where you pick a VCS connection, repository, and branch, then choose the playbook file. The path field suggests YAML files found in the repository, and the playbook name is generated from the repository, branch, and path unless you type your own. This is the right flow when you want full control over the name, description, and source mode of one playbook.
 
+## Finding playbooks on the overview page
+
+When the list grows, the controls above the cards help you find what you need. The search box matches on name, description, and playbook path; a status filter narrows to playbooks that are failed, syncing, or synced; and a provider filter narrows to a single VCS provider when you connect more than one. The sort control orders the whole list — not just the visible page — by name, creation time, last-synced time, VCS provider, or sync status, and the adjacent button toggles ascending or descending. Sorting by sync status in descending order brings failed playbooks to the top, which pairs well with the "Failed" status filter as a quick triage view. A "Clear filters" button appears whenever any filter is active.
+
+Each card carries a small sync-status icon next to its metadata: green when the last sync succeeded, a spinner while a sync is running, and red when the last sync failed. Manual playbooks that have never synced show no icon, so the cards stay uncluttered. Hovering (or focusing) the red icon reveals the full sync error in a tooltip along with a "Retry sync" action, so you can re-trigger a sync straight from the list without opening the playbook. The same indicator and error text appear on the playbook detail page.
+
 ## Importing many playbooks at once
 
 When a repository contains many playbooks, the "Import from repository" button on the Playbooks page opens the bulk-import wizard. After you select a connection, repository, and branch, Stackweaver scans the repository and lists every playbook candidate it finds. Files that are already registered appear disabled with the name of their existing playbook, so re-running the import is always safe: existing playbooks are skipped, never duplicated. Check the files you want (or use select-all), optionally narrow the list with the directory filter, choose a source mode, and import. Each created playbook is synced immediately, and the wizard shows a per-file result summary of what was created, skipped, or failed.
@@ -24,6 +30,10 @@ Playbook names are derived from the filename. When two files would produce the s
 ## Picking a playbook directly in a job template
 
 The playbook field in the job template create and edit forms has two modes. "Registered" is the classic dropdown over playbooks that already exist. "From repository" lets you browse a connected repository and pick a playbook file directly, the way AWX users expect: choose the connection, repository, and branch, then select the file. If the file is already registered, the existing playbook is used; if not, Stackweaver registers it automatically when you save the template. Cancelling the form never creates anything.
+
+## Deleting a playbook
+
+Deleting a playbook from either the Playbooks list or the playbook detail page removes it once nothing depends on it. If job templates, jobs, or schedules still reference the playbook, the delete is blocked and the dialog explains what is in the way. From there you can force the delete: confirming "Force Delete Everything" removes the playbook together with everything built on it — its job templates (with their jobs, schedules, and notification attachments), jobs that ran against it, schedules that target it directly, and any workflow steps that run those templates. This cascade cannot be undone, so it requires organization-level Ansible management permission. This mirrors the force-delete behavior of inventories.
 
 ## How playbook discovery filters files
 

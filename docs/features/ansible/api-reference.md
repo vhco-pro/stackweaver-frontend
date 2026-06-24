@@ -438,7 +438,10 @@ PATCH /api/v2/ansible/playbooks/:id
 
 ```
 DELETE /api/v2/ansible/playbooks/:id
+DELETE /api/v2/ansible/playbooks/:id?force=true
 ```
+
+A plain delete is rejected with 409 when the playbook is still referenced by job templates or jobs. Adding `?force=true` cascades the delete over every dependent resource — job templates (and their schedules, credential/variable links, notification attachments, and the workflow nodes that run them), jobs run against the playbook (with their events), and schedules that target the playbook directly — in a single transaction. Force delete additionally requires organization-level Ansible management permission.
 
 ### Sync from VCS
 

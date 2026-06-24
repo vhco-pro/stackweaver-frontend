@@ -656,8 +656,8 @@ export const ansiblePlaybooksApi = {
       }
     ),
 
-  delete: (id: string) =>
-    apiClient.delete(`/ansible/playbooks/${id}`),
+  delete: (id: string, opts?: { force?: boolean }) =>
+    apiClient.delete(`/ansible/playbooks/${id}${opts?.force ? '?force=true' : ''}`),
 
   sync: (id: string) =>
     apiClient.post<JsonApiResponse<JsonApiResource>>(

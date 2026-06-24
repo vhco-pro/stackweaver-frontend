@@ -66,6 +66,9 @@ import { getVcsProviderIcon, getVcsProviderLabel, getVcsRepoUrl, getVcsBranchUrl
 import { VCSProviderSelector } from '@/components/vcs/VCSProviderSelector';
 import { VCSProjectSelect } from '@/components/vcs/VCSProjectSelect';
 import { PlaybookImportWizard } from '@/components/ansible/PlaybookImportWizard';
+import { ListSortControl, ListFilterSelect, type ListControlOption } from '@/components/ansible/ListControls';
+import { SyncStatusIndicator } from '@/components/ansible/SyncStatusIndicator';
+import { normalizeSyncState, syncStateRank, type SyncState } from './syncStatus';
 
 // Simple relative time formatter
 function formatRelativeTime(dateString: string): string {
@@ -84,6 +87,30 @@ function formatRelativeTime(dateString: string): string {
   return date.toLocaleDateString();
 }
 
+type PbSortKey = 'name' | 'created_at' | 'last_synced_at' | 'vcs_provider' | 'last_sync_status';
+type StatusFilter = 'all' | 'failed' | 'syncing' | 'synced';
+
+const PB_SORT_OPTIONS: ListControlOption[] = [
+  { value: 'name', label: 'Name' },
+  { value: 'created_at', label: 'Created' },
+  { value: 'last_synced_at', label: 'Last synced' },
+  { value: 'vcs_provider', label: 'VCS provider' },
+  { value: 'last_sync_status', label: 'Sync status' },
+];
+
+const STATUS_FILTER_OPTIONS: ListControlOption[] = [
+  { value: 'all', label: 'All statuses' },
+  { value: 'failed', label: 'Failed' },
+  { value: 'syncing', label: 'Syncing' },
+  { value: 'synced', label: 'Synced' },
+];
+
+const STATUS_FILTER_MATCH: Record<Exclude<StatusFilter, 'all'>, SyncState> = {
+  failed: 'failed',
+  syncing: 'syncing',
+  synced: 'success',
+};
+
 export default function Playbooks() {
   const { orgName } = useParams<{ orgName: string }>();
   const { currentOrg } = useOrganization();
@@ -92,10 +119,17 @@ export default function Playbooks() {
   const { canManagePlaybooks } = usePermissions(selectedOrg);
 
   const [searchQuery, setSearchQuery] = useState('');
+  const [sortBy, setSortBy] = useState<PbSortKey>('name');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
+  const [providerFilter, setProviderFilter] = useState<string>('all');
   const [pbPage, setPbPage] = useState(1);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [playbookToDelete, setPlaybookToDelete] = useState<AnsiblePlaybook | null>(null);
   const [deleting, setDeleting] = useState(false);
+  // Set to the server's 409 dependency message when a plain delete is blocked;
+  // switches the delete dialog into the force-delete escalation.
+  const [forceDeleteDetail, setForceDeleteDetail] = useState<string | null>(null);
   const [syncing, setSyncing] = useState<string | null>(null);
 
   // Create dialog state
@@ -268,35 +302,81 @@ export default function Playbooks() {
     setCreateForm((prev) => ({ ...prev, name: autoName }));
   }
 
-  // Filter playbooks
-  const filteredPlaybooks = playbooks.filter((pb) =>
-    pb.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    pb.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    pb.playbook_path?.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  // VCS provider filter options, derived from the loaded set so the dropdown only
+  // lists providers actually in use (plus the "all" default).
+  const providerOptions: ListControlOption[] = [
+    { value: 'all', label: 'All providers' },
+    ...Array.from(new Set(playbooks.map((pb) => pb.vcs_provider).filter((p): p is string => !!p)))
+      .sort()
+      .map((p) => ({ value: p, label: getVcsProviderLabel(p) })),
+  ];
+
+  const filtersActive = searchQuery !== '' || statusFilter !== 'all' || providerFilter !== 'all';
+
+  // Transform order MUST be search → status/provider filter → sort → slice(window),
+  // so sorting orders the FULL set, not just the visible page (see plan's critical constraint).
+  const sortedPlaybooks = playbooks
+    .filter((pb) =>
+      pb.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      pb.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      pb.playbook_path?.toLowerCase().includes(searchQuery.toLowerCase())
+    )
+    .filter((pb) => statusFilter === 'all' || normalizeSyncState(pb.last_sync_status) === STATUS_FILTER_MATCH[statusFilter])
+    .filter((pb) => providerFilter === 'all' || pb.vcs_provider === providerFilter)
+    .slice()
+    .sort((a, b) => {
+      const dir = sortOrder === 'asc' ? 1 : -1;
+      switch (sortBy) {
+        case 'created_at':
+          return dir * (new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+        case 'last_synced_at':
+          return dir * ((a.last_synced_at ? new Date(a.last_synced_at).getTime() : 0) - (b.last_synced_at ? new Date(b.last_synced_at).getTime() : 0));
+        case 'vcs_provider':
+          return dir * (a.vcs_provider || '').localeCompare(b.vcs_provider || '');
+        case 'last_sync_status':
+          return dir * (syncStateRank(a.last_sync_status) - syncStateRank(b.last_sync_status));
+        case 'name':
+        default:
+          return dir * (a.name || '').localeCompare(b.name || '');
+      }
+    });
 
   const PB_PAGE_SIZE = 12;
-  const pbTotalPages = Math.max(1, Math.ceil(filteredPlaybooks.length / PB_PAGE_SIZE));
+  const pbTotalPages = Math.max(1, Math.ceil(sortedPlaybooks.length / PB_PAGE_SIZE));
   const currentPbPage = Math.min(pbPage, pbTotalPages);
-  const paginatedPlaybooks = filteredPlaybooks.slice(
+  const paginatedPlaybooks = sortedPlaybooks.slice(
     (currentPbPage - 1) * PB_PAGE_SIZE,
     currentPbPage * PB_PAGE_SIZE,
   );
 
-  const handleDelete = async () => {
+  const clearFilters = () => {
+    setSearchQuery('');
+    setStatusFilter('all');
+    setProviderFilter('all');
+    setPbPage(1);
+  };
+
+  const handleDelete = async (force = false) => {
     if (!playbookToDelete) return;
 
     setDeleting(true);
     try {
-      await ansiblePlaybooksApi.delete(playbookToDelete.id);
+      await ansiblePlaybooksApi.delete(playbookToDelete.id, { force });
       queryClient.setQueryData<AnsiblePlaybook[]>(playbooksQueryKey, (old) =>
         (old || []).filter((pb) => pb.id !== playbookToDelete.id)
       );
       setDeleteDialogOpen(false);
       setPlaybookToDelete(null);
-      toast.success('Playbook deleted successfully');
+      setForceDeleteDetail(null);
+      toast.success(force ? 'Playbook and all dependent resources deleted' : 'Playbook deleted successfully');
     } catch (err: unknown) {
       console.error('Failed to delete playbook:', err);
+      // A 409 means dependent resources block the delete — escalate the dialog
+      // to offer force delete instead of just surfacing a toast.
+      if (!force && (err as Error & { status?: number }).status === 409) {
+        setForceDeleteDetail(err instanceof Error ? err.message : 'The playbook is referenced by other resources.');
+        return;
+      }
       const errorMessage = err instanceof Error ? err.message : 'Failed to delete playbook';
       toast.error(errorMessage);
     } finally {
@@ -437,9 +517,9 @@ export default function Playbooks() {
         )}
       </div>
 
-      {/* Search */}
-      <div className="flex items-center gap-4">
-        <div className="relative flex-1 max-w-md">
+      {/* Search + sort + filters */}
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="relative flex-1 min-w-[220px] max-w-md">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="Search playbooks..."
@@ -448,20 +528,52 @@ export default function Playbooks() {
             className="pl-10"
           />
         </div>
+        <ListFilterSelect
+          ariaLabel="Filter by sync status"
+          value={statusFilter}
+          options={STATUS_FILTER_OPTIONS}
+          onValueChange={(v) => { setStatusFilter(v as StatusFilter); setPbPage(1); }}
+        />
+        {providerOptions.length > 1 && (
+          <ListFilterSelect
+            ariaLabel="Filter by VCS provider"
+            value={providerFilter}
+            options={providerOptions}
+            onValueChange={(v) => { setProviderFilter(v); setPbPage(1); }}
+          />
+        )}
+        <ListSortControl
+          value={sortBy}
+          order={sortOrder}
+          options={PB_SORT_OPTIONS}
+          onValueChange={(v) => { setSortBy(v as PbSortKey); setPbPage(1); }}
+          onOrderChange={(o) => { setSortOrder(o); setPbPage(1); }}
+        />
+        {filtersActive && (
+          <Button variant="ghost" size="sm" onClick={clearFilters}>
+            Clear filters
+          </Button>
+        )}
       </div>
 
       {/* Playbooks List */}
-      {filteredPlaybooks.length === 0 ? (
+      {sortedPlaybooks.length === 0 ? (
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-12">
             <FileText className="h-12 w-12 text-muted-foreground mb-4" />
-            <h3 className="text-lg font-semibold mb-2">No playbooks found</h3>
+            <h3 className="text-lg font-semibold mb-2">
+              {statusFilter === 'failed' ? 'No failed playbooks 🎉' : 'No playbooks found'}
+            </h3>
             <p className="text-muted-foreground text-center max-w-md mb-4">
-              {searchQuery
-                ? 'No playbooks match your search criteria.'
+              {filtersActive
+                ? 'No playbooks match the current filters.'
                 : 'No playbooks have been created yet. Click the button above to create your first playbook.'}
             </p>
-            {!searchQuery && canManagePlaybooks && (
+            {filtersActive ? (
+              <Button variant="outline" onClick={clearFilters}>
+                Clear filters
+              </Button>
+            ) : canManagePlaybooks && (
               <Button onClick={() => setCreateDialogOpen(true)}>
                 <Plus className="h-4 w-4 mr-2" />
                 Create Playbook
@@ -543,13 +655,28 @@ export default function Playbooks() {
               </CardHeader>
               <CardContent>
                 <div className="flex flex-wrap items-center gap-4 text-sm">
-                  {/* VCS Badge */}
+                  {/* VCS Badge — provider tag stays short/categorical; the repo path is
+                      the navigation target rendered inline right after it (merged from #118). */}
                   {playbook.vcs_connection_id && playbook.vcs_provider && (
                     <Badge variant="outline" className="gap-1">
                       {getVcsProviderIcon(playbook.vcs_provider, 'h-3 w-3')}
                       {getVcsProviderLabel(playbook.vcs_provider)}
                     </Badge>
                   )}
+
+                  {/* Repository (inline after the badge — replaces the old separate line) */}
+                  {playbook.vcs_repository && (() => {
+                    const repoUrl = getVcsRepoUrl(playbook.vcs_provider ?? '', playbook.vcs_repository ?? '', playbook.vcs_account_name);
+                    return repoUrl ? (
+                      <a href={repoUrl} target="_blank" rel="noopener noreferrer"
+                        className="text-muted-foreground hover:text-foreground hover:underline truncate max-w-[16rem]"
+                        onClick={(e) => e.stopPropagation()}>
+                        {playbook.vcs_repository}
+                      </a>
+                    ) : (
+                      <span className="text-muted-foreground truncate max-w-[16rem]">{playbook.vcs_repository}</span>
+                    );
+                  })()}
 
                   {/* Playbook Path */}
                   {playbook.vcs_repository ? (() => {
@@ -609,26 +736,17 @@ export default function Playbooks() {
                   <span className="text-muted-foreground">
                     Created {formatRelativeTime(playbook.created_at)}
                   </span>
-                </div>
 
-                {/* Repository info */}
-                {playbook.vcs_repository && (() => {
-                  const repoUrl = getVcsRepoUrl(playbook.vcs_provider ?? '', playbook.vcs_repository ?? '', playbook.vcs_account_name);
-                  return (
-                    <div className="mt-3 text-sm text-muted-foreground truncate">
-                      <span className="font-medium">Repository:</span>{' '}
-                      {repoUrl ? (
-                        <a href={repoUrl} target="_blank" rel="noopener noreferrer"
-                          className="hover:text-foreground hover:underline"
-                          onClick={(e) => e.stopPropagation()}>
-                          {playbook.vcs_repository}
-                        </a>
-                      ) : (
-                        <span>{playbook.vcs_repository}</span>
-                      )}
-                    </div>
-                  );
-                })()}
+                  {/* Sync status — small icon, red on failure, hover reveals last_sync_error */}
+                  <SyncStatusIndicator
+                    status={playbook.last_sync_status}
+                    error={playbook.last_sync_error}
+                    syncedAt={playbook.last_synced_at}
+                    detailHref={`/app/${selectedOrg}/ansible/playbooks/${playbook.id}`}
+                    onRetry={playbook.vcs_connection_id ? () => { void handleSync(playbook); } : undefined}
+                    retrying={syncing === playbook.id}
+                  />
+                </div>
               </CardContent>
             </Card>
           ))}
@@ -993,30 +1111,52 @@ export default function Playbooks() {
         </DialogContent>
       </Dialog>
 
-      {/* Delete Confirmation Dialog */}
-      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+      {/* Delete Confirmation Dialog — escalates to force delete on a 409 */}
+      <Dialog open={deleteDialogOpen} onOpenChange={(open) => { setDeleteDialogOpen(open); if (!open) { setPlaybookToDelete(null); setForceDeleteDetail(null); } }}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Delete Playbook</DialogTitle>
+            <DialogTitle>{forceDeleteDetail ? 'Playbook Is Still in Use' : 'Delete Playbook'}</DialogTitle>
             <DialogDescription>
-              Are you sure you want to delete "{playbookToDelete?.name}"? This action
-              cannot be undone.
+              {forceDeleteDetail ? (
+                <>{forceDeleteDetail}</>
+              ) : (
+                <>
+                  Are you sure you want to delete "{playbookToDelete?.name}"? This action
+                  cannot be undone.
+                </>
+              )}
             </DialogDescription>
           </DialogHeader>
+          {forceDeleteDetail && (
+            <div className="rounded-md border border-red-500/20 bg-red-500/5 p-3 text-sm text-muted-foreground">
+              Force delete removes the playbook <span className="font-medium text-foreground">and everything built on it</span>:
+              its job templates (with their jobs, schedules, and notification attachments),
+              jobs run against it, schedules that target it directly, and any workflow steps
+              that run those templates. This cannot be undone.
+            </div>
+          )}
           <DialogFooter>
             <Button
               variant="outline"
               onClick={() => {
                 setDeleteDialogOpen(false);
                 setPlaybookToDelete(null);
+                setForceDeleteDetail(null);
               }}
             >
               Cancel
             </Button>
-            <Button variant="destructive" onClick={() => { void handleDelete(); }} disabled={deleting}>
-              {deleting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-              Delete
-            </Button>
+            {forceDeleteDetail ? (
+              <Button variant="destructive" onClick={() => { void handleDelete(true); }} disabled={deleting}>
+                {deleting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                Force Delete Everything
+              </Button>
+            ) : (
+              <Button variant="destructive" onClick={() => { void handleDelete(); }} disabled={deleting}>
+                {deleting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                Delete
+              </Button>
+            )}
           </DialogFooter>
         </DialogContent>
       </Dialog>
