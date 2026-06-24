@@ -67,6 +67,43 @@ import { getVcsProviderIcon, getVcsProviderLabel } from '@/lib/vcs';
 import { VCSProviderSelector } from '@/components/vcs/VCSProviderSelector';
 import { VCSProjectSelect } from '@/components/vcs/VCSProjectSelect';
 import { detectDynamicInventoryPlugin } from '@/utils/dynamic-inventory';
+import { ListSortControl, ListFilterSelect, type ListControlOption } from '@/components/ansible/ListControls';
+import { SyncStatusIndicator } from '@/components/ansible/SyncStatusIndicator';
+import { normalizeSyncState, syncStateRank, type SyncState } from './syncStatus';
+
+type InvSortKey = 'name' | 'created_at' | 'type' | 'last_sync_at' | 'last_sync_status' | 'last_sync_hosts_discovered';
+type StatusFilter = 'all' | 'failed' | 'syncing' | 'synced';
+type TypeFilter = 'all' | 'static' | 'dynamic' | 'vcs' | 'constructed';
+
+const INV_SORT_OPTIONS: ListControlOption[] = [
+  { value: 'name', label: 'Name' },
+  { value: 'created_at', label: 'Created' },
+  { value: 'type', label: 'Type' },
+  { value: 'last_sync_at', label: 'Last synced' },
+  { value: 'last_sync_status', label: 'Sync status' },
+  { value: 'last_sync_hosts_discovered', label: 'Hosts discovered' },
+];
+
+const STATUS_FILTER_OPTIONS: ListControlOption[] = [
+  { value: 'all', label: 'All statuses' },
+  { value: 'failed', label: 'Failed' },
+  { value: 'syncing', label: 'Syncing' },
+  { value: 'synced', label: 'Synced' },
+];
+
+const TYPE_FILTER_OPTIONS: ListControlOption[] = [
+  { value: 'all', label: 'All types' },
+  { value: 'static', label: 'Static' },
+  { value: 'dynamic', label: 'Dynamic' },
+  { value: 'vcs', label: 'VCS' },
+  { value: 'constructed', label: 'Constructed' },
+];
+
+const STATUS_FILTER_MATCH: Record<Exclude<StatusFilter, 'all'>, SyncState> = {
+  failed: 'failed',
+  syncing: 'syncing',
+  synced: 'success',
+};
 
 export default function Inventories() {
   const { orgName } = useParams<{ orgName: string }>();
@@ -76,6 +113,11 @@ export default function Inventories() {
   const queryClient = useQueryClient();
   const { canManageInventories } = usePermissions(selectedOrg);
   const [searchQuery, setSearchQuery] = useState('');
+  const [sortBy, setSortBy] = useState<InvSortKey>('name');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
+  const [typeFilter, setTypeFilter] = useState<TypeFilter>('all');
+  const [syncingId, setSyncingId] = useState<string | null>(null);
   const [invPage, setInvPage] = useState(1);
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -134,20 +176,53 @@ export default function Inventories() {
 
   const inventories = inventoriesData?.inventories ?? [];
 
-  // Filter inventories (client-side search across the full set)
-  const filteredInventories = inventories.filter((inv) =>
-    inv.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    inv.description?.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filtersActive = searchQuery !== '' || statusFilter !== 'all' || typeFilter !== 'all';
+
+  // Transform order MUST be search → status/type filter → sort → slice(window), so sorting
+  // orders the FULL set and the .slice() below operates on the already-sorted array
+  // (see plan's critical constraint — sort BEFORE windowing).
+  const sortedInventories = inventories
+    .filter((inv) =>
+      inv.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      inv.description?.toLowerCase().includes(searchQuery.toLowerCase())
+    )
+    .filter((inv) => statusFilter === 'all' || normalizeSyncState(inv.last_sync_status) === STATUS_FILTER_MATCH[statusFilter])
+    .filter((inv) => typeFilter === 'all' || inv.type === typeFilter)
+    .slice()
+    .sort((a, b) => {
+      const dir = sortOrder === 'asc' ? 1 : -1;
+      switch (sortBy) {
+        case 'created_at':
+          return dir * (new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+        case 'type':
+          return dir * a.type.localeCompare(b.type);
+        case 'last_sync_at':
+          return dir * ((a.last_sync_at ? new Date(a.last_sync_at).getTime() : 0) - (b.last_sync_at ? new Date(b.last_sync_at).getTime() : 0));
+        case 'last_sync_status':
+          return dir * (syncStateRank(a.last_sync_status) - syncStateRank(b.last_sync_status));
+        case 'last_sync_hosts_discovered':
+          return dir * ((a.last_sync_hosts_discovered ?? 0) - (b.last_sync_hosts_discovered ?? 0));
+        case 'name':
+        default:
+          return dir * a.name.localeCompare(b.name);
+      }
+    });
 
   // Window the rendered cards so a large org doesn't paint hundreds at once.
   const INV_PAGE_SIZE = 12;
-  const invTotalPages = Math.max(1, Math.ceil(filteredInventories.length / INV_PAGE_SIZE));
+  const invTotalPages = Math.max(1, Math.ceil(sortedInventories.length / INV_PAGE_SIZE));
   const currentInvPage = Math.min(invPage, invTotalPages);
-  const paginatedInventories = filteredInventories.slice(
+  const paginatedInventories = sortedInventories.slice(
     (currentInvPage - 1) * INV_PAGE_SIZE,
     currentInvPage * INV_PAGE_SIZE,
   );
+
+  const clearFilters = () => {
+    setSearchQuery('');
+    setStatusFilter('all');
+    setTypeFilter('all');
+    setInvPage(1);
+  };
 
   // Host/group counts only for the visible page — keyed on those IDs so paging or searching
   // refetches just the dozen on screen, not the whole org.
@@ -412,6 +487,26 @@ export default function Inventories() {
       toast.error(errorMessage);
     } finally {
       setDeleting(false);
+    }
+  };
+
+  // Retry a failed sync from the card. Optimistically flips the inventory to
+  // 'syncing' in the cache; the existing 5s poll reconciles the final status.
+  const handleSync = async (inventory: AnsibleInventory) => {
+    setSyncingId(inventory.id);
+    try {
+      await ansibleInventoriesApi.sync(inventory.id);
+      queryClient.setQueryData<{ inventories: AnsibleInventory[] }>(['inventories', selectedOrg], (old) =>
+        old
+          ? { inventories: old.inventories.map((inv) => (inv.id === inventory.id ? { ...inv, last_sync_status: 'syncing' } : inv)) }
+          : old,
+      );
+      toast.success('Inventory sync started');
+    } catch (err: unknown) {
+      console.error('Failed to sync inventory:', err);
+      toast.error(err instanceof Error ? err.message : 'Failed to sync inventory');
+    } finally {
+      setSyncingId(null);
     }
   };
 
@@ -951,29 +1046,61 @@ export default function Inventories() {
         </Dialog>
       </div>
 
-      {/* Search */}
-      <div className="relative max-w-md">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <Input
-          placeholder="Search inventories..."
-          value={searchQuery}
-          onChange={(e) => { setSearchQuery(e.target.value); setInvPage(1); }}
-          className="pl-9"
+      {/* Search + sort + filters */}
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="relative flex-1 min-w-[220px] max-w-md">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Search inventories..."
+            value={searchQuery}
+            onChange={(e) => { setSearchQuery(e.target.value); setInvPage(1); }}
+            className="pl-9"
+          />
+        </div>
+        <ListFilterSelect
+          ariaLabel="Filter by sync status"
+          value={statusFilter}
+          options={STATUS_FILTER_OPTIONS}
+          onValueChange={(v) => { setStatusFilter(v as StatusFilter); setInvPage(1); }}
         />
+        <ListFilterSelect
+          ariaLabel="Filter by type"
+          value={typeFilter}
+          options={TYPE_FILTER_OPTIONS}
+          onValueChange={(v) => { setTypeFilter(v as TypeFilter); setInvPage(1); }}
+        />
+        <ListSortControl
+          value={sortBy}
+          order={sortOrder}
+          options={INV_SORT_OPTIONS}
+          onValueChange={(v) => { setSortBy(v as InvSortKey); setInvPage(1); }}
+          onOrderChange={(o) => { setSortOrder(o); setInvPage(1); }}
+        />
+        {filtersActive && (
+          <Button variant="ghost" size="sm" onClick={clearFilters}>
+            Clear filters
+          </Button>
+        )}
       </div>
 
       {/* Inventory List */}
-      {filteredInventories.length === 0 ? (
+      {sortedInventories.length === 0 ? (
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-12">
             <Server className="h-12 w-12 text-orange-500 mb-4" />
-            <h3 className="text-lg font-medium mb-2">No inventories found</h3>
+            <h3 className="text-lg font-medium mb-2">
+              {statusFilter === 'failed' ? 'No failed inventories 🎉' : 'No inventories found'}
+            </h3>
             <p className="text-muted-foreground text-sm mb-4">
-              {searchQuery
-                ? 'No inventories match your search.'
+              {filtersActive
+                ? 'No inventories match the current filters.'
                 : 'Create your first inventory to get started.'}
             </p>
-            {!searchQuery && (
+            {filtersActive ? (
+              <Button variant="outline" onClick={clearFilters}>
+                Clear filters
+              </Button>
+            ) : (
               <Button onClick={() => setCreateDialogOpen(true)}>
                 <Plus className="h-4 w-4 mr-2" />
                 Create Inventory
@@ -1038,10 +1165,25 @@ export default function Inventories() {
               </CardHeader>
               <CardContent className="mt-auto pt-4">
                 <div className="flex items-center justify-between">
-                  <Badge variant={getTypeBadgeVariant()}>
-                    {getTypeIcon(inventory.type, inventory.inventory_path)}
-                    <span className="ml-1 capitalize">{getTypeLabel(inventory)}</span>
-                  </Badge>
+                  <div className="flex items-center gap-2">
+                    <Badge variant={getTypeBadgeVariant()}>
+                      {getTypeIcon(inventory.type, inventory.inventory_path)}
+                      <span className="ml-1 capitalize">{getTypeLabel(inventory)}</span>
+                    </Badge>
+                    {/* Sync status — small icon, red on failure, hover reveals last_sync_error */}
+                    <SyncStatusIndicator
+                      status={inventory.last_sync_status}
+                      error={inventory.last_sync_error}
+                      syncedAt={inventory.last_sync_at}
+                      detailHref={`/app/${selectedOrg}/ansible/inventories/${inventory.id}`}
+                      onRetry={
+                        inventory.type === 'vcs' || inventory.type === 'dynamic'
+                          ? () => { void handleSync(inventory); }
+                          : undefined
+                      }
+                      retrying={syncingId === inventory.id}
+                    />
+                  </div>
                   <div className="flex items-center gap-3 text-sm text-muted-foreground">
                     {inventoryCounts[inventory.id] && (
                       <>

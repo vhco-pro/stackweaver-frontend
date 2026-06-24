@@ -198,6 +198,9 @@ export default function PlaybookDetail() {
   // Delete playbook state
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  // Set to the server's 409 dependency message when a plain delete is blocked;
+  // switches the delete dialog into the force-delete escalation.
+  const [forceDeleteDetail, setForceDeleteDetail] = useState<string | null>(null);
   
   // Sync state
   const [syncing, setSyncing] = useState(false);
@@ -358,16 +361,22 @@ export default function PlaybookDetail() {
     }
   };
 
-  const handleDelete = async () => {
+  const handleDelete = async (force = false) => {
     if (!playbook) return;
 
     setDeleting(true);
     try {
-      await ansiblePlaybooksApi.delete(playbook.id);
-      toast.success('Playbook deleted successfully');
+      await ansiblePlaybooksApi.delete(playbook.id, { force });
+      toast.success(force ? 'Playbook and all dependent resources deleted' : 'Playbook deleted successfully');
       void Promise.resolve(navigate(`/app/${orgName}/ansible/playbooks`));
     } catch (err: unknown) {
       console.error('Failed to delete playbook:', err);
+      // A 409 means dependent resources block the delete — escalate the dialog
+      // to offer force delete instead of just surfacing a toast.
+      if (!force && (err as Error & { status?: number }).status === 409) {
+        setForceDeleteDetail(err instanceof Error ? err.message : 'The playbook is referenced by other resources.');
+        return;
+      }
       toast.error(err instanceof Error ? err.message : 'Failed to delete playbook');
     } finally {
       setDeleting(false);
@@ -1309,23 +1318,44 @@ export default function PlaybookDetail() {
       </Dialog>
 
       {/* Delete Confirmation Dialog */}
-      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+      <Dialog open={deleteDialogOpen} onOpenChange={(open) => { setDeleteDialogOpen(open); if (!open) setForceDeleteDetail(null); }}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Delete Playbook</DialogTitle>
+            <DialogTitle>{forceDeleteDetail ? 'Playbook Is Still in Use' : 'Delete Playbook'}</DialogTitle>
             <DialogDescription>
-              Are you sure you want to delete "{playbook.name}"? This action cannot be undone.
-              Any job templates using this playbook will be affected.
+              {forceDeleteDetail ? (
+                <>{forceDeleteDetail}</>
+              ) : (
+                <>
+                  Are you sure you want to delete "{playbook.name}"? This action cannot be undone.
+                  Any job templates using this playbook will be affected.
+                </>
+              )}
             </DialogDescription>
           </DialogHeader>
+          {forceDeleteDetail && (
+            <div className="rounded-md border border-red-500/20 bg-red-500/5 p-3 text-sm text-muted-foreground">
+              Force delete removes the playbook <span className="font-medium text-foreground">and everything built on it</span>:
+              its job templates (with their jobs, schedules, and notification attachments),
+              jobs run against it, schedules that target it directly, and any workflow steps
+              that run those templates. This cannot be undone.
+            </div>
+          )}
           <DialogFooter>
-            <Button variant="outline" onClick={() => setDeleteDialogOpen(false)}>
+            <Button variant="outline" onClick={() => { setDeleteDialogOpen(false); setForceDeleteDetail(null); }}>
               Cancel
             </Button>
-            <Button variant="destructive" onClick={() => { void handleDelete(); }} disabled={deleting}>
-              {deleting && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
-              Delete Playbook
-            </Button>
+            {forceDeleteDetail ? (
+              <Button variant="destructive" onClick={() => { void handleDelete(true); }} disabled={deleting}>
+                {deleting && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
+                Force Delete Everything
+              </Button>
+            ) : (
+              <Button variant="destructive" onClick={() => { void handleDelete(); }} disabled={deleting}>
+                {deleting && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
+                Delete Playbook
+              </Button>
+            )}
           </DialogFooter>
         </DialogContent>
       </Dialog>
