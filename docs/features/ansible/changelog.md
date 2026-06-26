@@ -59,7 +59,7 @@ covers:
 
 ### Fixed
 - **Inventory Detail Host/Group Counts & Membership**: The inventory detail page previously loaded only the first server page (20) of hosts and groups, so the Hosts/Groups stat cards and tab labels under-reported the real totals, the remaining hosts were unreachable (no pager), and group membership was understated because it was intersected against only the loaded host page. The page now walks every page to assemble the complete host/group sets, sources the counts from the pagination `total-count`, resolves group membership against all loaded hosts, and windows the Hosts/Groups tabs with a client-side pager. See `frontend/src/pages/Ansible/InventoryDetail.tsx` and `frontend/src/api/ansible.ts`.
-- **Job Template Relationship Updates**: Fixed an issue where updating a job template's credential or inventory relationship would not persist to the database. GORM's `Updates()` method was using preloaded relationship data instead of the field values when updating foreign keys. The fix uses a fresh model instance with `Omit()` to exclude relationships, ensuring GORM uses the field values from the updates map. See `backend/internal/repository/ansible_playbook.go:AnsibleJobTemplateRepository.Update()`.
+- **Job Template Relationship Updates**: Fixed an issue where updating a job template's credential or inventory relationship would not persist to the database. GORM's `Updates()` method was using preloaded relationship data instead of the field values when updating foreign keys. The fix uses a fresh model instance with `Omit()` to exclude relationships, ensuring GORM uses the field values from the updates map. See `core/repository/ansible_playbook.go:AnsibleJobTemplateRepository.Update()`.
 
 ### Planned
 - WebSocket real-time updates (optional enhancement)
@@ -113,7 +113,7 @@ covers:
 - UI wiring to be added in future iteration
 
 **Code Changes:**
-- `backend/internal/models/ansible_playbook.go`:
+- `core/models/ansible_playbook.go`:
   - Added `GalaxyRequirements InventoryVariables` field to `AnsibleJobTemplate`
 
 ### Collections UI ✅
