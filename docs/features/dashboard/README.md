@@ -2,7 +2,7 @@
 description: "Dashboard page documentation covering stats endpoint, organization cards, and getting-started guide"
 covers:
   - "backend/internal/api/v2/handlers/dashboard*"
-  - "frontend/src/pages/Dashboard/**"
+  - "frontend/src/pages/Dashboard.tsx"
 ---
 
 # Dashboard Documentation

@@ -23,7 +23,7 @@ This guide walks you through configuring Microsoft Azure AD (now Microsoft Entra
      https://zitadel.example.com/idps/callback
      ```
      Replace `zitadel.example.com` with your actual Zitadel domain. For a localhost-only setup (no custom domain), use `http://localhost:8080/idps/callback`.
-     See the [Custom Domain guide](../zitadel-custom-domain.md) for how the callback URL is constructed.
+     See the [Custom Domain guide](../authentication/zitadel-custom-domain.md) for how the callback URL is constructed.
 5. Click **Register**.
 
 ## Step 2: Create a Client Secret
@@ -211,7 +211,7 @@ docker exec api sh -c 'printenv CUSTOM_REQUEST_HEADERS'
 # Expected: x-zitadel-instance-host:zitadel.example.com
 ```
 
-If missing, re-run `docker compose build zitadel-init && docker compose run --rm zitadel-init` to regenerate `.env`, then `make fresh`. See the [Custom Domain guide](../zitadel-custom-domain.md) for the full explanation of how callback URLs are constructed.
+If missing, re-run `docker compose build zitadel-init && docker compose run --rm zitadel-init` to regenerate `.env`, then `make fresh`. See the [Custom Domain guide](../authentication/zitadel-custom-domain.md) for the full explanation of how callback URLs are constructed.
 
 Also ensure the redirect URI registered in Azure Portal matches `https://your-domain/idps/callback` exactly.
 

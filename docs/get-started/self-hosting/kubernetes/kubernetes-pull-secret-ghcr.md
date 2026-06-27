@@ -102,5 +102,5 @@ Using `--dry-run=client -o yaml | kubectl apply` replaces the secret without del
 
 ## Related Documentation
 
-- [Self-Hosted Runners](./self-hosted-runners.md): run StackWeaver workloads on your own Kubernetes infrastructure
-- [Get Started](../get-started/readme.md): overview of all setup guides
+- [Self-Hosted Runners](../../../user-guides/self-hosted-runners.md): run StackWeaver workloads on your own Kubernetes infrastructure
+- [Get Started](../../README.md): overview of all setup guides

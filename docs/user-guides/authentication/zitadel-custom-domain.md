@@ -227,7 +227,7 @@ When you configure an external identity provider (Azure AD, Okta, etc.), the IdP
 https://zitadel.example.com/idps/callback
 ```
 
-You must register this exact URL as a redirect URI in your identity provider's app registration. See the [Azure AD](sso/azure-ad.md), [Okta](sso/okta.md), or [Generic OIDC](sso/generic-oidc.md) guides for provider-specific instructions.
+You must register this exact URL as a redirect URI in your identity provider's app registration. See the [Azure AD](../sso/azure-ad.md), [Okta](../sso/okta.md), or [Generic OIDC](../sso/generic-oidc.md) guides for provider-specific instructions.
 
 > **Important:** The callback URL is **not** derived from the `ExternalDomain` config value. Zitadel constructs it from the request's domain context headers at runtime. The `CUSTOM_REQUEST_HEADERS` / `ZITADEL_EXTERNAL_HOST` mechanism described above is what makes this work correctly. Without it, the callback URL would be `https://localhost:8080/idps/callback`, which external identity providers reject.
 >
@@ -345,4 +345,4 @@ The API fetches JWKS from `http://localhost:8080/oauth/v2/keys` (via `ZITADEL_IN
 - [Zitadel Custom Domain docs](https://zitadel.com/docs/self-hosting/manage/custom-domain)
 - [Zitadel Configuration reference](https://github.com/zitadel/zitadel/blob/main/cmd/defaults.yaml)
 - [Cloudflare Tunnel guide](../../get-started/self-hosting/docker-compose/cloud-flare-tunnel.md)
-- [Azure AD SSO setup](sso/azure-ad.md)
+- [Azure AD SSO setup](../sso/azure-ad.md)

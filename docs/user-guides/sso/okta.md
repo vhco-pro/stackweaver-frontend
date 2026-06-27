@@ -29,7 +29,7 @@ Fill in the application settings:
   ```
   https://zitadel.example.com/idps/callback
   ```
-  Replace `zitadel.example.com` with your actual Zitadel domain. For a localhost-only setup, use `http://localhost:8080/idps/callback`. See the [Custom Domain guide](../zitadel-custom-domain.md) for how the callback URL is constructed.
+  Replace `zitadel.example.com` with your actual Zitadel domain. For a localhost-only setup, use `http://localhost:8080/idps/callback`. See the [Custom Domain guide](../authentication/zitadel-custom-domain.md) for how the callback URL is constructed.
 - **Sign-out redirect URIs**: Leave empty or add your StackWeaver frontend URL.
 - **Assignments**: Choose who can use this application. Select **Allow everyone in your organization to access** for the broadest access, or limit to specific groups.
 
@@ -248,7 +248,7 @@ Ensure the redirect URI in your Okta app matches the callback URL that Zitadel u
 https://{your-zitadel-domain}/idps/callback
 ```
 
-The callback URL is constructed from the request's domain context, not directly from configuration. See the [Custom Domain guide](../zitadel-custom-domain.md) for details.
+The callback URL is constructed from the request's domain context, not directly from configuration. See the [Custom Domain guide](../authentication/zitadel-custom-domain.md) for details.
 
 ### User authenticated but no organization access
 

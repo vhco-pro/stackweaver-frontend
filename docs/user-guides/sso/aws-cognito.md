@@ -33,7 +33,7 @@ If you do not already have a Cognito User Pool, create one:
      ```
      https://zitadel.example.com/idps/callback
      ```
-     Replace `zitadel.example.com` with your actual Zitadel domain. For a localhost-only setup, use `http://localhost:8080/idps/callback`. See the [Custom Domain guide](../zitadel-custom-domain.md) for how the callback URL is constructed.
+     Replace `zitadel.example.com` with your actual Zitadel domain. For a localhost-only setup, use `http://localhost:8080/idps/callback`. See the [Custom Domain guide](../authentication/zitadel-custom-domain.md) for how the callback URL is constructed.
    - **Allowed sign-out URLs**: Add your StackWeaver frontend URL (optional).
    - **OAuth 2.0 grant types**: Ensure **Authorization code grant** is selected.
    - **OpenID Connect scopes**: Select `openid`, `profile`, and `email`.
@@ -192,7 +192,7 @@ Ensure the callback URL in your Cognito app client matches the callback URL that
 https://{your-zitadel-domain}/idps/callback
 ```
 
-The callback URL is constructed from the request's domain context, not directly from configuration. See the [Custom Domain guide](../zitadel-custom-domain.md) for details.
+The callback URL is constructed from the request's domain context, not directly from configuration. See the [Custom Domain guide](../authentication/zitadel-custom-domain.md) for details.
 
 ### User authenticated but no organization access
 

@@ -9,7 +9,7 @@ Welcome to the StackWeaver documentation. This directory contains comprehensive 
 
 ## Get Started
 
-- **[Get Started](./get-started/readme.md)**: Overview of StackWeaver and how to get up and running
+- **[Get Started](./get-started/README.md)**: Overview of StackWeaver and how to get up and running
 - **[Your First Terraform Workspace](./get-started/your-first-terraform-workspace.md)**
 - **[Running Your First Ansible Job](./get-started/your-first-ansible-job.md)**
 - **[Self-Hosting](./get-started/self-hosting/)**

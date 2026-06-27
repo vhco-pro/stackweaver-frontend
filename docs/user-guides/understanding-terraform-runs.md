@@ -2,7 +2,8 @@
 description: "Guide for reading plan and apply outputs, interpreting resource changes, and tracking run history"
 covers:
   - "core/plugins/terraform/**"
-  - "frontend/src/pages/Terraform/**"
+  - "frontend/src/pages/RunDetail.tsx"
+  - "frontend/src/pages/WorkspaceDetail.tsx"
 ---
 
 # Understanding Terraform Runs
