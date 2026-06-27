@@ -640,6 +640,8 @@ const STATUS_STYLES: Record<string, { bg: string; text: string; border: string }
   abandoned:     { bg: 'bg-red-500/10',     text: 'text-red-600 dark:text-red-400',       border: 'border-red-500/20' },
   superseded:    { bg: 'bg-orange-500/10',  text: 'text-orange-600 dark:text-orange-400', border: 'border-orange-500/20' },
   draft:         { bg: 'bg-purple-500/10',  text: 'text-purple-600 dark:text-purple-400', border: 'border-purple-500/20' },
+  blocked:       { bg: 'bg-rose-500/10',    text: 'text-rose-600 dark:text-rose-400',     border: 'border-rose-500/20' },
+  parked:        { bg: 'bg-zinc-500/10',    text: 'text-zinc-500 dark:text-zinc-400',     border: 'border-zinc-500/20' },
 };
 
 function getStatusStyle(status: string) {

@@ -37,6 +37,8 @@ const STATUS_COLORS: Record<string, string> = {
   archived:      'bg-slate-400',
   abandoned:     'bg-red-500',
   superseded:    'bg-orange-500',
+  blocked:       'bg-rose-500',
+  parked:        'bg-zinc-500',
 };
 
 function StatusDot({ status }: { status?: string }) {
