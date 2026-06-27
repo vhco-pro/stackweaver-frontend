@@ -37,7 +37,7 @@ In your identity provider's admin console, create a new OIDC application:
    ```
    https://zitadel.example.com/idps/callback
    ```
-   Replace `zitadel.example.com` with your actual Zitadel domain. For a localhost-only setup, use `http://localhost:8080/idps/callback`. See the [Custom Domain guide](../zitadel-custom-domain.md) for how the callback URL is constructed.
+   Replace `zitadel.example.com` with your actual Zitadel domain. For a localhost-only setup, use `http://localhost:8080/idps/callback`. See the [Custom Domain guide](../authentication/zitadel-custom-domain.md) for how the callback URL is constructed.
 3. Ensure the **Authorization Code** grant type is enabled.
 4. Request the scopes: `openid`, `profile`, `email`.
 5. Note the **Client ID** and **Client Secret**.
@@ -220,7 +220,7 @@ Ensure the redirect URI in your provider's app configuration matches the callbac
 https://{your-zitadel-domain}/idps/callback
 ```
 
-The callback URL is constructed from the request's domain context, not directly from configuration. See the [Custom Domain guide](../zitadel-custom-domain.md) for details on how it works and how to verify it.
+The callback URL is constructed from the request's domain context, not directly from configuration. See the [Custom Domain guide](../authentication/zitadel-custom-domain.md) for details on how it works and how to verify it.
 
 ### Groups not appearing
 

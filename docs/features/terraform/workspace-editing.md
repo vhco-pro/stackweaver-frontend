@@ -1,8 +1,8 @@
 ---
 description: "Editing workspace settings after creation including safe changes and state-affecting VCS changes"
 covers:
-  - "backend/internal/api/v2/handlers/terraform*"
-  - "frontend/src/pages/Terraform/**"
+  - "backend/internal/api/v2/handlers/terraform/**"
+  - "frontend/src/pages/WorkspaceDetail.tsx"
 ---
 
 # Workspace Editing

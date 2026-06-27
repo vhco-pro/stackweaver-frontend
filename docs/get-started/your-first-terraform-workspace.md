@@ -1,7 +1,9 @@
 ---
 description: "Step-by-step tutorial for creating a Terraform workspace and running a plan"
 covers:
-  - "frontend/src/pages/Terraform/**"
+  - "frontend/src/pages/Workspaces.tsx"
+  - "frontend/src/pages/WorkspaceDetail.tsx"
+  - "frontend/src/pages/RunDetail.tsx"
 ---
 
 # Your First Terraform Workspace
@@ -108,8 +110,8 @@ The apply will run and show real-time progress as resources are created or modif
 
 Now that you've run your first workspace:
 
-- Learn about [managing workspace variables](./managing-workspace-variables.md)
-- Read about [understanding Terraform run outputs](./understanding-terraform-runs.md)
+- Learn about [managing workspace variables](../user-guides/managing-workspace-variables.md)
+- Read about [understanding Terraform run outputs](../user-guides/understanding-terraform-runs.md)
 - Explore [workspace editing](../features/terraform/workspace-editing.md)
 - Set up [VCS path filtering](../features/terraform/vcs-path-filtering.md) for automated runs
 
