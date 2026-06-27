@@ -1,4 +1,4 @@
-FROM node:24-alpine@sha256:156b55f92e98ccd5ef49578a8cea0df4679826564bad1c9d4ef04462b9f0ded6 AS builder
+FROM node:24-alpine@sha256:a0b9bf06e4e6193cf7a0f58816cc935ff8c2a908f81e6f1a95432d679c54fbfd AS builder
 
 # BUILD_ROOT controls where frontend source lives relative to the build context.
 # - Distribution repo (context = frontend dir):  BUILD_ROOT=. (default)
@@ -24,7 +24,7 @@ COPY ${BUILD_ROOT}/nginx.conf /frontend/nginx.conf
 RUN npm run build
 
 # Runtime stage — Chainguard nginx: zero CVEs, non-root by default
-FROM cgr.dev/chainguard/nginx@sha256:cd35918ef80082318a9215becdb351c964435193003f281ebb8d5de872562ccd
+FROM cgr.dev/chainguard/nginx@sha256:d166cfff80ac94040ccc52c6a42768486483514f7494ca641a68399655b4a053
 
 COPY --from=builder /frontend/dist /usr/share/nginx/html
 # Chainguard nginx ships nginx.default.conf — overwrite it with our SPA config
