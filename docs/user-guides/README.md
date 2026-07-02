@@ -42,9 +42,9 @@ Practical, step-by-step guides for using StackWeaver. These guides walk you thro
   - **[Generic OIDC Provider](./sso/generic-oidc.md)** - Configure any OIDC-compliant provider
   - **[SSO Team Mapping](./sso/team-mapping.md)** - Automatically assign users to teams based on IdP group claims
 
-## Azure Integration
+## Cloud Integration
 
-- **[Azure OIDC Configuration](./azure-oidc-configuration.md)** - Configure keyless authentication from Terraform and Ansible runs to Azure using OpenID Connect workload identity
+- **[OIDC Configuration](./oidc-configuration.md)** - Configure keyless authentication from Terraform and Ansible runs to Azure, AWS, and GCP using OpenID Connect workload identity
 
 ## Infrastructure
 

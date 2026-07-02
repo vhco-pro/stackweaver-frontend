@@ -10,6 +10,7 @@ import { Label } from '@/components/ui/label';
 import {
   azureOIDCConfigApi,
   awsOIDCConfigApi,
+  gcpOIDCConfigApi,
   oidcConfigApi,
   type OIDCConfiguration,
   type OIDCProvider,
@@ -25,11 +26,15 @@ import {
 } from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
 
-// Per-provider presentation + form metadata. Adding GCP/Vault later is a matter of extending this map.
+// Per-provider presentation + form metadata. Adding Vault later is a matter of extending this map.
+type OIDCFieldKey =
+  | 'client_id' | 'subscription_id' | 'tenant_id'
+  | 'role_arn'
+  | 'service_account_email' | 'project_number' | 'workload_provider_name';
 const PROVIDERS: Record<OIDCProvider, {
   label: string;
   gradient: string;
-  fields: { key: 'client_id' | 'subscription_id' | 'tenant_id' | 'role_arn'; label: string; placeholder: string; hint: string }[];
+  fields: { key: OIDCFieldKey; label: string; placeholder: string; hint: string }[];
 }> = {
   azure: {
     label: 'Azure OIDC',
@@ -47,10 +52,23 @@ const PROVIDERS: Record<OIDCProvider, {
       { key: 'role_arn', label: 'Role ARN', placeholder: 'arn:aws:iam::123456789012:role/my-role', hint: 'The IAM role Terraform runs assume via OIDC web identity' },
     ],
   },
+  gcp: {
+    label: 'GCP OIDC',
+    gradient: 'from-[#4285F4] via-[#34A853] to-[#FBBC05]',
+    fields: [
+      { key: 'service_account_email', label: 'Service Account Email', placeholder: 'sa@my-project.iam.gserviceaccount.com', hint: 'The GCP service account Terraform runs impersonate via Workload Identity Federation' },
+      { key: 'project_number', label: 'Project Number', placeholder: '123456789012', hint: 'The numeric GCP project number that owns the workload identity pool' },
+      { key: 'workload_provider_name', label: 'Workload Provider Name', placeholder: 'projects/123456789012/locations/global/workloadIdentityPools/pool/providers/provider', hint: 'The full resource name of the workload identity pool provider' },
+    ],
+  },
 };
 
-type OIDCForm = { client_id: string; subscription_id: string; tenant_id: string; role_arn: string };
-const EMPTY_FORM: OIDCForm = { client_id: '', subscription_id: '', tenant_id: '', role_arn: '' };
+type OIDCForm = Record<OIDCFieldKey, string>;
+const EMPTY_FORM: OIDCForm = {
+  client_id: '', subscription_id: '', tenant_id: '',
+  role_arn: '',
+  service_account_email: '', project_number: '', workload_provider_name: '',
+};
 
 export default function OIDCConfigurations() {
   const { orgName } = useParams<{ orgName: string }>();
@@ -84,6 +102,13 @@ export default function OIDCConfigurations() {
     if (config.provider === 'aws') {
       return [{ label: 'Role ARN', value: config.role_arn, key: `${config.id}-role` }];
     }
+    if (config.provider === 'gcp') {
+      return [
+        { label: 'Service Account Email', value: config.service_account_email, key: `${config.id}-sa` },
+        { label: 'Project Number', value: config.project_number, key: `${config.id}-projnum` },
+        { label: 'Workload Provider Name', value: config.workload_provider_name, key: `${config.id}-wpn` },
+      ];
+    }
     return [
       { label: 'Client ID', value: config.client_id, key: `${config.id}-client` },
       { label: 'Subscription ID', value: config.subscription_id, key: `${config.id}-sub` },
@@ -111,6 +136,12 @@ export default function OIDCConfigurations() {
     try {
       if (createProvider === 'aws') {
         await awsOIDCConfigApi.create(orgName, { role_arn: createForm.role_arn.trim() });
+      } else if (createProvider === 'gcp') {
+        await gcpOIDCConfigApi.create(orgName, {
+          service_account_email: createForm.service_account_email.trim(),
+          project_number: createForm.project_number.trim(),
+          workload_provider_name: createForm.workload_provider_name.trim(),
+        });
       } else {
         await azureOIDCConfigApi.create(orgName, {
           client_id: createForm.client_id.trim(),
@@ -134,7 +165,9 @@ export default function OIDCConfigurations() {
     setEditForm(
       config.provider === 'aws'
         ? { ...EMPTY_FORM, role_arn: config.role_arn }
-        : { ...EMPTY_FORM, client_id: config.client_id, subscription_id: config.subscription_id, tenant_id: config.tenant_id },
+        : config.provider === 'gcp'
+          ? { ...EMPTY_FORM, service_account_email: config.service_account_email, project_number: config.project_number, workload_provider_name: config.workload_provider_name }
+          : { ...EMPTY_FORM, client_id: config.client_id, subscription_id: config.subscription_id, tenant_id: config.tenant_id },
     );
   };
 
@@ -149,6 +182,12 @@ export default function OIDCConfigurations() {
     try {
       if (editConfig.provider === 'aws') {
         await awsOIDCConfigApi.update(editConfig.id, { role_arn: editForm.role_arn.trim() });
+      } else if (editConfig.provider === 'gcp') {
+        await gcpOIDCConfigApi.update(editConfig.id, {
+          service_account_email: editForm.service_account_email.trim(),
+          project_number: editForm.project_number.trim(),
+          workload_provider_name: editForm.workload_provider_name.trim(),
+        });
       } else {
         await azureOIDCConfigApi.update(editConfig.id, {
           client_id: editForm.client_id.trim(),
@@ -172,6 +211,8 @@ export default function OIDCConfigurations() {
     try {
       if (deleteConfig.provider === 'aws') {
         await awsOIDCConfigApi.delete(deleteConfig.id);
+      } else if (deleteConfig.provider === 'gcp') {
+        await gcpOIDCConfigApi.delete(deleteConfig.id);
       } else {
         await azureOIDCConfigApi.delete(deleteConfig.id);
       }
@@ -343,7 +384,7 @@ export default function OIDCConfigurations() {
             </DialogDescription>
           </DialogHeader>
           {/* Provider selector */}
-          <div className="grid grid-cols-2 gap-2 rounded-xl bg-muted/40 p-1" role="tablist" aria-label="Cloud provider">
+          <div className="grid grid-cols-3 gap-2 rounded-xl bg-muted/40 p-1" role="tablist" aria-label="Cloud provider">
             {(Object.keys(PROVIDERS) as OIDCProvider[]).map((p) => (
               <Button
                 key={p}

@@ -1000,17 +1000,75 @@ export const awsOIDCConfigApi = {
     apiClient.delete(`/oidc-configurations/${id}`),
 };
 
+// GCP OIDC Configurations (TFE-compatible)
+// Manages keyless authentication from Terraform runs to GCP via Workload Identity Federation.
+export interface GCPOIDCConfiguration {
+  id: string;
+  service_account_email: string;
+  project_number: string;
+  workload_provider_name: string;
+  organization_name: string;
+}
+
+function gcpOIDCConfigFromJsonApi(item: JsonApiResource): GCPOIDCConfiguration {
+  const attrs = item.attributes || {};
+  const orgRel = item.relationships?.['organization'] as { data?: { id?: string } } | undefined;
+  return {
+    id: item.id,
+    service_account_email: String(attrs['service-account-email'] || ''),
+    project_number: String(attrs['project-number'] || ''),
+    workload_provider_name: String(attrs['workload-provider-name'] || ''),
+    organization_name: orgRel?.data?.id ?? '',
+  };
+}
+
+export const gcpOIDCConfigApi = {
+  create: (organizationName: string, data: { service_account_email: string; project_number: string; workload_provider_name: string }) => {
+    const body = {
+      data: {
+        type: 'gcp-oidc-configurations',
+        attributes: {
+          'service-account-email': data.service_account_email,
+          'project-number': data.project_number,
+          'workload-provider-name': data.workload_provider_name,
+        },
+      },
+    };
+    return apiClient
+      .post<{ data: JsonApiResource }>(`/organizations/${organizationName}/oidc-configurations`, body)
+      .then(res => gcpOIDCConfigFromJsonApi(res.data));
+  },
+
+  update: (id: string, data: { service_account_email?: string; project_number?: string; workload_provider_name?: string }) => {
+    const attrs: Record<string, string> = {};
+    if (data.service_account_email !== undefined) attrs['service-account-email'] = data.service_account_email;
+    if (data.project_number !== undefined) attrs['project-number'] = data.project_number;
+    if (data.workload_provider_name !== undefined) attrs['workload-provider-name'] = data.workload_provider_name;
+    const body = { data: { type: 'gcp-oidc-configurations', attributes: attrs } };
+    return apiClient
+      .patch<{ data: JsonApiResource }>(`/oidc-configurations/${id}`, body)
+      .then(res => gcpOIDCConfigFromJsonApi(res.data));
+  },
+
+  delete: (id: string) =>
+    apiClient.delete(`/oidc-configurations/${id}`),
+};
+
 // Unified OIDC configuration listing. The org-scoped list returns every provider's configs (the
 // backend distinguishes them by JSON:API type); this tags each item with its provider so the UI can
 // render provider-specific detail.
-export type OIDCProvider = 'azure' | 'aws';
+export type OIDCProvider = 'azure' | 'aws' | 'gcp';
 export type OIDCConfiguration =
   | ({ provider: 'azure' } & AzureOIDCConfiguration)
-  | ({ provider: 'aws' } & AWSOIDCConfiguration);
+  | ({ provider: 'aws' } & AWSOIDCConfiguration)
+  | ({ provider: 'gcp' } & GCPOIDCConfiguration);
 
 function oidcConfigFromJsonApi(item: JsonApiResource): OIDCConfiguration {
   if (item.type === 'aws-oidc-configurations') {
     return { provider: 'aws', ...awsOIDCConfigFromJsonApi(item) };
+  }
+  if (item.type === 'gcp-oidc-configurations') {
+    return { provider: 'gcp', ...gcpOIDCConfigFromJsonApi(item) };
   }
   return { provider: 'azure', ...azureOIDCConfigFromJsonApi(item) };
 }
