@@ -11,6 +11,7 @@ import {
   azureOIDCConfigApi,
   awsOIDCConfigApi,
   gcpOIDCConfigApi,
+  vaultOIDCConfigApi,
   oidcConfigApi,
   type OIDCConfiguration,
   type OIDCProvider,
@@ -26,15 +27,16 @@ import {
 } from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
 
-// Per-provider presentation + form metadata. Adding Vault later is a matter of extending this map.
+// Per-provider presentation + form metadata.
 type OIDCFieldKey =
   | 'client_id' | 'subscription_id' | 'tenant_id'
   | 'role_arn'
-  | 'service_account_email' | 'project_number' | 'workload_provider_name';
+  | 'service_account_email' | 'project_number' | 'workload_provider_name'
+  | 'address' | 'role' | 'namespace' | 'auth_path' | 'encoded_cacert';
 const PROVIDERS: Record<OIDCProvider, {
   label: string;
   gradient: string;
-  fields: { key: OIDCFieldKey; label: string; placeholder: string; hint: string }[];
+  fields: { key: OIDCFieldKey; label: string; placeholder: string; hint: string; optional?: boolean }[];
 }> = {
   azure: {
     label: 'Azure OIDC',
@@ -61,6 +63,17 @@ const PROVIDERS: Record<OIDCProvider, {
       { key: 'workload_provider_name', label: 'Workload Provider Name', placeholder: 'projects/123456789012/locations/global/workloadIdentityPools/pool/providers/provider', hint: 'The full resource name of the workload identity pool provider' },
     ],
   },
+  vault: {
+    label: 'Vault OIDC',
+    gradient: 'from-[#FFD814] via-[#FFEC6E] to-[#231F20]',
+    fields: [
+      { key: 'address', label: 'Address', placeholder: 'https://vault.example.com:8200', hint: 'The Vault server address runs authenticate against' },
+      { key: 'role', label: 'Role', placeholder: 'stackweaver', hint: 'The Vault JWT auth role runs log in as' },
+      { key: 'namespace', label: 'Namespace', placeholder: 'admin/team-a', hint: 'Vault Enterprise namespace (optional)', optional: true },
+      { key: 'auth_path', label: 'Auth Path', placeholder: 'jwt', hint: 'Mount path of the JWT auth method (optional, defaults to "jwt")', optional: true },
+      { key: 'encoded_cacert', label: 'Encoded CA Certificate', placeholder: 'base64-encoded PEM', hint: 'CA certificate for Vault’s TLS, PEM or base64-encoded PEM (optional)', optional: true },
+    ],
+  },
 };
 
 type OIDCForm = Record<OIDCFieldKey, string>;
@@ -68,6 +81,7 @@ const EMPTY_FORM: OIDCForm = {
   client_id: '', subscription_id: '', tenant_id: '',
   role_arn: '',
   service_account_email: '', project_number: '', workload_provider_name: '',
+  address: '', role: '', namespace: '', auth_path: '', encoded_cacert: '',
 };
 
 export default function OIDCConfigurations() {
@@ -109,6 +123,15 @@ export default function OIDCConfigurations() {
         { label: 'Workload Provider Name', value: config.workload_provider_name, key: `${config.id}-wpn` },
       ];
     }
+    if (config.provider === 'vault') {
+      const fields = [
+        { label: 'Address', value: config.address, key: `${config.id}-addr` },
+        { label: 'Role', value: config.role, key: `${config.id}-role` },
+      ];
+      if (config.namespace) fields.push({ label: 'Namespace', value: config.namespace, key: `${config.id}-ns` });
+      if (config.auth_path) fields.push({ label: 'Auth Path', value: config.auth_path, key: `${config.id}-authpath` });
+      return fields;
+    }
     return [
       { label: 'Client ID', value: config.client_id, key: `${config.id}-client` },
       { label: 'Subscription ID', value: config.subscription_id, key: `${config.id}-sub` },
@@ -117,7 +140,7 @@ export default function OIDCConfigurations() {
   };
 
   const missingRequired = (provider: OIDCProvider, form: OIDCForm): boolean =>
-    PROVIDERS[provider].fields.some((f) => !form[f.key].trim());
+    PROVIDERS[provider].fields.some((f) => !f.optional && !form[f.key].trim());
 
   const openCreate = () => {
     setCreateProvider('azure');
@@ -141,6 +164,14 @@ export default function OIDCConfigurations() {
           service_account_email: createForm.service_account_email.trim(),
           project_number: createForm.project_number.trim(),
           workload_provider_name: createForm.workload_provider_name.trim(),
+        });
+      } else if (createProvider === 'vault') {
+        await vaultOIDCConfigApi.create(orgName, {
+          address: createForm.address.trim(),
+          role: createForm.role.trim(),
+          namespace: createForm.namespace.trim(),
+          auth_path: createForm.auth_path.trim(),
+          encoded_cacert: createForm.encoded_cacert.trim(),
         });
       } else {
         await azureOIDCConfigApi.create(orgName, {
@@ -167,7 +198,9 @@ export default function OIDCConfigurations() {
         ? { ...EMPTY_FORM, role_arn: config.role_arn }
         : config.provider === 'gcp'
           ? { ...EMPTY_FORM, service_account_email: config.service_account_email, project_number: config.project_number, workload_provider_name: config.workload_provider_name }
-          : { ...EMPTY_FORM, client_id: config.client_id, subscription_id: config.subscription_id, tenant_id: config.tenant_id },
+          : config.provider === 'vault'
+            ? { ...EMPTY_FORM, address: config.address, role: config.role, namespace: config.namespace, auth_path: config.auth_path, encoded_cacert: config.encoded_cacert }
+            : { ...EMPTY_FORM, client_id: config.client_id, subscription_id: config.subscription_id, tenant_id: config.tenant_id },
     );
   };
 
@@ -187,6 +220,14 @@ export default function OIDCConfigurations() {
           service_account_email: editForm.service_account_email.trim(),
           project_number: editForm.project_number.trim(),
           workload_provider_name: editForm.workload_provider_name.trim(),
+        });
+      } else if (editConfig.provider === 'vault') {
+        await vaultOIDCConfigApi.update(editConfig.id, {
+          address: editForm.address.trim(),
+          role: editForm.role.trim(),
+          namespace: editForm.namespace.trim(),
+          auth_path: editForm.auth_path.trim(),
+          encoded_cacert: editForm.encoded_cacert.trim(),
         });
       } else {
         await azureOIDCConfigApi.update(editConfig.id, {
@@ -213,6 +254,8 @@ export default function OIDCConfigurations() {
         await awsOIDCConfigApi.delete(deleteConfig.id);
       } else if (deleteConfig.provider === 'gcp') {
         await gcpOIDCConfigApi.delete(deleteConfig.id);
+      } else if (deleteConfig.provider === 'vault') {
+        await vaultOIDCConfigApi.delete(deleteConfig.id);
       } else {
         await azureOIDCConfigApi.delete(deleteConfig.id);
       }
@@ -237,7 +280,7 @@ export default function OIDCConfigurations() {
             placeholder={f.placeholder}
             value={form[f.key]}
             onChange={(e) => { setForm((prev) => ({ ...prev, [f.key]: e.target.value })); }}
-            required
+            required={!f.optional}
           />
           <p className="text-xs text-muted-foreground">{f.hint}</p>
         </div>
@@ -265,7 +308,7 @@ export default function OIDCConfigurations() {
               OIDC Configurations
             </h1>
             <p className="text-muted-foreground">
-              Manage keyless authentication from Terraform runs to cloud providers via OIDC workload identity
+              Manage keyless authentication from Terraform runs to cloud providers and HashiCorp Vault via OIDC workload identity
             </p>
           </div>
           <div className="relative inline-flex rounded-xl bg-gradient-to-r from-sky-500 via-blue-500 to-sky-500 p-[2px]">
@@ -384,7 +427,7 @@ export default function OIDCConfigurations() {
             </DialogDescription>
           </DialogHeader>
           {/* Provider selector */}
-          <div className="grid grid-cols-3 gap-2 rounded-xl bg-muted/40 p-1" role="tablist" aria-label="Cloud provider">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 rounded-xl bg-muted/40 p-1" role="tablist" aria-label="OIDC provider">
             {(Object.keys(PROVIDERS) as OIDCProvider[]).map((p) => (
               <Button
                 key={p}

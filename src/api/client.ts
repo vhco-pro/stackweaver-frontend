@@ -1054,14 +1054,77 @@ export const gcpOIDCConfigApi = {
     apiClient.delete(`/oidc-configurations/${id}`),
 };
 
+// Vault OIDC Configurations (TFE-compatible)
+// Manages keyless authentication from Terraform runs to HashiCorp Vault via the JWT auth method.
+export interface VaultOIDCConfiguration {
+  id: string;
+  address: string;
+  role: string;
+  namespace: string;
+  auth_path: string;
+  encoded_cacert: string;
+  organization_name: string;
+}
+
+function vaultOIDCConfigFromJsonApi(item: JsonApiResource): VaultOIDCConfiguration {
+  const attrs = item.attributes || {};
+  const orgRel = item.relationships?.['organization'] as { data?: { id?: string } } | undefined;
+  return {
+    id: item.id,
+    address: String(attrs['address'] || ''),
+    role: String(attrs['role'] || ''),
+    namespace: String(attrs['namespace'] || ''),
+    auth_path: String(attrs['auth-path'] || ''),
+    encoded_cacert: String(attrs['encoded-cacert'] || ''),
+    organization_name: orgRel?.data?.id ?? '',
+  };
+}
+
+export const vaultOIDCConfigApi = {
+  create: (organizationName: string, data: { address: string; role: string; namespace?: string; auth_path?: string; encoded_cacert?: string }) => {
+    const body = {
+      data: {
+        type: 'vault-oidc-configurations',
+        attributes: {
+          address: data.address,
+          role: data.role,
+          namespace: data.namespace ?? '',
+          'auth-path': data.auth_path ?? '',
+          'encoded-cacert': data.encoded_cacert ?? '',
+        },
+      },
+    };
+    return apiClient
+      .post<{ data: JsonApiResource }>(`/organizations/${organizationName}/oidc-configurations`, body)
+      .then(res => vaultOIDCConfigFromJsonApi(res.data));
+  },
+
+  update: (id: string, data: { address?: string; role?: string; namespace?: string; auth_path?: string; encoded_cacert?: string }) => {
+    const attrs: Record<string, string> = {};
+    if (data.address !== undefined) attrs['address'] = data.address;
+    if (data.role !== undefined) attrs['role'] = data.role;
+    if (data.namespace !== undefined) attrs['namespace'] = data.namespace;
+    if (data.auth_path !== undefined) attrs['auth-path'] = data.auth_path;
+    if (data.encoded_cacert !== undefined) attrs['encoded-cacert'] = data.encoded_cacert;
+    const body = { data: { type: 'vault-oidc-configurations', attributes: attrs } };
+    return apiClient
+      .patch<{ data: JsonApiResource }>(`/oidc-configurations/${id}`, body)
+      .then(res => vaultOIDCConfigFromJsonApi(res.data));
+  },
+
+  delete: (id: string) =>
+    apiClient.delete(`/oidc-configurations/${id}`),
+};
+
 // Unified OIDC configuration listing. The org-scoped list returns every provider's configs (the
 // backend distinguishes them by JSON:API type); this tags each item with its provider so the UI can
 // render provider-specific detail.
-export type OIDCProvider = 'azure' | 'aws' | 'gcp';
+export type OIDCProvider = 'azure' | 'aws' | 'gcp' | 'vault';
 export type OIDCConfiguration =
   | ({ provider: 'azure' } & AzureOIDCConfiguration)
   | ({ provider: 'aws' } & AWSOIDCConfiguration)
-  | ({ provider: 'gcp' } & GCPOIDCConfiguration);
+  | ({ provider: 'gcp' } & GCPOIDCConfiguration)
+  | ({ provider: 'vault' } & VaultOIDCConfiguration);
 
 function oidcConfigFromJsonApi(item: JsonApiResource): OIDCConfiguration {
   if (item.type === 'aws-oidc-configurations') {
@@ -1069,6 +1132,9 @@ function oidcConfigFromJsonApi(item: JsonApiResource): OIDCConfiguration {
   }
   if (item.type === 'gcp-oidc-configurations') {
     return { provider: 'gcp', ...gcpOIDCConfigFromJsonApi(item) };
+  }
+  if (item.type === 'vault-oidc-configurations') {
+    return { provider: 'vault', ...vaultOIDCConfigFromJsonApi(item) };
   }
   return { provider: 'azure', ...azureOIDCConfigFromJsonApi(item) };
 }

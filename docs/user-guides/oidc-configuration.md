@@ -1,5 +1,5 @@
 ---
-description: "Guide for configuring keyless OIDC workload identity authentication from runs to Azure, AWS, and GCP"
+description: "Guide for configuring keyless OIDC workload identity authentication from runs to Azure, AWS, GCP, and HashiCorp Vault"
 covers:
   - "deploy/oidc.env.example"
   - "core/services/oidc/**"
@@ -9,15 +9,16 @@ covers:
 
 # OIDC Configuration
 
-OIDC (OpenID Connect) configuration enables keyless authentication from Stackweaver-managed Terraform and Ansible runs to your cloud provider. Instead of storing long-lived credentials in your workspace variables, Stackweaver issues a short-lived signed JWT at run time, which the cloud provider accepts in exchange for a scoped access token via workload identity federation.
+OIDC (OpenID Connect) configuration enables keyless authentication from Stackweaver-managed Terraform and Ansible runs to your cloud provider or HashiCorp Vault. Instead of storing long-lived credentials in your workspace variables, Stackweaver issues a short-lived signed JWT at run time, which the target accepts in exchange for a scoped access token via workload identity federation.
 
-The same mechanism backs all three supported clouds — only the trust setup on the cloud side and the registration resource differ:
+The same mechanism backs every supported target — only the trust setup on the target side and the registration resource differ:
 
-| Cloud | Registration resource | Provider-side trust |
-|-------|-----------------------|---------------------|
+| Target | Registration resource | Trust setup |
+|--------|-----------------------|-------------|
 | Azure | `tfe_azure_oidc_configuration` | App Registration + federated credential |
 | AWS | `tfe_aws_oidc_configuration` | IAM OIDC identity provider + role trust policy |
 | GCP | `tfe_gcp_oidc_configuration` | Workload Identity Pool + provider + service account binding |
+| Vault | `tfe_vault_oidc_configuration` | JWT auth method + role (the runner logs in and exports `VAULT_TOKEN`) |
 
 ## How It Works
 
@@ -290,6 +291,68 @@ No provider block credentials are required — the `google` provider reads an ex
 | `TFC_GCP_PROJECT_NUMBER` | The `project_number` you registered |
 
 Set the `project` (and `region`) in your `google` provider block as usual.
+
+---
+
+## Vault
+
+HashiCorp Vault differs from the cloud providers: instead of the provider exchanging a token, the
+**runner logs in to Vault** via the JWT auth method and exports a `VAULT_TOKEN` for the run. Point the
+Vault JWT auth method at Stackweaver as an OIDC issuer, then register the config. The token audience is
+`vault.workload.identity`.
+
+### Step 1: Enable and Configure the JWT Auth Method
+
+```bash
+vault auth enable jwt
+
+# Trust Stackweaver's JWKS (or use oidc_discovery_url with the issuer for full discovery).
+vault write auth/jwt/config \
+  jwks_url="https://stackweaver.example.com/.well-known/jwks"
+```
+
+### Step 2: Create a Role Bound to the Run
+
+```bash
+vault write auth/jwt/role/stackweaver \
+  role_type="jwt" \
+  bound_audiences="vault.workload.identity" \
+  user_claim="sub" \
+  bound_subject="organization:main:project:infra:workspace:production:run_phase:apply" \
+  token_policies="my-policy" \
+  token_ttl="20m"
+```
+
+Create a role (or `bound_subject`/`bound_claims` entry) per subject you want to allow — see
+[The Token Subject](#the-token-subject-shared-across-clouds); `plan` and `apply` are distinct. Attach
+the Vault policies your run needs via `token_policies`.
+
+### Step 3: Register the Configuration in Stackweaver
+
+```hcl
+resource "tfe_vault_oidc_configuration" "main" {
+  organization = "your-org-name"
+  address      = "https://vault.example.com:8200"
+  role_name    = "stackweaver"
+  namespace    = "admin" # required by the provider; any value for Vault OSS (sent as X-Vault-Namespace)
+  auth_path    = "jwt"   # optional, defaults to "jwt"
+  # encoded_cacert = filebase64("vault-ca.pem")  # optional, for a private Vault CA
+}
+```
+
+After `terraform apply`, Stackweaver returns an `id` in the form `vaultoidc-{16-char-alphanumeric}`.
+
+### Step 4: Use the vault Provider in Your Workspaces
+
+No provider block credentials are required — the runner logs in to Vault before the run and exports the
+token. The `vault` provider (and any provider reading `VAULT_*`) picks it up automatically:
+
+| Variable | Description |
+|----------|-------------|
+| `VAULT_ADDR` | The `address` you registered |
+| `VAULT_TOKEN` | The client token from the JWT-auth login |
+| `VAULT_NAMESPACE` | The `namespace` you registered (when set) |
+| `VAULT_CACERT` | Path to the CA cert file (when `encoded_cacert` is set) |
 
 ---
 

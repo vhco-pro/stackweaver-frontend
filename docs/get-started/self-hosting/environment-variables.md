@@ -92,7 +92,7 @@ Existing data written before encryption was enabled stays readable: state files 
 
 | Variable | Description | Default |
 |---|---|---|
-| `OIDC_ISSUER_URL` | Issuer URL for OIDC tokens (for Azure/cloud providers) | Falls back to `API_URL` |
+| `OIDC_ISSUER_URL` | Issuer URL for OIDC workload identity tokens (Azure/AWS/GCP/Vault keyless auth) | Falls back to `API_URL` |
 | `OIDC_SIGNING_KEY` | PEM-encoded RSA private key for signing OIDC tokens | (none) |
 
 ### GitHub Integration
