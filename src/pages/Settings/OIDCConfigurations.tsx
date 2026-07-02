@@ -9,7 +9,10 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
   azureOIDCConfigApi,
-  type AzureOIDCConfiguration,
+  awsOIDCConfigApi,
+  oidcConfigApi,
+  type OIDCConfiguration,
+  type OIDCProvider,
 } from '@/api/client';
 import { toast } from 'sonner';
 import {
@@ -22,24 +25,52 @@ import {
 } from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
 
+// Per-provider presentation + form metadata. Adding GCP/Vault later is a matter of extending this map.
+const PROVIDERS: Record<OIDCProvider, {
+  label: string;
+  gradient: string;
+  fields: { key: 'client_id' | 'subscription_id' | 'tenant_id' | 'role_arn'; label: string; placeholder: string; hint: string }[];
+}> = {
+  azure: {
+    label: 'Azure OIDC',
+    gradient: 'from-sky-500 to-blue-500',
+    fields: [
+      { key: 'client_id', label: 'Client ID', placeholder: '00000000-0000-0000-0000-000000000000', hint: 'The Application (client) ID of the Azure Entra ID app registration' },
+      { key: 'subscription_id', label: 'Subscription ID', placeholder: '00000000-0000-0000-0000-000000000000', hint: 'The Azure subscription ID for resource access' },
+      { key: 'tenant_id', label: 'Tenant ID', placeholder: '00000000-0000-0000-0000-000000000000', hint: 'The Directory (tenant) ID of the Azure Entra ID tenant' },
+    ],
+  },
+  aws: {
+    label: 'AWS OIDC',
+    gradient: 'from-amber-500 to-orange-500',
+    fields: [
+      { key: 'role_arn', label: 'Role ARN', placeholder: 'arn:aws:iam::123456789012:role/my-role', hint: 'The IAM role Terraform runs assume via OIDC web identity' },
+    ],
+  },
+};
+
+type OIDCForm = { client_id: string; subscription_id: string; tenant_id: string; role_arn: string };
+const EMPTY_FORM: OIDCForm = { client_id: '', subscription_id: '', tenant_id: '', role_arn: '' };
+
 export default function OIDCConfigurations() {
   const { orgName } = useParams<{ orgName: string }>();
   const { data: configs = [], isLoading: loading, refetch: refetchConfigs } = useQuery({
     queryKey: ['oidc-configs', orgName],
-    queryFn: async () => {
-      const res = await azureOIDCConfigApi.list(orgName!);
-      return res.data || [];
-    },
+    queryFn: () => oidcConfigApi.list(orgName!),
     enabled: !!orgName,
   });
 
   const [createOpen, setCreateOpen] = useState(false);
-  const [editConfig, setEditConfig] = useState<AzureOIDCConfiguration | null>(null);
-  const [deleteConfig, setDeleteConfig] = useState<AzureOIDCConfiguration | null>(null);
+  const [createProvider, setCreateProvider] = useState<OIDCProvider>('azure');
+  const [editConfig, setEditConfig] = useState<OIDCConfiguration | null>(null);
+  const [deleteConfig, setDeleteConfig] = useState<OIDCConfiguration | null>(null);
   const [creating, setCreating] = useState(false);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [copiedField, setCopiedField] = useState<string | null>(null);
+
+  const [createForm, setCreateForm] = useState<OIDCForm>(EMPTY_FORM);
+  const [editForm, setEditForm] = useState<OIDCForm>(EMPTY_FORM);
 
   const copyToClipboard = (value: string, key: string) => {
     void navigator.clipboard.writeText(value).then(() => {
@@ -48,34 +79,48 @@ export default function OIDCConfigurations() {
     });
   };
 
-  const [createForm, setCreateForm] = useState({
-    client_id: '',
-    subscription_id: '',
-    tenant_id: '',
-  });
-  const [editForm, setEditForm] = useState({
-    client_id: '',
-    subscription_id: '',
-    tenant_id: '',
-  });
+  // Returns the label/value pairs to show for a config, by provider.
+  const detailFields = (config: OIDCConfiguration): { label: string; value: string; key: string }[] => {
+    if (config.provider === 'aws') {
+      return [{ label: 'Role ARN', value: config.role_arn, key: `${config.id}-role` }];
+    }
+    return [
+      { label: 'Client ID', value: config.client_id, key: `${config.id}-client` },
+      { label: 'Subscription ID', value: config.subscription_id, key: `${config.id}-sub` },
+      { label: 'Tenant ID', value: config.tenant_id, key: `${config.id}-tenant` },
+    ];
+  };
+
+  const missingRequired = (provider: OIDCProvider, form: OIDCForm): boolean =>
+    PROVIDERS[provider].fields.some((f) => !form[f.key].trim());
+
+  const openCreate = () => {
+    setCreateProvider('azure');
+    setCreateForm(EMPTY_FORM);
+    setCreateOpen(true);
+  };
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!orgName) return;
-    if (!createForm.client_id.trim() || !createForm.subscription_id.trim() || !createForm.tenant_id.trim()) {
+    if (missingRequired(createProvider, createForm)) {
       toast.error('All fields are required');
       return;
     }
     setCreating(true);
     try {
-      await azureOIDCConfigApi.create(orgName, {
-        client_id: createForm.client_id.trim(),
-        subscription_id: createForm.subscription_id.trim(),
-        tenant_id: createForm.tenant_id.trim(),
-      });
-      toast.success('Azure OIDC configuration created');
+      if (createProvider === 'aws') {
+        await awsOIDCConfigApi.create(orgName, { role_arn: createForm.role_arn.trim() });
+      } else {
+        await azureOIDCConfigApi.create(orgName, {
+          client_id: createForm.client_id.trim(),
+          subscription_id: createForm.subscription_id.trim(),
+          tenant_id: createForm.tenant_id.trim(),
+        });
+      }
+      toast.success(`${PROVIDERS[createProvider].label} configuration created`);
       setCreateOpen(false);
-      setCreateForm({ client_id: '', subscription_id: '', tenant_id: '' });
+      setCreateForm(EMPTY_FORM);
       void refetchConfigs();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Failed to create OIDC configuration');
@@ -84,30 +129,34 @@ export default function OIDCConfigurations() {
     }
   };
 
-  const openEdit = (config: AzureOIDCConfiguration) => {
+  const openEdit = (config: OIDCConfiguration) => {
     setEditConfig(config);
-    setEditForm({
-      client_id: config.client_id,
-      subscription_id: config.subscription_id,
-      tenant_id: config.tenant_id,
-    });
+    setEditForm(
+      config.provider === 'aws'
+        ? { ...EMPTY_FORM, role_arn: config.role_arn }
+        : { ...EMPTY_FORM, client_id: config.client_id, subscription_id: config.subscription_id, tenant_id: config.tenant_id },
+    );
   };
 
   const handleUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editConfig) return;
-    if (!editForm.client_id.trim() || !editForm.subscription_id.trim() || !editForm.tenant_id.trim()) {
+    if (missingRequired(editConfig.provider, editForm)) {
       toast.error('All fields are required');
       return;
     }
     setSaving(true);
     try {
-      await azureOIDCConfigApi.update(editConfig.id, {
-        client_id: editForm.client_id.trim(),
-        subscription_id: editForm.subscription_id.trim(),
-        tenant_id: editForm.tenant_id.trim(),
-      });
-      toast.success('Azure OIDC configuration updated');
+      if (editConfig.provider === 'aws') {
+        await awsOIDCConfigApi.update(editConfig.id, { role_arn: editForm.role_arn.trim() });
+      } else {
+        await azureOIDCConfigApi.update(editConfig.id, {
+          client_id: editForm.client_id.trim(),
+          subscription_id: editForm.subscription_id.trim(),
+          tenant_id: editForm.tenant_id.trim(),
+        });
+      }
+      toast.success(`${PROVIDERS[editConfig.provider].label} configuration updated`);
       setEditConfig(null);
       void refetchConfigs();
     } catch (err) {
@@ -121,8 +170,12 @@ export default function OIDCConfigurations() {
     if (!deleteConfig) return;
     setDeleting(true);
     try {
-      await azureOIDCConfigApi.delete(deleteConfig.id);
-      toast.success('Azure OIDC configuration deleted');
+      if (deleteConfig.provider === 'aws') {
+        await awsOIDCConfigApi.delete(deleteConfig.id);
+      } else {
+        await azureOIDCConfigApi.delete(deleteConfig.id);
+      }
+      toast.success(`${PROVIDERS[deleteConfig.provider].label} configuration deleted`);
       setDeleteConfig(null);
       void refetchConfigs();
     } catch (err) {
@@ -131,6 +184,25 @@ export default function OIDCConfigurations() {
       setDeleting(false);
     }
   };
+
+  // Shared form body used by both the create and edit dialogs, rendered for a given provider.
+  const renderFields = (provider: OIDCProvider, form: OIDCForm, setForm: React.Dispatch<React.SetStateAction<OIDCForm>>, idPrefix: string) => (
+    <div className="space-y-4 py-4">
+      {PROVIDERS[provider].fields.map((f) => (
+        <div key={f.key} className="space-y-2">
+          <Label htmlFor={`${idPrefix}-${f.key}`}>{f.label}</Label>
+          <Input
+            id={`${idPrefix}-${f.key}`}
+            placeholder={f.placeholder}
+            value={form[f.key]}
+            onChange={(e) => { setForm((prev) => ({ ...prev, [f.key]: e.target.value })); }}
+            required
+          />
+          <p className="text-xs text-muted-foreground">{f.hint}</p>
+        </div>
+      ))}
+    </div>
+  );
 
   return (
     <div className="space-y-8">
@@ -158,11 +230,11 @@ export default function OIDCConfigurations() {
           <div className="relative inline-flex rounded-xl bg-gradient-to-r from-sky-500 via-blue-500 to-sky-500 p-[2px]">
             <Button
               variant="ghost"
-              onClick={() => { setCreateOpen(true); }}
+              onClick={openCreate}
               className="bg-white dark:bg-slate-950/80 dark:backdrop-blur-xs text-slate-900 dark:text-white hover:bg-slate-50 dark:hover:bg-slate-950/90 border-0 whitespace-nowrap rounded-[calc(0.75rem-2px)] px-4 py-2"
             >
               <Plus className="h-4 w-4 mr-2" />
-              Add Azure OIDC
+              Add OIDC
             </Button>
           </div>
         </div>
@@ -178,12 +250,12 @@ export default function OIDCConfigurations() {
           <Shield className="mx-auto h-12 w-12 text-muted-foreground/50 mb-4" />
           <h3 className="text-lg font-semibold mb-2">No OIDC configurations</h3>
           <p className="text-sm text-muted-foreground mb-4">
-            Create an Azure OIDC configuration to enable keyless authentication from Terraform runs to Azure.
-            This eliminates the need to store Azure credentials as variables.
+            Create an OIDC configuration to enable keyless authentication from Terraform runs to a cloud provider.
+            This eliminates the need to store cloud credentials as variables.
           </p>
-          <Button onClick={() => { setCreateOpen(true); }} variant="outline" className="gap-2">
+          <Button onClick={openCreate} variant="outline" className="gap-2">
             <Plus className="h-4 w-4" />
-            Add Azure OIDC Configuration
+            Add OIDC Configuration
           </Button>
         </div>
       ) : (
@@ -203,20 +275,16 @@ export default function OIDCConfigurations() {
               <div className="flex items-start justify-between">
                 <div className="space-y-3">
                   <div className="flex items-center gap-3">
-                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-sky-500 to-blue-500">
+                    <div className={cn('flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br', PROVIDERS[config.provider].gradient)}>
                       <Shield className="h-4 w-4 text-white" />
                     </div>
                     <div>
-                      <h3 className="font-semibold">Azure OIDC</h3>
+                      <h3 className="font-semibold">{PROVIDERS[config.provider].label}</h3>
                       <p className="text-xs text-muted-foreground font-mono">{config.id}</p>
                     </div>
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm">
-                    {([
-                      { label: 'Client ID', value: config.client_id, key: `${config.id}-client` },
-                      { label: 'Subscription ID', value: config.subscription_id, key: `${config.id}-sub` },
-                      { label: 'Tenant ID', value: config.tenant_id, key: `${config.id}-tenant` },
-                    ] as { label: string; value: string; key: string }[]).map(({ label, value, key }) => (
+                    {detailFields(config).map(({ label, value, key }) => (
                       <div key={key} className="min-w-0">
                         <span className="text-muted-foreground">{label}</span>
                         <div className="flex items-center gap-1.5 mt-1">
@@ -244,6 +312,7 @@ export default function OIDCConfigurations() {
                     size="icon"
                     onClick={() => { openEdit(config); }}
                     className="h-8 w-8"
+                    aria-label="Edit configuration"
                   >
                     <Settings2 className="h-4 w-4" />
                   </Button>
@@ -252,6 +321,7 @@ export default function OIDCConfigurations() {
                     size="icon"
                     onClick={() => { setDeleteConfig(config); }}
                     className="h-8 w-8 text-destructive hover:text-destructive"
+                    aria-label="Delete configuration"
                   >
                     <Trash2 className="h-4 w-4" />
                   </Button>
@@ -266,54 +336,35 @@ export default function OIDCConfigurations() {
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Add Azure OIDC Configuration</DialogTitle>
+            <DialogTitle>Add OIDC Configuration</DialogTitle>
             <DialogDescription>
-              Configure keyless authentication from Terraform runs to Azure using OIDC workload identity.
-              You&apos;ll need to set up a federated credential in Azure Entra ID that trusts tokens from this platform.
+              Configure keyless authentication from Terraform runs to a cloud provider using OIDC workload identity.
+              You&apos;ll need a matching trust/federated credential set up on the provider side.
             </DialogDescription>
           </DialogHeader>
+          {/* Provider selector */}
+          <div className="grid grid-cols-2 gap-2 rounded-xl bg-muted/40 p-1" role="tablist" aria-label="Cloud provider">
+            {(Object.keys(PROVIDERS) as OIDCProvider[]).map((p) => (
+              <Button
+                key={p}
+                type="button"
+                variant="ghost"
+                role="tab"
+                aria-selected={createProvider === p}
+                onClick={() => { setCreateProvider(p); setCreateForm(EMPTY_FORM); }}
+                className={cn(
+                  'rounded-lg text-sm',
+                  createProvider === p
+                    ? cn('bg-gradient-to-r text-white', PROVIDERS[p].gradient)
+                    : 'text-muted-foreground hover:text-foreground',
+                )}
+              >
+                {PROVIDERS[p].label}
+              </Button>
+            ))}
+          </div>
           <form onSubmit={(e) => { void handleCreate(e); }}>
-            <div className="space-y-4 py-4">
-              <div className="space-y-2">
-                <Label htmlFor="create-client-id">Client ID</Label>
-                <Input
-                  id="create-client-id"
-                  placeholder="00000000-0000-0000-0000-000000000000"
-                  value={createForm.client_id}
-                  onChange={(e) => { setCreateForm((prev) => ({ ...prev, client_id: e.target.value })); }}
-                  required
-                />
-                <p className="text-xs text-muted-foreground">
-                  The Application (client) ID of the Azure Entra ID app registration
-                </p>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="create-subscription-id">Subscription ID</Label>
-                <Input
-                  id="create-subscription-id"
-                  placeholder="00000000-0000-0000-0000-000000000000"
-                  value={createForm.subscription_id}
-                  onChange={(e) => { setCreateForm((prev) => ({ ...prev, subscription_id: e.target.value })); }}
-                  required
-                />
-                <p className="text-xs text-muted-foreground">
-                  The Azure subscription ID for resource access
-                </p>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="create-tenant-id">Tenant ID</Label>
-                <Input
-                  id="create-tenant-id"
-                  placeholder="00000000-0000-0000-0000-000000000000"
-                  value={createForm.tenant_id}
-                  onChange={(e) => { setCreateForm((prev) => ({ ...prev, tenant_id: e.target.value })); }}
-                  required
-                />
-                <p className="text-xs text-muted-foreground">
-                  The Directory (tenant) ID of the Azure Entra ID tenant
-                </p>
-              </div>
-            </div>
+            {renderFields(createProvider, createForm, setCreateForm, 'create')}
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => { setCreateOpen(false); }}>
                 Cancel
@@ -331,44 +382,13 @@ export default function OIDCConfigurations() {
       <Dialog open={!!editConfig} onOpenChange={(open) => { if (!open) setEditConfig(null); }}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Edit Azure OIDC Configuration</DialogTitle>
+            <DialogTitle>Edit {editConfig ? PROVIDERS[editConfig.provider].label : 'OIDC'} Configuration</DialogTitle>
             <DialogDescription>
-              Update the Azure OIDC configuration. Changes will take effect on the next Terraform run.
+              Update the configuration. Changes will take effect on the next Terraform run.
             </DialogDescription>
           </DialogHeader>
           <form onSubmit={(e) => { void handleUpdate(e); }}>
-            <div className="space-y-4 py-4">
-              <div className="space-y-2">
-                <Label htmlFor="edit-client-id">Client ID</Label>
-                <Input
-                  id="edit-client-id"
-                  placeholder="00000000-0000-0000-0000-000000000000"
-                  value={editForm.client_id}
-                  onChange={(e) => { setEditForm((prev) => ({ ...prev, client_id: e.target.value })); }}
-                  required
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="edit-subscription-id">Subscription ID</Label>
-                <Input
-                  id="edit-subscription-id"
-                  placeholder="00000000-0000-0000-0000-000000000000"
-                  value={editForm.subscription_id}
-                  onChange={(e) => { setEditForm((prev) => ({ ...prev, subscription_id: e.target.value })); }}
-                  required
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="edit-tenant-id">Tenant ID</Label>
-                <Input
-                  id="edit-tenant-id"
-                  placeholder="00000000-0000-0000-0000-000000000000"
-                  value={editForm.tenant_id}
-                  onChange={(e) => { setEditForm((prev) => ({ ...prev, tenant_id: e.target.value })); }}
-                  required
-                />
-              </div>
-            </div>
+            {editConfig && renderFields(editConfig.provider, editForm, setEditForm, 'edit')}
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => { setEditConfig(null); }}>
                 Cancel
@@ -386,10 +406,10 @@ export default function OIDCConfigurations() {
       <Dialog open={!!deleteConfig} onOpenChange={(open) => { if (!open) setDeleteConfig(null); }}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Delete Azure OIDC Configuration</DialogTitle>
+            <DialogTitle>Delete {deleteConfig ? PROVIDERS[deleteConfig.provider].label : 'OIDC'} Configuration</DialogTitle>
             <DialogDescription>
-              Are you sure you want to delete this Azure OIDC configuration? Terraform runs will no longer be able to
-              authenticate to Azure using workload identity. This action cannot be undone.
+              Are you sure you want to delete this configuration? Terraform runs will no longer be able to
+              authenticate to the cloud provider using workload identity. This action cannot be undone.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
