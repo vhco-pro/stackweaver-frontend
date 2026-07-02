@@ -961,6 +961,67 @@ export const azureOIDCConfigApi = {
     apiClient.delete(`/oidc-configurations/${id}`),
 };
 
+// AWS OIDC Configurations (TFE-compatible)
+// Manages keyless authentication from Terraform runs to AWS via OIDC web identity (assume-role).
+export interface AWSOIDCConfiguration {
+  id: string;
+  role_arn: string;
+  organization_name: string;
+}
+
+function awsOIDCConfigFromJsonApi(item: JsonApiResource): AWSOIDCConfiguration {
+  const attrs = item.attributes || {};
+  const orgRel = item.relationships?.['organization'] as { data?: { id?: string } } | undefined;
+  return {
+    id: item.id,
+    role_arn: String(attrs['role-arn'] || ''),
+    organization_name: orgRel?.data?.id ?? '',
+  };
+}
+
+export const awsOIDCConfigApi = {
+  create: (organizationName: string, data: { role_arn: string }) => {
+    const body = { data: { type: 'aws-oidc-configurations', attributes: { 'role-arn': data.role_arn } } };
+    return apiClient
+      .post<{ data: JsonApiResource }>(`/organizations/${organizationName}/oidc-configurations`, body)
+      .then(res => awsOIDCConfigFromJsonApi(res.data));
+  },
+
+  update: (id: string, data: { role_arn?: string }) => {
+    const attrs: Record<string, string> = {};
+    if (data.role_arn !== undefined) attrs['role-arn'] = data.role_arn;
+    const body = { data: { type: 'aws-oidc-configurations', attributes: attrs } };
+    return apiClient
+      .patch<{ data: JsonApiResource }>(`/oidc-configurations/${id}`, body)
+      .then(res => awsOIDCConfigFromJsonApi(res.data));
+  },
+
+  delete: (id: string) =>
+    apiClient.delete(`/oidc-configurations/${id}`),
+};
+
+// Unified OIDC configuration listing. The org-scoped list returns every provider's configs (the
+// backend distinguishes them by JSON:API type); this tags each item with its provider so the UI can
+// render provider-specific detail.
+export type OIDCProvider = 'azure' | 'aws';
+export type OIDCConfiguration =
+  | ({ provider: 'azure' } & AzureOIDCConfiguration)
+  | ({ provider: 'aws' } & AWSOIDCConfiguration);
+
+function oidcConfigFromJsonApi(item: JsonApiResource): OIDCConfiguration {
+  if (item.type === 'aws-oidc-configurations') {
+    return { provider: 'aws', ...awsOIDCConfigFromJsonApi(item) };
+  }
+  return { provider: 'azure', ...azureOIDCConfigFromJsonApi(item) };
+}
+
+export const oidcConfigApi = {
+  list: (organizationName: string) =>
+    apiClient
+      .get<{ data: JsonApiResource[] }>(`/organizations/${organizationName}/oidc-configurations`)
+      .then(res => (res.data || []).map(oidcConfigFromJsonApi)),
+};
+
 export const vcsConnectionsApi = {
   list: (organizationName: string) =>
     apiClient.get<{ data: Array<{ id: string; type: string; attributes: Omit<VCSConnection, 'id'>; relationships?: Record<string, unknown> }> }>(`/organizations/${organizationName}/vcs-connections`).then(res => {
