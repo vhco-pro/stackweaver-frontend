@@ -18,17 +18,24 @@ RUN npm ci
 COPY ${BUILD_ROOT}/ .
 COPY scripts/ /scripts/
 COPY docs/ /docs/
-# Stage nginx.conf alongside the build output so the runtime stage can find it
-# without needing the BUILD_ROOT arg (args don't carry across stages).
+# Stage nginx.conf + the security-headers snippet alongside the build output so
+# the runtime stage can find them without needing the BUILD_ROOT arg (args don't
+# carry across stages).
 COPY ${BUILD_ROOT}/nginx.conf /frontend/nginx.conf
+COPY ${BUILD_ROOT}/security-headers.conf /frontend/security-headers.conf
 RUN npm run build
 
 # Runtime stage — Chainguard nginx: zero CVEs, non-root by default
 FROM cgr.dev/chainguard/nginx@sha256:d166cfff80ac94040ccc52c6a42768486483514f7494ca641a68399655b4a053
 
 COPY --from=builder /frontend/dist /usr/share/nginx/html
-# Chainguard nginx ships nginx.default.conf — overwrite it with our SPA config
+# Chainguard nginx ships nginx.default.conf — overwrite it with our SPA config.
+# The security-headers snippet lives OUTSIDE conf.d/ (the top-level nginx.conf
+# does `include /etc/nginx/conf.d/*.conf`, so a snippet in conf.d/ would be
+# double-loaded at http scope and via our explicit include). It is pulled in by
+# absolute-path `include` directives in nginx.conf.
 COPY --from=builder /frontend/nginx.conf /etc/nginx/conf.d/nginx.default.conf
+COPY --from=builder /frontend/security-headers.conf /etc/nginx/security-headers.conf
 
 LABEL org.opencontainers.image.source="https://github.com/vhco-pro/stackweaver-frontend"
 LABEL org.opencontainers.image.licenses="BUSL-1.1"
