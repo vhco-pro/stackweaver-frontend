@@ -56,6 +56,8 @@ Once you've filled in the details, save the variable and it will be available fo
 
 Variable sets let you manage groups of related variables together.
 
+Any member of an organization can view its variable sets, but managing them is scoped the same way it is in Terraform Cloud. Organization-owned variable sets can be created, edited, and deleted by organization owners and by teams with the "Manage all workspaces" or "Manage all projects" permission. Project-owned variable sets are governed by the owning project's team access, so a team with write, maintain, or admin access to that project (or the granular manage-variable-sets project permission) can manage them without needing organization-wide access.
+
 ### Creating a Variable Set
 
 1. Go to your organization's Variable Sets
