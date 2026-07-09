@@ -143,6 +143,8 @@ Returns Ansible-compatible JSON inventory format.
 
 ## Inventory Hosts
 
+Access to a host is governed by its parent inventory: reading a host requires read permission on the inventory, and creating, updating, or deleting one requires write permission (organization Ansible read or manage respectively for organization-scoped inventories).
+
 ### List Hosts
 
 ```
@@ -193,6 +195,8 @@ DELETE /api/v2/ansible/hosts/:id
 
 ## Inventory Groups
 
+Like hosts, access to a group is governed by its parent inventory: reads require inventory read permission and mutations require inventory write permission.
+
 ### List Groups
 
 ```
@@ -241,6 +245,8 @@ DELETE /api/v2/ansible/groups/:id
 ---
 
 ## Inventory Sources (Dynamic Inventories)
+
+Access to an inventory source, including triggering a sync, is governed by its parent inventory: reads require inventory read permission and create, update, delete, and sync require inventory write permission.
 
 ### List Sources
 
