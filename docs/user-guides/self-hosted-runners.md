@@ -93,7 +93,7 @@ You can later edit the pool to change allowed or excluded workspaces and project
 
 ## Step 2: Create an API Key with Runner Scopes
 
-Runners authenticate using the same API key system as the rest of StackWeaver. You create a key with runner scopes and use it only when starting the runner (and optionally revoke it after runners are registered).
+Runners authenticate using the same API key system as the rest of StackWeaver. You create a key with runner scopes and use it only when starting the runner. This key is a *registration* credential: when a runner registers, the API issues it its own runner-scoped token, and the runner uses that token — not your registration key — for every heartbeat and job afterward. That means you can safely revoke the registration key once your runners are up; they keep running until they next restart and need to register again.
 
 1. Go to **Settings > API Keys**.
 2. Create a new API key.
@@ -103,7 +103,7 @@ Runners authenticate using the same API key system as the rest of StackWeaver. Y
    - **Runner: Terraform** and/or **Runner: Ansible** (or **Runner: Combined** if one runner will do both).
 5. Save the key and **copy the token** (e.g. `tfe-xxx...`). You will not see it again.
 
-Use this token only when starting the runner container. Do not commit it to source control or share it broadly. You can revoke the key at any time in Settings > API Keys; existing registered runners will stop receiving new jobs until you register them again with a new key.
+Use this token only when starting the runner container. Do not commit it to source control or share it broadly. You can revoke the key at any time in Settings > API Keys. Because each runner switches to its own runner-scoped token after registration, revoking the registration key does not interrupt runners that are already registered — they keep receiving jobs until they restart, at which point they need a valid registration key to register again.
 
 ---
 
