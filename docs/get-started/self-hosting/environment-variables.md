@@ -93,7 +93,7 @@ Existing data written before encryption was enabled stays readable: state files 
 | Variable | Description | Default |
 |---|---|---|
 | `OIDC_ISSUER_URL` | Issuer URL for OIDC workload identity tokens (Azure/AWS/GCP/Vault keyless auth) | Falls back to `API_URL` |
-| `OIDC_SIGNING_KEY` | PEM-encoded RSA private key for signing OIDC tokens | (none) |
+| `OIDC_SIGNING_KEY` | PEM-encoded RSA private key (raw or base64) for signing OIDC tokens. **Required** — the API refuses to start without it, so every replica signs with the same stable key. Set `DEV_INSECURE_KEY=1` to auto-generate an ephemeral key for local development only. | (required) |
 
 ### GitHub Integration
 
