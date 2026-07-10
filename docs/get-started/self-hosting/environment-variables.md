@@ -103,7 +103,7 @@ Existing data written before encryption was enabled stays readable: state files 
 | `GITHUB_APP_NAME` | GitHub App name (slug) | (none) |
 | `GITHUB_APP_PRIVATE_KEY_PATH` | Path to GitHub App private key PEM file | (none) |
 | `GITHUB_APP_PRIVATE_KEY` | PEM key contents (alternative to path) | (none) |
-| `GITHUB_WEBHOOK_SECRET` | Webhook signing secret | (none) |
+| `GITHUB_WEBHOOK_SECRET` | Webhook signing secret. **Required** for GitHub webhooks: the App's incoming deliveries are authenticated by HMAC-SHA256 of the body against this value, and the endpoint **rejects every delivery (401) when it is unset** — set the same value here and in the GitHub App's webhook configuration. | (none) |
 
 ### Azure DevOps Integration
 
@@ -111,6 +111,7 @@ Existing data written before encryption was enabled stays readable: state files 
 |---|---|---|
 | `AZURE_DEVOPS_CLIENT_ID` | Azure DevOps OAuth2 client ID | (none) |
 | `AZURE_DEVOPS_CLIENT_SECRET` | Azure DevOps OAuth2 client secret | (none) |
+| `AZURE_DEVOPS_WEBHOOK_SECRET` | Service-hook Basic-auth password. **Required** for Azure DevOps webhooks: each service-hook subscription must send this as its Basic-auth password, and the endpoint **rejects every delivery (401) when it is unset**. | (none) |
 | `AZURE_DEVOPS_TENANT_ID` | Azure AD tenant ID | (none) |
 | `AZURE_DEVOPS_REDIRECT_URI` | OAuth2 redirect URI | (none) |
 

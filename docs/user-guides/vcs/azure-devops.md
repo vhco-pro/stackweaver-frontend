@@ -135,6 +135,8 @@ Three subscriptions are created per linked repository:
 
 The subscriptions are registered using the `STACKWEAVER_WEBHOOK_BASE_URL` value set in Step 4. The registration is idempotent: re-saving a workspace does not create duplicate subscriptions.
 
+Incoming service-hook deliveries are authenticated: you must set `AZURE_DEVOPS_WEBHOOK_SECRET` (see [environment variables](../../get-started/self-hosting/environment-variables.md)). Stackweaver configures each auto-registered subscription with this value as its Basic-auth password and rejects any delivery that does not present it, so an unset secret means Azure DevOps webhooks will not trigger runs.
+
 ### Local Development
 
 Azure DevOps cannot reach `localhost` directly, so `STACKWEAVER_WEBHOOK_BASE_URL` must point to a publicly accessible URL. Use a tunnel such as [Cloudflare Tunnel](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/) or [ngrok](https://ngrok.com/) to expose port 8022, then set:
