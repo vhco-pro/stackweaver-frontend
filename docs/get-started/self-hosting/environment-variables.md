@@ -229,6 +229,7 @@ The Ansible runner processes Ansible playbook jobs from the Redis queue.
 | `ANSIBLE_ENCRYPTION_KEY` | 32-byte hex encryption key | Falls back to `ENCRYPTION_KEY` |
 | `ANSIBLE_RUNNER_KEEP_WORKSPACE` | Keep workspace after execution | `false` |
 | `ANSIBLE_BINARY_PATH` | Custom path to ansible-playbook binary | (auto-detected) |
+| `ANSIBLE_HOST_KEY_CHECKING` | Enable SSH host-key verification for playbook runs. Left at the default, the runner disables strict checking (managed hosts are ephemeral). Set it to `true` to enforce verification and honor a project or organization `ansible.cfg` `known_hosts`. | `false` |
 | `OIDC_ISSUER_URL` | OIDC issuer URL for workload identity | Falls back to `API_URL` |
 
 ---
