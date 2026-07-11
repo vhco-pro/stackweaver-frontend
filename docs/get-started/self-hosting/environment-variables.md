@@ -300,6 +300,8 @@ The standalone `login-ui` container was removed. Login is served by the Stackwea
 | `STACKWEAVER_DEFAULT_REDIRECT_URI` | Fallback OIDC redirect URI when none is supplied | (empty) |
 | `STACKWEAVER_AUTO_SUBMIT_CODE` | Auto-submit OTP forms on full-length digit paste (UX toggle) | `false` |
 | `STACKWEAVER_APP_URL` | Browser-visible base URL of the SPA (split-domain deploys) | (empty — falls back to API's own public base URL) |
+| `STACKWEAVER_PUBLIC_URL` | Browser/client-visible base URL of this API. Used unconditionally for the OIDC discovery document's issuer and endpoint URLs so they cannot be steered by a forged `X-Forwarded-Host`/`X-Zitadel-*` header, and its host joins the trusted-host allowlist. Set this in production (especially split-domain, where the API and SPA differ). | (empty — falls back to the header-derived host, dev/same-origin only) |
+| `STACKWEAVER_TRUSTED_HOSTS` | Comma-separated extra hostnames honored in `X-Forwarded-Host`/`X-Zitadel-*` headers when building auth URLs, on top of the hosts of `STACKWEAVER_PUBLIC_URL`, `STACKWEAVER_APP_URL` and the Zitadel issuer (which are trusted automatically). | (empty) |
 | `STACKWEAVER_LOGINNAME_LOCKOUT_THRESHOLD` | Failed-password attempts per loginName before lockout | `5` |
 | `STACKWEAVER_LOGINNAME_LOCKOUT_WINDOW` | Sliding window for the lockout threshold | `15m` |
 | `CUSTOM_REQUEST_HEADERS` | Comma-separated `key:value` list of headers added to every Zitadel call (e.g. `x-zitadel-instance-host:zitadel.example.com` for custom-domain deployments) | (none) |
