@@ -442,11 +442,11 @@ export default function AgentPools() {
                           <table className="w-full text-sm">
                             <thead>
                               <tr className="border-b border-white/10 dark:border-white/5 bg-muted/30">
-                                <th className="text-left py-3 px-4 font-medium text-muted-foreground">Agent Name</th>
-                                <th className="text-left py-3 px-4 font-medium text-muted-foreground">Version</th>
-                                <th className="text-left py-3 px-4 font-medium text-muted-foreground">ID</th>
-                                <th className="text-left py-3 px-4 font-medium text-muted-foreground">IP Address</th>
-                                <th className="text-left py-3 px-4 font-medium text-muted-foreground">Last Seen</th>
+                                <th scope="col" className="text-left py-3 px-4 font-medium text-muted-foreground">Agent Name</th>
+                                <th scope="col" className="text-left py-3 px-4 font-medium text-muted-foreground">Version</th>
+                                <th scope="col" className="text-left py-3 px-4 font-medium text-muted-foreground">ID</th>
+                                <th scope="col" className="text-left py-3 px-4 font-medium text-muted-foreground">IP Address</th>
+                                <th scope="col" className="text-left py-3 px-4 font-medium text-muted-foreground">Last Seen</th>
                               </tr>
                             </thead>
                             <tbody>

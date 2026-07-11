@@ -73,18 +73,12 @@ export default function Callback() {
         // Exchange authorization code for tokens
         const tokens = await exchangeCodeForTokens(code);
         
-        // Store tokens
+        // Store tokens (synchronous sessionStorage write) and refresh the auth context.
+        // AUD-078: the two 100ms "ensure it's stored/set" sleeps that used to bracket these were
+        // cargo-cult — storeTokens is synchronous and refresh() is awaited, so nothing races.
         storeTokens(tokens);
-        
-        // Small delay to ensure tokens are stored before checking session
-        await new Promise(resolve => setTimeout(resolve, 100));
-        
-        // Refresh auth context to get user info
         await refresh();
-        
-        // Small delay to ensure session is set
-        await new Promise(resolve => setTimeout(resolve, 100));
-        
+
         // If a deep-linked page (e.g. the Terraform CLI /oauth/authorize flow)
         // stashed a return URL before kicking off login, honour it. It is a
         // same-origin app path, so a full-page navigation returns the user

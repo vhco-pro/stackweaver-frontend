@@ -135,6 +135,7 @@ export default function ProviderList() {
         <input
           type="text"
           placeholder="Search providers..."
+          aria-label="Search providers"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           className={cn(

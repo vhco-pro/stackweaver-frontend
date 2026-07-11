@@ -1247,6 +1247,7 @@ export function ApplyOutputViewer({ logs, showJsonViewer = true, planOutput, isA
                 id="apply-address-filter"
                 name="apply-address-filter"
                 placeholder="Filter resources by address..."
+                aria-label="Filter resources by address"
                 value={addressFilter}
                 onChange={(e) => setAddressFilter(e.target.value)}
                 className="w-full pl-9 pr-3 py-2 text-sm border rounded-md bg-background focus:outline-hidden focus:ring-2 focus:ring-primary"

@@ -129,6 +129,7 @@ export function TemplateCredentialsCard({ templateId, canManage, orgCredentials 
                   <Button
                     variant="ghost"
                     size="icon"
+                    aria-label="Remove credential"
                     className="h-7 w-7 shrink-0"
                     disabled={busy}
                     onClick={() => { void handleDetach(cred.id); }}

@@ -156,6 +156,7 @@ export function PlaybookSourcePicker({ organizationName, playbooks, value, onCha
                       <Input
                         ref={fileSearchInputRef}
                         placeholder="Search playbook files..."
+                        aria-label="Search playbook files"
                         value={fileSearch}
                         onChange={(e) => {
                           setFileSearch(e.target.value);

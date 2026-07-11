@@ -219,7 +219,7 @@ export default function Webhooks() {
         <CardContent className="space-y-6">
           {/* Webhook URL */}
           <div className="space-y-2">
-            <label className="text-sm font-medium">Payload URL</label>
+            <span className="text-sm font-medium">Payload URL</span>
             <div className="flex items-center gap-2">
               <code className="flex-1 px-4 py-3 rounded-lg bg-muted/50 border border-border text-sm font-mono overflow-x-auto">
                 {webhookUrl}
@@ -227,6 +227,7 @@ export default function Webhooks() {
               <Button
                 variant="outline"
                 size="icon"
+                aria-label="Copy payload URL"
                 onClick={() => { void copyToClipboard(); }}
                 className={cn(
                   "shrink-0 transition-colors",
@@ -283,7 +284,7 @@ export default function Webhooks() {
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="space-y-2">
-            <label className="text-sm font-medium">Payload URL (Service Hook Receiver)</label>
+            <span className="text-sm font-medium">Payload URL (Service Hook Receiver)</span>
             <div className="flex items-center gap-2">
               <code className="flex-1 px-4 py-3 rounded-lg bg-muted/50 border border-border text-sm font-mono overflow-x-auto">
                 {adoWebhookUrl}
@@ -291,6 +292,7 @@ export default function Webhooks() {
               <Button
                 variant="outline"
                 size="icon"
+                aria-label="Copy Azure DevOps payload URL"
                 onClick={() => { void copyAdoToClipboard(); }}
                 className={cn(
                   "shrink-0 transition-colors",

@@ -127,6 +127,7 @@ export default function Registry() {
             <input
               type="text"
               placeholder="Filter providers and modules"
+              aria-label="Filter providers and modules"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full pl-10 pr-4 py-2 rounded-lg border border-input bg-background text-sm focus:outline-hidden focus:ring-2 focus:ring-ring focus:ring-offset-2"

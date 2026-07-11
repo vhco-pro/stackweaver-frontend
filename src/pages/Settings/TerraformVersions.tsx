@@ -240,6 +240,7 @@ export default function TerraformVersions() {
         <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
         <Input
           placeholder="Search versions..."
+          aria-label="Search versions"
           value={searchQuery}
           onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }}
           className="pl-10"
@@ -263,10 +264,10 @@ export default function TerraformVersions() {
             <table className="w-full">
               <thead>
                 <tr className="border-b text-left text-sm text-muted-foreground">
-                  <th className="px-4 py-3 font-medium">Version</th>
-                  <th className="px-4 py-3 font-medium">Status</th>
-                  <th className="px-4 py-3 font-medium">Usage</th>
-                  <th className="px-4 py-3 font-medium text-right">Actions</th>
+                  <th scope="col" className="px-4 py-3 font-medium">Version</th>
+                  <th scope="col" className="px-4 py-3 font-medium">Status</th>
+                  <th scope="col" className="px-4 py-3 font-medium">Usage</th>
+                  <th scope="col" className="px-4 py-3 font-medium text-right">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -369,16 +370,18 @@ export default function TerraformVersions() {
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div>
-              <label className="text-sm font-medium">Version</label>
+              <label htmlFor="tf-new-version" className="text-sm font-medium">Version</label>
               <Input
+                id="tf-new-version"
                 placeholder="e.g. 1.14.0"
                 value={newVersion}
                 onChange={(e) => { setNewVersion(e.target.value); }}
               />
             </div>
             <div>
-              <label className="text-sm font-medium">Download URL (optional)</label>
+              <label htmlFor="tf-new-url" className="text-sm font-medium">Download URL (optional)</label>
               <Input
+                id="tf-new-url"
                 placeholder="Auto-generated from releases.hashicorp.com"
                 value={newURL}
                 onChange={(e) => { setNewURL(e.target.value); }}

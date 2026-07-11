@@ -523,6 +523,7 @@ export default function Playbooks() {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="Search playbooks..."
+            aria-label="Search playbooks"
             value={searchQuery}
             onChange={(e) => { setSearchQuery(e.target.value); setPbPage(1); }}
             className="pl-10"
@@ -610,7 +611,7 @@ export default function Playbooks() {
                   </div>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="icon" className="shrink-0">
+                      <Button variant="ghost" size="icon" aria-label="Playbook actions" className="shrink-0">
                         <MoreVertical className="h-4 w-4" />
                       </Button>
                     </DropdownMenuTrigger>
@@ -931,6 +932,7 @@ export default function Playbooks() {
                         <Input
                           ref={repositorySearchInputRef}
                           placeholder="Search repositories..."
+                          aria-label="Search repositories"
                           value={repositorySearch}
                           onChange={(e) => {
                             setRepositorySearch(e.target.value);
@@ -1028,6 +1030,7 @@ export default function Playbooks() {
                         <Input
                           ref={playbookPathSearchInputRef}
                           placeholder="Search playbook files..."
+                          aria-label="Search playbook files"
                           value={playbookPathSearch}
                           onChange={(e) => {
                             setPlaybookPathSearch(e.target.value);

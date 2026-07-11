@@ -291,7 +291,7 @@ export default function AnsibleConfiguration() {
       {/* Header */}
       <div className="flex items-center gap-4">
         <Link to={`/app/${orgName}/settings`}>
-          <Button variant="ghost" size="icon">
+          <Button variant="ghost" size="icon" aria-label="Back to settings">
             <ArrowLeft className="h-5 w-5" />
           </Button>
         </Link>

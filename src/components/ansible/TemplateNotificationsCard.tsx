@@ -213,7 +213,7 @@ export function TemplateNotificationsCard({ templateId, orgName, canManage }: Te
                   ))}
                 </div>
                 {canManage && (
-                  <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" disabled={busy} onClick={() => { void handleDetach(a.id); }}>
+                  <Button variant="ghost" size="icon" aria-label="Remove notification" className="h-7 w-7 shrink-0" disabled={busy} onClick={() => { void handleDetach(a.id); }}>
                     <X className="h-4 w-4" />
                   </Button>
                 )}

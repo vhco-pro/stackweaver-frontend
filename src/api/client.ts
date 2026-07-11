@@ -120,10 +120,16 @@ class ApiClient {
           throw lastError;
         }
         
-        // Only retry on network errors or timeouts
-        const isRetryable = this.isNetworkError(error) || 
-                           (error instanceof DOMException && error.name === 'AbortError');
-        
+        // AUD-029: only retry idempotent methods. A network error or timeout does not tell us
+        // whether the server already processed the request, so retrying a POST/PATCH/PUT/DELETE can
+        // duplicate a non-idempotent side effect (e.g. create/apply/cancel a run twice on a flaky
+        // network). Restrict retries to GET/HEAD, where a repeat is always safe.
+        const method = (options.method ?? 'GET').toUpperCase();
+        const isIdempotent = method === 'GET' || method === 'HEAD';
+        const isRetryable = isIdempotent &&
+                           (this.isNetworkError(error) ||
+                           (error instanceof DOMException && error.name === 'AbortError'));
+
         if (isRetryable && attempt < MAX_RETRIES - 1) {
           const retryDelay = INITIAL_RETRY_DELAY * Math.pow(2, attempt);
           console.warn(`Network error on ${endpoint}, retrying in ${retryDelay}ms (attempt ${attempt + 1}/${MAX_RETRIES})...`);
@@ -372,7 +378,7 @@ export const organizationsApi = {
   list: () => apiClient.get<{ data: Organization[]; meta: { pagination: { page: number; per_page: number; total: number } } }>('/organizations'),
   get: (name: string) =>
     apiClient
-      .get<{ data: JsonApiResource }>(`/organizations/${name}`)
+      .get<{ data: JsonApiResource }>(`/organizations/${encodeURIComponent(name)}`)
       .then(res => organizationFromJsonApi(res.data)),
   create: (data: { name: string; description?: string }) =>
     apiClient
@@ -380,14 +386,14 @@ export const organizationsApi = {
       .then(res => organizationFromJsonApi(res.data)),
   update: (name: string, data: Record<string, unknown>) =>
     apiClient
-      .patch<{ data: JsonApiResource }>(`/organizations/${name}`, data)
+      .patch<{ data: JsonApiResource }>(`/organizations/${encodeURIComponent(name)}`, data)
       .then(res => organizationFromJsonApi(res.data)),
-  delete: (name: string) => apiClient.delete(`/organizations/${name}`),
+  delete: (name: string) => apiClient.delete(`/organizations/${encodeURIComponent(name)}`),
 };
 
 export const projectsApi = {
   list: (organizationName: string) =>
-    apiClient.get<{ data: JsonApiResource[]; meta: { pagination: { page: number; per_page: number; total: number } } }>(`/organizations/${organizationName}/projects`).then(res => {
+    apiClient.get<{ data: JsonApiResource[]; meta: { pagination: { page: number; per_page: number; total: number } } }>(`/organizations/${encodeURIComponent(organizationName)}/projects`).then(res => {
       // Parse JSON:API format to flat Project objects
       return {
         data: (res.data || []).map((item: JsonApiResource) => {
@@ -406,7 +412,7 @@ export const projectsApi = {
       };
     }),
   get: (organizationName: string, projectName: string) =>
-    apiClient.get<{ data: JsonApiResource }>(`/organizations/${organizationName}/projects/${projectName}`).then(res => {
+    apiClient.get<{ data: JsonApiResource }>(`/organizations/${encodeURIComponent(organizationName)}/projects/${encodeURIComponent(projectName)}`).then(res => {
       // Parse JSON:API format to flat Project object
       const item = res.data;
       const orgRel = getRelationship(item, 'organization');
@@ -421,7 +427,7 @@ export const projectsApi = {
       return project;
     }),
   create: (organizationName: string, data: { name: string; description?: string }) =>
-    apiClient.post<{ data: JsonApiResource }>(`/organizations/${organizationName}/projects`, {
+    apiClient.post<{ data: JsonApiResource }>(`/organizations/${encodeURIComponent(organizationName)}/projects`, {
       data: {
         type: 'projects',
         attributes: {
@@ -444,7 +450,7 @@ export const projectsApi = {
       return project;
     }),
   update: (organizationName: string, projectName: string, data: { name?: string; description?: string }) =>
-    apiClient.patch<{ data: JsonApiResource }>(`/organizations/${organizationName}/projects/${projectName}`, {
+    apiClient.patch<{ data: JsonApiResource }>(`/organizations/${encodeURIComponent(organizationName)}/projects/${encodeURIComponent(projectName)}`, {
       data: {
         type: 'projects',
         attributes: {
@@ -467,7 +473,7 @@ export const projectsApi = {
       return project;
     }),
   delete: (organizationName: string, projectName: string) =>
-    apiClient.delete(`/organizations/${organizationName}/projects/${projectName}`),
+    apiClient.delete(`/organizations/${encodeURIComponent(organizationName)}/projects/${encodeURIComponent(projectName)}`),
 };
 
 // Parse a workspace JSON:API resource into the flat Workspace interface.
@@ -546,12 +552,12 @@ function workspaceFromJsonApi(item: JsonApiResource, included?: JsonApiResource[
 export const workspacesApi = {
   // TFE-compatible endpoints — always JSON:API format
   list: (organizationName: string) =>
-    apiClient.get<{ data: JsonApiResource[]; meta: { pagination: { page: number; per_page: number; total: number } }; included?: JsonApiResource[] }>(`/organizations/${organizationName}/workspaces`).then(res => ({
+    apiClient.get<{ data: JsonApiResource[]; meta: { pagination: { page: number; per_page: number; total: number } }; included?: JsonApiResource[] }>(`/organizations/${encodeURIComponent(organizationName)}/workspaces`).then(res => ({
       data: (res.data || []).map((item: JsonApiResource) => workspaceFromJsonApi(item, res.included)),
       meta: res.meta,
     })),
   get: (organizationName: string, workspaceName: string) =>
-    apiClient.get<{ data: JsonApiResource }>(`/organizations/${organizationName}/workspaces/${workspaceName}`).then(res => workspaceFromJsonApi(res.data)),
+    apiClient.get<{ data: JsonApiResource }>(`/organizations/${encodeURIComponent(organizationName)}/workspaces/${encodeURIComponent(workspaceName)}`).then(res => workspaceFromJsonApi(res.data)),
   create: (organizationName: string, data: {
     name: string;
     description?: string;
@@ -567,7 +573,7 @@ export const workspacesApi = {
     agent_pool_id?: string;
     'run-timeout'?: number; // Custom extension: timeout in seconds
   }) =>
-    apiClient.post<{ data: JsonApiResource }>(`/organizations/${organizationName}/workspaces`, {
+    apiClient.post<{ data: JsonApiResource }>(`/organizations/${encodeURIComponent(organizationName)}/workspaces`, {
       data: {
         type: 'workspaces',
         attributes: {
@@ -602,7 +608,7 @@ export const workspacesApi = {
     force_delete?: boolean;
     'run-timeout'?: number;
   }) =>
-    apiClient.patch<{ data: JsonApiResource }>(`/organizations/${organizationName}/workspaces/${workspaceName}`, {
+    apiClient.patch<{ data: JsonApiResource }>(`/organizations/${encodeURIComponent(organizationName)}/workspaces/${encodeURIComponent(workspaceName)}`, {
       data: {
         type: 'workspaces',
         attributes: {
@@ -623,7 +629,7 @@ export const workspacesApi = {
       },
     }).then(res => workspaceFromJsonApi(res.data)),
   delete: (organizationName: string, workspaceName: string, force?: boolean) =>
-    apiClient.delete(`/organizations/${organizationName}/workspaces/${workspaceName}${force ? '?force=true' : ''}`),
+    apiClient.delete(`/organizations/${encodeURIComponent(organizationName)}/workspaces/${encodeURIComponent(workspaceName)}${force ? '?force=true' : ''}`),
   // Internal API (using UUIDs)
   getById: (id: string) =>
     apiClient.get<{ data: JsonApiResource }>(`/terraform/workspaces/${id}`).then(res => workspaceFromJsonApi(res.data)),
@@ -674,7 +680,7 @@ export const agentPoolsApi = {
     const query = params.toString() ? `?${params.toString()}` : '';
     return apiClient
       .get<{ data: JsonApiResource[]; meta: { pagination: { 'current-page': number; 'page-size': number; 'total-count': number } } }>(
-        `/organizations/${organizationName}/agent-pools${query}`
+        `/organizations/${encodeURIComponent(organizationName)}/agent-pools${query}`
       )
       .then(res => ({
         data: (res.data || []).map((item: JsonApiResource) => agentPoolFromJsonApi(item)),
@@ -711,7 +717,7 @@ export const agentPoolsApi = {
     if (data.allowed_project_ids?.length) rels['allowed-projects'] = { data: data.allowed_project_ids.map(id => ({ id, type: 'projects' })) };
     if (data.excluded_workspace_ids?.length) rels['excluded-workspaces'] = { data: data.excluded_workspace_ids.map(id => ({ id, type: 'workspaces' })) };
     if (Object.keys(rels).length > 0) body.data.relationships = rels;
-    return apiClient.post<{ data: JsonApiResource }>(`/organizations/${organizationName}/agent-pools`, body).then(res => agentPoolFromJsonApi(res.data));
+    return apiClient.post<{ data: JsonApiResource }>(`/organizations/${encodeURIComponent(organizationName)}/agent-pools`, body).then(res => agentPoolFromJsonApi(res.data));
   },
   get: (id: string) =>
     apiClient.get<{ data: JsonApiResource }>(`/agent-pools/${id}`).then(res => agentPoolFromJsonApi(res.data)),
@@ -837,7 +843,7 @@ export const runnersApi = {
     const query = params.toString() ? `?${params.toString()}` : '';
     return apiClient
       .get<{ data: JsonApiResource[]; meta: { pagination: { 'current-page': number; 'page-size': number; 'total-count': number; 'total-pages': number } } }>(
-        `/organizations/${organizationName}/runners${query}`
+        `/organizations/${encodeURIComponent(organizationName)}/runners${query}`
       )
       .then(res => ({
         data: (res.data || []).map((item: JsonApiResource) => runnerFromJsonApi(item)),
@@ -860,7 +866,7 @@ export const runnersApi = {
   },
   delete: (id: string) => apiClient.delete(`/runners/${id}`),
   getStats: (organizationName: string) =>
-    apiClient.get<{ data: { type: string; attributes: { total: number; online: number; offline: number } } }>(`/organizations/${organizationName}/runners/stats`)
+    apiClient.get<{ data: { type: string; attributes: { total: number; online: number; offline: number } } }>(`/organizations/${encodeURIComponent(organizationName)}/runners/stats`)
       .then(res => res.data.attributes),
 };
 
@@ -915,7 +921,7 @@ function azureOIDCConfigFromJsonApi(item: JsonApiResource): AzureOIDCConfigurati
 export const azureOIDCConfigApi = {
   list: (organizationName: string) =>
     apiClient
-      .get<{ data: JsonApiResource[] }>(`/organizations/${organizationName}/oidc-configurations`)
+      .get<{ data: JsonApiResource[] }>(`/organizations/${encodeURIComponent(organizationName)}/oidc-configurations`)
       .then(res => ({
         data: (res.data || []).map((item: JsonApiResource) => azureOIDCConfigFromJsonApi(item)),
       })),
@@ -932,7 +938,7 @@ export const azureOIDCConfigApi = {
       },
     };
     return apiClient
-      .post<{ data: JsonApiResource }>(`/organizations/${organizationName}/oidc-configurations`, body)
+      .post<{ data: JsonApiResource }>(`/organizations/${encodeURIComponent(organizationName)}/oidc-configurations`, body)
       .then(res => azureOIDCConfigFromJsonApi(res.data));
   },
 
@@ -983,7 +989,7 @@ export const awsOIDCConfigApi = {
   create: (organizationName: string, data: { role_arn: string }) => {
     const body = { data: { type: 'aws-oidc-configurations', attributes: { 'role-arn': data.role_arn } } };
     return apiClient
-      .post<{ data: JsonApiResource }>(`/organizations/${organizationName}/oidc-configurations`, body)
+      .post<{ data: JsonApiResource }>(`/organizations/${encodeURIComponent(organizationName)}/oidc-configurations`, body)
       .then(res => awsOIDCConfigFromJsonApi(res.data));
   },
 
@@ -1035,7 +1041,7 @@ export const gcpOIDCConfigApi = {
       },
     };
     return apiClient
-      .post<{ data: JsonApiResource }>(`/organizations/${organizationName}/oidc-configurations`, body)
+      .post<{ data: JsonApiResource }>(`/organizations/${encodeURIComponent(organizationName)}/oidc-configurations`, body)
       .then(res => gcpOIDCConfigFromJsonApi(res.data));
   },
 
@@ -1095,7 +1101,7 @@ export const vaultOIDCConfigApi = {
       },
     };
     return apiClient
-      .post<{ data: JsonApiResource }>(`/organizations/${organizationName}/oidc-configurations`, body)
+      .post<{ data: JsonApiResource }>(`/organizations/${encodeURIComponent(organizationName)}/oidc-configurations`, body)
       .then(res => vaultOIDCConfigFromJsonApi(res.data));
   },
 
@@ -1142,13 +1148,13 @@ function oidcConfigFromJsonApi(item: JsonApiResource): OIDCConfiguration {
 export const oidcConfigApi = {
   list: (organizationName: string) =>
     apiClient
-      .get<{ data: JsonApiResource[] }>(`/organizations/${organizationName}/oidc-configurations`)
+      .get<{ data: JsonApiResource[] }>(`/organizations/${encodeURIComponent(organizationName)}/oidc-configurations`)
       .then(res => (res.data || []).map(oidcConfigFromJsonApi)),
 };
 
 export const vcsConnectionsApi = {
   list: (organizationName: string) =>
-    apiClient.get<{ data: Array<{ id: string; type: string; attributes: Omit<VCSConnection, 'id'>; relationships?: Record<string, unknown> }> }>(`/organizations/${organizationName}/vcs-connections`).then(res => {
+    apiClient.get<{ data: Array<{ id: string; type: string; attributes: Omit<VCSConnection, 'id'>; relationships?: Record<string, unknown> }> }>(`/organizations/${encodeURIComponent(organizationName)}/vcs-connections`).then(res => {
       // Transform JSON:API format to flat structure and return all connections (no deduplication)
       return (res.data || []).map((item: { id: string; type: string; attributes: Omit<VCSConnection, 'id'>; relationships?: Record<string, unknown> }) => {
         const { ...attributes } = item.attributes;
@@ -1161,14 +1167,14 @@ export const vcsConnectionsApi = {
       });
     }),
   initiateInstallation: (organizationName: string) =>
-    apiClient.get<{ data: { install_url: string } }>(`/organizations/${organizationName}/vcs-connections/github/install`).then(res => res.data),
+    apiClient.get<{ data: { install_url: string } }>(`/organizations/${encodeURIComponent(organizationName)}/vcs-connections/github/install`).then(res => res.data),
   initiateInstallationWithRedirect: (organizationName: string, redirectUrl: string) =>
     apiClient.get<{ data: { install_url: string } }>(
-      `/organizations/${organizationName}/vcs-connections/github/install?redirect=${encodeURIComponent(redirectUrl)}&return=${encodeURIComponent(window.location.pathname + window.location.search)}`
+      `/organizations/${encodeURIComponent(organizationName)}/vcs-connections/github/install?redirect=${encodeURIComponent(redirectUrl)}&return=${encodeURIComponent(window.location.pathname + window.location.search)}`
     ).then(res => res.data),
   createConnectionFromInstallation: (organizationName: string, installationId: string) =>
     apiClient.post<{ data: JsonApiResource }>(
-      `/organizations/${organizationName}/vcs-connections/github/installations/${installationId}`,
+      `/organizations/${encodeURIComponent(organizationName)}/vcs-connections/github/installations/${installationId}`,
       {}
     ).then(res => res.data),
   get: (id: string) =>
@@ -1182,7 +1188,7 @@ export const vcsConnectionsApi = {
     account_type: 'organization' | 'user';
     installation_id?: string;
   }) =>
-    apiClient.post<{ data: VCSConnection }>(`/organizations/${organizationName}/vcs-connections`, data).then(res => res.data),
+    apiClient.post<{ data: VCSConnection }>(`/organizations/${encodeURIComponent(organizationName)}/vcs-connections`, data).then(res => res.data),
   delete: (id: string) =>
     apiClient.delete(`/vcs-connections/${id}`),
   listRepositories: (id: string, page?: number, perPage?: number, project?: string) => {
@@ -1238,7 +1244,7 @@ export const vcsConnectionsApi = {
   // Azure DevOps OAuth2 flow
   initiateAzureDevOpsInstallation: (organizationName: string, adoOrg: string, returnPath: string) =>
     apiClient.get<{ data: { auth_url: string } }>(
-      `/organizations/${organizationName}/vcs-connections/azure-devops/install?ado_org=${encodeURIComponent(adoOrg)}&return=${encodeURIComponent(returnPath)}`
+      `/organizations/${encodeURIComponent(organizationName)}/vcs-connections/azure-devops/install?ado_org=${encodeURIComponent(adoOrg)}&return=${encodeURIComponent(returnPath)}`
     ).then(res => res.data),
   completeAzureDevOpsInstallation: (code: string, state: string) =>
     apiClient.post<{ data: JsonApiResource }>(
@@ -1713,7 +1719,7 @@ export const variableSetsApi = {
         workspaces?: { data: Array<{ id: string; type: string; attributes: { name: string; description?: string } }> };
       };
     };
-    return apiClient.get<{ data: Array<VariableSetListResponse> }>(`/organizations/${organizationName}/varsets`).then(res => {
+    return apiClient.get<{ data: Array<VariableSetListResponse> }>(`/organizations/${encodeURIComponent(organizationName)}/varsets`).then(res => {
       // Parse JSON:API response to VariableSet format
       return (res.data || []).map((item: VariableSetListResponse) => {
         const variableSet: VariableSet = {
@@ -1877,7 +1883,7 @@ export const variableSetsApi = {
     const parentType = data.parentType || 'organizations';
     const parentId = data.parentId || organizationName;
     
-    return apiClient.post<{ data: VariableSet }>(`/organizations/${organizationName}/varsets`, {
+    return apiClient.post<{ data: VariableSet }>(`/organizations/${encodeURIComponent(organizationName)}/varsets`, {
       data: {
         type: 'varsets', // TFE uses "varsets" not "variable-sets"
         attributes: {
@@ -2448,7 +2454,7 @@ export const registryApi = {
   modules: {
     list: (organizationName: string) =>
       apiClient.get<{ data: Array<{ id: string; type: string; attributes: Omit<Module, 'id'> }> }>(
-        `/organizations/${organizationName}/registry/modules`
+        `/organizations/${encodeURIComponent(organizationName)}/registry/modules`
       ).then(res => {
         return (res.data || []).map((item: JsonApiResource) => ({
           id: item.id,
@@ -2458,7 +2464,7 @@ export const registryApi = {
       }),
     get: (organizationName: string, moduleName: string, provider: string) =>
       apiClient.get<{ data: { id: string; type: string; attributes: Omit<Module, 'id'> } }>(
-        `/organizations/${organizationName}/registry/modules/${moduleName}/${provider}`
+        `/organizations/${encodeURIComponent(organizationName)}/registry/modules/${moduleName}/${provider}`
       ).then(res => ({
         id: res.data.id,
         ...res.data.attributes,
@@ -2466,7 +2472,7 @@ export const registryApi = {
       })) as Promise<Module>,
     getVersions: (organizationName: string, moduleName: string, provider: string) =>
       apiClient.get<{ data: Array<{ id: string; type: string; attributes: Omit<ModuleVersion, 'id'> }> }>(
-        `/organizations/${organizationName}/registry/modules/${moduleName}/${provider}/versions`
+        `/organizations/${encodeURIComponent(organizationName)}/registry/modules/${moduleName}/${provider}/versions`
       ).then(res => {
         return (res.data || []).map((item: JsonApiResource) => ({
           id: item.id,
@@ -2483,7 +2489,7 @@ export const registryApi = {
       auto_publish_tags?: boolean;
     }) =>
       apiClient.post<{ data: { id: string; type: string; attributes: Omit<Module, 'id'> } }>(
-        `/organizations/${organizationName}/registry/modules`,
+        `/organizations/${encodeURIComponent(organizationName)}/registry/modules`,
         data
       ).then(res => ({
         id: res.data.id,
@@ -2491,17 +2497,17 @@ export const registryApi = {
         organization_id: '',
       })) as Promise<Module>,
     delete: (organizationName: string, moduleName: string, provider: string) =>
-      apiClient.delete(`/organizations/${organizationName}/registry/modules/${moduleName}/${provider}`),
+      apiClient.delete(`/organizations/${encodeURIComponent(organizationName)}/registry/modules/${moduleName}/${provider}`),
     deleteVersion: (organizationName: string, moduleName: string, provider: string, version: string) =>
-      apiClient.delete(`/organizations/${organizationName}/registry/modules/${moduleName}/${provider}/versions/${version}`),
+      apiClient.delete(`/organizations/${encodeURIComponent(organizationName)}/registry/modules/${moduleName}/${provider}/versions/${version}`),
     deleteAll: (organizationName: string) =>
-      apiClient.delete(`/organizations/${organizationName}/registry/modules`),
+      apiClient.delete(`/organizations/${encodeURIComponent(organizationName)}/registry/modules`),
     publishVersion: async (organizationName: string, moduleName: string, provider: string, version: string, file: File) => {
       const formData = new FormData();
       formData.append('version', version);
       formData.append('file', file);
 
-      const url = `${API_BASE_URL}/organizations/${organizationName}/registry/modules/${moduleName}/${provider}/versions`;
+      const url = `${API_BASE_URL}/organizations/${encodeURIComponent(organizationName)}/registry/modules/${moduleName}/${provider}/versions`;
       const { getAccessToken } = await import('@/lib/zitadel');
       const accessToken = getAccessToken();
 
@@ -2527,7 +2533,7 @@ export const registryApi = {
   providers: {
     list: (organizationName: string) =>
       apiClient.get<{ data: Array<{ id: string; type: string; attributes: Omit<Provider, 'id'> }> }>(
-        `/organizations/${organizationName}/registry/providers`
+        `/organizations/${encodeURIComponent(organizationName)}/registry/providers`
       ).then(res => {
         return (res.data || []).map((item: JsonApiResource) => ({
           id: item.id,
@@ -2537,7 +2543,7 @@ export const registryApi = {
       }),
     get: (organizationName: string, providerName: string) =>
       apiClient.get<{ data: { id: string; type: string; attributes: Omit<Provider, 'id'> } }>(
-        `/organizations/${organizationName}/registry/providers/${providerName}`
+        `/organizations/${encodeURIComponent(organizationName)}/registry/providers/${providerName}`
       ).then(res => ({
         id: res.data.id,
         ...res.data.attributes,
@@ -2548,7 +2554,7 @@ export const registryApi = {
       description?: string;
     }) =>
       apiClient.post<{ data: { id: string; type: string; attributes: Omit<Provider, 'id'> } }>(
-        `/organizations/${organizationName}/registry/providers`,
+        `/organizations/${encodeURIComponent(organizationName)}/registry/providers`,
         data
       ).then(res => ({
         id: res.data.id,
@@ -2561,7 +2567,7 @@ export const registryApi = {
       formData.append('arch', arch);
       formData.append('file', file);
 
-      const url = `${API_BASE_URL}/organizations/${organizationName}/registry/providers/${providerName}/versions/${version}/platforms`;
+      const url = `${API_BASE_URL}/organizations/${encodeURIComponent(organizationName)}/registry/providers/${providerName}/versions/${version}/platforms`;
       const { getAccessToken } = await import('@/lib/zitadel');
       const accessToken = getAccessToken();
 
@@ -2588,7 +2594,7 @@ export const registryApi = {
 // Organization Memberships API (TFE-compatible)
 export const organizationMembershipsApi = {
   list: (organizationName: string) =>
-    apiClient.get<{ data: JsonApiResource[]; included?: JsonApiResource[]; meta?: { pagination: { page: number; per_page: number; total: number } } }>(`/organizations/${organizationName}/organization-memberships`).then(res => {
+    apiClient.get<{ data: JsonApiResource[]; included?: JsonApiResource[]; meta?: { pagination: { page: number; per_page: number; total: number } } }>(`/organizations/${encodeURIComponent(organizationName)}/organization-memberships`).then(res => {
       // Parse JSON:API format - match user data from included array
       const userMap = new Map<string, JsonApiResource>();
       if (res.included) {
@@ -2649,7 +2655,7 @@ export const organizationMembershipsApi = {
       };
     }),
   create: (organizationName: string, data: { email: string; role?: 'admin' | 'member' | 'viewer' }) =>
-    apiClient.post<{ data: JsonApiResource }>(`/organizations/${organizationName}/organization-memberships`, {
+    apiClient.post<{ data: JsonApiResource }>(`/organizations/${encodeURIComponent(organizationName)}/organization-memberships`, {
       data: {
         type: 'organization-memberships',
         attributes: {
@@ -2737,7 +2743,7 @@ export const organizationMembershipsApi = {
 // Teams API (TFE-compatible)
 export const teamsApi = {
   list: (organizationName: string) =>
-    apiClient.get<{ data: JsonApiResource[]; meta?: { pagination: { page: number; per_page: number; total: number } } }>(`/organizations/${organizationName}/teams`).then(res => {
+    apiClient.get<{ data: JsonApiResource[]; meta?: { pagination: { page: number; per_page: number; total: number } } }>(`/organizations/${encodeURIComponent(organizationName)}/teams`).then(res => {
       // Parse JSON:API format to flat Team objects
       return {
         data: (res.data || []).map((item: JsonApiResource) => {
@@ -2819,7 +2825,7 @@ export const teamsApi = {
     'sso-team-id'?: string | null;
     'organization-access'?: Record<string, boolean>;
   }) =>
-    apiClient.post<{ data: JsonApiResource }>(`/organizations/${organizationName}/teams`, {
+    apiClient.post<{ data: JsonApiResource }>(`/organizations/${encodeURIComponent(organizationName)}/teams`, {
       data: {
         type: 'teams',
         attributes: {

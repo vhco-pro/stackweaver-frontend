@@ -516,7 +516,7 @@ export default function PlaybookDetail() {
       {/* Header */}
       <div className="flex items-start justify-between mb-6">
         <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" asChild>
+          <Button variant="ghost" size="icon" aria-label="Back to playbooks" asChild>
             <Link to={`/app/${orgName}/ansible/playbooks`}>
               <ArrowLeft className="h-4 w-4" />
             </Link>
@@ -1162,6 +1162,7 @@ export default function PlaybookDetail() {
                         <Input
                           ref={repositorySearchInputRef}
                           placeholder="Search repositories..."
+                          aria-label="Search repositories"
                           value={repositorySearch}
                           onChange={(e) => {
                             setRepositorySearch(e.target.value);
@@ -1258,6 +1259,7 @@ export default function PlaybookDetail() {
                         <Input
                           ref={playbookPathSearchInputRef}
                           placeholder="Search playbook files..."
+                          aria-label="Search playbook files"
                           value={playbookPathSearch}
                           onChange={(e) => {
                             setPlaybookPathSearch(e.target.value);

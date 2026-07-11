@@ -87,8 +87,15 @@ export default function RunDetail() {
     pollInterval, // Dynamic polling interval based on run status
     onStatusChange: (updatedRun) => {
       runStatusRef.current = updatedRun.status;
-      // Show toast notification on status change
-      if (updatedRun.status === 'completed') {
+      // Show toast notification on status change. AUD-078: the success toast was keyed on the
+      // legacy `completed` status that the lifecycle no longer sets (AUD-031), so it never fired.
+      // Fire on the real terminal-success states: `applied` (plan-and-apply / destroy) and
+      // `planned` for a plan-only run; keep `completed` as a legacy fallback.
+      const succeeded =
+        updatedRun.status === 'applied' ||
+        (updatedRun.status === 'planned' && updatedRun.operation === 'plan-only') ||
+        updatedRun.status === 'completed';
+      if (succeeded) {
         toast.success(`${updatedRun.operation.charAt(0).toUpperCase() + updatedRun.operation.slice(1)} run completed`);
       } else if (updatedRun.status === 'failed') {
         toast.error('Run failed');

@@ -57,8 +57,8 @@ export function ListSortControl({
       <Button
         variant="outline"
         size="icon"
-        onClick={() => onOrderChange(order === 'asc' ? 'desc' : 'asc')}
         aria-label={order === 'asc' ? 'Sort ascending' : 'Sort descending'}
+        onClick={() => onOrderChange(order === 'asc' ? 'desc' : 'asc')}
         title={order === 'asc' ? 'Ascending' : 'Descending'}
       >
         {order === 'asc' ? <ArrowUp className="h-4 w-4" /> : <ArrowDown className="h-4 w-4" />}

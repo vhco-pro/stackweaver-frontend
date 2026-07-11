@@ -885,6 +885,7 @@ export default function Inventories() {
                               <Input
                                 ref={repositorySearchInputRef}
                                 placeholder="Search repositories..."
+                                aria-label="Search repositories"
                                 value={repositorySearch}
                                 onChange={(e) => {
                                   setRepositorySearch(e.target.value);
@@ -981,6 +982,7 @@ export default function Inventories() {
                               <Input
                                 ref={inventoryPathSearchInputRef}
                                 placeholder="Search inventory files..."
+                                aria-label="Search inventory files"
                                 value={inventoryPathSearch}
                                 onChange={(e) => {
                                   setInventoryPathSearch(e.target.value);
@@ -1052,6 +1054,7 @@ export default function Inventories() {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="Search inventories..."
+            aria-label="Search inventories"
             value={searchQuery}
             onChange={(e) => { setSearchQuery(e.target.value); setInvPage(1); }}
             className="pl-9"
@@ -1136,6 +1139,7 @@ export default function Inventories() {
                     <Button
                       variant="ghost"
                       size="icon"
+                      aria-label="Inventory actions"
                       className="opacity-0 group-hover:opacity-100 transition-opacity"
                     >
                       <MoreVertical className="h-4 w-4" />

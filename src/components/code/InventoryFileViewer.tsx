@@ -385,6 +385,7 @@ export function InventoryFileViewer({
             <Button
               variant="ghost"
               size="icon"
+              aria-label="Toggle word wrap"
               className={cn(
                 "h-7 w-7 text-gray-400 hover:text-gray-100 hover:bg-white/10",
                 wordWrap && "bg-white/10 text-gray-100"
@@ -399,6 +400,7 @@ export function InventoryFileViewer({
             <Button
               variant="ghost"
               size="icon"
+              aria-label="Copy to clipboard"
               className="h-7 w-7 text-gray-400 hover:text-gray-100 hover:bg-white/10"
               onClick={() => { void handleCopy(); }}
               title="Copy to clipboard"

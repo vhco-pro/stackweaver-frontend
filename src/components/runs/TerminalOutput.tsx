@@ -120,9 +120,15 @@ export function TerminalOutput({ content, isStreaming, className }: TerminalOutp
   return (
     <div className={cn("relative border rounded-lg overflow-hidden", className)}>
       {/* Terminal content - plain text output (what you'd see in a terminal) */}
+      {/* AUD-127: the streaming run/job log is the product's core output; expose it as a live
+          region so screen readers announce appended lines while a run is in progress. */}
       <div
         ref={containerRef}
         onScroll={handleScroll}
+        role="log"
+        aria-live={isStreaming ? 'polite' : 'off'}
+        aria-busy={isStreaming}
+        aria-label="Run output log"
         className="bg-muted/10 font-mono text-sm overflow-auto"
         style={{ maxHeight: '600px', minHeight: '200px' }}
       >

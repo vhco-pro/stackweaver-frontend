@@ -309,6 +309,7 @@ export function DocsSearch({ docsBase = '/docs', searchIndexFile = '/docs-search
               ref={inputRef}
               type="text"
               placeholder="Search docs…"
+              aria-label="Search docs"
               value={query}
               maxLength={MAX_QUERY_LENGTH}
               onChange={(e) => {
@@ -420,7 +421,7 @@ export function DocsSearch({ docsBase = '/docs', searchIndexFile = '/docs-search
                         {snippet.after}
                       </div>
                     )}
-                    <div className="text-[10px] text-muted-foreground/50 mt-1 font-mono truncate">
+                    <div className="text-[10px] text-muted-foreground mt-1 font-mono truncate">
                       {stored.path}
                     </div>
                   </div>

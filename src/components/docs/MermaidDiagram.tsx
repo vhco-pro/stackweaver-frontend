@@ -16,7 +16,10 @@ interface MermaidDiagramProps {
 function mermaidConfig() {
   return {
     startOnLoad: false,
-    securityLevel: 'loose' as const,
+    // AUD-078: 'strict' sanitizes rendered HTML and disallows click-handlers/script in diagram
+    // source, closing a stored-XSS vector (diagrams come from Markdown docs that can be
+    // contributed via PR). 'loose' would let a crafted diagram inject markup/handlers.
+    securityLevel: 'strict' as const,
     theme: 'dark' as const,
     themeVariables: {
       primaryColor: '#3b82f6',
