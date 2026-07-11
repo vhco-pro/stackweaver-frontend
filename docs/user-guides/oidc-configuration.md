@@ -87,6 +87,10 @@ organization:<org-name>:project:<project-name>:job:<job-name>:run
 
 `<project-name>` is the StackWeaver project the resource belongs to, or `default` for org-scoped resources without a project.
 
+### Pinning to immutable identifiers
+
+The subject is built from organization, project, and workspace **names**, which can be renamed. Organization names are permanently reserved once used — a deleted organization's name can never be re-registered — so a deleted org's name cannot be reclaimed by someone else. For defense in depth, where your cloud provider lets you match on token claims beyond `sub`, every token also carries the immutable UUIDs of the resources it was minted for: `stackweaver_organization_id`, `stackweaver_project_id`, and `stackweaver_workspace_id` (Terraform runs) or `stackweaver_organization_id` and `stackweaver_project_id` (Ansible resources). Adding a claim condition on `stackweaver_organization_id` alongside the subject ensures a token is only accepted for the exact organization you trust regardless of any later rename. You can find an organization's ID in its settings, or in the `id` field of the organization's API response.
+
 ---
 
 ## Azure
