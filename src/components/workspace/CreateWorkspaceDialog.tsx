@@ -435,6 +435,7 @@ export function CreateWorkspaceDialog({
                       <Input
                         ref={repositorySearchInputRef}
                         placeholder="Search repositories..."
+                        aria-label="Search repositories"
                         value={repositorySearch}
                         onChange={(e) => {
                           setRepositorySearch(e.target.value);

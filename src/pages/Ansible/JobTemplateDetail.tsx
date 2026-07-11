@@ -584,7 +584,7 @@ export default function JobTemplateDetail() {
       {/* Header */}
       <div className="flex items-start justify-between mb-6">
         <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" asChild>
+          <Button variant="ghost" size="icon" aria-label="Back to job templates" asChild>
             <Link to={`/app/${orgName}/ansible/job-templates`}>
               <ArrowLeft className="h-4 w-4" />
             </Link>
@@ -955,10 +955,10 @@ export default function JobTemplateDetail() {
                 <table className="w-full">
                   <thead className="bg-muted/50 border-b">
                     <tr>
-                      <th className="text-left px-4 py-3 text-sm font-semibold">Key</th>
-                      <th className="text-left px-4 py-3 text-sm font-semibold">Value</th>
-                      <th className="text-left px-4 py-3 text-sm font-semibold">Category</th>
-                      <th className="text-right px-4 py-3 text-sm font-semibold">Actions</th>
+                      <th scope="col" className="text-left px-4 py-3 text-sm font-semibold">Key</th>
+                      <th scope="col" className="text-left px-4 py-3 text-sm font-semibold">Value</th>
+                      <th scope="col" className="text-left px-4 py-3 text-sm font-semibold">Category</th>
+                      <th scope="col" className="text-right px-4 py-3 text-sm font-semibold">Actions</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -1062,9 +1062,9 @@ export default function JobTemplateDetail() {
                             <table className="w-full">
                               <thead className="bg-muted/50 border-b">
                                 <tr>
-                                  <th className="text-left px-4 py-3 text-sm font-semibold">Key</th>
-                                  <th className="text-left px-4 py-3 text-sm font-semibold">Value</th>
-                                  <th className="text-left px-4 py-3 text-sm font-semibold">Category</th>
+                                  <th scope="col" className="text-left px-4 py-3 text-sm font-semibold">Key</th>
+                                  <th scope="col" className="text-left px-4 py-3 text-sm font-semibold">Value</th>
+                                  <th scope="col" className="text-left px-4 py-3 text-sm font-semibold">Category</th>
                                 </tr>
                               </thead>
                               <tbody>
@@ -1128,8 +1128,8 @@ export default function JobTemplateDetail() {
                   <table className="w-full">
                     <thead className="bg-muted/50 border-b">
                       <tr>
-                        <th className="text-left px-4 py-3 text-sm font-semibold">Key</th>
-                        <th className="text-left px-4 py-3 text-sm font-semibold">Description</th>
+                        <th scope="col" className="text-left px-4 py-3 text-sm font-semibold">Key</th>
+                        <th scope="col" className="text-left px-4 py-3 text-sm font-semibold">Description</th>
                       </tr>
                     </thead>
                     <tbody>

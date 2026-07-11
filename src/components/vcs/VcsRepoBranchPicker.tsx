@@ -154,6 +154,7 @@ export function VcsRepoBranchPicker({ organizationName, browser }: VcsRepoBranch
                   <Input
                     ref={repositorySearchInputRef}
                     placeholder="Search repositories..."
+                    aria-label="Search repositories"
                     value={repositorySearch}
                     onChange={(e) => {
                       setRepositorySearch(e.target.value);

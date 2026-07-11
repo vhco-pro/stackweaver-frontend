@@ -605,6 +605,7 @@ export default function Workspaces() {
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="Search workspaces..."
+            aria-label="Search workspaces"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="pl-10"
@@ -656,11 +657,11 @@ export default function Workspaces() {
             <table className="w-full">
               <thead className="bg-muted/50 border-b border-border/40">
                 <tr>
-                  <th className="text-left px-4 py-3 text-sm font-semibold text-muted-foreground">Workspace Name</th>
-                  <th className="text-left px-4 py-3 text-sm font-semibold text-muted-foreground">Run Status</th>
-                  <th className="text-left px-4 py-3 text-sm font-semibold text-muted-foreground">Repo</th>
-                  <th className="text-left px-4 py-3 text-sm font-semibold text-muted-foreground">Latest Change</th>
-                  <th className="text-right px-4 py-3 text-sm font-semibold text-muted-foreground"></th>
+                  <th scope="col" className="text-left px-4 py-3 text-sm font-semibold text-muted-foreground">Workspace Name</th>
+                  <th scope="col" className="text-left px-4 py-3 text-sm font-semibold text-muted-foreground">Run Status</th>
+                  <th scope="col" className="text-left px-4 py-3 text-sm font-semibold text-muted-foreground">Repo</th>
+                  <th scope="col" className="text-left px-4 py-3 text-sm font-semibold text-muted-foreground">Latest Change</th>
+                  <th scope="col" className="text-right px-4 py-3 text-sm font-semibold text-muted-foreground"></th>
                 </tr>
               </thead>
               <tbody>
@@ -728,7 +729,7 @@ export default function Workspaces() {
                       <div className="flex justify-end">
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-8 w-8">
+                            <Button variant="ghost" size="icon" aria-label="Workspace actions" className="h-8 w-8">
                               <MoreVertical className="h-4 w-4" />
                             </Button>
                           </DropdownMenuTrigger>

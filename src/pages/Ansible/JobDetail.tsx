@@ -769,6 +769,7 @@ export default function JobDetail() {
           <Button
             variant="ghost"
             size="icon"
+            aria-label="Back to jobs"
             className="h-8 w-8"
             onClick={() => { void navigate(`/app/${orgName}/ansible/jobs`); }}
           >
@@ -1017,6 +1018,7 @@ export default function JobDetail() {
               <Search className="h-4 w-4 text-muted-foreground" />
               <Input
                 placeholder="Search output..."
+                aria-label="Search output"
                 value={outputSearch}
                 onChange={(e) => setOutputSearch(e.target.value)}
                 className="h-8 text-sm border-0 bg-transparent focus-visible:ring-0 flex-1"
@@ -1131,6 +1133,7 @@ export default function JobDetail() {
                 <Search className="h-4 w-4 text-muted-foreground" />
                 <Input
                   placeholder="Search tasks..."
+                  aria-label="Search tasks"
                   value={eventSearch}
                   onChange={(e) => setEventSearch(e.target.value)}
                   className="h-8 text-sm border-0 bg-transparent focus-visible:ring-0"
@@ -1304,7 +1307,7 @@ export default function JobDetail() {
                                   {hostName}
                                 </Badge>
                               </div>
-                            ) : (null as any as React.ReactNode)}
+                            ) : null}
                             {/* Show output/result if present */}
                             {hasOutput && (
                               <pre className={cn(

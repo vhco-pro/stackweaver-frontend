@@ -564,6 +564,7 @@ export default function Schedules() {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="Search schedules..."
+            aria-label="Search schedules"
             value={searchQuery}
             onChange={(e) => { setSearchQuery(e.target.value); setSchedPage(1); }}
             className="pl-9"
@@ -675,7 +676,7 @@ export default function Schedules() {
                   <TableCell>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon">
+                        <Button variant="ghost" size="icon" aria-label="Schedule actions">
                           <MoreVertical className="h-4 w-4" />
                         </Button>
                       </DropdownMenuTrigger>

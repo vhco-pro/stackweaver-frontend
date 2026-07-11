@@ -376,6 +376,7 @@ export default function OIDCConfigurations() {
                           <Button
                             variant="ghost"
                             size="icon"
+                            aria-label="Copy value"
                             className="h-5 w-5 shrink-0 text-muted-foreground hover:text-foreground"
                             onClick={() => { copyToClipboard(value, key); }}
                             title={`Copy ${label}`}
@@ -394,18 +395,18 @@ export default function OIDCConfigurations() {
                   <Button
                     variant="ghost"
                     size="icon"
+                    aria-label="Edit configuration"
                     onClick={() => { openEdit(config); }}
                     className="h-8 w-8"
-                    aria-label="Edit configuration"
                   >
                     <Settings2 className="h-4 w-4" />
                   </Button>
                   <Button
                     variant="ghost"
                     size="icon"
+                    aria-label="Delete configuration"
                     onClick={() => { setDeleteConfig(config); }}
                     className="h-8 w-8 text-destructive hover:text-destructive"
-                    aria-label="Delete configuration"
                   >
                     <Trash2 className="h-4 w-4" />
                   </Button>

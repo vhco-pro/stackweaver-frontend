@@ -178,6 +178,7 @@ export function PublicNav({ activeLink = 'home' }: PublicNavProps) {
               <Button
                 variant="ghost"
                 size="icon"
+                aria-label="Toggle theme"
                 className="w-9 h-9 text-slate-700 dark:text-white hover:bg-black/5 dark:hover:bg-white/10 border-none outline-hidden focus-visible:ring-0 focus-visible:ring-offset-0"
               >
                 <Sun className="h-[1.2rem] w-[1.2rem] rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
@@ -230,9 +231,9 @@ export function PublicNav({ activeLink = 'home' }: PublicNavProps) {
           <Button
             variant="ghost"
             size="icon"
+            aria-label="Open menu"
             onClick={() => setMobileMenuOpen(true)}
             className="w-10 h-10 text-slate-700 dark:text-white hover:bg-black/5 dark:hover:bg-white/10 border-none outline-hidden focus-visible:ring-0 focus-visible:ring-offset-0"
-            aria-label="Open menu"
           >
             <Menu className="h-5 w-5" />
           </Button>

@@ -3,6 +3,7 @@
 import { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useParams, Link, useNavigate } from 'react-router-dom';
+import { useMountEffect } from '@/hooks/useMountEffect';
 import { stateVersionsApi } from '@/api/client';
 import { JsonSyntaxHighlighter } from '@/components/code/JsonSyntaxHighlighter';
 import { Button } from '@/components/ui/button';
@@ -146,6 +147,19 @@ export default function StateVersionDetail() {
   
   const [filter, setFilter] = useState('');
   const [isFullscreen, setIsFullscreen] = useState(false);
+  // AUD-134: the fullscreen state view is a custom `fixed inset-0` overlay (not a Radix Dialog),
+  // so Escape doesn't dismiss it. Bind a single document keydown listener on mount (useEffect is
+  // banned). The functional updater exits only when currently fullscreen and otherwise returns the
+  // same value, so React bails out — no ref read during render.
+  useMountEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setIsFullscreen((cur) => (cur ? false : cur));
+      }
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  });
   const [isExpanded, setIsExpanded] = useState(true);
   const [isDiffExpanded, setIsDiffExpanded] = useState(true);
   const [copiedId, setCopiedId] = useState(false);
@@ -423,6 +437,7 @@ export default function StateVersionDetail() {
             <div className="relative">
               <Input
                 placeholder="filter"
+                aria-label="Filter state JSON"
                 value={filter}
                 onChange={(e) => setFilter(e.target.value)}
                 className="w-[200px] h-8 text-sm"

@@ -263,6 +263,7 @@ export default function Jobs() {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="Search jobs..."
+            aria-label="Search jobs"
             value={searchQuery}
             onChange={(e) => { setSearchQuery(e.target.value); setJobsPage(1); }}
             className="pl-9"
@@ -393,6 +394,7 @@ export default function Jobs() {
                         <Button
                           variant="ghost"
                           size="icon"
+                          aria-label="Job actions"
                           className="opacity-0 group-hover:opacity-100 transition-opacity"
                         >
                           <MoreVertical className="h-4 w-4" />

@@ -1239,6 +1239,7 @@ export default function WorkspaceDetail() {
                           <div className="flex items-center gap-2">
                             <Input
                               placeholder="Filter resources by address..."
+                              aria-label="Filter resources by address"
                               className="max-w-sm"
                               value={resourceFilter}
                               onChange={(e) => setResourceFilter(e.target.value)}
@@ -1252,12 +1253,12 @@ export default function WorkspaceDetail() {
                           <table className="w-full">
                             <thead className="bg-muted/50 border-b">
                               <tr>
-                                <th className="text-left px-4 py-3 text-sm font-semibold">NAME</th>
-                                <th className="text-left px-4 py-3 text-sm font-semibold">PROVIDER</th>
-                                <th className="text-left px-4 py-3 text-sm font-semibold">TYPE</th>
-                                <th className="text-left px-4 py-3 text-sm font-semibold">MODULE</th>
-                                <th className="text-left px-4 py-3 text-sm font-semibold">CREATED</th>
-                                <th className="text-right px-4 py-3 text-sm font-semibold">ACTIONS</th>
+                                <th scope="col" className="text-left px-4 py-3 text-sm font-semibold">NAME</th>
+                                <th scope="col" className="text-left px-4 py-3 text-sm font-semibold">PROVIDER</th>
+                                <th scope="col" className="text-left px-4 py-3 text-sm font-semibold">TYPE</th>
+                                <th scope="col" className="text-left px-4 py-3 text-sm font-semibold">MODULE</th>
+                                <th scope="col" className="text-left px-4 py-3 text-sm font-semibold">CREATED</th>
+                                <th scope="col" className="text-right px-4 py-3 text-sm font-semibold">ACTIONS</th>
                               </tr>
                             </thead>
                             <tbody>
@@ -1326,6 +1327,7 @@ export default function WorkspaceDetail() {
                           <div className="flex items-center gap-2">
                             <Input
                               placeholder="Filter data sources by address..."
+                              aria-label="Filter data sources by address"
                               className="max-w-sm"
                               value={resourceFilter}
                               onChange={(e) => setResourceFilter(e.target.value)}
@@ -1339,11 +1341,11 @@ export default function WorkspaceDetail() {
                           <table className="w-full">
                             <thead className="bg-muted/50 border-b">
                               <tr>
-                                <th className="text-left px-4 py-3 text-sm font-semibold">NAME</th>
-                                <th className="text-left px-4 py-3 text-sm font-semibold">PROVIDER</th>
-                                <th className="text-left px-4 py-3 text-sm font-semibold">TYPE</th>
-                                <th className="text-left px-4 py-3 text-sm font-semibold">MODULE</th>
-                                <th className="text-left px-4 py-3 text-sm font-semibold">CREATED</th>
+                                <th scope="col" className="text-left px-4 py-3 text-sm font-semibold">NAME</th>
+                                <th scope="col" className="text-left px-4 py-3 text-sm font-semibold">PROVIDER</th>
+                                <th scope="col" className="text-left px-4 py-3 text-sm font-semibold">TYPE</th>
+                                <th scope="col" className="text-left px-4 py-3 text-sm font-semibold">MODULE</th>
+                                <th scope="col" className="text-left px-4 py-3 text-sm font-semibold">CREATED</th>
                               </tr>
                             </thead>
                             <tbody>
@@ -1393,8 +1395,8 @@ export default function WorkspaceDetail() {
                         <table className="w-full">
                           <thead className="bg-muted/50 border-b">
                             <tr>
-                              <th className="text-left px-4 py-3 text-sm font-semibold">NAME</th>
-                              <th className="text-left px-4 py-3 text-sm font-semibold">VALUE</th>
+                              <th scope="col" className="text-left px-4 py-3 text-sm font-semibold">NAME</th>
+                              <th scope="col" className="text-left px-4 py-3 text-sm font-semibold">VALUE</th>
                             </tr>
                           </thead>
                           <tbody>
@@ -1677,6 +1679,7 @@ export default function WorkspaceDetail() {
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
                   placeholder="Search runs..."
+                  aria-label="Search runs"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="pl-10 w-[200px]"
@@ -1888,9 +1891,9 @@ export default function WorkspaceDetail() {
                         <table className="w-full">
                           <thead className="bg-muted/50 border-b">
                             <tr>
-                              <th className="text-left px-4 py-3 text-sm font-semibold">Key</th>
-                              <th className="text-left px-4 py-3 text-sm font-semibold">Value</th>
-                              <th className="text-left px-4 py-3 text-sm font-semibold">Category</th>
+                              <th scope="col" className="text-left px-4 py-3 text-sm font-semibold">Key</th>
+                              <th scope="col" className="text-left px-4 py-3 text-sm font-semibold">Value</th>
+                              <th scope="col" className="text-left px-4 py-3 text-sm font-semibold">Category</th>
                             </tr>
                           </thead>
                           <tbody>
@@ -1943,10 +1946,10 @@ export default function WorkspaceDetail() {
                 <table className="w-full">
                   <thead className="bg-muted/50 border-b">
                     <tr>
-                      <th className="text-left px-4 py-3 text-sm font-semibold">Key</th>
-                      <th className="text-left px-4 py-3 text-sm font-semibold">Value</th>
-                      <th className="text-left px-4 py-3 text-sm font-semibold">Category</th>
-                      <th className="text-right px-4 py-3 text-sm font-semibold">Actions</th>
+                      <th scope="col" className="text-left px-4 py-3 text-sm font-semibold">Key</th>
+                      <th scope="col" className="text-left px-4 py-3 text-sm font-semibold">Value</th>
+                      <th scope="col" className="text-left px-4 py-3 text-sm font-semibold">Category</th>
+                      <th scope="col" className="text-right px-4 py-3 text-sm font-semibold">Actions</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -2036,8 +2039,8 @@ export default function WorkspaceDetail() {
                       <table className="w-full">
                         <thead className="bg-muted/50 border-b">
                           <tr>
-                            <th className="text-left px-4 py-3 text-sm font-semibold">Key</th>
-                            <th className="text-left px-4 py-3 text-sm font-semibold">Description</th>
+                            <th scope="col" className="text-left px-4 py-3 text-sm font-semibold">Key</th>
+                            <th scope="col" className="text-left px-4 py-3 text-sm font-semibold">Description</th>
                           </tr>
                         </thead>
                         <tbody>

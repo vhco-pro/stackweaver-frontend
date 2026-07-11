@@ -153,6 +153,7 @@ function SyncWarningCard({ title, log }: { title: string; log: string }) {
             <Button
               variant="ghost"
               size="icon"
+              aria-label="Copy to clipboard"
               className="h-6 w-6 text-amber-500 hover:text-amber-600 hover:bg-amber-500/10"
               onClick={() => {
                 void navigator.clipboard.writeText(log).then(() => {
@@ -1069,6 +1070,7 @@ export default function InventoryDetail() {
           <Button
             variant="ghost"
             size="icon"
+            aria-label="Back to inventories"
             onClick={() => { void navigate(`/app/${orgName}/ansible/inventories`); }}
           >
             <ArrowLeft className="h-4 w-4" />
@@ -1517,6 +1519,7 @@ export default function InventoryDetail() {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
               placeholder="Search hosts and groups..."
+              aria-label="Search hosts and groups"
               value={searchQuery}
               onChange={(e) => {
                 setSearchQuery(e.target.value);
@@ -1572,6 +1575,7 @@ export default function InventoryDetail() {
                     <Button
                       variant="ghost"
                       size="icon"
+                      aria-label="Copy error to clipboard"
                       className="h-6 w-6 text-red-500 hover:text-red-600 hover:bg-red-500/10"
                       onClick={() => {
                         void navigator.clipboard.writeText(source.last_sync_error || '').then(() => {
@@ -1695,6 +1699,7 @@ export default function InventoryDetail() {
                     <Button
                       variant="ghost"
                       size="icon"
+                      aria-label="Copy error to clipboard"
                       className="h-6 w-6 text-red-500 hover:text-red-600 hover:bg-red-500/10"
                       onClick={() => {
                         void navigator.clipboard.writeText(inventory.last_sync_error || '').then(() => {
@@ -1858,6 +1863,7 @@ export default function InventoryDetail() {
                         <Button
                           variant="ghost"
                           size="icon"
+                          aria-label="Run command on host"
                           className="h-8 w-8 opacity-0 group-hover:opacity-100"
                           title="Run command on this host"
                           onClick={(e) => {
@@ -1886,6 +1892,7 @@ export default function InventoryDetail() {
                               <Button
                                 variant="ghost"
                                 size="icon"
+                                aria-label="Host actions"
                                 className="h-8 w-8 opacity-0 group-hover:opacity-100"
                                 onClick={(e) => e.stopPropagation()}
                               >
@@ -2086,6 +2093,7 @@ export default function InventoryDetail() {
                               <Button
                                 variant="ghost"
                                 size="icon"
+                                aria-label="Group actions"
                                 className="h-8 w-8 opacity-0 group-hover:opacity-100 shrink-0"
                               >
                                 <MoreVertical className="h-4 w-4" />
@@ -2618,6 +2626,7 @@ export default function InventoryDetail() {
                             <Button
                               variant="ghost"
                               size="icon"
+                              aria-label="Source actions"
                               className="opacity-0 group-hover:opacity-100"
                             >
                               <MoreVertical className="h-4 w-4" />
@@ -2650,6 +2659,7 @@ export default function InventoryDetail() {
                             <Button
                               variant="ghost"
                               size="icon"
+                              aria-label="Copy error to clipboard"
                               className="h-6 w-6 shrink-0 opacity-60 hover:opacity-100"
                               onClick={() => {
                                 void navigator.clipboard.writeText(source.last_sync_error || '');
@@ -2671,6 +2681,7 @@ export default function InventoryDetail() {
                             <Button
                               variant="ghost"
                               size="icon"
+                              aria-label="Copy log to clipboard"
                               className="h-6 w-6 shrink-0 opacity-60 hover:opacity-100"
                               onClick={() => {
                                 void navigator.clipboard.writeText(source.last_sync_log || '');

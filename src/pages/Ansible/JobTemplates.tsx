@@ -374,6 +374,7 @@ export default function JobTemplates() {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="Search job templates..."
+            aria-label="Search job templates"
             value={searchQuery}
             onChange={(e) => { setSearchQuery(e.target.value); setTplPage(1); }}
             className="pl-10"
@@ -451,7 +452,7 @@ export default function JobTemplates() {
                     )}
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon">
+                        <Button variant="ghost" size="icon" aria-label="Job template actions">
                           <MoreVertical className="h-4 w-4" />
                         </Button>
                       </DropdownMenuTrigger>
