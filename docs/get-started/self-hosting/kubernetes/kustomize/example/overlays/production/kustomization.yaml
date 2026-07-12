@@ -10,7 +10,7 @@ namespace: stackweaver
 helmCharts:
   - name: stackweaver
     repo: oci://ghcr.io/vhco-pro/charts
-    version: 0.11.0
+    version: 0.11.4
     releaseName: stackweaver
     namespace: stackweaver
     valuesFile: values.yaml
