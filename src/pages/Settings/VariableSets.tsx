@@ -145,7 +145,7 @@ export default function VariableSets() {
       const newSet = await variableSetsApi.create(orgName, {
         name: variableSetForm.name.trim(),
         description: variableSetForm.description.trim() || undefined,
-        scope: 'organization', // Always organization-scoped (global=false means scoped to specific projects/workspaces, but still org-owned)
+        scope: variableSetForm.global ? 'organization' : 'workspace', // AUD-150: maps to global flag; 'workspace' = non-global (scoped to specific projects/workspaces), still org-owned via parent
         priority: variableSetForm.priority,
         // Parent is always organization when creating from org settings
         parentType: 'organizations',
@@ -246,7 +246,7 @@ export default function VariableSets() {
       await variableSetsApi.update(orgName, selectedVariableSet.id, {
         name: variableSetForm.name.trim(),
         description: variableSetForm.description.trim() || undefined,
-        scope: 'organization', // Always organization-scoped (global=false means scoped to specific projects/workspaces, but still org-owned)
+        scope: variableSetForm.global ? 'organization' : 'workspace', // AUD-150: maps to global flag; 'workspace' = non-global (scoped to specific projects/workspaces), still org-owned via parent
         priority: variableSetForm.priority,
         // Don't send parent - it cannot be changed after creation
       });
@@ -514,11 +514,11 @@ export default function VariableSets() {
                   <TableCell>
                     {variableSet.scope === 'organization' ? (
                       <Badge variant="outline" className="bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20">
-                        Org
+                        Global
                       </Badge>
                     ) : (
                       <Badge variant="outline" className="bg-purple-500/10 text-purple-600 dark:text-purple-300 border-purple-500/20">
-                        Workspace
+                        Scoped
                       </Badge>
                     )}
                   </TableCell>
@@ -526,15 +526,19 @@ export default function VariableSets() {
                     {variableSet.variables ? variableSet.variables.length : 0} var{variableSet.variables?.length !== 1 ? 's' : ''}
                   </TableCell>
                   <TableCell className="text-muted-foreground">
-                    {variableSet.scope === 'organization' ? (
-                      variableSet.projects && variableSet.projects.length > 0
-                        ? `${variableSet.projects.length} project${variableSet.projects.length !== 1 ? 's' : ''}`
-                        : 'All'
-                    ) : (
-                      variableSet.workspaces && variableSet.workspaces.length > 0
-                        ? `${variableSet.workspaces.length} workspace${variableSet.workspaces.length !== 1 ? 's' : ''}`
-                        : 'None'
-                    )}
+                    {(() => {
+                      // AUD-150: scope==='organization' is the client-derived global flag. A global set
+                      // applies to All; a scoped set lists its attached projects and/or workspaces.
+                      const projectCount = variableSet.projects?.length ?? 0;
+                      const workspaceCount = variableSet.workspaces?.length ?? 0;
+                      if (variableSet.scope === 'organization' && projectCount === 0 && workspaceCount === 0) {
+                        return 'All';
+                      }
+                      const parts: string[] = [];
+                      if (projectCount > 0) parts.push(`${projectCount} project${projectCount !== 1 ? 's' : ''}`);
+                      if (workspaceCount > 0) parts.push(`${workspaceCount} workspace${workspaceCount !== 1 ? 's' : ''}`);
+                      return parts.length > 0 ? parts.join(', ') : 'None';
+                    })()}
                   </TableCell>
                   <TableCell className="text-muted-foreground">
                     {variableSet.description || '—'}

@@ -388,28 +388,20 @@ export default function WorkspaceDetail() {
       // Workspace-scoped sets only apply if assigned to this workspace
       let applicableSets = Array.isArray(varSetsRes) ? varSetsRes : [];
       
-      // Filter based on scope and assignments
+      // Filter to the sets that apply to this workspace. AUD-150: the client-side `scope` is derived
+      // from the API `global` flag (scope==='organization' ⇔ global). A global set applies to every
+      // workspace; a non-global org-owned set applies only where its project or the workspace itself is
+      // attached. (Attachments may be absent from the list response — the per-set detail fetch below
+      // re-checks precisely, so keep unloaded candidates here rather than dropping them.)
       applicableSets = applicableSets.filter(vs => {
-        // Organization-scoped: check if it applies to this workspace
         if (vs.scope === 'organization') {
-          // If it has project assignments, check if this workspace's project is included
-          if (vs.projects && Array.isArray(vs.projects) && vs.projects.length > 0) {
-            return vs.projects.some((p: { id?: string }) => p.id === workspaceRes.project_id);
-          }
-          // No project assignments = applies to all workspaces
-          return true;
+          return true; // global — applies to all workspaces
         }
-        // Workspace-scoped: check if assigned to this workspace
-        if (vs.scope === 'workspace') {
-          // If workspaces array is loaded, check if this workspace is in it
-          if (vs.workspaces && Array.isArray(vs.workspaces) && vs.workspaces.length > 0) {
-            return vs.workspaces.some((w: { id?: string }) => w.id === workspaceRes.id);
-          }
-          // If workspaces not loaded in list response, we need to check by loading full details
-          // For now, include all workspace-scoped sets and let the detail loading filter them
-          return true;
-        }
-        return false;
+        const projectMatch = vs.projects?.some((p: { id?: string }) => p.id === workspaceRes.project_id);
+        const workspaceMatch = vs.workspaces?.some((w: { id?: string }) => w.id === workspaceRes.id);
+        const attachmentsNotLoaded =
+          (!vs.projects || vs.projects.length === 0) && (!vs.workspaces || vs.workspaces.length === 0);
+        return Boolean(projectMatch || workspaceMatch || attachmentsNotLoaded);
       });
       
       // Load full details for each variable set to ensure we have variables and correct filtering
@@ -417,13 +409,13 @@ export default function WorkspaceDetail() {
         applicableSets.map(async (vs) => {
           try {
             const fullSet = await variableSetsApi.get(orgName!, vs.id);
-            // Double-check workspace assignment for workspace-scoped sets
-            if (fullSet.scope === 'workspace') {
-              if (fullSet.workspaces && Array.isArray(fullSet.workspaces) && fullSet.workspaces.length > 0) {
-                const isAssigned = fullSet.workspaces.some((w: { id?: string }) => w.id === workspaceRes.id);
-                if (!isAssigned) {
-                  return null; // Filter out if not assigned
-                }
+            // Precise re-check with the fully-loaded attachments. A non-global set (scope!=='organization')
+            // applies only if this workspace's project is attached or the workspace itself is attached.
+            if (fullSet.scope !== 'organization') {
+              const projectMatch = fullSet.projects?.some((p: { id?: string }) => p.id === workspaceRes.project_id);
+              const workspaceMatch = fullSet.workspaces?.some((w: { id?: string }) => w.id === workspaceRes.id);
+              if (!projectMatch && !workspaceMatch) {
+                return null; // does not apply to this workspace
               }
             }
             return fullSet;

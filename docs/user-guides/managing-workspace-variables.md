@@ -66,9 +66,13 @@ Any member of an organization can view its variable sets, but managing them is s
 4. Add variables the same way as workspace variables
 5. Save the set
 
-### Attaching Variable Sets to Workspaces
+### Choosing How a Variable Set Applies
 
-Once created, you can attach a variable set to one or more workspaces:
+An organization-owned variable set can either be **global** or **scoped**. A global variable set applies automatically to every workspace in the organization, which is the right choice for values every workspace needs, such as cloud provider credentials. A scoped variable set applies only where you attach it: to specific projects (in which case it applies to every workspace in those projects) and/or to individual workspaces. Choosing specific projects or workspaces at creation time makes the set scoped rather than global. A project-owned variable set always applies to the workspaces in its owning project.
+
+### Attaching Variable Sets to Projects and Workspaces
+
+You can attach an organization-owned variable set to one or more projects so it applies to every workspace in those projects, and you can attach it to individual workspaces:
 
 1. Open a workspace
 2. Go to the Variables tab
