@@ -384,8 +384,17 @@ export default function Workspaces() {
       }
     }
 
-    return matchesSearch && matchesStatus;
+    // Tag filter — match on an exact effective tag (key=value)
+    const matchesTag = tagFilter === '' || tagFilter === 'all' ||
+      (workspace.tags?.some(t => `${t.key}=${t.value}` === tagFilter) ?? false);
+
+    return matchesSearch && matchesStatus && matchesTag;
   });
+
+  // Distinct effective tags across all workspaces, as sorted "key=value" options for the tag filter.
+  const availableTags = Array.from(
+    new Set(workspaces.flatMap(w => (w.tags ?? []).map(t => `${t.key}=${t.value}`)))
+  ).sort();
 
   // Helper function to determine workspace status category based on latest run
   // This matches the filter logic used in filteredWorkspaces
@@ -617,7 +626,9 @@ export default function Workspaces() {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Tags</SelectItem>
-            {/* TODO: Add tags when implemented */}
+            {availableTags.map(tag => (
+              <SelectItem key={tag} value={tag}>{tag.replace('=', ': ')}</SelectItem>
+            ))}
           </SelectContent>
         </Select>
         <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as StatusFilter)}>
@@ -633,14 +644,14 @@ export default function Workspaces() {
             <SelectItem value="success">Success</SelectItem>
           </SelectContent>
         </Select>
-        {(searchQuery || statusFilter !== 'all' || tagFilter) && (
+        {(searchQuery || statusFilter !== 'all' || (tagFilter && tagFilter !== 'all')) && (
           <Button
             variant="ghost"
             size="sm"
             onClick={() => {
               setSearchQuery('');
               setStatusFilter('all');
-              setTagFilter('');
+              setTagFilter('all');
             }}
             className="gap-2"
           >
