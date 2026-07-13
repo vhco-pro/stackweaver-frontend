@@ -651,6 +651,24 @@ export const workspacesApi = {
     apiClient.post<{ data: JsonApiResource }>(`/workspaces/${workspaceId}/actions/unlock`).then(res => workspaceFromJsonApi(res.data)),
   forceUnlock: (workspaceId: string) =>
     apiClient.post<{ data: JsonApiResource }>(`/workspaces/${workspaceId}/actions/force-unlock`).then(res => workspaceFromJsonApi(res.data)),
+  // TFE tag bindings: a workspace's OWN key/value tags (editable).
+  getTags: (workspaceId: string) =>
+    apiClient.get<{ data: JsonApiResource[] }>(`/workspaces/${encodeURIComponent(workspaceId)}/tag-bindings`).then(res =>
+      (res.data || []).map((t: JsonApiResource) => ({
+        key: String(t.attributes?.['key'] || ''),
+        value: String(t.attributes?.['value'] || ''),
+      }))),
+  setTags: (workspaceId: string, tags: { key: string; value: string }[]) =>
+    apiClient.patch(`/workspaces/${encodeURIComponent(workspaceId)}/tag-bindings`, {
+      data: tags.map(t => ({ type: 'tag-bindings', attributes: { key: t.key, value: t.value } })),
+    }),
+  // Effective tags: own bindings merged with the project's (workspace wins on key conflict).
+  getEffectiveTags: (workspaceId: string) =>
+    apiClient.get<{ data: JsonApiResource[] }>(`/workspaces/${encodeURIComponent(workspaceId)}/effective-tag-bindings`).then(res =>
+      (res.data || []).map((t: JsonApiResource) => ({
+        key: String(t.attributes?.['key'] || ''),
+        value: String(t.attributes?.['value'] || ''),
+      }))),
 };
 
 // Agent Pools (TFE-compatible). See SELF_HOSTED_RUNNERS_DESIGN.md and AGENT_POOLS_IMPLEMENTATION_PLAN.md.
