@@ -21,6 +21,7 @@ import {
 } from '@/utils/ansible-jsonapi';
 import { Button } from '@/components/ui/button';
 import { CreateWorkspaceDialog } from '@/components/workspace/CreateWorkspaceDialog';
+import { ProjectTags } from '@/components/project/ProjectTags';
 import { Plus, FolderKanban, Building2, Loader2, Server, FileCode, Layers, Workflow, Key, ChevronRight, ChevronDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -202,6 +203,9 @@ export default function ProjectDetail() {
           projectId={project?.id}
         />
       )}
+
+      {/* Tags */}
+      {project.id && <ProjectTags projectId={project.id} />}
 
       {/* Resource Sections */}
       <div className="space-y-6">

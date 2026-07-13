@@ -474,6 +474,17 @@ export const projectsApi = {
     }),
   delete: (organizationName: string, projectName: string) =>
     apiClient.delete(`/organizations/${encodeURIComponent(organizationName)}/projects/${encodeURIComponent(projectName)}`),
+  // TFE tag bindings: a project's key/value tags (workspaces inherit these).
+  getTags: (projectId: string) =>
+    apiClient.get<{ data: JsonApiResource[] }>(`/projects/${encodeURIComponent(projectId)}/tag-bindings`).then(res =>
+      (res.data || []).map((t: JsonApiResource) => ({
+        key: String(t.attributes?.['key'] || ''),
+        value: String(t.attributes?.['value'] || ''),
+      }))),
+  setTags: (projectId: string, tags: { key: string; value: string }[]) =>
+    apiClient.patch(`/projects/${encodeURIComponent(projectId)}/tag-bindings`, {
+      data: tags.map(t => ({ type: 'tag-bindings', attributes: { key: t.key, value: t.value } })),
+    }),
 };
 
 // Parse a workspace JSON:API resource into the flat Workspace interface.
