@@ -275,6 +275,9 @@ export interface Workspace {
   run_timeout?: number; // Custom extension: timeout in seconds (default: 7200 = 2 hours)
   created_at: string;
   updated_at: string;
+  // Effective tags (own + inherited from project), populated when the list is fetched with
+  // ?include=effective_tag_bindings. Used for the workspace-list tag filter.
+  tags?: { key: string; value: string }[];
   latest_run?: {
     id: string;
     status: string;
@@ -557,13 +560,27 @@ function workspaceFromJsonApi(item: JsonApiResource, included?: JsonApiResource[
     }
   }
 
+  // Resolve effective tags from included effective-tag-bindings (when ?include=effective_tag_bindings)
+  const effRel = getRelationships(item, 'effective-tag-bindings');
+  if (effRel.length > 0 && included) {
+    const tags: { key: string; value: string }[] = [];
+    for (const link of effRel) {
+      const res = included.find(r => r.id === link.id && r.type === 'effective-tag-bindings');
+      if (res?.attributes) {
+        tags.push({ key: String(res.attributes['key'] || ''), value: String(res.attributes['value'] || '') });
+      }
+    }
+    workspace.tags = tags;
+  }
+
   return workspace;
 }
 
 export const workspacesApi = {
-  // TFE-compatible endpoints — always JSON:API format
+  // TFE-compatible endpoints — always JSON:API format. Request effective tags so the list can offer a
+  // tag filter (own + project-inherited tags per workspace).
   list: (organizationName: string) =>
-    apiClient.get<{ data: JsonApiResource[]; meta: { pagination: { page: number; per_page: number; total: number } }; included?: JsonApiResource[] }>(`/organizations/${encodeURIComponent(organizationName)}/workspaces`).then(res => ({
+    apiClient.get<{ data: JsonApiResource[]; meta: { pagination: { page: number; per_page: number; total: number } }; included?: JsonApiResource[] }>(`/organizations/${encodeURIComponent(organizationName)}/workspaces?include=effective_tag_bindings&page%5Bsize%5D=100`).then(res => ({
       data: (res.data || []).map((item: JsonApiResource) => workspaceFromJsonApi(item, res.included)),
       meta: res.meta,
     })),
