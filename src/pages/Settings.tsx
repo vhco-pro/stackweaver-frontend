@@ -2,7 +2,7 @@
 
 import { Link, useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { User, Bell, Shield, Key, Globe, ArrowRight, GitBranch, Layers, Monitor, KeyRound, Webhook, Users, Cpu, Server, FileText, Tag, Cloud, type LucideIcon } from 'lucide-react';
+import { User, Bell, Shield, Key, Globe, ArrowRight, GitBranch, Layers, Monitor, KeyRound, KeySquare, Webhook, Users, Cpu, Server, FileText, Tag, Cloud, type LucideIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -110,6 +110,13 @@ const orgSettingsSections: SettingsSection[] = [
     icon: Key,
     gradient: 'from-blue-500 to-indigo-500',
     path: '/app/:orgName/settings/api-keys', // Will be replaced with actual orgName
+  },
+  {
+    title: 'Organization Token',
+    description: 'A single org-admin API token for CI and automation (tfe_organization_token)',
+    icon: KeySquare,
+    gradient: 'from-cyan-500 to-blue-500',
+    path: '/app/:orgName/settings/authentication-token', // Will be replaced with actual orgName
   },
   {
     title: 'Terraform Versions',

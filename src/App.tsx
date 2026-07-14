@@ -41,6 +41,7 @@ import DocsViewer from './pages/Docs/DocsViewer';
 import SessionsSettings from './pages/Settings/Sessions';
 import OAuthAuthorize from './pages/OAuthAuthorize';
 import ApiKeysSettings from './pages/Settings/ApiKeys';
+import OrganizationTokenSettings from './pages/Settings/OrganizationTokenSettings';
 import PersonalAccessTokens from './pages/Settings/PersonalAccessTokens';
 import PreferencesSettings from './pages/Settings/Preferences';
 import VCSConnections from './pages/Settings/VCSConnections';
@@ -598,6 +599,18 @@ function AppContent() {
                   <OrganizationGuard>
                     <Layout>
                       <ApiKeysSettings />
+                    </Layout>
+                  </OrganizationGuard>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/app/:orgName/settings/authentication-token"
+              element={
+                <ProtectedRoute>
+                  <OrganizationGuard>
+                    <Layout>
+                      <OrganizationTokenSettings />
                     </Layout>
                   </OrganizationGuard>
                 </ProtectedRoute>
