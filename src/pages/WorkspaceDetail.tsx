@@ -25,6 +25,7 @@ import { RunSourceDisplay } from '@/components/runs/RunSourceDisplay';
 import { ErrorDisplay } from '@/components/runs/ErrorDisplay';
 import { EditWorkspaceDialog } from '@/components/workspace/EditWorkspaceDialog';
 import { WorkspaceTags } from '@/components/workspace/WorkspaceTags';
+import { WorkspaceNotifications } from '@/components/workspace/WorkspaceNotifications';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { StatusBadge } from '@/components/runs/StatusBadge';
@@ -1067,12 +1068,13 @@ export default function WorkspaceDetail() {
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as TabType)}>
-        <TabsList className="grid w-full grid-cols-5">
+        <TabsList className="grid w-full grid-cols-6">
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="runs">Runs</TabsTrigger>
           <TabsTrigger value="states">States</TabsTrigger>
           <TabsTrigger value="variables">Variables</TabsTrigger>
           <TabsTrigger value="tags">Tags</TabsTrigger>
+          <TabsTrigger value="notifications">Notifications</TabsTrigger>
         </TabsList>
 
         {/* Overview Tab */}
@@ -2066,6 +2068,11 @@ export default function WorkspaceDetail() {
         {/* Tags Tab */}
         <TabsContent value="tags" className="space-y-6 mt-6">
           {workspace.id && <WorkspaceTags workspaceId={workspace.id} />}
+        </TabsContent>
+
+        {/* Notifications Tab */}
+        <TabsContent value="notifications" className="space-y-6 mt-6">
+          {workspace.id && <WorkspaceNotifications workspaceId={workspace.id} />}
         </TabsContent>
       </Tabs>
 

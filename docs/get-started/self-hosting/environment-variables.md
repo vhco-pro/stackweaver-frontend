@@ -132,6 +132,7 @@ Existing data written before encryption was enabled stays readable: state files 
 | `ANSIBLE_SCHEDULER_ENABLED` | Enable Ansible job scheduler | `true` |
 | `TERRAFORM_DRIFT_DETECTION_ENABLED` | Enable Terraform drift detection | `true` |
 | `RUNNER_MONITOR_ENABLED` | Enable runner health monitoring | `true` |
+| `STACKWEAVER_NOTIFICATIONS_ALLOW_PRIVATE` | Allow workspace notification webhooks to deliver to internal/private/loopback addresses. Off by default, so notification delivery cannot reach the cloud metadata endpoint or internal services (SSRF guard). Set to `true` only if your notification collectors run on an internal network. Applies to both the API (test deliveries) and the orchestrator (run-event deliveries). | `false` |
 
 ---
 
