@@ -721,6 +721,54 @@ export const workspacesApi = {
       }))),
 };
 
+export interface NotificationConfig {
+  id: string;
+  name: string;
+  destination_type: string;
+  url: string;
+  enabled: boolean;
+  triggers: string[];
+}
+
+function notificationFromJsonApi(item: JsonApiResource): NotificationConfig {
+  const a = item.attributes || {};
+  return {
+    id: item.id,
+    name: String(a['name'] || ''),
+    destination_type: String(a['destination-type'] || ''),
+    url: String(a['url'] || ''),
+    enabled: (a['enabled'] as boolean) ?? true,
+    triggers: (a['triggers'] as string[]) || [],
+  };
+}
+
+// Workspace notification configurations (tfe_notification_configuration). Token is write-only (sent on
+// create/update, never returned).
+export const notificationsApi = {
+  list: (workspaceId: string) =>
+    apiClient.get<{ data: JsonApiResource[] }>(`/workspaces/${encodeURIComponent(workspaceId)}/notification-configurations`)
+      .then(res => (res.data || []).map(notificationFromJsonApi)),
+  create: (workspaceId: string, attrs: { name: string; destination_type: string; url: string; enabled: boolean; triggers: string[]; token?: string }) =>
+    apiClient.post<{ data: JsonApiResource }>(`/workspaces/${encodeURIComponent(workspaceId)}/notification-configurations`, {
+      data: { type: 'notification-configurations', attributes: {
+        name: attrs.name, 'destination-type': attrs.destination_type, url: attrs.url,
+        enabled: attrs.enabled, triggers: attrs.triggers, ...(attrs.token ? { token: attrs.token } : {}),
+      } },
+    }).then(res => notificationFromJsonApi(res.data)),
+  update: (id: string, attrs: Partial<{ name: string; url: string; enabled: boolean; triggers: string[]; token: string }>) =>
+    apiClient.patch<{ data: JsonApiResource }>(`/notification-configurations/${encodeURIComponent(id)}`, {
+      data: { type: 'notification-configurations', attributes: {
+        ...(attrs.name !== undefined ? { name: attrs.name } : {}),
+        ...(attrs.url !== undefined ? { url: attrs.url } : {}),
+        ...(attrs.enabled !== undefined ? { enabled: attrs.enabled } : {}),
+        ...(attrs.triggers !== undefined ? { triggers: attrs.triggers } : {}),
+        ...(attrs.token ? { token: attrs.token } : {}),
+      } },
+    }).then(res => notificationFromJsonApi(res.data)),
+  delete: (id: string) => apiClient.delete(`/notification-configurations/${encodeURIComponent(id)}`),
+  verify: (id: string) => apiClient.post(`/notification-configurations/${encodeURIComponent(id)}/actions/verify`, {}),
+};
+
 // Agent Pools (TFE-compatible). See SELF_HOSTED_RUNNERS_DESIGN.md and AGENT_POOLS_IMPLEMENTATION_PLAN.md.
 export interface AgentPool {
   id: string;
