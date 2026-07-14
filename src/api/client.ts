@@ -392,7 +392,40 @@ export const organizationsApi = {
       .patch<{ data: JsonApiResource }>(`/organizations/${encodeURIComponent(name)}`, data)
       .then(res => organizationFromJsonApi(res.data)),
   delete: (name: string) => apiClient.delete(`/organizations/${encodeURIComponent(name)}`),
+  // Organization authentication token (tfe_organization_token): one per org. getToken resolves to
+  // null when the org has none (404); createToken returns the plaintext once.
+  getToken: (name: string): Promise<OrgToken | null> =>
+    apiClient.get<{ data: JsonApiResource }>(`/organizations/${encodeURIComponent(name)}/authentication-token`)
+      .then(res => orgTokenFromJsonApi(res.data))
+      .catch((err: unknown) => {
+        if ((err as { status?: number }).status === 404) return null;
+        throw err;
+      }),
+  createToken: (name: string) =>
+    apiClient.post<{ data: JsonApiResource }>(`/organizations/${encodeURIComponent(name)}/authentication-token`, {})
+      .then(res => orgTokenFromJsonApi(res.data)),
+  deleteToken: (name: string) =>
+    apiClient.delete(`/organizations/${encodeURIComponent(name)}/authentication-token`),
 };
+
+export interface OrgToken {
+  id: string;
+  token?: string; // only present right after creation
+  created_at?: string;
+  last_used_at?: string;
+  expired_at?: string;
+}
+
+function orgTokenFromJsonApi(item: JsonApiResource): OrgToken {
+  const a = item.attributes || {};
+  return {
+    id: item.id,
+    token: a['token'] ? String(a['token']) : undefined,
+    created_at: a['created-at'] ? String(a['created-at']) : undefined,
+    last_used_at: a['last-used-at'] ? String(a['last-used-at']) : undefined,
+    expired_at: a['expired-at'] ? String(a['expired-at']) : undefined,
+  };
+}
 
 export const projectsApi = {
   list: (organizationName: string) =>
