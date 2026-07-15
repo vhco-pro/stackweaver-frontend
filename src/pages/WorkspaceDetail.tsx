@@ -2072,7 +2072,7 @@ export default function WorkspaceDetail() {
 
         {/* Notifications Tab */}
         <TabsContent value="notifications" className="space-y-6 mt-6">
-          {workspace.id && <WorkspaceNotifications workspaceId={workspace.id} />}
+          {workspace.id && <WorkspaceNotifications scope="workspaces" id={workspace.id} />}
         </TabsContent>
       </Tabs>
 

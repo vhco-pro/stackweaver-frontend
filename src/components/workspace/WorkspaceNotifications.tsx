@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { notificationsApi, type NotificationConfig } from '@/api/client';
+import { notificationsApi, type NotificationConfig, type NotificationScope } from '@/api/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -29,7 +29,7 @@ const DESTINATIONS = [
  * generic/Slack/Teams destinations that fire on run lifecycle events. React Query for data; the token is
  * write-only (sent on create, never displayed).
  */
-export function WorkspaceNotifications({ workspaceId }: { workspaceId: string }) {
+export function WorkspaceNotifications({ scope = 'workspaces', id }: { scope?: NotificationScope; id: string }) {
   const queryClient = useQueryClient();
   const [showForm, setShowForm] = useState(false);
   const [name, setName] = useState('');
@@ -39,15 +39,15 @@ export function WorkspaceNotifications({ workspaceId }: { workspaceId: string })
   const [triggers, setTriggers] = useState<string[]>(['run:completed', 'run:errored']);
 
   const { data: configs = [], isLoading } = useQuery({
-    queryKey: ['notifications', workspaceId],
-    queryFn: () => notificationsApi.list(workspaceId),
-    enabled: !!workspaceId,
+    queryKey: ['notifications', scope, id],
+    queryFn: () => notificationsApi.list(scope, id),
+    enabled: !!id,
   });
 
-  const invalidate = () => queryClient.invalidateQueries({ queryKey: ['notifications', workspaceId] });
+  const invalidate = () => queryClient.invalidateQueries({ queryKey: ['notifications', scope, id] });
 
   const createMutation = useMutation({
-    mutationFn: () => notificationsApi.create(workspaceId, { name, destination_type: destination, url, enabled: true, triggers, token: token || undefined }),
+    mutationFn: () => notificationsApi.create(scope, id, { name, destination_type: destination, url, enabled: true, triggers, token: token || undefined }),
     onSuccess: () => {
       void invalidate();
       setShowForm(false); setName(''); setUrl(''); setToken(''); setDestination('generic'); setTriggers(['run:completed', 'run:errored']);

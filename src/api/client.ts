@@ -744,12 +744,14 @@ function notificationFromJsonApi(item: JsonApiResource): NotificationConfig {
 
 // Workspace notification configurations (tfe_notification_configuration). Token is write-only (sent on
 // create/update, never returned).
+export type NotificationScope = 'workspaces' | 'projects';
+
 export const notificationsApi = {
-  list: (workspaceId: string) =>
-    apiClient.get<{ data: JsonApiResource[] }>(`/workspaces/${encodeURIComponent(workspaceId)}/notification-configurations`)
+  list: (scope: NotificationScope, id: string) =>
+    apiClient.get<{ data: JsonApiResource[] }>(`/${scope}/${encodeURIComponent(id)}/notification-configurations`)
       .then(res => (res.data || []).map(notificationFromJsonApi)),
-  create: (workspaceId: string, attrs: { name: string; destination_type: string; url: string; enabled: boolean; triggers: string[]; token?: string }) =>
-    apiClient.post<{ data: JsonApiResource }>(`/workspaces/${encodeURIComponent(workspaceId)}/notification-configurations`, {
+  create: (scope: NotificationScope, id: string, attrs: { name: string; destination_type: string; url: string; enabled: boolean; triggers: string[]; token?: string }) =>
+    apiClient.post<{ data: JsonApiResource }>(`/${scope}/${encodeURIComponent(id)}/notification-configurations`, {
       data: { type: 'notification-configurations', attributes: {
         name: attrs.name, 'destination-type': attrs.destination_type, url: attrs.url,
         enabled: attrs.enabled, triggers: attrs.triggers, ...(attrs.token ? { token: attrs.token } : {}),
