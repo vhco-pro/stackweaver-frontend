@@ -1,6 +1,7 @@
 // Copyright (c) 2025 VH & Co BV. Licensed under the Business Source License 1.1. See LICENSE for details.
 
 import { useState } from 'react';
+import { cn } from '@/lib/utils';
 import { ansiblePlaybooksApi, type BulkImportResult } from '@/api/ansible';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -125,7 +126,10 @@ export function PlaybookImportWizard({ open, onOpenChange, organizationName, onI
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      {/* flex column with a pinned header/footer: only the middle section (and
+          within it the file list) scrolls, so the title and the Cancel/Import
+          buttons never scroll out of view on long file lists. */}
+      <DialogContent className="max-w-[min(42rem,calc(100vw-2rem))] max-h-[90vh] flex flex-col">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <FolderGit2 className="h-5 w-5" />
@@ -138,7 +142,7 @@ export function PlaybookImportWizard({ open, onOpenChange, organizationName, onI
         </DialogHeader>
 
         {result ? (
-          <div className="space-y-3 py-2">
+          <div className="min-h-0 flex-1 space-y-3 overflow-y-auto py-2">
             <div className="flex gap-2">
               <Badge variant="secondary"><CheckCircle2 className="h-3 w-3 mr-1" />{result.created} created</Badge>
               <Badge variant="outline"><SkipForward className="h-3 w-3 mr-1" />{result.skipped} skipped</Badge>
@@ -148,9 +152,13 @@ export function PlaybookImportWizard({ open, onOpenChange, organizationName, onI
             </div>
             <div className="space-y-1">
               {result.results.map((r) => (
-                <div key={r.path} className="flex items-center justify-between text-sm border rounded-md px-3 py-2">
+                <div key={r.path} className="flex items-center justify-between gap-3 text-sm border rounded-md px-3 py-2">
                   <span className="font-mono truncate">{r.path}</span>
-                  {r.status === 'created' && <Badge variant="secondary">created as “{r.name}”</Badge>}
+                  {r.status === 'created' && (
+                    <Badge variant="secondary" className="min-w-0 max-w-[50%]" title={`created as “${r.name}”`}>
+                      <span className="truncate">created as “{r.name}”</span>
+                    </Badge>
+                  )}
                   {r.status === 'skipped' && <Badge variant="outline">already registered</Badge>}
                   {r.status === 'failed' && (
                     <span className="text-destructive text-xs truncate max-w-[16rem]" title={r.error}>{r.error}</span>
@@ -160,7 +168,7 @@ export function PlaybookImportWizard({ open, onOpenChange, organizationName, onI
             </div>
           </div>
         ) : (
-          <div className="space-y-4 py-2">
+          <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto py-2">
             <VcsRepoBranchPicker organizationName={organizationName} browser={browser} />
 
             {browser.branch && (
@@ -189,7 +197,7 @@ export function PlaybookImportWizard({ open, onOpenChange, organizationName, onI
                   </div>
                 </div>
 
-                <div className="space-y-2">
+                <div className="flex min-h-0 flex-col gap-2">
                   <div className="flex items-center justify-between">
                     <Label>Playbook Files</Label>
                     {importable.length > 0 && (
@@ -204,7 +212,9 @@ export function PlaybookImportWizard({ open, onOpenChange, organizationName, onI
                       Loading playbook files...
                     </div>
                   ) : (
-                    <div className="border rounded-md max-h-[36vh] overflow-y-auto divide-y">
+                    // min-h keeps the list usable when the flex column is squeezed on
+                    // short viewports; skipped for short lists so the box hugs its rows.
+                    <div className={cn('border rounded-md overflow-y-auto divide-y', files.length > 3 && 'min-h-32')}>
                       {files.length === 0 ? (
                         <p className="p-3 text-sm text-muted-foreground">
                           No playbook files found. YAML files inside conventional non-playbook
@@ -223,7 +233,9 @@ export function PlaybookImportWizard({ open, onOpenChange, organizationName, onI
                             />
                             <span className="font-mono truncate flex-1">{f.path}</span>
                             {f.registered && (
-                              <Badge variant="outline" className="shrink-0">registered as “{f.playbook_name}”</Badge>
+                              <Badge variant="outline" className="min-w-0 max-w-[50%]" title={`registered as “${f.playbook_name}”`}>
+                                <span className="truncate">registered as “{f.playbook_name}”</span>
+                              </Badge>
                             )}
                           </label>
                         ))
