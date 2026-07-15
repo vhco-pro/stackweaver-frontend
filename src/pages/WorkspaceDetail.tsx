@@ -26,6 +26,7 @@ import { ErrorDisplay } from '@/components/runs/ErrorDisplay';
 import { EditWorkspaceDialog } from '@/components/workspace/EditWorkspaceDialog';
 import { WorkspaceTags } from '@/components/workspace/WorkspaceTags';
 import { WorkspaceNotifications } from '@/components/workspace/WorkspaceNotifications';
+import { WorkspaceChangeRequests } from '@/components/workspace/WorkspaceChangeRequests';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { StatusBadge } from '@/components/runs/StatusBadge';
@@ -93,7 +94,15 @@ import {
   Checkbox
 } from '@/components/ui/checkbox';
 
-type TabType = 'overview' | 'runs' | 'states' | 'variables';
+// Single source of truth for the tabs. The union and the `?tab=` allowlist are derived from this, so a
+// new tab cannot be deep-linkable in one place and not the other. (They previously drifted: `tags` and
+// `notifications` were added as tabs but never here, so `?tab=tags` silently fell back to overview.)
+const TABS = ['overview', 'runs', 'states', 'variables', 'tags', 'notifications', 'change-requests'] as const;
+type TabType = (typeof TABS)[number];
+
+function isTabType(value: string | null): value is TabType {
+  return value !== null && (TABS as readonly string[]).includes(value);
+}
 
 interface RunCardProps {
   run: Run;
@@ -200,9 +209,7 @@ export default function WorkspaceDetail() {
   // drive `setActiveTab` directly. Avoids set-state-in-effect.
   const [activeTab, setActiveTab] = useState<TabType>(() => {
     const tabParam = searchParams.get('tab');
-    return tabParam && ['overview', 'runs', 'states', 'variables'].includes(tabParam)
-      ? (tabParam as TabType)
-      : 'overview';
+    return isTabType(tabParam) ? tabParam : 'overview';
   });
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
@@ -1068,13 +1075,14 @@ export default function WorkspaceDetail() {
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as TabType)}>
-        <TabsList className="grid w-full grid-cols-6">
+        <TabsList className="grid w-full grid-cols-7">
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="runs">Runs</TabsTrigger>
           <TabsTrigger value="states">States</TabsTrigger>
           <TabsTrigger value="variables">Variables</TabsTrigger>
           <TabsTrigger value="tags">Tags</TabsTrigger>
           <TabsTrigger value="notifications">Notifications</TabsTrigger>
+          <TabsTrigger value="change-requests">Change Requests</TabsTrigger>
         </TabsList>
 
         {/* Overview Tab */}
@@ -2073,6 +2081,11 @@ export default function WorkspaceDetail() {
         {/* Notifications Tab */}
         <TabsContent value="notifications" className="space-y-6 mt-6">
           {workspace.id && <WorkspaceNotifications scope="workspaces" id={workspace.id} />}
+        </TabsContent>
+
+        {/* Change Requests Tab */}
+        <TabsContent value="change-requests" className="space-y-6 mt-6">
+          {workspace.id && orgName && <WorkspaceChangeRequests workspaceId={workspace.id} orgName={orgName} />}
         </TabsContent>
       </Tabs>
 

@@ -742,9 +742,11 @@ function notificationFromJsonApi(item: JsonApiResource): NotificationConfig {
   };
 }
 
-// Workspace notification configurations (tfe_notification_configuration). Token is write-only (sent on
-// create/update, never returned).
-export type NotificationScope = 'workspaces' | 'projects';
+// Notification configurations. Token is write-only (sent on create/update, never returned).
+// Scopes: workspaces (tfe_notification_configuration), projects
+// (tfe_project_notification_configuration), teams (tfe_team_notification_configuration). The scope is
+// interpolated into the collection path; the by-id routes are scope-free.
+export type NotificationScope = 'workspaces' | 'projects' | 'teams';
 
 export const notificationsApi = {
   list: (scope: NotificationScope, id: string) =>
@@ -769,6 +771,73 @@ export const notificationsApi = {
     }).then(res => notificationFromJsonApi(res.data)),
   delete: (id: string) => apiClient.delete(`/notification-configurations/${encodeURIComponent(id)}`),
   verify: (id: string) => apiClient.post(`/notification-configurations/${encodeURIComponent(id)}/actions/verify`, {}),
+};
+
+// Change requests (HCP Terraform's workspace_change_requests): action items an admin files against a
+// workspace and the owning team archives. A request is open while archived_at is null.
+export interface ChangeRequest {
+  id: string;
+  subject: string;
+  message: string;
+  created_by: string;
+  created_at: string;
+  archived_by: string | null;
+  archived_at: string | null;
+  workspace_id: string;
+  /** Only populated by the org-wide list, which preloads the workspace. */
+  workspace_name?: string;
+}
+
+function changeRequestFromJsonApi(item: JsonApiResource): ChangeRequest {
+  const a = item.attributes || {};
+  const ws = getRelationship(item, 'workspace');
+  return {
+    id: item.id,
+    subject: String(a['subject'] || ''),
+    message: String(a['message'] || ''),
+    created_by: String(a['created-by'] || ''),
+    created_at: String(a['created-at'] || ''),
+    archived_by: (a['archived-by'] as string | null) ?? null,
+    archived_at: (a['archived-at'] as string | null) ?? null,
+    workspace_id: ws?.id ?? '',
+    ...(a['workspace-name'] ? { workspace_name: String(a['workspace-name']) } : {}),
+  };
+}
+
+export const changeRequestsApi = {
+  /** A workspace's change requests. Open only unless includeArchived. */
+  list: (workspaceId: string, includeArchived = false) =>
+    apiClient.get<{ data: JsonApiResource[] }>(
+      `/workspaces/${encodeURIComponent(workspaceId)}/change-requests${includeArchived ? '?filter[archived]=true' : ''}`,
+    ).then(res => (res.data || []).map(changeRequestFromJsonApi)),
+
+  /** Every open change request in the org, for the triage view. Not a TFE endpoint. */
+  listByOrg: (orgName: string) =>
+    apiClient.get<{ data: JsonApiResource[] }>(`/organizations/${encodeURIComponent(orgName)}/change-requests?page[size]=100`)
+      .then(res => (res.data || []).map(changeRequestFromJsonApi)),
+
+  /**
+   * Files one request against N workspaces. This is TFE's only documented create path: an Explorer
+   * bulk action. Attribute keys here are snake_case (not our usual kebab-case) because that is how
+   * HashiCorp documents this endpoint.
+   */
+  file: (orgName: string, workspaceIds: string[], subject: string, message: string) =>
+    apiClient.post(`/organizations/${encodeURIComponent(orgName)}/explorer/bulk-actions`, {
+      data: {
+        type: 'bulk_actions',
+        attributes: {
+          action_type: 'change_requests',
+          action_inputs: { subject, message },
+          target_ids: workspaceIds,
+        },
+      },
+    }),
+
+  archive: (id: string) =>
+    apiClient.patch<{ data: JsonApiResource }>(`/workspaces/change-requests/${encodeURIComponent(id)}`, {})
+      .then(res => changeRequestFromJsonApi(res.data)),
+
+  delete: (id: string) => apiClient.delete(`/workspaces/change-requests/${encodeURIComponent(id)}`),
 };
 
 // Agent Pools (TFE-compatible). See SELF_HOSTED_RUNNERS_DESIGN.md and AGENT_POOLS_IMPLEMENTATION_PLAN.md.

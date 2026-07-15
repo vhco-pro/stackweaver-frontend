@@ -9,7 +9,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Bell, Plus, Trash2, Loader2, Send, Webhook } from 'lucide-react';
 import { toast } from 'sonner';
 
-const TRIGGERS = [
+// Triggers are scope-specific, matching the provider: workspace and project configs fire on the run
+// lifecycle, while a team config's ONLY valid trigger is change_request:created. Offering run triggers
+// on a team config would let someone build one that can never fire.
+const RUN_TRIGGERS = [
   { id: 'run:created', label: 'Created' },
   { id: 'run:planning', label: 'Planning' },
   { id: 'run:needs_attention', label: 'Needs attention' },
@@ -18,6 +21,16 @@ const TRIGGERS = [
   { id: 'run:errored', label: 'Errored' },
 ];
 
+const TEAM_TRIGGERS = [{ id: 'change_request:created', label: 'Change request created' }];
+
+function triggersForScope(scope: NotificationScope) {
+  return scope === 'teams' ? TEAM_TRIGGERS : RUN_TRIGGERS;
+}
+
+function defaultTriggersForScope(scope: NotificationScope): string[] {
+  return scope === 'teams' ? ['change_request:created'] : ['run:completed', 'run:errored'];
+}
+
 const DESTINATIONS = [
   { value: 'generic', label: 'Webhook (generic, HMAC-signed)' },
   { value: 'slack', label: 'Slack' },
@@ -25,8 +38,9 @@ const DESTINATIONS = [
 ];
 
 /**
- * WorkspaceNotifications manages a workspace's run-notification configurations (tfe_notification_configuration):
- * generic/Slack/Teams destinations that fire on run lifecycle events. React Query for data; the token is
+ * WorkspaceNotifications manages notification configurations for a workspace, project or team:
+ * generic/Slack/Teams destinations that fire on an event. Workspace and project configs fire on run
+ * lifecycle events; team configs fire on change_request:created. React Query for data; the token is
  * write-only (sent on create, never displayed).
  */
 export function WorkspaceNotifications({ scope = 'workspaces', id }: { scope?: NotificationScope; id: string }) {
@@ -36,7 +50,8 @@ export function WorkspaceNotifications({ scope = 'workspaces', id }: { scope?: N
   const [destination, setDestination] = useState('generic');
   const [url, setUrl] = useState('');
   const [token, setToken] = useState('');
-  const [triggers, setTriggers] = useState<string[]>(['run:completed', 'run:errored']);
+  const [triggers, setTriggers] = useState<string[]>(() => defaultTriggersForScope(scope));
+  const availableTriggers = triggersForScope(scope);
 
   const { data: configs = [], isLoading } = useQuery({
     queryKey: ['notifications', scope, id],
@@ -50,7 +65,7 @@ export function WorkspaceNotifications({ scope = 'workspaces', id }: { scope?: N
     mutationFn: () => notificationsApi.create(scope, id, { name, destination_type: destination, url, enabled: true, triggers, token: token || undefined }),
     onSuccess: () => {
       void invalidate();
-      setShowForm(false); setName(''); setUrl(''); setToken(''); setDestination('generic'); setTriggers(['run:completed', 'run:errored']);
+      setShowForm(false); setName(''); setUrl(''); setToken(''); setDestination('generic'); setTriggers(defaultTriggersForScope(scope));
       toast.success('Notification created');
     },
     onError: (e: unknown) => { toast.error(e instanceof Error ? e.message : 'Failed to create notification'); },
@@ -83,7 +98,11 @@ export function WorkspaceNotifications({ scope = 'workspaces', id }: { scope?: N
           <Bell className="h-5 w-5 text-purple-500" />
           <div>
             <h3 className="text-lg font-semibold">Notifications</h3>
-            <p className="text-sm text-muted-foreground">Send run events to a webhook, Slack, or Microsoft Teams.</p>
+            <p className="text-sm text-muted-foreground">
+              {scope === 'teams'
+                ? 'Notify this team when a change request is filed against a workspace it can access.'
+                : 'Send run events to a webhook, Slack, or Microsoft Teams.'}
+            </p>
           </div>
         </div>
         <Button type="button" size="sm" onClick={() => { setShowForm(v => !v); }} className="gap-1.5">
@@ -121,7 +140,7 @@ export function WorkspaceNotifications({ scope = 'workspaces', id }: { scope?: N
           <div className="space-y-2">
             <Label>Triggers</Label>
             <div className="flex flex-wrap gap-3">
-              {TRIGGERS.map(t => (
+              {availableTriggers.map(t => (
                 <label key={t.id} className="flex items-center gap-2 text-sm cursor-pointer">
                   <Checkbox checked={triggers.includes(t.id)} onCheckedChange={() => { toggleTrigger(t.id); }} />
                   {t.label}

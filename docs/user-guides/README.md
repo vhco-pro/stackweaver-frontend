@@ -23,6 +23,7 @@ Practical, step-by-step guides for using StackWeaver. These guides walk you thro
 
 - **[Understanding Terraform Runs](./understanding-terraform-runs.md)** - Learn how to read plan and apply outputs, understand resource changes, and track run history
 - **[Managing Workspace Variables](./managing-workspace-variables.md)** - Set up and organize variables across workspaces and projects
+- **[Change Requests](./change-requests.md)** - File action items against workspaces so teams know what needs fixing, and archive them once the work is done
 
 ## Ansible Workflows
 

@@ -3,9 +3,10 @@
 // eslint-disable-next-line no-restricted-imports -- legitimate dependency-based effect
 import { useEffect, useState } from 'react';
 import { useMountEffect } from '@/hooks/useMountEffect';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Link, useParams, useNavigate } from 'react-router-dom';
-import { workspacesApi, organizationsApi, projectsApi, type Organization, type Project, type Workspace } from '@/api/client';
+import { workspacesApi, organizationsApi, projectsApi, changeRequestsApi, type Organization, type Project, type Workspace } from '@/api/client';
+import { usePermissions } from '@/hooks/usePermissions';
 import { EditWorkspaceDialog } from '@/components/workspace/EditWorkspaceDialog';
 import { getRunStatus, getRunOperation, getAttribute, type JsonApiResource } from '@/utils/jsonapi';
 import { hasActiveWorkspaceRun, evaluatePendingCreateDialog } from './Workspaces.helpers';
@@ -29,7 +30,8 @@ import {
   Edit,
   Trash2,
   ExternalLink,
-  Lock
+  Lock,
+  ClipboardList
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { getVcsProviderIcon, getVcsRepoUrl } from '@/lib/vcs';
@@ -55,6 +57,8 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { CreateWorkspaceDialog } from '@/components/workspace/CreateWorkspaceDialog';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
 
 type StatusFilter = 'all' | 'needs_attention' | 'errored' | 'running' | 'on_hold' | 'success';
@@ -93,6 +97,16 @@ export default function Workspaces() {
   const [workspaceToEdit, setWorkspaceToEdit] = useState<WorkspaceWithStats | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 20;
+
+  // Filing a change request is a per-workspace action on the row's menu, alongside Edit and Delete.
+  // The API takes target_ids as a list (TFE files one request against many workspaces from its
+  // Explorer), but we have no Explorer and a table full of checkboxes is the wrong price to pay for it,
+  // so we send a single id.
+  const { canManageWorkspaces } = usePermissions(selectedOrg);
+  const [fileDialogOpen, setFileDialogOpen] = useState(false);
+  const [workspaceToFileAgainst, setWorkspaceToFileAgainst] = useState<WorkspaceWithStats | null>(null);
+  const [crSubject, setCrSubject] = useState('');
+  const [crMessage, setCrMessage] = useState('');
 
   // Reopen the Create Workspace dialog after a GitHub OAuth install redirect.
   // The redirect is a full page load (the OAuth flow navigates away and back), so
@@ -395,6 +409,20 @@ export default function Workspaces() {
   const availableTags = Array.from(
     new Set(workspaces.flatMap(w => (w.tags ?? []).map(t => `${t.key}=${t.value}`)))
   ).sort();
+
+  const fileChangeRequest = useMutation({
+    mutationFn: () =>
+      changeRequestsApi.file(selectedOrg, [workspaceToFileAgainst?.id ?? ''], crSubject.trim(), crMessage.trim()),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['changeRequests'] });
+      setFileDialogOpen(false);
+      setCrSubject('');
+      setCrMessage('');
+      setWorkspaceToFileAgainst(null);
+      toast.success('Change request filed');
+    },
+    onError: (e: unknown) => { toast.error(e instanceof Error ? e.message : 'Failed to file change request'); },
+  });
 
   // Helper function to determine workspace status category based on latest run
   // This matches the filter logic used in filteredWorkspaces
@@ -759,6 +787,17 @@ export default function Workspaces() {
                               <Edit className="mr-2 h-4 w-4" />
                               Edit
                             </DropdownMenuItem>
+                            {canManageWorkspaces && (
+                              <DropdownMenuItem
+                                onClick={() => {
+                                  setWorkspaceToFileAgainst(workspace);
+                                  setFileDialogOpen(true);
+                                }}
+                              >
+                                <ClipboardList className="mr-2 h-4 w-4" />
+                                File change request
+                              </DropdownMenuItem>
+                            )}
                             <DropdownMenuItem
                               className="text-destructive"
                               onClick={() => {
@@ -891,6 +930,59 @@ export default function Workspaces() {
           }}
         />
       )}
+
+      {/* File Change Request Dialog — records an action item on the workspace chosen from its row menu. */}
+      <Dialog
+        open={fileDialogOpen}
+        onOpenChange={(open) => {
+          setFileDialogOpen(open);
+          if (!open) setWorkspaceToFileAgainst(null);
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>File a change request</DialogTitle>
+            <DialogDescription>
+              Records an action item on <span className="font-medium text-foreground">{workspaceToFileAgainst?.name}</span>.
+              The teams with access are notified, and a team member archives it once the work is done.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="cr-subject">Subject</Label>
+              <Input
+                id="cr-subject"
+                value={crSubject}
+                onChange={e => { setCrSubject(e.target.value); }}
+                placeholder="e.g. Upgrade the deprecated network module"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="cr-message">Message</Label>
+              <Textarea
+                id="cr-message"
+                value={crMessage}
+                onChange={e => { setCrMessage(e.target.value); }}
+                placeholder="Describe the goal. Markdown is supported."
+                rows={4}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setFileDialogOpen(false); }}>Cancel</Button>
+            <Button
+              className="gap-1.5"
+              disabled={!crSubject.trim() || !workspaceToFileAgainst || fileChangeRequest.isPending}
+              onClick={() => { fileChangeRequest.mutate(); }}
+            >
+              {fileChangeRequest.isPending
+                ? <Loader2 className="h-4 w-4 animate-spin" />
+                : <ClipboardList className="h-4 w-4" />}
+              File request
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Delete Workspace Dialog */}
       <Dialog open={deleteDialogOpen} onOpenChange={(open) => {

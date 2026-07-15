@@ -51,6 +51,8 @@ import AgentPools from './pages/Settings/AgentPools';
 import OIDCConfigurations from './pages/Settings/OIDCConfigurations';
 import TerraformVersions from './pages/Settings/TerraformVersions';
 import Runners from './pages/Settings/Runners';
+import ChangeRequests from './pages/Settings/ChangeRequests';
+import TeamDetail from './pages/Settings/TeamDetail';
 import RunnerDetail from './pages/Settings/RunnerDetail';
 import AnsibleConfiguration from './pages/Settings/AnsibleConfig';
 import Providers from './pages/Providers';
@@ -647,6 +649,30 @@ function AppContent() {
                   <OrganizationGuard>
                     <Layout>
                       <TerraformVersions />
+                    </Layout>
+                  </OrganizationGuard>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/app/:orgName/settings/teams/:teamId"
+              element={
+                <ProtectedRoute>
+                  <OrganizationGuard>
+                    <Layout>
+                      <TeamDetail />
+                    </Layout>
+                  </OrganizationGuard>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/app/:orgName/settings/change-requests"
+              element={
+                <ProtectedRoute>
+                  <OrganizationGuard>
+                    <Layout>
+                      <ChangeRequests />
                     </Layout>
                   </OrganizationGuard>
                 </ProtectedRoute>
