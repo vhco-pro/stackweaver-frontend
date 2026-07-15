@@ -18,7 +18,7 @@ When the job template has an **Azure credential** attached, its service-principa
 
 When the organization has an **Azure OIDC configuration** (the same one used for Terraform runs and dynamic inventory syncs) and no Azure credential is attached, Stackweaver mints a short-lived federated token for the job and injects `AZURE_CLIENT_ID`, `AZURE_TENANT_ID`, `AZURE_TENANT`, `AZURE_SUBSCRIPTION_ID`, `AZURE_FEDERATED_TOKEN`, and `AZURE_FEDERATED_TOKEN_FILE`, along with the `ARM_*` equivalents. The token's subject is `organization:<org>:project:<project>:job:<job-name>:run`, which you register as a federated credential on your Entra App Registration. This works on both platform runners and self-hosted runners.
 
-When the runner itself runs on **AKS with Entra Workload ID**, the webhook-injected pod environment (`AZURE_CLIENT_ID`, `AZURE_TENANT_ID`, `AZURE_FEDERATED_TOKEN_FILE`) is inherited by every playbook process, and the runner bridges `AZURE_TENANT_ID` to the `AZURE_TENANT` name that the Azure collection reads. Nothing needs to be configured in Stackweaver at all.
+When the runner itself runs on **AKS with Entra Workload ID**, the webhook-injected pod environment (`AZURE_CLIENT_ID`, `AZURE_TENANT_ID`, `AZURE_FEDERATED_TOKEN_FILE`) is inherited by every playbook process, and the Azure collection reads `AZURE_TENANT_ID` natively (since `azure.azcollection` 3.20.0 it falls back to that name when the legacy `AZURE_TENANT` is unset). The runner also aliases `AZURE_TENANT_ID` to the legacy `AZURE_TENANT` name at startup, so playbooks whose own Galaxy requirements pin an older collection keep working. Nothing needs to be configured in Stackweaver at all.
 
 ## Azure setup
 
