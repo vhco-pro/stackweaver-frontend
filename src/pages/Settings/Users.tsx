@@ -4,7 +4,7 @@
 import { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Plus, Trash2, Edit, Users as UsersIcon } from 'lucide-react';
+import { ArrowLeft, Plus, Trash2, Edit, Users as UsersIcon, Bell } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -794,6 +794,11 @@ function TeamsTab({ orgName, showCreateDialog, setShowCreateDialog }: { orgName:
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end gap-2">
+                        <Link to={`/app/${orgName}/settings/teams/${team.id}`}>
+                          <Button variant="ghost" size="sm" title="Team notifications" aria-label={`Notifications for ${team.name}`}>
+                            <Bell className="h-4 w-4" />
+                          </Button>
+                        </Link>
                         <Button
                           variant="ghost"
                           size="sm"

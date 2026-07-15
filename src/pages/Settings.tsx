@@ -2,7 +2,8 @@
 
 import { Link, useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { User, Bell, Shield, Key, Globe, ArrowRight, GitBranch, Layers, Monitor, KeyRound, KeySquare, Webhook, Users, Cpu, Server, FileText, Tag, Cloud, type LucideIcon } from 'lucide-react';
+import { User, Bell, Shield, Key, Globe, ArrowRight, GitBranch, Layers, Monitor, KeyRound, KeySquare, Webhook, Users, Cpu, Server, FileText, Tag, Cloud, ClipboardList, type LucideIcon } from 'lucide-react';
+import { usePermissions } from '@/hooks/usePermissions';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -140,6 +141,13 @@ const orgSettingsSections: SettingsSection[] = [
     path: '/app/:orgName/settings/runners',
   },
   {
+    title: 'Change Requests',
+    description: 'Triage open action items filed against workspaces in this organization',
+    icon: ClipboardList,
+    gradient: 'from-rose-500 to-orange-500',
+    path: '/app/:orgName/settings/change-requests',
+  },
+  {
     title: 'Ansible Configuration',
     description: 'Manage ansible.cfg settings for organization and projects',
     icon: FileText,
@@ -154,6 +162,11 @@ export default function Settings() {
 
   // Determine if we're in org context or global context
   const isOrgSettings = !!orgName;
+
+  // Change requests gate on org:manage-workspaces, matching the backend. Read from the effective
+  // permissions hook rather than adding another 403 probe like the queries below: the hook already
+  // fetches the whole permission map in one call, and the probes predate it.
+  const { canManageWorkspaces } = usePermissions(orgName);
 
   // Check permissions via React Query
   const { data: hasManageMembershipAccess = null } = useQuery<boolean | null>({
@@ -211,6 +224,7 @@ export default function Settings() {
           if (section.title === 'Terraform Versions') return hasAdminAccess !== false;
           if (section.title === 'Agent Pools') return hasManageAgentPoolsAccess !== false;
           if (section.title === 'Runners') return hasManageAgentPoolsAccess !== false;
+          if (section.title === 'Change Requests') return canManageWorkspaces;
           return true;
         })
         .map((section: SettingsSection) => ({
