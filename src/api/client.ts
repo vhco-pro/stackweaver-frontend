@@ -187,6 +187,10 @@ export interface Organization {
   default_terraform_version?: string;
   ansible_job_retention_days?: number;
   ansible_adhoc_modules?: string;
+  /** tfe_organization_default_settings: org-wide workspace execution defaults. */
+  default_execution_mode?: 'remote' | 'agent' | 'local';
+  /** Only set when default_execution_mode is 'agent'. Carried as a JSON:API relationship, not an attribute. */
+  default_agent_pool_id?: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -372,6 +376,9 @@ function organizationFromJsonApi(item: JsonApiResource): Organization {
     default_terraform_version: (item.attributes?.['default-terraform-version'] ?? undefined) as string | undefined,
     ansible_job_retention_days: (item.attributes?.['ansible-job-retention-days'] ?? undefined) as number | undefined,
     ansible_adhoc_modules: (item.attributes?.['ansible-adhoc-modules'] ?? undefined) as string | undefined,
+    default_execution_mode: (item.attributes?.['default-execution-mode'] ?? 'remote') as Organization['default_execution_mode'],
+    // The default agent pool is a relationship (matching go-tfe), absent when unset.
+    default_agent_pool_id: (getRelationship(item, 'default-agent-pool')?.id ?? null),
     created_at: (item.attributes?.['created-at'] ?? '') as string,
     updated_at: (item.attributes?.['updated-at'] ?? '') as string,
   };
@@ -392,6 +399,27 @@ export const organizationsApi = {
       .patch<{ data: JsonApiResource }>(`/organizations/${encodeURIComponent(name)}`, data)
       .then(res => organizationFromJsonApi(res.data)),
   delete: (name: string) => apiClient.delete(`/organizations/${encodeURIComponent(name)}`),
+
+  /**
+   * tfe_organization_default_settings: the org-wide workspace execution defaults.
+   *
+   * default-execution-mode is an attribute but the agent pool is a RELATIONSHIP, matching go-tfe's
+   * OrganizationUpdateOptions. Pass poolId null to clear it; switching away from 'agent' clears it
+   * server-side anyway.
+   */
+  updateDefaultSettings: (name: string, mode: 'remote' | 'agent' | 'local', poolId?: string | null) =>
+    apiClient
+      .patch<{ data: JsonApiResource }>(`/organizations/${encodeURIComponent(name)}`, {
+        data: {
+          type: 'organizations',
+          attributes: { 'default-execution-mode': mode },
+          relationships: {
+            'default-agent-pool': { data: poolId ? { id: poolId, type: 'agent-pools' } : null },
+          },
+        },
+      })
+      .then(res => organizationFromJsonApi(res.data)),
+
   // Organization authentication token (tfe_organization_token): one per org. getToken resolves to
   // null when the org has none (404); createToken returns the plaintext once.
   getToken: (name: string): Promise<OrgToken | null> =>

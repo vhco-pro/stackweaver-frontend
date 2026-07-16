@@ -16,6 +16,7 @@ import {
   type AgentPool,
   type Runner,
 } from '@/api/client';
+import { OrgDefaultExecution } from '@/components/settings/OrgDefaultExecution';
 import { toast } from 'sonner';
 import {
   Dialog,
@@ -310,6 +311,9 @@ export default function AgentPools() {
           </div>
         </div>
       </div>
+
+      {/* tfe_organization_default_settings: which pool workspaces default to, beside the pools. */}
+      {orgName && <OrgDefaultExecution orgName={orgName} pools={pools} />}
 
       {loading ? (
         <div className="flex items-center justify-center py-12">

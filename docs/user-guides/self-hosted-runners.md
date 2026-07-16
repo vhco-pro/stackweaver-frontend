@@ -293,6 +293,14 @@ For Terraform, runs are routed to a pool when the workspace uses **agent** execu
 
 Subsequent plan and apply runs for that workspace will be assigned to runners in the selected pool instead of platform-hosted execution.
 
+### Routing every workspace by default
+
+Setting each workspace individually does not scale once you have more than a handful. Instead, set an organization-wide default: open **Settings → Agent Pools** and use the **Default execution** section at the top to choose **Agent** and the pool you want. Every workspace then runs on that pool without being configured, and you only touch the ones that need something different.
+
+Stackweaver resolves execution settings when a run starts, taking the most specific setting that applies. A workspace with its own execution mode always wins. Otherwise the workspace's project decides, if the project set its own defaults. Only when neither has expressed a preference does the organization default apply. A project that has deliberately chosen a non-agent mode is respected, so it will not be pulled onto agents by an organization default.
+
+The same settings are available to Terraform configuration through the `tfe_organization_default_settings` resource, so you can manage them alongside the rest of your platform.
+
 ### Ansible jobs
 
 For Ansible, job routing is typically controlled at the project or organization level via the agent pool configuration. Ensure the agent pool’s allowed workspaces or projects include the workspaces or projects where your Ansible jobs run. Jobs in those scopes will then be eligible to run on runners in that pool.
