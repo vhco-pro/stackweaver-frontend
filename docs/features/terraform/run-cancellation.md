@@ -7,7 +7,7 @@ covers:
 
 # Run Cancellation
 
-StackWeaver allows you to cancel runs that are in progress, whether they're still queued, planning, or applying infrastructure changes.
+StackWeaver allows you to cancel runs that are in progress, whether they're still queued, planning, applying infrastructure changes, or waiting on run task stages (external checks at plan/apply boundaries). Cancelling a run that is waiting on run tasks also cancels its outstanding task stages and results, so a late verdict from the external service cannot resurrect it.
 
 ## When Can Runs Be Cancelled?
 

@@ -52,6 +52,7 @@ import OIDCConfigurations from './pages/Settings/OIDCConfigurations';
 import TerraformVersions from './pages/Settings/TerraformVersions';
 import Runners from './pages/Settings/Runners';
 import ChangeRequests from './pages/Settings/ChangeRequests';
+import RunTasks from './pages/Settings/RunTasks';
 import TeamDetail from './pages/Settings/TeamDetail';
 import RunnerDetail from './pages/Settings/RunnerDetail';
 import AnsibleConfiguration from './pages/Settings/AnsibleConfig';
@@ -673,6 +674,18 @@ function AppContent() {
                   <OrganizationGuard>
                     <Layout>
                       <ChangeRequests />
+                    </Layout>
+                  </OrganizationGuard>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/app/:orgName/settings/run-tasks"
+              element={
+                <ProtectedRoute>
+                  <OrganizationGuard>
+                    <Layout>
+                      <RunTasks />
                     </Layout>
                   </OrganizationGuard>
                 </ProtectedRoute>

@@ -67,6 +67,10 @@ Sometimes you just want to see what would change without applying:
 > [!TIP]
 > Plan-only runs are safe - they never modify your infrastructure.
 
+### Run Task Stages
+
+If the workspace has run tasks attached (external checks such as security scanners or cost gates), the run pauses at their configured stage boundaries and the run page shows each stage with its per-task results. An advisory task's failure is informational and the run continues; a mandatory task's failure holds the run until someone with apply permissions overrides it from the run page. See the [Run Tasks guide](run-tasks.md) for setting them up.
+
 ## Understanding Apply Output
 
 Applies actually make the changes. The output is similar to plans but shows real-time progress.

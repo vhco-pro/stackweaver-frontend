@@ -47,6 +47,12 @@ const statusConfig: Record<DisplayStatus, {
     icon: CheckCircle2,
     spinning: false,
   },
+  'tasks-running': {
+    label: 'Tasks running',
+    className: 'bg-purple-500/10 text-purple-600 dark:text-purple-400',
+    icon: Loader2,
+    spinning: true,
+  },
   applying: {
     label: 'Applying',
     className: 'bg-blue-500/10 text-blue-600 dark:text-blue-400',

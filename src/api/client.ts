@@ -312,7 +312,11 @@ export interface Run {
   created_by?: string;
   // TFE-compatible statuses: pending, planning, planned, applying, applied, failed, canceled
   // Legacy: running, completed (for backward compatibility)
-  status: 'pending' | 'planning' | 'planned' | 'applying' | 'applied' | 'failed' | 'canceled' | 'running' | 'completed';
+  status:
+    | 'pending' | 'planning' | 'planned' | 'applying' | 'applied' | 'failed' | 'canceled' | 'running' | 'completed'
+    // Run-task stage statuses: entered only when the run has task stages at that boundary.
+    | 'pre_plan_running' | 'pre_plan_completed' | 'post_plan_running' | 'post_plan_completed'
+    | 'pre_apply_running' | 'post_apply_running' | 'post_apply_completed';
   // TFE-compatible operations: plan-only, plan-and-apply, destroy
   // Legacy: plan, apply (for backward compatibility)
   operation: 'plan-only' | 'plan-and-apply' | 'destroy' | 'plan' | 'apply';
@@ -986,6 +990,273 @@ export const agentPoolsApi = {
   delete: (id: string) => apiClient.delete(`/agent-pools/${id}`),
   listAgents: (id: string) =>
     apiClient.get<{ data: unknown[]; meta: { pagination: { 'current-page': number; 'page-size': number; 'total-count': number } } }>(`/agent-pools/${id}/agents`),
+};
+
+// ============ Run Tasks (tfe_organization_run_task family) ============
+
+export type TaskStageName = 'pre_plan' | 'post_plan' | 'pre_apply' | 'post_apply';
+export type TaskEnforcementLevel = 'advisory' | 'mandatory';
+
+export interface RunTask {
+  id: string;
+  name: string;
+  url: string;
+  description: string;
+  category: string;
+  enabled: boolean;
+  global_enabled: boolean;
+  global_stages: TaskStageName[];
+  global_enforcement_level: TaskEnforcementLevel | '';
+  workspace_task_count: number;
+  created_at: string;
+}
+
+export interface WorkspaceRunTask {
+  id: string;
+  workspace_id: string;
+  task_id: string;
+  task_name: string;
+  enforcement_level: TaskEnforcementLevel;
+  stages: TaskStageName[];
+  created_at: string;
+}
+
+export interface TaskResultOutcomeTag {
+  label: string;
+  level?: 'none' | 'info' | 'warning' | 'error';
+}
+
+export interface TaskResultOutcome {
+  id: string;
+  outcome_id: string;
+  description: string;
+  body: string;
+  url: string;
+  tags: Record<string, TaskResultOutcomeTag[]>;
+}
+
+export interface TaskResult {
+  id: string;
+  status: 'pending' | 'running' | 'passed' | 'failed' | 'errored' | 'canceled' | 'unreachable';
+  message: string;
+  url: string;
+  task_name: string;
+  enforcement_level: TaskEnforcementLevel;
+}
+
+export interface TaskStage {
+  id: string;
+  stage: TaskStageName;
+  status: 'pending' | 'running' | 'passed' | 'failed' | 'awaiting_override' | 'canceled' | 'errored' | 'unreachable';
+  is_overridable: boolean;
+  can_override: boolean;
+  created_at: string;
+  results: TaskResult[];
+}
+
+function runTaskFromJsonApi(item: JsonApiResource): RunTask {
+  const global = (item.attributes?.['global-configuration'] as Record<string, unknown> | undefined) ?? {};
+  const wsTasks = item.relationships?.['workspace-tasks']?.data;
+  return {
+    id: item.id,
+    name: (item.attributes?.name as string) ?? '',
+    url: (item.attributes?.url as string) ?? '',
+    description: (item.attributes?.description as string) ?? '',
+    category: (item.attributes?.category as string) ?? 'task',
+    enabled: (item.attributes?.enabled as boolean) ?? true,
+    global_enabled: (global.enabled as boolean) ?? false,
+    global_stages: (global.stages as TaskStageName[]) ?? [],
+    global_enforcement_level: (global['enforcement-level'] as TaskEnforcementLevel) ?? '',
+    workspace_task_count: Array.isArray(wsTasks) ? wsTasks.length : 0,
+    created_at: (item.attributes?.['created-at'] as string) ?? '',
+  };
+}
+
+function workspaceRunTaskFromJsonApi(item: JsonApiResource, taskNames?: Map<string, string>): WorkspaceRunTask {
+  const taskRel = item.relationships?.task?.data as { id: string } | undefined;
+  const wsRel = item.relationships?.workspace?.data as { id: string } | undefined;
+  const taskId = taskRel?.id ?? '';
+  return {
+    id: item.id,
+    workspace_id: wsRel?.id ?? '',
+    task_id: taskId,
+    task_name: taskNames?.get(taskId) ?? '',
+    enforcement_level: (item.attributes?.['enforcement-level'] as TaskEnforcementLevel) ?? 'advisory',
+    stages: (item.attributes?.stages as TaskStageName[]) ?? [],
+    created_at: (item.attributes?.['created-at'] as string) ?? '',
+  };
+}
+
+function taskResultFromJsonApi(item: JsonApiResource): TaskResult {
+  return {
+    id: item.id,
+    status: (item.attributes?.status as TaskResult['status']) ?? 'pending',
+    message: (item.attributes?.message as string) ?? '',
+    url: (item.attributes?.url as string) ?? '',
+    task_name: (item.attributes?.['task-name'] as string) ?? '',
+    enforcement_level: (item.attributes?.['workspace-task-enforcement-level'] as TaskEnforcementLevel) ?? 'advisory',
+  };
+}
+
+function taskStageFromJsonApi(item: JsonApiResource, included?: JsonApiResource[]): TaskStage {
+  const actions = (item.attributes?.actions as Record<string, unknown> | undefined) ?? {};
+  const permissions = (item.attributes?.permissions as Record<string, unknown> | undefined) ?? {};
+  const resultRefs = (item.relationships?.['task-results']?.data as Array<{ id: string }> | undefined) ?? [];
+  const byId = new Map((included ?? []).filter(i => i.type === 'task-results').map(i => [i.id, i]));
+  return {
+    id: item.id,
+    stage: (item.attributes?.stage as TaskStageName) ?? 'post_plan',
+    status: (item.attributes?.status as TaskStage['status']) ?? 'pending',
+    is_overridable: (actions['is-overridable'] as boolean) ?? false,
+    can_override: (permissions['can-override'] as boolean) ?? false,
+    created_at: (item.attributes?.['created-at'] as string) ?? '',
+    results: resultRefs
+      .map(r => byId.get(r.id))
+      .filter((r): r is JsonApiResource => r !== undefined)
+      .map(taskResultFromJsonApi),
+  };
+}
+
+export const runTasksApi = {
+  // Organization run tasks (task definitions).
+  list: (organizationName: string, opts?: { page?: number; pageSize?: number }) => {
+    const params = new URLSearchParams();
+    if (opts?.page != null) params.append('page[number]', String(opts.page));
+    if (opts?.pageSize != null) params.append('page[size]', String(opts.pageSize));
+    const query = params.toString() ? `?${params.toString()}` : '';
+    return apiClient
+      .get<{ data: JsonApiResource[]; meta: { pagination: { 'current-page': number; 'page-size': number; 'total-count': number } } }>(
+        `/organizations/${encodeURIComponent(organizationName)}/tasks${query}`
+      )
+      .then(res => ({ data: (res.data || []).map(runTaskFromJsonApi), meta: res.meta }));
+  },
+  create: (
+    organizationName: string,
+    data: { name: string; url: string; description?: string; hmac_key?: string; enabled?: boolean }
+  ) =>
+    apiClient
+      .post<{ data: JsonApiResource }>(`/organizations/${encodeURIComponent(organizationName)}/tasks`, {
+        data: {
+          type: 'tasks',
+          attributes: {
+            name: data.name,
+            url: data.url,
+            description: data.description ?? '',
+            category: 'task',
+            ...(data.hmac_key ? { 'hmac-key': data.hmac_key } : {}),
+            ...(data.enabled !== undefined ? { enabled: data.enabled } : {}),
+          },
+        },
+      })
+      .then(res => runTaskFromJsonApi(res.data)),
+  update: (
+    id: string,
+    data: {
+      name?: string;
+      url?: string;
+      description?: string;
+      hmac_key?: string;
+      enabled?: boolean;
+      global?: { enabled: boolean; stages?: TaskStageName[]; enforcement_level?: TaskEnforcementLevel };
+    }
+  ) => {
+    const attributes: Record<string, unknown> = {};
+    if (data.name !== undefined) attributes.name = data.name;
+    if (data.url !== undefined) attributes.url = data.url;
+    if (data.description !== undefined) attributes.description = data.description;
+    if (data.hmac_key !== undefined) attributes['hmac-key'] = data.hmac_key;
+    if (data.enabled !== undefined) attributes.enabled = data.enabled;
+    if (data.global !== undefined) {
+      attributes['global-configuration'] = {
+        enabled: data.global.enabled,
+        ...(data.global.stages ? { stages: data.global.stages } : {}),
+        ...(data.global.enforcement_level ? { 'enforcement-level': data.global.enforcement_level } : {}),
+      };
+    }
+    return apiClient
+      .patch<{ data: JsonApiResource }>(`/tasks/${encodeURIComponent(id)}`, { data: { type: 'tasks', id, attributes } })
+      .then(res => runTaskFromJsonApi(res.data));
+  },
+  delete: (id: string) => apiClient.delete(`/tasks/${encodeURIComponent(id)}`),
+
+  // Workspace attachments.
+  listForWorkspace: (workspaceId: string) =>
+    apiClient
+      .get<{ data: JsonApiResource[] }>(`/workspaces/${encodeURIComponent(workspaceId)}/tasks`)
+      .then(res => (res.data || []).map(item => workspaceRunTaskFromJsonApi(item))),
+  attach: (
+    workspaceId: string,
+    data: { task_id: string; enforcement_level: TaskEnforcementLevel; stages: TaskStageName[] }
+  ) =>
+    apiClient
+      .post<{ data: JsonApiResource }>(`/workspaces/${encodeURIComponent(workspaceId)}/tasks`, {
+        data: {
+          type: 'workspace-tasks',
+          attributes: { 'enforcement-level': data.enforcement_level, stages: data.stages },
+          relationships: { task: { data: { id: data.task_id, type: 'tasks' } } },
+        },
+      })
+      .then(res => workspaceRunTaskFromJsonApi(res.data)),
+  updateAttachment: (
+    workspaceId: string,
+    attachmentId: string,
+    data: { enforcement_level?: TaskEnforcementLevel; stages?: TaskStageName[] }
+  ) =>
+    apiClient
+      .patch<{ data: JsonApiResource }>(
+        `/workspaces/${encodeURIComponent(workspaceId)}/tasks/${encodeURIComponent(attachmentId)}`,
+        {
+          data: {
+            type: 'workspace-tasks',
+            id: attachmentId,
+            attributes: {
+              ...(data.enforcement_level ? { 'enforcement-level': data.enforcement_level } : {}),
+              ...(data.stages ? { stages: data.stages } : {}),
+            },
+          },
+        }
+      )
+      .then(res => workspaceRunTaskFromJsonApi(res.data)),
+  detach: (workspaceId: string, attachmentId: string) =>
+    apiClient.delete(`/workspaces/${encodeURIComponent(workspaceId)}/tasks/${encodeURIComponent(attachmentId)}`),
+
+  // Run timeline: a run's task stages with their results, and the override action.
+  listStagesForRun: (runId: string) =>
+    apiClient
+      .get<{ data: JsonApiResource[] }>(`/runs/${encodeURIComponent(runId)}/task-stages`)
+      .then(async res => {
+        const stages = res.data || [];
+        // Stage results come from the by-id read (?include=task_results); fetch each stage that
+        // has results so the timeline can render them.
+        const detailed = await Promise.all(
+          stages.map(s =>
+            apiClient
+              .get<{ data: JsonApiResource; included?: JsonApiResource[] }>(
+                `/task-stages/${encodeURIComponent(s.id)}?include=task_results`
+              )
+              .then(d => taskStageFromJsonApi(d.data, d.included))
+          )
+        );
+        return detailed;
+      }),
+  listOutcomes: (taskResultId: string) =>
+    apiClient
+      .get<{ data: JsonApiResource[] }>(`/task-results/${encodeURIComponent(taskResultId)}/outcomes`)
+      .then(res =>
+        (res.data || []).map((item): TaskResultOutcome => ({
+          id: item.id,
+          outcome_id: (item.attributes?.['outcome-id'] as string) ?? '',
+          description: (item.attributes?.description as string) ?? '',
+          body: (item.attributes?.body as string) ?? '',
+          url: (item.attributes?.url as string) ?? '',
+          tags: (item.attributes?.tags as Record<string, TaskResultOutcomeTag[]>) ?? {},
+        }))
+      ),
+  overrideStage: (stageId: string, comment?: string) =>
+    apiClient.post<{ data: JsonApiResource }>(
+      `/task-stages/${encodeURIComponent(stageId)}/actions/override`,
+      comment ? { comment } : {}
+    ),
 };
 
 // ======================

@@ -10,6 +10,7 @@ import { OutputViewer } from '@/components/runs/OutputViewer';
 import { ApplyOutputViewer } from '@/components/runs/ApplyOutputViewer';
 import { RunSourceDisplay } from '@/components/runs/RunSourceDisplay';
 import { UnifiedPhaseTimeline } from '@/components/runs/UnifiedPhaseTimeline';
+import { RunTaskStages } from '@/components/runs/RunTaskStages';
 import { ErrorDisplay } from '@/components/runs/ErrorDisplay';
 import { WarningDisplay } from '@/components/runs/WarningDisplay';
 import { useRunPolling } from '@/hooks/useRunPolling';
@@ -342,7 +343,8 @@ export default function RunDetail() {
   }
 
   // TFE-compatible: Handle new statuses and operation types
-  const canCancel = run.status === 'pending' || run.status === 'planning' || run.status === 'applying' || run.status === 'running';
+  const canCancel = run.status === 'pending' || run.status === 'planning' || run.status === 'applying' || run.status === 'running' ||
+    run.status.endsWith('_running'); // run-task stages are cancellable too
 
   // TFE-compatible: Use permissions.can-apply from API response (backend is source of truth)
   // For plan-and-apply runs: can-apply is true when plan phase is completed (status="planned")
@@ -353,7 +355,7 @@ export default function RunDetail() {
   // Can discard plan-and-apply and destroy runs that are in "planned" status (plan phase completed, waiting for confirmation)
   // Hide discard button if plan has been applied (status="applying" or "applied")
   const canDiscard = (run.operation === 'plan-and-apply' || run.operation === 'destroy')
-    && (run.status === 'planned' || run.status === 'completed')
+    && (run.status === 'planned' || run.status === 'completed' || run.status === 'post_plan_completed')
     && !run.error_message
     && run.permissions?.['can-apply'] === true; // Only show if can still be applied
 
@@ -585,6 +587,9 @@ export default function RunDetail() {
         />
 
         {/* Unified Phase Timeline */}
+        {/* Run-task stage gates (renders nothing for runs without task stages) */}
+        {id && <RunTaskStages runId={id} runStatus={run.status} />}
+
         <UnifiedPhaseTimeline
           run={run}
           planOutput={planOutput}

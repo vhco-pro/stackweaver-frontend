@@ -2,7 +2,7 @@
 
 import { Link, useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { User, Bell, Shield, Key, Globe, ArrowRight, GitBranch, Layers, Monitor, KeyRound, KeySquare, Webhook, Users, Cpu, Server, FileText, Tag, Cloud, ClipboardList, type LucideIcon } from 'lucide-react';
+import { User, Bell, Shield, Key, Globe, ArrowRight, GitBranch, Layers, Monitor, KeyRound, KeySquare, Webhook, Users, Cpu, Server, FileText, Tag, Cloud, ClipboardList, Zap, type LucideIcon } from 'lucide-react';
 import { usePermissions } from '@/hooks/usePermissions';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
@@ -148,6 +148,13 @@ const orgSettingsSections: SettingsSection[] = [
     path: '/app/:orgName/settings/change-requests',
   },
   {
+    title: 'Run Tasks',
+    description: 'External services that validate runs at stage boundaries',
+    icon: Zap,
+    gradient: 'from-amber-500 to-orange-500',
+    path: '/app/:orgName/settings/run-tasks',
+  },
+  {
     title: 'Ansible Configuration',
     description: 'Manage ansible.cfg settings for organization and projects',
     icon: FileText,
@@ -225,6 +232,7 @@ export default function Settings() {
           if (section.title === 'Agent Pools') return hasManageAgentPoolsAccess !== false;
           if (section.title === 'Runners') return hasManageAgentPoolsAccess !== false;
           if (section.title === 'Change Requests') return canManageWorkspaces;
+          if (section.title === 'Run Tasks') return canManageWorkspaces;
           return true;
         })
         .map((section: SettingsSection) => ({

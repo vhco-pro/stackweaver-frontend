@@ -23,17 +23,18 @@ export interface RunStatusInput {
   canApply?: boolean;
 }
 
-export type DisplayStatus = 
-  | 'pending' 
-  | 'planning' 
-  | 'planned' 
-  | 'applying' 
-  | 'applied' 
-  | 'finished' 
-  | 'errored' 
-  | 'cancelled' 
-  | 'running' 
+export type DisplayStatus =
+  | 'pending'
+  | 'planning'
+  | 'planned'
+  | 'applying'
+  | 'applied'
+  | 'finished'
+  | 'errored'
+  | 'cancelled'
+  | 'running'
   | 'destroyed'
+  | 'tasks-running'
   | 'no-runs';
 
 /**
@@ -59,8 +60,22 @@ export function computeDisplayStatus(input: RunStatusInput): DisplayStatus {
   if (status === 'planning') return 'planning';
   if (status === 'applying') return 'applying';
   if (status === 'running') return 'running';
-  
-  if (status === 'planned') {
+
+  // Run-task stage statuses (run tasks executing at a stage boundary). pre_plan_completed is
+  // dispatchable like pending; post_plan_completed is the confirmable rest state, semantically
+  // `planned` (falls through to the planned branch below).
+  if (
+    status === 'pre_plan_running' ||
+    status === 'post_plan_running' ||
+    status === 'pre_apply_running' ||
+    status === 'post_apply_running'
+  ) {
+    return 'tasks-running';
+  }
+  if (status === 'pre_plan_completed') return 'pending';
+  if (status === 'post_apply_completed') return 'applying';
+
+  if (status === 'planned' || status === 'post_plan_completed') {
     if (operation === 'plan-only' || planOnly) {
       return 'finished'; // Plan-only: cannot be applied
     }
