@@ -992,6 +992,39 @@ export const agentPoolsApi = {
     apiClient.get<{ data: unknown[]; meta: { pagination: { 'current-page': number; 'page-size': number; 'total-count': number } } }>(`/agent-pools/${id}/agents`),
 };
 
+// Agent (pool) tokens (tfe_agent_token): pool-scoped registration credentials. A pool may have many;
+// createToken returns the plaintext once. Read/delete are by token id at /authentication-tokens/:id.
+export interface AgentToken {
+  id: string;
+  token?: string; // only present right after creation
+  description?: string;
+  created_at?: string;
+  last_used_at?: string;
+}
+
+function agentTokenFromJsonApi(item: JsonApiResource): AgentToken {
+  const a = item.attributes || {};
+  return {
+    id: item.id,
+    token: a['token'] ? String(a['token']) : undefined,
+    description: a['description'] ? String(a['description']) : '',
+    created_at: a['created-at'] ? String(a['created-at']) : undefined,
+    last_used_at: a['last-used-at'] ? String(a['last-used-at']) : undefined,
+  };
+}
+
+export const agentTokensApi = {
+  list: (poolId: string): Promise<AgentToken[]> =>
+    apiClient.get<{ data: JsonApiResource[] }>(`/agent-pools/${poolId}/authentication-tokens`)
+      .then(res => (res.data || []).map(agentTokenFromJsonApi)),
+  create: (poolId: string, description: string) =>
+    apiClient.post<{ data: JsonApiResource }>(`/agent-pools/${poolId}/authentication-tokens`, {
+      data: { type: 'authentication-tokens', attributes: { description } },
+    }).then(res => agentTokenFromJsonApi(res.data)),
+  delete: (tokenId: string) =>
+    apiClient.delete(`/authentication-tokens/${tokenId}`),
+};
+
 // ============ Run Tasks (tfe_organization_run_task family) ============
 
 export type TaskStageName = 'pre_plan' | 'post_plan' | 'pre_apply' | 'post_apply';

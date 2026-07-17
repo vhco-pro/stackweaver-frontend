@@ -105,6 +105,9 @@ Runners authenticate using the same API key system as the rest of StackWeaver. Y
 
 Use this token only when starting the runner container. Do not commit it to source control or share it broadly. You can revoke the key at any time in Settings > API Keys. Because each runner switches to its own runner-scoped token after registration, revoking the registration key does not interrupt runners that are already registered — they keep receiving jobs until they restart, at which point they need a valid registration key to register again.
 
+> [!TIP]
+> **Pool-scoped agent tokens.** Instead of a general runner-scoped API key, you can create an agent token directly on a pool: expand the pool on the **Settings > Agent Pools** page and use its **Agent tokens** section (create with a description, copy the value once, revoke when done). An agent token is a registration credential **bound to that one pool** — a runner presenting it can only join that pool — so it is the safest way to hand out registration access per environment. This is the Terraform-compatible `tfe_agent_token` resource, so you can also manage these tokens with the `hashicorp/tfe` provider. Everything below works the same whichever kind of registration token you use.
+
 ---
 
 ## Step 3: Run the Runner

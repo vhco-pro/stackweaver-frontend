@@ -34,6 +34,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
+import { AgentPoolTokens } from '@/components/settings/AgentPoolTokens';
 import { cn } from '@/lib/utils';
 
 export default function AgentPools() {
@@ -498,6 +499,10 @@ export default function AgentPools() {
                           </table>
                         </div>
                       )}
+                      {/* Agent tokens (tfe_agent_token): credentials agents present to register into this pool */}
+                      <div className="border-t border-white/10 dark:border-white/5">
+                        <AgentPoolTokens poolId={pool.id} />
+                      </div>
                     </div>
                   )}
                 </div>
