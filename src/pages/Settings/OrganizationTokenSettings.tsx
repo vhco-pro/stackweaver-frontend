@@ -41,6 +41,24 @@ export default function OrganizationTokenSettings() {
       </div>
 
       {orgName && <OrganizationToken orgName={orgName} />}
+
+      {/* Audit trail token (tfe_audit_trail_token): a distinct, read-only singleton for the org's
+          audit surface. Shares the endpoint via ?token=audit-trails and coexists with the org token. */}
+      <div className="pt-4 border-t border-white/10 dark:border-white/5">
+        <div className="mb-4">
+          <h2 className="text-2xl font-bold bg-gradient-to-r from-amber-400 via-orange-400 to-amber-400 bg-clip-text text-transparent mb-2">
+            Audit Trail Token
+          </h2>
+          <p className="text-muted-foreground max-w-2xl">
+            A separate, read-only token for the organization's audit trail (the{' '}
+            <code className="px-1 py-0.5 rounded-sm bg-muted text-xs">tfe_audit_trail_token</code> resource).
+            It can read audit data but cannot make changes, and it is independent of the Organization Token
+            above - an organization can hold both. Only one exists at a time; regenerating revokes the
+            previous token.
+          </p>
+        </div>
+        {orgName && <OrganizationToken orgName={orgName} tokenType="audit-trails" label="audit trail" />}
+      </div>
     </div>
   );
 }

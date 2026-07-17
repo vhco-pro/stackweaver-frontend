@@ -425,20 +425,26 @@ export const organizationsApi = {
       .then(res => organizationFromJsonApi(res.data)),
 
   // Organization authentication token (tfe_organization_token): one per org. getToken resolves to
-  // null when the org has none (404); createToken returns the plaintext once.
-  getToken: (name: string): Promise<OrgToken | null> =>
-    apiClient.get<{ data: JsonApiResource }>(`/organizations/${encodeURIComponent(name)}/authentication-token`)
+  // null when the org has none (404); createToken returns the plaintext once. Pass tokenType
+  // 'audit-trails' to address the distinct audit-trail-token singleton (tfe_audit_trail_token), which
+  // shares this endpoint via a ?token= query param.
+  getToken: (name: string, tokenType?: string): Promise<OrgToken | null> =>
+    apiClient.get<{ data: JsonApiResource }>(`/organizations/${encodeURIComponent(name)}/authentication-token${orgTokenQuery(tokenType)}`)
       .then(res => orgTokenFromJsonApi(res.data))
       .catch((err: unknown) => {
         if ((err as { status?: number }).status === 404) return null;
         throw err;
       }),
-  createToken: (name: string) =>
-    apiClient.post<{ data: JsonApiResource }>(`/organizations/${encodeURIComponent(name)}/authentication-token`, {})
+  createToken: (name: string, tokenType?: string) =>
+    apiClient.post<{ data: JsonApiResource }>(`/organizations/${encodeURIComponent(name)}/authentication-token${orgTokenQuery(tokenType)}`, {})
       .then(res => orgTokenFromJsonApi(res.data)),
-  deleteToken: (name: string) =>
-    apiClient.delete(`/organizations/${encodeURIComponent(name)}/authentication-token`),
+  deleteToken: (name: string, tokenType?: string) =>
+    apiClient.delete(`/organizations/${encodeURIComponent(name)}/authentication-token${orgTokenQuery(tokenType)}`),
 };
+
+function orgTokenQuery(tokenType?: string): string {
+  return tokenType ? `?token=${encodeURIComponent(tokenType)}` : '';
+}
 
 export interface OrgToken {
   id: string;

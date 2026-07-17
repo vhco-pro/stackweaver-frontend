@@ -7,41 +7,46 @@ import { KeyRound, Copy, Trash2, Calendar, Loader2, CheckCircle2, RefreshCw, Ale
 import { toast } from 'sonner';
 
 /**
- * OrganizationToken manages an organization's single API token (tfe_organization_token): a powerful,
- * org-admin automation credential. It shows the token metadata (created / last used / expiry), lets an
- * org owner generate or regenerate it, and reveals the secret value exactly once. Data fetching uses
- * React Query. Mirrors the show-once pattern of the API Keys page.
+ * OrganizationToken manages an organization's single API token: a powerful automation credential. It
+ * shows the token metadata (created / last used / expiry), lets an org owner generate or regenerate it,
+ * and reveals the secret value exactly once. Data fetching uses React Query. Mirrors the show-once
+ * pattern of the API Keys page.
+ *
+ * Handles both variants that share the org authentication-token endpoint: the default organization
+ * token (tfe_organization_token) and, when tokenType='audit-trails', the distinct read-only audit-trail
+ * token singleton (tfe_audit_trail_token). label ('organization' / 'audit trail') drives the copy.
  */
-export function OrganizationToken({ orgName }: { orgName: string }) {
+export function OrganizationToken({ orgName, tokenType, label = 'organization' }: { orgName: string; tokenType?: string; label?: string }) {
   const queryClient = useQueryClient();
   const [revealed, setRevealed] = useState<OrgToken | null>(null);
+  const queryKey = ['orgToken', orgName, tokenType ?? 'default'];
 
   const { data: token, isLoading } = useQuery({
-    queryKey: ['orgToken', orgName],
-    queryFn: () => organizationsApi.getToken(orgName),
+    queryKey,
+    queryFn: () => organizationsApi.getToken(orgName, tokenType),
     enabled: !!orgName,
   });
 
   const createMutation = useMutation({
-    mutationFn: () => organizationsApi.createToken(orgName),
+    mutationFn: () => organizationsApi.createToken(orgName, tokenType),
     onSuccess: (created) => {
       setRevealed(created);
-      void queryClient.invalidateQueries({ queryKey: ['orgToken', orgName] });
+      void queryClient.invalidateQueries({ queryKey });
     },
     onError: (err: unknown) => {
-      toast.error(err instanceof Error ? err.message : 'Failed to generate organization token');
+      toast.error(err instanceof Error ? err.message : `Failed to generate ${label} token`);
     },
   });
 
   const deleteMutation = useMutation({
-    mutationFn: () => organizationsApi.deleteToken(orgName),
+    mutationFn: () => organizationsApi.deleteToken(orgName, tokenType),
     onSuccess: () => {
       setRevealed(null);
-      toast.success('Organization token revoked');
-      void queryClient.invalidateQueries({ queryKey: ['orgToken', orgName] });
+      toast.success(`${label.charAt(0).toUpperCase() + label.slice(1)} token revoked`);
+      void queryClient.invalidateQueries({ queryKey });
     },
     onError: (err: unknown) => {
-      toast.error(err instanceof Error ? err.message : 'Failed to revoke organization token');
+      toast.error(err instanceof Error ? err.message : `Failed to revoke ${label} token`);
     },
   });
 
@@ -55,12 +60,12 @@ export function OrganizationToken({ orgName }: { orgName: string }) {
   };
 
   const regenerate = () => {
-    if (token && !confirm('Regenerate the organization token? The current token will stop working immediately.')) return;
+    if (token && !confirm(`Regenerate the ${label} token? The current token will stop working immediately.`)) return;
     createMutation.mutate();
   };
 
   const revoke = () => {
-    if (!confirm('Revoke the organization token? Any automation using it will stop working immediately.')) return;
+    if (!confirm(`Revoke the ${label} token? Any automation using it will stop working immediately.`)) return;
     deleteMutation.mutate();
   };
 
@@ -77,7 +82,7 @@ export function OrganizationToken({ orgName }: { orgName: string }) {
         )}>
           <div className="flex items-center gap-2 mb-3">
             <CheckCircle2 className="h-5 w-5 text-green-500" />
-            <h3 className="text-lg font-semibold text-green-400">Organization token generated</h3>
+            <h3 className="text-lg font-semibold text-green-400">{label.charAt(0).toUpperCase() + label.slice(1)} token generated</h3>
           </div>
           <p className="text-sm text-muted-foreground mb-4">
             Copy it now - you won't be able to see it again after closing this message.
@@ -139,7 +144,7 @@ export function OrganizationToken({ orgName }: { orgName: string }) {
         )}>
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <AlertTriangle className="h-4 w-4 text-muted-foreground" />
-            No organization token yet.
+            No {label} token yet.
           </div>
           <Button onClick={() => { createMutation.mutate(); }} disabled={createMutation.isPending}
             className="bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 gap-2">
