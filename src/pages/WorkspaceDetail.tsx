@@ -27,6 +27,7 @@ import { EditWorkspaceDialog } from '@/components/workspace/EditWorkspaceDialog'
 import { WorkspaceTags } from '@/components/workspace/WorkspaceTags';
 import { WorkspaceNotifications } from '@/components/workspace/WorkspaceNotifications';
 import { WorkspaceChangeRequests } from '@/components/workspace/WorkspaceChangeRequests';
+import { WorkspaceRunTasks } from '@/components/workspace/WorkspaceRunTasks';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { StatusBadge } from '@/components/runs/StatusBadge';
@@ -97,7 +98,7 @@ import {
 // Single source of truth for the tabs. The union and the `?tab=` allowlist are derived from this, so a
 // new tab cannot be deep-linkable in one place and not the other. (They previously drifted: `tags` and
 // `notifications` were added as tabs but never here, so `?tab=tags` silently fell back to overview.)
-const TABS = ['overview', 'runs', 'states', 'variables', 'tags', 'notifications', 'change-requests'] as const;
+const TABS = ['overview', 'runs', 'states', 'variables', 'tags', 'notifications', 'change-requests', 'run-tasks'] as const;
 type TabType = (typeof TABS)[number];
 
 function isTabType(value: string | null): value is TabType {
@@ -1075,7 +1076,7 @@ export default function WorkspaceDetail() {
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as TabType)}>
-        <TabsList className="grid w-full grid-cols-7">
+        <TabsList className="grid w-full grid-cols-8">
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="runs">Runs</TabsTrigger>
           <TabsTrigger value="states">States</TabsTrigger>
@@ -1083,6 +1084,7 @@ export default function WorkspaceDetail() {
           <TabsTrigger value="tags">Tags</TabsTrigger>
           <TabsTrigger value="notifications">Notifications</TabsTrigger>
           <TabsTrigger value="change-requests">Change Requests</TabsTrigger>
+          <TabsTrigger value="run-tasks">Run Tasks</TabsTrigger>
         </TabsList>
 
         {/* Overview Tab */}
@@ -2086,6 +2088,10 @@ export default function WorkspaceDetail() {
         {/* Change Requests Tab */}
         <TabsContent value="change-requests" className="space-y-6 mt-6">
           {workspace.id && orgName && <WorkspaceChangeRequests workspaceId={workspace.id} orgName={orgName} />}
+        </TabsContent>
+
+        <TabsContent value="run-tasks" className="space-y-6 mt-6">
+          {workspace.id && orgName && <WorkspaceRunTasks workspaceId={workspace.id} orgName={orgName} />}
         </TabsContent>
       </Tabs>
 

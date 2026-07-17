@@ -117,6 +117,8 @@ export function useRunPolling({
       if (status === 'failed' || status === 'canceled') return true;
       if (status === 'applied') return true;
       if (status === 'planned' && operation === 'plan-only') return true;
+      // post_plan_completed is the plan-only rest state when a post-plan run task exists.
+      if (status === 'post_plan_completed' && operation === 'plan-only') return true;
       if (status === 'completed') return true;
       return false;
     };
@@ -325,7 +327,7 @@ export function useRunPolling({
           runData.status === 'failed' ||
           runData.status === 'canceled' ||
           (runData.operation === 'plan-and-apply' && runData.status === 'applied') ||
-          (runData.operation === 'plan-only' && runData.status === 'planned') ||
+          (runData.operation === 'plan-only' && (runData.status === 'planned' || runData.status === 'post_plan_completed')) ||
           (runData.operation === 'destroy' && (runData.status === 'applied' || runData.status === 'completed')) ||
           ((runData.operation === 'apply' || runData.operation === 'plan') && runData.status === 'completed')
         );

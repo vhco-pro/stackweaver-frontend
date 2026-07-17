@@ -133,6 +133,10 @@ Existing data written before encryption was enabled stays readable: state files 
 | `TERRAFORM_DRIFT_DETECTION_ENABLED` | Enable Terraform drift detection | `true` |
 | `RUNNER_MONITOR_ENABLED` | Enable runner health monitoring | `true` |
 | `STACKWEAVER_NOTIFICATIONS_ALLOW_PRIVATE` | Allow workspace notification webhooks to deliver to internal/private/loopback addresses. Off by default, so notification delivery cannot reach the cloud metadata endpoint or internal services (SSRF guard). Set to `true` only if your notification collectors run on an internal network. Applies to both the API (test deliveries) and the orchestrator (run-event deliveries). | `false` |
+| `STACKWEAVER_RUN_TASKS_ALLOW_PRIVATE` | The run-task twin of the flag above: allow run-task webhooks (and the create-time URL verification) to reach internal/private/loopback addresses. Kept separate from the notifications flag so opening one surface does not silently open the other. Applies to the API (verification handshake) and the orchestrator (stage webhook delivery). | `false` |
+| `STACKWEAVER_API_URL` | Public base URL of the API, used by the orchestrator to build the run-task webhook URLs external services call back to (`task_result_callback_url`, `plan_json_api_url`, `configuration_version_download_url`). Must be reachable by your task services. | `http://localhost:8022` (dev compose) |
+| `STACKWEAVER_TASK_RESULT_TIMEOUT` | How long a run-task stage may go without progress (a callback or `running` heartbeat) before its remaining results are errored, as a Go duration. Matches TFE's 10-minute contract by default. | `10m` |
+| `STACKWEAVER_TASK_RESULT_MAX_DURATION` | Hard cap on a run-task stage's total execution time, as a Go duration. Matches TFE's 60-minute contract by default. | `60m` |
 
 ---
 

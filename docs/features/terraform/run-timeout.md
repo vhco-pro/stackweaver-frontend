@@ -6,7 +6,7 @@ covers:
 
 # Run Timeout
 
-StackWeaver includes a configurable timeout feature that automatically cancels long-running apply operations to prevent jobs from getting stuck indefinitely.
+StackWeaver includes a configurable timeout feature that automatically cancels long-running apply operations to prevent jobs from getting stuck indefinitely. Runs waiting on run task stages are governed by their own timeouts instead (ten minutes without progress from the external service, sixty minutes total, both tunable via the orchestrator's task-result environment variables), and a run waiting for a human to override a failed mandatory task waits indefinitely, exactly like a planned run waiting for apply confirmation.
 
 ## Overview
 
