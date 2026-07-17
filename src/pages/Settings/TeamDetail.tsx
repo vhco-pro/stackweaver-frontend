@@ -4,16 +4,18 @@ import { useQuery } from '@tanstack/react-query';
 import { Link, useParams } from 'react-router-dom';
 import { teamsApi } from '@/api/client';
 import { WorkspaceNotifications } from '@/components/workspace/WorkspaceNotifications';
+import { TeamToken } from '@/components/settings/TeamToken';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Loader2, Users } from 'lucide-react';
 
 /**
  * TeamDetail is the per-team settings page. Teams are otherwise managed from a tab inside the Users
- * page with a modal, which has no room for a notifications section; this page follows the existing
+ * page with a modal, which has no room for extra sections; this page follows the existing
  * runners -> runners/:runnerId precedent instead of growing that dialog further.
  *
- * Its only section today is team notifications (tfe_team_notification_configuration), which fire when a
- * change request is filed against any workspace the team can reach.
+ * Sections: the team's API token (tfe_team_token), an automation credential that acts as the team, and
+ * team notifications (tfe_team_notification_configuration), which fire when a change request is filed
+ * against any workspace the team can reach.
  */
 export default function TeamDetail() {
   const { orgName, teamId } = useParams<{ orgName: string; teamId: string }>();
@@ -41,7 +43,7 @@ export default function TeamDetail() {
           <h1 className="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-blue-400 via-cyan-400 to-blue-400 bg-clip-text text-transparent mb-2">
             {team?.name ?? 'Team'}
           </h1>
-          <p className="text-muted-foreground">Notification settings for this team</p>
+          <p className="text-muted-foreground">Token and notification settings for this team</p>
         </div>
       </div>
 
@@ -56,7 +58,19 @@ export default function TeamDetail() {
           <p className="text-sm mt-1">It may have been deleted, or you may not have access to it.</p>
         </div>
       ) : (
-        <WorkspaceNotifications scope="teams" id={team.id} />
+        <div className="space-y-8">
+          <section className="space-y-3">
+            <div>
+              <h2 className="text-xl font-semibold">Team token</h2>
+              <p className="text-sm text-muted-foreground">
+                An automation credential that acts as this team. Shown once when generated.
+              </p>
+            </div>
+            <TeamToken teamId={team.id} />
+          </section>
+
+          <WorkspaceNotifications scope="teams" id={team.id} />
+        </div>
       )}
     </div>
   );

@@ -3424,7 +3424,41 @@ export const teamsApi = {
     apiClient.delete(`/teams/${teamId}/relationships/organization-memberships`, {
       data: membershipIds.map(id => ({ type: 'organization-memberships', id })),
     }),
+
+  // Team authentication token (tfe_team_token): one per team, the legacy descriptionless path.
+  // getToken resolves to null when the team has none (404); createToken returns the plaintext once.
+  getToken: (teamId: string): Promise<TeamToken | null> =>
+    apiClient.get<{ data: JsonApiResource }>(`/teams/${teamId}/authentication-token`)
+      .then(res => teamTokenFromJsonApi(res.data))
+      .catch((err: unknown) => {
+        if ((err as { status?: number }).status === 404) return null;
+        throw err;
+      }),
+  createToken: (teamId: string) =>
+    apiClient.post<{ data: JsonApiResource }>(`/teams/${teamId}/authentication-token`, {})
+      .then(res => teamTokenFromJsonApi(res.data)),
+  deleteToken: (teamId: string) =>
+    apiClient.delete(`/teams/${teamId}/authentication-token`),
 };
+
+export interface TeamToken {
+  id: string;
+  token?: string; // only present right after creation
+  created_at?: string;
+  last_used_at?: string;
+  expired_at?: string;
+}
+
+function teamTokenFromJsonApi(item: JsonApiResource): TeamToken {
+  const a = item.attributes || {};
+  return {
+    id: item.id,
+    token: a['token'] ? String(a['token']) : undefined,
+    created_at: a['created-at'] ? String(a['created-at']) : undefined,
+    last_used_at: a['last-used-at'] ? String(a['last-used-at']) : undefined,
+    expired_at: a['expired-at'] ? String(a['expired-at']) : undefined,
+  };
+}
 
 // Team Project Access API (TFE-compatible)
 export interface TeamProjectAccess {
