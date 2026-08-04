@@ -145,6 +145,21 @@ ingress:
 For controllers not covered by the built-in presets (HAProxy, Istio, Emissary, etc.), set `provider: none` and supply all required annotations manually.
 If your controller uses entirely different resource kinds (such as Traefik `IngressRoute` CRDs or Istio `VirtualService`), set `ingress.enabled: false` and manage routing externally.
 
+### Trusted Proxies and Client-IP Attribution
+
+Behind an ingress, the API's direct network peer is the ingress controller pod, not the end user.
+The API therefore needs to know which proxies it may trust when reading the `X-Forwarded-For` header — otherwise every request in the deployment is attributed to the ingress pod's IP, which collapses the per-IP login rate limit (10 requests/second on `/auth/*`) into a single bucket shared by all of your users.
+
+The chart handles this via `api.trustedProxies`, which defaults to the RFC1918 private ranges so any in-cluster ingress works out of the box.
+To harden the trust boundary, set it to your ingress controller's pod CIDR; setting it to an empty string makes the API trust no proxies at all (the strict application default).
+
+```yaml
+api:
+  trustedProxies: "10.244.0.0/16"   # your ingress controller's pod CIDR
+```
+
+If many of your users legitimately share one attributed IP (for example an office NATing through a single egress address), raise the login rate limit instead of widening proxy trust: see `AUTH_RATE_LIMIT_RPS` / `AUTH_RATE_LIMIT_BURST` in the [environment variables reference](../environment-variables.md).
+
 ## Secrets
 
 By default the chart auto-generates all secrets.

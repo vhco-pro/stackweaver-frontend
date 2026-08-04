@@ -29,6 +29,9 @@ The API is the primary Go backend serving the REST API, managing authentication,
 | `LOG_LEVEL` | Log verbosity (`debug`, `info`, `warn`, `error`) | `info` |
 | `SERVER_HOST` | Listen address | `0.0.0.0` (from config.yaml) |
 | `SERVER_PORT` | Listen port | `8022` (from config.yaml) |
+| `TRUSTED_PROXIES` | Comma-separated CIDRs of proxies trusted for `X-Forwarded-For` client-IP attribution. Required behind an ingress or reverse proxy — without it every request is attributed to the proxy's IP, so all users share one per-IP rate-limit bucket. When unset the API trusts no proxies. The Helm chart sets the RFC1918 ranges by default (`api.trustedProxies`) | (unset — trust no proxies) |
+| `RATE_LIMIT_RPS` / `RATE_LIMIT_BURST` | Global per-IP rate limit (requests/second and burst) | `100` / `200` |
+| `AUTH_RATE_LIMIT_RPS` / `AUTH_RATE_LIMIT_BURST` | Stricter per-IP rate limit on `/auth/*` login endpoints. Raise when many users share one attributed IP (e.g. an office NATing through a single egress) | `10` / `20` |
 
 ### Database
 
