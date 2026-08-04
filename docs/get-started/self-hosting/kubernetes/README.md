@@ -124,9 +124,10 @@ ingress:
   className: traefik
 ```
 
-> [!NOTE]
-> The default changed from community NGINX annotations to NGINX Inc annotations, reflecting the community project's sunset status.
-> If you are upgrading from an earlier chart version and use the community NGINX ingress controller, set `provider: community-nginx` to preserve the previous behavior.
+> [!WARNING]
+> The community NGINX ingress controller (`kubernetes/ingress-nginx`) is retired: the project was archived in March 2026 and receives no further bug fixes or security patches (see the [Kubernetes retirement announcement](https://kubernetes.io/blog/2025/11/11/ingress-nginx-retirement/)).
+> The `community-nginx` provider preset remains available so existing deployments keep working during migration, but you should move to a maintained controller — the NGINX Inc controller (`nginx-inc`, the chart default), Traefik (`traefik`), or a [Gateway API](https://gateway-api.sigs.k8s.io/) implementation fronting the chart's Services via `provider: none`.
+> If you are upgrading from an earlier chart version and still run the community controller, set `provider: community-nginx` to preserve the previous behavior while you plan the migration.
 
 ### Custom Annotations
 
