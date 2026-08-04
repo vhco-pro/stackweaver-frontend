@@ -216,9 +216,10 @@ export default function IdpProcess() {
             });
             await finalizeAndRedirect(sessionResp.sessionId, sessionResp.sessionToken, authRequestId);
             return;
-          } catch {
+          } catch (err) {
             // No matching user, or auto-link refused — fall through to
             // Branch 3 (auto-create with addHumanUser pre-shape).
+            console.debug('IdP auto-link attempt failed, falling through to auto-create:', err);
           }
         }
 
@@ -263,7 +264,11 @@ export default function IdpProcess() {
             });
             await finalizeAndRedirect(sessionResp.sessionId, sessionResp.sessionToken, authRequestId);
             return;
-          } catch {
+          } catch (err) {
+            // Surface the cause: the redirect alone gives users (and bug
+            // reports, and E2E traces) nothing to diagnose registration
+            // failures with — the API error lands only here.
+            console.error('IdP auto-registration failed:', err);
             void navigate(`/login/idp/${providerName}/registration-failed`);
             return;
           }
@@ -297,7 +302,11 @@ export default function IdpProcess() {
             });
             await finalizeAndRedirect(sessionResp.sessionId, sessionResp.sessionToken, authRequestId);
             return;
-          } catch {
+          } catch (err) {
+            // Surface the cause: the redirect alone gives users (and bug
+            // reports, and E2E traces) nothing to diagnose registration
+            // failures with — the API error lands only here.
+            console.error('IdP auto-registration failed:', err);
             void navigate(`/login/idp/${providerName}/registration-failed`);
             return;
           }
