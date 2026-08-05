@@ -140,18 +140,20 @@ export default function AnsibleConfiguration() {
   const [projectDirty, setProjectDirty] = useState(false);
   const [lastSyncedProjectDataKey, setLastSyncedProjectDataKey] = useState<string | undefined>(undefined);
 
-  const parseOrgConfig = (response: { data: { id: string; type: string; attributes: { content: string; 'organization-id'?: string; 'created-at': string; 'updated-at': string } } }): AnsibleConfig => ({
+  // JSON:API resource (#608): content under attributes['config-content'],
+  // scope parents under relationships rather than flat *-id attributes.
+  const parseOrgConfig = (response: { data: { id: string; type: string; attributes: { 'config-content': string; 'created-at': string; 'updated-at': string }; relationships?: { organization?: { data: { id: string } } } } }): AnsibleConfig => ({
     id: response.data.id,
-    organization_id: response.data.attributes['organization-id'],
-    content: response.data.attributes.content,
+    organization_id: response.data.relationships?.organization?.data.id,
+    content: response.data.attributes['config-content'],
     created_at: response.data.attributes['created-at'],
     updated_at: response.data.attributes['updated-at'],
   });
 
-  const parseProjectConfig = (response: { data: { id: string; type: string; attributes: { content: string; 'project-id'?: string; 'created-at': string; 'updated-at': string } } }): AnsibleConfig => ({
+  const parseProjectConfig = (response: { data: { id: string; type: string; attributes: { 'config-content': string; 'created-at': string; 'updated-at': string }; relationships?: { project?: { data: { id: string } } } } }): AnsibleConfig => ({
     id: response.data.id,
-    project_id: response.data.attributes['project-id'],
-    content: response.data.attributes.content,
+    project_id: response.data.relationships?.project?.data.id,
+    content: response.data.attributes['config-content'],
     created_at: response.data.attributes['created-at'],
     updated_at: response.data.attributes['updated-at'],
   });

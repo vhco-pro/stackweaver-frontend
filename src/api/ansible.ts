@@ -1751,12 +1751,15 @@ interface AnsibleConfigResponse {
     id: string;
     type: string;
     attributes: {
-      content: string;
-      'organization-id'?: string;
-      'project-id'?: string;
-      'workspace-id'?: string;
+      scope: string;
+      'config-content': string;
       'created-at': string;
       'updated-at': string;
+    };
+    relationships?: {
+      organization?: { data: { type: string; id: string } };
+      project?: { data: { type: string; id: string } };
+      workspace?: { data: { type: string; id: string } };
     };
   };
 }
@@ -1764,13 +1767,13 @@ interface AnsibleConfigResponse {
 export const ansibleConfigApi = {
   // Organization-level
   getByOrganization: (orgName: string) =>
-    apiClient.get<AnsibleConfigResponse>(`/organizations/${orgName}/ansible-config?format=simple`),
+    apiClient.get<AnsibleConfigResponse>(`/organizations/${orgName}/ansible-config`),
 
   upsertByOrganization: (orgName: string, content: string) =>
-    apiClient.put<AnsibleConfigResponse>(`/organizations/${orgName}/ansible-config?format=simple`, {
+    apiClient.put<AnsibleConfigResponse>(`/organizations/${orgName}/ansible-config`, {
       data: {
         type: 'ansible-configs',
-        attributes: { content },
+        attributes: { 'config-content': content },
       },
     }),
 
@@ -1779,13 +1782,13 @@ export const ansibleConfigApi = {
 
   // Project-level
   getByProject: (projectId: string) =>
-    apiClient.get<AnsibleConfigResponse>(`/projects/${projectId}/ansible-config?format=simple`),
+    apiClient.get<AnsibleConfigResponse>(`/projects/${projectId}/ansible-config`),
 
   upsertByProject: (projectId: string, content: string) =>
-    apiClient.put<AnsibleConfigResponse>(`/projects/${projectId}/ansible-config?format=simple`, {
+    apiClient.put<AnsibleConfigResponse>(`/projects/${projectId}/ansible-config`, {
       data: {
         type: 'ansible-configs',
-        attributes: { content },
+        attributes: { 'config-content': content },
       },
     }),
 
@@ -1795,7 +1798,7 @@ export const ansibleConfigApi = {
   // Get effective config (with priority: workspace > project > org)
   getEffective: (orgName: string, projectId?: string) =>
     apiClient.get<AnsibleConfigResponse>(
-      `/organizations/${orgName}/ansible-config/effective?format=simple${projectId ? `&project_id=${projectId}` : ''}`
+      `/organizations/${orgName}/ansible-config/effective${projectId ? `?project_id=${projectId}` : ''}`
     ),
 };
 
