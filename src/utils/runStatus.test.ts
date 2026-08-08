@@ -30,7 +30,7 @@ describe('computeDisplayStatus', () => {
     expect(computeDisplayStatus({ status: 'running' })).toBe('running');
   });
 
-  // 3. Planned status — complex branching
+  // 3. Planned status - complex branching
   describe('planned status', () => {
     it('returns finished for plan-only operation', () => {
       expect(computeDisplayStatus({ status: 'planned', operation: 'plan-only' })).toBe('finished');

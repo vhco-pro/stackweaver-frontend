@@ -18,7 +18,7 @@ export default function LoginLayout({ children, title, subtitle }: LoginLayoutPr
   // Branding fetch via React Query so we get caching, retries, and
   // never block first paint. The auth proxy's settingsCache already
   // serves this with a 1h TTL (see settingsTTL in auth_proxy_cache.go),
-  // so the network cost is minimal — most loads hit the proxy's cache.
+  // so the network cost is minimal - most loads hit the proxy's cache.
   // `staleTime: Infinity` here means we won't re-fetch within a session;
   // a logout + new login mounts a fresh component tree anyway.
   //
@@ -55,7 +55,7 @@ export default function LoginLayout({ children, title, subtitle }: LoginLayoutPr
               className="h-20 w-20"
               // If a custom logoUrl 404s (org changed branding mid-session),
               // fall back to the default rather than rendering a broken-image
-              // icon — same defensive principle as the empty-data fallback.
+              // icon - same defensive principle as the empty-data fallback.
               onError={(e) => { (e.currentTarget).src = DEFAULT_LOGO; }}
             />
           </div>

@@ -330,7 +330,7 @@ export default function Webhooks() {
           <div className="rounded-lg bg-blue-500/5 border border-blue-500/20 p-4">
             <p className="text-sm text-muted-foreground">
               Service hook subscriptions for Azure DevOps are registered automatically when you create or update a workspace,
-              inventory, or playbook linked to an Azure DevOps repository — no manual configuration required.
+              inventory, or playbook linked to an Azure DevOps repository - no manual configuration required.
               Requires <code className="text-xs bg-muted px-1 rounded-sm">STACKWEAVER_WEBHOOK_BASE_URL</code> to be set in <code className="text-xs bg-muted px-1 rounded-sm">deploy/vcs.env</code>.
             </p>
           </div>

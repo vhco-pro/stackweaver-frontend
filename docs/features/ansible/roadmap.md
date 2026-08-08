@@ -52,7 +52,7 @@ covers:
 - ✅ Schedulable workflows (new `workflow` schedule type)
 
 **Remaining**:
-- 🔲 Visual workflow builder (React Flow) — nodes and edges are managed via the API
+- 🔲 Visual workflow builder (React Flow) - nodes and edges are managed via the API
 - 🔲 Nested workflow nodes (rejected at runtime in v1)
 
 **Data Model**:

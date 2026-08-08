@@ -1,6 +1,6 @@
 // Copyright (c) 2025 VH & Co BV. Licensed under the Business Source License 1.1. See LICENSE for details.
 
-// Characterization test for useControlledState — the safety net for refactoring its
+// Characterization test for useControlledState - the safety net for refactoring its
 // `set-state-in-effect` warning (the effect that syncs a controlled `value` prop into
 // internal state). It pins the observable contract so the refactor can be verified green.
 // First component-layer test on the new @testing-library + happy-dom harness.

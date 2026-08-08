@@ -147,7 +147,7 @@ flowchart LR
 - Everything else (including the SPA's `/login/*` login pages) → `localhost:5173`
 
 **Auth domain** (e.g. `auth.example.com`):
-- All traffic → `localhost:8080`. The standalone Zitadel-hosted login UI on port 3000 was removed at cutover — Stackweaver now serves login via its own SPA pages under the app domain's `/login/*`, with `/auth/*` on the app domain proxying Zitadel's session + OIDC APIs.
+- All traffic → `localhost:8080`. The standalone Zitadel-hosted login UI on port 3000 was removed at cutover - Stackweaver now serves login via its own SPA pages under the app domain's `/login/*`, with `/auth/*` on the app domain proxying Zitadel's session + OIDC APIs.
 
 ## Data Persistence
 

@@ -20,16 +20,16 @@ const AUTH_BASE = config.apiUrl.replace(/\/api\/v2\/?$/, '/auth');
  *
  * Three entry-modes drive what happens after a successful verify:
  *
- *   1. Registration (default) — POST /auth/users/{id}/email with the
+ *   1. Registration (default) - POST /auth/users/{id}/email with the
  *      code, then navigate to /login/verify/success (one-shot page
  *      with a "Continue to sign in" CTA back to /login/loginname).
  *
- *   2. Invitation (`invite=true`) — same shape as registration but
+ *   2. Invitation (`invite=true`) - same shape as registration but
  *      the headings copy talks about "Accept invitation" rather than
  *      "Verify email". Post-verify navigation is identical.
  *
  *   3. Forced verification mid-login (`forced=true`, AC-53 D7 row,
- *      Wave 14) — the user is mid auth-request (sessionId + auth-
+ *      Wave 14) - the user is mid auth-request (sessionId + auth-
  *      RequestId in query string). They have already entered their
  *      password but Zitadel won't issue tokens until their email is
  *      verified. After the verify succeeds, re-finalize the
@@ -57,7 +57,7 @@ export default function Verify() {
   const submitCode = async (raw: string) => {
     const codeValue = raw.trim();
     if (!codeValue) { setError('Please enter the verification code'); return; }
-    if (!userId) { setError('Missing user information — please start over'); return; }
+    if (!userId) { setError('Missing user information - please start over'); return; }
     if (submittingRef.current) return;
     submittingRef.current = true;
 
@@ -89,7 +89,7 @@ export default function Verify() {
         return;
       }
 
-      // Default (registration / invitation) — bounce through the
+      // Default (registration / invitation) - bounce through the
       // success page so the user can hit "Continue to sign in".
       void navigate(`/login/verify/success?authRequest=${authRequestId}`);
     } catch (err: unknown) {

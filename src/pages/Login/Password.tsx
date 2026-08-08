@@ -25,7 +25,7 @@ async function checkForcedFlows(
 ): Promise<string | null> {
   // Fetch session first so we can resolve the user's org and ask Zitadel
   // for the org-scoped login policy. Without org scoping, the SPA reads
-  // the instance default — orgs with stricter overrides (forceMfa,
+  // the instance default - orgs with stricter overrides (forceMfa,
   // allowRegister=false, etc.) would be silently bypassed.
   const sessionData = await getSession(sessionId);
   const session = sessionData as {
@@ -46,7 +46,7 @@ async function checkForcedFlows(
 
   // Check 1: Password change required (F19)
   //
-  // Zitadel does NOT include this signal in the session response — the
+  // Zitadel does NOT include this signal in the session response - the
   // GET /v2/sessions/{id} factors object exposes only verifiedAt
   // timestamps, not the user's `passwordChangeRequired` flag. The
   // flag lives on the user record itself: GET /v2/users/{id} →
@@ -54,7 +54,7 @@ async function checkForcedFlows(
   // `GET /auth/users/:id`, gated by the Round 17 cross-user check
   // (you can only read your own record), so this self-read is safe.
   //
-  // We check this FIRST — before MFA / authenticator routing — so a
+  // We check this FIRST - before MFA / authenticator routing - so a
   // user with both forced rotation AND no MFA enrolled lands on the
   // password-change page rather than getting kicked into MFA setup
   // with a stale password they're about to rotate. Zitadel's hosted
@@ -65,7 +65,7 @@ async function checkForcedFlows(
   // checkForcedFlows. The worst case of an under-prompt is the user
   // sees Zitadel reject finalize with a clear error; over-prompt
   // (forced rotation when not actually required) requires an
-  // affirmative true from the proxy — much harder to fake.
+  // affirmative true from the proxy - much harder to fake.
   if (userId) {
     try {
       const userRecord = await getUser(userId);
@@ -78,20 +78,20 @@ async function checkForcedFlows(
       //
       // If the user record has an email and Zitadel says it's not
       // verified, gate finalize on verify-email completion. This is
-      // a sibling check to F19 — same `getUser` round-trip, same
+      // a sibling check to F19 - same `getUser` round-trip, same
       // skip-on-error contract. Routes to `/login/verify?forced=true`
       // so Verify.tsx knows to re-finalize the auth request after
       // the code is submitted (vs the default registration flow
       // which bounces through /login/verify/success → /login/loginname).
       //
-      // We DON'T trigger a re-send here — the user already received
+      // We DON'T trigger a re-send here - the user already received
       // their verification code via Zitadel's onboarding email
       // (`EMAIL_VERIFICATION=true` mode) and is just being prompted
       // to actually enter it before further access. A re-send button
       // on /login/verify can be added later if operators ask.
       const human = userRecord.user?.human;
       const email = human?.email?.email ?? '';
-      // Zitadel omits `isVerified` from the response when false — only
+      // Zitadel omits `isVerified` from the response when false - only
       // includes the field when true (proto3 default-elision). Treating
       // absence as "verified" silently disables the gate, so the
       // default must be `false` to match the wire encoding.
@@ -102,7 +102,7 @@ async function checkForcedFlows(
         return `/login/verify?${userParams}&email=${emailParam}&forced=true${tokenParam}`;
       }
     } catch {
-      // Swallow — see comment above. Honest users with a working
+      // Swallow - see comment above. Honest users with a working
       // proxy never hit this branch; the failure mode is transient.
     }
   }
@@ -114,7 +114,7 @@ async function checkForcedFlows(
   //   (b) The user has at least one second-factor enrolled (regardless of
   //       org policy) → prompt for the factor they have. Skipping this when
   //       policy doesn't enforce MFA but the user has TOTP would silently
-  //       finalize with only password verified — the user's stated MFA
+  //       finalize with only password verified - the user's stated MFA
   //       preference would never gate login. Found via F4 against a
   //       tunnel-deployed stack.
   //
@@ -135,7 +135,7 @@ async function checkForcedFlows(
       const auth = await getUserAuthMethods(userId);
       enrolledMethods = auth.authMethodTypes ?? [];
     } catch {
-      // Auth-methods lookup failed — fall through to the policy gate below
+      // Auth-methods lookup failed - fall through to the policy gate below
       // so we still honor `forceMfa: true` even if the per-user check is
       // unavailable. Better to over-prompt for MFA than under-prompt.
     }
@@ -153,7 +153,7 @@ async function checkForcedFlows(
       Number(hasEnrolledOtpSms);
 
     if (enrolledCount > 1) {
-      // Multiple factors — let the user pick which one to use this session.
+      // Multiple factors - let the user pick which one to use this session.
       return `/login/mfa?${userParams}`;
     }
     if (hasEnrolledTotp) return `/login/otp/totp?${params}`;
@@ -162,7 +162,7 @@ async function checkForcedFlows(
     if (hasEnrolledOtpEmail) return `/login/otp/email?${params}`;
     if (hasEnrolledOtpSms) return `/login/otp/sms?${params}`;
 
-    // No enrolled second factor — only force enrollment when policy
+    // No enrolled second factor - only force enrollment when policy
     // requires MFA. Without policy enforcement, allow finalize on
     // password alone (matches pre-fix behavior).
     if (settings.forceMfa || settings.forceMfaLocalOnly) {
@@ -223,7 +223,7 @@ export default function Password() {
         return;
       }
 
-      // All checks passed — finalize the auth request
+      // All checks passed - finalize the auth request
       if (authRequestId) {
         const finalizeResp = await finalizeAuthRequest({
           authRequestId,
@@ -239,7 +239,7 @@ export default function Password() {
       const authErr = err as Error & { code?: number };
       // Wrong-password / wrong-loginName: the proxy normalises both real
       // and decoy rejections to gRPC code 7 (FailedPrecondition) with
-      // the canonical message "Password is invalid (COMMAND-…)" — see
+      // the canonical message "Password is invalid (COMMAND-…)" - see
       // `buildDecoyPasswordInvalidResponse` in auth_proxy.go and the
       // F-sec-7 anti-enumeration contract. Match by message regex
       // rather than HTTP status because the SPA receives Zitadel's

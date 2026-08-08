@@ -1,12 +1,12 @@
 # Static provisioning for ReadWriteMany volumes using Azure Blob CSI driver.
-# Uses managed identity of the cluster for authentication — no explicit clientID needed (driver >= v1.24).
+# Uses managed identity of the cluster for authentication - no explicit clientID needed (driver >= v1.24).
 # https://github.com/kubernetes-sigs/blob-csi-driver/tree/master/deploy/example/blobfuse-mi
 #
 # Replace the following placeholders before applying:
-#   <STORAGE_ACCOUNT>              — Azure storage account name (e.g. mystorageaccount)
-#   <RESOURCE_GROUP>               — Resource group containing the storage account (e.g. my-cluster-rg)
-#   <RUNNER_WORKSPACES_CONTAINER>  — Blob container name for runner workspaces (e.g. stackweaver-runner-workspaces)
-#   <ZITADEL_PAT_CONTAINER>        — Blob container name for Zitadel PAT storage (e.g. stackweaver-zitadel-pat)
+#   <STORAGE_ACCOUNT>              - Azure storage account name (e.g. mystorageaccount)
+#   <RESOURCE_GROUP>               - Resource group containing the storage account (e.g. my-cluster-rg)
+#   <RUNNER_WORKSPACES_CONTAINER>  - Blob container name for runner workspaces (e.g. stackweaver-runner-workspaces)
+#   <ZITADEL_PAT_CONTAINER>        - Blob container name for Zitadel PAT storage (e.g. stackweaver-zitadel-pat)
 #
 # For other storage providers (AWS EFS, NFS, etc.) replace the csi block with the appropriate
 # driver configuration. The PVC names (runner-workspaces-pvc, zitadel-pat-pvc) must stay the same
@@ -24,7 +24,7 @@ spec:
   capacity:
     storage: 10Gi
   persistentVolumeReclaimPolicy: Retain
-  storageClassName: "" # Static provisioning — must be empty
+  storageClassName: "" # Static provisioning - must be empty
   csi:
     driver: blob.csi.azure.com
     volumeAttributes:
@@ -45,7 +45,7 @@ spec:
   resources:
     requests:
       storage: 10Gi
-  storageClassName: "" # Static provisioning — must be empty
+  storageClassName: "" # Static provisioning - must be empty
   volumeName: runner-workspaces-pv
 
 # ── Zitadel PAT ───────────────────────────────────────────────────────────────
@@ -61,7 +61,7 @@ spec:
   capacity:
     storage: 1Mi
   persistentVolumeReclaimPolicy: Retain
-  storageClassName: "" # Static provisioning — must be empty
+  storageClassName: "" # Static provisioning - must be empty
   csi:
     driver: blob.csi.azure.com
     volumeAttributes:
@@ -82,5 +82,5 @@ spec:
   resources:
     requests:
       storage: 1Mi
-  storageClassName: "" # Static provisioning — must be empty
+  storageClassName: "" # Static provisioning - must be empty
   volumeName: zitadel-pat-pv

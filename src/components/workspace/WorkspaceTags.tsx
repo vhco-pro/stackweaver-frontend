@@ -59,12 +59,12 @@ export function WorkspaceTags({ workspaceId }: { workspaceId: string }) {
 
   return (
     <div className="space-y-6">
-      {/* Own tags — editable */}
+      {/* Own tags - editable */}
       <div className="rounded-2xl border border-white/10 bg-white/5 dark:bg-black/10 backdrop-blur-sm p-6">
         <div className="flex items-center gap-2 mb-4">
           <Tag className="h-5 w-5 text-purple-500" />
           <h3 className="text-lg font-semibold">Tags</h3>
-          <span className="text-sm text-muted-foreground">— this workspace's own key/value tags</span>
+          <span className="text-sm text-muted-foreground">- this workspace's own key/value tags</span>
         </div>
 
         {isLoading ? (
@@ -126,7 +126,7 @@ export function WorkspaceTags({ workspaceId }: { workspaceId: string }) {
         )}
       </div>
 
-      {/* Inherited tags — read-only, only shown when the project contributes tags */}
+      {/* Inherited tags - read-only, only shown when the project contributes tags */}
       {!isLoading && inherited.length > 0 && (
         <div className="rounded-2xl border border-white/10 bg-white/5 dark:bg-black/10 backdrop-blur-sm p-6">
           <div className="flex items-center gap-2 mb-1">

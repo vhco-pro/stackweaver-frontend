@@ -11,9 +11,9 @@
  * error toasts. Not exploitable but aids reconnaissance.
  *
  * Two-tier allowlist:
- *   1. Pattern allowlist — recognised error CONTENT (e.g. "Code is invalid",
+ *   1. Pattern allowlist - recognised error CONTENT (e.g. "Code is invalid",
  *      "Password.NotMatched") gets mapped to a friendly equivalent.
- *   2. Internal-code blocklist — any message containing a Zitadel /
+ *   2. Internal-code blocklist - any message containing a Zitadel /
  *      PostgreSQL internal-code shape gets replaced with the generic
  *      fallback regardless of what else it says.
  *
@@ -29,8 +29,8 @@
 
 // Zitadel error-code shapes that signal "internal" surface and must
 // never reach the user. Format is `<COMPONENT>-<short-id>`, e.g.
-// `INSTANCE-x6Gh3`. Match conservatively — only known component
-// prefixes — to avoid false positives on legitimate text containing
+// `INSTANCE-x6Gh3`. Match conservatively - only known component
+// prefixes - to avoid false positives on legitimate text containing
 // dashes.
 const internalCodeRegex = /\b(INSTANCE|COMMAND|QUERY|EVENT|PROJECTION|REPOSITORY|MIGRATION|HANDLER|DATABASE|SECURITY|AUTHZ|GRPC|HTTP|EXEC|CONFIG)-[A-Za-z0-9]{4,}\b/;
 
@@ -38,7 +38,7 @@ const internalCodeRegex = /\b(INSTANCE|COMMAND|QUERY|EVENT|PROJECTION|REPOSITORY
 const postgresPattern = /\bSQLSTATE\b|\bpq:|\bgorm: /;
 
 // Friendly-string mapping for known Zitadel error fragments. Keys are
-// substring-matched (case-sensitive) — Zitadel emits these strings
+// substring-matched (case-sensitive) - Zitadel emits these strings
 // verbatim. Add to this map when an audit catches a new leak.
 const friendlyMessageMap: Record<string, string> = {
     'Code is invalid': 'The code you entered is invalid or has expired.',

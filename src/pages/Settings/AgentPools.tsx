@@ -263,7 +263,7 @@ export default function AgentPools() {
   // Filter projects for allowed selector: hide those already selected
   const availableProjects = projects.filter((p) => !editForm.allowed_project_ids.includes(p.id));
 
-  const formatDate = (s: string) => (s ? new Date(s).toLocaleDateString() : '—');
+  const formatDate = (s: string) => (s ? new Date(s).toLocaleDateString() : '-');
 
   const formatTimeAgo = (dateString: string) => {
     const date = new Date(dateString);

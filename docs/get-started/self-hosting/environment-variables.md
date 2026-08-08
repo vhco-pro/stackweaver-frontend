@@ -29,7 +29,7 @@ The API is the primary Go backend serving the REST API, managing authentication,
 | `LOG_LEVEL` | Log verbosity (`debug`, `info`, `warn`, `error`) | `info` |
 | `SERVER_HOST` | Listen address | `0.0.0.0` (from config.yaml) |
 | `SERVER_PORT` | Listen port | `8022` (from config.yaml) |
-| `TRUSTED_PROXIES` | Comma-separated CIDRs of proxies trusted for `X-Forwarded-For` client-IP attribution. Required behind an ingress or reverse proxy — without it every request is attributed to the proxy's IP, so all users share one per-IP rate-limit bucket. When unset the API trusts no proxies. The Helm chart sets the RFC1918 ranges by default (`api.trustedProxies`) | (unset — trust no proxies) |
+| `TRUSTED_PROXIES` | Comma-separated CIDRs of proxies trusted for `X-Forwarded-For` client-IP attribution. Required behind an ingress or reverse proxy - without it every request is attributed to the proxy's IP, so all users share one per-IP rate-limit bucket. When unset the API trusts no proxies. The Helm chart sets the RFC1918 ranges by default (`api.trustedProxies`) | (unset - trust no proxies) |
 | `RATE_LIMIT_RPS` / `RATE_LIMIT_BURST` | Global per-IP rate limit (requests/second and burst) | `100` / `200` |
 | `AUTH_RATE_LIMIT_RPS` / `AUTH_RATE_LIMIT_BURST` | Stricter per-IP rate limit on `/auth/*` login endpoints. Raise when many users share one attributed IP (e.g. an office NATing through a single egress) | `10` / `20` |
 
@@ -82,13 +82,13 @@ The API is the primary Go backend serving the REST API, managing authentication,
 
 | Variable | Description | Default |
 |---|---|---|
-| `ENCRYPTION_KEY` | 32-byte hex key (64 hex chars) for encrypting sensitive data at rest. **Required** — the API and runners refuse to start with a missing, too-short, or all-zero key. Generate one with `openssl rand -hex 32`. | (required) |
+| `ENCRYPTION_KEY` | 32-byte hex key (64 hex chars) for encrypting sensitive data at rest. **Required** - the API and runners refuse to start with a missing, too-short, or all-zero key. Generate one with `openssl rand -hex 32`. | (required) |
 | `ANSIBLE_ENCRYPTION_KEY` | Alias for `ENCRYPTION_KEY` (checked first) | Falls back to `ENCRYPTION_KEY` |
-| `DEV_INSECURE_KEY` | Set to `1` to allow starting with a missing/insecure key, falling back to an all-zero key. **Local development only — never set in production.** | unset |
+| `DEV_INSECURE_KEY` | Set to `1` to allow starting with a missing/insecure key, falling back to an all-zero key. **Local development only - never set in production.** | unset |
 
 This single key encrypts all sensitive data at rest: workspace and variable-set variables, Ansible credentials, Terraform **state files** in object storage, sensitive Terraform **output values**, and **VCS connection tokens** in the database. Use the same value across every service that handles this data so they can read each other's ciphertext. The **orchestrator** also reads it to decrypt VCS tokens when refreshing OAuth tokens and building clone URLs; unlike the API and runners it does not hard-require the key (a missing key only disables encrypted-VCS support there rather than refusing to start), but set it consistently whenever VCS integration is used.
 
-The Helm chart provisions a strong `ENCRYPTION_KEY` automatically into a Kubernetes Secret (preserved across upgrades and uninstall) and injects it into the API, runners, **and orchestrator**, or you can bring your own — see the [Kubernetes guide](kubernetes/README.md#secrets). Self-hosted *agent* runners (`RUNNER_MODE=agent`) do not need this key: they receive already-decrypted job artifacts over the API.
+The Helm chart provisions a strong `ENCRYPTION_KEY` automatically into a Kubernetes Secret (preserved across upgrades and uninstall) and injects it into the API, runners, **and orchestrator**, or you can bring your own - see the [Kubernetes guide](kubernetes/README.md#secrets). Self-hosted *agent* runners (`RUNNER_MODE=agent`) do not need this key: they receive already-decrypted job artifacts over the API.
 
 Existing data written before encryption was enabled stays readable: state files and VCS tokens are decrypted on a best-effort basis (plaintext is tolerated) and re-encrypted on the next write, so no migration step is required.
 
@@ -97,7 +97,7 @@ Existing data written before encryption was enabled stays readable: state files 
 | Variable | Description | Default |
 |---|---|---|
 | `OIDC_ISSUER_URL` | Issuer URL for OIDC workload identity tokens (Azure/AWS/GCP/Vault keyless auth) | Falls back to `API_URL` |
-| `OIDC_SIGNING_KEY` | PEM-encoded RSA private key (raw or base64) for signing OIDC tokens. **Required** — the API refuses to start without it, so every replica signs with the same stable key. Set `DEV_INSECURE_KEY=1` to auto-generate an ephemeral key for local development only. | (required) |
+| `OIDC_SIGNING_KEY` | PEM-encoded RSA private key (raw or base64) for signing OIDC tokens. **Required** - the API refuses to start without it, so every replica signs with the same stable key. Set `DEV_INSECURE_KEY=1` to auto-generate an ephemeral key for local development only. | (required) |
 
 ### GitHub Integration
 
@@ -107,7 +107,7 @@ Existing data written before encryption was enabled stays readable: state files 
 | `GITHUB_APP_NAME` | GitHub App name (slug) | (none) |
 | `GITHUB_APP_PRIVATE_KEY_PATH` | Path to GitHub App private key PEM file | (none) |
 | `GITHUB_APP_PRIVATE_KEY` | PEM key contents (alternative to path) | (none) |
-| `GITHUB_WEBHOOK_SECRET` | Webhook signing secret. **Required** for GitHub webhooks: the App's incoming deliveries are authenticated by HMAC-SHA256 of the body against this value, and the endpoint **rejects every delivery (401) when it is unset** — set the same value here and in the GitHub App's webhook configuration. | (none) |
+| `GITHUB_WEBHOOK_SECRET` | Webhook signing secret. **Required** for GitHub webhooks: the App's incoming deliveries are authenticated by HMAC-SHA256 of the body against this value, and the endpoint **rejects every delivery (401) when it is unset** - set the same value here and in the GitHub App's webhook configuration. | (none) |
 
 ### Azure DevOps Integration
 
@@ -150,7 +150,7 @@ The frontend is a React SPA built with Vite.
 Configuration is loaded at runtime via an `env.js` file that sets values on `window.__STACKWEAVER__`.
 The app falls back to `import.meta.env.VITE_*` build-time variables, and then to hardcoded defaults.
 
-In Kubernetes, the Helm chart generates `env.js` automatically from the ingress configuration — the frontend image is generic and does not need domain-specific build args.
+In Kubernetes, the Helm chart generates `env.js` automatically from the ingress configuration - the frontend image is generic and does not need domain-specific build args.
 In Docker Compose (development), `env.js` is not used; the Vite dev server injects `VITE_*` variables at build time as usual.
 
 | Variable | Description | Default |
@@ -266,7 +266,7 @@ In Kubernetes it runs as a sidecar in the Zitadel pod and patches the K8s Secret
 
 | Variable | Description | Default |
 |---|---|---|
-| `ZITADEL_ISSUER` | Zitadel issuer URL (no path suffix — the SPA's auth proxy handles login routing) | `http://localhost:8080` |
+| `ZITADEL_ISSUER` | Zitadel issuer URL (no path suffix - the SPA's auth proxy handles login routing) | `http://localhost:8080` |
 | `ZITADEL_INTERNAL_ADDR` | Internal Zitadel address | `localhost:8080` |
 | `PROJECT_ROOT` | Path to project root (for config files) | `/config` |
 | `ZITADEL_ADMIN_USERNAME` | Admin email address | `admin@ZITADEL.localhost` |
@@ -305,11 +305,11 @@ The standalone `login-ui` container was removed. Login is served by the Stackwea
 |---|---|---|
 | `ZITADEL_LOGIN_SERVICE_USER_TOKEN` | Service user PAT consumed by the auth proxy + TOTP service + Zitadel webhook handler | Auto-generated by `zitadel-init` |
 | `ZITADEL_API_CLIENT_ID` | OIDC client_id for the API (used by the backchannel-logout audience binding per OIDC §2.6) | Auto-generated by `zitadel-init` |
-| `STACKWEAVER_NOTIFICATION_MODE` | OTP / verification-code delivery channel: `return_code` (dev — code in API response) or `email` (production — code via SMTP) | `return_code` |
+| `STACKWEAVER_NOTIFICATION_MODE` | OTP / verification-code delivery channel: `return_code` (dev - code in API response) or `email` (production - code via SMTP) | `return_code` |
 | `STACKWEAVER_DEFAULT_REDIRECT_URI` | Fallback OIDC redirect URI when none is supplied | (empty) |
 | `STACKWEAVER_AUTO_SUBMIT_CODE` | Auto-submit OTP forms on full-length digit paste (UX toggle) | `false` |
-| `STACKWEAVER_APP_URL` | Browser-visible base URL of the SPA (split-domain deploys) | (empty — falls back to API's own public base URL) |
-| `STACKWEAVER_PUBLIC_URL` | Browser/client-visible base URL of this API. Used unconditionally for the OIDC discovery document's issuer and endpoint URLs so they cannot be steered by a forged `X-Forwarded-Host`/`X-Zitadel-*` header, and its host joins the trusted-host allowlist. Set this in production (especially split-domain, where the API and SPA differ). | (empty — falls back to the header-derived host, dev/same-origin only) |
+| `STACKWEAVER_APP_URL` | Browser-visible base URL of the SPA (split-domain deploys) | (empty - falls back to API's own public base URL) |
+| `STACKWEAVER_PUBLIC_URL` | Browser/client-visible base URL of this API. Used unconditionally for the OIDC discovery document's issuer and endpoint URLs so they cannot be steered by a forged `X-Forwarded-Host`/`X-Zitadel-*` header, and its host joins the trusted-host allowlist. Set this in production (especially split-domain, where the API and SPA differ). | (empty - falls back to the header-derived host, dev/same-origin only) |
 | `STACKWEAVER_TRUSTED_HOSTS` | Comma-separated extra hostnames honored in `X-Forwarded-Host`/`X-Zitadel-*` headers when building auth URLs, on top of the hosts of `STACKWEAVER_PUBLIC_URL`, `STACKWEAVER_APP_URL` and the Zitadel issuer (which are trusted automatically). | (empty) |
 | `STACKWEAVER_LOGINNAME_LOCKOUT_THRESHOLD` | Failed-password attempts per loginName before lockout | `5` |
 | `STACKWEAVER_LOGINNAME_LOCKOUT_WINDOW` | Sliding window for the lockout threshold | `15m` |

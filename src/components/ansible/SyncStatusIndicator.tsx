@@ -30,7 +30,7 @@ interface SyncStatusIndicatorProps {
   status?: string;
   error?: string;
   syncedAt?: string;
-  /** Optional retry handler — shows a "Retry sync" affordance inside the tooltip on failure. */
+  /** Optional retry handler - shows a "Retry sync" affordance inside the tooltip on failure. */
   onRetry?: () => void;
   retrying?: boolean;
   /** Link to the resource's detail page for the full, untruncated error. */
@@ -60,7 +60,7 @@ function truncateError(error: string): { text: string; truncated: boolean } {
  * Small inline sync-status indicator for list cards: a colored icon that reveals
  * the status (and, on failure, the `last_sync_error`) in an accessible tooltip.
  * Renders nothing for the 'unknown' state so never-touched manual resources stay
- * clean. Keep it inline with existing card metadata — it never expands card height.
+ * clean. Keep it inline with existing card metadata - it never expands card height.
  */
 export function SyncStatusIndicator({
   status,

@@ -3,7 +3,7 @@
 // Pure formatting for activity-feed notifications, extracted from
 // useActivityNotifications so the (action -> title/message/type) mapping is
 // unit-testable without rendering the hook. Behaviour is verbatim from the
-// original switch — see activityFormat.test.ts for the locked-in cases.
+// original switch - see activityFormat.test.ts for the locked-in cases.
 
 export interface ActivityAttributes {
   action: string;

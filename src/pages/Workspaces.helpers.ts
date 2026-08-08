@@ -31,7 +31,7 @@ export interface PendingCreateDialogDecision {
  * `pendingWorkspaceDialog` localStorage entry (fallback, org- and recency-scoped).
  *
  * Pure decision: it reads `window.location`/`localStorage` but performs no
- * mutations — the caller applies the indicated cleanup. Runs inside a mount
+ * mutations - the caller applies the indicated cleanup. Runs inside a mount
  * effect (never during render), so the `Date.now()` recency check is safe.
  */
 export function evaluatePendingCreateDialog(

@@ -73,11 +73,11 @@
     </script>
     <!-- Runtime config: env.js sets window.__STACKWEAVER__ with deployment-specific
          values (falls back to import.meta.env in dev). This is a classic,
-         parser-blocking script so it executes before the deferred app module — which
-         Vite hoists into <head> at build — guaranteeing src/config.ts reads the runtime
+         parser-blocking script so it executes before the deferred app module - which
+         Vite hoists into <head> at build - guaranteeing src/config.ts reads the runtime
          config at import time. Served with Cache-Control: no-store by nginx (see
          nginx.conf) so cluster reinstalls never serve a stale client_id.
-         NB: not document.write() — that pattern is a DOM-XSS smell and breaks CSP. -->
+         NB: not document.write() - that pattern is a DOM-XSS smell and breaks CSP. -->
     <script src="/env.js"></script>
   </head>
   <body>

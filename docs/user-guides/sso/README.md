@@ -36,11 +36,11 @@ sequenceDiagram
 <details>
 <summary><strong>Flow Steps (Legend)</strong></summary>
 
-1. **External login** — The user clicks the external login button on the StackWeaver login page.
-2. **Broker redirect** — StackWeaver redirects to Zitadel, which redirects to the external IdP (e.g., Azure AD).
-3. **Authentication** — The IdP authenticates the user and returns an ID token with claims (email, name, groups).
-4. **User linking** — Zitadel receives the token, auto-provisions or links the user, and issues a StackWeaver JWT.
-5. **API provisioning** — The StackWeaver API verifies the JWT and provisions the user in its local database.
+1. **External login** - The user clicks the external login button on the StackWeaver login page.
+2. **Broker redirect** - StackWeaver redirects to Zitadel, which redirects to the external IdP (e.g., Azure AD).
+3. **Authentication** - The IdP authenticates the user and returns an ID token with claims (email, name, groups).
+4. **User linking** - Zitadel receives the token, auto-provisions or links the user, and issues a StackWeaver JWT.
+5. **API provisioning** - The StackWeaver API verifies the JWT and provisions the user in its local database.
 
 </details>
 

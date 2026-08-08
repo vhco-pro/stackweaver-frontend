@@ -50,7 +50,7 @@ export function ProjectTags({ projectId }: { projectId: string }) {
       <div className="flex items-center gap-2 mb-4">
         <Tag className="h-5 w-5 text-purple-500" />
         <h3 className="text-lg font-semibold">Tags</h3>
-        <span className="text-sm text-muted-foreground">— workspaces in this project inherit these</span>
+        <span className="text-sm text-muted-foreground">- workspaces in this project inherit these</span>
       </div>
 
       {isLoading ? (

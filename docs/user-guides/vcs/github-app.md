@@ -33,11 +33,11 @@ sequenceDiagram
 <details>
 <summary><strong>Flow Steps (Legend)</strong></summary>
 
-1. **App creation** — The platform owner creates a single GitHub App (one-time setup).
-2. **User connects** — A user clicks "Connect GitHub" in organization settings.
-3. **Installation** — The user is redirected to GitHub's App installation page, selects their org/repos, and installs.
-4. **Webhook** — GitHub sends a webhook with installation details; StackWeaver stores the installation ID and generates tokens automatically.
-5. **Ready** — The user can now select repositories and branches when creating workspaces.
+1. **App creation** - The platform owner creates a single GitHub App (one-time setup).
+2. **User connects** - A user clicks "Connect GitHub" in organization settings.
+3. **Installation** - The user is redirected to GitHub's App installation page, selects their org/repos, and installs.
+4. **Webhook** - GitHub sends a webhook with installation details; StackWeaver stores the installation ID and generates tokens automatically.
+5. **Ready** - The user can now select repositories and branches when creating workspaces.
 
 </details>
 
@@ -225,11 +225,11 @@ sequenceDiagram
 <details>
 <summary><strong>Flow Steps (Legend)</strong></summary>
 
-1. **Navigate** — User goes to Organization Settings > VCS Connections.
-2. **Connect** — User clicks "Connect GitHub" and is redirected to GitHub's App installation page.
-3. **Install** — User selects organization/repositories and clicks "Install".
-4. **Callback** — GitHub redirects back to StackWeaver and sends a webhook with installation details.
-5. **Ready** — StackWeaver stores the installation ID; the user can now select repositories and branches.
+1. **Navigate** - User goes to Organization Settings > VCS Connections.
+2. **Connect** - User clicks "Connect GitHub" and is redirected to GitHub's App installation page.
+3. **Install** - User selects organization/repositories and clicks "Install".
+4. **Callback** - GitHub redirects back to StackWeaver and sends a webhook with installation details.
+5. **Ready** - StackWeaver stores the installation ID; the user can now select repositories and branches.
 
 </details>
 

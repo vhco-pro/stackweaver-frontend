@@ -5,7 +5,7 @@ export type ResourceStatus = 'pending' | 'applying' | 'completed' | 'failed' | '
 /**
  * Resolve a resource's display status against the run's terminal outcome.
  *
- * A resource can only be 'applying' (blue spinner) or 'pending' while the run is live —
+ * A resource can only be 'applying' (blue spinner) or 'pending' while the run is live -
  * those states come from a "Creating…" log line (or the initial plan) with no matching
  * terminal line yet. Once the run is cancelled/failed, no further log lines will ever
  * arrive, so anything still 'applying'/'pending' must be resolved to the run's outcome or

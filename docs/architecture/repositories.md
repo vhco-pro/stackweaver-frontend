@@ -24,16 +24,16 @@ covers:
 
 | Tier | Repo | Visibility | Audit scope | Contents |
 |------|------|------------|-------------|----------|
-| **Upstream monorepo** | `michielvha/stackweaver` | Private (permanent) | Internal upstream gate — not audited directly | All source, including the closed `core/` Go module |
-| **Closed Go module** | `core/` (inside monorepo) | Private (BSL when published) | Argued deviation under NDA — see [`core-auditor-access.md`](../internal/security/core-auditor-access.md) | Shared GORM models, repositories, queue, storage, plugin contracts |
-| **Satellite — API**           | `vhco-pro/stackweaver-api`            | Planned public | ✅ | `backend/cmd/api`, `backend/internal/{api,services}`, `backend/config` |
-| **Satellite — Orchestrator**  | `vhco-pro/stackweaver-orchestrator`   | Planned public | ✅ | `backend/cmd/orchestrator` |
-| **Satellite — Terraform Runner** | `vhco-pro/stackweaver-runner`      | Planned public | ✅ | `backend/cmd/runner`, `runner-images/terraform/Dockerfile` |
-| **Satellite — Ansible Runner**| `vhco-pro/stackweaver-ansible-runner` | Planned public | ✅ | `backend/cmd/ansible-runner`, `runner-images/ansible/*`, OIDC inventory script |
-| **Satellite — Frontend**      | `vhco-pro/stackweaver-frontend`       | Planned public | ✅ | `frontend/`, `docs/` (excluding `docs/internal/`) |
-| **Satellite — Helm chart**    | `vhco-pro/stackweaver-helm`           | Public         | ✅ | `deploy/helm/stackweaver/` |
-| **Satellite — Zitadel Init**  | `vhco-pro/stackweaver-zitadel-init`   | Planned public | ✅ | `scripts/zitadel-init/` |
-| **Org-defaults repo**         | `vhco-pro/.github`                    | Public (created 2026-05-23, empty) | Provides defaults — not audited directly | Community-health files, reusable workflows |
+| **Upstream monorepo** | `michielvha/stackweaver` | Private (permanent) | Internal upstream gate - not audited directly | All source, including the closed `core/` Go module |
+| **Closed Go module** | `core/` (inside monorepo) | Private (BSL when published) | Argued deviation under NDA - see [`core-auditor-access.md`](../internal/security/core-auditor-access.md) | Shared GORM models, repositories, queue, storage, plugin contracts |
+| **Satellite - API**           | `vhco-pro/stackweaver-api`            | Planned public | ✅ | `backend/cmd/api`, `backend/internal/{api,services}`, `backend/config` |
+| **Satellite - Orchestrator**  | `vhco-pro/stackweaver-orchestrator`   | Planned public | ✅ | `backend/cmd/orchestrator` |
+| **Satellite - Terraform Runner** | `vhco-pro/stackweaver-runner`      | Planned public | ✅ | `backend/cmd/runner`, `runner-images/terraform/Dockerfile` |
+| **Satellite - Ansible Runner**| `vhco-pro/stackweaver-ansible-runner` | Planned public | ✅ | `backend/cmd/ansible-runner`, `runner-images/ansible/*`, OIDC inventory script |
+| **Satellite - Frontend**      | `vhco-pro/stackweaver-frontend`       | Planned public | ✅ | `frontend/`, `docs/` (excluding `docs/internal/`) |
+| **Satellite - Helm chart**    | `vhco-pro/stackweaver-helm`           | Public         | ✅ | `deploy/helm/stackweaver/` |
+| **Satellite - Zitadel Init**  | `vhco-pro/stackweaver-zitadel-init`   | Planned public | ✅ | `scripts/zitadel-init/` |
+| **Org-defaults repo**         | `vhco-pro/.github`                    | Public (created 2026-05-23, empty) | Provides defaults - not audited directly | Community-health files, reusable workflows |
 
 ## 2. Sync directionality
 
@@ -52,7 +52,7 @@ covers:
 ```
 
 - Sync is performed by the `stackweaver-release-bot` GitHub App
-  (replacing the legacy `SATELLITE_REPO_TOKEN` PAT — planned, see
+  (replacing the legacy `SATELLITE_REPO_TOKEN` PAT - planned, see
   [`secrets-policy.md`](../internal/security/secrets-policy.md)).
 - No human pushes to satellite `main`. The org-level branch ruleset
   (planned) enforces this with the release-bot as the sole bypass
@@ -65,13 +65,13 @@ covers:
 
 | File / dir | Satellites that own it locally | Satellites where it's synced from monorepo |
 |------------|--------------------------------|---------------------------------------------|
-| `LICENSE`            | all (today)         | all (planned — `licenses/` canonical, see [`sync-pipeline-audit.md`](../internal/security/sync-pipeline-audit.md)) |
+| `LICENSE`            | all (today)         | all (planned - `licenses/` canonical, see [`sync-pipeline-audit.md`](../internal/security/sync-pipeline-audit.md)) |
 | `NOTICE`             | none (today)        | runner, ansible-runner (planned) |
 | `README.md`          | all (today)         | all except helm (planned; helm `sed`s its README at release time) |
-| `gitversion.yml`     | all                 | — (uniform; could be synced, low priority) |
-| `.github/`           | all                 | — (caller workflows live with the runner — see §5) |
+| `gitversion.yml`     | all                 | - (uniform; could be synced, low priority) |
+| `.github/`           | all                 | - (caller workflows live with the runner - see §5) |
 | Top-level Dockerfile | api / orchestrator / zitadel-init / frontend (intentional, hand-maintained) | runner, ansible-runner (synced from `runner-images/*/Dockerfile`) |
-| Source tree          | — | every satellite's body is wiped-and-filled or full-mirrored from monorepo |
+| Source tree          | - | every satellite's body is wiped-and-filled or full-mirrored from monorepo |
 
 ## 4. Licence per component
 

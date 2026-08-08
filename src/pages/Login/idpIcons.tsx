@@ -26,21 +26,21 @@ import {
  *
  * Many real-world IdPs (Okta, Auth0, AWS Cognito, ...) come back
  * with the generic type `IDENTITY_PROVIDER_TYPE_OIDC` because Zitadel
- * doesn't have a dedicated provider template for them — they're
+ * doesn't have a dedicated provider template for them - they're
  * provisioned via `AddGenericOIDCProvider`. The type alone can't
  * distinguish vendor in that case, so we fall back to matching the
  * provider's `name` (case-insensitive substring) against a known-
  * vendor list. The operator names their IdP "Okta" in `OIDC_IDP_NAME`
- * (or whatever — sso.env is the source of truth) and we render the
+ * (or whatever - sso.env is the source of truth) and we render the
  * matching glyph.
  *
  * Wave 14 colour upgrade (2026-05-12): the original monochrome
  * `currentColor` glyphs rendered as the same washed-out grey/white
- * regardless of brand — looked cheap and unprofessional next to a
+ * regardless of brand - looked cheap and unprofessional next to a
  * real "Sign in with Microsoft" button. We now ship brand-faithful
  * multi-colour SVGs (Microsoft's 4-tile in red/green/blue/yellow,
  * Google's 4-colour G, Okta's blue O, etc.) with hardcoded fills.
- * These read well on both light AND dark backgrounds — verified
+ * These read well on both light AND dark backgrounds - verified
  * against the actual login-page contexts.
  *
  * GitHub stays monochrome because the GitHub brand itself is
@@ -68,7 +68,7 @@ const VENDOR_BY_TYPE: Record<string, LucideIcon | ((props: IconProps) => React.J
 // Name-fallback for vendors that come back as the generic OIDC type
 // (Zitadel doesn't ship dedicated provider templates for these, so
 // operators provision them via `AddGenericOIDCProvider` and name them
-// in `sso.env`). Case-insensitive substring match — "Okta", "OKTA",
+// in `sso.env`). Case-insensitive substring match - "Okta", "OKTA",
 // "okta-prod" all hit `OktaIcon`.
 const VENDOR_BY_NAME: { match: RegExp; icon: LucideIcon | ((props: IconProps) => React.JSX.Element) }[] = [
     { match: /okta/i, icon: OktaIcon },
@@ -98,13 +98,13 @@ function normalizeType(type: string): string {
  * getIdpIcon returns the React component to render for the given
  * Zitadel IdP. Dispatch order:
  *   1. Vendor-by-type (Google, GitHub, GitLab, Azure AD, Apple)
- *      — type-string is normalised across Zitadel v3 / v4 / bare
+ *      - type-string is normalised across Zitadel v3 / v4 / bare
  *      enum shapes.
- *   2. Vendor-by-name (Okta, Auth0, AWS Cognito, ...) — only
+ *   2. Vendor-by-name (Okta, Auth0, AWS Cognito, ...) - only
  *      consulted when type didn't match a known vendor template
  *      (so the operator naming their generic-OIDC IdP "Okta" gets
  *      the Okta glyph).
- *   3. Generic key-round icon — fall-through for truly unknown IdPs.
+ *   3. Generic key-round icon - fall-through for truly unknown IdPs.
  *
  * Both Lucide and inline SVG components accept a `className` prop so
  * callers can size/colour them consistently.

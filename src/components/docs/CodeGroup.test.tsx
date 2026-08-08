@@ -2,7 +2,7 @@
 
 // Net for CodeGroup's preserve-manual-memoization fix: `codeBlocks` is now memoized
 // so the `activeCodeText` useMemo has a stable dependency. Pins the observable
-// contract that depends on codeBlocks — tab extraction, labels, and switching.
+// contract that depends on codeBlocks - tab extraction, labels, and switching.
 
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';

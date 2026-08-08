@@ -231,7 +231,7 @@ export function TemplateNotificationsCard({ templateId, orgName, canManage }: Te
                 </SelectTrigger>
                 <SelectContent>
                   {channels.length === 0 ? (
-                    <div className="px-2 py-1.5 text-sm text-muted-foreground">No channels yet — create one below</div>
+                    <div className="px-2 py-1.5 text-sm text-muted-foreground">No channels yet - create one below</div>
                   ) : (
                     channels.map((ch) => (
                       <SelectItem key={ch.id} value={ch.id}>{ch.name} ({ch.type})</SelectItem>

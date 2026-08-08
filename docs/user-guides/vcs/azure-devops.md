@@ -79,11 +79,11 @@ Stackweaver needs a client secret to exchange authorization codes for tokens.
 Add the following to `deploy/vcs.env`:
 
 ```bash
-# Public base URL of the Stackweaver API — used to auto-register webhook subscriptions.
+# Public base URL of the Stackweaver API - used to auto-register webhook subscriptions.
 # Must be reachable from Azure DevOps. For local development, use a tunnel URL (see Step 7).
 STACKWEAVER_WEBHOOK_BASE_URL=https://your-stackweaver-domain:8022
 
-# Azure DevOps — Microsoft Entra ID OAuth2
+# Azure DevOps - Microsoft Entra ID OAuth2
 AZURE_DEVOPS_CLIENT_ID=<Application (client) ID from Step 1>
 AZURE_DEVOPS_CLIENT_SECRET=<Secret value from Step 3>
 AZURE_DEVOPS_REDIRECT_URI=http://localhost:5173/vcs/azure-devops/callback

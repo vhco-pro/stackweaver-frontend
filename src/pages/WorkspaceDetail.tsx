@@ -206,7 +206,7 @@ export default function WorkspaceDetail() {
   // workspace, runs, stateVersions, variables, variableSets, platformVariableKeys
   // are derived from the main useQuery below (workspaceData)
   // Seed the active tab from the URL `?tab=` once (lazy init). Nothing in-app
-  // mutates `?tab` after mount, so a sync effect isn't needed — tab clicks below
+  // mutates `?tab` after mount, so a sync effect isn't needed - tab clicks below
   // drive `setActiveTab` directly. Avoids set-state-in-effect.
   const [activeTab, setActiveTab] = useState<TabType>(() => {
     const tabParam = searchParams.get('tab');
@@ -401,11 +401,11 @@ export default function WorkspaceDetail() {
       // Filter to the sets that apply to this workspace. AUD-150: the client-side `scope` is derived
       // from the API `global` flag (scope==='organization' ⇔ global). A global set applies to every
       // workspace; a non-global org-owned set applies only where its project or the workspace itself is
-      // attached. (Attachments may be absent from the list response — the per-set detail fetch below
+      // attached. (Attachments may be absent from the list response - the per-set detail fetch below
       // re-checks precisely, so keep unloaded candidates here rather than dropping them.)
       applicableSets = applicableSets.filter(vs => {
         if (vs.scope === 'organization') {
-          return true; // global — applies to all workspaces
+          return true; // global - applies to all workspaces
         }
         const projectMatch = vs.projects?.some((p: { id?: string }) => p.id === workspaceRes.project_id);
         const workspaceMatch = vs.workspaces?.some((w: { id?: string }) => w.id === workspaceRes.id);
@@ -468,7 +468,7 @@ export default function WorkspaceDetail() {
 
   // `inlineDescription` is seeded when editing starts (the "Add description"
   // button) and reset on cancel; the read-only view renders workspace.description
-  // directly. So no sync effect is needed — and removing it avoids clobbering an
+  // directly. So no sync effect is needed - and removing it avoids clobbering an
   // in-progress edit when a poll refetch returns a new workspace object.
 
   // Fetch README from VCS repository
@@ -501,7 +501,7 @@ export default function WorkspaceDetail() {
 
   // Fetch plan output for latest run
   const latestRun = runs.length > 0 ? runs[0] : null;
-  // Ticking clock for the live run-duration display — only ticks while the
+  // Ticking clock for the live run-duration display - only ticks while the
   // latest run is in progress. Passed into the pure calculateRunDuration so it
   // never calls Date.now() during render (react-hooks/purity).
   const now = useNow(!!latestRun && isRunActive(latestRun));
@@ -804,7 +804,7 @@ export default function WorkspaceDetail() {
 
   const latestStateVersionSummary = stateVersions.length > 0 ? stateVersions[0] : null;
 
-  // Fetch latest state version metadata (created_at, version) — used for the CREATED column
+  // Fetch latest state version metadata (created_at, version) - used for the CREATED column
   // and as an existence guard. Resources/outputs come from the materialized endpoints below,
   // not from the (deprecated) inline state_data blob.
   const { data: latestStateVersion } = useQuery({
@@ -813,7 +813,7 @@ export default function WorkspaceDetail() {
     enabled: !!latestStateVersionSummary?.id,
   });
 
-  // Materialized current-state resources/outputs (State Storage Rework) — served from the
+  // Materialized current-state resources/outputs (State Storage Rework) - served from the
   // dedicated tables, so the tabs/counts no longer parse the raw state blob.
   const { data: currentResourcesData } = useQuery({
     queryKey: ['current-state-resources', workspace?.id],
@@ -1120,15 +1120,15 @@ export default function WorkspaceDetail() {
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mt-4 text-sm">
                   <div className="flex flex-col items-center">
                     <div className="text-muted-foreground mb-2 text-center">Policy checks</div>
-                    <div className="font-medium text-center">—</div>
+                    <div className="font-medium text-center">-</div>
                   </div>
                   <div className="flex flex-col items-center">
                     <div className="text-muted-foreground mb-2 text-center">Estimated cost change</div>
-                    <div className="font-medium text-center">—</div>
+                    <div className="font-medium text-center">-</div>
                   </div>
                   <div className="flex flex-col items-center">
                     <div className="text-muted-foreground mb-2 text-center">Plan & apply duration</div>
-                    <div className="font-medium text-center">{calculateRunDuration(latestRun, now) ?? '—'}</div>
+                    <div className="font-medium text-center">{calculateRunDuration(latestRun, now) ?? '-'}</div>
                   </div>
                   <div className="flex flex-col items-center">
                     <div className="text-muted-foreground mb-2 text-center">
@@ -1140,7 +1140,7 @@ export default function WorkspaceDetail() {
                       const impact = calculateResourceImpact(planOutput);
                       
                       if (!impact) {
-                        return <div className="font-medium text-center">—</div>;
+                        return <div className="font-medium text-center">-</div>;
                       }
                       
                       // For destroy runs, only show delete count
@@ -1231,7 +1231,7 @@ export default function WorkspaceDetail() {
                   ) : (() => {
                     const created = stateCreatedAt
                       ? new Date(stateCreatedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
-                      : '—';
+                      : '-';
                     const filtered = managedResources.filter((resource) => {
                       if (!resourceFilter.trim()) return true;
                       const f = resourceFilter.toLowerCase();
@@ -1319,7 +1319,7 @@ export default function WorkspaceDetail() {
                   ) : (() => {
                     const created = stateCreatedAt
                       ? new Date(stateCreatedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
-                      : '—';
+                      : '-';
                     const filtered = dataSources.filter((resource) => {
                       if (!resourceFilter.trim()) return true;
                       const f = resourceFilter.toLowerCase();

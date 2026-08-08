@@ -274,7 +274,7 @@ html:not(.dark) .shiki-wrapper {
   border: 1px solid rgba(148, 163, 184, 0.4); /* Darker border for light mode */
 }
 
-/* Strip Shiki background in code explorer and snippets — works inside Dialog portals outside .markdown-content */
+/* Strip Shiki background in code explorer and snippets - works inside Dialog portals outside .markdown-content */
 .code-explorer-code pre[class*='shiki'],
 .github-snippet-code pre[class*='shiki'] {
   background-color: transparent !important;

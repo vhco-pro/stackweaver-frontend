@@ -31,10 +31,10 @@ sequenceDiagram
 <details>
 <summary><strong>Flow Steps (Legend)</strong></summary>
 
-1. **Connect** — Link your playbook to a Git repository and specify the branch and file path.
-2. **Push** — When you push changes to the repository, StackWeaver detects the push via webhook.
-3. **Filter** — Sync only triggers when the specific playbook file (or related files) change.
-4. **Update** — StackWeaver downloads the latest version and updates the playbook automatically.
+1. **Connect** - Link your playbook to a Git repository and specify the branch and file path.
+2. **Push** - When you push changes to the repository, StackWeaver detects the push via webhook.
+3. **Filter** - Sync only triggers when the specific playbook file (or related files) change.
+4. **Update** - StackWeaver downloads the latest version and updates the playbook automatically.
 
 </details>
 

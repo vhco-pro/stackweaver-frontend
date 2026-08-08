@@ -3,7 +3,7 @@
 import { describe, it, expect } from 'vitest';
 import { parseSearchSessionsResponse, initialsFromName, resolvePostLogoutRedirect, isJWTShape } from './logoutSessions.helpers';
 
-// F20 — multi-session Logout page helpers.
+// F20 - multi-session Logout page helpers.
 // The render path is a thin shell over `parseSearchSessionsResponse`
 // (extracts the SearchSessions response into per-row fields the
 // picker renders) and `initialsFromName` (avatar initials). Pure
@@ -142,7 +142,7 @@ describe('resolvePostLogoutRedirect', () => {
     });
 
     it('strips embedded credentials from same-origin URLs', () => {
-        // `https://user:pass@sw.vhco.pro/dashboard` — the URL parser
+        // `https://user:pass@sw.vhco.pro/dashboard` - the URL parser
         // would accept this as same-origin but the browser navigation
         // would honor the credentials. We rebuild from path+search+hash
         // to drop them.
@@ -152,7 +152,7 @@ describe('resolvePostLogoutRedirect', () => {
     });
 
     it('returns fallback for unparseable URLs', () => {
-        // The URL constructor is forgiving — most strings parse as
+        // The URL constructor is forgiving - most strings parse as
         // relative paths. We exercise the try/catch arm with truly
         // malformed input.
         expect(resolvePostLogoutRedirect('http://[invalid', ORIGIN)).toBe(SAFE_DEFAULT);
@@ -183,7 +183,7 @@ describe('resolvePostLogoutRedirect', () => {
 
 describe('isJWTShape (Round 24 Finding 4 defensive logout_token check)', () => {
     // Sample real-shape JWT (header.payload.signature, all
-    // base64url) — no actual signature, just the wire shape.
+    // base64url) - no actual signature, just the wire shape.
     const realJWT = 'eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c';
 
     it('accepts a real-shape JWT', () => {
@@ -224,11 +224,11 @@ describe('isJWTShape (Round 24 Finding 4 defensive logout_token check)', () => {
         // Standard base64 + and /
         expect(isJWTShape('aA+.bB.cC')).toBe(false);
         expect(isJWTShape('aA/.bB.cC')).toBe(false);
-        // Space — definitely not JWT-shaped
+        // Space - definitely not JWT-shaped
         expect(isJWTShape('aA bB.cC.dD')).toBe(false);
     });
 
-    it('rejects URL-encoded JWT (%-escapes — what an attacker might paste raw)', () => {
+    it('rejects URL-encoded JWT (%-escapes - what an attacker might paste raw)', () => {
         expect(isJWTShape('a%2Eb.c.d')).toBe(false);
     });
 });

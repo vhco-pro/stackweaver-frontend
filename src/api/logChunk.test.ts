@@ -21,7 +21,7 @@ describe('parseLogChunk', () => {
     const buf = concat(new Uint8Array([STX]), enc('hello\n'));
     const chunk = parseLogChunk(buf);
     expect(chunk.text).toBe('hello\n');
-    // 1 (STX) + 6 ("hello\n") — the marker is a real byte the next offset must skip.
+    // 1 (STX) + 6 ("hello\n") - the marker is a real byte the next offset must skip.
     expect(chunk.bytes).toBe(7);
     expect(chunk.done).toBe(false);
   });
@@ -48,7 +48,7 @@ describe('parseLogChunk', () => {
     const buf = enc(body);
     const chunk = parseLogChunk(buf);
     expect(chunk.text).toBe(body);
-    // bytes must be the UTF-8 length, which is larger than the JS UTF-16 string length —
+    // bytes must be the UTF-8 length, which is larger than the JS UTF-16 string length -
     // using string length here would drift the offset and corrupt the next slice.
     expect(chunk.bytes).toBe(buf.length);
     expect(chunk.bytes).toBeGreaterThan(body.length);

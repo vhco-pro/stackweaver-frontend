@@ -127,7 +127,7 @@ export function PlaybookSourcePicker({ organizationName, playbooks, value, onCha
         <>
           <VcsRepoBranchPicker organizationName={organizationName} browser={browser} />
 
-          {/* Playbook file — same searchable select as the playbook create dialog */}
+          {/* Playbook file - same searchable select as the playbook create dialog */}
           {browser.connectionId && browser.repository && browser.branch && (
             <div className="space-y-2">
               <Label>Playbook File *</Label>
@@ -199,7 +199,7 @@ export function PlaybookSourcePicker({ organizationName, playbooks, value, onCha
               {value?.kind === 'registered' && pickedEntry?.registered && (
                 <div className="text-xs text-muted-foreground">
                   <Badge variant="outline" className="mr-1">existing</Badge>
-                  “{pickedPath}” is already registered as “{pickedEntry.playbook_name}” — the existing playbook will be used.
+                  “{pickedPath}” is already registered as “{pickedEntry.playbook_name}” - the existing playbook will be used.
                 </div>
               )}
             </div>

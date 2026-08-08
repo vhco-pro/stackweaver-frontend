@@ -45,11 +45,11 @@ flowchart TD
 <details>
 <summary><strong>Flow Steps (Legend)</strong></summary>
 
-1. **Secrets init (PreSync Job)** — A `secrets-init` Job runs before the rest of the chart. It creates the Zitadel Kubernetes Secret (containing a randomly generated 32-character `masterkey` and an `adminPassword`) only if the secret does not already exist. This is idempotent — re-syncing never overwrites existing credentials.
+1. **Secrets init (PreSync Job)** - A `secrets-init` Job runs before the rest of the chart. It creates the Zitadel Kubernetes Secret (containing a randomly generated 32-character `masterkey` and an `adminPassword`) only if the secret does not already exist. This is idempotent - re-syncing never overwrites existing credentials.
 
-2. **Zitadel starts** — The Zitadel pod waits for PostgreSQL to be ready (via an initContainer), then runs `start-from-init`. It reads `masterkey` and `adminPassword` from the Kubernetes Secret via environment variables.
+2. **Zitadel starts** - The Zitadel pod waits for PostgreSQL to be ready (via an initContainer), then runs `start-from-init`. It reads `masterkey` and `adminPassword` from the Kubernetes Secret via environment variables.
 
-3. **zitadel-init sidecar** — A sidecar container in the same pod as Zitadel waits for Zitadel to become ready, then provisions the OIDC apps (frontend, API), registers the production redirect URI, sets the Login V2 BaseURI to the Stackweaver SPA's `/login` path via the Feature API, configures the login service user (whose PAT is consumed by the API container's auth proxy + TOTP service + Zitadel webhook handler), and webhook keys, then writes the results directly into the Zitadel Kubernetes Secret. It also triggers rolling restarts of the API + frontend pods, then enters an idle state with a health endpoint on `:8081`.
+3. **zitadel-init sidecar** - A sidecar container in the same pod as Zitadel waits for Zitadel to become ready, then provisions the OIDC apps (frontend, API), registers the production redirect URI, sets the Login V2 BaseURI to the Stackweaver SPA's `/login` path via the Feature API, configures the login service user (whose PAT is consumed by the API container's auth proxy + TOTP service + Zitadel webhook handler), and webhook keys, then writes the results directly into the Zitadel Kubernetes Secret. It also triggers rolling restarts of the API + frontend pods, then enters an idle state with a health endpoint on `:8081`.
 
 </details>
 
@@ -82,7 +82,7 @@ kubectl get secret stackweaver-zitadel -n stackweaver \
 
 ### Troubleshooting: Admin Password Does Not Work (Kubernetes)
 
-The admin password is written to the Kubernetes Secret by the PreSync `secrets-init` job and injected into Zitadel via `ZITADEL_FIRSTINSTANCE_ORG_HUMAN_PASSWORD`. This only takes effect during the **first** Zitadel initialization — if the database already existed with a different password (e.g. the secret was deleted and recreated), the DB and secret are out of sync.
+The admin password is written to the Kubernetes Secret by the PreSync `secrets-init` job and injected into Zitadel via `ZITADEL_FIRSTINSTANCE_ORG_HUMAN_PASSWORD`. This only takes effect during the **first** Zitadel initialization - if the database already existed with a different password (e.g. the secret was deleted and recreated), the DB and secret are out of sync.
 
 To recover, reset the Zitadel database and let it reinitialize:
 
@@ -259,16 +259,16 @@ flowchart TD
 <details>
 <summary><strong>Flow Steps (Legend)</strong></summary>
 
-1. **Acquire admin PAT** — **Docker Compose**: waits up to 300s for `/pat/admin.pat` (written by Zitadel during `start-from-init`). **Kubernetes (first boot)**: waits for readiness, reads PAT from emptyDir, persists to K8s Secret. **Kubernetes (pod restart)**: falls back to `admin-pat` from K8s Secret. **Manual override**: `ZITADEL_PAT` env var takes highest priority.
-2. **Connect** — Uses the PAT to connect to Zitadel via gRPC (`localhost:8080`).
-3. **Provision** — Creates or updates: Organization `IAC Platform`, Project, Frontend OIDC app (PKCE) with production redirect URI, API app (client secret), service-account machine user + PAT (`IAM_LOGIN_CLIENT` role — consumed post-cutover by the API container's auth proxy + TOTP service + Zitadel webhook handler; the user retains its historical `login-ui-service` name to avoid breaking live deployments), webhook signing keys, and Login V2 BaseURI (via Feature API).
-4. **Write** — Writes the generated values to `deploy/.env`.
+1. **Acquire admin PAT** - **Docker Compose**: waits up to 300s for `/pat/admin.pat` (written by Zitadel during `start-from-init`). **Kubernetes (first boot)**: waits for readiness, reads PAT from emptyDir, persists to K8s Secret. **Kubernetes (pod restart)**: falls back to `admin-pat` from K8s Secret. **Manual override**: `ZITADEL_PAT` env var takes highest priority.
+2. **Connect** - Uses the PAT to connect to Zitadel via gRPC (`localhost:8080`).
+3. **Provision** - Creates or updates: Organization `IAC Platform`, Project, Frontend OIDC app (PKCE) with production redirect URI, API app (client secret), service-account machine user + PAT (`IAM_LOGIN_CLIENT` role - consumed post-cutover by the API container's auth proxy + TOTP service + Zitadel webhook handler; the user retains its historical `login-ui-service` name to avoid breaking live deployments), webhook signing keys, and Login V2 BaseURI (via Feature API).
+4. **Write** - Writes the generated values to `deploy/.env`.
 
 </details>
 
-The bootstrap is idempotent — re-running it reuses existing apps and orgs.
+The bootstrap is idempotent - re-running it reuses existing apps and orgs.
 
-The bootstrap is idempotent — re-running it reuses existing apps and orgs.
+The bootstrap is idempotent - re-running it reuses existing apps and orgs.
 
 ### Environment Variables Written to `deploy/.env`
 
@@ -298,7 +298,7 @@ ZITADEL_WEBHOOK_COMPLEMENT_TOKEN_KEY=<webhook-key>
 | `ZITADEL_PAT` | Optional PAT override instead of `/pat/admin.pat` | empty |
 | `FRONTEND_REDIRECT_URI` | OAuth redirect URI registered on the frontend OIDC app | empty (Kubernetes only) |
 | `FRONTEND_POST_LOGOUT_URI` | Post-logout redirect URI registered on the frontend OIDC app | empty (Kubernetes only) |
-| `LOGIN_UI_BASE_URL` | Login V2 BaseURI set via Feature API (overrides database value) — points at the Stackweaver SPA's `/login` route. Variable name is historical; despite "LOGIN_UI" the value is the SPA URL | empty (Kubernetes only) |
+| `LOGIN_UI_BASE_URL` | Login V2 BaseURI set via Feature API (overrides database value) - points at the Stackweaver SPA's `/login` route. Variable name is historical; despite "LOGIN_UI" the value is the SPA URL | empty (Kubernetes only) |
 
 ### Troubleshooting: Zitadel Not Starting (Docker Compose)
 
@@ -329,14 +329,14 @@ Both deployment paths use Zitadel's Login V2 feature. Stackweaver replaces the s
 The BaseURI (the browser-reachable URL Zitadel redirects users to for login) is set from two sources, in priority order:
 
 **Kubernetes (Helm):**
-1. `DefaultInstance.Features.LoginV2.BaseURI` in the Zitadel ConfigMap — sets the initial value in the database on first Zitadel startup. Set to `https://<ingress.hosts.app>/login` (the Stackweaver SPA's login route on the **app** host, not the auth host).
-2. `zitadel-init` Feature API call — on every post-install/post-upgrade run, `zitadel-init` calls `SetInstanceFeatures` with `LoginV2.BaseUri` set to the same public URL. This overwrites the database value, so domain changes take effect on the next sync without a database reset.
+1. `DefaultInstance.Features.LoginV2.BaseURI` in the Zitadel ConfigMap - sets the initial value in the database on first Zitadel startup. Set to `https://<ingress.hosts.app>/login` (the Stackweaver SPA's login route on the **app** host, not the auth host).
+2. `zitadel-init` Feature API call - on every post-install/post-upgrade run, `zitadel-init` calls `SetInstanceFeatures` with `LoginV2.BaseUri` set to the same public URL. This overwrites the database value, so domain changes take effect on the next sync without a database reset.
 
 **Docker Compose:**
 The `DefaultInstance.Features.LoginV2.BaseURI` in the mounted `zitadel-defaults.yaml` is set to `http://localhost:5173/login`, which is directly browser-reachable because `network_mode: host` exposes the SPA on port 5173 of localhost.
 
 > **Note:** `DefaultInstance` settings only apply during first initialization.
-> In Kubernetes, `zitadel-init` handles ongoing updates via the Feature API — you do not need to reset the database when the auth domain changes.
+> In Kubernetes, `zitadel-init` handles ongoing updates via the Feature API - you do not need to reset the database when the auth domain changes.
 
 ---
 

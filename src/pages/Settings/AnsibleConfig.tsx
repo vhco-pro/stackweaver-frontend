@@ -131,7 +131,7 @@ export default function AnsibleConfiguration() {
   const [orgDirty, setOrgDirty] = useState(false);
   // Previous server-data key, stored in state (not a ref) so the "reset editable
   // state when server data changes" sync can run during render the React-blessed
-  // way — see https://react.dev/reference/react/useState#storing-information-from-previous-renders
+  // way - see https://react.dev/reference/react/useState#storing-information-from-previous-renders
   const [lastSyncedOrgDataKey, setLastSyncedOrgDataKey] = useState<string | undefined>(undefined);
 
   // Project configs - form editing state

@@ -29,7 +29,7 @@ export function formatDuration(ms: number): string {
  * Compute a run's elapsed duration string, or null when it can't be determined.
  *
  * `now` is passed in (rather than read via Date.now()) so this stays pure and
- * callable during render — for in-progress runs the caller supplies a ticking
+ * callable during render - for in-progress runs the caller supplies a ticking
  * clock (see useNow); for finished runs the end timestamp is used and `now` is
  * ignored.
  */

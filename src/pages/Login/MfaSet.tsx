@@ -6,7 +6,7 @@ import { Smartphone, Mail, Shield, KeyRound } from 'lucide-react';
 import LoginLayout from './LoginLayout';
 
 /**
- * MFA enrollment orchestrator — shown when policy requires MFA and user has none.
+ * MFA enrollment orchestrator - shown when policy requires MFA and user has none.
  * Honors mfaInitSkipLifetime (users can defer MFA setup for a window).
  */
 export default function MfaSet() {

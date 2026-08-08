@@ -35,24 +35,24 @@ export default [
       // `recommended` config. These flag legitimate-but-non-ideal existing patterns
       // (setState in effects, ref access during render, mutation, etc.) across the
       // codebase. Set to 'warn' during incremental migration so they're visible
-      // without blocking CI — mirrors the `no-restricted-imports` useEffect ban below.
+      // without blocking CI - mirrors the `no-restricted-imports` useEffect ban below.
       // Track remediation in docs/internal/analysis/react-compiler-lint-migration.md.
-      // Remediated to zero (#360) — promoted to error to prevent regressions.
+      // Remediated to zero (#360) - promoted to error to prevent regressions.
       'react-hooks/set-state-in-effect': 'error',
-      // Remediated to zero (#360) — promoted to error to prevent regressions.
+      // Remediated to zero (#360) - promoted to error to prevent regressions.
       'react-hooks/refs': 'error',
-      // Remediated to zero (#360) — promoted to error to prevent regressions.
+      // Remediated to zero (#360) - promoted to error to prevent regressions.
       'react-hooks/immutability': 'error',
-      // Remediated to zero (#360) — promoted to error to prevent regressions.
+      // Remediated to zero (#360) - promoted to error to prevent regressions.
       'react-hooks/purity': 'error',
       'react-hooks/preserve-manual-memoization': 'error',
       'react-hooks/static-components': 'error',
-      // Remediated to zero (#360) — promoted to error to prevent regressions.
+      // Remediated to zero (#360) - promoted to error to prevent regressions.
       'react-refresh/only-export-components': [
         'error',
         { allowConstantExport: true },
       ],
-      // Ban direct useEffect imports — use useMountEffect() or React Query instead
+      // Ban direct useEffect imports - use useMountEffect() or React Query instead
       // Set to 'warn' during migration; upgrade to 'error' after Phase 3 (data-fetching migration)
       // See docs/internal/analysis/useeffect-audit-and-ban-proposal.md
       'no-restricted-imports': ['warn', {
@@ -97,7 +97,7 @@ export default [
       '@typescript-eslint/no-unsafe-return': 'off',
     },
   },
-  // Relax type-safety rules for test files — test assertions on `any`-returning utilities (flattenResource, etc.)
+  // Relax type-safety rules for test files - test assertions on `any`-returning utilities (flattenResource, etc.)
   {
     files: ['**/*.test.ts', '**/*.test.tsx'],
     rules: {

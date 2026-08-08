@@ -134,7 +134,7 @@ export default function RunDetail() {
     enabled: !!id && run?.status === 'applied' && run?.operation === 'plan-and-apply',
   });
 
-  // Adjust polling frequency based on run status — poll faster (750ms) during the
+  // Adjust polling frequency based on run status - poll faster (750ms) during the
   // apply phase for real-time resource updates, 2s otherwise. Derived during render
   // and synced (the hook consumes pollInterval, so it can't be a plain derivation);
   // the `!==` guard makes it converge.
@@ -151,7 +151,7 @@ export default function RunDetail() {
   const [showTerminalView, setShowTerminalView] = useState<boolean>(preferenceShowTerminal);
 
   // Sync with the preference when it changes (but allow a local override in between)
-  // — during-render reset keyed on the previous preference value.
+  // - during-render reset keyed on the previous preference value.
   const [prevPreferenceShowTerminal, setPrevPreferenceShowTerminal] = useState(preferenceShowTerminal);
   if (preferenceShowTerminal !== prevPreferenceShowTerminal) {
     setPrevPreferenceShowTerminal(preferenceShowTerminal);
@@ -162,7 +162,7 @@ export default function RunDetail() {
   // append), live during planning and persisted on reload, so there's no separate poll here.
   const displayPlanLogs = planLogs || '';
 
-  // Check if plan has changes (add/change/destroy/outputs) — used for apply button and "No changes" message
+  // Check if plan has changes (add/change/destroy/outputs) - used for apply button and "No changes" message
   const planHasChanges = useMemo(() => {
     if (!planOutput) return false;
     // Summary counts from API (hyphenated) or stored plan (PascalCase)
@@ -194,7 +194,7 @@ export default function RunDetail() {
   // Note: For plan-and-apply runs, the polling hook handles fetching both plan output and apply logs for the same run
 
   // Once the run status reaches 'applying', the real status has caught up with the
-  // optimistic apply click — clear the flag during render (converges once false).
+  // optimistic apply click - clear the flag during render (converges once false).
   if (run?.status === 'applying' && isApplyStarting) {
     setIsApplyStarting(false);
   }

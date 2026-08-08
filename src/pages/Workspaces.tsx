@@ -398,7 +398,7 @@ export default function Workspaces() {
       }
     }
 
-    // Tag filter — match on an exact effective tag (key=value)
+    // Tag filter - match on an exact effective tag (key=value)
     const matchesTag = tagFilter === '' || tagFilter === 'all' ||
       (workspace.tags?.some(t => `${t.key}=${t.value}` === tagFilter) ?? false);
 
@@ -755,7 +755,7 @@ export default function Workspaces() {
                           </span>
                         );
                       })() : (
-                        <span className="text-sm text-muted-foreground">—</span>
+                        <span className="text-sm text-muted-foreground">-</span>
                       )}
                     </td>
                     <td className="px-4 py-3">
@@ -931,7 +931,7 @@ export default function Workspaces() {
         />
       )}
 
-      {/* File Change Request Dialog — records an action item on the workspace chosen from its row menu. */}
+      {/* File Change Request Dialog - records an action item on the workspace chosen from its row menu. */}
       <Dialog
         open={fileDialogOpen}
         onOpenChange={(open) => {

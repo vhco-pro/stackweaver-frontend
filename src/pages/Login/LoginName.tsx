@@ -33,7 +33,7 @@ export default function LoginName() {
   const [idpLoading, setIdpLoading] = useState(false);
   const [settings, setSettings] = useState<LoginSettings | null>(null);
   const autoSubmittedRef = useRef(false);
-  // Derived rather than state — `useMountEffect` doesn't re-run on
+  // Derived rather than state - `useMountEffect` doesn't re-run on
   // searchParams changes, so a state flag would stick after the
   // fall-through "Sign in" CTA navigates back without the prompt.
   const showPromptNoneError = prompt === 'none';
@@ -66,7 +66,7 @@ export default function LoginName() {
     } catch (err: unknown) {
       const authErr = err as Error & { code?: number };
 
-      // AC-35: Anti-enumeration — when ignoreUnknownUsernames is enabled,
+      // AC-35: Anti-enumeration - when ignoreUnknownUsernames is enabled,
       // route to password page regardless of whether the user exists.
       // This prevents attackers from distinguishing valid vs invalid usernames.
       const ignoreUnknown = currentSettings?.ignoreUnknownUsernames ?? settings?.ignoreUnknownUsernames;
@@ -79,18 +79,18 @@ export default function LoginName() {
         return;
       }
 
-      // User not found and anti-enumeration is off — show error
+      // User not found and anti-enumeration is off - show error
       if (authErr.code === 404) {
         setError('User not found');
       } else if (authErr.message && /User\.NotActive|SESSION-Gj4ko/i.test(authErr.message)) {
         // Zitadel returns `Errors.User.NotActive (SESSION-Gj4ko)` for locked
-        // and disabled users. The raw error is meaningless to end users —
+        // and disabled users. The raw error is meaningless to end users -
         // friendly-map to a generic blocked-account message. Same shape
         // covers locked and disabled because the createSession path doesn't
         // distinguish them.
         setError('This account is locked or has been disabled. Contact your administrator.');
       } else {
-        // Round 26 Wave 10 (Wave 7 gap): friendly-error mapping —
+        // Round 26 Wave 10 (Wave 7 gap): friendly-error mapping -
         // raw `authErr.message` would leak Zitadel internal-code
         // shapes (`COMMAND-…`, `INSTANCE-…`) into the SPA banner.
         setError(toFriendlyError(err, 'An error occurred. Please try again.'));
@@ -104,7 +104,7 @@ export default function LoginName() {
   useMountEffect(() => {
     let cancelled = false;
 
-    // Prompt-based routing happens before any settings fetch — the
+    // Prompt-based routing happens before any settings fetch - the
     // destination pages do their own settings load, so don't waste a
     // round-trip here just to immediately navigate away.
     if (prompt === 'create') {
@@ -148,7 +148,7 @@ export default function LoginName() {
 
       // Auto-submit if login_hint is provided (AC-27).
       // `prompt=login` suppresses the auto-submit even when loginHint is
-      // present — the OIDC spec requires re-authentication and silently
+      // present - the OIDC spec requires re-authentication and silently
       // walking past the loginname step would defeat that intent.
       if (loginHint && !autoSubmittedRef.current && prompt !== 'login') {
         autoSubmittedRef.current = true;
@@ -185,7 +185,7 @@ export default function LoginName() {
   const showRegister = settings?.allowRegister !== false;
   const showPasswordReset = settings?.hidePasswordReset !== true;
 
-  // `prompt=none` reached the SPA — Zitadel couldn't silent-renew. Render
+  // `prompt=none` reached the SPA - Zitadel couldn't silent-renew. Render
   // the failure mode rather than the form. The `Sign in` action drops the
   // prompt and falls through to the normal flow on the same auth request.
   if (showPromptNoneError) {

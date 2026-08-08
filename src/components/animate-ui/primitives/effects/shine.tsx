@@ -50,7 +50,7 @@ const Shine = ({
 
   // Re-sync the animation state when the always-on/delay props change. Done as a
   // during-render adjustment keyed on the previous prop values (React's blessed
-  // pattern) rather than in an effect — see
+  // pattern) rather than in an effect - see
   // https://react.dev/reference/react/useState#storing-information-from-previous-renders
   const [prevSyncKey, setPrevSyncKey] = React.useState(`${String(isAlwaysOn)}:${delay}`);
   const syncKey = `${String(isAlwaysOn)}:${delay}`;

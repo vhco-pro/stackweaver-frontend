@@ -504,7 +504,7 @@ function InstallSection() {
     {
       id: 'kubernetes',
       title: 'Kubernetes (Helm)',
-      subtitle: 'Recommended for production — deploy with the official Helm chart',
+      subtitle: 'Recommended for production - deploy with the official Helm chart',
       icon: Cloud,
       recommended: true,
       commands: `helm install stackweaver oci://ghcr.io/vhco-pro/charts/stackweaver \\

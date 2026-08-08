@@ -104,7 +104,7 @@ const PLUGIN_DEFINITIONS: {
  *
  * Detection priority:
  * 1. Content-based: Parses the `plugin:` YAML key for known plugin identifiers.
- *    This is the most reliable method — works regardless of filename.
+ *    This is the most reliable method - works regardless of filename.
  * 2. Path-based: Falls back to filename pattern matching (e.g., "azure_rm" in path)
  *    when content is not yet loaded.
  *
@@ -116,7 +116,7 @@ export function detectDynamicInventoryPlugin(
   inventoryPath?: string,
   fileContent?: string | null,
 ): DynamicInventoryPlugin | null {
-  // First priority: content-based detection (most reliable — uses the `plugin:` field)
+  // First priority: content-based detection (most reliable - uses the `plugin:` field)
   if (fileContent) {
     for (const def of PLUGIN_DEFINITIONS) {
       for (const pattern of def.contentPatterns) {

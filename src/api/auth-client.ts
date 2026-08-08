@@ -131,7 +131,7 @@ export interface AuthError {
 async function authFetch<T>(path: string, options: RequestInit = {}): Promise<T> {
   const url = `${AUTH_BASE_URL}${path}`;
   const method = options.method?.toUpperCase() ?? 'GET';
-  // Only set Content-Type on methods that have a body — avoids unnecessary CORS preflight on GET
+  // Only set Content-Type on methods that have a body - avoids unnecessary CORS preflight on GET
   const headers: HeadersInit = method === 'GET' || method === 'HEAD'
     ? { ...options.headers }
     : { 'Content-Type': 'application/json', ...options.headers };
@@ -276,7 +276,7 @@ export async function listIdpProviders(): Promise<{ result: IdpProvider[] }> {
 // --- User management endpoints ---
 
 // UserRecord captures the subset of `GET /v2/users/{id}` that the
-// SPA actually consumes. Zitadel returns a much richer object —
+// SPA actually consumes. Zitadel returns a much richer object -
 // pin to the fields we use so a future Zitadel addition doesn't
 // silently change the SPA's interpretation.
 export interface UserRecord {
@@ -333,7 +333,7 @@ export async function changePassword(
 
 export async function getLoginSettings(orgId?: string): Promise<LoginSettings> {
   // Org context matters for `forceMfa`, `allowRegister`,
-  // `allowDomainDiscovery`, `ignoreUnknownUsernames` etc — orgs with their
+  // `allowDomainDiscovery`, `ignoreUnknownUsernames` etc - orgs with their
   // own login-policy override would otherwise be invisible to the SPA and
   // the instance default would silently win. Passed as `?ctx.orgId=<id>`
   // (Zitadel's canonical settings-context query param). The auth proxy's
@@ -371,7 +371,7 @@ export async function getSecuritySettings(): Promise<unknown> {
 /**
  * Zitadel's enumeration of enrolled authentication factors. The SPA's
  * password page reads this after the password check to decide whether
- * to route the user to a second-factor prompt — a TOTP-enrolled user
+ * to route the user to a second-factor prompt - a TOTP-enrolled user
  * who lands on /dashboard with only password verified silently breaks
  * user-level MFA enforcement.
  */

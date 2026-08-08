@@ -8,8 +8,8 @@ import { useEffect, useState } from 'react';
  * impure). While `active` is true the value updates every `intervalMs`; when
  * false it stops ticking and stays at its last value.
  *
- * The timestamp is read in the lazy initializer / interval callback — never in
- * the render body — so consumers can pass it to pure helpers safely.
+ * The timestamp is read in the lazy initializer / interval callback - never in
+ * the render body - so consumers can pass it to pure helpers safely.
  */
 export function useNow(active: boolean, intervalMs = 1000): number {
   const [now, setNow] = useState(() => Date.now());

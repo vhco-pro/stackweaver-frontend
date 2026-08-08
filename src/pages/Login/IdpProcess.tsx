@@ -18,10 +18,10 @@ interface IdpRawUser {
 }
 
 // Zitadel v4's `idp_intents/{id}` response. `rawInformation` is the OIDC
-// id-token claims flat (NOT wrapped under `.User` — that wrapping only
+// id-token claims flat (NOT wrapped under `.User` - that wrapping only
 // applies to SAML IdPs, kept here as a fallback). `addHumanUser` is
 // Zitadel's pre-shaped suggestion for the auto-register path: profile +
-// email + idpLinks ready to POST to `/v2/users/human` — surfaces only when
+// email + idpLinks ready to POST to `/v2/users/human` - surfaces only when
 // the IdP has `autoRegister: true` AND no matching existing user is found,
 // so its presence is itself the signal to take the auto-register branch.
 interface IdpAddHumanUserSuggestion {
@@ -31,7 +31,7 @@ interface IdpAddHumanUserSuggestion {
 }
 
 interface IdpIntentResult {
-  // Top-level `userId` is the Zitadel internal user ID — set ONLY when
+  // Top-level `userId` is the Zitadel internal user ID - set ONLY when
   // the IdP login resolved to a pre-existing local user (linked or
   // auto-linked by email). Use this for the Branch 1 createSession
   // check, NOT `idpInformation.userId` (which is the IDP-side sub
@@ -42,7 +42,7 @@ interface IdpIntentResult {
     oauth?: { accessToken?: string; idToken?: string };
     idpId?: string;
     // IDP-side identifier (the OIDC `sub` for OIDC IdPs). NEVER a
-    // Zitadel snowflake — feeding this into createSession blows up
+    // Zitadel snowflake - feeding this into createSession blows up
     // with 404 because Zitadel can't resolve it. Kept for diagnostics
     // / linking only; the Branch 1 path uses the top-level `userId`.
     userId?: string;
@@ -53,7 +53,7 @@ interface IdpIntentResult {
 }
 
 /**
- * IdP intent handler — consumes the single-use token from the IdP callback.
+ * IdP intent handler - consumes the single-use token from the IdP callback.
  *
  * Implements the full 6-branch handler chain per plan D4:
  * 1. User exists and is linked → create session with idpIntent check
@@ -100,7 +100,7 @@ export default function IdpProcess() {
     const providerName = provider ?? 'unknown';
 
     // Zitadel's projection (the read-model behind `userId` lookups) lags
-    // behind a fresh `createUser` write by a few hundred ms under load —
+    // behind a fresh `createUser` write by a few hundred ms under load -
     // empirically up to ~1s during a full Playwright suite run when
     // projection workers are saturated. Branch 3 / Branch 4 below do a
     // `createSession({user: {userId: <just-created-id>}})` microseconds
@@ -119,11 +119,11 @@ export default function IdpProcess() {
           return await createSession(body);
         } catch (err) {
           const code = (err as Error & { code?: number }).code;
-          // 404 = "User could not be found" — the projection-lag case.
+          // 404 = "User could not be found" - the projection-lag case.
           // Anything else is a real error; rethrow immediately.
           if (code !== 404) throw err;
           lastErr = err;
-          // Backoff: 150ms, 300ms, 600ms — total ~1s budget across 4 tries.
+          // Backoff: 150ms, 300ms, 600ms - total ~1s budget across 4 tries.
           await new Promise((r) => setTimeout(r, 150 * Math.pow(2, attempt)));
           attempt++;
         }
@@ -185,7 +185,7 @@ export default function IdpProcess() {
 
         // Branch 2: try logging in by email + idpIntent BEFORE attempting
         // auto-create. This single path covers two distinct Zitadel
-        // outcomes — there's no SPA-side flag that distinguishes them so
+        // outcomes - there's no SPA-side flag that distinguishes them so
         // we just try and fall through on failure:
         //
         //   (a) User already exists AND has an IdP link to this sub
@@ -197,11 +197,11 @@ export default function IdpProcess() {
         //       the link as a side-effect, session created, done.
         //
         // The previous gate (`settings.allowAutoLinking`) was a dead
-        // branch — Zitadel's `LoginSettings` proto doesn't surface that
+        // branch - Zitadel's `LoginSettings` proto doesn't surface that
         // field, so the condition was always false and (b) was
         // unreachable. (a) was previously stumbling through Branch 3's
         // createUser path, which happens to upsert when idpLinks point
-        // at an existing user — but for case (b) Branch 3 created a
+        // at an existing user - but for case (b) Branch 3 created a
         // *duplicate* user with the same email (caught by F12's
         // sub-comparison assertion). This change makes both cases
         // first-class and keeps F3 (no email match) working via the
@@ -217,7 +217,7 @@ export default function IdpProcess() {
             await finalizeAndRedirect(sessionResp.sessionId, sessionResp.sessionToken, authRequestId);
             return;
           } catch (err) {
-            // No matching user, or auto-link refused — fall through to
+            // No matching user, or auto-link refused - fall through to
             // Branch 3 (auto-create with addHumanUser pre-shape).
             console.debug('IdP auto-link attempt failed, falling through to auto-create:', err);
           }
@@ -226,10 +226,10 @@ export default function IdpProcess() {
         // Branch 3: Auto-creation. Triggered by either (a) Zitadel's
         // pre-shaped `addHumanUser` block (set when the IdP has
         // `autoRegister: true` and the IdP-side claims carry enough to
-        // create a user — so its presence IS the signal), or (b) the SPA-
+        // create a user - so its presence IS the signal), or (b) the SPA-
         // level `settings.autoRegister` fallback for IdPs that don't
         // pre-shape. Prefer (a) because it carries the idpLinks Zitadel
-        // wants — using SPA-rebuilt links risks shape mismatches.
+        // wants - using SPA-rebuilt links risks shape mismatches.
         const suggestion = intentResult.addHumanUser;
         if (suggestion) {
           try {
@@ -267,7 +267,7 @@ export default function IdpProcess() {
           } catch (err) {
             // Surface the cause: the redirect alone gives users (and bug
             // reports, and E2E traces) nothing to diagnose registration
-            // failures with — the API error lands only here.
+            // failures with - the API error lands only here.
             console.error('IdP auto-registration failed:', err);
             void navigate(`/login/idp/${providerName}/registration-failed`);
             return;
@@ -305,14 +305,14 @@ export default function IdpProcess() {
           } catch (err) {
             // Surface the cause: the redirect alone gives users (and bug
             // reports, and E2E traces) nothing to diagnose registration
-            // failures with — the API error lands only here.
+            // failures with - the API error lands only here.
             console.error('IdP auto-registration failed:', err);
             void navigate(`/login/idp/${providerName}/registration-failed`);
             return;
           }
         }
 
-        // Branch 4: Manual creation — show pre-filled registration form
+        // Branch 4: Manual creation - show pre-filled registration form
         if (rawUser?.email) {
           const params = new URLSearchParams({
             email: rawUser.email ?? '',

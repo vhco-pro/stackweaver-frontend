@@ -11,7 +11,7 @@ import { toFriendlyError } from '@/lib/auth-errors';
 const AUTH_BASE = config.apiUrl.replace(/\/api\/v2\/?$/, '/auth');
 
 /**
- * WebAuthn ↔ Zitadel wire-format helpers — see Passkey.tsx for the
+ * WebAuthn ↔ Zitadel wire-format helpers - see Passkey.tsx for the
  * full rationale. Zitadel ships base64url strings on the
  * `publicKeyCredentialCreationOptions.challenge` and `user.id` fields;
  * the browser WebAuthn API requires ArrayBuffers. Standard `btoa`
@@ -69,7 +69,7 @@ export default function PasskeySet() {
         throw new Error('Invalid registration response from server');
       }
 
-      // Step 2: Browser WebAuthn ceremony — decode base64url string
+      // Step 2: Browser WebAuthn ceremony - decode base64url string
       // fields to ArrayBuffers (see file-level helper doc).
       const opts = rawOpts as {
         challenge: string;

@@ -5,7 +5,7 @@ import { CheckCircle } from 'lucide-react';
 import LoginLayout from './LoginLayout';
 
 /**
- * Fallback landing — shown when no redirect_uri and no auth request,
+ * Fallback landing - shown when no redirect_uri and no auth request,
  * or when createCallback returns FailedPrecondition.
  */
 export default function SignedIn() {

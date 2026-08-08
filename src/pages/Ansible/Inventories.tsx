@@ -180,7 +180,7 @@ export default function Inventories() {
 
   // Transform order MUST be search → status/type filter → sort → slice(window), so sorting
   // orders the FULL set and the .slice() below operates on the already-sorted array
-  // (see plan's critical constraint — sort BEFORE windowing).
+  // (see plan's critical constraint - sort BEFORE windowing).
   const sortedInventories = inventories
     .filter((inv) =>
       inv.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -224,7 +224,7 @@ export default function Inventories() {
     setInvPage(1);
   };
 
-  // Host/group counts only for the visible page — keyed on those IDs so paging or searching
+  // Host/group counts only for the visible page - keyed on those IDs so paging or searching
   // refetches just the dozen on screen, not the whole org.
   const visibleIdsKey = paginatedInventories.map((inv) => inv.id).join(',');
   const { data: inventoryCounts = {} } = useQuery({
@@ -273,7 +273,7 @@ export default function Inventories() {
   // VCS cascade for the create dialog (connection -> repos -> branches ->
   // inventory files), loaded via React Query. Each query is scoped to the dialog
   // being open, type === 'vcs', and the relevant selection, so stale data clears
-  // automatically — no reset-in-effect needed.
+  // automatically - no reset-in-effect needed.
   const isVcsType = formData.type === 'vcs';
   const [invOwner, invRepo] = (formData.vcs_repository || '').split('/');
 
@@ -477,7 +477,7 @@ export default function Inventories() {
       toast.success(force ? 'Inventory and all dependent resources deleted' : 'Inventory deleted successfully');
     } catch (err: unknown) {
       console.error('Failed to delete inventory:', err);
-      // A 409 means dependent resources block the delete — escalate the dialog
+      // A 409 means dependent resources block the delete - escalate the dialog
       // to offer force delete instead of just surfacing a toast.
       if (!force && (err as Error & { status?: number }).status === 409) {
         setForceDeleteDetail(err instanceof Error ? err.message : 'The inventory is referenced by other resources.');
@@ -1174,7 +1174,7 @@ export default function Inventories() {
                       {getTypeIcon(inventory.type, inventory.inventory_path)}
                       <span className="ml-1 capitalize">{getTypeLabel(inventory)}</span>
                     </Badge>
-                    {/* Sync status — small icon, red on failure, hover reveals last_sync_error */}
+                    {/* Sync status - small icon, red on failure, hover reveals last_sync_error */}
                     <SyncStatusIndicator
                       status={inventory.last_sync_status}
                       error={inventory.last_sync_error}
@@ -1209,10 +1209,10 @@ export default function Inventories() {
         </div>
       )}
 
-      {/* Pager — windows the inventory grid for large orgs */}
+      {/* Pager - windows the inventory grid for large orgs */}
       <Pager page={currentInvPage} totalPages={invTotalPages} onPageChange={setInvPage} />
 
-      {/* Delete Confirmation Dialog — escalates to force delete on a 409 */}
+      {/* Delete Confirmation Dialog - escalates to force delete on a 409 */}
       <Dialog open={deleteDialogOpen} onOpenChange={(open) => { setDeleteDialogOpen(open); if (!open) setForceDeleteDetail(null); }}>
         <DialogContent>
           <DialogHeader>

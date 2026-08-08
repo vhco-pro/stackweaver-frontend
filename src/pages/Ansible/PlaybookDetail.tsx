@@ -251,7 +251,7 @@ export default function PlaybookDetail() {
   // VCS cascade for the edit dialog (connection -> repositories -> branches ->
   // YAML files), loaded via React Query. Each query is scoped to the dialog being
   // open and the relevant selection, so stale data clears automatically when a
-  // selection is reset — no synchronous reset-in-effect needed.
+  // selection is reset - no synchronous reset-in-effect needed.
   const [pbOwner, pbRepo] = (editForm.vcs_repository || '').split('/');
 
   const { data: vcsConnections = [], isLoading: loadingVCS } = useQuery({
@@ -308,7 +308,7 @@ export default function PlaybookDetail() {
       try {
         return (await vcsConnectionsApi.listYamlFiles(editForm.vcs_connection_id, pbOwner, pbRepo, editForm.vcs_branch)) || [];
       } catch (err) {
-        // Silent — fall back to manual input
+        // Silent - fall back to manual input
         console.error('Failed to load YAML files:', err);
         return [];
       }
@@ -371,7 +371,7 @@ export default function PlaybookDetail() {
       void Promise.resolve(navigate(`/app/${orgName}/ansible/playbooks`));
     } catch (err: unknown) {
       console.error('Failed to delete playbook:', err);
-      // A 409 means dependent resources block the delete — escalate the dialog
+      // A 409 means dependent resources block the delete - escalate the dialog
       // to offer force delete instead of just surfacing a toast.
       if (!force && (err as Error & { status?: number }).status === 409) {
         setForceDeleteDetail(err instanceof Error ? err.message : 'The playbook is referenced by other resources.');

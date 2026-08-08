@@ -137,9 +137,9 @@ flowchart LR
 <details>
 <summary><strong>Flow Steps (Legend)</strong></summary>
 
-1. **Register** — Registers the Azure AD provider in Zitadel with the name "Microsoft".
-2. **Login policy** — Adds the provider to the login policy so the "Sign in with Microsoft" button appears.
-3. **Actions** — Creates Zitadel Actions to capture and forward group claims through the JWT.
+1. **Register** - Registers the Azure AD provider in Zitadel with the name "Microsoft".
+2. **Login policy** - Adds the provider to the login policy so the "Sign in with Microsoft" button appears.
+3. **Actions** - Creates Zitadel Actions to capture and forward group claims through the JWT.
 
 </details>
 

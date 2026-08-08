@@ -1,6 +1,6 @@
 // Copyright (c) 2025 VH & Co BV. Licensed under the Business Source License 1.1. See LICENSE for details.
 
-// Net for useNow — the ticking clock that lets WorkspaceDetail render live run
+// Net for useNow - the ticking clock that lets WorkspaceDetail render live run
 // durations without calling Date.now() during render (react-hooks/purity fix).
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';

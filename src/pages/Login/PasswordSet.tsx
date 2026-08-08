@@ -12,13 +12,13 @@ import { GradientButton } from './GradientButton';
 import { toFriendlyError } from '@/lib/auth-errors';
 
 /**
- * Set new password — handles BOTH invitation and reset-completion.
+ * Set new password - handles BOTH invitation and reset-completion.
  * `initial=true` flag distinguishes invitation from reset (matches official UI).
  *
  * Round 24 Finding 3 (HIGH): the password-reset code arrives in the
  * URL via `?code=…&userId=…&authRequest=…`. The code is sensitive (it
  * grants password-change ability for the user) so we strip the params
- * from the address bar on mount via `history.replaceState` — same
+ * from the address bar on mount via `history.replaceState` - same
  * pattern IdpProcess.tsx uses for IdP intent tokens. Without this:
  *   (a) the URL lands in `window.history` (shoulder-surf risk via
  *       browser history)
@@ -36,7 +36,7 @@ export default function PasswordSet() {
   // Capture-then-strip: read the params from the URL exactly once via lazy
   // useState initialisers, then clear them from the address bar. The values
   // never change after mount (no setter), so they stay stable across
-  // re-renders and are safe to read during render — we never re-read from
+  // re-renders and are safe to read during render - we never re-read from
   // `searchParams`.
   const [userId] = useState(() => searchParams.get('userId') ?? '');
   const [code] = useState(() => searchParams.get('code') ?? '');

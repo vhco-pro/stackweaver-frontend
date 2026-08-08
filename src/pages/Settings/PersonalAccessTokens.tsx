@@ -12,7 +12,7 @@ import { tokensApi, type CreateUserTokenResponse } from '@/api/client';
 import { toast } from 'sonner';
 
 // Personal (user-bound) access tokens. These act as the user across every
-// organization they belong to and carry no scopes — they are the
+// organization they belong to and carry no scopes - they are the
 // `terraform login` / CLI path. This is a *user* resource, so it lives under
 // the user-scoped settings (/settings/tokens), not under any organization.
 export default function PersonalAccessTokens() {

@@ -55,7 +55,7 @@ export function useActivityNotifications(enabled: boolean = true, pollInterval: 
         newActivities.reverse().forEach(activity => {
           const attrs = activity.attributes;
 
-          // Format notification message (pure mapping — see utils/activityFormat.ts)
+          // Format notification message (pure mapping - see utils/activityFormat.ts)
           const { title, message, type } = formatActivityNotification(attrs);
 
           // Show notification

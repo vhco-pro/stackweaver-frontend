@@ -1,11 +1,11 @@
-# Stackweaver — security disclosure policy
+# Stackweaver - security disclosure policy
 # https://github.com/michielvha/stackweaver
 #
 # Report vulnerabilities privately via GitHub Security Advisories (below).
 # Please do NOT open a public issue for security reports.
 #
 # Note: the Expires date below must stay in the future (RFC 9116). Refresh it
-# periodically — see docs/internal/plans/security/frontend-security-headers-csp-hardening-plan.md.
+# periodically - see docs/internal/plans/security/frontend-security-headers-csp-hardening-plan.md.
 
 Contact: https://github.com/michielvha/stackweaver/security/advisories/new
 Expires: 2027-07-06T00:00:00.000Z

@@ -62,9 +62,9 @@ function statusBadge(status: string) {
 }
 
 function formatDuration(startedAt?: string, finishedAt?: string): string {
-  if (!startedAt || !finishedAt) return '—';
+  if (!startedAt || !finishedAt) return '-';
   const ms = new Date(finishedAt).getTime() - new Date(startedAt).getTime();
-  if (ms < 0) return '—';
+  if (ms < 0) return '-';
   if (ms < 1000) return '<1s';
   const s = Math.round(ms / 1000);
   if (s < 60) return `${s}s`;
@@ -169,7 +169,7 @@ export function InventorySyncsCard({ inventoryId }: InventorySyncsCardProps) {
           ) : (
             <div className="flex-1 min-h-0 overflow-auto rounded-md bg-slate-950 p-4">
               <pre className="text-xs text-slate-200 whitespace-pre-wrap break-words font-mono">
-                {selectedSync?.output || (selectedSync?.status === 'running' ? 'Sync is running — waiting for output…' : 'No output captured.')}
+                {selectedSync?.output || (selectedSync?.status === 'running' ? 'Sync is running - waiting for output…' : 'No output captured.')}
                 {selectedSync?.error ? `\n\nError: ${selectedSync.error}` : ''}
               </pre>
             </div>

@@ -34,7 +34,7 @@ export default function Accounts() {
     const fetchSessions = async () => {
       try {
         // Search for all active sessions (the proxy scopes this via the session cookie)
-        // Backend scopes this to the caller's cookie sessions — client-supplied
+        // Backend scopes this to the caller's cookie sessions - client-supplied
         // filters are ignored, so we just pass an empty body.
         const result = await searchSessions({}) as { sessions?: Array<{ id: string; factors?: { user?: { loginName?: string; displayName?: string } } }> };
 
@@ -47,7 +47,7 @@ export default function Accounts() {
         }));
         setSessions(parsed);
       } catch {
-        // Session search failed — show empty list with option to sign in
+        // Session search failed - show empty list with option to sign in
       } finally {
         if (!cancelled) setLoading(false);
       }
