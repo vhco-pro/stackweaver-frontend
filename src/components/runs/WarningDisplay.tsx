@@ -4,9 +4,9 @@
  * Warning Display Component
  *
  * Displays parsed Terraform warnings and deprecations in a collapsible banner.
- * Completely independent from ErrorDisplay — parses warnings from plan-phase
+ * Completely independent from ErrorDisplay - parses warnings from plan-phase
  * sources only (apply of a saved plan does not re-emit config warnings):
- *   1. Plan JSON diagnostics (primary — has file/line info)
+ *   1. Plan JSON diagnostics (primary - has file/line info)
  *   2. Human-readable plan logs (fallback)
  *
  * Implementation: frontend/src/components/runs/WarningDisplay.tsx
@@ -73,7 +73,7 @@ export function WarningDisplay({ planOutput, planLogs, className }: WarningDispl
   const warnings = useMemo(() => {
     const all: ParsedWarning[] = [];
 
-    // 1. Plan JSON diagnostics (richest source — has file/line info)
+    // 1. Plan JSON diagnostics (richest source - has file/line info)
     if (planOutput) {
       all.push(...parseWarningsFromPlanJson(planOutput));
     }

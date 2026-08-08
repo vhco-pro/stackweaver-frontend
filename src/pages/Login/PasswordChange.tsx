@@ -12,7 +12,7 @@ import { validatePasswordChangeInput } from './passwordChange.helpers';
 import { toFriendlyError } from '@/lib/auth-errors';
 
 /**
- * F19 — Password change required.
+ * F19 - Password change required.
  *
  * Reached when the user has just authenticated (loginname + password)
  * but Zitadel won't issue tokens until they rotate their password.
@@ -22,7 +22,7 @@ import { toFriendlyError } from '@/lib/auth-errors';
  *   - Password age exceeds `passwordExpirySettings.maxAgeDays`
  *
  * Detection happens in `Password.tsx::checkForcedFlows` after the
- * password PATCH succeeds — we GET the user record (own self-read,
+ * password PATCH succeeds - we GET the user record (own self-read,
  * gated by Round 17 cross-user check on /auth/users/:id) and read
  * `human.passwordChangeRequired`. If true, redirect here with the
  * session context.
@@ -34,7 +34,7 @@ import { toFriendlyError } from '@/lib/auth-errors';
  * verificationCode (the latter is for the password-reset flow only).
  *
  * On success, re-finalize the auth request with the still-valid
- * session — the password change does NOT invalidate the session's
+ * session - the password change does NOT invalidate the session's
  * password factor, so the existing sessionId/sessionToken can
  * proceed to issue tokens.
  *
@@ -66,7 +66,7 @@ export default function PasswordChange() {
         try {
             // Round 23 Finding 2 made the proxy canonicalize unknown-
             // user 4xx into "Code is invalid". Behavior on a real user
-            // with wrong currentPassword is the same shape — Zitadel
+            // with wrong currentPassword is the same shape - Zitadel
             // returns the same status, distinguishable only by what
             // we know on the client (the user IS valid here, since
             // we just authenticated them). So a 4xx on this submit
@@ -77,7 +77,7 @@ export default function PasswordChange() {
             });
 
             // Password change does not invalidate the session's
-            // password factor — re-finalize with the same session
+            // password factor - re-finalize with the same session
             // and redirect to wherever the OIDC RP wanted us.
             if (authRequestId && sessionId) {
                 const finalize = await finalizeAuthRequest({
@@ -89,13 +89,13 @@ export default function PasswordChange() {
                 return;
             }
             // No authRequest context (direct nav to the page, e.g. via
-            // a deep link) — fall back to the loginname page so the
+            // a deep link) - fall back to the loginname page so the
             // user can re-enter the auth flow with their new password.
             void navigate('/login/loginname');
         } catch (err: unknown) {
             const message = toFriendlyError(err, 'Failed to change password');
             // Zitadel surfaces "password is invalid" on a wrong
-            // currentPassword — friendly-map for the user.
+            // currentPassword - friendly-map for the user.
             if (/password.*invalid|invalid.*password/i.test(message)) {
                 setError('Current password is incorrect');
             } else {

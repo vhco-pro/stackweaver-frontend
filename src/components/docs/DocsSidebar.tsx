@@ -97,7 +97,7 @@ export function DocsSidebar({ className, onNavigate, docsBase = '/docs', indexFi
 
   // Auto-expand directories that contain the current path when the location (or
   // the freshly-loaded index) changes. Done as a during-render merge keyed on the
-  // previous path (React's blessed pattern) rather than in an effect — it only
+  // previous path (React's blessed pattern) rather than in an effect - it only
   // adds ancestors, so user-toggled expansions are preserved.
   const expandKey = index ? `${docsBase}|${location.pathname}` : null;
   const [prevExpandKey, setPrevExpandKey] = useState<string | null>(null);

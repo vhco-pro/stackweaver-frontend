@@ -111,7 +111,7 @@ resource "tfe_team" "platform_engineering" {
   organization = "my-org"
   visibility   = "organization"
 
-  # Azure AD group Object ID — must match exactly
+  # Azure AD group Object ID - must match exactly
   sso_team_id = "7dddb675-73e0-4858-a8ad-0e597064301b"
 }
 ```
@@ -172,7 +172,7 @@ Consider an organization with these teams and an Azure AD tenant with these grou
 |------------------|---------------|----------------|
 | Platform Engineering | `platform-engineers` | `platform-engineers` |
 | Security Team | `security` | `security` |
-| Viewers | (not set) | — |
+| Viewers | (not set) | - |
 
 When a user who belongs to the `platform-engineers` and `security` Azure AD groups logs in:
 
@@ -228,7 +228,7 @@ The value you set as `sso_team_id` on a team must match the group identifier you
 | Okta | Okta Admin → Directory → Groups → select group | Group name | `engineering` |
 | AWS Cognito | Cognito console → User Pool → Groups | Group name | `platform-team` |
 | Keycloak | Keycloak Admin → Realm → Groups | Group path or name | `/engineering` |
-| Generic OIDC | Check your provider's admin console | Varies | — |
+| Generic OIDC | Check your provider's admin console | Varies | - |
 
 For Azure AD, if you configured group claims to use "Group ID" (the default), the groups claim contains Object IDs (UUIDs). If you selected "sAMAccountName" or display names instead, use those values as the `sso_team_id`.
 

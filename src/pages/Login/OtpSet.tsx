@@ -53,7 +53,7 @@ export default function OtpSet() {
         setTotpUri(data.uri ?? '');
         setTotpSecret(data.secret ?? '');
       } else {
-        // POST /auth/users/{id}/otp_email or otp_sms — enables the method
+        // POST /auth/users/{id}/otp_email or otp_sms - enables the method
         const endpoint = method === 'email' ? 'otp-email' : 'otp-sms';
         const resp = await fetch(`${AUTH_BASE}/users/${userId}/${endpoint}`, {
           method: 'POST', credentials: 'include',

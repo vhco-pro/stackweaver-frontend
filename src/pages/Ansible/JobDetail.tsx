@@ -180,7 +180,7 @@ export default function JobDetail() {
 
           // Incremental live updates: fetch only events newer than the last
           // counter we have and APPEND them (events and their stdout), instead
-          // of re-downloading the whole history every poll — keeps long runs
+          // of re-downloading the whole history every poll - keeps long runs
           // cheap for both the browser and the API.
           const cached = queryClient.getQueryData<typeof jobEventsQuery.data>(['jobEvents', jobId]);
           const lastCounter = cached?.events.length

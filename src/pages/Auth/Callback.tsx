@@ -54,7 +54,7 @@ export default function Callback() {
       // OIDC state validation (Round 18). MUST run BEFORE token exchange:
       // an attacker-injected callback (foreign `?code=…&state=…`) would
       // otherwise log the victim into the attacker's session. consumeOIDCState
-      // is one-shot — it always clears the stored state, so a successful
+      // is one-shot - it always clears the stored state, so a successful
       // match cannot be replayed and a mismatch attempt cannot be retried.
       if (!consumeOIDCState(stateParam)) {
         setError('Authentication failed: state mismatch (possible CSRF)');
@@ -75,7 +75,7 @@ export default function Callback() {
         
         // Store tokens (synchronous sessionStorage write) and refresh the auth context.
         // AUD-078: the two 100ms "ensure it's stored/set" sleeps that used to bracket these were
-        // cargo-cult — storeTokens is synchronous and refresh() is awaited, so nothing races.
+        // cargo-cult - storeTokens is synchronous and refresh() is awaited, so nothing races.
         storeTokens(tokens);
         await refresh();
 

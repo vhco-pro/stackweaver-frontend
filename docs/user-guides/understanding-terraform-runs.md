@@ -97,10 +97,10 @@ flowchart LR
 <details>
 <summary><strong>Flow Steps (Legend)</strong></summary>
 
-1. **Initialization** — Terraform sets up and loads modules.
-2. **Planning** — Terraform creates the execution plan (same as plan-only).
-3. **Applying** — Changes are made to actual resources.
-4. **Completion** — State is saved and outputs are available.
+1. **Initialization** - Terraform sets up and loads modules.
+2. **Planning** - Terraform creates the execution plan (same as plan-only).
+3. **Applying** - Changes are made to actual resources.
+4. **Completion** - State is saved and outputs are available.
 
 </details>
 

@@ -119,7 +119,7 @@ export function UnifiedPhaseTimeline({
       return { status, title, timestamp: run.started_at };
     }
 
-    // Handle cancelled status — the entire run was discarded/cancelled, so apply/destroy phase is also cancelled
+    // Handle cancelled status - the entire run was discarded/cancelled, so apply/destroy phase is also cancelled
     if (run.status === 'canceled') {
       status = 'cancelled';
       return { status, title, timestamp: applyingAt || run.started_at };

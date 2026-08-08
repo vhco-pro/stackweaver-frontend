@@ -188,7 +188,7 @@ export default function Playbooks() {
 
   // VCS cascade for the create dialog, loaded via React Query. Each query is scoped
   // to the dialog being open and the relevant selection, so stale data clears
-  // automatically — no reset-in-effect needed.
+  // automatically - no reset-in-effect needed.
   const [pbOwner, pbRepo] = (createForm.vcs_repository || '').split('/');
 
   const { data: vcsConnections = [], isLoading: loadingVCS } = useQuery({
@@ -371,7 +371,7 @@ export default function Playbooks() {
       toast.success(force ? 'Playbook and all dependent resources deleted' : 'Playbook deleted successfully');
     } catch (err: unknown) {
       console.error('Failed to delete playbook:', err);
-      // A 409 means dependent resources block the delete — escalate the dialog
+      // A 409 means dependent resources block the delete - escalate the dialog
       // to offer force delete instead of just surfacing a toast.
       if (!force && (err as Error & { status?: number }).status === 409) {
         setForceDeleteDetail(err instanceof Error ? err.message : 'The playbook is referenced by other resources.');
@@ -656,7 +656,7 @@ export default function Playbooks() {
               </CardHeader>
               <CardContent>
                 <div className="flex flex-wrap items-center gap-4 text-sm">
-                  {/* VCS Badge — provider tag stays short/categorical; the repo path is
+                  {/* VCS Badge - provider tag stays short/categorical; the repo path is
                       the navigation target rendered inline right after it (merged from #118). */}
                   {playbook.vcs_connection_id && playbook.vcs_provider && (
                     <Badge variant="outline" className="gap-1">
@@ -665,7 +665,7 @@ export default function Playbooks() {
                     </Badge>
                   )}
 
-                  {/* Repository (inline after the badge — replaces the old separate line) */}
+                  {/* Repository (inline after the badge - replaces the old separate line) */}
                   {playbook.vcs_repository && (() => {
                     const repoUrl = getVcsRepoUrl(playbook.vcs_provider ?? '', playbook.vcs_repository ?? '', playbook.vcs_account_name);
                     return repoUrl ? (
@@ -738,7 +738,7 @@ export default function Playbooks() {
                     Created {formatRelativeTime(playbook.created_at)}
                   </span>
 
-                  {/* Sync status — small icon, red on failure, hover reveals last_sync_error */}
+                  {/* Sync status - small icon, red on failure, hover reveals last_sync_error */}
                   <SyncStatusIndicator
                     status={playbook.last_sync_status}
                     error={playbook.last_sync_error}
@@ -1114,7 +1114,7 @@ export default function Playbooks() {
         </DialogContent>
       </Dialog>
 
-      {/* Delete Confirmation Dialog — escalates to force delete on a 409 */}
+      {/* Delete Confirmation Dialog - escalates to force delete on a 409 */}
       <Dialog open={deleteDialogOpen} onOpenChange={(open) => { setDeleteDialogOpen(open); if (!open) { setPlaybookToDelete(null); setForceDeleteDetail(null); } }}>
         <DialogContent>
           <DialogHeader>

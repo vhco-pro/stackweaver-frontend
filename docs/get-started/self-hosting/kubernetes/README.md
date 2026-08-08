@@ -46,9 +46,9 @@ The Ansible and Terraform runners execute Infrastructure-as-Code and connect to 
 
 Each runner container runs as a non-root user with a read-only root filesystem, drops all Linux capabilities, forbids privilege escalation, and runs under the default seccomp profile. The Ansible runner needs no capabilities of its own, because privilege escalation for a playbook (Ansible `become`) happens on the target host over SSH rather than inside the runner.
 
-The Ansible runner's per-job working directory — which briefly holds SSH keys, vault passwords, and inventory secrets while a job runs — lives on an ephemeral volume that is isolated from the Terraform runner and is removed when the job finishes. It deliberately does not share the Terraform runner's workspace volume, so a compromised run in one runner cannot read the other's staged credentials. Because run output, status, and history are persisted to PostgreSQL and object storage rather than this scratch volume, nothing you see in the UI is lost when a runner pod is rescheduled.
+The Ansible runner's per-job working directory - which briefly holds SSH keys, vault passwords, and inventory secrets while a job runs - lives on an ephemeral volume that is isolated from the Terraform runner and is removed when the job finishes. It deliberately does not share the Terraform runner's workspace volume, so a compromised run in one runner cannot read the other's staged credentials. Because run output, status, and history are persisted to PostgreSQL and object storage rather than this scratch volume, nothing you see in the UI is lost when a runner pod is rescheduled.
 
-The Ansible runner keeps a per-project Ansible Galaxy collection cache on a dedicated PersistentVolumeClaim (`ansibleRunner.galaxyCache`, enabled by default). The cache is namespaced per project so one tenant's collections are never served to another, and a background janitor evicts any project cache that has been idle longer than `GALAXY_CACHE_TTL_DAYS` (14 days by default; set to `0` to disable) so it cannot grow without bound. The cache is purely a download optimization — set `ansibleRunner.galaxyCache.enabled` to `false` to use an ephemeral cache instead, at the cost of re-downloading collections after a pod restart. For more than one Ansible runner replica, set `ansibleRunner.galaxyCache.accessMode` to `ReadWriteMany`.
+The Ansible runner keeps a per-project Ansible Galaxy collection cache on a dedicated PersistentVolumeClaim (`ansibleRunner.galaxyCache`, enabled by default). The cache is namespaced per project so one tenant's collections are never served to another, and a background janitor evicts any project cache that has been idle longer than `GALAXY_CACHE_TTL_DAYS` (14 days by default; set to `0` to disable) so it cannot grow without bound. The cache is purely a download optimization - set `ansibleRunner.galaxyCache.enabled` to `false` to use an ephemeral cache instead, at the cost of re-downloading collections after a pod restart. For more than one Ansible runner replica, set `ansibleRunner.galaxyCache.accessMode` to `ReadWriteMany`.
 
 Credential encryption is enforced rather than assumed. The Ansible runner refuses to start unless it is given a real 32-byte encryption key, instead of silently falling back to an insecure all-zero key. The chart provisions a strong key automatically (see [Secrets](#secrets)); if you bring your own, it must be a 32-byte value, which is a 64-character hex string.
 
@@ -111,10 +111,10 @@ Each provider maps the same logical settings (regex routing, body size limits, t
 
 | Provider | Description | Default `className` |
 |---|---|---|
-| `nginx-inc` | NGINX Inc ingress controller (`nginx.org/*` annotations) — **default** | `nginx` |
-| `community-nginx` | Community NGINX ingress controller (`nginx.ingress.kubernetes.io/*`) — sunset project | `nginx` |
+| `nginx-inc` | NGINX Inc ingress controller (`nginx.org/*` annotations) - **default** | `nginx` |
+| `community-nginx` | Community NGINX ingress controller (`nginx.ingress.kubernetes.io/*`) - sunset project | `nginx` |
 | `traefik` | Traefik ingress controller (minimal annotations; use middleware CRDs for advanced config) | `traefik` |
-| `none` | No controller-specific annotations — supply everything manually | *(user must set)* |
+| `none` | No controller-specific annotations - supply everything manually | *(user must set)* |
 
 To switch provider, set `ingress.provider` in your values file:
 
@@ -126,7 +126,7 @@ ingress:
 
 > [!WARNING]
 > The community NGINX ingress controller (`kubernetes/ingress-nginx`) is retired: the project was archived in March 2026 and receives no further bug fixes or security patches (see the [Kubernetes retirement announcement](https://kubernetes.io/blog/2025/11/11/ingress-nginx-retirement/)).
-> The `community-nginx` provider preset remains available so existing deployments keep working during migration, but you should move to a maintained controller — the NGINX Inc controller (`nginx-inc`, the chart default), Traefik (`traefik`), or a [Gateway API](https://gateway-api.sigs.k8s.io/) implementation fronting the chart's Services via `provider: none`.
+> The `community-nginx` provider preset remains available so existing deployments keep working during migration, but you should move to a maintained controller - the NGINX Inc controller (`nginx-inc`, the chart default), Traefik (`traefik`), or a [Gateway API](https://gateway-api.sigs.k8s.io/) implementation fronting the chart's Services via `provider: none`.
 > If you are upgrading from an earlier chart version and still run the community controller, set `provider: community-nginx` to preserve the previous behavior while you plan the migration.
 
 ### Custom Annotations
@@ -148,7 +148,7 @@ If your controller uses entirely different resource kinds (such as Traefik `Ingr
 ### Trusted Proxies and Client-IP Attribution
 
 Behind an ingress, the API's direct network peer is the ingress controller pod, not the end user.
-The API therefore needs to know which proxies it may trust when reading the `X-Forwarded-For` header — otherwise every request in the deployment is attributed to the ingress pod's IP, which collapses the per-IP login rate limit (10 requests/second on `/auth/*`) into a single bucket shared by all of your users.
+The API therefore needs to know which proxies it may trust when reading the `X-Forwarded-For` header - otherwise every request in the deployment is attributed to the ingress pod's IP, which collapses the per-IP login rate limit (10 requests/second on `/auth/*`) into a single bucket shared by all of your users.
 
 The chart handles this via `api.trustedProxies`, which defaults to the RFC1918 private ranges so any in-cluster ingress works out of the box.
 To harden the trust boundary, set it to your ingress controller's pod CIDR; setting it to an empty string makes the API trust no proxies at all (the strict application default).
@@ -238,7 +238,7 @@ When all four `secretName` values are set, the chart creates zero Secret resourc
 ### BYO Zitadel Secret with External Zitadel
 
 If you use an external Zitadel instance (`zitadel.bundled: false`), the zitadel-init sidecar does not run.
-You **must** provide a BYO Zitadel secret with all derived keys pre-populated — they will not be filled in automatically.
+You **must** provide a BYO Zitadel secret with all derived keys pre-populated - they will not be filled in automatically.
 
 ```bash
 kubectl create secret generic my-zitadel-secret \
@@ -382,7 +382,7 @@ If your Zitadel instance (or any other upstream service such as an external S3-c
 
 To fix this, provide the CA certificate to the chart using one of three approaches.
 
-**Option 1 — inline PEM in your values file** (simplest, cert is public data):
+**Option 1 - inline PEM in your values file** (simplest, cert is public data):
 
 ```yaml
 customCA:
@@ -394,7 +394,7 @@ customCA:
 
 The chart creates a ConfigMap from this value automatically.
 
-**Option 2 — existing ConfigMap** (if you manage the cert separately):
+**Option 2 - existing ConfigMap** (if you manage the cert separately):
 
 ```bash
 kubectl create configmap my-ca-bundle \
@@ -407,7 +407,7 @@ customCA:
   existingConfigMap: my-ca-bundle
 ```
 
-**Option 3 — existing Secret** (for GitOps workflows using External Secrets Operator or Sealed Secrets):
+**Option 3 - existing Secret** (for GitOps workflows using External Secrets Operator or Sealed Secrets):
 
 ```yaml
 customCA:
@@ -416,7 +416,7 @@ customCA:
 ```
 
 In all cases the certificate is mounted at `/etc/ssl/certs/custom-ca.crt` using `subPath`, so the system certificate directory is not replaced.
-Go's `crypto/x509` package scans `/etc/ssl/certs/` on Linux automatically — no additional environment variables are required.
+Go's `crypto/x509` package scans `/etc/ssl/certs/` on Linux automatically - no additional environment variables are required.
 
 The certificate is mounted into the API, Orchestrator, Terraform Runner, and Ansible Runner containers.
 
@@ -490,7 +490,7 @@ PersistentVolumeClaims for PostgreSQL, Garage, runner workspaces, and the Ansibl
 Remove them manually if no longer needed.
 
 > [!WARNING]
-> Secrets and PVCs are coupled. Deleting a secret without deleting the corresponding PVC (or vice versa) can leave the cluster in an unrecoverable state — for example, deleting the Zitadel secret removes the masterkey needed to decrypt the Zitadel database. Before any destructive operation, back up your secrets:
+> Secrets and PVCs are coupled. Deleting a secret without deleting the corresponding PVC (or vice versa) can leave the cluster in an unrecoverable state - for example, deleting the Zitadel secret removes the masterkey needed to decrypt the Zitadel database. Before any destructive operation, back up your secrets:
 >
 > ```bash
 > kubectl get secret stackweaver-zitadel -n stackweaver -o yaml > zitadel-secret-backup.yaml
@@ -505,8 +505,8 @@ Remove them manually if no longer needed.
 |---|---|---|
 | Deployments, Services, ConfigMaps, Jobs | Yes | Re-created by Helm |
 | Secrets + PVCs together | Yes | Full clean start, all data lost |
-| PVCs only (keep secrets) | Yes | Fresh databases, credentials still match — zitadel-init re-provisions OIDC apps |
-| Secrets only (keep PVCs) | **No** | New random credentials don't match existing data — **unrecoverable** for masterkey and encryption-key |
+| PVCs only (keep secrets) | Yes | Fresh databases, credentials still match - zitadel-init re-provisions OIDC apps |
+| Secrets only (keep PVCs) | **No** | New random credentials don't match existing data - **unrecoverable** for masterkey and encryption-key |
 
 For a full clean start:
 

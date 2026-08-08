@@ -3,7 +3,7 @@
 // The five real sync states collapse to a small UI vocabulary. The raw API
 // strings come from several writers (ansible-runner, the playbook/inventory
 // handlers, the job service) and are normalised here so every list/detail view
-// buckets them identically — see the plan's status-normalisation note.
+// buckets them identically - see the plan's status-normalisation note.
 export type SyncState = 'success' | 'syncing' | 'failed' | 'never' | 'unknown';
 
 // Maps the raw API strings → a small UI state:

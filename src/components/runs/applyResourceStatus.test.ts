@@ -4,7 +4,7 @@ import { describe, it, expect } from 'vitest';
 import { resolveTerminalResourceStatus, type ResourceStatus } from './applyResourceStatus';
 
 // Regression guard for the cancelled/failed run bug: resources that were mid-create
-// ('applying' — a "Creating…" log line with no matching "Creation complete") were left
+// ('applying' - a "Creating…" log line with no matching "Creation complete") were left
 // spinning forever once the run was cancelled, because no further log lines arrive. On a
 // terminal run such resources must resolve to the run's outcome.
 describe('resolveTerminalResourceStatus', () => {
@@ -35,7 +35,7 @@ describe('resolveTerminalResourceStatus', () => {
 
   it('models the reported partial-cancel mix: some completed (green), the rest cancelled (grey)', () => {
     // null_resource.server / time_sleep.resource_1 finished; time_sleep.resource_2..4 were
-    // still creating; null_resource.resource_2..4 never started — all non-terminal → cancelled.
+    // still creating; null_resource.resource_2..4 never started - all non-terminal → cancelled.
     const board: Record<string, ResourceStatus> = {
       'null_resource.server': 'completed',
       'time_sleep.resource_1': 'completed',

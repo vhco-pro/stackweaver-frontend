@@ -36,7 +36,7 @@ export function ErrorDisplay({ logs, title = 'Error', className }: ErrorDisplayP
     URL.revokeObjectURL(url);
   };
   
-  // Only show errors here — warnings are displayed in the top-level banner in RunDetail
+  // Only show errors here - warnings are displayed in the top-level banner in RunDetail
   // If no errors found (only warnings, or nothing), don't show the error panel at all
   if (errors.length === 0) {
     // If there are no warnings either, show the fallback "unable to parse" message
@@ -64,7 +64,7 @@ export function ErrorDisplay({ logs, title = 'Error', className }: ErrorDisplayP
         </div>
       );
     }
-    // Only warnings, no errors — don't render any error panel
+    // Only warnings, no errors - don't render any error panel
     return null;
   }
   

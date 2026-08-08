@@ -35,7 +35,7 @@ export function OrganizationProvider({ children }: { children: ReactNode }) {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // Load organizations via React Query — only once auth has completed and a
+  // Load organizations via React Query - only once auth has completed and a
   // session exists. Replaces the manual fetch-into-state effect.
   const {
     data: organizations = [],
@@ -54,7 +54,7 @@ export function OrganizationProvider({ children }: { children: ReactNode }) {
     await refetchOrganizations();
   }, [session, refetchOrganizations]);
 
-  // Resolve the current org from the URL (strongest signal) or the saved org —
+  // Resolve the current org from the URL (strongest signal) or the saved org -
   // during render rather than in effects. The `nextOrg !== currentOrg` guard makes
   // it converge: once currentOrg matches, no further updates fire.
   const orgScopedRoute = location.pathname.match(/^\/app\/([^/]+)/);
@@ -70,7 +70,7 @@ export function OrganizationProvider({ children }: { children: ReactNode }) {
     setCurrentOrg(nextOrg);
   }
 
-  // Persist current org to localStorage (side effect only — no state update).
+  // Persist current org to localStorage (side effect only - no state update).
   useEffect(() => {
     if (currentOrg) {
       localStorage.setItem('currentOrganization', currentOrg.name);

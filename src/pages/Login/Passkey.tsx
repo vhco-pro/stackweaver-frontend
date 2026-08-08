@@ -9,13 +9,13 @@ import { toFriendlyError } from '@/lib/auth-errors';
 import LoginLayout from './LoginLayout';
 
 /**
- * WebAuthn ↔ Zitadel use base64url (RFC 4648 §5) on the wire — strings
+ * WebAuthn ↔ Zitadel use base64url (RFC 4648 §5) on the wire - strings
  * containing `-`/`_` instead of `+`/`/` and no padding. The browser
  * WebAuthn API works with `ArrayBuffer`s; conversion happens both ways.
  *
  * Standard `btoa` produces base64 with `+`/`/`/`=`, which Zitadel's
  * grpc-gateway sometimes accepts and sometimes rejects depending on the
- * field type — using base64url consistently avoids that flakiness.
+ * field type - using base64url consistently avoids that flakiness.
  */
 function b64uToBuf(s: string): ArrayBuffer {
   const padded = s.replace(/-/g, '+').replace(/_/g, '/').padEnd(s.length + ((4 - (s.length % 4)) % 4), '=');
@@ -73,7 +73,7 @@ export default function Passkey() {
         return;
       }
 
-      // Decode base64url string fields to ArrayBuffers — the browser
+      // Decode base64url string fields to ArrayBuffers - the browser
       // WebAuthn API rejects raw strings on `challenge` and
       // `allowCredentials[].id` with `Failed to read the 'challenge'
       // property from 'PublicKeyCredentialRequestOptions'`. Zitadel ships
@@ -103,7 +103,7 @@ export default function Passkey() {
       const assertionResponse = credential.response as AuthenticatorAssertionResponse;
 
       // Send the credential back to finalize auth. Encode every byte
-      // field as base64url — `btoa` produces standard base64 (`+`/`/`)
+      // field as base64url - `btoa` produces standard base64 (`+`/`/`)
       // which Zitadel's grpc-gateway sometimes rejects depending on the
       // field type. base64url is the safe wire shape for WebAuthn.
       const updateResp = await updateSession(sessionId, {

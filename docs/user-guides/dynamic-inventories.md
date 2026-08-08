@@ -25,11 +25,11 @@ flowchart LR
 <details>
 <summary><strong>Flow Steps (Legend)</strong></summary>
 
-1. **Trigger** — You trigger a sync manually or via a schedule.
-2. **Source** — The Ansible runner clones your repository (VCS type) or uses the UI-configured source settings.
-3. **Discovery** — The runner runs `ansible-inventory --list` with the appropriate cloud credentials.
-4. **Parse** — Discovered hosts and groups are parsed from the plugin output.
-5. **Cache** — Results are stored in the database; the UI shows cached hosts and groups on the inventory's Hosts tab.
+1. **Trigger** - You trigger a sync manually or via a schedule.
+2. **Source** - The Ansible runner clones your repository (VCS type) or uses the UI-configured source settings.
+3. **Discovery** - The runner runs `ansible-inventory --list` with the appropriate cloud credentials.
+4. **Parse** - Discovered hosts and groups are parsed from the plugin output.
+5. **Cache** - Results are stored in the database; the UI shows cached hosts and groups on the inventory's Hosts tab.
 
 </details>
 
@@ -170,20 +170,20 @@ Click "Sync" on the source to trigger host discovery. The process is the same as
 
 ### Azure authentication methods
 
-Azure inventory sync supports four authentication methods. For a UI-configured (dynamic) source you choose the method from the Authentication dropdown when you add or edit the source. A VCS-backed inventory is pure passthrough: you choose the method entirely in your own `azure_rm.yml` (via `auth_source`) and the pod runtime — there is no Stackweaver auth toggle for VCS inventories, so the repository stays the single source of truth. Every method runs plain `ansible-inventory` — the `azure.azcollection.azure_rm` plugin authenticates natively (federated tokens are read directly as of collection 3.17.0, so no wrapper is involved).
+Azure inventory sync supports four authentication methods. For a UI-configured (dynamic) source you choose the method from the Authentication dropdown when you add or edit the source. A VCS-backed inventory is pure passthrough: you choose the method entirely in your own `azure_rm.yml` (via `auth_source`) and the pod runtime - there is no Stackweaver auth toggle for VCS inventories, so the repository stays the single source of truth. Every method runs plain `ansible-inventory` - the `azure.azcollection.azure_rm` plugin authenticates natively (federated tokens are read directly as of collection 3.17.0, so no wrapper is involved).
 
 The most important distinction between the methods is whether they require your Stackweaver issuer to be reachable from Microsoft's public network.
 
 | Method | Public issuer required? | Long-lived secret? | Best for |
 |--------|-------------------------|--------------------|----------|
-| Managed Identity (IMDS) | No | No | Stackweaver running inside Azure (AKS/VM) — the simplest keyless option |
+| Managed Identity (IMDS) | No | No | Stackweaver running inside Azure (AKS/VM) - the simplest keyless option |
 | Workload Identity (AKS) | No | No | AKS clusters wanting per-workload identity isolation |
 | OIDC Federation | Yes | No | Keyless auth from a Stackweaver that runs **outside** Azure (or a public deployment) |
 | Cloud Credential (Service Principal) | No | Yes | Anywhere outbound to Entra is allowed and no managed identity is available |
 
 **Managed Identity** is the right choice when Stackweaver runs inside Azure but has no public ingress. The runner authenticates outbound to the Azure Instance Metadata Service, so nothing needs to be exposed and no secret is stored. The node's kubelet or VM identity (system-assigned) or a user-assigned identity must hold the `Reader` role on the target subscription; for a user-assigned identity, supply its client ID in the source's Authentication panel. The generated plugin file uses `auth_source: msi`.
 
-**Workload Identity** is the AKS-native evolution of managed identity. It federates a projected ServiceAccount token to a user-assigned managed identity through the cluster's own Azure-hosted OIDC issuer, so it is fully private from Stackweaver's perspective. Enable it on the chart with `ansibleRunner.workloadIdentity.enabled=true` and annotate the ServiceAccount with the identity's client ID (see the Kubernetes self-hosting guide). The `azure_rm` plugin reads the workload-identity webhook's `AZURE_TENANT_ID` natively (since `azure.azcollection` 3.20.0 it falls back to that name when the legacy `AZURE_TENANT` is unset), so you do not need to set the tenant. The subscription is the one thing the webhook does not provide: for a UI-configured source it comes from the source's subscription field, and for a VCS-backed inventory the runner resolves it in order — `subscription_id` in your `azure_rm.yml` (so each inventory can target its own subscription), then your organization's Azure OIDC configuration subscription, and finally `AZURE_SUBSCRIPTION_ID` set on the runner via `ansibleRunner.env`. In practice a tags-only inventory file just works, because it falls back to the subscription already stored in your org's Azure OIDC configuration.
+**Workload Identity** is the AKS-native evolution of managed identity. It federates a projected ServiceAccount token to a user-assigned managed identity through the cluster's own Azure-hosted OIDC issuer, so it is fully private from Stackweaver's perspective. Enable it on the chart with `ansibleRunner.workloadIdentity.enabled=true` and annotate the ServiceAccount with the identity's client ID (see the Kubernetes self-hosting guide). The `azure_rm` plugin reads the workload-identity webhook's `AZURE_TENANT_ID` natively (since `azure.azcollection` 3.20.0 it falls back to that name when the legacy `AZURE_TENANT` is unset), so you do not need to set the tenant. The subscription is the one thing the webhook does not provide: for a UI-configured source it comes from the source's subscription field, and for a VCS-backed inventory the runner resolves it in order - `subscription_id` in your `azure_rm.yml` (so each inventory can target its own subscription), then your organization's Azure OIDC configuration subscription, and finally `AZURE_SUBSCRIPTION_ID` set on the runner via `ansibleRunner.env`. In practice a tags-only inventory file just works, because it falls back to the subscription already stored in your org's Azure OIDC configuration.
 
 **OIDC Federation** is Stackweaver's own keyless mechanism, and it is the only method that needs a public surface: to verify the runner's Stackweaver-signed token, Microsoft Entra must reach your issuer's `/.well-known/openid-configuration` and JWKS endpoints over the public internet with a publicly trusted TLS certificate. It cannot be satisfied by Azure Private Link. Use it when the runner is not inside Azure at all (for example a multi-cloud or on-premises deployment). If your organization has an Azure OIDC configuration (set up via the Settings page or the `tfe_azure_oidc_configuration` Terraform resource), the runner generates a short-lived JWT at sync time, writes it to a temporary file, and sets `AZURE_FEDERATED_TOKEN_FILE`, `AZURE_CLIENT_ID`, `AZURE_TENANT_ID`, and `AZURE_SUBSCRIPTION_ID`.
 
@@ -193,7 +193,7 @@ Alternatively, you can create an Azure, AWS, or GCP credential in Stackweaver's 
 
 ### Choosing a method on a private deployment
 
-If your deployment has no public ingress, use **Managed Identity** or **Workload Identity** — both authenticate outbound and need no public endpoint. **OIDC Federation** still works if you can expose just the two discovery endpoints (`/.well-known/openid-configuration` and `/.well-known/jwks`) publicly with a trusted certificate; the Helm ingress already path-scopes exactly those routes. The **Service Principal** path is the simplest interim option when none of the above is available.
+If your deployment has no public ingress, use **Managed Identity** or **Workload Identity** - both authenticate outbound and need no public endpoint. **OIDC Federation** still works if you can expose just the two discovery endpoints (`/.well-known/openid-configuration` and `/.well-known/jwks`) publicly with a trusted certificate; the Helm ingress already path-scopes exactly those routes. The **Service Principal** path is the simplest interim option when none of the above is available.
 
 ## Cloud Provider Detection
 
@@ -219,27 +219,27 @@ The polling runs for up to 60 seconds. If the sync takes longer (for example, wh
 
 ## Sync History
 
-Every sync run is recorded on the inventory's Syncs tab, whether it was started manually, by a schedule, by a workflow node, as a pre-launch dependency update, or by a VCS webhook. Each entry shows the run's status, what triggered it, how many hosts and groups it discovered, and how long it took. Clicking a run opens the captured `ansible-inventory` output; while a sync is still running the dialog tails it live (the runner flushes output every couple of seconds), which is where plugin warnings and authentication errors surface — set the source's sync verbosity (0–4, adding `-v` through `-vvvv`) when you need more diagnostic detail in that log.
+Every sync run is recorded on the inventory's Syncs tab, whether it was started manually, by a schedule, by a workflow node, as a pre-launch dependency update, or by a VCS webhook. Each entry shows the run's status, what triggered it, how many hosts and groups it discovered, and how long it took. Clicking a run opens the captured `ansible-inventory` output; while a sync is still running the dialog tails it live (the runner flushes output every couple of seconds), which is where plugin warnings and authentication errors surface - set the source's sync verbosity (0–4, adding `-v` through `-vvvv`) when you need more diagnostic detail in that log.
 
 ## Per-Source Sync Behavior
 
 Each dynamic source carries its own sync behavior settings, editable on the source dialog:
 
 - **Update on launch** syncs the source before every job that runs against the inventory. The job is created held and dispatches automatically once the sync finishes, so it always runs against fresh data. The **cache timeout** (seconds) skips that pre-launch sync while the last successful sync is newer than the window, which keeps frequent launches from hammering your cloud APIs.
-- **Overwrite** removes hosts and groups that this source previously discovered but the provider no longer reports. Pruning is strictly scoped to rows owned by the source — manually created entries and rows discovered by other sources of the same inventory are never touched, so several sources (each with its own credential or Azure subscription) can safely feed one inventory.
-- **Overwrite variables** replaces a host's variables wholesale on each sync. When it is off (the default), synced variables are merged into the existing ones — synced values win per key, but variables you added manually survive.
+- **Overwrite** removes hosts and groups that this source previously discovered but the provider no longer reports. Pruning is strictly scoped to rows owned by the source - manually created entries and rows discovered by other sources of the same inventory are never touched, so several sources (each with its own credential or Azure subscription) can safely feed one inventory.
+- **Overwrite variables** replaces a host's variables wholesale on each sync. When it is off (the default), synced variables are merged into the existing ones - synced values win per key, but variables you added manually survive.
 
 ## Running Ad Hoc Commands
 
-The Run Command button on the inventory detail page runs a single Ansible module against the inventory without creating a playbook or template — the platform generates a transient playbook and executes it through the normal job pipeline, so you get live output, events, and statistics on the standard job page. Pick a module, give it arguments (free-form for `command` and `shell`, `key=value` pairs for others), optionally limit the target hosts, choose a machine credential and where it runs (a platform runner or one of your self-hosted agent pools), and run. To target a single machine, use the terminal icon that appears on a host card in the Hosts tab — it opens the same dialog with the limit prefilled to that host. Which modules are allowed is an organization setting under Settings → Ansible (it defaults to AWX's allowlist), and running ad hoc commands requires a dedicated permission distinct from template execution.
+The Run Command button on the inventory detail page runs a single Ansible module against the inventory without creating a playbook or template - the platform generates a transient playbook and executes it through the normal job pipeline, so you get live output, events, and statistics on the standard job page. Pick a module, give it arguments (free-form for `command` and `shell`, `key=value` pairs for others), optionally limit the target hosts, choose a machine credential and where it runs (a platform runner or one of your self-hosted agent pools), and run. To target a single machine, use the terminal icon that appears on a host card in the Hosts tab - it opens the same dialog with the limit prefilled to that host. Which modules are allowed is an organization setting under Settings → Ansible (it defaults to AWX's allowlist), and running ad hoc commands requires a dedicated permission distinct from template execution.
 
 ## Constructed Inventories
 
-A constructed inventory combines other inventories instead of querying a provider. When you create an inventory with the Constructed type, you pick the input inventories in order and optionally write `ansible.builtin.constructed` rules — `compose` derives new host variables, `groups` assigns membership by Jinja condition, and `keyed_groups` creates a group per value of a host variable. An optional limit pattern keeps only matching hosts. The constructed inventory rebuilds from its inputs before every job launch (bounded by its cache timeout) and on demand with the Rebuild button; each build appears in the Syncs tab with its full plugin output, which is the place to debug rule errors. Input inventories must belong to the same organization, cannot themselves be constructed, and cannot be deleted while a constructed inventory uses them.
+A constructed inventory combines other inventories instead of querying a provider. When you create an inventory with the Constructed type, you pick the input inventories in order and optionally write `ansible.builtin.constructed` rules - `compose` derives new host variables, `groups` assigns membership by Jinja condition, and `keyed_groups` creates a group per value of a host variable. An optional limit pattern keeps only matching hosts. The constructed inventory rebuilds from its inputs before every job launch (bounded by its cache timeout) and on demand with the Rebuild button; each build appears in the Syncs tab with its full plugin output, which is the place to debug rule errors. Input inventories must belong to the same organization, cannot themselves be constructed, and cannot be deleted while a constructed inventory uses them.
 
 ## Deleting an Inventory
 
-Deleting an inventory normally removes only the inventory and its hosts and groups. If the inventory is still referenced by job templates, jobs, or sources, the delete is rejected and the dialog explains what depends on it. From there you can choose **Force Delete Everything**, which removes the inventory together with every dependent resource — the job templates built on it (and their schedules, attached credentials and variables, notification attachments, and the workflow steps that run them), the jobs run against it and their event history, and its inventory sources — in a single operation. A constructed inventory that uses this inventory as an input keeps working but loses that input. Force delete cannot be undone and requires organization-level Ansible management permission.
+Deleting an inventory normally removes only the inventory and its hosts and groups. If the inventory is still referenced by job templates, jobs, or sources, the delete is rejected and the dialog explains what depends on it. From there you can choose **Force Delete Everything**, which removes the inventory together with every dependent resource - the job templates built on it (and their schedules, attached credentials and variables, notification attachments, and the workflow steps that run them), the jobs run against it and their event history, and its inventory sources - in a single operation. A constructed inventory that uses this inventory as an input keeps working but loses that input. Force delete cannot be undone and requires organization-level Ansible management permission.
 
 ## Viewing Synced Hosts
 

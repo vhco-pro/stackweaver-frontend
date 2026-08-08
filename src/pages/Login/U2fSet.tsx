@@ -11,12 +11,12 @@ import { toFriendlyError } from '@/lib/auth-errors';
 const AUTH_BASE = config.apiUrl.replace(/\/api\/v2\/?$/, '/auth');
 
 /**
- * WebAuthn ↔ Zitadel wire-format helpers — Zitadel ships base64url
+ * WebAuthn ↔ Zitadel wire-format helpers - Zitadel ships base64url
  * strings on `publicKeyCredentialCreationOptions.challenge` and
  * `user.id`; the browser WebAuthn API needs ArrayBuffers, and we
  * reply with base64url consistently because Zitadel's grpc-gateway
  * sometimes rejects standard base64 (`+`/`/`/`=`). Same shape as
- * the helpers in Passkey.tsx / PasskeySet.tsx / U2f.tsx — kept
+ * the helpers in Passkey.tsx / PasskeySet.tsx / U2f.tsx - kept
  * duplicated rather than extracted because each file is small and
  * the shared abstraction adds an import hop. Wave 14 (2026-05-12).
  */
@@ -67,7 +67,7 @@ export default function U2fSet() {
 
       // Step 2: Browser WebAuthn ceremony (U2F uses presence only, no
       // user verification). Convert base64url string fields to
-      // ArrayBuffers — same shape fix as Passkey.tsx / U2f.tsx
+      // ArrayBuffers - same shape fix as Passkey.tsx / U2f.tsx
       // (Wave 14).
       const opts = rawOpts as {
         challenge: string;
@@ -91,7 +91,7 @@ export default function U2fSet() {
       const attestationResponse = credential.response as AuthenticatorAttestationResponse;
 
       // Step 3: POST /auth/users/{id}/u2f/{u2fId} → verify registration.
-      // base64url on the return trip — Zitadel's grpc-gateway is picky
+      // base64url on the return trip - Zitadel's grpc-gateway is picky
       // about which fields accept standard vs URL-safe base64.
       const verifyResp = await fetch(`${AUTH_BASE}/users/${userId}/u2f/${startData.u2fId}`, {
         method: 'POST', credentials: 'include',

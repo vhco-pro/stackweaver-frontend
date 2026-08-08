@@ -209,7 +209,7 @@ Violet was rejected after visual review: it reads too much like Terraform's bran
 ```
 
 ```tsx
-/* MarkdownRenderer.tsx — inline code */
+/* MarkdownRenderer.tsx - inline code */
 <code className="bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200/70 dark:border-indigo-700/30 text-indigo-800 dark:text-indigo-200 px-1.5 py-0.5 rounded-md text-sm font-mono">
 ```
 

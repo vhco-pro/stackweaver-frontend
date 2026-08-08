@@ -72,19 +72,19 @@ data "azuread_service_principal" "azure_devops" {
 }
 
 locals {
-  # vso.code — read source code, commits, branches; inherits vso.hooks_write (service hooks)
+  # vso.code - read source code, commits, branches; inherits vso.hooks_write (service hooks)
   vso_code_id = one([
     for s in data.azuread_service_principal.azure_devops.oauth2_permission_scopes :
     s.id if s.value == "vso.code"
   ])
 
-  # vso.code_status — read and write commit/pull request status (PR status checks)
+  # vso.code_status - read and write commit/pull request status (PR status checks)
   vso_code_status_id = one([
     for s in data.azuread_service_principal.azure_devops.oauth2_permission_scopes :
     s.id if s.value == "vso.code_status"
   ])
 
-  # vso.project — read projects and teams, required to list repositories across all projects
+  # vso.project - read projects and teams, required to list repositories across all projects
   vso_project_id = one([
     for s in data.azuread_service_principal.azure_devops.oauth2_permission_scopes :
     s.id if s.value == "vso.project"
@@ -133,7 +133,7 @@ resource "azuread_application_password" "stackweaver" {
 }
 
 # ---------------------------------------------------------------------------
-# Outputs — copy these into deploy/vcs.env
+# Outputs - copy these into deploy/vcs.env
 # ---------------------------------------------------------------------------
 
 output "AZURE_DEVOPS_CLIENT_ID" {

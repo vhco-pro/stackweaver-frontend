@@ -220,7 +220,7 @@ Error: Plain text error
 {"@level":"error","@message":"Error: required field is missing","@timestamp":"2024-01-01T00:00:00Z"}
 `;
       const result = parseTerraformErrors(logs);
-      // Plain text errors take priority — JSON errors skipped when plain text found
+      // Plain text errors take priority - JSON errors skipped when plain text found
       expect(result.errors).toHaveLength(1);
       expect(result.errors[0].message).toContain('Plain text error');
     });

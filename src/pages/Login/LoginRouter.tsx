@@ -33,7 +33,7 @@ import IdpRegistrationFailed from './IdpRegistrationFailed';
 import LoginError from './LoginError';
 
 /**
- * LoginRouter — complete route dispatch for /login/* pages.
+ * LoginRouter - complete route dispatch for /login/* pages.
  *
  * Forced-flow branching per D7 is implemented in the Password page handler:
  * after password check succeeds, the handler checks session state for

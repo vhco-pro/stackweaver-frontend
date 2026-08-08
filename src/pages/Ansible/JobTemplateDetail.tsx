@@ -406,7 +406,7 @@ export default function JobTemplateDetail() {
   }
 
   // Load agent pools and registered playbooks while the edit dialog is open (async
-  // setState in .then — not a synchronous effect set).
+  // setState in .then - not a synchronous effect set).
   useEffect(() => {
     if (!editDialogOpen || !orgName) return;
     void agentPoolsApi.list(orgName)

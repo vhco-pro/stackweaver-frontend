@@ -31,7 +31,7 @@ export function CodeGroup({ children, languages, defaultTab = 0 }: CodeGroupProp
   const [copied, setCopied] = useState(false);
 
   // Extract code blocks from children (expects <code className="language-...">...</code> nodes).
-  // Memoized so the array identity is stable across renders — otherwise the
+  // Memoized so the array identity is stable across renders - otherwise the
   // `activeCodeText` useMemo below depends on a value recreated every render and
   // its manual memoization can't be preserved (react-hooks/preserve-manual-memoization).
   const codeBlocks = useMemo(() => Children.toArray(children).filter((child: ReactNode) => {
@@ -154,7 +154,7 @@ export function CodeGroup({ children, languages, defaultTab = 0 }: CodeGroupProp
 
   return (
     <div className="my-4">
-      {/* Tab header — plain HTML to avoid shadcn TabsList h-10 override issues */}
+      {/* Tab header - plain HTML to avoid shadcn TabsList h-10 override issues */}
       <div className="flex items-center justify-between rounded-t-lg border border-[rgba(203,213,225,0.25)] bg-muted/30 px-2 py-1">
         <div className="flex items-center gap-0.5" role="tablist">
           {codeBlocks.map((_, index) => {

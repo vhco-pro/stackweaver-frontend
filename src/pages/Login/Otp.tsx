@@ -16,7 +16,7 @@ import { toFriendlyError } from '@/lib/auth-errors';
 /**
  * Single OTP page handling TOTP / Email / SMS via :method route param.
  *
- * For TOTP: user already has the code from their authenticator app — just show the input.
+ * For TOTP: user already has the code from their authenticator app - just show the input.
  * For Email/SMS: must first trigger a challenge via updateSession to make Zitadel send the code,
  * then show the input for the user to enter the received code.
  */
@@ -46,7 +46,7 @@ export default function Otp() {
         const challengeKey = method === 'email' ? 'otpEmail' : 'otpSms';
         // Zitadel v4 changed the OTP challenge oneof shape: `returnCode`
         // is no longer a boolean, it's an empty message (`{}`). v3 and
-        // earlier accepted `returnCode: true` — sending that to v4 now
+        // earlier accepted `returnCode: true` - sending that to v4 now
         // produces `proto: syntax error (line 1:NN): unexpected token true`.
         // Caught Wave 14 (2026-05-11) when wiring up F16 email-OTP.
         // The proxy strips this field in `email` notification mode so
@@ -159,7 +159,7 @@ export default function Otp() {
               autoFocus
               // TOTP is always 6 digits (RFC 6238); Zitadel v4's
               // Email + SMS OTP defaults to 8 digits. Allow up to 8
-              // and let Zitadel reject bad codes — capping at 6
+              // and let Zitadel reject bad codes - capping at 6
               // silently truncated Wave 14's email-OTP flow because
               // `02171500` got pasted as `021715` and "code expired"
               // was the only signal back to the user.

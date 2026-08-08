@@ -157,7 +157,7 @@ After init writes `.env`, Docker Compose injects the issuer into each service:
 | API | `ZITADEL_INTERNAL_ADDR` | `localhost:8080` | Fetches JWKS keys internally (no external DNS) |
 | API (auth proxy) | `CUSTOM_REQUEST_HEADERS` | `x-zitadel-instance-host:zitadel.example.com` | Tells Zitadel to build IdP callbacks with the external domain |
 | API (auth proxy) | `ZITADEL_EXTERNAL_HOST` | `zitadel.example.com` | Source value for `CUSTOM_REQUEST_HEADERS` (from `.env`) |
-| zitadel-init | `ZITADEL_ISSUER` | `https://zitadel.example.com` | Login redirect URL (no `/ui/v2/login` suffix — the Stackweaver SPA serves login at `/login/*` instead) |
+| zitadel-init | `ZITADEL_ISSUER` | `https://zitadel.example.com` | Login redirect URL (no `/ui/v2/login` suffix - the Stackweaver SPA serves login at `/login/*` instead) |
 
 The "Login UI" rows from earlier docs revisions are gone post-cutover: the standalone `login-ui` container was retired and login is now served by the Stackweaver SPA. The auth proxy in the API container picks up the env vars that used to live on the login-ui service.
 

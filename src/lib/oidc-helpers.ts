@@ -11,7 +11,7 @@
 /**
  * verifyMaxAge checks that the id_token's `auth_time` claim is within
  * the OIDC `max_age` budget plus a small clock-skew tolerance. Pure
- * function — extracted so it's unit-testable without mocking the full
+ * function - extracted so it's unit-testable without mocking the full
  * token-exchange flow. Returns the literal string `'ok'` on success,
  * or a human-readable error message on failure.
  *
@@ -23,14 +23,14 @@ export function verifyMaxAge(
     nowSeconds: number,
     clockSkewSeconds = 30,
 ): string {
-    // Reject null / undefined explicitly — `Number(null)` returns 0,
+    // Reject null / undefined explicitly - `Number(null)` returns 0,
     // which would silently pass through as a "very old" auth_time.
     if (authTimeClaim === null || authTimeClaim === undefined) {
-        return 'OIDC max_age check failed — id_token missing auth_time claim';
+        return 'OIDC max_age check failed - id_token missing auth_time claim';
     }
     const authTime = typeof authTimeClaim === 'number' ? authTimeClaim : Number(authTimeClaim);
     if (!Number.isFinite(authTime)) {
-        return 'OIDC max_age check failed — id_token missing auth_time claim';
+        return 'OIDC max_age check failed - id_token missing auth_time claim';
     }
     const ageSeconds = nowSeconds - authTime;
     if (ageSeconds > maxAge + clockSkewSeconds) {

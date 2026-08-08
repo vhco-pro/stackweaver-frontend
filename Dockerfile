@@ -25,11 +25,11 @@ COPY ${BUILD_ROOT}/nginx.conf /frontend/nginx.conf
 COPY ${BUILD_ROOT}/security-headers.conf /frontend/security-headers.conf
 RUN npm run build
 
-# Runtime stage — Chainguard nginx: zero CVEs, non-root by default
+# Runtime stage - Chainguard nginx: zero CVEs, non-root by default
 FROM cgr.dev/chainguard/nginx@sha256:e4ff957080737c90a9ecfeaa40e3d19ea9d687e9cacda2f2a031c75ffcdd72b7
 
 COPY --from=builder /frontend/dist /usr/share/nginx/html
-# Chainguard nginx ships nginx.default.conf — overwrite it with our SPA config.
+# Chainguard nginx ships nginx.default.conf - overwrite it with our SPA config.
 # The security-headers snippet lives OUTSIDE conf.d/ (the top-level nginx.conf
 # does `include /etc/nginx/conf.d/*.conf`, so a snippet in conf.d/ would be
 # double-loaded at http scope and via our explicit include). It is pulled in by
@@ -39,6 +39,6 @@ COPY --from=builder /frontend/security-headers.conf /etc/nginx/security-headers.
 
 LABEL org.opencontainers.image.source="https://github.com/vhco-pro/stackweaver-frontend"
 LABEL org.opencontainers.image.licenses="BUSL-1.1"
-LABEL org.opencontainers.image.description="Stackweaver Frontend — React SPA for the Stackweaver DevOps platform"
+LABEL org.opencontainers.image.description="Stackweaver Frontend - React SPA for the Stackweaver DevOps platform"
 
 EXPOSE 8080

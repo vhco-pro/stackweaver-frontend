@@ -135,7 +135,7 @@ flowchart TB
 
 **Directory Structure**: The Go codebase is split into two modules connected by `go.work`:
 
-`core/` — shared module used by all binaries:
+`core/` - shared module used by all binaries:
 - `models/` - GORM database models (Terraform, Ansible, Registry)
 - `repository/` - Data access layer (CRUD per model)
 - `queue/` - Redis job queue (LPush/BRPop pattern)
@@ -146,7 +146,7 @@ flowchart TB
 - `id/` - ID generation
 - `services/` - Shared services (oidc, vcs, logbuffer, logparser, state, variable, ansible)
 
-`backend/` — binary-specific code:
+`backend/` - binary-specific code:
 - `cmd/api/` - Application entry point
 - `cmd/runner/` - Terraform runner service
 - `cmd/ansible-runner/` - Ansible runner service

@@ -1,5 +1,5 @@
 ---
-description: "Guide for reading Azure Key Vault secrets from Ansible playbooks using workload identity (federated OIDC) — no static credentials on runners"
+description: "Guide for reading Azure Key Vault secrets from Ansible playbooks using workload identity (federated OIDC) - no static credentials on runners"
 covers:
   - "backend/cmd/ansible-runner/**"
   - "backend/internal/api/v2/handlers/**"
@@ -8,7 +8,7 @@ covers:
 
 # Reading Azure Key Vault Secrets from Playbooks
 
-Playbooks frequently need secrets at run time — certificates, connection strings, API keys — and the right place for those is Azure Key Vault, not extra-vars. Stackweaver injects Azure workload-identity environment variables into every playbook run, so the `azure.azcollection` modules can authenticate to Azure with a short-lived federated token instead of a stored client secret.
+Playbooks frequently need secrets at run time - certificates, connection strings, API keys - and the right place for those is Azure Key Vault, not extra-vars. Stackweaver injects Azure workload-identity environment variables into every playbook run, so the `azure.azcollection` modules can authenticate to Azure with a short-lived federated token instead of a stored client secret.
 
 ## How authentication reaches your playbook
 
@@ -26,7 +26,7 @@ Grant the identity (managed identity or App Registration) the `Key Vault Secrets
 
 ## Using it in a playbook
 
-With the environment in place, `azure.azcollection.azure_rm_keyvaultsecret_info` authenticates automatically with `auth_source: auto` (the default). A task that reads a secret and uses it later in the play looks like this — see the module documentation for all options:
+With the environment in place, `azure.azcollection.azure_rm_keyvaultsecret_info` authenticates automatically with `auth_source: auto` (the default). A task that reads a secret and uses it later in the play looks like this - see the module documentation for all options:
 
 ```yaml
 - name: Read a secret from Key Vault

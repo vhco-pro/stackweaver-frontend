@@ -15,7 +15,7 @@ import { toast } from 'sonner';
 
 // Every API key is bound to exactly one organization (directly, or via a
 // project/runner scope that resolves to one). The organization is always the
-// one whose settings page this is mounted under — keys cannot be minted for a
+// one whose settings page this is mounted under - keys cannot be minted for a
 // different org from here. There is no all-access key; a personal
 // "acts-as-user" token is a separate, user-scoped surface (`terraform login`).
 type ScopeType = 'org' | 'project' | 'runner';
@@ -55,7 +55,7 @@ export default function ApiKeysSettings() {
   });
 
   // The org this page is scoped to (always mounted under /app/:orgName). Keys
-  // are bound to this org and this org only — there is no org picker, so a
+  // are bound to this org and this org only - there is no org picker, so a
   // key for a different org must be created from that org's own settings.
   const effectiveOrgId = organizations.find((o) => o.name === orgName)?.id ?? '';
 
@@ -127,7 +127,7 @@ export default function ApiKeysSettings() {
       return;
     }
 
-    // Org and project scopes must carry at least one permission — an empty
+    // Org and project scopes must carry at least one permission - an empty
     // scope is rejected by the backend (no all-access keys).
     if (scopeType !== 'runner' && !permissions.read && !permissions.write && !permissions.admin) {
       toast.error('Please select at least one permission (read, write, or admin)');

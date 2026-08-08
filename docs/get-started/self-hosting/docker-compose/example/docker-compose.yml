@@ -1,4 +1,4 @@
-# StackWeaver — Production Docker Compose
+# StackWeaver - Production Docker Compose
 # Uses pre-built container images from GHCR (no source code required).
 #
 # Quick start:
@@ -146,7 +146,7 @@ services:
   # with the Stackweaver SPA. The auth proxy in the API container
   # (`/auth/*` routes) handles all Zitadel session API calls and OIDC
   # endpoint forwarding. The `login-ui-service` Zitadel machine user
-  # and its PAT are still provisioned by zitadel-init below — they're
+  # and its PAT are still provisioned by zitadel-init below - they're
   # consumed by the auth proxy + TOTP service + Zitadel webhook handler
   # in the API container under the env var ZITADEL_LOGIN_SERVICE_USER_TOKEN.
 
@@ -213,7 +213,7 @@ services:
       STORAGE_REGION: garage
       STORAGE_USE_SSL: "false"
       STORAGE_FORCE_PATH_STYLE: "true"
-      # GitHub App (optional — uncomment and configure to enable)
+      # GitHub App (optional - uncomment and configure to enable)
       # GITHUB_APP_ID: ${GITHUB_APP_ID:-}
       # GITHUB_APP_NAME: ${GITHUB_APP_NAME:-}
       # GITHUB_APP_PRIVATE_KEY_PATH: /etc/github-app-private-key.pem
@@ -290,7 +290,7 @@ services:
       REDIS_PORT: "6379"
       REDIS_PASSWORD: ""
       REDIS_DB: "0"
-      # GitHub App (optional — uncomment and configure to enable)
+      # GitHub App (optional - uncomment and configure to enable)
       # GITHUB_APP_ID: ${GITHUB_APP_ID:-}
       # GITHUB_APP_NAME: ${GITHUB_APP_NAME:-}
       # GITHUB_APP_PRIVATE_KEY_PATH: /etc/github-app-private-key.pem
@@ -370,7 +370,7 @@ services:
       STORAGE_FORCE_PATH_STYLE: "true"
       # Required: the runner refuses to start with a missing or all-zero key.
       # Compose fails fast here until ENCRYPTION_KEY is set in .env.
-      ANSIBLE_ENCRYPTION_KEY: "${ENCRYPTION_KEY:?set ENCRYPTION_KEY in .env — generate one with openssl rand -hex 32}"
+      ANSIBLE_ENCRYPTION_KEY: "${ENCRYPTION_KEY:?set ENCRYPTION_KEY in .env - generate one with openssl rand -hex 32}"
       WORKSPACES_DIR: /home/iac/workspaces
       # Clean each job's scratch dir (SSH keys, vault passwords, inventory
       # secrets) on completion. Set to "true" only for short-lived debugging.

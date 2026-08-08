@@ -31,7 +31,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 /**
  * safeErrorSummary returns an opaque, telemetry-safe string for an
  * unknown error value. Round 25 Wave 7 (item 7 / R24-5): the previous
- * implementation passed the full `Error` to console.* — if a fetch
+ * implementation passed the full `Error` to console.* - if a fetch
  * `Response` rejection ever included a JSON body containing the
  * invalid token (or if a future Sentry/Datadog browser SDK got
  * wired in), tokens would land in telemetry. Browser extensions
@@ -105,7 +105,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           // status (transport errors, malformed JSON, future SDK
           // updates, Zitadel error variants that don't include the
           // word "Unauthorized") fell into the "keep existing
-          // session" branch — a revoked admin's window of access
+          // session" branch - a revoked admin's window of access
           // was up to the 5-minute periodic refresh PLUS this
           // graceful-degrade fallback.
           //
@@ -184,7 +184,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = async () => {
     try {
-      // DR-2: Call the proxy's authorize endpoint — it intercepts Zitadel's 302
+      // DR-2: Call the proxy's authorize endpoint - it intercepts Zitadel's 302
       // and returns the authRequest ID as JSON. The SPA navigates to the login page.
       const { authorize } = await import('@/api/auth-client');
       const { buildAuthorizeParams } = await import('@/lib/zitadel');
@@ -257,7 +257,7 @@ export function useAuth() {
     if (isHMR) {
       // During HMR, preserve the session from sessionStorage to prevent logout.
       // The AuthProvider will re-mount and call checkSession() to restore the
-      // full session — this fallback just keeps API calls working in the meantime.
+      // full session - this fallback just keeps API calls working in the meantime.
       const storedToken = sessionStorage.getItem('zitadel_access_token');
       if (storedToken) {
         return {

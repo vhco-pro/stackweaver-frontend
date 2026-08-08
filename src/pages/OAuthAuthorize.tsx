@@ -55,7 +55,7 @@ export default function OAuthAuthorize() {
       }
 
       // The SPA session lives in sessionStorage. A fresh browser tab opened by
-      // `terraform login` has none — start the login round-trip and return here.
+      // `terraform login` has none - start the login round-trip and return here.
       if (!getAccessToken()) {
         sessionStorage.setItem(RETURN_URL_KEY, window.location.href);
         await login();

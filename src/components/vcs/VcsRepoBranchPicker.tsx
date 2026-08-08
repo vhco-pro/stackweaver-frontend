@@ -21,7 +21,7 @@ import type { useVcsRepoBrowser } from '@/components/ansible/useVcsRepoBrowser';
 
 interface VcsRepoBranchPickerProps {
   organizationName: string;
-  /** Cascading browser state from useVcsRepoBrowser — the parent owns the hook. */
+  /** Cascading browser state from useVcsRepoBrowser - the parent owns the hook. */
   browser: ReturnType<typeof useVcsRepoBrowser>;
 }
 

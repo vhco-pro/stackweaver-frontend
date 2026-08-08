@@ -191,7 +191,7 @@ export function DocsSearch({ docsBase = '/docs', searchIndexFile = '/docs-search
     return () => { document.removeEventListener('keydown', handler); };
   });
 
-  // Handle open state change — load index, focus input
+  // Handle open state change - load index, focus input
   const handleOpenChange = useCallback((nextOpen: boolean) => {
     setOpen(nextOpen);
     if (nextOpen) {

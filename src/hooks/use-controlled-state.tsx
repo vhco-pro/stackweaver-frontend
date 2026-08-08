@@ -16,7 +16,7 @@ export function useControlledState<T, Rest extends any[] = []>(
   const { value, defaultValue, onChange } = props;
 
   // Controlled when `value` is provided: read it directly so the prop is the
-  // single source of truth (no effect mirroring it into state — that's the
+  // single source of truth (no effect mirroring it into state - that's the
   // set-state-in-effect the React Compiler flags). Uncontrolled: own internal state.
   const isControlled = value !== undefined;
   const [internalState, setInternalState] = React.useState<T>(defaultValue as T);

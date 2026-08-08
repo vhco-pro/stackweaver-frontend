@@ -9,16 +9,16 @@ import LoginLayout from './LoginLayout';
 import { toFriendlyError } from '@/lib/auth-errors';
 
 /**
- * WebAuthn ↔ Zitadel use base64url (RFC 4648 §5) on the wire — strings
+ * WebAuthn ↔ Zitadel use base64url (RFC 4648 §5) on the wire - strings
  * containing `-`/`_` instead of `+`/`/` and no padding. The browser
  * WebAuthn API works with `ArrayBuffer`s; conversion happens both ways.
  *
- * Identical to the helpers in Passkey.tsx — kept duplicated here
+ * Identical to the helpers in Passkey.tsx - kept duplicated here
  * rather than extracted because both files are small and the shared
  * abstraction adds an import hop for no real saving.
  *
  * Wave 14 (2026-05-12): previous version cast the wire shape directly
- * to `PublicKeyCredentialRequestOptions` via `as unknown as` —
+ * to `PublicKeyCredentialRequestOptions` via `as unknown as` -
  * Chromium rejected the missing ArrayBuffer with "Failed to read the
  * 'challenge' property". Same fix as Passkey.tsx's b64uToBuf /
  * bufToB64u dance.
@@ -63,7 +63,7 @@ export default function U2f() {
       });
 
       // Zitadel wraps the WebAuthn challenge under `webAuthN.publicKeyCredentialRequestOptions.publicKey`.
-      // Same shape as Passkey.tsx — kept symmetrical so future Zitadel
+      // Same shape as Passkey.tsx - kept symmetrical so future Zitadel
       // proto changes can be diffed against both files at once.
       const webAuthNChallenge = challengeResp.challenges?.webAuthN as
         | { publicKeyCredentialRequestOptions?: { publicKey?: Record<string, unknown> } }
@@ -74,7 +74,7 @@ export default function U2f() {
         return;
       }
 
-      // Decode base64url string fields to ArrayBuffers — see file-level
+      // Decode base64url string fields to ArrayBuffers - see file-level
       // note on why this is needed.
       const raw = requestOptionsRaw as {
         challenge: string;

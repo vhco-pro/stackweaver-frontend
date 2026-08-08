@@ -1,6 +1,6 @@
 // Copyright (c) 2025 VH & Co BV. Licensed under the Business Source License 1.1. See LICENSE for details.
 
-// Shared VCS provider utilities — icons, labels, and URL builders.
+// Shared VCS provider utilities - icons, labels, and URL builders.
 // All provider-specific logic lives here; consuming components just call these functions.
 
 import { GitBranch } from 'lucide-react';
@@ -55,11 +55,11 @@ export function getVcsProviderLabel(provider: VcsProvider): string {
 
 // ─── URL builders ─────────────────────────────────────────────────────────────
 //
-// repo      — the VCS repository path stored in the workspace/playbook/inventory:
+// repo      - the VCS repository path stored in the workspace/playbook/inventory:
 //               GitHub / GitLab / Bitbucket → "owner/repo"
 //               Azure DevOps                → "project/repo"
-// accountName — the VCS connection's account_name field:
-//               GitHub      → GitHub org or user name (not needed for URL building — owner is in repo)
+// accountName - the VCS connection's account_name field:
+//               GitHub      → GitHub org or user name (not needed for URL building - owner is in repo)
 //               Azure DevOps → ADO organisation name (required for URL building)
 //               GitLab      → not used
 //               Bitbucket   → not used
@@ -175,7 +175,7 @@ export function getVcsPullRequestUrl(provider: VcsProvider, repo: string, prNumb
   }
 }
 
-/** GitHub App installation management URL (GitHub only — other providers do not have this concept). */
+/** GitHub App installation management URL (GitHub only - other providers do not have this concept). */
 export function getVcsManageUrl(provider: VcsProvider, installationId: string, accountName: string, accountType: string): string | null {
   if (provider !== 'github' || !installationId) return null;
   return accountType === 'organization' && accountName

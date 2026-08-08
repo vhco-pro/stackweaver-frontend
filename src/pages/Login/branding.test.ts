@@ -7,7 +7,7 @@ import type { BrandingSettings } from '@/api/auth-client';
 // LoginLayout integrates Zitadel's `getBrandingSettings` per the
 // Zitadel Custom Login UI guide (in-scope per custom-login-ui plan,
 // previously deferred from A-hardening). The render path is a thin
-// shell over `selectBrandingOutputs` — testing the pure selector
+// shell over `selectBrandingOutputs` - testing the pure selector
 // gives full coverage of the precedence rules without spinning up a
 // React/DOM environment (matches the project pattern in
 // useCodePaste.test.ts).
@@ -18,7 +18,7 @@ import type { BrandingSettings } from '@/api/auth-client';
 //      configure one)
 //   3. The Stackweaver default (`/logo.png`)
 //
-// Watermark removed 2026-05-09 — Stackweaver login is obviously
+// Watermark removed 2026-05-09 - Stackweaver login is obviously
 // Stackweaver; the redundant "Powered by Stackweaver" was dropped.
 
 describe('selectBrandingOutputs', () => {

@@ -8,10 +8,10 @@ export interface IconProps {
     className?: string;
 }
 
-// Google — the canonical 4-colour G. Blue arc + yellow + red +
+// Google - the canonical 4-colour G. Blue arc + yellow + red +
 // green segments per Google's brand guidelines. Theme-invariant
 // (Google's G must always render in its 4 brand colours, never
-// monochrome — that's a Google brand-asset requirement for
+// monochrome - that's a Google brand-asset requirement for
 // federated-login buttons).
 export function GoogleIcon({ className }: IconProps) {
     return (
@@ -41,7 +41,7 @@ export function MicrosoftIcon({ className }: IconProps) {
 
 // Apple logo glyph. Apple's brand is monochrome and the colour is
 // context-dependent (black on light backgrounds, white on dark);
-// `currentColor` is the right choice here — the button's text-colour
+// `currentColor` is the right choice here - the button's text-colour
 // is already theme-aware so the logo follows.
 export function AppleIcon({ className }: IconProps) {
     return (
@@ -51,7 +51,7 @@ export function AppleIcon({ className }: IconProps) {
     );
 }
 
-// GitHub Octocat — Octocat is monochrome by brand definition.
+// GitHub Octocat - Octocat is monochrome by brand definition.
 // `currentColor` lets the button's text colour drive the rendering
 // (black on light, white on dark) which is exactly how GitHub
 // renders its own "Sign in" CTAs.
@@ -63,7 +63,7 @@ export function GitHubIcon({ className }: IconProps) {
     );
 }
 
-// GitLab tanuki — the brand-faithful 3-tone fox logo. GitLab brand
+// GitLab tanuki - the brand-faithful 3-tone fox logo. GitLab brand
 // colours per their press kit: bright orange (#FC6D26), darker
 // orange (#E24329), and burnt orange (#FCA326). Renders well on
 // both light + dark backgrounds.
@@ -78,7 +78,7 @@ export function GitLabIcon({ className }: IconProps) {
     );
 }
 
-// Okta "O" mark — Okta brand blue (#007DC1). The notched-O is
+// Okta "O" mark - Okta brand blue (#007DC1). The notched-O is
 // Okta's primary logo; keep it monochrome blue to read clearly at
 // 16px button size.
 export function OktaIcon({ className }: IconProps) {
@@ -89,7 +89,7 @@ export function OktaIcon({ className }: IconProps) {
     );
 }
 
-// Auth0 — orange A-with-circle, Auth0 brand orange (#EB5424).
+// Auth0 - orange A-with-circle, Auth0 brand orange (#EB5424).
 export function Auth0Icon({ className }: IconProps) {
     return (
         <svg viewBox="0 0 24 24" className={className} aria-hidden="true">
@@ -98,7 +98,7 @@ export function Auth0Icon({ className }: IconProps) {
     );
 }
 
-// AWS Cognito — AWS orange (#FF9900) cloud + lock combo. AWS
+// AWS Cognito - AWS orange (#FF9900) cloud + lock combo. AWS
 // doesn't ship a dedicated Cognito mark; this stand-in stays in the
 // AWS family colour so it reads as "an AWS service" at a glance.
 export function CognitoIcon({ className }: IconProps) {

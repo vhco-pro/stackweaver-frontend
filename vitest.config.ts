@@ -12,7 +12,7 @@ export default defineConfig({
   test: {
     globals: false,
     // happy-dom gives component tests (@testing-library/react) a DOM without a real
-    // browser. Pure-logic helper tests are unaffected — they just ignore the DOM globals.
+    // browser. Pure-logic helper tests are unaffected - they just ignore the DOM globals.
     environment: 'happy-dom',
     setupFiles: ['./src/test/setup.ts'],
   },

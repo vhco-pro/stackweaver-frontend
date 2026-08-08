@@ -14,7 +14,7 @@ describe('formatActivityNotification', () => {
 
   it('uses resource_type as the fallback name when resource_name is absent', () => {
     // resourceNameRaw = details.resource_name || attrs.resource_type, so resource_type
-    // becomes the quoted name — the "New X created" branch only fires when BOTH are empty.
+    // becomes the quoted name - the "New X created" branch only fires when BOTH are empty.
     expect(formatActivityNotification({ action: 'create', resource_type: 'workspace' }))
       .toEqual({ title: 'workspace Created', message: '"workspace" was created', type: 'success' });
   });

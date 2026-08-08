@@ -71,7 +71,7 @@ export function EditWorkspaceDialog({
 
         {/* The body mounts fresh each time the dialog opens (Radix unmounts closed
             content), so all form fields initialize straight from the workspace via
-            useState initializers — no form-sync effect needed. Keyed by workspace id
+            useState initializers - no form-sync effect needed. Keyed by workspace id
             so switching the target workspace re-initializes cleanly. */}
         {workspace && (
           <EditWorkspaceFormBody
@@ -102,14 +102,14 @@ function EditWorkspaceFormBody({
 }: EditWorkspaceFormBodyProps) {
   const [updating, setUpdating] = useState(false);
 
-  // Form state — initialized directly from the workspace (mount == dialog open).
+  // Form state - initialized directly from the workspace (mount == dialog open).
   const initialVcsId = workspace.vcs_connection_id ? String(workspace.vcs_connection_id) : '';
   const [name, setName] = useState(workspace.name || '');
   const [description, setDescription] = useState(workspace.description || '');
   const [vcsConnectionId, setVcsConnectionId] = useState<string>(initialVcsId);
   const [selectedVcsProject, setSelectedVcsProject] = useState<string>('');
   const [selectedRepository, setSelectedRepository] = useState<string>(workspace.vcs_repository || '');
-  // '' means "auto" — resolveEffectiveBranch derives the default from the loaded list.
+  // '' means "auto" - resolveEffectiveBranch derives the default from the loaded list.
   const [selectedBranch, setSelectedBranch] = useState<string>(workspace.vcs_branch || 'main');
   const [workingDirectory, setWorkingDirectory] = useState(workspace.working_directory || '');
   const [terraformVersion, setTerraformVersion] = useState(workspace.terraform_version || '');
@@ -122,7 +122,7 @@ function EditWorkspaceFormBody({
   const [repositorySelectOpen, setRepositorySelectOpen] = useState(false);
   const repositorySearchInputRef = useRef<HTMLInputElement>(null);
 
-  // Original (persisted) VCS values — constants for this mount, used to flag
+  // Original (persisted) VCS values - constants for this mount, used to flag
   // state-invalidating changes.
   const originalVcsConnectionId = initialVcsId;
   const originalRepository = workspace.vcs_repository || '';
@@ -641,7 +641,7 @@ function EditWorkspaceFormBody({
               onCheckedChange={(checked) => setForceDelete(checked === true)}
             />
             <Label htmlFor="edit-force-delete" className="cursor-pointer text-sm">
-              Allow force delete — permits deletion even when the workspace has active infrastructure
+              Allow force delete - permits deletion even when the workspace has active infrastructure
             </Label>
           </div>
         </div>

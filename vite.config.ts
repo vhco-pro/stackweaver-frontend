@@ -9,7 +9,7 @@ import tailwindcss from '@tailwindcss/vite'
 // the built SPA via nginx with the full, strict header set (frontend/nginx.conf +
 // frontend/security-headers.conf); this only affects the dev server, which also
 // fronts the public demo (sw.vhco.pro). The non-CSP headers mirror nginx exactly.
-// The CSP is deliberately RELAXED here — the Vite dev server injects inline module
+// The CSP is deliberately RELAXED here - the Vite dev server injects inline module
 // scripts, uses eval (React Fast Refresh) + WebAssembly (shiki) and a websocket for
 // HMR, all of which a strict script-src/connect-src would break. connect-src stays
 // permissive so the demo's split-host API (a different origin than the frontend)

@@ -61,7 +61,7 @@ describe('toFriendlyError', () => {
 
     it('passes through unknown but safe-looking messages unchanged', () => {
         // Zitadel's user-facing errors are usually already friendly,
-        // e.g. "Email is invalid" — no internal code, no PG shape.
+        // e.g. "Email is invalid" - no internal code, no PG shape.
         expect(toFriendlyError(new Error('Email is invalid'))).toBe('Email is invalid');
         expect(toFriendlyError(new Error('Login attempts exceeded'))).toBe('Login attempts exceeded');
     });

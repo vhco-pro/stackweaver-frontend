@@ -150,7 +150,7 @@ export default function StateVersionDetail() {
   // AUD-134: the fullscreen state view is a custom `fixed inset-0` overlay (not a Radix Dialog),
   // so Escape doesn't dismiss it. Bind a single document keydown listener on mount (useEffect is
   // banned). The functional updater exits only when currently fullscreen and otherwise returns the
-  // same value, so React bails out — no ref read during render.
+  // same value, so React bails out - no ref read during render.
   useMountEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {

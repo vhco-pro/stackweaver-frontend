@@ -82,7 +82,7 @@ function CodeBlock({
     void loadHighlightedCode();
   }, [lang, themes, writing, isInView, duration, delay, displayCode, theme]);
 
-  // Non-writing mode: fire the completion callbacks once (no state to set —
+  // Non-writing mode: fire the completion callbacks once (no state to set -
   // displayCode already reflects the full code during render).
   React.useEffect(() => {
     if (writing) return;

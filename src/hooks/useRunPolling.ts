@@ -166,7 +166,7 @@ export function useRunPolling({
         }
 
         // Fetch plan output when plan phase completes
-        // Plan-and-apply, plan-only, and destroy runs all have a plan phase — fetch plan for all of them
+        // Plan-and-apply, plan-only, and destroy runs all have a plan phase - fetch plan for all of them
         const shouldFetchPlan = (
           (runData.operation === 'plan-only' || runData.operation === 'plan' || runData.operation === 'plan-and-apply' || runData.operation === 'destroy') &&
           (runData.status === 'planned' || runData.status === 'applying' || runData.status === 'applied' || runData.status === 'failed' || runData.status === 'canceled' ||
@@ -306,7 +306,7 @@ export function useRunPolling({
                 }
               } else if ((runData.status === 'canceled' || runData.status === 'failed') &&
                 applyLogOffsetRef.current === 0) {
-                // Cancelled/failed before any apply output was produced — show empty rather
+                // Cancelled/failed before any apply output was produced - show empty rather
                 // than leaving stale content; never fall back to the plan log.
                 applyLogsRef.current = '';
                 setLogs('');

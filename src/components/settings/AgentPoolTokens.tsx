@@ -77,7 +77,7 @@ export function AgentPoolTokens({ poolId }: { poolId: string }) {
       <div className="flex items-center gap-2">
         <KeyRound className="h-4 w-4 text-muted-foreground" />
         <h4 className="text-sm font-semibold">Agent tokens</h4>
-        <span className="text-xs text-muted-foreground">— credentials agents use to register into this pool</span>
+        <span className="text-xs text-muted-foreground">- credentials agents use to register into this pool</span>
       </div>
 
       {/* Newly created token - shown once */}
@@ -92,7 +92,7 @@ export function AgentPoolTokens({ poolId }: { poolId: string }) {
             <span className="text-sm font-semibold text-green-400">Agent token created</span>
           </div>
           <p className="text-xs text-muted-foreground mb-3">
-            Copy it now — you won't be able to see it again after closing this message.
+            Copy it now - you won't be able to see it again after closing this message.
           </p>
           <div className="flex items-center gap-2 mb-3">
             <code className="flex-1 px-3 py-2 rounded-lg bg-white/5 dark:bg-black/10 border border-white/10 text-xs font-mono break-all">

@@ -121,7 +121,7 @@ function DocImage({ src, alt, title, currentDir, docsBase, onLightbox }: DocImag
     ) {
       return src;
     }
-    // Relative path — strip leading ./
+    // Relative path - strip leading ./
     let rel = src.startsWith('./') ? src.slice(2) : src;
     // Handle ../
     if (rel.startsWith('../')) {
@@ -216,7 +216,7 @@ function paragraphText(node: unknown): string | null {
     if (type === 'text') {
       if (typeof c.value === 'string') parts.push(c.value);
     } else if (type === 'link') {
-      // remark auto-links bare URLs — extract href so directives containing URLs still match
+      // remark auto-links bare URLs - extract href so directives containing URLs still match
       if (typeof c.url === 'string') parts.push(c.url);
     }
   }
@@ -289,7 +289,7 @@ function remarkCodeGroup() {
       for (let i = 0; i < children.length; i++) {
         const child = children[i];
 
-        // ::: code-snippet <github-url> ... ::: — single-file GitHub embed
+        // ::: code-snippet <github-url> ... ::: - single-file GitHub embed
         const snippetMatch = isCodeSnippetStart(child);
         if (snippetMatch) {
           if (snippetMatch.selfClosed) {
@@ -307,7 +307,7 @@ function remarkCodeGroup() {
           }
         }
 
-        // ::: code-explorer <path> ... ::: — must be checked before code-group (same closer)
+        // ::: code-explorer <path> ... ::: - must be checked before code-group (same closer)
         const explorerMatch = isCodeExplorerStart(child);
         if (explorerMatch) {
           if (explorerMatch.selfClosed) {
@@ -1277,7 +1277,7 @@ export function MarkdownRenderer({
   const highlightedKeys = Object.keys(highlightedCode).sort().join(',');
   const markdownKey = `markdown-${highlightedKeys}`;
 
-  // Frontmatter metadata table — only rendered for internal docs (plans, analyses, etc.)
+  // Frontmatter metadata table - only rendered for internal docs (plans, analyses, etc.)
   // User-facing docs use frontmatter for search/indexing only, not for display.
   const isInternalDoc = docPath.startsWith('internal/');
   const hasMetaHeader = isInternalDoc && (meta.status || meta.priority || meta.created || meta.updated || meta.author || meta.issue || meta.goal || meta['superseded-by']);

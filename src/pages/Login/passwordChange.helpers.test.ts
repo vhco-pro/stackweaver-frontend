@@ -3,14 +3,14 @@
 import { describe, it, expect } from 'vitest';
 import { validatePasswordChangeInput } from './passwordChange.helpers';
 
-// F19 — `/login/password/change` page input validation.
+// F19 - `/login/password/change` page input validation.
 //
 // The render path is a thin shell over `validatePasswordChangeInput`
 // for the pre-submit checks; testing the pure validator gives full
 // coverage of the precedence rules without spinning up a React/DOM
 // environment. Same pattern as `branding.test.ts`.
 //
-// Validation precedence is load-bearing — a user who fills nothing
+// Validation precedence is load-bearing - a user who fills nothing
 // must see "Current password is required" first, not "Missing user
 // context", because the user-context error implies a deeper bug
 // (the page was reached without the SPA threading sessionId/userId
@@ -54,10 +54,10 @@ describe('validatePasswordChangeInput', () => {
 
     it('rejects empty userId (page mounted without SPA context)', () => {
         const got = validatePasswordChangeInput({ ...valid, userId: '' });
-        expect(got).toEqual({ ok: false, error: 'Missing user context — please sign in again' });
+        expect(got).toEqual({ ok: false, error: 'Missing user context - please sign in again' });
     });
 
-    // Precedence checks — multiple errors at once must surface the
+    // Precedence checks - multiple errors at once must surface the
     // FIRST one in the validation order. A user filling nothing
     // shouldn't see "missing user context" before the obvious
     // "current password required" hint.

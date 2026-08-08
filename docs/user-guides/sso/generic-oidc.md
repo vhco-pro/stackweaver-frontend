@@ -153,9 +153,9 @@ flowchart LR
 <details>
 <summary><strong>Flow Steps (Legend)</strong></summary>
 
-1. **Register** — Registers the OIDC provider in Zitadel with the configured display name.
-2. **Login policy** — Adds the provider to the login policy so the login button appears.
-3. **Actions** — Creates Zitadel Actions to capture and forward group claims through the JWT.
+1. **Register** - Registers the OIDC provider in Zitadel with the configured display name.
+2. **Login policy** - Adds the provider to the login policy so the login button appears.
+3. **Actions** - Creates Zitadel Actions to capture and forward group claims through the JWT.
 
 </details>
 

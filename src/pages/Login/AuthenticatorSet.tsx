@@ -6,7 +6,7 @@ import { KeyRound, Lock } from 'lucide-react';
 import LoginLayout from './LoginLayout';
 
 /**
- * Choose primary authenticator when user has none — entry point for first-time setup.
+ * Choose primary authenticator when user has none - entry point for first-time setup.
  */
 export default function AuthenticatorSet() {
   const navigate = useNavigate();

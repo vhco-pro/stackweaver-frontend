@@ -231,7 +231,7 @@ function SlidingNumber({
   ]);
 
   // When not animating, the displayed value comes straight from the props
-  // (derived during render — no setState in an effect). While animating it tracks
+  // (derived during render - no setState in an effect). While animating it tracks
   // the spring via effectiveNumber.
   const staticNumber = initiallyStable ? initialNumeric : !isInView ? 0 : initialNumeric;
   const displayNumber = hasAnimated ? effectiveNumber : staticNumber;

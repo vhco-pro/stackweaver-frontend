@@ -121,7 +121,7 @@ DELETE /api/v2/ansible/inventories/:id
 DELETE /api/v2/ansible/inventories/:id?force=true
 ```
 
-A plain delete is rejected with 409 when the inventory is still referenced by job templates, jobs, or inventory sources, or used as an input of a constructed inventory. Adding `?force=true` cascades the delete over every dependent resource — job templates (and their schedules, credential/variable links, notification attachments, and the workflow nodes that run them), jobs run against the inventory (with their events), and inventory sources — in a single transaction. Force delete additionally requires organization-level Ansible management permission.
+A plain delete is rejected with 409 when the inventory is still referenced by job templates, jobs, or inventory sources, or used as an input of a constructed inventory. Adding `?force=true` cascades the delete over every dependent resource - job templates (and their schedules, credential/variable links, notification attachments, and the workflow nodes that run them), jobs run against the inventory (with their events), and inventory sources - in a single transaction. Force delete additionally requires organization-level Ansible management permission.
 
 ### Export as INI
 
@@ -296,12 +296,12 @@ Every method runs plain `ansible-inventory`; the `azure.azcollection.azure_rm` p
 
 | `auth_method` | What the runner does |
 |---------------|----------------------|
-| `managed_identity` | emits `auth_source: msi`; sets `AZURE_SUBSCRIPTION_ID` (and `AZURE_CLIENT_ID` for a user-assigned identity) — authenticates via IMDS |
+| `managed_identity` | emits `auth_source: msi`; sets `AZURE_SUBSCRIPTION_ID` (and `AZURE_CLIENT_ID` for a user-assigned identity) - authenticates via IMDS |
 | `workload_identity` | sets `AZURE_SUBSCRIPTION_ID`; relies on the AKS workload-identity webhook to inject `AZURE_CLIENT_ID`/`AZURE_TENANT_ID`/`AZURE_FEDERATED_TOKEN_FILE` |
 | `oidc` | generates a short-lived Stackweaver JWT and sets `AZURE_FEDERATED_TOKEN_FILE`, `AZURE_CLIENT_ID`, `AZURE_TENANT_ID`, `AZURE_SUBSCRIPTION_ID` (requires an org Azure OIDC Configuration and a public issuer) |
 | `credential` | injects the attached Service Principal credential's client ID, secret, and tenant |
 
-VCS-backed Azure inventories are pure passthrough: Stackweaver injects no Azure auth and runs `ansible-inventory` directly against the repository file. The file's own `auth_source` (and the pod runtime — IMDS for Managed Identity, or the AKS workload-identity webhook's projected token for Workload Identity) determines how the plugin authenticates. Stackweaver never rewrites the repository file. To have Stackweaver mint an OIDC token, use a UI-configured (dynamic) source with `auth_method: oidc` instead.
+VCS-backed Azure inventories are pure passthrough: Stackweaver injects no Azure auth and runs `ansible-inventory` directly against the repository file. The file's own `auth_source` (and the pod runtime - IMDS for Managed Identity, or the AKS workload-identity webhook's projected token for Workload Identity) determines how the plugin authenticates. Stackweaver never rewrites the repository file. To have Stackweaver mint an OIDC token, use a UI-configured (dynamic) source with `auth_method: oidc` instead.
 
 #### Dynamic Inventory via VCS
 
@@ -447,7 +447,7 @@ DELETE /api/v2/ansible/playbooks/:id
 DELETE /api/v2/ansible/playbooks/:id?force=true
 ```
 
-A plain delete is rejected with 409 when the playbook is still referenced by job templates or jobs. Adding `?force=true` cascades the delete over every dependent resource — job templates (and their schedules, credential/variable links, notification attachments, and the workflow nodes that run them), jobs run against the playbook (with their events), and schedules that target the playbook directly — in a single transaction. Force delete additionally requires organization-level Ansible management permission.
+A plain delete is rejected with 409 when the playbook is still referenced by job templates or jobs. Adding `?force=true` cascades the delete over every dependent resource - job templates (and their schedules, credential/variable links, notification attachments, and the workflow nodes that run them), jobs run against the playbook (with their events), and schedules that target the playbook directly - in a single transaction. Force delete additionally requires organization-level Ansible management permission.
 
 ### Sync from VCS
 
@@ -890,4 +890,4 @@ Public, key-authenticated endpoint (registered outside the authenticated API gro
 GET /api/v2/ansible/jobs/:id/events?after=<counter>
 ```
 
-With `after`, returns only events whose counter is greater than the given value (capped per call) — the polling contract used by the job detail page to append live output instead of re-downloading the full history.
+With `after`, returns only events whose counter is greater than the given value (capped per call) - the polling contract used by the job detail page to append live output instead of re-downloading the full history.

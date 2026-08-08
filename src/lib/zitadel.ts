@@ -4,11 +4,11 @@ import { verifyMaxAge } from './oidc-helpers';
 
 import { config } from '@/config';
 
-// Zitadel configuration — runtime config (env.js) takes precedence over build-time env vars
+// Zitadel configuration - runtime config (env.js) takes precedence over build-time env vars
 export const clientId = config.zitadelClientId;
 export const redirectUri = config.zitadelRedirectUri;
 
-// Auth proxy base URL — same server as API, at /auth/* instead of /api/v2/*
+// Auth proxy base URL - same server as API, at /auth/* instead of /api/v2/*
 const authProxyBase = config.apiUrl.replace(/\/api\/v2\/?$/, '/auth');
 
 // Build OIDC authorize parameters with PKCE + state + nonce.
@@ -16,7 +16,7 @@ const authProxyBase = config.apiUrl.replace(/\/api\/v2\/?$/, '/auth');
 // The code_verifier, state, and nonce are all stashed in sessionStorage
 // for the matching callback / token-exchange step.
 //
-// `state` (OIDC §3.1.2.1) is the OIDC equivalent of a CSRF token —
+// `state` (OIDC §3.1.2.1) is the OIDC equivalent of a CSRF token -
 // without verifying it on the callback, an attacker can craft a redirect
 // (e.g. an open link with their own `?code=&state=`) that logs the
 // victim's browser into the attacker's session. Rounds 18 (state) +
@@ -34,7 +34,7 @@ const authProxyBase = config.apiUrl.replace(/\/api\/v2\/?$/, '/auth');
  * `now`. Out-of-budget tokens are rejected so the SPA forces a fresh
  * authentication for sensitive flows that need recent re-auth.
  *
- * Stackweaver's primary login flow doesn't drive `max_age` today —
+ * Stackweaver's primary login flow doesn't drive `max_age` today -
  * this is OIDC §3.1.2.1 compliance + future-proofing for re-auth-on-
  * sensitive-operation patterns.
  */
@@ -61,7 +61,7 @@ export async function buildAuthorizeParams(opts: AuthorizeOpts = {}): Promise<UR
   const codeChallenge = await generateCodeChallenge(codeVerifier);
 
   // Generate state + nonce. Both are 32-byte base64url-encoded random
-  // strings — same shape as the code_verifier, plenty of entropy for
+  // strings - same shape as the code_verifier, plenty of entropy for
   // CSRF / replay defense.
   const state = generateRandomToken();
   const nonce = generateRandomToken();
@@ -101,7 +101,7 @@ export async function buildAuthorizeParams(opts: AuthorizeOpts = {}): Promise<UR
  *
  * Returns true when the received state matches the stored state.
  * Callers (Callback.tsx) MUST refuse to exchange the code unless this
- * returns true — otherwise the SPA will accept attacker-injected
+ * returns true - otherwise the SPA will accept attacker-injected
  * `?code=…&state=…` redirects.
  */
 export function consumeOIDCState(receivedState: string | null): boolean {
@@ -126,7 +126,7 @@ function generateRandomToken(): string {
 
 // Decode the payload of a JWT (base64url middle segment) to a
 // claims object. Used by exchangeCodeForTokens for nonce verification.
-// NOT a signature-verifying decode — Zitadel's JWKS-verified token
+// NOT a signature-verifying decode - Zitadel's JWKS-verified token
 // exchange already proves provenance; this just reads the claims to
 // check the nonce binding.
 function decodeJWTPayload(jwt: string): Record<string, unknown> {
@@ -147,7 +147,7 @@ export const getLogoutUrl = () => {
   if (idToken) {
     params.set('id_token_hint', idToken);
   }
-  // Route through auth proxy (GET — OIDC RP-Initiated Logout spec)
+  // Route through auth proxy (GET - OIDC RP-Initiated Logout spec)
   return `${authProxyBase}/oidc/end-session?${params.toString()}`;
 };
 
@@ -179,7 +179,7 @@ export async function exchangeCodeForTokens(code: string): Promise<{ access_toke
     throw new Error('Code verifier not found. Please try logging in again.');
   }
 
-  // Route through auth proxy — redirect_uri passed unchanged for PKCE validation
+  // Route through auth proxy - redirect_uri passed unchanged for PKCE validation
   const response = await fetch(`${authProxyBase}/oidc/token`, {
     method: 'POST',
     headers: {
@@ -212,14 +212,14 @@ export async function exchangeCodeForTokens(code: string): Promise<{ access_toke
   const tokens = await response.json() as { access_token: string; id_token: string; refresh_token?: string; expires_in?: number; token_type?: string };
 
   // OIDC §3.1.3.7 step 11: validate the id_token's `nonce` claim
-  // matches the value sent on /authorize. The nonce is one-shot —
+  // matches the value sent on /authorize. The nonce is one-shot -
   // clear after validation regardless of outcome so a re-attempt
   // can't bypass the check by relying on a stale stored value.
   const expectedNonce = sessionStorage.getItem('zitadel_oidc_nonce');
   sessionStorage.removeItem('zitadel_oidc_nonce');
   if (!expectedNonce) {
     sessionStorage.removeItem('zitadel_code_verifier');
-    throw new Error('OIDC nonce missing from session — please retry login');
+    throw new Error('OIDC nonce missing from session - please retry login');
   }
   let claims: Record<string, unknown>;
   try {
@@ -230,7 +230,7 @@ export async function exchangeCodeForTokens(code: string): Promise<{ access_toke
   }
   if (claims.nonce !== expectedNonce) {
     sessionStorage.removeItem('zitadel_code_verifier');
-    throw new Error('OIDC nonce mismatch — possible token injection');
+    throw new Error('OIDC nonce mismatch - possible token injection');
   }
 
   // Round 25 Wave 8 (item 2 / F-chaos-4): max_age verification per
@@ -297,11 +297,11 @@ export async function getUserInfo(accessToken: string): Promise<UserInfo> {
 // Store tokens in sessionStorage (DR-1: migrated from localStorage).
 // sessionStorage survives page refresh and Vite HMR but clears on tab close,
 // shrinking the XSS blast radius vs localStorage.
-// Also records the clientId in localStorage (not a credential — self-heal marker).
+// Also records the clientId in localStorage (not a credential - self-heal marker).
 export function storeTokens(tokens: { access_token: string; id_token: string; refresh_token?: string; expires_in?: number }) {
   sessionStorage.setItem('zitadel_access_token', tokens.access_token);
   sessionStorage.setItem('zitadel_id_token', tokens.id_token);
-  // clientId stays in localStorage — used by clearTokensIfClientChanged for
+  // clientId stays in localStorage - used by clearTokensIfClientChanged for
   // cluster-wipe self-heal detection (not a credential)
   localStorage.setItem('zitadel_client_id', clientId);
   if (tokens.refresh_token) {
@@ -380,7 +380,7 @@ export async function refreshAccessToken(): Promise<{ access_token: string; id_t
 
     if (!response.ok) {
       // Round 25 Wave 7 (item 7 / R24-5): don't log the response body
-      // — Zitadel's error responses can include the offending token
+      // - Zitadel's error responses can include the offending token
       // value or other request-shaped data we don't want in the
       // console. The status alone is enough to diagnose.
       console.error(`zitadel: token refresh failed (status=${response.status})`);
@@ -393,7 +393,7 @@ export async function refreshAccessToken(): Promise<{ access_token: string; id_t
     return tokens;
   } catch (error) {
     // Round 25 Wave 7 (item 7 / R24-5): never log the full Error
-    // object — type tag + status (when present) is enough.
+    // object - type tag + status (when present) is enough.
     const status = (error as { status?: number }).status;
     const tag = error instanceof Error ? error.name : typeof error;
     console.error(`zitadel: token refresh error (${tag}${typeof status === 'number' ? `, status=${status}` : ''})`);

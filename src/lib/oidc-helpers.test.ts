@@ -10,7 +10,7 @@ describe('verifyMaxAge', () => {
     const now = 1_700_000_000;
 
     it('accepts auth_time well within budget', () => {
-        // Authenticated 30s ago, budget 300s — well within.
+        // Authenticated 30s ago, budget 300s - well within.
         expect(verifyMaxAge(now - 30, 300, now)).toBe('ok');
     });
 

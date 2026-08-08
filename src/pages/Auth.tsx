@@ -4,7 +4,7 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import Login from './Auth/Login';
 import Callback from './Auth/Callback';
 
-// /auth/* — pre-Zitadel-handoff routes:
+// /auth/* - pre-Zitadel-handoff routes:
 //   /auth/login    "Sign in with Zitadel" entry button (kicks off PKCE)
 //   /auth/callback OIDC callback handler (token exchange)
 //

@@ -648,7 +648,7 @@ function workspaceFromJsonApi(item: JsonApiResource, included?: JsonApiResource[
 }
 
 export const workspacesApi = {
-  // TFE-compatible endpoints — always JSON:API format. Request effective tags so the list can offer a
+  // TFE-compatible endpoints - always JSON:API format. Request effective tags so the list can offer a
   // tag filter (own + project-inherited tags per workspace).
   list: (organizationName: string) =>
     apiClient.get<{ data: JsonApiResource[]; meta: { pagination: { page: number; per_page: number; total: number } }; included?: JsonApiResource[] }>(`/organizations/${encodeURIComponent(organizationName)}/workspaces?include=effective_tag_bindings&page%5Bsize%5D=100`).then(res => ({
@@ -1815,11 +1815,11 @@ export interface LogChunk {
   // Display text for this chunk, with the STX/ETX framing markers stripped out.
   text: string;
   // Number of **raw** bytes consumed (markers included). Add to the running offset and
-  // pass it back as `?offset=` on the next poll. Must be bytes, not `text.length` — the
+  // pass it back as `?offset=` on the next poll. Must be bytes, not `text.length` - the
   // server slices the log by byte position (TFE-compatible), markers are real bytes, and
   // terraform output contains multi-byte UTF-8, so a JS string length would drift.
   bytes: number;
-  // True once the ETX end-of-text marker has been seen — the phase stream is complete and
+  // True once the ETX end-of-text marker has been seen - the phase stream is complete and
   // polling can stop. Mirrors go-tfe's LogReader, which uses ETX to detect end-of-stream.
   done: boolean;
 }
@@ -2039,7 +2039,7 @@ export const runsApi = {
     apiClient.patch<Run>(`/workspaces/${workspaceId}/runs/${id}/status`, data),
 };
 
-// Materialized state outputs/resources (State Storage Rework) — served from dedicated
+// Materialized state outputs/resources (State Storage Rework) - served from dedicated
 // tables, so the workspace tabs/counts no longer parse the raw state blob.
 export interface StateVersionOutput {
   name: string;
@@ -2074,7 +2074,7 @@ export const stateVersionsApi = {
   delete: (id: string) =>
     apiClient.delete<void>(`/state-versions/${id}`),
   // Raw Terraform state JSON for a version, via the TFE hosted-state-download-url target
-  // (object storage). Used by the state viewer/diff/download — the inline state_data blob
+  // (object storage). Used by the state viewer/diff/download - the inline state_data blob
   // is being removed from API responses (State Storage Rework).
   getRawState: (id: string) =>
     apiClient.get<Record<string, unknown>>(`/state-versions/${id}/download`),
@@ -2768,7 +2768,7 @@ export const settingsApi = {
     apiClient.delete<{ message: string }>(`/settings/api-keys/${id}`),
 };
 
-// Personal (user-bound) tokens — the `terraform login` / personal access
+// Personal (user-bound) tokens - the `terraform login` / personal access
 // token. These are minted at /api/v2/tokens (kind="user"): they act as the
 // user across all of their organization memberships and carry no scopes. This
 // is a deliberately separate surface from the scoped, org-bound API keys above.

@@ -32,7 +32,7 @@ test('CSP script-src hash matches the inline theme script in index.html', () => 
   expect(
     conf.includes(hash),
     `security-headers.conf CSP is missing the current theme-script hash '${hash}'. ` +
-      `The inline theme script in index.html changed — recompute and update the ` +
+      `The inline theme script in index.html changed - recompute and update the ` +
       `script-src hash in frontend/security-headers.conf.`,
   ).toBe(true)
 })

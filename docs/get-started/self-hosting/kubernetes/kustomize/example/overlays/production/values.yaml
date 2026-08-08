@@ -1,11 +1,11 @@
-# StackWeaver Helm Chart — values.yaml
+# StackWeaver Helm Chart - values.yaml
 # ─────────────────────────────────────
 # Override with --set or -f custom-values.yaml at install time.
 #
 # SECRETS:
 #   All secrets must be provided as pre-existing Kubernetes Secrets (via External
 #   Secrets Operator, Sealed Secrets, or kubectl create secret). The chart only
-#   references them by name — it never creates Secret resources containing
+#   references them by name - it never creates Secret resources containing
 #   user-provided credentials.
 #
 #   A small number of operational secrets (e.g., OIDC RSA signing key) can be
@@ -33,12 +33,12 @@ serviceAccount:
 ingress:
   enabled: true
   className: nginx
-  # Ingress controller provider — selects annotation presets.
+  # Ingress controller provider - selects annotation presets.
   # Options: nginx-inc | community-nginx | traefik | none
-  #   nginx-inc:        NGINX Inc ingress controller (nginx.org/* annotations) — default
-  #   community-nginx:  Community NGINX ingress controller (nginx.ingress.kubernetes.io/*) — sunset project
+  #   nginx-inc:        NGINX Inc ingress controller (nginx.org/* annotations) - default
+  #   community-nginx:  Community NGINX ingress controller (nginx.ingress.kubernetes.io/*) - sunset project
   #   traefik:          Traefik ingress controller (minimal annotations; use middleware CRDs for advanced config)
-  #   none:             No controller-specific annotations — supply everything via annotations/appAnnotations/authAnnotations
+  #   none:             No controller-specific annotations - supply everything via annotations/appAnnotations/authAnnotations
   provider: nginx-inc
   annotations: {}
   # Per-ingress annotation overrides (merged on top of provider presets + annotations)
@@ -68,7 +68,7 @@ secrets:
     secretName: ""
     keys:
       password: password
-  # Redis credentials (optional — only needed if Redis auth is enabled)
+  # Redis credentials (optional - only needed if Redis auth is enabled)
   redis:
     secretName: ""
     keys:
@@ -82,7 +82,7 @@ secrets:
     keys:
       accessKey: access-key
       secretKey: secret-key
-  # Encryption key — 32-byte hex string
+  # Encryption key - 32-byte hex string
   # Auto-generates a random key when secretName is empty.
   # Used by API, runner, and ansible-runner for encrypting variables/credentials.
   encryption:
@@ -105,13 +105,13 @@ secrets:
       frontendClientId: frontend-client-id
       webhookIdpSyncKey: webhook-idp-sync-key
       webhookComplementTokenKey: webhook-complement-token-key
-  # OIDC workload identity signing key (optional — for Azure OIDC / inventory sync)
+  # OIDC workload identity signing key (optional - for Azure OIDC / inventory sync)
   # When secretName is empty, the chart auto-generates an RSA key pair.
   oidc:
     secretName: ""
     keys:
       signingKey: signing-key
-  # GitHub App credentials (optional — for GitHub VCS integration)
+  # GitHub App credentials (optional - for GitHub VCS integration)
   githubApp:
     secretName: ""
     keys:
@@ -150,7 +150,7 @@ api:
   githubApp:
     id: ""
     name: ""
-# -- Frontend (Chainguard nginx SPA, port 8080 — non-root) --
+# -- Frontend (Chainguard nginx SPA, port 8080 - non-root) --
 frontend:
   image:
     repository: ghcr.io/vhco-pro/stackweaver-frontend
@@ -234,12 +234,12 @@ ansibleRunner:
   # control sockets) under the read-only root filesystem.
   tmpSizeLimit: 1Gi
   # Per-job scratch (playbook checkout, inventory, staged credentials) runs on an
-  # ephemeral emptyDir isolated from the terraform runner — it holds no run
+  # ephemeral emptyDir isolated from the terraform runner - it holds no run
   # history, so nothing is lost when a pod reschedules. Bound its size here.
   workspacesSizeLimit: 5Gi
   # The Ansible Galaxy cache is a regenerable performance cache. This static-PV
   # example keeps it on an ephemeral emptyDir (enabled: false) so it needs no
-  # extra pre-provisioned volume — collections simply re-download on a cold pod.
+  # extra pre-provisioned volume - collections simply re-download on a cold pod.
   # To keep it warm across restarts, set enabled: true and point existingClaim at
   # a pre-created PVC (and add it to pv-pvc.yaml).
   galaxyCache:
@@ -337,7 +337,7 @@ garage:
       cpu: 500m
       memory: 512Mi
 # -- Zitadel (OIDC Identity Provider) --
-# Zitadel is REQUIRED — the stack cannot function without it.
+# Zitadel is REQUIRED - the stack cannot function without it.
 # Set bundled=true to deploy Zitadel in this chart, or bundled=false to use
 # an external Zitadel instance. In both cases, provide credentials in secrets.zitadel.
 zitadel:
@@ -364,7 +364,7 @@ zitadel:
       pullPolicy: IfNotPresent
     # Email address for the initial Zitadel admin account.
     # Written to the zitadel secret under "admin-username" so operators can discover it
-    # without reading the docs. Only effective on first install — changing after
+    # without reading the docs. Only effective on first install - changing after
     # install has no effect (Zitadel FirstInstance config only runs once).
     adminUsername: "admin@stackweaver.local"
     resources:
@@ -418,13 +418,13 @@ sso:
 # Mount a custom CA certificate bundle into all Go service containers.
 # Required when an upstream service (e.g. an external Zitadel instance) is
 # signed by an internal/corporate CA not present in the default system trust
-# store — which causes "x509: certificate signed by unknown authority" errors.
+# store - which causes "x509: certificate signed by unknown authority" errors.
 #
 # Three source options (evaluated in priority order):
 #
-#   existingSecret    — name of a pre-existing Kubernetes Secret
-#   existingConfigMap — name of a pre-existing Kubernetes ConfigMap
-#   cert              — PEM-encoded certificate(s) pasted inline; the chart
+#   existingSecret    - name of a pre-existing Kubernetes Secret
+#   existingConfigMap - name of a pre-existing Kubernetes ConfigMap
+#   cert              - PEM-encoded certificate(s) pasted inline; the chart
 #                       creates a ConfigMap from this value automatically
 #
 # The cert is mounted at /etc/ssl/certs/custom-ca.crt via subPath (so the

@@ -11,7 +11,7 @@ This directory contains the authoritative documentation for StackWeaver's Ansibl
 
 | Document | Description |
 |----------|-------------|
-| [execution-flows.md](./execution-flows.md) | How execution works: job lifecycle, runner vs agent, syncs, workflows — with diagrams |
+| [execution-flows.md](./execution-flows.md) | How execution works: job lifecycle, runner vs agent, syncs, workflows - with diagrams |
 | [roadmap.md](./roadmap.md) | Future plans, priorities, timeline |
 | [api-reference.md](./api-reference.md) | REST API endpoints documentation |
 | [galaxy-collections.md](./galaxy-collections.md) | Ansible Galaxy collections support |
@@ -31,7 +31,7 @@ This directory contains the authoritative documentation for StackWeaver's Ansibl
 | Inventories (Dynamic) | ✅ Complete |
 | Inventories (Dynamic + OIDC) | ✅ Complete |
 | Inventories (VCS) | ✅ Complete |
-| Inventories (Constructed — combine inventories) | ✅ Complete |
+| Inventories (Constructed - combine inventories) | ✅ Complete |
 | Inventory Sources: overwrite / merge / update-on-launch | ✅ Complete |
 | Inventory Sync History + Live-Tail Output | ✅ Complete |
 | Inventory Sync Schedules | ✅ Complete |

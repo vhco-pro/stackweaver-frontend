@@ -4,7 +4,7 @@
  * Visible inline panel that surfaces a verification code returned by the
  * auth proxy when the backend is running in `return_code` notification mode.
  *
- * Only renders when the caller has a code to show — if `code` is empty the
+ * Only renders when the caller has a code to show - if `code` is empty the
  * component renders nothing at all. In production (email notification mode)
  * the proxy never emits a code, so this component never appears. That's the
  * safety model: there is no "should I hide this?" flag to forget; no code,
@@ -31,7 +31,7 @@ export default function ReturnCodePanel({ code, label = 'Verification code' }: R
       role="status"
       aria-live="polite"
     >
-      <p className="text-xs text-amber-600 dark:text-amber-400 mb-1">Dev mode — {label}</p>
+      <p className="text-xs text-amber-600 dark:text-amber-400 mb-1">Dev mode - {label}</p>
       <p className="text-2xl font-mono font-bold tracking-widest select-all">{code}</p>
     </div>
   );

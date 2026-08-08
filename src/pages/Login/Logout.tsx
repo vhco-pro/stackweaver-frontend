@@ -12,14 +12,14 @@ import LoginLayout from './LoginLayout';
 import { parseSearchSessionsResponse, initialsFromName, resolvePostLogoutRedirect, isJWTShape, type SessionRow } from './logoutSessions.helpers';
 
 /**
- * F20 — Multi-session Logout page.
+ * F20 - Multi-session Logout page.
  *
  * Plan contract (docs/internal/plans/features/custom-login-ui-plan.md):
  *   /login/logout multi-session UI surfaced by the 2026-04-30 parity
  *   audit vs the upstream Zitadel hosted login UI. Upstream lists
  *   active sessions with per-session remove + clear-all before the
  *   OIDC end_session redirect. Stackweaver's previous Logout.tsx was
- *   a single-confirm-then-redirect button — functionally equivalent
+ *   a single-confirm-then-redirect button - functionally equivalent
  *   for the canonical RP-initiated logout case (Zitadel terminates
  *   the server session regardless), but didn't surface the selector
  *   for users with multiple sessions in the cookie (account picker
@@ -32,7 +32,7 @@ import { parseSearchSessionsResponse, initialsFromName, resolvePostLogoutRedirec
  *     retries, and the swap-after-delete invalidation.
  *   - Render a per-session row with avatar initials + display name +
  *     loginName + a per-session "Remove" (X) button.
- *   - "Sign out of all" → primary CTA — clears local tokens AND
+ *   - "Sign out of all" → primary CTA - clears local tokens AND
  *     redirects to Zitadel's OIDC end_session endpoint via the proxy
  *     so the OP-side session is terminated too. (Per-session removes
  *     are local cookie cleanups; only end_session terminates the
@@ -60,7 +60,7 @@ export default function Logout() {
     // Zitadel bounces the browser to
     // `/login/logout?logout_token=…&post_logout_redirect=…`. The
     // `logout_token` is a Zitadel-signed JWT for backchannel
-    // signalling — already revoked server-side, so the SPA's only
+    // signalling - already revoked server-side, so the SPA's only
     // job is to honour the `post_logout_redirect` and finish the
     // round-trip. Without this, sign-out-of-all leaves the user on
     // a dead-end /login/logout page that re-renders the confirm UI
@@ -78,7 +78,7 @@ export default function Logout() {
     // `resolvePostLogoutRedirect` (so no open-redirect / cross-
     // origin exfil), the bypass-without-logout was a UX-confusion
     // vector. Now we require `logout_token` to LOOK like a JWT
-    // (three base64url-encoded segments) — matches what Zitadel
+    // (three base64url-encoded segments) - matches what Zitadel
     // legitimately emits and rejects garbage.
     useMountEffect(() => {
         const logoutToken = searchParams.get('logout_token');
@@ -94,13 +94,13 @@ export default function Logout() {
     const { data: sessions, isLoading, isError } = useQuery<SessionRow[]>({
         queryKey: ['logout-sessions'],
         queryFn: async () => {
-            // Empty body — the auth proxy filters to the cookie's
+            // Empty body - the auth proxy filters to the cookie's
             // sessionIds itself. Round-22 hardened the splice so the
             // response always carries the `details` envelope.
             const raw = await searchSessions({});
             return parseSearchSessionsResponse(raw);
         },
-        // No need to refetch on focus — the user is on a transient
+        // No need to refetch on focus - the user is on a transient
         // page, and a stale list is fine (the worst case is the user
         // sees a session they just removed for an extra render).
         staleTime: 30_000,
@@ -155,7 +155,7 @@ export default function Logout() {
         );
     }
 
-    // Defensive paths — degraded Zitadel or empty cookie. The legacy
+    // Defensive paths - degraded Zitadel or empty cookie. The legacy
     // single-button confirm is correct for both: the user can still
     // proceed to the OIDC end_session redirect.
     if (isError || !sessions || sessions.length === 0) {

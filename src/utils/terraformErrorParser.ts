@@ -124,7 +124,7 @@ function parsePlainTextErrors(logs: string): ParsedError[] {
       continue;
     }
     
-    // Treat Warning: as a boundary — stop collecting detail for current error
+    // Treat Warning: as a boundary - stop collecting detail for current error
     const warningBoundary = line.match(/^Warning:\s/i);
     if (warningBoundary) {
       if (currentError) {

@@ -5,7 +5,7 @@ import { ansiblePlaybooksApi } from '@/api/ansible';
 /**
  * What the user picked in the playbook field: an already-registered playbook,
  * or a repository file that will be registered (find-or-create) when the
- * parent form is saved — so cancelling the form never creates anything.
+ * parent form is saved - so cancelling the form never creates anything.
  */
 export type PlaybookSelection =
   | { kind: 'registered'; playbookId: string }

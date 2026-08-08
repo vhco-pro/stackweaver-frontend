@@ -19,7 +19,7 @@ export function handleCodePasteEvent(
   if (pasted.length !== expectedLength) return false;
   if (!/^\d+$/.test(pasted)) return false;
 
-  // Don't call preventDefault — we want the Input to still receive the
+  // Don't call preventDefault - we want the Input to still receive the
   // paste so its controlled value reflects reality if the submit fails.
   // Submit on next tick so React commits the input state first.
   queueMicrotask(() => { onSubmit(pasted); });

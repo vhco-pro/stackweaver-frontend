@@ -52,7 +52,7 @@ export interface WorkspaceVcsSelection {
 
 /**
  * Whether the VCS connection, repository, or branch differ from the workspace's
- * persisted values — the dialog warns the user these changes can invalidate
+ * persisted values - the dialog warns the user these changes can invalidate
  * existing state. Compares the effective (derived) branch so an auto-defaulted
  * branch after a repo change is detected too.
  */

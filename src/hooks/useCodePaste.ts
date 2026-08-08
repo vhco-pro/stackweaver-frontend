@@ -15,7 +15,7 @@ import { handleCodePasteEvent } from './codePaste';
  *   3. the pasted text is all digits (guards against pastes that happen to
  *      include a newline-terminated secret with other characters).
  *
- * Homelab UX only — pairs with STACKWEAVER_NOTIFICATION_MODE=return_code
+ * Homelab UX only - pairs with STACKWEAVER_NOTIFICATION_MODE=return_code
  * where the dev can copy the OTP straight out of the UI. Production deploys
  * with email-mode delivery should leave the flag off so users retain the
  * chance to correct a mistyped paste before submitting.

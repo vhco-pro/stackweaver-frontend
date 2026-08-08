@@ -51,7 +51,7 @@ try {
             // Inline array: [a, b, c]
             data[field] = inline.replace(/^\[|\]$/g, '').split(',').map(s => s.trim().replace(/^["']|["']$/g, '')).filter(Boolean);
           } else {
-            // Block list — parse indented items after "field:"
+            // Block list - parse indented items after "field:"
             const items = [];
             const itemRe = new RegExp(`^${field}:.*\\n((?:[^\\S\\n]+-[^\\n]+\\n?)*)`, 'm');
             const blockMatch = frontmatter.match(itemRe);
@@ -91,7 +91,7 @@ try {
 // Try to load MiniSearch for search index generation
 let MiniSearch;
 try {
-  // Use the CJS entry point explicitly — the UMD entry (package.json "main") doesn't
+  // Use the CJS entry point explicitly - the UMD entry (package.json "main") doesn't
   // export correctly under Node 24's module resolution.
   MiniSearch = require(path.join(__dirname, '..', 'frontend', 'node_modules', 'minisearch', 'dist', 'cjs', 'index.cjs'));
 } catch (e) {
@@ -248,7 +248,7 @@ function shouldIgnoreDir(dirPath) {
 
 /**
  * Recursively scan docs directory and build file tree.
- * Returns { mdFiles, imageFiles } — image files are copied but not indexed.
+ * Returns { mdFiles, imageFiles } - image files are copied but not indexed.
  *
  * @param {string} dirPath - Directory to scan
  * @param {string} [root] - Root to compute relative paths from (defaults to DOCS_ROOT)
@@ -600,7 +600,7 @@ function processFileInclusions(content, markdownFilePath) {
     if (!resolved.startsWith(DOCS_ROOT)) {
       console.warn(`⚠ Skipping <<< inclusion outside docs/: ${filePath}`);
       result.push('```');
-      result.push(`⚠ Could not include ./${filePath} — path outside docs/`);
+      result.push(`⚠ Could not include ./${filePath} - path outside docs/`);
       result.push('```');
       continue;
     }
@@ -609,9 +609,9 @@ function processFileInclusions(content, markdownFilePath) {
     try {
       fileContent = fs.readFileSync(resolved, 'utf-8');
     } catch {
-      console.warn(`⚠ Could not include ${filePath} — file not found`);
+      console.warn(`⚠ Could not include ${filePath} - file not found`);
       result.push('```');
-      result.push(`⚠ Could not include ./${filePath} — file not found`);
+      result.push(`⚠ Could not include ./${filePath} - file not found`);
       result.push('```');
       continue;
     }
@@ -704,7 +704,7 @@ async function processCodeExplorers(mdFiles, outputDir = PUBLIC_DOCS, docsRoot =
     for (const directive of directives) {
       const rawPath = directive.match;
 
-      // Handle github: prefix — supports both github:org/repo/path@ref and github:org/repo@ref (repo root)
+      // Handle github: prefix - supports both github:org/repo/path@ref and github:org/repo@ref (repo root)
       if (rawPath.startsWith('github:')) {
         // Try with path first, then without path (repo root)
         let ghMatch = /^github:([^/]+)\/([^/]+)\/(.+?)(?:@(.+))?$/.exec(rawPath);
@@ -1024,7 +1024,7 @@ function generateContentsTable(dirPath) {
     rows.push(`| [${subdir}/](./${subdir}/) | ${meta.description || ''} |`);
   }
 
-  // .md files directly in this directory — exclude README.md and _ prefix
+  // .md files directly in this directory - exclude README.md and _ prefix
   const files = entries
     .filter(e => e.isFile() && e.name.endsWith('.md') && e.name.toLowerCase() !== 'readme.md' && !e.name.startsWith('_'))
     .map(e => e.name)
@@ -1070,7 +1070,7 @@ function updateReadme(dirPath) {
   const contentsIdx = lines.findIndex(l => /^## Contents\s*$/.test(l));
   if (contentsIdx === -1) {
     const rel = path.relative(DOCS_ROOT, readmePath);
-    console.log(`   ⚠ No ## Contents in ${rel} — skipping`);
+    console.log(`   ⚠ No ## Contents in ${rel} - skipping`);
     return;
   }
 
@@ -1135,7 +1135,7 @@ function stripMarkdown(content) {
     /^---[\s\S]*?---\s*/m,        // frontmatter
     /^:::.*$/gm,                   // custom directives
     /^```\w*\s*$/gm,               // code fence markers
-    /<[^<>]*>/g,                   // HTML tags (no nested &lt; — prevents bypasses)
+    /<[^<>]*>/g,                   // HTML tags (no nested &lt; - prevents bypasses)
     /!\[[^\]]*\]\([^)]*\)/g,       // images
     /\[([^\]]*)\]\([^)]*\)/g,      // links (replacement handled below)
     /^#{1,6}\s+/gm,                // heading markers
@@ -1244,7 +1244,7 @@ function buildSearchIndex(mdFiles, outputFile) {
 }
 
 /**
- * Build internal docs — scans docs/internal/ with no filtering and outputs to
+ * Build internal docs - scans docs/internal/ with no filtering and outputs to
  * frontend/public/internal-docs/ + internal-docs-index.json.
  */
 async function buildInternalDocs() {
@@ -1381,7 +1381,7 @@ async function main() {
   // Build internal docs
   await buildInternalDocs();
 
-  // Build coverage index (all docs — user-facing + internal)
+  // Build coverage index (all docs - user-facing + internal)
   console.log('🗺  Building docs coverage index...');
   buildCoverageIndex();
 

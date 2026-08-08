@@ -196,7 +196,7 @@ export function CodeExplorer({ path, defaultFile = '' }: CodeExplorerProps) {
   });
 
   // Initialize the file selection once the manifest is available (and re-init when
-  // the explorer path/defaultFile changes) — during render, keyed on the previous
+  // the explorer path/defaultFile changes) - during render, keyed on the previous
   // values, so a later user selection via handleSelectFile is preserved.
   const selInitKey = `${path}|${defaultFile}`;
   const [prevSelInitKey, setPrevSelInitKey] = useState<string | null>(null);
@@ -284,7 +284,7 @@ export function CodeExplorer({ path, defaultFile = '' }: CodeExplorerProps) {
       a.click();
       URL.revokeObjectURL(url);
     } catch {
-      // ignore — download failed silently
+      // ignore - download failed silently
     } finally {
       setDownloading(false);
     }
@@ -421,7 +421,7 @@ export function CodeExplorer({ path, defaultFile = '' }: CodeExplorerProps) {
             />
           </div>
 
-          {/* Code pane — relative+absolute ensures the scroll container is exactly the flex child's box */}
+          {/* Code pane - relative+absolute ensures the scroll container is exactly the flex child's box */}
           <div className="flex-1 relative min-w-0">
             <div className="code-explorer-code absolute inset-0 overflow-auto text-sm">
               {codePaneContent}

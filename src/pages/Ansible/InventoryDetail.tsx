@@ -130,7 +130,7 @@ const AZURE_AUTH_OPTIONS: ReadonlyArray<{
 
 /**
  * Collapsible amber card showing a sync's stderr warnings, rendered at the top
- * of the Syncs tab (warnings are diagnostic — sync failures stay as red
+ * of the Syncs tab (warnings are diagnostic - sync failures stay as red
  * banners in the hosts view because they mean the host list is stale).
  */
 function SyncWarningCard({ title, log }: { title: string; log: string }) {
@@ -379,7 +379,7 @@ export default function InventoryDetail() {
   // Derive server data from query result
   const inventory = queryData?.inventory ?? null;
   const vcsConnections = queryData?.vcsConnections ?? [];
-  // Wrap in useMemo so the array identity is stable across renders — these feed the filter/
+  // Wrap in useMemo so the array identity is stable across renders - these feed the filter/
   // membership useMemos below, which would otherwise recompute every render.
   const hosts = useMemo(() => queryData?.hosts ?? [], [queryData?.hosts]);
   const groups = useMemo(() => queryData?.groups ?? [], [queryData?.groups]);
@@ -391,7 +391,7 @@ export default function InventoryDetail() {
   const hasAzureOIDC = queryData?.hasAzureOIDC ?? false;
   const azureOIDCConfig = queryData?.azureOIDCConfig ?? null;
 
-  // Lookup of every loaded host by ID — used to resolve group membership across all pages, not
+  // Lookup of every loaded host by ID - used to resolve group membership across all pages, not
   // just the hosts that happen to be rendered on the current Hosts-tab page.
   const hostById = useMemo(() => new Map(hosts.map(h => [h.id, h])), [hosts]);
 
@@ -574,7 +574,7 @@ export default function InventoryDetail() {
       void Promise.resolve(navigate(`/app/${orgName}/ansible/inventories`));
     } catch (err: unknown) {
       console.error('Failed to delete inventory:', err);
-      // A 409 means dependent resources block the delete — escalate the dialog
+      // A 409 means dependent resources block the delete - escalate the dialog
       // to offer force delete instead of just surfacing a toast.
       if (!force && (err as Error & { status?: number }).status === 409) {
         setForceDeleteDetail(err instanceof Error ? err.message : 'The inventory is referenced by other resources.');
@@ -794,7 +794,7 @@ export default function InventoryDetail() {
               if (updated.last_sync_status === 'successful') {
                 const hostCount = updated.last_sync_hosts_discovered ?? 0;
                 if (hostCount > 0) {
-                  toast.success(`Inventory synced successfully — ${hostCount} host${hostCount === 1 ? '' : 's'} discovered`);
+                  toast.success(`Inventory synced successfully - ${hostCount} host${hostCount === 1 ? '' : 's'} discovered`);
                 } else {
                   toast.warning('Inventory synced successfully but 0 hosts were discovered. Check the inventory plugin configuration and authentication.');
                 }
@@ -852,7 +852,7 @@ export default function InventoryDetail() {
               if (syncedSource.status === 'successful') {
                 const hostCount = syncedSource.hosts_count ?? 0;
                 if (hostCount > 0) {
-                  toast.success(`Source synced — ${hostCount} host${hostCount === 1 ? '' : 's'} discovered`);
+                  toast.success(`Source synced - ${hostCount} host${hostCount === 1 ? '' : 's'} discovered`);
                 } else {
                   toast.warning('Source synced but 0 hosts discovered. Check configuration and authentication.');
                 }
@@ -1056,7 +1056,7 @@ export default function InventoryDetail() {
     );
   }
 
-  // Stderr warnings from the latest successful sync(s) — surfaced as a small
+  // Stderr warnings from the latest successful sync(s) - surfaced as a small
   // icon next to the sync status in the tab bar, details in the Syncs tab.
   const hasSyncWarnings =
     ((inventory.type === 'vcs' || inventory.type === 'constructed') && inventory.last_sync_status === 'successful' && !!inventory.last_sync_log) ||
@@ -1374,7 +1374,7 @@ export default function InventoryDetail() {
       </div>
 
       {/* Unified bar: view selector (tabs carry the counts) + Type / Last Sync info + the
-          contextual Add action — folds the old stat-card grid and the separate tab row into one. */}
+          contextual Add action - folds the old stat-card grid and the separate tab row into one. */}
       <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-4">
         <Card>
           <CardContent className="flex flex-wrap items-center gap-x-4 gap-y-2 p-2">
@@ -1446,7 +1446,7 @@ export default function InventoryDetail() {
 
             {(inventory.type === 'vcs' || inventory.type === 'constructed') && inventory.last_sync_at && (
               <div className="flex items-center gap-1.5 text-sm text-muted-foreground min-w-0">
-                {/* `syncing` (local, set on click) shows the spinner immediately —
+                {/* `syncing` (local, set on click) shows the spinner immediately -
                     the 2s status poll alone misses syncs that finish faster. */}
                 {syncing || inventory.last_sync_status === 'syncing' ? (
                   <Loader2 className="h-4 w-4 text-blue-500 animate-spin shrink-0" />
@@ -1454,7 +1454,7 @@ export default function InventoryDetail() {
                   hasSyncWarnings ? (
                     <button
                       type="button"
-                      title="Sync completed with warnings — view in the Syncs tab"
+                      title="Sync completed with warnings - view in the Syncs tab"
                       className="cursor-pointer shrink-0"
                       onClick={() => { handleTabChange('syncs'); }}
                     >
@@ -1481,7 +1481,7 @@ export default function InventoryDetail() {
             {inventory.type === 'dynamic' && hasSyncWarnings && (
               <button
                 type="button"
-                title="Last sync completed with warnings — view in the Syncs tab"
+                title="Last sync completed with warnings - view in the Syncs tab"
                 className="cursor-pointer shrink-0"
                 onClick={() => { handleTabChange('syncs'); }}
               >
@@ -1489,7 +1489,7 @@ export default function InventoryDetail() {
               </button>
             )}
 
-            {/* Contextual action — mirrors the active tab (replaces the per-tab Add buttons) */}
+            {/* Contextual action - mirrors the active tab (replaces the per-tab Add buttons) */}
             <div className="ml-auto flex items-center gap-2">
               {activeTab === 'hosts' && inventory.type === 'static' && (
                 <Button size="sm" onClick={() => setAddHostDialogOpen(true)}>
@@ -1513,7 +1513,7 @@ export default function InventoryDetail() {
           </CardContent>
         </Card>
 
-        {/* Search hosts and groups — filters both tabs at once */}
+        {/* Search hosts and groups - filters both tabs at once */}
         {(hosts.length > 0 || groups.length > 0) && (
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -1729,7 +1729,7 @@ export default function InventoryDetail() {
             </Card>
           )}
 
-          {/* Add Host dialog — opened from the toolbar action in the bar above */}
+          {/* Add Host dialog - opened from the toolbar action in the bar above */}
           {inventory.type === 'static' && (
               <Dialog open={addHostDialogOpen} onOpenChange={setAddHostDialogOpen}>
                 <DialogContent>
@@ -1975,7 +1975,7 @@ export default function InventoryDetail() {
 
         {/* Groups Tab */}
         <TabsContent value="groups" className="space-y-4">
-          {/* Add Group dialog — opened from the toolbar action in the bar above */}
+          {/* Add Group dialog - opened from the toolbar action in the bar above */}
           {inventory.type !== 'vcs' && (
               <Dialog open={addGroupDialogOpen} onOpenChange={setAddGroupDialogOpen}>
                 <DialogContent>
@@ -2228,7 +2228,7 @@ export default function InventoryDetail() {
           </TabsContent>
         )}
 
-        {/* Syncs Tab (sync run history — VCS and dynamic inventories) */}
+        {/* Syncs Tab (sync run history - VCS and dynamic inventories) */}
         {inventory.type !== 'static' && (
           <TabsContent value="syncs" className="space-y-4">
             {/* Stderr warnings from the latest successful sync(s) */}
@@ -2245,7 +2245,7 @@ export default function InventoryDetail() {
         {/* Sources Tab (for dynamic inventories) */}
         {inventory.type === 'dynamic' && (
           <TabsContent value="sources" className="space-y-4">
-            {/* Add Source dialog — opened from the toolbar action in the bar above */}
+            {/* Add Source dialog - opened from the toolbar action in the bar above */}
             <Dialog open={addSourceDialogOpen} onOpenChange={setAddSourceDialogOpen}>
               <DialogContent className="max-w-lg">
                   <DialogHeader>
@@ -2311,7 +2311,7 @@ export default function InventoryDetail() {
                           <SelectContent>
                             {AZURE_AUTH_OPTIONS.map((opt) => (
                               <SelectItem key={opt.value} value={opt.value} disabled={opt.needsOIDC && !hasAzureOIDC}>
-                                {opt.label}{opt.needsOIDC && !hasAzureOIDC ? ' — no org OIDC config' : ''}
+                                {opt.label}{opt.needsOIDC && !hasAzureOIDC ? ' - no org OIDC config' : ''}
                               </SelectItem>
                             ))}
                           </SelectContent>
@@ -2826,7 +2826,7 @@ export default function InventoryDetail() {
                   <SelectContent>
                     {AZURE_AUTH_OPTIONS.map((opt) => (
                       <SelectItem key={opt.value} value={opt.value} disabled={opt.needsOIDC && !hasAzureOIDC}>
-                        {opt.label}{opt.needsOIDC && !hasAzureOIDC ? ' — no org OIDC config' : ''}
+                        {opt.label}{opt.needsOIDC && !hasAzureOIDC ? ' - no org OIDC config' : ''}
                       </SelectItem>
                     ))}
                   </SelectContent>

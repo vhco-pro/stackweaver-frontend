@@ -93,7 +93,7 @@ export default function Register() {
 
       // Zitadel's `AddHumanUserRequest.organization` is a `oneof` over
        // `orgId` / `orgDomain`. The auth-proxy `/auth/oidc/authorize` handler
-       // forwards three flavours of this signal — `organizationId` (parsed
+       // forwards three flavours of this signal - `organizationId` (parsed
        // from `urn:zitadel:iam:org:id:<id>` scope), `organizationDomain`
        // (parsed from `urn:zitadel:iam:org:domain:primary:<domain>`), and a
        // raw `organization` (the `?organization=<id>` query param). The raw
