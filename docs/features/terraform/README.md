@@ -33,3 +33,4 @@ Manually cancel runs that are queued, planning, or applying. Describes when canc
 
 - [Platform Features Overview](../README.md): full feature set and platform capabilities
 - [Your First Terraform Workspace](../../get-started/your-first-terraform-workspace.md): end-to-end setup and first run
+- [Managing StackWeaver with Terraform](../../user-guides/terraform-provider.md): manage workspaces, variables, and the rest of the platform as code with the official `vhco-pro/stackweaver` provider
