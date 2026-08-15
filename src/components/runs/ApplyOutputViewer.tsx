@@ -2,6 +2,7 @@
 
 import { useMemo, useState, useEffect, useRef } from 'react';
 import { resolveTerminalResourceStatus, type ResourceStatus } from './applyResourceStatus';
+import { ADDRESS_CHARS, extractResourceId, providerFromAddress } from './applyOutputParsing';
 import {
   Plus,
   Minus,
@@ -169,7 +170,7 @@ function AppliedResourceCard({ resource }: { resource: AppliedResource }) {
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2">
               {/* Provider Icon */}
-              <ProviderIcon providerName={resource.address.split('.')[0]} resourceType={resource.type} className="h-4 w-4" />
+              <ProviderIcon providerName={providerFromAddress(resource.address)} resourceType={resource.type} className="h-4 w-4" />
 
               {/* Action badge - always shown so users can see what action is being attempted */}
               <span className={cn(
@@ -828,7 +829,7 @@ export function ApplyOutputViewer({ logs, showJsonViewer = true, planOutput, isA
         if (!line) continue;
 
         // Match resource creation starting - mark as applying
-        const creatingMatch = line.match(/^([\w._-]+):\s+Creating/);
+        const creatingMatch = line.match(new RegExp(`^(${ADDRESS_CHARS}):\\s+Creating`));
         if (creatingMatch) {
           const address = creatingMatch[1];
           newStatuses.set(address, 'applying');
@@ -836,10 +837,10 @@ export function ApplyOutputViewer({ logs, showJsonViewer = true, planOutput, isA
         }
 
         // Match resource creation complete - mark as completed
-        const createMatch = line.match(/^([\w._-]+):\s+Creation complete after .*?(?:\[id=([^\]]+)\])?/);
+        const createMatch = line.match(new RegExp(`^(${ADDRESS_CHARS}):\\s+Creation complete after`));
         if (createMatch) {
           const address = createMatch[1];
-          const id = createMatch[2] || undefined;
+          const id = extractResourceId(line);
           newStatuses.set(address, 'completed');
 
           // Check if this resource was destroyed first (replace operation)
@@ -862,7 +863,7 @@ export function ApplyOutputViewer({ logs, showJsonViewer = true, planOutput, isA
         }
 
         // Match resource modification starting - mark as applying
-        const modifyingMatch = line.match(/^([\w._-]+):\s+Modifying/);
+        const modifyingMatch = line.match(new RegExp(`^(${ADDRESS_CHARS}):\\s+Modifying`));
         if (modifyingMatch) {
           const address = modifyingMatch[1];
           newStatuses.set(address, 'applying');
@@ -870,10 +871,10 @@ export function ApplyOutputViewer({ logs, showJsonViewer = true, planOutput, isA
         }
 
         // Match resource modification/update complete - mark as completed
-        const modifyMatch = line.match(/^([\w._-]+):\s+Modifications? complete after .*?(?:\[id=([^\]]+)\])?/);
+        const modifyMatch = line.match(new RegExp(`^(${ADDRESS_CHARS}):\\s+Modifications? complete after`));
         if (modifyMatch) {
           const address = modifyMatch[1];
-          const id = modifyMatch[2] || undefined;
+          const id = extractResourceId(line);
           newStatuses.set(address, 'completed');
 
           // Check if this resource was destroyed first (replace operation)
@@ -896,7 +897,7 @@ export function ApplyOutputViewer({ logs, showJsonViewer = true, planOutput, isA
         }
 
         // Match resource destruction starting - mark as applying (same as Creating for apply)
-        const destroyingMatch = line.match(/^([\w._-]+):\s+Destroying/);
+        const destroyingMatch = line.match(new RegExp(`^(${ADDRESS_CHARS}):\\s+Destroying`));
         if (destroyingMatch) {
           const address = destroyingMatch[1];
           newStatuses.set(address, 'applying');
@@ -911,7 +912,7 @@ export function ApplyOutputViewer({ logs, showJsonViewer = true, planOutput, isA
         }
 
         // Match resource destruction complete - mark as completed
-        const destroyMatch = line.match(/^([\w._-]+):\s+Destruction complete after/);
+        const destroyMatch = line.match(new RegExp(`^(${ADDRESS_CHARS}):\\s+Destruction complete after`));
         if (destroyMatch) {
           const address = destroyMatch[1];
           newStatuses.set(address, 'completed');
