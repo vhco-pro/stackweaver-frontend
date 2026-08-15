@@ -29,7 +29,7 @@ Consider self-hosted runners when you:
 - Need Terraform or Ansible to run inside your private network (e.g., to reach internal APIs or databases).
 - Want to control where and how jobs run for compliance or security.
 - Prefer to scale capacity yourself instead of using platform-hosted execution.
-- Use the same patterns as Terraform Cloud / HCP Terraform agent pools and want compatibility with tools like the Terraform provider for TFE.
+- Use the same patterns as Terraform Cloud / HCP Terraform agent pools and want compatibility with tools like the Terraform provider for TFE. Agent pools and agent tokens can also be managed as code with the [StackWeaver Terraform provider](./terraform-provider.md).
 
 ## What You'll Need
 

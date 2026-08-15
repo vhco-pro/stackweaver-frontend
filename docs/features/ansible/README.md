@@ -73,4 +73,5 @@ This directory contains the authoritative documentation for StackWeaver's Ansibl
 
 - [GitHub App Setup](../../user-guides/vcs/github-app.md) - VCS integration
 - [Zitadel Setup](../../user-guides/authentication/zitadel-setup.md) - Authentication
+- [Managing StackWeaver with Terraform](../../user-guides/terraform-provider.md) - Manage playbooks, inventories, credentials, job templates, and schedules as code with the official Terraform provider
 - [Frontend API Reference](../../internal/api-reference/frontend-api-reference.md) - React patterns

@@ -78,7 +78,7 @@ Ansible Galaxy collections are automatically installed when specified in require
 
 The unified dashboard provides an overview of all Terraform and Ansible operations across your organizations, giving you a single place to monitor infrastructure changes and automation workflows. An activity timeline tracks recent actions and changes across the platform, helping you understand what's happening in your infrastructure.
 
-An API-first design means everything is accessible via REST API with JSON:API format, enabling automation, integration with other tools, and programmatic management. Real-time updates use Server-Sent Events (SSE) for live log streaming and status updates, so you always see current information without refreshing.
+An API-first design means everything is accessible via REST API with JSON:API format, enabling automation, integration with other tools, and programmatic management. The platform can also be managed declaratively with the [official Terraform provider](../user-guides/terraform-provider.md), which covers both the Terraform and the Ansible surface. Real-time updates use Server-Sent Events (SSE) for live log streaming and status updates, so you always see current information without refreshing.
 
 ## Related Documentation
 

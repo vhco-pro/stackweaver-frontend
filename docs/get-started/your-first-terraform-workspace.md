@@ -114,6 +114,7 @@ Now that you've run your first workspace:
 - Read about [understanding Terraform run outputs](../user-guides/understanding-terraform-runs.md)
 - Explore [workspace editing](../features/terraform/workspace-editing.md)
 - Set up [VCS path filtering](../features/terraform/vcs-path-filtering.md) for automated runs
+- Create workspaces like this one as code with the [official Terraform provider](../user-guides/terraform-provider.md)
 
 ## Common Questions
 

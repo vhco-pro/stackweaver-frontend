@@ -25,6 +25,10 @@ Practical, step-by-step guides for using StackWeaver. These guides walk you thro
 - **[Managing Workspace Variables](./managing-workspace-variables.md)** - Set up and organize variables across workspaces and projects
 - **[Change Requests](./change-requests.md)** - File action items against workspaces so teams know what needs fixing, and archive them once the work is done
 
+## Platform as Code
+
+- **[Managing StackWeaver with Terraform](./terraform-provider.md)** - Use the official [`vhco-pro/stackweaver`](https://registry.terraform.io/providers/vhco-pro/stackweaver/latest) Terraform provider to manage organizations, workspaces, teams, variables, agent pools, and the Ansible surface as code, and to migrate from `terraform-provider-tfe`
+
 ## Ansible Workflows
 
 > [!NOTE]

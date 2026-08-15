@@ -59,6 +59,7 @@ Welcome to the StackWeaver documentation. This directory contains comprehensive 
     - **[Azure DevOps](./user-guides/vcs/azure-devops.md)**: Connect Azure DevOps repositories
   - **[Understanding Terraform Runs](./user-guides/understanding-terraform-runs.md)**
   - **[Managing Workspace Variables](./user-guides/managing-workspace-variables.md)**
+  - **[Managing StackWeaver with Terraform](./user-guides/terraform-provider.md)**: Manage the platform as code with the official Terraform provider
   - **[Troubleshooting Common Issues](./user-guides/troubleshooting-common-issues.md)**
   - **[Single Sign-On (SSO)](./user-guides/sso/README.md)**: Federated authentication with external identity providers
     - **[Azure AD / Entra ID](./user-guides/sso/azure-ad.md)**
