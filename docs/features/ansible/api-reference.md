@@ -614,16 +614,38 @@ POST /api/v2/ansible/jobs/:id/actions/relaunch
 
 Creates a new job with the same configuration.
 
+**Query Parameters**:
+
+- `page[number]` and `page[size]` paginate the list.
+- `filter[slice-group-id]` returns the sibling slices of one sliced launch instead, in slice order and unpaginated. A template with `job_slice_count` above one fans a launch out into several jobs that each run a slice of the inventory; this is how a client gathers them back into one view. Jobs carry `slice-group-id`, `slice-number` and `slice-count` for the same reason.
+
 ### Get Job Events
 
 ```
 GET /api/v2/ansible/jobs/:id/events
 ```
 
+Returns the job's event stream in counter order. Each event is one line of the runner's `ansible.posix.jsonl` callback output, so a per-host task result carries the module's whole return value under `event-data.hosts.<host>`.
+
 **Query Parameters**:
-- `page[number]` - Page number
-- `filter[host]` - Filter by host name
-- `filter[status]` - Filter by event status (ok, failed, skipped, unreachable)
+
+- `page[number]` and `page[size]` paginate the stream. The page size is capped at 500, and `meta.pagination.total-count` describes the stream *after* filtering, so a client walking pages of a filtered query gets the filtered count.
+- `after` returns only the events newer than the given counter, capped at 2,000 per call, for live polling. A response to `after` carries no pagination meta; a burst larger than the cap is picked up by the next poll.
+- `filter[host]` returns only the events belonging to one inventory host.
+- `filter[status]` returns only per-host results with that outcome, one of `ok`, `changed`, `failed`, `unreachable`, or `skipped`. Any other value is rejected with 400.
+- `filter[task]` returns only the events of one task, matched on the exact task name.
+- `filter[counter]` returns the single event with that counter, which is how a client holding summary events fetches one of them in full.
+- `fields[events]=summary` returns the reduced projection described below. Any other value is rejected with 400.
+
+Every parameter composes: `filter[host]=web07&filter[status]=unreachable` answers "what did this host fail on", and filters apply to `after` and to pagination alike.
+
+Events written before the ingest was fixed to populate the `host`, `event`, `changed`, `failed` and `skipped` columns are still matched correctly - the filters fall back to reading `event-data` for those rows, at the cost of an index-less scan over them.
+
+**Summary projection**
+
+`fields[events]=summary` is for very large runs, where the full stream is mostly module output the caller does not need. A summary event keeps every attribute except `stdout` and `stderr`, adds `"summary": true`, and reduces `event-data` to the callback's `_event` and `_timestamp`, the `task` and `play` identity (id, name, path, duration), the recap `stats` when present, and per-host `action`, `changed`, `failed`, `skipped`, `unreachable`, `rc`, `attempts`, `skip_reason`, and a `msg` truncated to 200 characters. Gathered facts, module arguments, loop results, and diffs are omitted; fetch the event with `filter[counter]` to get them.
+
+The web UI switches to this projection automatically above 5,000 events and fetches full events one at a time as you open them.
 
 ### Get Job Output
 
@@ -631,7 +653,7 @@ GET /api/v2/ansible/jobs/:id/events
 GET /api/v2/ansible/jobs/:id/output
 ```
 
-Returns raw stdout/stderr output.
+Returns the concatenated raw stdout of the job's events. The response covers the job's first 10,000 events; read the events endpoint, which paginates, for a run longer than that.
 
 ---
 

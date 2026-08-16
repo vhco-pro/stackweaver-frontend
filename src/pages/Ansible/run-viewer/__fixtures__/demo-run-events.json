@@ -1,0 +1,6003 @@
+[
+ {
+  "counter": 1,
+  "event": "runner_on_ok",
+  "event_data": {
+   "play": {
+    "name": "Rolling deploy of web application",
+    "id": "bdd640fb-0667-4ad1-9c80-317fa3b1799d",
+    "path": "/runner/project/deploy.yml:2",
+    "duration": {
+     "start": "2026-08-15T09:41:12.400000Z"
+    }
+   },
+   "tasks": [],
+   "_event": "v2_playbook_on_play_start",
+   "_timestamp": "2026-08-15T09:41:12.400000Z"
+  },
+  "task": "",
+  "play": "Rolling deploy of web application",
+  "created_at": "2026-08-15T09:41:12.400000Z"
+ },
+ {
+  "counter": 2,
+  "event": "runner_on_ok",
+  "event_data": {
+   "task": {
+    "name": "Gathering Facts",
+    "id": "23b8c1e9-3924-46de-beb1-3b9046685257",
+    "path": "/runner/project/deploy.yml:2",
+    "duration": {
+     "start": "2026-08-15T09:41:12.600000Z"
+    }
+   },
+   "hosts": {},
+   "_event": "v2_playbook_on_task_start",
+   "_timestamp": "2026-08-15T09:41:12.600000Z"
+  },
+  "task": "Gathering Facts",
+  "play": "",
+  "created_at": "2026-08-15T09:41:12.600000Z"
+ },
+ {
+  "counter": 3,
+  "event": "runner_on_ok",
+  "event_data": {
+   "task": {
+    "name": "Gathering Facts",
+    "id": "23b8c1e9-3924-46de-beb1-3b9046685257",
+    "path": "/runner/project/deploy.yml:2",
+    "duration": {
+     "start": "2026-08-15T09:41:12.600000Z",
+     "end": "2026-08-15T09:41:12.981412Z"
+    }
+   },
+   "hosts": {
+    "web01": {
+     "action": "gather_facts",
+     "changed": false,
+     "ansible_facts": {
+      "ansible_hostname": "web01",
+      "ansible_fqdn": "web01.prod.acme.internal",
+      "ansible_distribution": "Ubuntu",
+      "ansible_distribution_version": "24.04",
+      "ansible_os_family": "Debian",
+      "ansible_kernel": "6.8.0-45-generic",
+      "ansible_architecture": "x86_64",
+      "ansible_processor_vcpus": 4,
+      "ansible_memtotal_mb": 7937,
+      "ansible_default_ipv4": {
+       "address": "10.20.0.10",
+       "interface": "ens5"
+      },
+      "ansible_mounts": [
+       {
+        "mount": "/",
+        "size_total": 84354275328,
+        "size_available": 51923865600
+       }
+      ],
+      "ansible_uptime_seconds": 1866240,
+      "ansible_python_version": "3.12.3"
+     }
+    }
+   },
+   "_event": "v2_runner_on_ok",
+   "_timestamp": "2026-08-15T09:41:12.981412Z"
+  },
+  "task": "Gathering Facts",
+  "play": "",
+  "created_at": "2026-08-15T09:41:12.981412Z"
+ },
+ {
+  "counter": 4,
+  "event": "runner_on_ok",
+  "event_data": {
+   "task": {
+    "name": "Gathering Facts",
+    "id": "23b8c1e9-3924-46de-beb1-3b9046685257",
+    "path": "/runner/project/deploy.yml:2",
+    "duration": {
+     "start": "2026-08-15T09:41:12.600000Z",
+     "end": "2026-08-15T09:41:13.335927Z"
+    }
+   },
+   "hosts": {
+    "web02": {
+     "action": "gather_facts",
+     "changed": false,
+     "ansible_facts": {
+      "ansible_hostname": "web02",
+      "ansible_fqdn": "web02.prod.acme.internal",
+      "ansible_distribution": "Ubuntu",
+      "ansible_distribution_version": "24.04",
+      "ansible_os_family": "Debian",
+      "ansible_kernel": "6.8.0-45-generic",
+      "ansible_architecture": "x86_64",
+      "ansible_processor_vcpus": 4,
+      "ansible_memtotal_mb": 7937,
+      "ansible_default_ipv4": {
+       "address": "10.20.0.11",
+       "interface": "ens5"
+      },
+      "ansible_mounts": [
+       {
+        "mount": "/",
+        "size_total": 84354275328,
+        "size_available": 51023865600
+       }
+      ],
+      "ansible_uptime_seconds": 1869840,
+      "ansible_python_version": "3.12.3"
+     }
+    }
+   },
+   "_event": "v2_runner_on_ok",
+   "_timestamp": "2026-08-15T09:41:13.335927Z"
+  },
+  "task": "Gathering Facts",
+  "play": "",
+  "created_at": "2026-08-15T09:41:13.335927Z"
+ },
+ {
+  "counter": 5,
+  "event": "runner_on_ok",
+  "event_data": {
+   "task": {
+    "name": "Gathering Facts",
+    "id": "23b8c1e9-3924-46de-beb1-3b9046685257",
+    "path": "/runner/project/deploy.yml:2",
+    "duration": {
+     "start": "2026-08-15T09:41:12.600000Z",
+     "end": "2026-08-15T09:41:13.787408Z"
+    }
+   },
+   "hosts": {
+    "web03": {
+     "action": "gather_facts",
+     "changed": false,
+     "ansible_facts": {
+      "ansible_hostname": "web03",
+      "ansible_fqdn": "web03.prod.acme.internal",
+      "ansible_distribution": "Ubuntu",
+      "ansible_distribution_version": "24.04",
+      "ansible_os_family": "Debian",
+      "ansible_kernel": "6.8.0-45-generic",
+      "ansible_architecture": "x86_64",
+      "ansible_processor_vcpus": 4,
+      "ansible_memtotal_mb": 7937,
+      "ansible_default_ipv4": {
+       "address": "10.20.0.12",
+       "interface": "ens5"
+      },
+      "ansible_mounts": [
+       {
+        "mount": "/",
+        "size_total": 84354275328,
+        "size_available": 50123865600
+       }
+      ],
+      "ansible_uptime_seconds": 1873440,
+      "ansible_python_version": "3.12.3"
+     }
+    }
+   },
+   "_event": "v2_runner_on_ok",
+   "_timestamp": "2026-08-15T09:41:13.787408Z"
+  },
+  "task": "Gathering Facts",
+  "play": "",
+  "created_at": "2026-08-15T09:41:13.787408Z"
+ },
+ {
+  "counter": 6,
+  "event": "runner_on_ok",
+  "event_data": {
+   "task": {
+    "name": "Gathering Facts",
+    "id": "23b8c1e9-3924-46de-beb1-3b9046685257",
+    "path": "/runner/project/deploy.yml:2",
+    "duration": {
+     "start": "2026-08-15T09:41:12.600000Z",
+     "end": "2026-08-15T09:41:13.876530Z"
+    }
+   },
+   "hosts": {
+    "web04": {
+     "action": "gather_facts",
+     "changed": false,
+     "ansible_facts": {
+      "ansible_hostname": "web04",
+      "ansible_fqdn": "web04.prod.acme.internal",
+      "ansible_distribution": "Ubuntu",
+      "ansible_distribution_version": "24.04",
+      "ansible_os_family": "Debian",
+      "ansible_kernel": "6.8.0-45-generic",
+      "ansible_architecture": "x86_64",
+      "ansible_processor_vcpus": 4,
+      "ansible_memtotal_mb": 7937,
+      "ansible_default_ipv4": {
+       "address": "10.20.0.13",
+       "interface": "ens5"
+      },
+      "ansible_mounts": [
+       {
+        "mount": "/",
+        "size_total": 84354275328,
+        "size_available": 49223865600
+       }
+      ],
+      "ansible_uptime_seconds": 1877040,
+      "ansible_python_version": "3.12.3"
+     }
+    }
+   },
+   "_event": "v2_runner_on_ok",
+   "_timestamp": "2026-08-15T09:41:13.876530Z"
+  },
+  "task": "Gathering Facts",
+  "play": "",
+  "created_at": "2026-08-15T09:41:13.876530Z"
+ },
+ {
+  "counter": 7,
+  "event": "runner_on_ok",
+  "event_data": {
+   "task": {
+    "name": "Gathering Facts",
+    "id": "23b8c1e9-3924-46de-beb1-3b9046685257",
+    "path": "/runner/project/deploy.yml:2",
+    "duration": {
+     "start": "2026-08-15T09:41:12.600000Z",
+     "end": "2026-08-15T09:41:14.116395Z"
+    }
+   },
+   "hosts": {
+    "web05": {
+     "action": "gather_facts",
+     "changed": false,
+     "ansible_facts": {
+      "ansible_hostname": "web05",
+      "ansible_fqdn": "web05.prod.acme.internal",
+      "ansible_distribution": "Ubuntu",
+      "ansible_distribution_version": "24.04",
+      "ansible_os_family": "Debian",
+      "ansible_kernel": "6.8.0-45-generic",
+      "ansible_architecture": "x86_64",
+      "ansible_processor_vcpus": 4,
+      "ansible_memtotal_mb": 7937,
+      "ansible_default_ipv4": {
+       "address": "10.20.0.14",
+       "interface": "ens5"
+      },
+      "ansible_mounts": [
+       {
+        "mount": "/",
+        "size_total": 84354275328,
+        "size_available": 48323865600
+       }
+      ],
+      "ansible_uptime_seconds": 1880640,
+      "ansible_python_version": "3.12.3"
+     }
+    }
+   },
+   "_event": "v2_runner_on_ok",
+   "_timestamp": "2026-08-15T09:41:14.116395Z"
+  },
+  "task": "Gathering Facts",
+  "play": "",
+  "created_at": "2026-08-15T09:41:14.116395Z"
+ },
+ {
+  "counter": 8,
+  "event": "runner_on_ok",
+  "event_data": {
+   "task": {
+    "name": "Gathering Facts",
+    "id": "23b8c1e9-3924-46de-beb1-3b9046685257",
+    "path": "/runner/project/deploy.yml:2",
+    "duration": {
+     "start": "2026-08-15T09:41:12.600000Z",
+     "end": "2026-08-15T09:41:14.179804Z"
+    }
+   },
+   "hosts": {
+    "web06": {
+     "action": "gather_facts",
+     "changed": false,
+     "ansible_facts": {
+      "ansible_hostname": "web06",
+      "ansible_fqdn": "web06.prod.acme.internal",
+      "ansible_distribution": "Ubuntu",
+      "ansible_distribution_version": "24.04",
+      "ansible_os_family": "Debian",
+      "ansible_kernel": "6.8.0-45-generic",
+      "ansible_architecture": "x86_64",
+      "ansible_processor_vcpus": 4,
+      "ansible_memtotal_mb": 7937,
+      "ansible_default_ipv4": {
+       "address": "10.20.0.15",
+       "interface": "ens5"
+      },
+      "ansible_mounts": [
+       {
+        "mount": "/",
+        "size_total": 84354275328,
+        "size_available": 47423865600
+       }
+      ],
+      "ansible_uptime_seconds": 1884240,
+      "ansible_python_version": "3.12.3"
+     }
+    }
+   },
+   "_event": "v2_runner_on_ok",
+   "_timestamp": "2026-08-15T09:41:14.179804Z"
+  },
+  "task": "Gathering Facts",
+  "play": "",
+  "created_at": "2026-08-15T09:41:14.179804Z"
+ },
+ {
+  "counter": 9,
+  "event": "runner_on_ok",
+  "event_data": {
+   "task": {
+    "name": "Gathering Facts",
+    "id": "23b8c1e9-3924-46de-beb1-3b9046685257",
+    "path": "/runner/project/deploy.yml:2",
+    "duration": {
+     "start": "2026-08-15T09:41:12.600000Z",
+     "end": "2026-08-15T09:41:14.328191Z"
+    }
+   },
+   "hosts": {
+    "web07": {
+     "action": "gather_facts",
+     "changed": false,
+     "ansible_facts": {
+      "ansible_hostname": "web07",
+      "ansible_fqdn": "web07.prod.acme.internal",
+      "ansible_distribution": "Ubuntu",
+      "ansible_distribution_version": "24.04",
+      "ansible_os_family": "Debian",
+      "ansible_kernel": "6.8.0-45-generic",
+      "ansible_architecture": "x86_64",
+      "ansible_processor_vcpus": 4,
+      "ansible_memtotal_mb": 7937,
+      "ansible_default_ipv4": {
+       "address": "10.20.0.16",
+       "interface": "ens5"
+      },
+      "ansible_mounts": [
+       {
+        "mount": "/",
+        "size_total": 84354275328,
+        "size_available": 46523865600
+       }
+      ],
+      "ansible_uptime_seconds": 1887840,
+      "ansible_python_version": "3.12.3"
+     }
+    }
+   },
+   "_event": "v2_runner_on_ok",
+   "_timestamp": "2026-08-15T09:41:14.328191Z"
+  },
+  "task": "Gathering Facts",
+  "play": "",
+  "created_at": "2026-08-15T09:41:14.328191Z"
+ },
+ {
+  "counter": 10,
+  "event": "runner_on_ok",
+  "event_data": {
+   "task": {
+    "name": "Gathering Facts",
+    "id": "23b8c1e9-3924-46de-beb1-3b9046685257",
+    "path": "/runner/project/deploy.yml:2",
+    "duration": {
+     "start": "2026-08-15T09:41:12.600000Z",
+     "end": "2026-08-15T09:41:14.605601Z"
+    }
+   },
+   "hosts": {
+    "web08": {
+     "action": "gather_facts",
+     "changed": false,
+     "ansible_facts": {
+      "ansible_hostname": "web08",
+      "ansible_fqdn": "web08.prod.acme.internal",
+      "ansible_distribution": "Ubuntu",
+      "ansible_distribution_version": "24.04",
+      "ansible_os_family": "Debian",
+      "ansible_kernel": "6.8.0-45-generic",
+      "ansible_architecture": "x86_64",
+      "ansible_processor_vcpus": 4,
+      "ansible_memtotal_mb": 7937,
+      "ansible_default_ipv4": {
+       "address": "10.20.0.17",
+       "interface": "ens5"
+      },
+      "ansible_mounts": [
+       {
+        "mount": "/",
+        "size_total": 84354275328,
+        "size_available": 45623865600
+       }
+      ],
+      "ansible_uptime_seconds": 1891440,
+      "ansible_python_version": "3.12.3"
+     }
+    }
+   },
+   "_event": "v2_runner_on_ok",
+   "_timestamp": "2026-08-15T09:41:14.605601Z"
+  },
+  "task": "Gathering Facts",
+  "play": "",
+  "created_at": "2026-08-15T09:41:14.605601Z"
+ },
+ {
+  "counter": 11,
+  "event": "runner_on_ok",
+  "event_data": {
+   "task": {
+    "name": "Gathering Facts",
+    "id": "23b8c1e9-3924-46de-beb1-3b9046685257",
+    "path": "/runner/project/deploy.yml:2",
+    "duration": {
+     "start": "2026-08-15T09:41:12.600000Z",
+     "end": "2026-08-15T09:41:14.667542Z"
+    }
+   },
+   "hosts": {
+    "api01": {
+     "action": "gather_facts",
+     "changed": false,
+     "ansible_facts": {
+      "ansible_hostname": "api01",
+      "ansible_fqdn": "api01.prod.acme.internal",
+      "ansible_distribution": "Ubuntu",
+      "ansible_distribution_version": "24.04",
+      "ansible_os_family": "Debian",
+      "ansible_kernel": "6.8.0-45-generic",
+      "ansible_architecture": "x86_64",
+      "ansible_processor_vcpus": 4,
+      "ansible_memtotal_mb": 7937,
+      "ansible_default_ipv4": {
+       "address": "10.20.1.18",
+       "interface": "ens5"
+      },
+      "ansible_mounts": [
+       {
+        "mount": "/",
+        "size_total": 84354275328,
+        "size_available": 44723865600
+       }
+      ],
+      "ansible_uptime_seconds": 1895040,
+      "ansible_python_version": "3.12.3"
+     }
+    }
+   },
+   "_event": "v2_runner_on_ok",
+   "_timestamp": "2026-08-15T09:41:14.667542Z"
+  },
+  "task": "Gathering Facts",
+  "play": "",
+  "created_at": "2026-08-15T09:41:14.667542Z"
+ },
+ {
+  "counter": 12,
+  "event": "runner_on_ok",
+  "event_data": {
+   "task": {
+    "name": "Gathering Facts",
+    "id": "23b8c1e9-3924-46de-beb1-3b9046685257",
+    "path": "/runner/project/deploy.yml:2",
+    "duration": {
+     "start": "2026-08-15T09:41:12.600000Z",
+     "end": "2026-08-15T09:41:14.807019Z"
+    }
+   },
+   "hosts": {
+    "api02": {
+     "action": "gather_facts",
+     "changed": false,
+     "ansible_facts": {
+      "ansible_hostname": "api02",
+      "ansible_fqdn": "api02.prod.acme.internal",
+      "ansible_distribution": "Ubuntu",
+      "ansible_distribution_version": "24.04",
+      "ansible_os_family": "Debian",
+      "ansible_kernel": "6.8.0-45-generic",
+      "ansible_architecture": "x86_64",
+      "ansible_processor_vcpus": 4,
+      "ansible_memtotal_mb": 7937,
+      "ansible_default_ipv4": {
+       "address": "10.20.1.19",
+       "interface": "ens5"
+      },
+      "ansible_mounts": [
+       {
+        "mount": "/",
+        "size_total": 84354275328,
+        "size_available": 43823865600
+       }
+      ],
+      "ansible_uptime_seconds": 1898640,
+      "ansible_python_version": "3.12.3"
+     }
+    }
+   },
+   "_event": "v2_runner_on_ok",
+   "_timestamp": "2026-08-15T09:41:14.807019Z"
+  },
+  "task": "Gathering Facts",
+  "play": "",
+  "created_at": "2026-08-15T09:41:14.807019Z"
+ },
+ {
+  "counter": 13,
+  "event": "runner_on_ok",
+  "event_data": {
+   "task": {
+    "name": "Gathering Facts",
+    "id": "23b8c1e9-3924-46de-beb1-3b9046685257",
+    "path": "/runner/project/deploy.yml:2",
+    "duration": {
+     "start": "2026-08-15T09:41:12.600000Z",
+     "end": "2026-08-15T09:41:15.149467Z"
+    }
+   },
+   "hosts": {
+    "api03": {
+     "action": "gather_facts",
+     "changed": false,
+     "ansible_facts": {
+      "ansible_hostname": "api03",
+      "ansible_fqdn": "api03.prod.acme.internal",
+      "ansible_distribution": "Ubuntu",
+      "ansible_distribution_version": "24.04",
+      "ansible_os_family": "Debian",
+      "ansible_kernel": "6.8.0-45-generic",
+      "ansible_architecture": "x86_64",
+      "ansible_processor_vcpus": 4,
+      "ansible_memtotal_mb": 7937,
+      "ansible_default_ipv4": {
+       "address": "10.20.1.20",
+       "interface": "ens5"
+      },
+      "ansible_mounts": [
+       {
+        "mount": "/",
+        "size_total": 84354275328,
+        "size_available": 42923865600
+       }
+      ],
+      "ansible_uptime_seconds": 1902240,
+      "ansible_python_version": "3.12.3"
+     }
+    }
+   },
+   "_event": "v2_runner_on_ok",
+   "_timestamp": "2026-08-15T09:41:15.149467Z"
+  },
+  "task": "Gathering Facts",
+  "play": "",
+  "created_at": "2026-08-15T09:41:15.149467Z"
+ },
+ {
+  "counter": 14,
+  "event": "runner_on_ok",
+  "event_data": {
+   "task": {
+    "name": "Gathering Facts",
+    "id": "23b8c1e9-3924-46de-beb1-3b9046685257",
+    "path": "/runner/project/deploy.yml:2",
+    "duration": {
+     "start": "2026-08-15T09:41:12.600000Z",
+     "end": "2026-08-15T09:41:15.444691Z"
+    }
+   },
+   "hosts": {
+    "api04": {
+     "action": "gather_facts",
+     "changed": false,
+     "ansible_facts": {
+      "ansible_hostname": "api04",
+      "ansible_fqdn": "api04.prod.acme.internal",
+      "ansible_distribution": "Ubuntu",
+      "ansible_distribution_version": "24.04",
+      "ansible_os_family": "Debian",
+      "ansible_kernel": "6.8.0-45-generic",
+      "ansible_architecture": "x86_64",
+      "ansible_processor_vcpus": 4,
+      "ansible_memtotal_mb": 7937,
+      "ansible_default_ipv4": {
+       "address": "10.20.1.21",
+       "interface": "ens5"
+      },
+      "ansible_mounts": [
+       {
+        "mount": "/",
+        "size_total": 84354275328,
+        "size_available": 42023865600
+       }
+      ],
+      "ansible_uptime_seconds": 1905840,
+      "ansible_python_version": "3.12.3"
+     }
+    }
+   },
+   "_event": "v2_runner_on_ok",
+   "_timestamp": "2026-08-15T09:41:15.444691Z"
+  },
+  "task": "Gathering Facts",
+  "play": "",
+  "created_at": "2026-08-15T09:41:15.444691Z"
+ },
+ {
+  "counter": 15,
+  "event": "runner_on_ok",
+  "event_data": {
+   "task": {
+    "name": "Gathering Facts",
+    "id": "23b8c1e9-3924-46de-beb1-3b9046685257",
+    "path": "/runner/project/deploy.yml:2",
+    "duration": {
+     "start": "2026-08-15T09:41:12.600000Z",
+     "end": "2026-08-15T09:41:15.593889Z"
+    }
+   },
+   "hosts": {
+    "api05": {
+     "action": "gather_facts",
+     "changed": false,
+     "ansible_facts": {
+      "ansible_hostname": "api05",
+      "ansible_fqdn": "api05.prod.acme.internal",
+      "ansible_distribution": "Ubuntu",
+      "ansible_distribution_version": "24.04",
+      "ansible_os_family": "Debian",
+      "ansible_kernel": "6.8.0-45-generic",
+      "ansible_architecture": "x86_64",
+      "ansible_processor_vcpus": 4,
+      "ansible_memtotal_mb": 7937,
+      "ansible_default_ipv4": {
+       "address": "10.20.1.22",
+       "interface": "ens5"
+      },
+      "ansible_mounts": [
+       {
+        "mount": "/",
+        "size_total": 84354275328,
+        "size_available": 41123865600
+       }
+      ],
+      "ansible_uptime_seconds": 1909440,
+      "ansible_python_version": "3.12.3"
+     }
+    }
+   },
+   "_event": "v2_runner_on_ok",
+   "_timestamp": "2026-08-15T09:41:15.593889Z"
+  },
+  "task": "Gathering Facts",
+  "play": "",
+  "created_at": "2026-08-15T09:41:15.593889Z"
+ },
+ {
+  "counter": 16,
+  "event": "runner_on_ok",
+  "event_data": {
+   "task": {
+    "name": "Gathering Facts",
+    "id": "23b8c1e9-3924-46de-beb1-3b9046685257",
+    "path": "/runner/project/deploy.yml:2",
+    "duration": {
+     "start": "2026-08-15T09:41:12.600000Z",
+     "end": "2026-08-15T09:41:15.909059Z"
+    }
+   },
+   "hosts": {
+    "api06": {
+     "action": "gather_facts",
+     "changed": false,
+     "ansible_facts": {
+      "ansible_hostname": "api06",
+      "ansible_fqdn": "api06.prod.acme.internal",
+      "ansible_distribution": "Ubuntu",
+      "ansible_distribution_version": "24.04",
+      "ansible_os_family": "Debian",
+      "ansible_kernel": "6.8.0-45-generic",
+      "ansible_architecture": "x86_64",
+      "ansible_processor_vcpus": 4,
+      "ansible_memtotal_mb": 7937,
+      "ansible_default_ipv4": {
+       "address": "10.20.1.23",
+       "interface": "ens5"
+      },
+      "ansible_mounts": [
+       {
+        "mount": "/",
+        "size_total": 84354275328,
+        "size_available": 40223865600
+       }
+      ],
+      "ansible_uptime_seconds": 1913040,
+      "ansible_python_version": "3.12.3"
+     }
+    }
+   },
+   "_event": "v2_runner_on_ok",
+   "_timestamp": "2026-08-15T09:41:15.909059Z"
+  },
+  "task": "Gathering Facts",
+  "play": "",
+  "created_at": "2026-08-15T09:41:15.909059Z"
+ },
+ {
+  "counter": 17,
+  "event": "runner_on_ok",
+  "event_data": {
+   "task": {
+    "name": "Gathering Facts",
+    "id": "23b8c1e9-3924-46de-beb1-3b9046685257",
+    "path": "/runner/project/deploy.yml:2",
+    "duration": {
+     "start": "2026-08-15T09:41:12.600000Z",
+     "end": "2026-08-15T09:41:16.323303Z"
+    }
+   },
+   "hosts": {
+    "db01": {
+     "action": "gather_facts",
+     "changed": false,
+     "ansible_facts": {
+      "ansible_hostname": "db01",
+      "ansible_fqdn": "db01.prod.acme.internal",
+      "ansible_distribution": "Ubuntu",
+      "ansible_distribution_version": "24.04",
+      "ansible_os_family": "Debian",
+      "ansible_kernel": "6.8.0-45-generic",
+      "ansible_architecture": "x86_64",
+      "ansible_processor_vcpus": 8,
+      "ansible_memtotal_mb": 15874,
+      "ansible_default_ipv4": {
+       "address": "10.20.1.24",
+       "interface": "ens5"
+      },
+      "ansible_mounts": [
+       {
+        "mount": "/",
+        "size_total": 84354275328,
+        "size_available": 39323865600
+       }
+      ],
+      "ansible_uptime_seconds": 1916640,
+      "ansible_python_version": "3.12.3"
+     }
+    }
+   },
+   "_event": "v2_runner_on_ok",
+   "_timestamp": "2026-08-15T09:41:16.323303Z"
+  },
+  "task": "Gathering Facts",
+  "play": "",
+  "created_at": "2026-08-15T09:41:16.323303Z"
+ },
+ {
+  "counter": 18,
+  "event": "runner_on_ok",
+  "event_data": {
+   "task": {
+    "name": "Gathering Facts",
+    "id": "23b8c1e9-3924-46de-beb1-3b9046685257",
+    "path": "/runner/project/deploy.yml:2",
+    "duration": {
+     "start": "2026-08-15T09:41:12.600000Z",
+     "end": "2026-08-15T09:41:16.376227Z"
+    }
+   },
+   "hosts": {
+    "db02": {
+     "action": "gather_facts",
+     "changed": false,
+     "ansible_facts": {
+      "ansible_hostname": "db02",
+      "ansible_fqdn": "db02.prod.acme.internal",
+      "ansible_distribution": "Ubuntu",
+      "ansible_distribution_version": "24.04",
+      "ansible_os_family": "Debian",
+      "ansible_kernel": "6.8.0-45-generic",
+      "ansible_architecture": "x86_64",
+      "ansible_processor_vcpus": 8,
+      "ansible_memtotal_mb": 15874,
+      "ansible_default_ipv4": {
+       "address": "10.20.1.25",
+       "interface": "ens5"
+      },
+      "ansible_mounts": [
+       {
+        "mount": "/",
+        "size_total": 84354275328,
+        "size_available": 38423865600
+       }
+      ],
+      "ansible_uptime_seconds": 1920240,
+      "ansible_python_version": "3.12.3"
+     }
+    }
+   },
+   "_event": "v2_runner_on_ok",
+   "_timestamp": "2026-08-15T09:41:16.376227Z"
+  },
+  "task": "Gathering Facts",
+  "play": "",
+  "created_at": "2026-08-15T09:41:16.376227Z"
+ },
+ {
+  "counter": 19,
+  "event": "runner_on_ok",
+  "event_data": {
+   "task": {
+    "name": "Gathering Facts",
+    "id": "23b8c1e9-3924-46de-beb1-3b9046685257",
+    "path": "/runner/project/deploy.yml:2",
+    "duration": {
+     "start": "2026-08-15T09:41:12.600000Z",
+     "end": "2026-08-15T09:41:16.788846Z"
+    }
+   },
+   "hosts": {
+    "db03": {
+     "action": "gather_facts",
+     "changed": false,
+     "ansible_facts": {
+      "ansible_hostname": "db03",
+      "ansible_fqdn": "db03.prod.acme.internal",
+      "ansible_distribution": "Ubuntu",
+      "ansible_distribution_version": "24.04",
+      "ansible_os_family": "Debian",
+      "ansible_kernel": "6.8.0-45-generic",
+      "ansible_architecture": "x86_64",
+      "ansible_processor_vcpus": 8,
+      "ansible_memtotal_mb": 15874,
+      "ansible_default_ipv4": {
+       "address": "10.20.2.26",
+       "interface": "ens5"
+      },
+      "ansible_mounts": [
+       {
+        "mount": "/",
+        "size_total": 84354275328,
+        "size_available": 37523865600
+       }
+      ],
+      "ansible_uptime_seconds": 1923840,
+      "ansible_python_version": "3.12.3"
+     }
+    }
+   },
+   "_event": "v2_runner_on_ok",
+   "_timestamp": "2026-08-15T09:41:16.788846Z"
+  },
+  "task": "Gathering Facts",
+  "play": "",
+  "created_at": "2026-08-15T09:41:16.788846Z"
+ },
+ {
+  "counter": 20,
+  "event": "runner_on_ok",
+  "event_data": {
+   "task": {
+    "name": "Gathering Facts",
+    "id": "23b8c1e9-3924-46de-beb1-3b9046685257",
+    "path": "/runner/project/deploy.yml:2",
+    "duration": {
+     "start": "2026-08-15T09:41:12.600000Z",
+     "end": "2026-08-15T09:41:17.153009Z"
+    }
+   },
+   "hosts": {
+    "cache01": {
+     "action": "gather_facts",
+     "changed": false,
+     "ansible_facts": {
+      "ansible_hostname": "cache01",
+      "ansible_fqdn": "cache01.prod.acme.internal",
+      "ansible_distribution": "Ubuntu",
+      "ansible_distribution_version": "24.04",
+      "ansible_os_family": "Debian",
+      "ansible_kernel": "6.8.0-45-generic",
+      "ansible_architecture": "x86_64",
+      "ansible_processor_vcpus": 8,
+      "ansible_memtotal_mb": 15874,
+      "ansible_default_ipv4": {
+       "address": "10.20.2.27",
+       "interface": "ens5"
+      },
+      "ansible_mounts": [
+       {
+        "mount": "/",
+        "size_total": 84354275328,
+        "size_available": 36623865600
+       }
+      ],
+      "ansible_uptime_seconds": 1927440,
+      "ansible_python_version": "3.12.3"
+     }
+    }
+   },
+   "_event": "v2_runner_on_ok",
+   "_timestamp": "2026-08-15T09:41:17.153009Z"
+  },
+  "task": "Gathering Facts",
+  "play": "",
+  "created_at": "2026-08-15T09:41:17.153009Z"
+ },
+ {
+  "counter": 21,
+  "event": "runner_on_ok",
+  "event_data": {
+   "task": {
+    "name": "Gathering Facts",
+    "id": "23b8c1e9-3924-46de-beb1-3b9046685257",
+    "path": "/runner/project/deploy.yml:2",
+    "duration": {
+     "start": "2026-08-15T09:41:12.600000Z",
+     "end": "2026-08-15T09:41:17.356122Z"
+    }
+   },
+   "hosts": {
+    "cache02": {
+     "action": "gather_facts",
+     "changed": false,
+     "ansible_facts": {
+      "ansible_hostname": "cache02",
+      "ansible_fqdn": "cache02.prod.acme.internal",
+      "ansible_distribution": "Ubuntu",
+      "ansible_distribution_version": "24.04",
+      "ansible_os_family": "Debian",
+      "ansible_kernel": "6.8.0-45-generic",
+      "ansible_architecture": "x86_64",
+      "ansible_processor_vcpus": 8,
+      "ansible_memtotal_mb": 15874,
+      "ansible_default_ipv4": {
+       "address": "10.20.2.28",
+       "interface": "ens5"
+      },
+      "ansible_mounts": [
+       {
+        "mount": "/",
+        "size_total": 84354275328,
+        "size_available": 35723865600
+       }
+      ],
+      "ansible_uptime_seconds": 1931040,
+      "ansible_python_version": "3.12.3"
+     }
+    }
+   },
+   "_event": "v2_runner_on_ok",
+   "_timestamp": "2026-08-15T09:41:17.356122Z"
+  },
+  "task": "Gathering Facts",
+  "play": "",
+  "created_at": "2026-08-15T09:41:17.356122Z"
+ },
+ {
+  "counter": 22,
+  "event": "runner_on_ok",
+  "event_data": {
+   "task": {
+    "name": "Gathering Facts",
+    "id": "23b8c1e9-3924-46de-beb1-3b9046685257",
+    "path": "/runner/project/deploy.yml:2",
+    "duration": {
+     "start": "2026-08-15T09:41:12.600000Z",
+     "end": "2026-08-15T09:41:17.476088Z"
+    }
+   },
+   "hosts": {
+    "lb01": {
+     "action": "gather_facts",
+     "changed": false,
+     "ansible_facts": {
+      "ansible_hostname": "lb01",
+      "ansible_fqdn": "lb01.prod.acme.internal",
+      "ansible_distribution": "Ubuntu",
+      "ansible_distribution_version": "24.04",
+      "ansible_os_family": "Debian",
+      "ansible_kernel": "6.8.0-45-generic",
+      "ansible_architecture": "x86_64",
+      "ansible_processor_vcpus": 8,
+      "ansible_memtotal_mb": 15874,
+      "ansible_default_ipv4": {
+       "address": "10.20.2.29",
+       "interface": "ens5"
+      },
+      "ansible_mounts": [
+       {
+        "mount": "/",
+        "size_total": 84354275328,
+        "size_available": 34823865600
+       }
+      ],
+      "ansible_uptime_seconds": 1934640,
+      "ansible_python_version": "3.12.3"
+     }
+    }
+   },
+   "_event": "v2_runner_on_ok",
+   "_timestamp": "2026-08-15T09:41:17.476088Z"
+  },
+  "task": "Gathering Facts",
+  "play": "",
+  "created_at": "2026-08-15T09:41:17.476088Z"
+ },
+ {
+  "counter": 23,
+  "event": "runner_on_ok",
+  "event_data": {
+   "task": {
+    "name": "Verify connectivity and sudo access",
+    "id": "1a2a73ed-562b-4f79-8374-59eef50bea63",
+    "path": "/runner/project/roles/common/tasks/main.yml:4",
+    "duration": {
+     "start": "2026-08-15T09:41:17.776088Z"
+    }
+   },
+   "hosts": {},
+   "_event": "v2_playbook_on_task_start",
+   "_timestamp": "2026-08-15T09:41:17.776088Z"
+  },
+  "task": "Verify connectivity and sudo access",
+  "play": "",
+  "created_at": "2026-08-15T09:41:17.776088Z"
+ },
+ {
+  "counter": 24,
+  "event": "runner_on_ok",
+  "event_data": {
+   "task": {
+    "name": "Verify connectivity and sudo access",
+    "id": "1a2a73ed-562b-4f79-8374-59eef50bea63",
+    "path": "/runner/project/roles/common/tasks/main.yml:4",
+    "duration": {
+     "start": "2026-08-15T09:41:17.776088Z",
+     "end": "2026-08-15T09:41:17.867824Z"
+    }
+   },
+   "hosts": {
+    "web01": {
+     "action": "ansible.builtin.ping",
+     "changed": false,
+     "ping": "pong"
+    }
+   },
+   "_event": "v2_runner_on_ok",
+   "_timestamp": "2026-08-15T09:41:17.867824Z"
+  },
+  "task": "Verify connectivity and sudo access",
+  "play": "",
+  "created_at": "2026-08-15T09:41:17.867824Z"
+ },
+ {
+  "counter": 25,
+  "event": "runner_on_ok",
+  "event_data": {
+   "task": {
+    "name": "Verify connectivity and sudo access",
+    "id": "1a2a73ed-562b-4f79-8374-59eef50bea63",
+    "path": "/runner/project/roles/common/tasks/main.yml:4",
+    "duration": {
+     "start": "2026-08-15T09:41:17.776088Z",
+     "end": "2026-08-15T09:41:17.961346Z"
+    }
+   },
+   "hosts": {
+    "web02": {
+     "action": "ansible.builtin.ping",
+     "changed": false,
+     "ping": "pong"
+    }
+   },
+   "_event": "v2_runner_on_ok",
+   "_timestamp": "2026-08-15T09:41:17.961346Z"
+  },
+  "task": "Verify connectivity and sudo access",
+  "play": "",
+  "created_at": "2026-08-15T09:41:17.961346Z"
+ },
+ {
+  "counter": 26,
+  "event": "runner_on_ok",
+  "event_data": {
+   "task": {
+    "name": "Verify connectivity and sudo access",
+    "id": "1a2a73ed-562b-4f79-8374-59eef50bea63",
+    "path": "/runner/project/roles/common/tasks/main.yml:4",
+    "duration": {
+     "start": "2026-08-15T09:41:17.776088Z",
+     "end": "2026-08-15T09:41:18.392718Z"
+    }
+   },
+   "hosts": {
+    "web03": {
+     "action": "ansible.builtin.ping",
+     "changed": false,
+     "ping": "pong"
+    }
+   },
+   "_event": "v2_runner_on_ok",
+   "_timestamp": "2026-08-15T09:41:18.392718Z"
+  },
+  "task": "Verify connectivity and sudo access",
+  "play": "",
+  "created_at": "2026-08-15T09:41:18.392718Z"
+ },
+ {
+  "counter": 27,
+  "event": "runner_on_ok",
+  "event_data": {
+   "task": {
+    "name": "Verify connectivity and sudo access",
+    "id": "1a2a73ed-562b-4f79-8374-59eef50bea63",
+    "path": "/runner/project/roles/common/tasks/main.yml:4",
+    "duration": {
+     "start": "2026-08-15T09:41:17.776088Z",
+     "end": "2026-08-15T09:41:18.714395Z"
+    }
+   },
+   "hosts": {
+    "web04": {
+     "action": "ansible.builtin.ping",
+     "changed": false,
+     "ping": "pong"
+    }
+   },
+   "_event": "v2_runner_on_ok",
+   "_timestamp": "2026-08-15T09:41:18.714395Z"
+  },
+  "task": "Verify connectivity and sudo access",
+  "play": "",
+  "created_at": "2026-08-15T09:41:18.714395Z"
+ },
+ {
+  "counter": 28,
+  "event": "runner_on_ok",
+  "event_data": {
+   "task": {
+    "name": "Verify connectivity and sudo access",
+    "id": "1a2a73ed-562b-4f79-8374-59eef50bea63",
+    "path": "/runner/project/roles/common/tasks/main.yml:4",
+    "duration": {
+     "start": "2026-08-15T09:41:17.776088Z",
+     "end": "2026-08-15T09:41:19.127603Z"
+    }
+   },
+   "hosts": {
+    "web05": {
+     "action": "ansible.builtin.ping",
+     "changed": false,
+     "ping": "pong"
+    }
+   },
+   "_event": "v2_runner_on_ok",
+   "_timestamp": "2026-08-15T09:41:19.127603Z"
+  },
+  "task": "Verify connectivity and sudo access",
+  "play": "",
+  "created_at": "2026-08-15T09:41:19.127603Z"
+ },
+ {
+  "counter": 29,
+  "event": "runner_on_ok",
+  "event_data": {
+   "task": {
+    "name": "Verify connectivity and sudo access",
+    "id": "1a2a73ed-562b-4f79-8374-59eef50bea63",
+    "path": "/runner/project/roles/common/tasks/main.yml:4",
+    "duration": {
+     "start": "2026-08-15T09:41:17.776088Z",
+     "end": "2026-08-15T09:41:19.505982Z"
+    }
+   },
+   "hosts": {
+    "web06": {
+     "action": "ansible.builtin.ping",
+     "changed": false,
+     "ping": "pong"
+    }
+   },
+   "_event": "v2_runner_on_ok",
+   "_timestamp": "2026-08-15T09:41:19.505982Z"
+  },
+  "task": "Verify connectivity and sudo access",
+  "play": "",
+  "created_at": "2026-08-15T09:41:19.505982Z"
+ },
+ {
+  "counter": 30,
+  "event": "runner_on_ok",
+  "event_data": {
+   "task": {
+    "name": "Verify connectivity and sudo access",
+    "id": "1a2a73ed-562b-4f79-8374-59eef50bea63",
+    "path": "/runner/project/roles/common/tasks/main.yml:4",
+    "duration": {
+     "start": "2026-08-15T09:41:17.776088Z",
+     "end": "2026-08-15T09:41:19.797285Z"
+    }
+   },
+   "hosts": {
+    "web07": {
+     "action": "ansible.builtin.ping",
+     "unreachable": true,
+     "changed": false,
+     "msg": "Failed to connect to the host via ssh: ssh: connect to host 10.20.0.17 port 22: Connection timed out"
+    }
+   },
+   "_event": "v2_runner_on_unreachable",
+   "_timestamp": "2026-08-15T09:41:19.797285Z"
+  },
+  "task": "Verify connectivity and sudo access",
+  "play": "",
+  "created_at": "2026-08-15T09:41:19.797285Z"
+ },
+ {
+  "counter": 31,
+  "event": "runner_on_ok",
+  "event_data": {
+   "task": {
+    "name": "Verify connectivity and sudo access",
+    "id": "1a2a73ed-562b-4f79-8374-59eef50bea63",
+    "path": "/runner/project/roles/common/tasks/main.yml:4",
+    "duration": {
+     "start": "2026-08-15T09:41:17.776088Z",
+     "end": "2026-08-15T09:41:20.285187Z"
+    }
+   },
+   "hosts": {
+    "web08": {
+     "action": "ansible.builtin.ping",
+     "changed": false,
+     "ping": "pong"
+    }
+   },
+   "_event": "v2_runner_on_ok",
+   "_timestamp": "2026-08-15T09:41:20.285187Z"
+  },
+  "task": "Verify connectivity and sudo access",
+  "play": "",
+  "created_at": "2026-08-15T09:41:20.285187Z"
+ },
+ {
+  "counter": 32,
+  "event": "runner_on_ok",
+  "event_data": {
+   "task": {
+    "name": "Verify connectivity and sudo access",
+    "id": "1a2a73ed-562b-4f79-8374-59eef50bea63",
+    "path": "/runner/project/roles/common/tasks/main.yml:4",
+    "duration": {
+     "start": "2026-08-15T09:41:17.776088Z",
+     "end": "2026-08-15T09:41:20.505527Z"
+    }
+   },
+   "hosts": {
+    "api01": {
+     "action": "ansible.builtin.ping",
+     "changed": false,
+     "ping": "pong"
+    }
+   },
+   "_event": "v2_runner_on_ok",
+   "_timestamp": "2026-08-15T09:41:20.505527Z"
+  },
+  "task": "Verify connectivity and sudo access",
+  "play": "",
+  "created_at": "2026-08-15T09:41:20.505527Z"
+ },
+ {
+  "counter": 33,
+  "event": "runner_on_ok",
+  "event_data": {
+   "task": {
+    "name": "Verify connectivity and sudo access",
+    "id": "1a2a73ed-562b-4f79-8374-59eef50bea63",
+    "path": "/runner/project/roles/common/tasks/main.yml:4",
+    "duration": {
+     "start": "2026-08-15T09:41:17.776088Z",
+     "end": "2026-08-15T09:41:20.803945Z"
+    }
+   },
+   "hosts": {
+    "api02": {
+     "action": "ansible.builtin.ping",
+     "changed": false,
+     "ping": "pong"
+    }
+   },
+   "_event": "v2_runner_on_ok",
+   "_timestamp": "2026-08-15T09:41:20.803945Z"
+  },
+  "task": "Verify connectivity and sudo access",
+  "play": "",
+  "created_at": "2026-08-15T09:41:20.803945Z"
+ },
+ {
+  "counter": 34,
+  "event": "runner_on_ok",
+  "event_data": {
+   "task": {
+    "name": "Verify connectivity and sudo access",
+    "id": "1a2a73ed-562b-4f79-8374-59eef50bea63",
+    "path": "/runner/project/roles/common/tasks/main.yml:4",
+    "duration": {
+     "start": "2026-08-15T09:41:17.776088Z",
+     "end": "2026-08-15T09:41:21.227177Z"
+    }
+   },
+   "hosts": {
+    "api03": {
+     "action": "ansible.builtin.ping",
+     "changed": false,
+     "ping": "pong"
+    }
+   },
+   "_event": "v2_runner_on_ok",
+   "_timestamp": "2026-08-15T09:41:21.227177Z"
+  },
+  "task": "Verify connectivity and sudo access",
+  "play": "",
+  "created_at": "2026-08-15T09:41:21.227177Z"
+ },
+ {
+  "counter": 35,
+  "event": "runner_on_ok",
+  "event_data": {
+   "task": {
+    "name": "Verify connectivity and sudo access",
+    "id": "1a2a73ed-562b-4f79-8374-59eef50bea63",
+    "path": "/runner/project/roles/common/tasks/main.yml:4",
+    "duration": {
+     "start": "2026-08-15T09:41:17.776088Z",
+     "end": "2026-08-15T09:41:21.555511Z"
+    }
+   },
+   "hosts": {
+    "api04": {
+     "action": "ansible.builtin.ping",
+     "changed": false,
+     "ping": "pong"
+    }
+   },
+   "_event": "v2_runner_on_ok",
+   "_timestamp": "2026-08-15T09:41:21.555511Z"
+  },
+  "task": "Verify connectivity and sudo access",
+  "play": "",
+  "created_at": "2026-08-15T09:41:21.555511Z"
+ },
+ {
+  "counter": 36,
+  "event": "runner_on_ok",
+  "event_data": {
+   "task": {
+    "name": "Verify connectivity and sudo access",
+    "id": "1a2a73ed-562b-4f79-8374-59eef50bea63",
+    "path": "/runner/project/roles/common/tasks/main.yml:4",
+    "duration": {
+     "start": "2026-08-15T09:41:17.776088Z",
+     "end": "2026-08-15T09:41:21.993279Z"
+    }
+   },
+   "hosts": {
+    "api05": {
+     "action": "ansible.builtin.ping",
+     "changed": false,
+     "ping": "pong"
+    }
+   },
+   "_event": "v2_runner_on_ok",
+   "_timestamp": "2026-08-15T09:41:21.993279Z"
+  },
+  "task": "Verify connectivity and sudo access",
+  "play": "",
+  "created_at": "2026-08-15T09:41:21.993279Z"
+ },
+ {
+  "counter": 37,
+  "event": "runner_on_ok",
+  "event_data": {
+   "task": {
+    "name": "Verify connectivity and sudo access",
+    "id": "1a2a73ed-562b-4f79-8374-59eef50bea63",
+    "path": "/runner/project/roles/common/tasks/main.yml:4",
+    "duration": {
+     "start": "2026-08-15T09:41:17.776088Z",
+     "end": "2026-08-15T09:41:22.303087Z"
+    }
+   },
+   "hosts": {
+    "api06": {
+     "action": "ansible.builtin.ping",
+     "changed": false,
+     "ping": "pong"
+    }
+   },
+   "_event": "v2_runner_on_ok",
+   "_timestamp": "2026-08-15T09:41:22.303087Z"
+  },
+  "task": "Verify connectivity and sudo access",
+  "play": "",
+  "created_at": "2026-08-15T09:41:22.303087Z"
+ },
+ {
+  "counter": 38,
+  "event": "runner_on_ok",
+  "event_data": {
+   "task": {
+    "name": "Verify connectivity and sudo access",
+    "id": "1a2a73ed-562b-4f79-8374-59eef50bea63",
+    "path": "/runner/project/roles/common/tasks/main.yml:4",
+    "duration": {
+     "start": "2026-08-15T09:41:17.776088Z",
+     "end": "2026-08-15T09:41:22.670144Z"
+    }
+   },
+   "hosts": {
+    "db01": {
+     "action": "ansible.builtin.ping",
+     "changed": false,
+     "ping": "pong"
+    }
+   },
+   "_event": "v2_runner_on_ok",
+   "_timestamp": "2026-08-15T09:41:22.670144Z"
+  },
+  "task": "Verify connectivity and sudo access",
+  "play": "",
+  "created_at": "2026-08-15T09:41:22.670144Z"
+ },
+ {
+  "counter": 39,
+  "event": "runner_on_ok",
+  "event_data": {
+   "task": {
+    "name": "Verify connectivity and sudo access",
+    "id": "1a2a73ed-562b-4f79-8374-59eef50bea63",
+    "path": "/runner/project/roles/common/tasks/main.yml:4",
+    "duration": {
+     "start": "2026-08-15T09:41:17.776088Z",
+     "end": "2026-08-15T09:41:22.740765Z"
+    }
+   },
+   "hosts": {
+    "db02": {
+     "action": "ansible.builtin.ping",
+     "changed": false,
+     "ping": "pong"
+    }
+   },
+   "_event": "v2_runner_on_ok",
+   "_timestamp": "2026-08-15T09:41:22.740765Z"
+  },
+  "task": "Verify connectivity and sudo access",
+  "play": "",
+  "created_at": "2026-08-15T09:41:22.740765Z"
+ },
+ {
+  "counter": 40,
+  "event": "runner_on_ok",
+  "event_data": {
+   "task": {
+    "name": "Verify connectivity and sudo access",
+    "id": "1a2a73ed-562b-4f79-8374-59eef50bea63",
+    "path": "/runner/project/roles/common/tasks/main.yml:4",
+    "duration": {
+     "start": "2026-08-15T09:41:17.776088Z",
+     "end": "2026-08-15T09:41:22.893319Z"
+    }
+   },
+   "hosts": {
+    "db03": {
+     "action": "ansible.builtin.ping",
+     "changed": false,
+     "ping": "pong"
+    }
+   },
+   "_event": "v2_runner_on_ok",
+   "_timestamp": "2026-08-15T09:41:22.893319Z"
+  },
+  "task": "Verify connectivity and sudo access",
+  "play": "",
+  "created_at": "2026-08-15T09:41:22.893319Z"
+ },
+ {
+  "counter": 41,
+  "event": "runner_on_ok",
+  "event_data": {
+   "task": {
+    "name": "Verify connectivity and sudo access",
+    "id": "1a2a73ed-562b-4f79-8374-59eef50bea63",
+    "path": "/runner/project/roles/common/tasks/main.yml:4",
+    "duration": {
+     "start": "2026-08-15T09:41:17.776088Z",
+     "end": "2026-08-15T09:41:23.073544Z"
+    }
+   },
+   "hosts": {
+    "cache01": {
+     "action": "ansible.builtin.ping",
+     "changed": false,
+     "ping": "pong"
+    }
+   },
+   "_event": "v2_runner_on_ok",
+   "_timestamp": "2026-08-15T09:41:23.073544Z"
+  },
+  "task": "Verify connectivity and sudo access",
+  "play": "",
+  "created_at": "2026-08-15T09:41:23.073544Z"
+ },
+ {
+  "counter": 42,
+  "event": "runner_on_ok",
+  "event_data": {
+   "task": {
+    "name": "Verify connectivity and sudo access",
+    "id": "1a2a73ed-562b-4f79-8374-59eef50bea63",
+    "path": "/runner/project/roles/common/tasks/main.yml:4",
+    "duration": {
+     "start": "2026-08-15T09:41:17.776088Z",
+     "end": "2026-08-15T09:41:23.159450Z"
+    }
+   },
+   "hosts": {
+    "cache02": {
+     "action": "ansible.builtin.ping",
+     "changed": false,
+     "ping": "pong"
+    }
+   },
+   "_event": "v2_runner_on_ok",
+   "_timestamp": "2026-08-15T09:41:23.159450Z"
+  },
+  "task": "Verify connectivity and sudo access",
+  "play": "",
+  "created_at": "2026-08-15T09:41:23.159450Z"
+ },
+ {
+  "counter": 43,
+  "event": "runner_on_ok",
+  "event_data": {
+   "task": {
+    "name": "Verify connectivity and sudo access",
+    "id": "1a2a73ed-562b-4f79-8374-59eef50bea63",
+    "path": "/runner/project/roles/common/tasks/main.yml:4",
+    "duration": {
+     "start": "2026-08-15T09:41:17.776088Z",
+     "end": "2026-08-15T09:41:23.314206Z"
+    }
+   },
+   "hosts": {
+    "lb01": {
+     "action": "ansible.builtin.ping",
+     "changed": false,
+     "ping": "pong"
+    }
+   },
+   "_event": "v2_runner_on_ok",
+   "_timestamp": "2026-08-15T09:41:23.314206Z"
+  },
+  "task": "Verify connectivity and sudo access",
+  "play": "",
+  "created_at": "2026-08-15T09:41:23.314206Z"
+ },
+ {
+  "counter": 44,
+  "event": "runner_on_ok",
+  "event_data": {
+   "task": {
+    "name": "Install application dependencies",
+    "id": "7412b293-4729-4739-a14f-f3d719db3ad0",
+    "path": "/runner/project/roles/app/tasks/main.yml:11",
+    "duration": {
+     "start": "2026-08-15T09:41:23.614206Z"
+    }
+   },
+   "hosts": {},
+   "_event": "v2_playbook_on_task_start",
+   "_timestamp": "2026-08-15T09:41:23.614206Z"
+  },
+  "task": "Install application dependencies",
+  "play": "",
+  "created_at": "2026-08-15T09:41:23.614206Z"
+ },
+ {
+  "counter": 45,
+  "event": "runner_on_ok",
+  "event_data": {
+   "task": {
+    "name": "Install application dependencies",
+    "id": "7412b293-4729-4739-a14f-f3d719db3ad0",
+    "path": "/runner/project/roles/app/tasks/main.yml:11",
+    "duration": {
+     "start": "2026-08-15T09:41:23.614206Z",
+     "end": "2026-08-15T09:41:23.950264Z"
+    }
+   },
+   "hosts": {
+    "web01": {
+     "action": "ansible.builtin.apt",
+     "changed": true,
+     "cache_update_time": 1755250000,
+     "cache_updated": false,
+     "stdout": "Reading package lists...\nBuilding dependency tree...\nThe following packages will be upgraded:\n  libssl3t64 nginx-common nodejs\n3 upgraded, 0 newly installed, 0 to remove and 0 not upgraded.\nSetting up nodejs (20.19.3-1nodesource1) ...",
+     "stdout_lines": [
+      "Reading package lists...",
+      "Building dependency tree...",
+      "The following packages will be upgraded:",
+      "  libssl3t64 nginx-common nodejs",
+      "3 upgraded, 0 newly installed, 0 to remove and 0 not upgraded.",
+      "Setting up nodejs (20.19.3-1nodesource1) ..."
+     ]
+    }
+   },
+   "_event": "v2_runner_on_ok",
+   "_timestamp": "2026-08-15T09:41:23.950264Z"
+  },
+  "task": "Install application dependencies",
+  "play": "",
+  "created_at": "2026-08-15T09:41:23.950264Z"
+ },
+ {
+  "counter": 46,
+  "event": "runner_on_ok",
+  "event_data": {
+   "task": {
+    "name": "Install application dependencies",
+    "id": "7412b293-4729-4739-a14f-f3d719db3ad0",
+    "path": "/runner/project/roles/app/tasks/main.yml:11",
+    "duration": {
+     "start": "2026-08-15T09:41:23.614206Z",
+     "end": "2026-08-15T09:41:24.164438Z"
+    }
+   },
+   "hosts": {
+    "web02": {
+     "action": "ansible.builtin.apt",
+     "changed": false,
+     "cache_update_time": 1755250000,
+     "cache_updated": false
+    }
+   },
+   "_event": "v2_runner_on_ok",
+   "_timestamp": "2026-08-15T09:41:24.164438Z"
+  },
+  "task": "Install application dependencies",
+  "play": "",
+  "created_at": "2026-08-15T09:41:24.164438Z"
+ },
+ {
+  "counter": 47,
+  "event": "runner_on_ok",
+  "event_data": {
+   "task": {
+    "name": "Install application dependencies",
+    "id": "7412b293-4729-4739-a14f-f3d719db3ad0",
+    "path": "/runner/project/roles/app/tasks/main.yml:11",
+    "duration": {
+     "start": "2026-08-15T09:41:23.614206Z",
+     "end": "2026-08-15T09:41:24.381019Z"
+    }
+   },
+   "hosts": {
+    "web03": {
+     "action": "ansible.builtin.apt",
+     "changed": true,
+     "cache_update_time": 1755250000,
+     "cache_updated": false,
+     "stdout": "Reading package lists...\nBuilding dependency tree...\nThe following packages will be upgraded:\n  libssl3t64 nginx-common nodejs\n3 upgraded, 0 newly installed, 0 to remove and 0 not upgraded.\nSetting up nodejs (20.19.3-1nodesource1) ...",
+     "stdout_lines": [
+      "Reading package lists...",
+      "Building dependency tree...",
+      "The following packages will be upgraded:",
+      "  libssl3t64 nginx-common nodejs",
+      "3 upgraded, 0 newly installed, 0 to remove and 0 not upgraded.",
+      "Setting up nodejs (20.19.3-1nodesource1) ..."
+     ]
+    }
+   },
+   "_event": "v2_runner_on_ok",
+   "_timestamp": "2026-08-15T09:41:24.381019Z"
+  },
+  "task": "Install application dependencies",
+  "play": "",
+  "created_at": "2026-08-15T09:41:24.381019Z"
+ },
+ {
+  "counter": 48,
+  "event": "runner_on_ok",
+  "event_data": {
+   "task": {
+    "name": "Install application dependencies",
+    "id": "7412b293-4729-4739-a14f-f3d719db3ad0",
+    "path": "/runner/project/roles/app/tasks/main.yml:11",
+    "duration": {
+     "start": "2026-08-15T09:41:23.614206Z",
+     "end": "2026-08-15T09:41:24.525297Z"
+    }
+   },
+   "hosts": {
+    "web04": {
+     "action": "ansible.builtin.apt",
+     "changed": false,
+     "cache_update_time": 1755250000,
+     "cache_updated": false
+    }
+   },
+   "_event": "v2_runner_on_ok",
+   "_timestamp": "2026-08-15T09:41:24.525297Z"
+  },
+  "task": "Install application dependencies",
+  "play": "",
+  "created_at": "2026-08-15T09:41:24.525297Z"
+ },
+ {
+  "counter": 49,
+  "event": "runner_on_ok",
+  "event_data": {
+   "task": {
+    "name": "Install application dependencies",
+    "id": "7412b293-4729-4739-a14f-f3d719db3ad0",
+    "path": "/runner/project/roles/app/tasks/main.yml:11",
+    "duration": {
+     "start": "2026-08-15T09:41:23.614206Z",
+     "end": "2026-08-15T09:41:24.695437Z"
+    }
+   },
+   "hosts": {
+    "web05": {
+     "action": "ansible.builtin.apt",
+     "changed": true,
+     "cache_update_time": 1755250000,
+     "cache_updated": false,
+     "stdout": "Reading package lists...\nBuilding dependency tree...\nThe following packages will be upgraded:\n  libssl3t64 nginx-common nodejs\n3 upgraded, 0 newly installed, 0 to remove and 0 not upgraded.\nSetting up nodejs (20.19.3-1nodesource1) ...",
+     "stdout_lines": [
+      "Reading package lists...",
+      "Building dependency tree...",
+      "The following packages will be upgraded:",
+      "  libssl3t64 nginx-common nodejs",
+      "3 upgraded, 0 newly installed, 0 to remove and 0 not upgraded.",
+      "Setting up nodejs (20.19.3-1nodesource1) ..."
+     ]
+    }
+   },
+   "_event": "v2_runner_on_ok",
+   "_timestamp": "2026-08-15T09:41:24.695437Z"
+  },
+  "task": "Install application dependencies",
+  "play": "",
+  "created_at": "2026-08-15T09:41:24.695437Z"
+ },
+ {
+  "counter": 50,
+  "event": "runner_on_ok",
+  "event_data": {
+   "task": {
+    "name": "Install application dependencies",
+    "id": "7412b293-4729-4739-a14f-f3d719db3ad0",
+    "path": "/runner/project/roles/app/tasks/main.yml:11",
+    "duration": {
+     "start": "2026-08-15T09:41:23.614206Z",
+     "end": "2026-08-15T09:41:25.166932Z"
+    }
+   },
+   "hosts": {
+    "web06": {
+     "action": "ansible.builtin.apt",
+     "changed": false,
+     "cache_update_time": 1755250000,
+     "cache_updated": false
+    }
+   },
+   "_event": "v2_runner_on_ok",
+   "_timestamp": "2026-08-15T09:41:25.166932Z"
+  },
+  "task": "Install application dependencies",
+  "play": "",
+  "created_at": "2026-08-15T09:41:25.166932Z"
+ },
+ {
+  "counter": 51,
+  "event": "runner_on_ok",
+  "event_data": {
+   "task": {
+    "name": "Install application dependencies",
+    "id": "7412b293-4729-4739-a14f-f3d719db3ad0",
+    "path": "/runner/project/roles/app/tasks/main.yml:11",
+    "duration": {
+     "start": "2026-08-15T09:41:23.614206Z",
+     "end": "2026-08-15T09:41:25.508548Z"
+    }
+   },
+   "hosts": {
+    "web08": {
+     "action": "ansible.builtin.apt",
+     "changed": false,
+     "cache_update_time": 1755250000,
+     "cache_updated": false
+    }
+   },
+   "_event": "v2_runner_on_ok",
+   "_timestamp": "2026-08-15T09:41:25.508548Z"
+  },
+  "task": "Install application dependencies",
+  "play": "",
+  "created_at": "2026-08-15T09:41:25.508548Z"
+ },
+ {
+  "counter": 52,
+  "event": "runner_on_ok",
+  "event_data": {
+   "task": {
+    "name": "Install application dependencies",
+    "id": "7412b293-4729-4739-a14f-f3d719db3ad0",
+    "path": "/runner/project/roles/app/tasks/main.yml:11",
+    "duration": {
+     "start": "2026-08-15T09:41:23.614206Z",
+     "end": "2026-08-15T09:41:25.832657Z"
+    }
+   },
+   "hosts": {
+    "api01": {
+     "action": "ansible.builtin.apt",
+     "changed": true,
+     "cache_update_time": 1755250000,
+     "cache_updated": false,
+     "stdout": "Reading package lists...\nBuilding dependency tree...\nThe following packages will be upgraded:\n  libssl3t64 nginx-common nodejs\n3 upgraded, 0 newly installed, 0 to remove and 0 not upgraded.\nSetting up nodejs (20.19.3-1nodesource1) ...",
+     "stdout_lines": [
+      "Reading package lists...",
+      "Building dependency tree...",
+      "The following packages will be upgraded:",
+      "  libssl3t64 nginx-common nodejs",
+      "3 upgraded, 0 newly installed, 0 to remove and 0 not upgraded.",
+      "Setting up nodejs (20.19.3-1nodesource1) ..."
+     ]
+    }
+   },
+   "_event": "v2_runner_on_ok",
+   "_timestamp": "2026-08-15T09:41:25.832657Z"
+  },
+  "task": "Install application dependencies",
+  "play": "",
+  "created_at": "2026-08-15T09:41:25.832657Z"
+ },
+ {
+  "counter": 53,
+  "event": "runner_on_ok",
+  "event_data": {
+   "task": {
+    "name": "Install application dependencies",
+    "id": "7412b293-4729-4739-a14f-f3d719db3ad0",
+    "path": "/runner/project/roles/app/tasks/main.yml:11",
+    "duration": {
+     "start": "2026-08-15T09:41:23.614206Z",
+     "end": "2026-08-15T09:41:25.959669Z"
+    }
+   },
+   "hosts": {
+    "api02": {
+     "action": "ansible.builtin.apt",
+     "changed": false,
+     "cache_update_time": 1755250000,
+     "cache_updated": false
+    }
+   },
+   "_event": "v2_runner_on_ok",
+   "_timestamp": "2026-08-15T09:41:25.959669Z"
+  },
+  "task": "Install application dependencies",
+  "play": "",
+  "created_at": "2026-08-15T09:41:25.959669Z"
+ },
+ {
+  "counter": 54,
+  "event": "runner_on_ok",
+  "event_data": {
+   "task": {
+    "name": "Install application dependencies",
+    "id": "7412b293-4729-4739-a14f-f3d719db3ad0",
+    "path": "/runner/project/roles/app/tasks/main.yml:11",
+    "duration": {
+     "start": "2026-08-15T09:41:23.614206Z",
+     "end": "2026-08-15T09:41:26.337776Z"
+    }
+   },
+   "hosts": {
+    "api03": {
+     "action": "ansible.builtin.apt",
+     "changed": true,
+     "cache_update_time": 1755250000,
+     "cache_updated": false,
+     "stdout": "Reading package lists...\nBuilding dependency tree...\nThe following packages will be upgraded:\n  libssl3t64 nginx-common nodejs\n3 upgraded, 0 newly installed, 0 to remove and 0 not upgraded.\nSetting up nodejs (20.19.3-1nodesource1) ...",
+     "stdout_lines": [
+      "Reading package lists...",
+      "Building dependency tree...",
+      "The following packages will be upgraded:",
+      "  libssl3t64 nginx-common nodejs",
+      "3 upgraded, 0 newly installed, 0 to remove and 0 not upgraded.",
+      "Setting up nodejs (20.19.3-1nodesource1) ..."
+     ]
+    }
+   },
+   "_event": "v2_runner_on_ok",
+   "_timestamp": "2026-08-15T09:41:26.337776Z"
+  },
+  "task": "Install application dependencies",
+  "play": "",
+  "created_at": "2026-08-15T09:41:26.337776Z"
+ },
+ {
+  "counter": 55,
+  "event": "runner_on_ok",
+  "event_data": {
+   "task": {
+    "name": "Install application dependencies",
+    "id": "7412b293-4729-4739-a14f-f3d719db3ad0",
+    "path": "/runner/project/roles/app/tasks/main.yml:11",
+    "duration": {
+     "start": "2026-08-15T09:41:23.614206Z",
+     "end": "2026-08-15T09:41:26.461307Z"
+    }
+   },
+   "hosts": {
+    "api04": {
+     "action": "ansible.builtin.apt",
+     "changed": false,
+     "cache_update_time": 1755250000,
+     "cache_updated": false
+    }
+   },
+   "_event": "v2_runner_on_ok",
+   "_timestamp": "2026-08-15T09:41:26.461307Z"
+  },
+  "task": "Install application dependencies",
+  "play": "",
+  "created_at": "2026-08-15T09:41:26.461307Z"
+ },
+ {
+  "counter": 56,
+  "event": "runner_on_ok",
+  "event_data": {
+   "task": {
+    "name": "Install application dependencies",
+    "id": "7412b293-4729-4739-a14f-f3d719db3ad0",
+    "path": "/runner/project/roles/app/tasks/main.yml:11",
+    "duration": {
+     "start": "2026-08-15T09:41:23.614206Z",
+     "end": "2026-08-15T09:41:26.682062Z"
+    }
+   },
+   "hosts": {
+    "api05": {
+     "action": "ansible.builtin.apt",
+     "changed": true,
+     "cache_update_time": 1755250000,
+     "cache_updated": false,
+     "stdout": "Reading package lists...\nBuilding dependency tree...\nThe following packages will be upgraded:\n  libssl3t64 nginx-common nodejs\n3 upgraded, 0 newly installed, 0 to remove and 0 not upgraded.\nSetting up nodejs (20.19.3-1nodesource1) ...",
+     "stdout_lines": [
+      "Reading package lists...",
+      "Building dependency tree...",
+      "The following packages will be upgraded:",
+      "  libssl3t64 nginx-common nodejs",
+      "3 upgraded, 0 newly installed, 0 to remove and 0 not upgraded.",
+      "Setting up nodejs (20.19.3-1nodesource1) ..."
+     ]
+    }
+   },
+   "_event": "v2_runner_on_ok",
+   "_timestamp": "2026-08-15T09:41:26.682062Z"
+  },
+  "task": "Install application dependencies",
+  "play": "",
+  "created_at": "2026-08-15T09:41:26.682062Z"
+ },
+ {
+  "counter": 57,
+  "event": "runner_on_ok",
+  "event_data": {
+   "task": {
+    "name": "Install application dependencies",
+    "id": "7412b293-4729-4739-a14f-f3d719db3ad0",
+    "path": "/runner/project/roles/app/tasks/main.yml:11",
+    "duration": {
+     "start": "2026-08-15T09:41:23.614206Z",
+     "end": "2026-08-15T09:41:27.177348Z"
+    }
+   },
+   "hosts": {
+    "api06": {
+     "action": "ansible.builtin.apt",
+     "changed": false,
+     "cache_update_time": 1755250000,
+     "cache_updated": false
+    }
+   },
+   "_event": "v2_runner_on_ok",
+   "_timestamp": "2026-08-15T09:41:27.177348Z"
+  },
+  "task": "Install application dependencies",
+  "play": "",
+  "created_at": "2026-08-15T09:41:27.177348Z"
+ },
+ {
+  "counter": 58,
+  "event": "runner_on_ok",
+  "event_data": {
+   "task": {
+    "name": "Install application dependencies",
+    "id": "7412b293-4729-4739-a14f-f3d719db3ad0",
+    "path": "/runner/project/roles/app/tasks/main.yml:11",
+    "duration": {
+     "start": "2026-08-15T09:41:23.614206Z",
+     "end": "2026-08-15T09:41:27.515348Z"
+    }
+   },
+   "hosts": {
+    "db01": {
+     "action": "ansible.builtin.apt",
+     "changed": true,
+     "cache_update_time": 1755250000,
+     "cache_updated": false,
+     "stdout": "Reading package lists...\nBuilding dependency tree...\nThe following packages will be upgraded:\n  libssl3t64 nginx-common nodejs\n3 upgraded, 0 newly installed, 0 to remove and 0 not upgraded.\nSetting up nodejs (20.19.3-1nodesource1) ...",
+     "stdout_lines": [
+      "Reading package lists...",
+      "Building dependency tree...",
+      "The following packages will be upgraded:",
+      "  libssl3t64 nginx-common nodejs",
+      "3 upgraded, 0 newly installed, 0 to remove and 0 not upgraded.",
+      "Setting up nodejs (20.19.3-1nodesource1) ..."
+     ]
+    }
+   },
+   "_event": "v2_runner_on_ok",
+   "_timestamp": "2026-08-15T09:41:27.515348Z"
+  },
+  "task": "Install application dependencies",
+  "play": "",
+  "created_at": "2026-08-15T09:41:27.515348Z"
+ },
+ {
+  "counter": 59,
+  "event": "runner_on_ok",
+  "event_data": {
+   "task": {
+    "name": "Install application dependencies",
+    "id": "7412b293-4729-4739-a14f-f3d719db3ad0",
+    "path": "/runner/project/roles/app/tasks/main.yml:11",
+    "duration": {
+     "start": "2026-08-15T09:41:23.614206Z",
+     "end": "2026-08-15T09:41:27.815975Z"
+    }
+   },
+   "hosts": {
+    "db02": {
+     "action": "ansible.builtin.apt",
+     "changed": false,
+     "cache_update_time": 1755250000,
+     "cache_updated": false
+    }
+   },
+   "_event": "v2_runner_on_ok",
+   "_timestamp": "2026-08-15T09:41:27.815975Z"
+  },
+  "task": "Install application dependencies",
+  "play": "",
+  "created_at": "2026-08-15T09:41:27.815975Z"
+ },
+ {
+  "counter": 60,
+  "event": "runner_on_ok",
+  "event_data": {
+   "task": {
+    "name": "Install application dependencies",
+    "id": "7412b293-4729-4739-a14f-f3d719db3ad0",
+    "path": "/runner/project/roles/app/tasks/main.yml:11",
+    "duration": {
+     "start": "2026-08-15T09:41:23.614206Z",
+     "end": "2026-08-15T09:41:28.174051Z"
+    }
+   },
+   "hosts": {
+    "db03": {
+     "action": "ansible.builtin.apt",
+     "changed": true,
+     "cache_update_time": 1755250000,
+     "cache_updated": false,
+     "stdout": "Reading package lists...\nBuilding dependency tree...\nThe following packages will be upgraded:\n  libssl3t64 nginx-common nodejs\n3 upgraded, 0 newly installed, 0 to remove and 0 not upgraded.\nSetting up nodejs (20.19.3-1nodesource1) ...",
+     "stdout_lines": [
+      "Reading package lists...",
+      "Building dependency tree...",
+      "The following packages will be upgraded:",
+      "  libssl3t64 nginx-common nodejs",
+      "3 upgraded, 0 newly installed, 0 to remove and 0 not upgraded.",
+      "Setting up nodejs (20.19.3-1nodesource1) ..."
+     ]
+    }
+   },
+   "_event": "v2_runner_on_ok",
+   "_timestamp": "2026-08-15T09:41:28.174051Z"
+  },
+  "task": "Install application dependencies",
+  "play": "",
+  "created_at": "2026-08-15T09:41:28.174051Z"
+ },
+ {
+  "counter": 61,
+  "event": "runner_on_ok",
+  "event_data": {
+   "task": {
+    "name": "Install application dependencies",
+    "id": "7412b293-4729-4739-a14f-f3d719db3ad0",
+    "path": "/runner/project/roles/app/tasks/main.yml:11",
+    "duration": {
+     "start": "2026-08-15T09:41:23.614206Z",
+     "end": "2026-08-15T09:41:28.603334Z"
+    }
+   },
+   "hosts": {
+    "cache01": {
+     "action": "ansible.builtin.apt",
+     "changed": false,
+     "cache_update_time": 1755250000,
+     "cache_updated": false
+    }
+   },
+   "_event": "v2_runner_on_ok",
+   "_timestamp": "2026-08-15T09:41:28.603334Z"
+  },
+  "task": "Install application dependencies",
+  "play": "",
+  "created_at": "2026-08-15T09:41:28.603334Z"
+ },
+ {
+  "counter": 62,
+  "event": "runner_on_ok",
+  "event_data": {
+   "task": {
+    "name": "Install application dependencies",
+    "id": "7412b293-4729-4739-a14f-f3d719db3ad0",
+    "path": "/runner/project/roles/app/tasks/main.yml:11",
+    "duration": {
+     "start": "2026-08-15T09:41:23.614206Z",
+     "end": "2026-08-15T09:41:29.002534Z"
+    }
+   },
+   "hosts": {
+    "cache02": {
+     "action": "ansible.builtin.apt",
+     "changed": true,
+     "cache_update_time": 1755250000,
+     "cache_updated": false,
+     "stdout": "Reading package lists...\nBuilding dependency tree...\nThe following packages will be upgraded:\n  libssl3t64 nginx-common nodejs\n3 upgraded, 0 newly installed, 0 to remove and 0 not upgraded.\nSetting up nodejs (20.19.3-1nodesource1) ...",
+     "stdout_lines": [
+      "Reading package lists...",
+      "Building dependency tree...",
+      "The following packages will be upgraded:",
+      "  libssl3t64 nginx-common nodejs",
+      "3 upgraded, 0 newly installed, 0 to remove and 0 not upgraded.",
+      "Setting up nodejs (20.19.3-1nodesource1) ..."
+     ]
+    }
+   },
+   "_event": "v2_runner_on_ok",
+   "_timestamp": "2026-08-15T09:41:29.002534Z"
+  },
+  "task": "Install application dependencies",
+  "play": "",
+  "created_at": "2026-08-15T09:41:29.002534Z"
+ },
+ {
+  "counter": 63,
+  "event": "runner_on_ok",
+  "event_data": {
+   "task": {
+    "name": "Install application dependencies",
+    "id": "7412b293-4729-4739-a14f-f3d719db3ad0",
+    "path": "/runner/project/roles/app/tasks/main.yml:11",
+    "duration": {
+     "start": "2026-08-15T09:41:23.614206Z",
+     "end": "2026-08-15T09:41:29.155606Z"
+    }
+   },
+   "hosts": {
+    "lb01": {
+     "action": "ansible.builtin.apt",
+     "changed": false,
+     "cache_update_time": 1755250000,
+     "cache_updated": false
+    }
+   },
+   "_event": "v2_runner_on_ok",
+   "_timestamp": "2026-08-15T09:41:29.155606Z"
+  },
+  "task": "Install application dependencies",
+  "play": "",
+  "created_at": "2026-08-15T09:41:29.155606Z"
+ },
+ {
+  "counter": 64,
+  "event": "runner_on_ok",
+  "event_data": {
+   "task": {
+    "name": "Render nginx site configuration",
+    "id": "66b2bc5b-50c1-47fc-8e17-7b4e0837b8a3",
+    "path": "/runner/project/roles/web/tasks/main.yml:23",
+    "duration": {
+     "start": "2026-08-15T09:41:29.355606Z"
+    }
+   },
+   "hosts": {},
+   "_event": "v2_playbook_on_task_start",
+   "_timestamp": "2026-08-15T09:41:29.355606Z"
+  },
+  "task": "Render nginx site configuration",
+  "play": "",
+  "created_at": "2026-08-15T09:41:29.355606Z"
+ },
+ {
+  "counter": 65,
+  "event": "runner_on_ok",
+  "event_data": {
+   "task": {
+    "name": "Render nginx site configuration",
+    "id": "66b2bc5b-50c1-47fc-8e17-7b4e0837b8a3",
+    "path": "/runner/project/roles/web/tasks/main.yml:23",
+    "duration": {
+     "start": "2026-08-15T09:41:29.355606Z",
+     "end": "2026-08-15T09:41:29.526089Z"
+    }
+   },
+   "hosts": {
+    "web01": {
+     "action": "ansible.builtin.template",
+     "changed": true,
+     "checksum": "8f3b1e0c9a4d",
+     "dest": "/etc/nginx/sites-available/app.conf",
+     "diff": [
+      {
+       "before_header": "/etc/nginx/sites-available/app.conf (content)",
+       "after_header": "/etc/nginx/sites-available/app.conf (content)",
+       "before": "upstream app {\n  server 127.0.0.1:3000;\n}\nkeepalive_timeout 65;\nworker_connections 1024;\n",
+       "after": "upstream app {\n  server 127.0.0.1:3000;\n  server 127.0.0.1:3001;\n}\nkeepalive_timeout 75;\nworker_connections 4096;\n"
+      }
+     ]
+    }
+   },
+   "_event": "v2_runner_on_ok",
+   "_timestamp": "2026-08-15T09:41:29.526089Z"
+  },
+  "task": "Render nginx site configuration",
+  "play": "",
+  "created_at": "2026-08-15T09:41:29.526089Z"
+ },
+ {
+  "counter": 66,
+  "event": "runner_on_ok",
+  "event_data": {
+   "task": {
+    "name": "Render nginx site configuration",
+    "id": "66b2bc5b-50c1-47fc-8e17-7b4e0837b8a3",
+    "path": "/runner/project/roles/web/tasks/main.yml:23",
+    "duration": {
+     "start": "2026-08-15T09:41:29.355606Z",
+     "end": "2026-08-15T09:41:29.671031Z"
+    }
+   },
+   "hosts": {
+    "web02": {
+     "action": "ansible.builtin.template",
+     "changed": true,
+     "checksum": "8f3b1e0c9a4d",
+     "dest": "/etc/nginx/sites-available/app.conf",
+     "diff": [
+      {
+       "before_header": "/etc/nginx/sites-available/app.conf (content)",
+       "after_header": "/etc/nginx/sites-available/app.conf (content)",
+       "before": "upstream app {\n  server 127.0.0.1:3000;\n}\nkeepalive_timeout 65;\nworker_connections 1024;\n",
+       "after": "upstream app {\n  server 127.0.0.1:3000;\n  server 127.0.0.1:3001;\n}\nkeepalive_timeout 75;\nworker_connections 4096;\n"
+      }
+     ]
+    }
+   },
+   "_event": "v2_runner_on_ok",
+   "_timestamp": "2026-08-15T09:41:29.671031Z"
+  },
+  "task": "Render nginx site configuration",
+  "play": "",
+  "created_at": "2026-08-15T09:41:29.671031Z"
+ },
+ {
+  "counter": 67,
+  "event": "runner_on_ok",
+  "event_data": {
+   "task": {
+    "name": "Render nginx site configuration",
+    "id": "66b2bc5b-50c1-47fc-8e17-7b4e0837b8a3",
+    "path": "/runner/project/roles/web/tasks/main.yml:23",
+    "duration": {
+     "start": "2026-08-15T09:41:29.355606Z",
+     "end": "2026-08-15T09:41:30.145340Z"
+    }
+   },
+   "hosts": {
+    "web03": {
+     "action": "ansible.builtin.template",
+     "changed": true,
+     "checksum": "8f3b1e0c9a4d",
+     "dest": "/etc/nginx/sites-available/app.conf",
+     "diff": [
+      {
+       "before_header": "/etc/nginx/sites-available/app.conf (content)",
+       "after_header": "/etc/nginx/sites-available/app.conf (content)",
+       "before": "upstream app {\n  server 127.0.0.1:3000;\n}\nkeepalive_timeout 65;\nworker_connections 1024;\n",
+       "after": "upstream app {\n  server 127.0.0.1:3000;\n  server 127.0.0.1:3001;\n}\nkeepalive_timeout 75;\nworker_connections 4096;\n"
+      }
+     ]
+    }
+   },
+   "_event": "v2_runner_on_ok",
+   "_timestamp": "2026-08-15T09:41:30.145340Z"
+  },
+  "task": "Render nginx site configuration",
+  "play": "",
+  "created_at": "2026-08-15T09:41:30.145340Z"
+ },
+ {
+  "counter": 68,
+  "event": "runner_on_ok",
+  "event_data": {
+   "task": {
+    "name": "Render nginx site configuration",
+    "id": "66b2bc5b-50c1-47fc-8e17-7b4e0837b8a3",
+    "path": "/runner/project/roles/web/tasks/main.yml:23",
+    "duration": {
+     "start": "2026-08-15T09:41:29.355606Z",
+     "end": "2026-08-15T09:41:30.589705Z"
+    }
+   },
+   "hosts": {
+    "web04": {
+     "action": "ansible.builtin.template",
+     "changed": true,
+     "checksum": "8f3b1e0c9a4d",
+     "dest": "/etc/nginx/sites-available/app.conf",
+     "diff": [
+      {
+       "before_header": "/etc/nginx/sites-available/app.conf (content)",
+       "after_header": "/etc/nginx/sites-available/app.conf (content)",
+       "before": "upstream app {\n  server 127.0.0.1:3000;\n}\nkeepalive_timeout 65;\nworker_connections 1024;\n",
+       "after": "upstream app {\n  server 127.0.0.1:3000;\n  server 127.0.0.1:3001;\n}\nkeepalive_timeout 75;\nworker_connections 4096;\n"
+      }
+     ]
+    }
+   },
+   "_event": "v2_runner_on_ok",
+   "_timestamp": "2026-08-15T09:41:30.589705Z"
+  },
+  "task": "Render nginx site configuration",
+  "play": "",
+  "created_at": "2026-08-15T09:41:30.589705Z"
+ },
+ {
+  "counter": 69,
+  "event": "runner_on_ok",
+  "event_data": {
+   "task": {
+    "name": "Render nginx site configuration",
+    "id": "66b2bc5b-50c1-47fc-8e17-7b4e0837b8a3",
+    "path": "/runner/project/roles/web/tasks/main.yml:23",
+    "duration": {
+     "start": "2026-08-15T09:41:29.355606Z",
+     "end": "2026-08-15T09:41:30.781310Z"
+    }
+   },
+   "hosts": {
+    "web05": {
+     "action": "ansible.builtin.template",
+     "changed": true,
+     "checksum": "8f3b1e0c9a4d",
+     "dest": "/etc/nginx/sites-available/app.conf",
+     "diff": [
+      {
+       "before_header": "/etc/nginx/sites-available/app.conf (content)",
+       "after_header": "/etc/nginx/sites-available/app.conf (content)",
+       "before": "upstream app {\n  server 127.0.0.1:3000;\n}\nkeepalive_timeout 65;\nworker_connections 1024;\n",
+       "after": "upstream app {\n  server 127.0.0.1:3000;\n  server 127.0.0.1:3001;\n}\nkeepalive_timeout 75;\nworker_connections 4096;\n"
+      }
+     ]
+    }
+   },
+   "_event": "v2_runner_on_ok",
+   "_timestamp": "2026-08-15T09:41:30.781310Z"
+  },
+  "task": "Render nginx site configuration",
+  "play": "",
+  "created_at": "2026-08-15T09:41:30.781310Z"
+ },
+ {
+  "counter": 70,
+  "event": "runner_on_ok",
+  "event_data": {
+   "task": {
+    "name": "Render nginx site configuration",
+    "id": "66b2bc5b-50c1-47fc-8e17-7b4e0837b8a3",
+    "path": "/runner/project/roles/web/tasks/main.yml:23",
+    "duration": {
+     "start": "2026-08-15T09:41:29.355606Z",
+     "end": "2026-08-15T09:41:31.126257Z"
+    }
+   },
+   "hosts": {
+    "web06": {
+     "action": "ansible.builtin.template",
+     "changed": true,
+     "checksum": "8f3b1e0c9a4d",
+     "dest": "/etc/nginx/sites-available/app.conf",
+     "diff": [
+      {
+       "before_header": "/etc/nginx/sites-available/app.conf (content)",
+       "after_header": "/etc/nginx/sites-available/app.conf (content)",
+       "before": "upstream app {\n  server 127.0.0.1:3000;\n}\nkeepalive_timeout 65;\nworker_connections 1024;\n",
+       "after": "upstream app {\n  server 127.0.0.1:3000;\n  server 127.0.0.1:3001;\n}\nkeepalive_timeout 75;\nworker_connections 4096;\n"
+      }
+     ]
+    }
+   },
+   "_event": "v2_runner_on_ok",
+   "_timestamp": "2026-08-15T09:41:31.126257Z"
+  },
+  "task": "Render nginx site configuration",
+  "play": "",
+  "created_at": "2026-08-15T09:41:31.126257Z"
+ },
+ {
+  "counter": 71,
+  "event": "runner_on_ok",
+  "event_data": {
+   "task": {
+    "name": "Render nginx site configuration",
+    "id": "66b2bc5b-50c1-47fc-8e17-7b4e0837b8a3",
+    "path": "/runner/project/roles/web/tasks/main.yml:23",
+    "duration": {
+     "start": "2026-08-15T09:41:29.355606Z",
+     "end": "2026-08-15T09:41:31.354291Z"
+    }
+   },
+   "hosts": {
+    "web08": {
+     "action": "ansible.builtin.template",
+     "changed": true,
+     "checksum": "8f3b1e0c9a4d",
+     "dest": "/etc/nginx/sites-available/app.conf",
+     "diff": [
+      {
+       "before_header": "/etc/nginx/sites-available/app.conf (content)",
+       "after_header": "/etc/nginx/sites-available/app.conf (content)",
+       "before": "upstream app {\n  server 127.0.0.1:3000;\n}\nkeepalive_timeout 65;\nworker_connections 1024;\n",
+       "after": "upstream app {\n  server 127.0.0.1:3000;\n  server 127.0.0.1:3001;\n}\nkeepalive_timeout 75;\nworker_connections 4096;\n"
+      }
+     ]
+    }
+   },
+   "_event": "v2_runner_on_ok",
+   "_timestamp": "2026-08-15T09:41:31.354291Z"
+  },
+  "task": "Render nginx site configuration",
+  "play": "",
+  "created_at": "2026-08-15T09:41:31.354291Z"
+ },
+ {
+  "counter": 72,
+  "event": "runner_on_ok",
+  "event_data": {
+   "task": {
+    "name": "Render nginx site configuration",
+    "id": "66b2bc5b-50c1-47fc-8e17-7b4e0837b8a3",
+    "path": "/runner/project/roles/web/tasks/main.yml:23",
+    "duration": {
+     "start": "2026-08-15T09:41:29.355606Z",
+     "end": "2026-08-15T09:41:31.815837Z"
+    }
+   },
+   "hosts": {
+    "api01": {
+     "action": "ansible.builtin.template",
+     "changed": false,
+     "skipped": true,
+     "skip_reason": "Conditional result was False"
+    }
+   },
+   "_event": "v2_runner_on_skipped",
+   "_timestamp": "2026-08-15T09:41:31.815837Z"
+  },
+  "task": "Render nginx site configuration",
+  "play": "",
+  "created_at": "2026-08-15T09:41:31.815837Z"
+ },
+ {
+  "counter": 73,
+  "event": "runner_on_ok",
+  "event_data": {
+   "task": {
+    "name": "Render nginx site configuration",
+    "id": "66b2bc5b-50c1-47fc-8e17-7b4e0837b8a3",
+    "path": "/runner/project/roles/web/tasks/main.yml:23",
+    "duration": {
+     "start": "2026-08-15T09:41:29.355606Z",
+     "end": "2026-08-15T09:41:32.072320Z"
+    }
+   },
+   "hosts": {
+    "api02": {
+     "action": "ansible.builtin.template",
+     "changed": false,
+     "skipped": true,
+     "skip_reason": "Conditional result was False"
+    }
+   },
+   "_event": "v2_runner_on_skipped",
+   "_timestamp": "2026-08-15T09:41:32.072320Z"
+  },
+  "task": "Render nginx site configuration",
+  "play": "",
+  "created_at": "2026-08-15T09:41:32.072320Z"
+ },
+ {
+  "counter": 74,
+  "event": "runner_on_ok",
+  "event_data": {
+   "task": {
+    "name": "Render nginx site configuration",
+    "id": "66b2bc5b-50c1-47fc-8e17-7b4e0837b8a3",
+    "path": "/runner/project/roles/web/tasks/main.yml:23",
+    "duration": {
+     "start": "2026-08-15T09:41:29.355606Z",
+     "end": "2026-08-15T09:41:32.241516Z"
+    }
+   },
+   "hosts": {
+    "api03": {
+     "action": "ansible.builtin.template",
+     "changed": false,
+     "skipped": true,
+     "skip_reason": "Conditional result was False"
+    }
+   },
+   "_event": "v2_runner_on_skipped",
+   "_timestamp": "2026-08-15T09:41:32.241516Z"
+  },
+  "task": "Render nginx site configuration",
+  "play": "",
+  "created_at": "2026-08-15T09:41:32.241516Z"
+ },
+ {
+  "counter": 75,
+  "event": "runner_on_ok",
+  "event_data": {
+   "task": {
+    "name": "Render nginx site configuration",
+    "id": "66b2bc5b-50c1-47fc-8e17-7b4e0837b8a3",
+    "path": "/runner/project/roles/web/tasks/main.yml:23",
+    "duration": {
+     "start": "2026-08-15T09:41:29.355606Z",
+     "end": "2026-08-15T09:41:32.402498Z"
+    }
+   },
+   "hosts": {
+    "api04": {
+     "action": "ansible.builtin.template",
+     "changed": false,
+     "skipped": true,
+     "skip_reason": "Conditional result was False"
+    }
+   },
+   "_event": "v2_runner_on_skipped",
+   "_timestamp": "2026-08-15T09:41:32.402498Z"
+  },
+  "task": "Render nginx site configuration",
+  "play": "",
+  "created_at": "2026-08-15T09:41:32.402498Z"
+ },
+ {
+  "counter": 76,
+  "event": "runner_on_ok",
+  "event_data": {
+   "task": {
+    "name": "Render nginx site configuration",
+    "id": "66b2bc5b-50c1-47fc-8e17-7b4e0837b8a3",
+    "path": "/runner/project/roles/web/tasks/main.yml:23",
+    "duration": {
+     "start": "2026-08-15T09:41:29.355606Z",
+     "end": "2026-08-15T09:41:32.705114Z"
+    }
+   },
+   "hosts": {
+    "api05": {
+     "action": "ansible.builtin.template",
+     "changed": false,
+     "skipped": true,
+     "skip_reason": "Conditional result was False"
+    }
+   },
+   "_event": "v2_runner_on_skipped",
+   "_timestamp": "2026-08-15T09:41:32.705114Z"
+  },
+  "task": "Render nginx site configuration",
+  "play": "",
+  "created_at": "2026-08-15T09:41:32.705114Z"
+ },
+ {
+  "counter": 77,
+  "event": "runner_on_ok",
+  "event_data": {
+   "task": {
+    "name": "Render nginx site configuration",
+    "id": "66b2bc5b-50c1-47fc-8e17-7b4e0837b8a3",
+    "path": "/runner/project/roles/web/tasks/main.yml:23",
+    "duration": {
+     "start": "2026-08-15T09:41:29.355606Z",
+     "end": "2026-08-15T09:41:32.873348Z"
+    }
+   },
+   "hosts": {
+    "api06": {
+     "action": "ansible.builtin.template",
+     "changed": false,
+     "skipped": true,
+     "skip_reason": "Conditional result was False"
+    }
+   },
+   "_event": "v2_runner_on_skipped",
+   "_timestamp": "2026-08-15T09:41:32.873348Z"
+  },
+  "task": "Render nginx site configuration",
+  "play": "",
+  "created_at": "2026-08-15T09:41:32.873348Z"
+ },
+ {
+  "counter": 78,
+  "event": "runner_on_ok",
+  "event_data": {
+   "task": {
+    "name": "Render nginx site configuration",
+    "id": "66b2bc5b-50c1-47fc-8e17-7b4e0837b8a3",
+    "path": "/runner/project/roles/web/tasks/main.yml:23",
+    "duration": {
+     "start": "2026-08-15T09:41:29.355606Z",
+     "end": "2026-08-15T09:41:33.186412Z"
+    }
+   },
+   "hosts": {
+    "db01": {
+     "action": "ansible.builtin.template",
+     "changed": false,
+     "skipped": true,
+     "skip_reason": "Conditional result was False"
+    }
+   },
+   "_event": "v2_runner_on_skipped",
+   "_timestamp": "2026-08-15T09:41:33.186412Z"
+  },
+  "task": "Render nginx site configuration",
+  "play": "",
+  "created_at": "2026-08-15T09:41:33.186412Z"
+ },
+ {
+  "counter": 79,
+  "event": "runner_on_ok",
+  "event_data": {
+   "task": {
+    "name": "Render nginx site configuration",
+    "id": "66b2bc5b-50c1-47fc-8e17-7b4e0837b8a3",
+    "path": "/runner/project/roles/web/tasks/main.yml:23",
+    "duration": {
+     "start": "2026-08-15T09:41:29.355606Z",
+     "end": "2026-08-15T09:41:33.640432Z"
+    }
+   },
+   "hosts": {
+    "db02": {
+     "action": "ansible.builtin.template",
+     "changed": false,
+     "skipped": true,
+     "skip_reason": "Conditional result was False"
+    }
+   },
+   "_event": "v2_runner_on_skipped",
+   "_timestamp": "2026-08-15T09:41:33.640432Z"
+  },
+  "task": "Render nginx site configuration",
+  "play": "",
+  "created_at": "2026-08-15T09:41:33.640432Z"
+ },
+ {
+  "counter": 80,
+  "event": "runner_on_ok",
+  "event_data": {
+   "task": {
+    "name": "Render nginx site configuration",
+    "id": "66b2bc5b-50c1-47fc-8e17-7b4e0837b8a3",
+    "path": "/runner/project/roles/web/tasks/main.yml:23",
+    "duration": {
+     "start": "2026-08-15T09:41:29.355606Z",
+     "end": "2026-08-15T09:41:33.870162Z"
+    }
+   },
+   "hosts": {
+    "db03": {
+     "action": "ansible.builtin.template",
+     "changed": false,
+     "skipped": true,
+     "skip_reason": "Conditional result was False"
+    }
+   },
+   "_event": "v2_runner_on_skipped",
+   "_timestamp": "2026-08-15T09:41:33.870162Z"
+  },
+  "task": "Render nginx site configuration",
+  "play": "",
+  "created_at": "2026-08-15T09:41:33.870162Z"
+ },
+ {
+  "counter": 81,
+  "event": "runner_on_ok",
+  "event_data": {
+   "task": {
+    "name": "Render nginx site configuration",
+    "id": "66b2bc5b-50c1-47fc-8e17-7b4e0837b8a3",
+    "path": "/runner/project/roles/web/tasks/main.yml:23",
+    "duration": {
+     "start": "2026-08-15T09:41:29.355606Z",
+     "end": "2026-08-15T09:41:34.018856Z"
+    }
+   },
+   "hosts": {
+    "cache01": {
+     "action": "ansible.builtin.template",
+     "changed": false,
+     "skipped": true,
+     "skip_reason": "Conditional result was False"
+    }
+   },
+   "_event": "v2_runner_on_skipped",
+   "_timestamp": "2026-08-15T09:41:34.018856Z"
+  },
+  "task": "Render nginx site configuration",
+  "play": "",
+  "created_at": "2026-08-15T09:41:34.018856Z"
+ },
+ {
+  "counter": 82,
+  "event": "runner_on_ok",
+  "event_data": {
+   "task": {
+    "name": "Render nginx site configuration",
+    "id": "66b2bc5b-50c1-47fc-8e17-7b4e0837b8a3",
+    "path": "/runner/project/roles/web/tasks/main.yml:23",
+    "duration": {
+     "start": "2026-08-15T09:41:29.355606Z",
+     "end": "2026-08-15T09:41:34.517748Z"
+    }
+   },
+   "hosts": {
+    "cache02": {
+     "action": "ansible.builtin.template",
+     "changed": false,
+     "skipped": true,
+     "skip_reason": "Conditional result was False"
+    }
+   },
+   "_event": "v2_runner_on_skipped",
+   "_timestamp": "2026-08-15T09:41:34.517748Z"
+  },
+  "task": "Render nginx site configuration",
+  "play": "",
+  "created_at": "2026-08-15T09:41:34.517748Z"
+ },
+ {
+  "counter": 83,
+  "event": "runner_on_ok",
+  "event_data": {
+   "task": {
+    "name": "Render nginx site configuration",
+    "id": "66b2bc5b-50c1-47fc-8e17-7b4e0837b8a3",
+    "path": "/runner/project/roles/web/tasks/main.yml:23",
+    "duration": {
+     "start": "2026-08-15T09:41:29.355606Z",
+     "end": "2026-08-15T09:41:34.797035Z"
+    }
+   },
+   "hosts": {
+    "lb01": {
+     "action": "ansible.builtin.template",
+     "changed": true,
+     "checksum": "8f3b1e0c9a4d",
+     "dest": "/etc/nginx/sites-available/app.conf",
+     "diff": [
+      {
+       "before_header": "/etc/nginx/sites-available/app.conf (content)",
+       "after_header": "/etc/nginx/sites-available/app.conf (content)",
+       "before": "upstream app {\n  server 127.0.0.1:3000;\n}\nkeepalive_timeout 65;\nworker_connections 1024;\n",
+       "after": "upstream app {\n  server 127.0.0.1:3000;\n  server 127.0.0.1:3001;\n}\nkeepalive_timeout 75;\nworker_connections 4096;\n"
+      }
+     ]
+    }
+   },
+   "_event": "v2_runner_on_ok",
+   "_timestamp": "2026-08-15T09:41:34.797035Z"
+  },
+  "task": "Render nginx site configuration",
+  "play": "",
+  "created_at": "2026-08-15T09:41:34.797035Z"
+ },
+ {
+  "counter": 84,
+  "event": "runner_on_ok",
+  "event_data": {
+   "task": {
+    "name": "Unpack release bundle v2.14.1",
+    "id": "dc713d96-0c0f-4195-817a-f08a1745d6d8",
+    "path": "/runner/project/roles/app/tasks/deploy.yml:8",
+    "duration": {
+     "start": "2026-08-15T09:41:35.097035Z"
+    }
+   },
+   "hosts": {},
+   "_event": "v2_playbook_on_task_start",
+   "_timestamp": "2026-08-15T09:41:35.097035Z"
+  },
+  "task": "Unpack release bundle v2.14.1",
+  "play": "",
+  "created_at": "2026-08-15T09:41:35.097035Z"
+ },
+ {
+  "counter": 85,
+  "event": "runner_on_ok",
+  "event_data": {
+   "task": {
+    "name": "Unpack release bundle v2.14.1",
+    "id": "dc713d96-0c0f-4195-817a-f08a1745d6d8",
+    "path": "/runner/project/roles/app/tasks/deploy.yml:8",
+    "duration": {
+     "start": "2026-08-15T09:41:35.097035Z",
+     "end": "2026-08-15T09:41:35.196377Z"
+    }
+   },
+   "hosts": {
+    "web01": {
+     "action": "ansible.builtin.unarchive",
+     "changed": true,
+     "dest": "/opt/app/releases/v2.14.1",
+     "src": "/tmp/bundle-v2.14.1.tar.gz",
+     "extract_results": {
+      "cmd": [
+       "/usr/bin/tar",
+       "-xzf"
+      ],
+      "rc": 0
+     }
+    }
+   },
+   "_event": "v2_runner_on_ok",
+   "_timestamp": "2026-08-15T09:41:35.196377Z"
+  },
+  "task": "Unpack release bundle v2.14.1",
+  "play": "",
+  "created_at": "2026-08-15T09:41:35.196377Z"
+ },
+ {
+  "counter": 86,
+  "event": "runner_on_ok",
+  "event_data": {
+   "task": {
+    "name": "Unpack release bundle v2.14.1",
+    "id": "dc713d96-0c0f-4195-817a-f08a1745d6d8",
+    "path": "/runner/project/roles/app/tasks/deploy.yml:8",
+    "duration": {
+     "start": "2026-08-15T09:41:35.097035Z",
+     "end": "2026-08-15T09:41:35.528728Z"
+    }
+   },
+   "hosts": {
+    "web02": {
+     "action": "ansible.builtin.unarchive",
+     "changed": true,
+     "dest": "/opt/app/releases/v2.14.1",
+     "src": "/tmp/bundle-v2.14.1.tar.gz",
+     "extract_results": {
+      "cmd": [
+       "/usr/bin/tar",
+       "-xzf"
+      ],
+      "rc": 0
+     }
+    }
+   },
+   "_event": "v2_runner_on_ok",
+   "_timestamp": "2026-08-15T09:41:35.528728Z"
+  },
+  "task": "Unpack release bundle v2.14.1",
+  "play": "",
+  "created_at": "2026-08-15T09:41:35.528728Z"
+ },
+ {
+  "counter": 87,
+  "event": "runner_on_ok",
+  "event_data": {
+   "task": {
+    "name": "Unpack release bundle v2.14.1",
+    "id": "dc713d96-0c0f-4195-817a-f08a1745d6d8",
+    "path": "/runner/project/roles/app/tasks/deploy.yml:8",
+    "duration": {
+     "start": "2026-08-15T09:41:35.097035Z",
+     "end": "2026-08-15T09:41:35.935164Z"
+    }
+   },
+   "hosts": {
+    "web03": {
+     "action": "ansible.builtin.unarchive",
+     "changed": true,
+     "dest": "/opt/app/releases/v2.14.1",
+     "src": "/tmp/bundle-v2.14.1.tar.gz",
+     "extract_results": {
+      "cmd": [
+       "/usr/bin/tar",
+       "-xzf"
+      ],
+      "rc": 0
+     }
+    }
+   },
+   "_event": "v2_runner_on_ok",
+   "_timestamp": "2026-08-15T09:41:35.935164Z"
+  },
+  "task": "Unpack release bundle v2.14.1",
+  "play": "",
+  "created_at": "2026-08-15T09:41:35.935164Z"
+ },
+ {
+  "counter": 88,
+  "event": "runner_on_ok",
+  "event_data": {
+   "task": {
+    "name": "Unpack release bundle v2.14.1",
+    "id": "dc713d96-0c0f-4195-817a-f08a1745d6d8",
+    "path": "/runner/project/roles/app/tasks/deploy.yml:8",
+    "duration": {
+     "start": "2026-08-15T09:41:35.097035Z",
+     "end": "2026-08-15T09:41:36.175136Z"
+    }
+   },
+   "hosts": {
+    "web04": {
+     "action": "ansible.builtin.unarchive",
+     "changed": true,
+     "dest": "/opt/app/releases/v2.14.1",
+     "src": "/tmp/bundle-v2.14.1.tar.gz",
+     "extract_results": {
+      "cmd": [
+       "/usr/bin/tar",
+       "-xzf"
+      ],
+      "rc": 0
+     }
+    }
+   },
+   "_event": "v2_runner_on_ok",
+   "_timestamp": "2026-08-15T09:41:36.175136Z"
+  },
+  "task": "Unpack release bundle v2.14.1",
+  "play": "",
+  "created_at": "2026-08-15T09:41:36.175136Z"
+ },
+ {
+  "counter": 89,
+  "event": "runner_on_ok",
+  "event_data": {
+   "task": {
+    "name": "Unpack release bundle v2.14.1",
+    "id": "dc713d96-0c0f-4195-817a-f08a1745d6d8",
+    "path": "/runner/project/roles/app/tasks/deploy.yml:8",
+    "duration": {
+     "start": "2026-08-15T09:41:35.097035Z",
+     "end": "2026-08-15T09:41:36.253723Z"
+    }
+   },
+   "hosts": {
+    "web05": {
+     "action": "ansible.builtin.unarchive",
+     "changed": true,
+     "dest": "/opt/app/releases/v2.14.1",
+     "src": "/tmp/bundle-v2.14.1.tar.gz",
+     "extract_results": {
+      "cmd": [
+       "/usr/bin/tar",
+       "-xzf"
+      ],
+      "rc": 0
+     }
+    }
+   },
+   "_event": "v2_runner_on_ok",
+   "_timestamp": "2026-08-15T09:41:36.253723Z"
+  },
+  "task": "Unpack release bundle v2.14.1",
+  "play": "",
+  "created_at": "2026-08-15T09:41:36.253723Z"
+ },
+ {
+  "counter": 90,
+  "event": "runner_on_ok",
+  "event_data": {
+   "task": {
+    "name": "Unpack release bundle v2.14.1",
+    "id": "dc713d96-0c0f-4195-817a-f08a1745d6d8",
+    "path": "/runner/project/roles/app/tasks/deploy.yml:8",
+    "duration": {
+     "start": "2026-08-15T09:41:35.097035Z",
+     "end": "2026-08-15T09:41:36.475452Z"
+    }
+   },
+   "hosts": {
+    "web06": {
+     "action": "ansible.builtin.unarchive",
+     "changed": true,
+     "dest": "/opt/app/releases/v2.14.1",
+     "src": "/tmp/bundle-v2.14.1.tar.gz",
+     "extract_results": {
+      "cmd": [
+       "/usr/bin/tar",
+       "-xzf"
+      ],
+      "rc": 0
+     }
+    }
+   },
+   "_event": "v2_runner_on_ok",
+   "_timestamp": "2026-08-15T09:41:36.475452Z"
+  },
+  "task": "Unpack release bundle v2.14.1",
+  "play": "",
+  "created_at": "2026-08-15T09:41:36.475452Z"
+ },
+ {
+  "counter": 91,
+  "event": "runner_on_ok",
+  "event_data": {
+   "task": {
+    "name": "Unpack release bundle v2.14.1",
+    "id": "dc713d96-0c0f-4195-817a-f08a1745d6d8",
+    "path": "/runner/project/roles/app/tasks/deploy.yml:8",
+    "duration": {
+     "start": "2026-08-15T09:41:35.097035Z",
+     "end": "2026-08-15T09:41:36.973707Z"
+    }
+   },
+   "hosts": {
+    "web08": {
+     "action": "ansible.builtin.unarchive",
+     "changed": true,
+     "dest": "/opt/app/releases/v2.14.1",
+     "src": "/tmp/bundle-v2.14.1.tar.gz",
+     "extract_results": {
+      "cmd": [
+       "/usr/bin/tar",
+       "-xzf"
+      ],
+      "rc": 0
+     }
+    }
+   },
+   "_event": "v2_runner_on_ok",
+   "_timestamp": "2026-08-15T09:41:36.973707Z"
+  },
+  "task": "Unpack release bundle v2.14.1",
+  "play": "",
+  "created_at": "2026-08-15T09:41:36.973707Z"
+ },
+ {
+  "counter": 92,
+  "event": "runner_on_ok",
+  "event_data": {
+   "task": {
+    "name": "Unpack release bundle v2.14.1",
+    "id": "dc713d96-0c0f-4195-817a-f08a1745d6d8",
+    "path": "/runner/project/roles/app/tasks/deploy.yml:8",
+    "duration": {
+     "start": "2026-08-15T09:41:35.097035Z",
+     "end": "2026-08-15T09:41:37.261808Z"
+    }
+   },
+   "hosts": {
+    "api01": {
+     "action": "ansible.builtin.unarchive",
+     "changed": true,
+     "dest": "/opt/app/releases/v2.14.1",
+     "src": "/tmp/bundle-v2.14.1.tar.gz",
+     "extract_results": {
+      "cmd": [
+       "/usr/bin/tar",
+       "-xzf"
+      ],
+      "rc": 0
+     }
+    }
+   },
+   "_event": "v2_runner_on_ok",
+   "_timestamp": "2026-08-15T09:41:37.261808Z"
+  },
+  "task": "Unpack release bundle v2.14.1",
+  "play": "",
+  "created_at": "2026-08-15T09:41:37.261808Z"
+ },
+ {
+  "counter": 93,
+  "event": "runner_on_ok",
+  "event_data": {
+   "task": {
+    "name": "Unpack release bundle v2.14.1",
+    "id": "dc713d96-0c0f-4195-817a-f08a1745d6d8",
+    "path": "/runner/project/roles/app/tasks/deploy.yml:8",
+    "duration": {
+     "start": "2026-08-15T09:41:35.097035Z",
+     "end": "2026-08-15T09:41:37.748793Z"
+    }
+   },
+   "hosts": {
+    "api02": {
+     "action": "ansible.builtin.unarchive",
+     "changed": true,
+     "dest": "/opt/app/releases/v2.14.1",
+     "src": "/tmp/bundle-v2.14.1.tar.gz",
+     "extract_results": {
+      "cmd": [
+       "/usr/bin/tar",
+       "-xzf"
+      ],
+      "rc": 0
+     }
+    }
+   },
+   "_event": "v2_runner_on_ok",
+   "_timestamp": "2026-08-15T09:41:37.748793Z"
+  },
+  "task": "Unpack release bundle v2.14.1",
+  "play": "",
+  "created_at": "2026-08-15T09:41:37.748793Z"
+ },
+ {
+  "counter": 94,
+  "event": "runner_on_ok",
+  "event_data": {
+   "task": {
+    "name": "Unpack release bundle v2.14.1",
+    "id": "dc713d96-0c0f-4195-817a-f08a1745d6d8",
+    "path": "/runner/project/roles/app/tasks/deploy.yml:8",
+    "duration": {
+     "start": "2026-08-15T09:41:35.097035Z",
+     "end": "2026-08-15T09:41:38.186144Z"
+    }
+   },
+   "hosts": {
+    "api03": {
+     "action": "ansible.builtin.unarchive",
+     "changed": true,
+     "dest": "/opt/app/releases/v2.14.1",
+     "src": "/tmp/bundle-v2.14.1.tar.gz",
+     "extract_results": {
+      "cmd": [
+       "/usr/bin/tar",
+       "-xzf"
+      ],
+      "rc": 0
+     }
+    }
+   },
+   "_event": "v2_runner_on_ok",
+   "_timestamp": "2026-08-15T09:41:38.186144Z"
+  },
+  "task": "Unpack release bundle v2.14.1",
+  "play": "",
+  "created_at": "2026-08-15T09:41:38.186144Z"
+ },
+ {
+  "counter": 95,
+  "event": "runner_on_ok",
+  "event_data": {
+   "task": {
+    "name": "Unpack release bundle v2.14.1",
+    "id": "dc713d96-0c0f-4195-817a-f08a1745d6d8",
+    "path": "/runner/project/roles/app/tasks/deploy.yml:8",
+    "duration": {
+     "start": "2026-08-15T09:41:35.097035Z",
+     "end": "2026-08-15T09:41:38.241310Z"
+    }
+   },
+   "hosts": {
+    "api04": {
+     "action": "ansible.builtin.unarchive",
+     "changed": true,
+     "dest": "/opt/app/releases/v2.14.1",
+     "src": "/tmp/bundle-v2.14.1.tar.gz",
+     "extract_results": {
+      "cmd": [
+       "/usr/bin/tar",
+       "-xzf"
+      ],
+      "rc": 0
+     }
+    }
+   },
+   "_event": "v2_runner_on_ok",
+   "_timestamp": "2026-08-15T09:41:38.241310Z"
+  },
+  "task": "Unpack release bundle v2.14.1",
+  "play": "",
+  "created_at": "2026-08-15T09:41:38.241310Z"
+ },
+ {
+  "counter": 96,
+  "event": "runner_on_ok",
+  "event_data": {
+   "task": {
+    "name": "Unpack release bundle v2.14.1",
+    "id": "dc713d96-0c0f-4195-817a-f08a1745d6d8",
+    "path": "/runner/project/roles/app/tasks/deploy.yml:8",
+    "duration": {
+     "start": "2026-08-15T09:41:35.097035Z",
+     "end": "2026-08-15T09:41:38.615635Z"
+    }
+   },
+   "hosts": {
+    "api05": {
+     "action": "ansible.builtin.unarchive",
+     "changed": true,
+     "dest": "/opt/app/releases/v2.14.1",
+     "src": "/tmp/bundle-v2.14.1.tar.gz",
+     "extract_results": {
+      "cmd": [
+       "/usr/bin/tar",
+       "-xzf"
+      ],
+      "rc": 0
+     }
+    }
+   },
+   "_event": "v2_runner_on_ok",
+   "_timestamp": "2026-08-15T09:41:38.615635Z"
+  },
+  "task": "Unpack release bundle v2.14.1",
+  "play": "",
+  "created_at": "2026-08-15T09:41:38.615635Z"
+ },
+ {
+  "counter": 97,
+  "event": "runner_on_ok",
+  "event_data": {
+   "task": {
+    "name": "Unpack release bundle v2.14.1",
+    "id": "dc713d96-0c0f-4195-817a-f08a1745d6d8",
+    "path": "/runner/project/roles/app/tasks/deploy.yml:8",
+    "duration": {
+     "start": "2026-08-15T09:41:35.097035Z",
+     "end": "2026-08-15T09:41:38.972405Z"
+    }
+   },
+   "hosts": {
+    "api06": {
+     "action": "ansible.builtin.unarchive",
+     "changed": true,
+     "dest": "/opt/app/releases/v2.14.1",
+     "src": "/tmp/bundle-v2.14.1.tar.gz",
+     "extract_results": {
+      "cmd": [
+       "/usr/bin/tar",
+       "-xzf"
+      ],
+      "rc": 0
+     }
+    }
+   },
+   "_event": "v2_runner_on_ok",
+   "_timestamp": "2026-08-15T09:41:38.972405Z"
+  },
+  "task": "Unpack release bundle v2.14.1",
+  "play": "",
+  "created_at": "2026-08-15T09:41:38.972405Z"
+ },
+ {
+  "counter": 98,
+  "event": "runner_on_ok",
+  "event_data": {
+   "task": {
+    "name": "Unpack release bundle v2.14.1",
+    "id": "dc713d96-0c0f-4195-817a-f08a1745d6d8",
+    "path": "/runner/project/roles/app/tasks/deploy.yml:8",
+    "duration": {
+     "start": "2026-08-15T09:41:35.097035Z",
+     "end": "2026-08-15T09:41:39.264042Z"
+    }
+   },
+   "hosts": {
+    "db01": {
+     "action": "ansible.builtin.unarchive",
+     "changed": false,
+     "skipped": true,
+     "skip_reason": "Conditional result was False"
+    }
+   },
+   "_event": "v2_runner_on_skipped",
+   "_timestamp": "2026-08-15T09:41:39.264042Z"
+  },
+  "task": "Unpack release bundle v2.14.1",
+  "play": "",
+  "created_at": "2026-08-15T09:41:39.264042Z"
+ },
+ {
+  "counter": 99,
+  "event": "runner_on_ok",
+  "event_data": {
+   "task": {
+    "name": "Unpack release bundle v2.14.1",
+    "id": "dc713d96-0c0f-4195-817a-f08a1745d6d8",
+    "path": "/runner/project/roles/app/tasks/deploy.yml:8",
+    "duration": {
+     "start": "2026-08-15T09:41:35.097035Z",
+     "end": "2026-08-15T09:41:39.434113Z"
+    }
+   },
+   "hosts": {
+    "db02": {
+     "action": "ansible.builtin.unarchive",
+     "changed": false,
+     "skipped": true,
+     "skip_reason": "Conditional result was False"
+    }
+   },
+   "_event": "v2_runner_on_skipped",
+   "_timestamp": "2026-08-15T09:41:39.434113Z"
+  },
+  "task": "Unpack release bundle v2.14.1",
+  "play": "",
+  "created_at": "2026-08-15T09:41:39.434113Z"
+ },
+ {
+  "counter": 100,
+  "event": "runner_on_ok",
+  "event_data": {
+   "task": {
+    "name": "Unpack release bundle v2.14.1",
+    "id": "dc713d96-0c0f-4195-817a-f08a1745d6d8",
+    "path": "/runner/project/roles/app/tasks/deploy.yml:8",
+    "duration": {
+     "start": "2026-08-15T09:41:35.097035Z",
+     "end": "2026-08-15T09:41:39.772546Z"
+    }
+   },
+   "hosts": {
+    "db03": {
+     "action": "ansible.builtin.unarchive",
+     "changed": false,
+     "skipped": true,
+     "skip_reason": "Conditional result was False"
+    }
+   },
+   "_event": "v2_runner_on_skipped",
+   "_timestamp": "2026-08-15T09:41:39.772546Z"
+  },
+  "task": "Unpack release bundle v2.14.1",
+  "play": "",
+  "created_at": "2026-08-15T09:41:39.772546Z"
+ },
+ {
+  "counter": 101,
+  "event": "runner_on_ok",
+  "event_data": {
+   "task": {
+    "name": "Unpack release bundle v2.14.1",
+    "id": "dc713d96-0c0f-4195-817a-f08a1745d6d8",
+    "path": "/runner/project/roles/app/tasks/deploy.yml:8",
+    "duration": {
+     "start": "2026-08-15T09:41:35.097035Z",
+     "end": "2026-08-15T09:41:39.872744Z"
+    }
+   },
+   "hosts": {
+    "cache01": {
+     "action": "ansible.builtin.unarchive",
+     "changed": false,
+     "skipped": true,
+     "skip_reason": "Conditional result was False"
+    }
+   },
+   "_event": "v2_runner_on_skipped",
+   "_timestamp": "2026-08-15T09:41:39.872744Z"
+  },
+  "task": "Unpack release bundle v2.14.1",
+  "play": "",
+  "created_at": "2026-08-15T09:41:39.872744Z"
+ },
+ {
+  "counter": 102,
+  "event": "runner_on_ok",
+  "event_data": {
+   "task": {
+    "name": "Unpack release bundle v2.14.1",
+    "id": "dc713d96-0c0f-4195-817a-f08a1745d6d8",
+    "path": "/runner/project/roles/app/tasks/deploy.yml:8",
+    "duration": {
+     "start": "2026-08-15T09:41:35.097035Z",
+     "end": "2026-08-15T09:41:40.118388Z"
+    }
+   },
+   "hosts": {
+    "cache02": {
+     "action": "ansible.builtin.unarchive",
+     "changed": false,
+     "skipped": true,
+     "skip_reason": "Conditional result was False"
+    }
+   },
+   "_event": "v2_runner_on_skipped",
+   "_timestamp": "2026-08-15T09:41:40.118388Z"
+  },
+  "task": "Unpack release bundle v2.14.1",
+  "play": "",
+  "created_at": "2026-08-15T09:41:40.118388Z"
+ },
+ {
+  "counter": 103,
+  "event": "runner_on_ok",
+  "event_data": {
+   "task": {
+    "name": "Unpack release bundle v2.14.1",
+    "id": "dc713d96-0c0f-4195-817a-f08a1745d6d8",
+    "path": "/runner/project/roles/app/tasks/deploy.yml:8",
+    "duration": {
+     "start": "2026-08-15T09:41:35.097035Z",
+     "end": "2026-08-15T09:41:40.372564Z"
+    }
+   },
+   "hosts": {
+    "lb01": {
+     "action": "ansible.builtin.unarchive",
+     "changed": false,
+     "skipped": true,
+     "skip_reason": "Conditional result was False"
+    }
+   },
+   "_event": "v2_runner_on_skipped",
+   "_timestamp": "2026-08-15T09:41:40.372564Z"
+  },
+  "task": "Unpack release bundle v2.14.1",
+  "play": "",
+  "created_at": "2026-08-15T09:41:40.372564Z"
+ },
+ {
+  "counter": 104,
+  "event": "runner_on_ok",
+  "event_data": {
+   "task": {
+    "name": "Run database migrations",
+    "id": "b83cfe0b-e037-45ed-b8db-0672f42d47cc",
+    "path": "/runner/project/roles/db/tasks/migrate.yml:5",
+    "duration": {
+     "start": "2026-08-15T09:41:40.572564Z"
+    }
+   },
+   "hosts": {},
+   "_event": "v2_playbook_on_task_start",
+   "_timestamp": "2026-08-15T09:41:40.572564Z"
+  },
+  "task": "Run database migrations",
+  "play": "",
+  "created_at": "2026-08-15T09:41:40.572564Z"
+ },
+ {
+  "counter": 105,
+  "event": "runner_on_ok",
+  "event_data": {
+   "task": {
+    "name": "Run database migrations",
+    "id": "b83cfe0b-e037-45ed-b8db-0672f42d47cc",
+    "path": "/runner/project/roles/db/tasks/migrate.yml:5",
+    "duration": {
+     "start": "2026-08-15T09:41:40.572564Z",
+     "end": "2026-08-15T09:41:40.741089Z"
+    }
+   },
+   "hosts": {
+    "web01": {
+     "action": "ansible.builtin.command",
+     "changed": false,
+     "skipped": true,
+     "skip_reason": "run_once with delegate"
+    }
+   },
+   "_event": "v2_runner_on_skipped",
+   "_timestamp": "2026-08-15T09:41:40.741089Z"
+  },
+  "task": "Run database migrations",
+  "play": "",
+  "created_at": "2026-08-15T09:41:40.741089Z"
+ },
+ {
+  "counter": 106,
+  "event": "runner_on_ok",
+  "event_data": {
+   "task": {
+    "name": "Run database migrations",
+    "id": "b83cfe0b-e037-45ed-b8db-0672f42d47cc",
+    "path": "/runner/project/roles/db/tasks/migrate.yml:5",
+    "duration": {
+     "start": "2026-08-15T09:41:40.572564Z",
+     "end": "2026-08-15T09:41:41.016353Z"
+    }
+   },
+   "hosts": {
+    "web02": {
+     "action": "ansible.builtin.command",
+     "changed": false,
+     "skipped": true,
+     "skip_reason": "run_once with delegate"
+    }
+   },
+   "_event": "v2_runner_on_skipped",
+   "_timestamp": "2026-08-15T09:41:41.016353Z"
+  },
+  "task": "Run database migrations",
+  "play": "",
+  "created_at": "2026-08-15T09:41:41.016353Z"
+ },
+ {
+  "counter": 107,
+  "event": "runner_on_ok",
+  "event_data": {
+   "task": {
+    "name": "Run database migrations",
+    "id": "b83cfe0b-e037-45ed-b8db-0672f42d47cc",
+    "path": "/runner/project/roles/db/tasks/migrate.yml:5",
+    "duration": {
+     "start": "2026-08-15T09:41:40.572564Z",
+     "end": "2026-08-15T09:41:41.146746Z"
+    }
+   },
+   "hosts": {
+    "web03": {
+     "action": "ansible.builtin.command",
+     "changed": false,
+     "skipped": true,
+     "skip_reason": "run_once with delegate"
+    }
+   },
+   "_event": "v2_runner_on_skipped",
+   "_timestamp": "2026-08-15T09:41:41.146746Z"
+  },
+  "task": "Run database migrations",
+  "play": "",
+  "created_at": "2026-08-15T09:41:41.146746Z"
+ },
+ {
+  "counter": 108,
+  "event": "runner_on_ok",
+  "event_data": {
+   "task": {
+    "name": "Run database migrations",
+    "id": "b83cfe0b-e037-45ed-b8db-0672f42d47cc",
+    "path": "/runner/project/roles/db/tasks/migrate.yml:5",
+    "duration": {
+     "start": "2026-08-15T09:41:40.572564Z",
+     "end": "2026-08-15T09:41:41.607429Z"
+    }
+   },
+   "hosts": {
+    "web04": {
+     "action": "ansible.builtin.command",
+     "changed": false,
+     "skipped": true,
+     "skip_reason": "run_once with delegate"
+    }
+   },
+   "_event": "v2_runner_on_skipped",
+   "_timestamp": "2026-08-15T09:41:41.607429Z"
+  },
+  "task": "Run database migrations",
+  "play": "",
+  "created_at": "2026-08-15T09:41:41.607429Z"
+ },
+ {
+  "counter": 109,
+  "event": "runner_on_ok",
+  "event_data": {
+   "task": {
+    "name": "Run database migrations",
+    "id": "b83cfe0b-e037-45ed-b8db-0672f42d47cc",
+    "path": "/runner/project/roles/db/tasks/migrate.yml:5",
+    "duration": {
+     "start": "2026-08-15T09:41:40.572564Z",
+     "end": "2026-08-15T09:41:42.049162Z"
+    }
+   },
+   "hosts": {
+    "web05": {
+     "action": "ansible.builtin.command",
+     "changed": false,
+     "skipped": true,
+     "skip_reason": "run_once with delegate"
+    }
+   },
+   "_event": "v2_runner_on_skipped",
+   "_timestamp": "2026-08-15T09:41:42.049162Z"
+  },
+  "task": "Run database migrations",
+  "play": "",
+  "created_at": "2026-08-15T09:41:42.049162Z"
+ },
+ {
+  "counter": 110,
+  "event": "runner_on_ok",
+  "event_data": {
+   "task": {
+    "name": "Run database migrations",
+    "id": "b83cfe0b-e037-45ed-b8db-0672f42d47cc",
+    "path": "/runner/project/roles/db/tasks/migrate.yml:5",
+    "duration": {
+     "start": "2026-08-15T09:41:40.572564Z",
+     "end": "2026-08-15T09:41:42.233462Z"
+    }
+   },
+   "hosts": {
+    "web06": {
+     "action": "ansible.builtin.command",
+     "changed": false,
+     "skipped": true,
+     "skip_reason": "run_once with delegate"
+    }
+   },
+   "_event": "v2_runner_on_skipped",
+   "_timestamp": "2026-08-15T09:41:42.233462Z"
+  },
+  "task": "Run database migrations",
+  "play": "",
+  "created_at": "2026-08-15T09:41:42.233462Z"
+ },
+ {
+  "counter": 111,
+  "event": "runner_on_ok",
+  "event_data": {
+   "task": {
+    "name": "Run database migrations",
+    "id": "b83cfe0b-e037-45ed-b8db-0672f42d47cc",
+    "path": "/runner/project/roles/db/tasks/migrate.yml:5",
+    "duration": {
+     "start": "2026-08-15T09:41:40.572564Z",
+     "end": "2026-08-15T09:41:42.570989Z"
+    }
+   },
+   "hosts": {
+    "web08": {
+     "action": "ansible.builtin.command",
+     "changed": false,
+     "skipped": true,
+     "skip_reason": "run_once with delegate"
+    }
+   },
+   "_event": "v2_runner_on_skipped",
+   "_timestamp": "2026-08-15T09:41:42.570989Z"
+  },
+  "task": "Run database migrations",
+  "play": "",
+  "created_at": "2026-08-15T09:41:42.570989Z"
+ },
+ {
+  "counter": 112,
+  "event": "runner_on_ok",
+  "event_data": {
+   "task": {
+    "name": "Run database migrations",
+    "id": "b83cfe0b-e037-45ed-b8db-0672f42d47cc",
+    "path": "/runner/project/roles/db/tasks/migrate.yml:5",
+    "duration": {
+     "start": "2026-08-15T09:41:40.572564Z",
+     "end": "2026-08-15T09:41:42.895026Z"
+    }
+   },
+   "hosts": {
+    "api01": {
+     "action": "ansible.builtin.command",
+     "changed": false,
+     "skipped": true,
+     "skip_reason": "run_once with delegate"
+    }
+   },
+   "_event": "v2_runner_on_skipped",
+   "_timestamp": "2026-08-15T09:41:42.895026Z"
+  },
+  "task": "Run database migrations",
+  "play": "",
+  "created_at": "2026-08-15T09:41:42.895026Z"
+ },
+ {
+  "counter": 113,
+  "event": "runner_on_ok",
+  "event_data": {
+   "task": {
+    "name": "Run database migrations",
+    "id": "b83cfe0b-e037-45ed-b8db-0672f42d47cc",
+    "path": "/runner/project/roles/db/tasks/migrate.yml:5",
+    "duration": {
+     "start": "2026-08-15T09:41:40.572564Z",
+     "end": "2026-08-15T09:41:43.013804Z"
+    }
+   },
+   "hosts": {
+    "api02": {
+     "action": "ansible.builtin.command",
+     "changed": false,
+     "skipped": true,
+     "skip_reason": "run_once with delegate"
+    }
+   },
+   "_event": "v2_runner_on_skipped",
+   "_timestamp": "2026-08-15T09:41:43.013804Z"
+  },
+  "task": "Run database migrations",
+  "play": "",
+  "created_at": "2026-08-15T09:41:43.013804Z"
+ },
+ {
+  "counter": 114,
+  "event": "runner_on_ok",
+  "event_data": {
+   "task": {
+    "name": "Run database migrations",
+    "id": "b83cfe0b-e037-45ed-b8db-0672f42d47cc",
+    "path": "/runner/project/roles/db/tasks/migrate.yml:5",
+    "duration": {
+     "start": "2026-08-15T09:41:40.572564Z",
+     "end": "2026-08-15T09:41:43.406934Z"
+    }
+   },
+   "hosts": {
+    "api03": {
+     "action": "ansible.builtin.command",
+     "changed": false,
+     "skipped": true,
+     "skip_reason": "run_once with delegate"
+    }
+   },
+   "_event": "v2_runner_on_skipped",
+   "_timestamp": "2026-08-15T09:41:43.406934Z"
+  },
+  "task": "Run database migrations",
+  "play": "",
+  "created_at": "2026-08-15T09:41:43.406934Z"
+ },
+ {
+  "counter": 115,
+  "event": "runner_on_ok",
+  "event_data": {
+   "task": {
+    "name": "Run database migrations",
+    "id": "b83cfe0b-e037-45ed-b8db-0672f42d47cc",
+    "path": "/runner/project/roles/db/tasks/migrate.yml:5",
+    "duration": {
+     "start": "2026-08-15T09:41:40.572564Z",
+     "end": "2026-08-15T09:41:43.699655Z"
+    }
+   },
+   "hosts": {
+    "api04": {
+     "action": "ansible.builtin.command",
+     "changed": false,
+     "skipped": true,
+     "skip_reason": "run_once with delegate"
+    }
+   },
+   "_event": "v2_runner_on_skipped",
+   "_timestamp": "2026-08-15T09:41:43.699655Z"
+  },
+  "task": "Run database migrations",
+  "play": "",
+  "created_at": "2026-08-15T09:41:43.699655Z"
+ },
+ {
+  "counter": 116,
+  "event": "runner_on_ok",
+  "event_data": {
+   "task": {
+    "name": "Run database migrations",
+    "id": "b83cfe0b-e037-45ed-b8db-0672f42d47cc",
+    "path": "/runner/project/roles/db/tasks/migrate.yml:5",
+    "duration": {
+     "start": "2026-08-15T09:41:40.572564Z",
+     "end": "2026-08-15T09:41:44.100037Z"
+    }
+   },
+   "hosts": {
+    "api05": {
+     "action": "ansible.builtin.command",
+     "changed": false,
+     "skipped": true,
+     "skip_reason": "run_once with delegate"
+    }
+   },
+   "_event": "v2_runner_on_skipped",
+   "_timestamp": "2026-08-15T09:41:44.100037Z"
+  },
+  "task": "Run database migrations",
+  "play": "",
+  "created_at": "2026-08-15T09:41:44.100037Z"
+ },
+ {
+  "counter": 117,
+  "event": "runner_on_ok",
+  "event_data": {
+   "task": {
+    "name": "Run database migrations",
+    "id": "b83cfe0b-e037-45ed-b8db-0672f42d47cc",
+    "path": "/runner/project/roles/db/tasks/migrate.yml:5",
+    "duration": {
+     "start": "2026-08-15T09:41:40.572564Z",
+     "end": "2026-08-15T09:41:44.388696Z"
+    }
+   },
+   "hosts": {
+    "api06": {
+     "action": "ansible.builtin.command",
+     "changed": false,
+     "skipped": true,
+     "skip_reason": "run_once with delegate"
+    }
+   },
+   "_event": "v2_runner_on_skipped",
+   "_timestamp": "2026-08-15T09:41:44.388696Z"
+  },
+  "task": "Run database migrations",
+  "play": "",
+  "created_at": "2026-08-15T09:41:44.388696Z"
+ },
+ {
+  "counter": 118,
+  "event": "runner_on_ok",
+  "event_data": {
+   "task": {
+    "name": "Run database migrations",
+    "id": "b83cfe0b-e037-45ed-b8db-0672f42d47cc",
+    "path": "/runner/project/roles/db/tasks/migrate.yml:5",
+    "duration": {
+     "start": "2026-08-15T09:41:40.572564Z",
+     "end": "2026-08-15T09:41:44.438953Z"
+    }
+   },
+   "hosts": {
+    "db01": {
+     "action": "ansible.builtin.command",
+     "changed": true,
+     "rc": 0,
+     "cmd": [
+      "/opt/app/bin/migrate",
+      "up"
+     ],
+     "delta": "0:00:07.412331",
+     "stdout": "== 20260812093011 AddAuditIndexes: migrating ==\n-- add_index(:audit_events, [:org_id, :created_at])\n   -> 3.2140s\n== 20260812093011 AddAuditIndexes: migrated (7.3s) ==\n\n4 migrations applied, schema at 20260812093011",
+     "stdout_lines": [
+      "== 20260812093011 AddAuditIndexes: migrating ==",
+      "-- add_index(:audit_events, [:org_id, :created_at])",
+      "   -> 3.2140s",
+      "== 20260812093011 AddAuditIndexes: migrated (7.3s) ==",
+      "",
+      "4 migrations applied, schema at 20260812093011"
+     ],
+     "stderr": "",
+     "stderr_lines": []
+    }
+   },
+   "_event": "v2_runner_on_ok",
+   "_timestamp": "2026-08-15T09:41:44.438953Z"
+  },
+  "task": "Run database migrations",
+  "play": "",
+  "created_at": "2026-08-15T09:41:44.438953Z"
+ },
+ {
+  "counter": 119,
+  "event": "runner_on_ok",
+  "event_data": {
+   "task": {
+    "name": "Run database migrations",
+    "id": "b83cfe0b-e037-45ed-b8db-0672f42d47cc",
+    "path": "/runner/project/roles/db/tasks/migrate.yml:5",
+    "duration": {
+     "start": "2026-08-15T09:41:40.572564Z",
+     "end": "2026-08-15T09:41:44.634823Z"
+    }
+   },
+   "hosts": {
+    "db02": {
+     "action": "ansible.builtin.command",
+     "changed": false,
+     "skipped": true,
+     "skip_reason": "run_once with delegate"
+    }
+   },
+   "_event": "v2_runner_on_skipped",
+   "_timestamp": "2026-08-15T09:41:44.634823Z"
+  },
+  "task": "Run database migrations",
+  "play": "",
+  "created_at": "2026-08-15T09:41:44.634823Z"
+ },
+ {
+  "counter": 120,
+  "event": "runner_on_ok",
+  "event_data": {
+   "task": {
+    "name": "Run database migrations",
+    "id": "b83cfe0b-e037-45ed-b8db-0672f42d47cc",
+    "path": "/runner/project/roles/db/tasks/migrate.yml:5",
+    "duration": {
+     "start": "2026-08-15T09:41:40.572564Z",
+     "end": "2026-08-15T09:41:44.693588Z"
+    }
+   },
+   "hosts": {
+    "db03": {
+     "action": "ansible.builtin.command",
+     "changed": false,
+     "skipped": true,
+     "skip_reason": "run_once with delegate"
+    }
+   },
+   "_event": "v2_runner_on_skipped",
+   "_timestamp": "2026-08-15T09:41:44.693588Z"
+  },
+  "task": "Run database migrations",
+  "play": "",
+  "created_at": "2026-08-15T09:41:44.693588Z"
+ },
+ {
+  "counter": 121,
+  "event": "runner_on_ok",
+  "event_data": {
+   "task": {
+    "name": "Run database migrations",
+    "id": "b83cfe0b-e037-45ed-b8db-0672f42d47cc",
+    "path": "/runner/project/roles/db/tasks/migrate.yml:5",
+    "duration": {
+     "start": "2026-08-15T09:41:40.572564Z",
+     "end": "2026-08-15T09:41:45.161682Z"
+    }
+   },
+   "hosts": {
+    "cache01": {
+     "action": "ansible.builtin.command",
+     "changed": false,
+     "skipped": true,
+     "skip_reason": "run_once with delegate"
+    }
+   },
+   "_event": "v2_runner_on_skipped",
+   "_timestamp": "2026-08-15T09:41:45.161682Z"
+  },
+  "task": "Run database migrations",
+  "play": "",
+  "created_at": "2026-08-15T09:41:45.161682Z"
+ },
+ {
+  "counter": 122,
+  "event": "runner_on_ok",
+  "event_data": {
+   "task": {
+    "name": "Run database migrations",
+    "id": "b83cfe0b-e037-45ed-b8db-0672f42d47cc",
+    "path": "/runner/project/roles/db/tasks/migrate.yml:5",
+    "duration": {
+     "start": "2026-08-15T09:41:40.572564Z",
+     "end": "2026-08-15T09:41:45.607107Z"
+    }
+   },
+   "hosts": {
+    "cache02": {
+     "action": "ansible.builtin.command",
+     "changed": false,
+     "skipped": true,
+     "skip_reason": "run_once with delegate"
+    }
+   },
+   "_event": "v2_runner_on_skipped",
+   "_timestamp": "2026-08-15T09:41:45.607107Z"
+  },
+  "task": "Run database migrations",
+  "play": "",
+  "created_at": "2026-08-15T09:41:45.607107Z"
+ },
+ {
+  "counter": 123,
+  "event": "runner_on_ok",
+  "event_data": {
+   "task": {
+    "name": "Run database migrations",
+    "id": "b83cfe0b-e037-45ed-b8db-0672f42d47cc",
+    "path": "/runner/project/roles/db/tasks/migrate.yml:5",
+    "duration": {
+     "start": "2026-08-15T09:41:40.572564Z",
+     "end": "2026-08-15T09:41:46.031356Z"
+    }
+   },
+   "hosts": {
+    "lb01": {
+     "action": "ansible.builtin.command",
+     "changed": false,
+     "skipped": true,
+     "skip_reason": "run_once with delegate"
+    }
+   },
+   "_event": "v2_runner_on_skipped",
+   "_timestamp": "2026-08-15T09:41:46.031356Z"
+  },
+  "task": "Run database migrations",
+  "play": "",
+  "created_at": "2026-08-15T09:41:46.031356Z"
+ },
+ {
+  "counter": 124,
+  "event": "runner_on_ok",
+  "event_data": {
+   "task": {
+    "name": "Restart application service",
+    "id": "3da9c2a9-0ed4-4f1a-bd4c-bf374eb93eff",
+    "path": "/runner/project/roles/app/tasks/service.yml:3",
+    "duration": {
+     "start": "2026-08-15T09:41:46.431356Z"
+    }
+   },
+   "hosts": {},
+   "_event": "v2_playbook_on_task_start",
+   "_timestamp": "2026-08-15T09:41:46.431356Z"
+  },
+  "task": "Restart application service",
+  "play": "",
+  "created_at": "2026-08-15T09:41:46.431356Z"
+ },
+ {
+  "counter": 125,
+  "event": "runner_on_ok",
+  "event_data": {
+   "task": {
+    "name": "Restart application service",
+    "id": "3da9c2a9-0ed4-4f1a-bd4c-bf374eb93eff",
+    "path": "/runner/project/roles/app/tasks/service.yml:3",
+    "duration": {
+     "start": "2026-08-15T09:41:46.431356Z",
+     "end": "2026-08-15T09:41:46.876460Z"
+    }
+   },
+   "hosts": {
+    "web01": {
+     "action": "ansible.builtin.systemd_service",
+     "changed": true,
+     "name": "app",
+     "state": "restarted",
+     "status": {
+      "ActiveState": "active",
+      "SubState": "running",
+      "MainPID": "3200"
+     }
+    }
+   },
+   "_event": "v2_runner_on_ok",
+   "_timestamp": "2026-08-15T09:41:46.876460Z"
+  },
+  "task": "Restart application service",
+  "play": "",
+  "created_at": "2026-08-15T09:41:46.876460Z"
+ },
+ {
+  "counter": 126,
+  "event": "runner_on_ok",
+  "event_data": {
+   "task": {
+    "name": "Restart application service",
+    "id": "3da9c2a9-0ed4-4f1a-bd4c-bf374eb93eff",
+    "path": "/runner/project/roles/app/tasks/service.yml:3",
+    "duration": {
+     "start": "2026-08-15T09:41:46.431356Z",
+     "end": "2026-08-15T09:41:47.352587Z"
+    }
+   },
+   "hosts": {
+    "web02": {
+     "action": "ansible.builtin.systemd_service",
+     "changed": true,
+     "name": "app",
+     "state": "restarted",
+     "status": {
+      "ActiveState": "active",
+      "SubState": "running",
+      "MainPID": "3201"
+     }
+    }
+   },
+   "_event": "v2_runner_on_ok",
+   "_timestamp": "2026-08-15T09:41:47.352587Z"
+  },
+  "task": "Restart application service",
+  "play": "",
+  "created_at": "2026-08-15T09:41:47.352587Z"
+ },
+ {
+  "counter": 127,
+  "event": "runner_on_ok",
+  "event_data": {
+   "task": {
+    "name": "Restart application service",
+    "id": "3da9c2a9-0ed4-4f1a-bd4c-bf374eb93eff",
+    "path": "/runner/project/roles/app/tasks/service.yml:3",
+    "duration": {
+     "start": "2026-08-15T09:41:46.431356Z",
+     "end": "2026-08-15T09:41:47.441131Z"
+    }
+   },
+   "hosts": {
+    "web03": {
+     "action": "ansible.builtin.systemd_service",
+     "changed": true,
+     "name": "app",
+     "state": "restarted",
+     "status": {
+      "ActiveState": "active",
+      "SubState": "running",
+      "MainPID": "3202"
+     }
+    }
+   },
+   "_event": "v2_runner_on_ok",
+   "_timestamp": "2026-08-15T09:41:47.441131Z"
+  },
+  "task": "Restart application service",
+  "play": "",
+  "created_at": "2026-08-15T09:41:47.441131Z"
+ },
+ {
+  "counter": 128,
+  "event": "runner_on_ok",
+  "event_data": {
+   "task": {
+    "name": "Restart application service",
+    "id": "3da9c2a9-0ed4-4f1a-bd4c-bf374eb93eff",
+    "path": "/runner/project/roles/app/tasks/service.yml:3",
+    "duration": {
+     "start": "2026-08-15T09:41:46.431356Z",
+     "end": "2026-08-15T09:41:47.709827Z"
+    }
+   },
+   "hosts": {
+    "web04": {
+     "action": "ansible.builtin.systemd_service",
+     "changed": true,
+     "name": "app",
+     "state": "restarted",
+     "status": {
+      "ActiveState": "active",
+      "SubState": "running",
+      "MainPID": "3203"
+     }
+    }
+   },
+   "_event": "v2_runner_on_ok",
+   "_timestamp": "2026-08-15T09:41:47.709827Z"
+  },
+  "task": "Restart application service",
+  "play": "",
+  "created_at": "2026-08-15T09:41:47.709827Z"
+ },
+ {
+  "counter": 129,
+  "event": "runner_on_ok",
+  "event_data": {
+   "task": {
+    "name": "Restart application service",
+    "id": "3da9c2a9-0ed4-4f1a-bd4c-bf374eb93eff",
+    "path": "/runner/project/roles/app/tasks/service.yml:3",
+    "duration": {
+     "start": "2026-08-15T09:41:46.431356Z",
+     "end": "2026-08-15T09:41:47.790973Z"
+    }
+   },
+   "hosts": {
+    "web05": {
+     "action": "ansible.builtin.systemd_service",
+     "changed": true,
+     "name": "app",
+     "state": "restarted",
+     "status": {
+      "ActiveState": "active",
+      "SubState": "running",
+      "MainPID": "3204"
+     }
+    }
+   },
+   "_event": "v2_runner_on_ok",
+   "_timestamp": "2026-08-15T09:41:47.790973Z"
+  },
+  "task": "Restart application service",
+  "play": "",
+  "created_at": "2026-08-15T09:41:47.790973Z"
+ },
+ {
+  "counter": 130,
+  "event": "runner_on_ok",
+  "event_data": {
+   "task": {
+    "name": "Restart application service",
+    "id": "3da9c2a9-0ed4-4f1a-bd4c-bf374eb93eff",
+    "path": "/runner/project/roles/app/tasks/service.yml:3",
+    "duration": {
+     "start": "2026-08-15T09:41:46.431356Z",
+     "end": "2026-08-15T09:41:48.183244Z"
+    }
+   },
+   "hosts": {
+    "web06": {
+     "action": "ansible.builtin.systemd_service",
+     "changed": true,
+     "name": "app",
+     "state": "restarted",
+     "status": {
+      "ActiveState": "active",
+      "SubState": "running",
+      "MainPID": "3205"
+     }
+    }
+   },
+   "_event": "v2_runner_on_ok",
+   "_timestamp": "2026-08-15T09:41:48.183244Z"
+  },
+  "task": "Restart application service",
+  "play": "",
+  "created_at": "2026-08-15T09:41:48.183244Z"
+ },
+ {
+  "counter": 131,
+  "event": "runner_on_ok",
+  "event_data": {
+   "task": {
+    "name": "Restart application service",
+    "id": "3da9c2a9-0ed4-4f1a-bd4c-bf374eb93eff",
+    "path": "/runner/project/roles/app/tasks/service.yml:3",
+    "duration": {
+     "start": "2026-08-15T09:41:46.431356Z",
+     "end": "2026-08-15T09:41:48.577869Z"
+    }
+   },
+   "hosts": {
+    "web08": {
+     "action": "ansible.builtin.systemd_service",
+     "changed": true,
+     "name": "app",
+     "state": "restarted",
+     "status": {
+      "ActiveState": "active",
+      "SubState": "running",
+      "MainPID": "3207"
+     }
+    }
+   },
+   "_event": "v2_runner_on_ok",
+   "_timestamp": "2026-08-15T09:41:48.577869Z"
+  },
+  "task": "Restart application service",
+  "play": "",
+  "created_at": "2026-08-15T09:41:48.577869Z"
+ },
+ {
+  "counter": 132,
+  "event": "runner_on_ok",
+  "event_data": {
+   "task": {
+    "name": "Restart application service",
+    "id": "3da9c2a9-0ed4-4f1a-bd4c-bf374eb93eff",
+    "path": "/runner/project/roles/app/tasks/service.yml:3",
+    "duration": {
+     "start": "2026-08-15T09:41:46.431356Z",
+     "end": "2026-08-15T09:41:48.685645Z"
+    }
+   },
+   "hosts": {
+    "api01": {
+     "action": "ansible.builtin.systemd_service",
+     "changed": true,
+     "name": "app",
+     "state": "restarted",
+     "status": {
+      "ActiveState": "active",
+      "SubState": "running",
+      "MainPID": "3208"
+     }
+    }
+   },
+   "_event": "v2_runner_on_ok",
+   "_timestamp": "2026-08-15T09:41:48.685645Z"
+  },
+  "task": "Restart application service",
+  "play": "",
+  "created_at": "2026-08-15T09:41:48.685645Z"
+ },
+ {
+  "counter": 133,
+  "event": "runner_on_ok",
+  "event_data": {
+   "task": {
+    "name": "Restart application service",
+    "id": "3da9c2a9-0ed4-4f1a-bd4c-bf374eb93eff",
+    "path": "/runner/project/roles/app/tasks/service.yml:3",
+    "duration": {
+     "start": "2026-08-15T09:41:46.431356Z",
+     "end": "2026-08-15T09:41:48.949522Z"
+    }
+   },
+   "hosts": {
+    "api02": {
+     "action": "ansible.builtin.systemd_service",
+     "changed": true,
+     "name": "app",
+     "state": "restarted",
+     "status": {
+      "ActiveState": "active",
+      "SubState": "running",
+      "MainPID": "3209"
+     }
+    }
+   },
+   "_event": "v2_runner_on_ok",
+   "_timestamp": "2026-08-15T09:41:48.949522Z"
+  },
+  "task": "Restart application service",
+  "play": "",
+  "created_at": "2026-08-15T09:41:48.949522Z"
+ },
+ {
+  "counter": 134,
+  "event": "runner_on_ok",
+  "event_data": {
+   "task": {
+    "name": "Restart application service",
+    "id": "3da9c2a9-0ed4-4f1a-bd4c-bf374eb93eff",
+    "path": "/runner/project/roles/app/tasks/service.yml:3",
+    "duration": {
+     "start": "2026-08-15T09:41:46.431356Z",
+     "end": "2026-08-15T09:41:49.246934Z"
+    }
+   },
+   "hosts": {
+    "api03": {
+     "action": "ansible.builtin.systemd_service",
+     "changed": false,
+     "failed": true,
+     "msg": "Unable to restart service app: Job for app.service failed because the control process exited with error code.\nSee \"systemctl status app.service\" and \"journalctl -xeu app.service\" for details.",
+     "rc": 1,
+     "stderr": "Job for app.service failed because the control process exited with error code.",
+     "stderr_lines": [
+      "Job for app.service failed because the control process exited with error code."
+     ],
+     "warnings": [
+      "Consider using the systemd module rather than running 'systemctl'."
+     ]
+    }
+   },
+   "_event": "v2_runner_on_failed",
+   "_timestamp": "2026-08-15T09:41:49.246934Z"
+  },
+  "task": "Restart application service",
+  "play": "",
+  "created_at": "2026-08-15T09:41:49.246934Z"
+ },
+ {
+  "counter": 135,
+  "event": "runner_on_ok",
+  "event_data": {
+   "task": {
+    "name": "Restart application service",
+    "id": "3da9c2a9-0ed4-4f1a-bd4c-bf374eb93eff",
+    "path": "/runner/project/roles/app/tasks/service.yml:3",
+    "duration": {
+     "start": "2026-08-15T09:41:46.431356Z",
+     "end": "2026-08-15T09:41:49.416209Z"
+    }
+   },
+   "hosts": {
+    "api04": {
+     "action": "ansible.builtin.systemd_service",
+     "changed": true,
+     "name": "app",
+     "state": "restarted",
+     "status": {
+      "ActiveState": "active",
+      "SubState": "running",
+      "MainPID": "3211"
+     }
+    }
+   },
+   "_event": "v2_runner_on_ok",
+   "_timestamp": "2026-08-15T09:41:49.416209Z"
+  },
+  "task": "Restart application service",
+  "play": "",
+  "created_at": "2026-08-15T09:41:49.416209Z"
+ },
+ {
+  "counter": 136,
+  "event": "runner_on_ok",
+  "event_data": {
+   "task": {
+    "name": "Restart application service",
+    "id": "3da9c2a9-0ed4-4f1a-bd4c-bf374eb93eff",
+    "path": "/runner/project/roles/app/tasks/service.yml:3",
+    "duration": {
+     "start": "2026-08-15T09:41:46.431356Z",
+     "end": "2026-08-15T09:41:49.858804Z"
+    }
+   },
+   "hosts": {
+    "api05": {
+     "action": "ansible.builtin.systemd_service",
+     "changed": true,
+     "name": "app",
+     "state": "restarted",
+     "status": {
+      "ActiveState": "active",
+      "SubState": "running",
+      "MainPID": "3212"
+     }
+    }
+   },
+   "_event": "v2_runner_on_ok",
+   "_timestamp": "2026-08-15T09:41:49.858804Z"
+  },
+  "task": "Restart application service",
+  "play": "",
+  "created_at": "2026-08-15T09:41:49.858804Z"
+ },
+ {
+  "counter": 137,
+  "event": "runner_on_ok",
+  "event_data": {
+   "task": {
+    "name": "Restart application service",
+    "id": "3da9c2a9-0ed4-4f1a-bd4c-bf374eb93eff",
+    "path": "/runner/project/roles/app/tasks/service.yml:3",
+    "duration": {
+     "start": "2026-08-15T09:41:46.431356Z",
+     "end": "2026-08-15T09:41:50.099216Z"
+    }
+   },
+   "hosts": {
+    "api06": {
+     "action": "ansible.builtin.systemd_service",
+     "changed": true,
+     "name": "app",
+     "state": "restarted",
+     "status": {
+      "ActiveState": "active",
+      "SubState": "running",
+      "MainPID": "3213"
+     }
+    }
+   },
+   "_event": "v2_runner_on_ok",
+   "_timestamp": "2026-08-15T09:41:50.099216Z"
+  },
+  "task": "Restart application service",
+  "play": "",
+  "created_at": "2026-08-15T09:41:50.099216Z"
+ },
+ {
+  "counter": 138,
+  "event": "runner_on_ok",
+  "event_data": {
+   "task": {
+    "name": "Restart application service",
+    "id": "3da9c2a9-0ed4-4f1a-bd4c-bf374eb93eff",
+    "path": "/runner/project/roles/app/tasks/service.yml:3",
+    "duration": {
+     "start": "2026-08-15T09:41:46.431356Z",
+     "end": "2026-08-15T09:41:50.244525Z"
+    }
+   },
+   "hosts": {
+    "db01": {
+     "action": "ansible.builtin.systemd_service",
+     "changed": false,
+     "skipped": true,
+     "skip_reason": "Conditional result was False"
+    }
+   },
+   "_event": "v2_runner_on_skipped",
+   "_timestamp": "2026-08-15T09:41:50.244525Z"
+  },
+  "task": "Restart application service",
+  "play": "",
+  "created_at": "2026-08-15T09:41:50.244525Z"
+ },
+ {
+  "counter": 139,
+  "event": "runner_on_ok",
+  "event_data": {
+   "task": {
+    "name": "Restart application service",
+    "id": "3da9c2a9-0ed4-4f1a-bd4c-bf374eb93eff",
+    "path": "/runner/project/roles/app/tasks/service.yml:3",
+    "duration": {
+     "start": "2026-08-15T09:41:46.431356Z",
+     "end": "2026-08-15T09:41:50.537208Z"
+    }
+   },
+   "hosts": {
+    "db02": {
+     "action": "ansible.builtin.systemd_service",
+     "changed": false,
+     "skipped": true,
+     "skip_reason": "Conditional result was False"
+    }
+   },
+   "_event": "v2_runner_on_skipped",
+   "_timestamp": "2026-08-15T09:41:50.537208Z"
+  },
+  "task": "Restart application service",
+  "play": "",
+  "created_at": "2026-08-15T09:41:50.537208Z"
+ },
+ {
+  "counter": 140,
+  "event": "runner_on_ok",
+  "event_data": {
+   "task": {
+    "name": "Restart application service",
+    "id": "3da9c2a9-0ed4-4f1a-bd4c-bf374eb93eff",
+    "path": "/runner/project/roles/app/tasks/service.yml:3",
+    "duration": {
+     "start": "2026-08-15T09:41:46.431356Z",
+     "end": "2026-08-15T09:41:50.915677Z"
+    }
+   },
+   "hosts": {
+    "db03": {
+     "action": "ansible.builtin.systemd_service",
+     "changed": false,
+     "skipped": true,
+     "skip_reason": "Conditional result was False"
+    }
+   },
+   "_event": "v2_runner_on_skipped",
+   "_timestamp": "2026-08-15T09:41:50.915677Z"
+  },
+  "task": "Restart application service",
+  "play": "",
+  "created_at": "2026-08-15T09:41:50.915677Z"
+ },
+ {
+  "counter": 141,
+  "event": "runner_on_ok",
+  "event_data": {
+   "task": {
+    "name": "Restart application service",
+    "id": "3da9c2a9-0ed4-4f1a-bd4c-bf374eb93eff",
+    "path": "/runner/project/roles/app/tasks/service.yml:3",
+    "duration": {
+     "start": "2026-08-15T09:41:46.431356Z",
+     "end": "2026-08-15T09:41:51.056195Z"
+    }
+   },
+   "hosts": {
+    "cache01": {
+     "action": "ansible.builtin.systemd_service",
+     "changed": false,
+     "skipped": true,
+     "skip_reason": "Conditional result was False"
+    }
+   },
+   "_event": "v2_runner_on_skipped",
+   "_timestamp": "2026-08-15T09:41:51.056195Z"
+  },
+  "task": "Restart application service",
+  "play": "",
+  "created_at": "2026-08-15T09:41:51.056195Z"
+ },
+ {
+  "counter": 142,
+  "event": "runner_on_ok",
+  "event_data": {
+   "task": {
+    "name": "Restart application service",
+    "id": "3da9c2a9-0ed4-4f1a-bd4c-bf374eb93eff",
+    "path": "/runner/project/roles/app/tasks/service.yml:3",
+    "duration": {
+     "start": "2026-08-15T09:41:46.431356Z",
+     "end": "2026-08-15T09:41:51.246467Z"
+    }
+   },
+   "hosts": {
+    "cache02": {
+     "action": "ansible.builtin.systemd_service",
+     "changed": false,
+     "skipped": true,
+     "skip_reason": "Conditional result was False"
+    }
+   },
+   "_event": "v2_runner_on_skipped",
+   "_timestamp": "2026-08-15T09:41:51.246467Z"
+  },
+  "task": "Restart application service",
+  "play": "",
+  "created_at": "2026-08-15T09:41:51.246467Z"
+ },
+ {
+  "counter": 143,
+  "event": "runner_on_ok",
+  "event_data": {
+   "task": {
+    "name": "Restart application service",
+    "id": "3da9c2a9-0ed4-4f1a-bd4c-bf374eb93eff",
+    "path": "/runner/project/roles/app/tasks/service.yml:3",
+    "duration": {
+     "start": "2026-08-15T09:41:46.431356Z",
+     "end": "2026-08-15T09:41:51.744284Z"
+    }
+   },
+   "hosts": {
+    "lb01": {
+     "action": "ansible.builtin.systemd_service",
+     "changed": false,
+     "skipped": true,
+     "skip_reason": "Conditional result was False"
+    }
+   },
+   "_event": "v2_runner_on_skipped",
+   "_timestamp": "2026-08-15T09:41:51.744284Z"
+  },
+  "task": "Restart application service",
+  "play": "",
+  "created_at": "2026-08-15T09:41:51.744284Z"
+ },
+ {
+  "counter": 144,
+  "event": "runner_on_ok",
+  "event_data": {
+   "task": {
+    "name": "Wait for health endpoint to report ready",
+    "id": "e64d1bcb-7027-43a1-9f98-7c71a65e688e",
+    "path": "/runner/project/roles/app/tasks/service.yml:19",
+    "duration": {
+     "start": "2026-08-15T09:41:52.244284Z"
+    }
+   },
+   "hosts": {},
+   "_event": "v2_playbook_on_task_start",
+   "_timestamp": "2026-08-15T09:41:52.244284Z"
+  },
+  "task": "Wait for health endpoint to report ready",
+  "play": "",
+  "created_at": "2026-08-15T09:41:52.244284Z"
+ },
+ {
+  "counter": 145,
+  "event": "runner_on_ok",
+  "event_data": {
+   "task": {
+    "name": "Wait for health endpoint to report ready",
+    "id": "e64d1bcb-7027-43a1-9f98-7c71a65e688e",
+    "path": "/runner/project/roles/app/tasks/service.yml:19",
+    "duration": {
+     "start": "2026-08-15T09:41:52.244284Z",
+     "end": "2026-08-15T09:41:52.497453Z"
+    }
+   },
+   "hosts": {
+    "web01": {
+     "action": "ansible.builtin.uri",
+     "changed": false,
+     "status": 200,
+     "url": "http://web01.prod.acme.internal:3000/healthz",
+     "attempts": 3,
+     "elapsed": 6,
+     "json": {
+      "status": "ok",
+      "version": "2.14.1",
+      "db": "connected"
+     },
+     "msg": "OK (unknown bytes)"
+    }
+   },
+   "_event": "v2_runner_on_ok",
+   "_timestamp": "2026-08-15T09:41:52.497453Z"
+  },
+  "task": "Wait for health endpoint to report ready",
+  "play": "",
+  "created_at": "2026-08-15T09:41:52.497453Z"
+ },
+ {
+  "counter": 146,
+  "event": "runner_on_ok",
+  "event_data": {
+   "task": {
+    "name": "Wait for health endpoint to report ready",
+    "id": "e64d1bcb-7027-43a1-9f98-7c71a65e688e",
+    "path": "/runner/project/roles/app/tasks/service.yml:19",
+    "duration": {
+     "start": "2026-08-15T09:41:52.244284Z",
+     "end": "2026-08-15T09:41:52.648567Z"
+    }
+   },
+   "hosts": {
+    "web02": {
+     "action": "ansible.builtin.uri",
+     "changed": false,
+     "status": 200,
+     "url": "http://web02.prod.acme.internal:3000/healthz",
+     "attempts": 1,
+     "elapsed": 2,
+     "json": {
+      "status": "ok",
+      "version": "2.14.1",
+      "db": "connected"
+     },
+     "msg": "OK (unknown bytes)"
+    }
+   },
+   "_event": "v2_runner_on_ok",
+   "_timestamp": "2026-08-15T09:41:52.648567Z"
+  },
+  "task": "Wait for health endpoint to report ready",
+  "play": "",
+  "created_at": "2026-08-15T09:41:52.648567Z"
+ },
+ {
+  "counter": 147,
+  "event": "runner_on_ok",
+  "event_data": {
+   "task": {
+    "name": "Wait for health endpoint to report ready",
+    "id": "e64d1bcb-7027-43a1-9f98-7c71a65e688e",
+    "path": "/runner/project/roles/app/tasks/service.yml:19",
+    "duration": {
+     "start": "2026-08-15T09:41:52.244284Z",
+     "end": "2026-08-15T09:41:52.708032Z"
+    }
+   },
+   "hosts": {
+    "web03": {
+     "action": "ansible.builtin.uri",
+     "changed": false,
+     "status": 200,
+     "url": "http://web03.prod.acme.internal:3000/healthz",
+     "attempts": 1,
+     "elapsed": 2,
+     "json": {
+      "status": "ok",
+      "version": "2.14.1",
+      "db": "connected"
+     },
+     "msg": "OK (unknown bytes)"
+    }
+   },
+   "_event": "v2_runner_on_ok",
+   "_timestamp": "2026-08-15T09:41:52.708032Z"
+  },
+  "task": "Wait for health endpoint to report ready",
+  "play": "",
+  "created_at": "2026-08-15T09:41:52.708032Z"
+ },
+ {
+  "counter": 148,
+  "event": "runner_on_ok",
+  "event_data": {
+   "task": {
+    "name": "Wait for health endpoint to report ready",
+    "id": "e64d1bcb-7027-43a1-9f98-7c71a65e688e",
+    "path": "/runner/project/roles/app/tasks/service.yml:19",
+    "duration": {
+     "start": "2026-08-15T09:41:52.244284Z",
+     "end": "2026-08-15T09:41:52.861584Z"
+    }
+   },
+   "hosts": {
+    "web04": {
+     "action": "ansible.builtin.uri",
+     "changed": false,
+     "status": 200,
+     "url": "http://web04.prod.acme.internal:3000/healthz",
+     "attempts": 3,
+     "elapsed": 6,
+     "json": {
+      "status": "ok",
+      "version": "2.14.1",
+      "db": "connected"
+     },
+     "msg": "OK (unknown bytes)"
+    }
+   },
+   "_event": "v2_runner_on_ok",
+   "_timestamp": "2026-08-15T09:41:52.861584Z"
+  },
+  "task": "Wait for health endpoint to report ready",
+  "play": "",
+  "created_at": "2026-08-15T09:41:52.861584Z"
+ },
+ {
+  "counter": 149,
+  "event": "runner_on_ok",
+  "event_data": {
+   "task": {
+    "name": "Wait for health endpoint to report ready",
+    "id": "e64d1bcb-7027-43a1-9f98-7c71a65e688e",
+    "path": "/runner/project/roles/app/tasks/service.yml:19",
+    "duration": {
+     "start": "2026-08-15T09:41:52.244284Z",
+     "end": "2026-08-15T09:41:52.914820Z"
+    }
+   },
+   "hosts": {
+    "web05": {
+     "action": "ansible.builtin.uri",
+     "changed": false,
+     "status": 200,
+     "url": "http://web05.prod.acme.internal:3000/healthz",
+     "attempts": 1,
+     "elapsed": 2,
+     "json": {
+      "status": "ok",
+      "version": "2.14.1",
+      "db": "connected"
+     },
+     "msg": "OK (unknown bytes)"
+    }
+   },
+   "_event": "v2_runner_on_ok",
+   "_timestamp": "2026-08-15T09:41:52.914820Z"
+  },
+  "task": "Wait for health endpoint to report ready",
+  "play": "",
+  "created_at": "2026-08-15T09:41:52.914820Z"
+ },
+ {
+  "counter": 150,
+  "event": "runner_on_ok",
+  "event_data": {
+   "task": {
+    "name": "Wait for health endpoint to report ready",
+    "id": "e64d1bcb-7027-43a1-9f98-7c71a65e688e",
+    "path": "/runner/project/roles/app/tasks/service.yml:19",
+    "duration": {
+     "start": "2026-08-15T09:41:52.244284Z",
+     "end": "2026-08-15T09:41:53.067844Z"
+    }
+   },
+   "hosts": {
+    "web06": {
+     "action": "ansible.builtin.uri",
+     "changed": false,
+     "status": 200,
+     "url": "http://web06.prod.acme.internal:3000/healthz",
+     "attempts": 1,
+     "elapsed": 2,
+     "json": {
+      "status": "ok",
+      "version": "2.14.1",
+      "db": "connected"
+     },
+     "msg": "OK (unknown bytes)"
+    }
+   },
+   "_event": "v2_runner_on_ok",
+   "_timestamp": "2026-08-15T09:41:53.067844Z"
+  },
+  "task": "Wait for health endpoint to report ready",
+  "play": "",
+  "created_at": "2026-08-15T09:41:53.067844Z"
+ },
+ {
+  "counter": 151,
+  "event": "runner_on_ok",
+  "event_data": {
+   "task": {
+    "name": "Wait for health endpoint to report ready",
+    "id": "e64d1bcb-7027-43a1-9f98-7c71a65e688e",
+    "path": "/runner/project/roles/app/tasks/service.yml:19",
+    "duration": {
+     "start": "2026-08-15T09:41:52.244284Z",
+     "end": "2026-08-15T09:41:53.504680Z"
+    }
+   },
+   "hosts": {
+    "web08": {
+     "action": "ansible.builtin.uri",
+     "changed": false,
+     "status": 200,
+     "url": "http://web08.prod.acme.internal:3000/healthz",
+     "attempts": 1,
+     "elapsed": 2,
+     "json": {
+      "status": "ok",
+      "version": "2.14.1",
+      "db": "connected"
+     },
+     "msg": "OK (unknown bytes)"
+    }
+   },
+   "_event": "v2_runner_on_ok",
+   "_timestamp": "2026-08-15T09:41:53.504680Z"
+  },
+  "task": "Wait for health endpoint to report ready",
+  "play": "",
+  "created_at": "2026-08-15T09:41:53.504680Z"
+ },
+ {
+  "counter": 152,
+  "event": "runner_on_ok",
+  "event_data": {
+   "task": {
+    "name": "Wait for health endpoint to report ready",
+    "id": "e64d1bcb-7027-43a1-9f98-7c71a65e688e",
+    "path": "/runner/project/roles/app/tasks/service.yml:19",
+    "duration": {
+     "start": "2026-08-15T09:41:52.244284Z",
+     "end": "2026-08-15T09:41:53.786050Z"
+    }
+   },
+   "hosts": {
+    "api01": {
+     "action": "ansible.builtin.uri",
+     "changed": false,
+     "status": 200,
+     "url": "http://api01.prod.acme.internal:3000/healthz",
+     "attempts": 1,
+     "elapsed": 2,
+     "json": {
+      "status": "ok",
+      "version": "2.14.1",
+      "db": "connected"
+     },
+     "msg": "OK (unknown bytes)"
+    }
+   },
+   "_event": "v2_runner_on_ok",
+   "_timestamp": "2026-08-15T09:41:53.786050Z"
+  },
+  "task": "Wait for health endpoint to report ready",
+  "play": "",
+  "created_at": "2026-08-15T09:41:53.786050Z"
+ },
+ {
+  "counter": 153,
+  "event": "runner_on_ok",
+  "event_data": {
+   "task": {
+    "name": "Wait for health endpoint to report ready",
+    "id": "e64d1bcb-7027-43a1-9f98-7c71a65e688e",
+    "path": "/runner/project/roles/app/tasks/service.yml:19",
+    "duration": {
+     "start": "2026-08-15T09:41:52.244284Z",
+     "end": "2026-08-15T09:41:54.137090Z"
+    }
+   },
+   "hosts": {
+    "api02": {
+     "action": "ansible.builtin.uri",
+     "changed": false,
+     "status": 200,
+     "url": "http://api02.prod.acme.internal:3000/healthz",
+     "attempts": 1,
+     "elapsed": 2,
+     "json": {
+      "status": "ok",
+      "version": "2.14.1",
+      "db": "connected"
+     },
+     "msg": "OK (unknown bytes)"
+    }
+   },
+   "_event": "v2_runner_on_ok",
+   "_timestamp": "2026-08-15T09:41:54.137090Z"
+  },
+  "task": "Wait for health endpoint to report ready",
+  "play": "",
+  "created_at": "2026-08-15T09:41:54.137090Z"
+ },
+ {
+  "counter": 154,
+  "event": "runner_on_ok",
+  "event_data": {
+   "task": {
+    "name": "Wait for health endpoint to report ready",
+    "id": "e64d1bcb-7027-43a1-9f98-7c71a65e688e",
+    "path": "/runner/project/roles/app/tasks/service.yml:19",
+    "duration": {
+     "start": "2026-08-15T09:41:52.244284Z",
+     "end": "2026-08-15T09:41:54.429745Z"
+    }
+   },
+   "hosts": {
+    "api04": {
+     "action": "ansible.builtin.uri",
+     "changed": false,
+     "status": 200,
+     "url": "http://api04.prod.acme.internal:3000/healthz",
+     "attempts": 1,
+     "elapsed": 2,
+     "json": {
+      "status": "ok",
+      "version": "2.14.1",
+      "db": "connected"
+     },
+     "msg": "OK (unknown bytes)"
+    }
+   },
+   "_event": "v2_runner_on_ok",
+   "_timestamp": "2026-08-15T09:41:54.429745Z"
+  },
+  "task": "Wait for health endpoint to report ready",
+  "play": "",
+  "created_at": "2026-08-15T09:41:54.429745Z"
+ },
+ {
+  "counter": 155,
+  "event": "runner_on_ok",
+  "event_data": {
+   "task": {
+    "name": "Wait for health endpoint to report ready",
+    "id": "e64d1bcb-7027-43a1-9f98-7c71a65e688e",
+    "path": "/runner/project/roles/app/tasks/service.yml:19",
+    "duration": {
+     "start": "2026-08-15T09:41:52.244284Z",
+     "end": "2026-08-15T09:41:54.739040Z"
+    }
+   },
+   "hosts": {
+    "api05": {
+     "action": "ansible.builtin.uri",
+     "changed": false,
+     "status": 200,
+     "url": "http://api05.prod.acme.internal:3000/healthz",
+     "attempts": 3,
+     "elapsed": 6,
+     "json": {
+      "status": "ok",
+      "version": "2.14.1",
+      "db": "connected"
+     },
+     "msg": "OK (unknown bytes)"
+    }
+   },
+   "_event": "v2_runner_on_ok",
+   "_timestamp": "2026-08-15T09:41:54.739040Z"
+  },
+  "task": "Wait for health endpoint to report ready",
+  "play": "",
+  "created_at": "2026-08-15T09:41:54.739040Z"
+ },
+ {
+  "counter": 156,
+  "event": "runner_on_ok",
+  "event_data": {
+   "task": {
+    "name": "Wait for health endpoint to report ready",
+    "id": "e64d1bcb-7027-43a1-9f98-7c71a65e688e",
+    "path": "/runner/project/roles/app/tasks/service.yml:19",
+    "duration": {
+     "start": "2026-08-15T09:41:52.244284Z",
+     "end": "2026-08-15T09:41:55.142119Z"
+    }
+   },
+   "hosts": {
+    "api06": {
+     "action": "ansible.builtin.uri",
+     "changed": false,
+     "status": 200,
+     "url": "http://api06.prod.acme.internal:3000/healthz",
+     "attempts": 1,
+     "elapsed": 2,
+     "json": {
+      "status": "ok",
+      "version": "2.14.1",
+      "db": "connected"
+     },
+     "msg": "OK (unknown bytes)"
+    }
+   },
+   "_event": "v2_runner_on_ok",
+   "_timestamp": "2026-08-15T09:41:55.142119Z"
+  },
+  "task": "Wait for health endpoint to report ready",
+  "play": "",
+  "created_at": "2026-08-15T09:41:55.142119Z"
+ },
+ {
+  "counter": 157,
+  "event": "runner_on_ok",
+  "event_data": {
+   "task": {
+    "name": "Wait for health endpoint to report ready",
+    "id": "e64d1bcb-7027-43a1-9f98-7c71a65e688e",
+    "path": "/runner/project/roles/app/tasks/service.yml:19",
+    "duration": {
+     "start": "2026-08-15T09:41:52.244284Z",
+     "end": "2026-08-15T09:41:55.555493Z"
+    }
+   },
+   "hosts": {
+    "db01": {
+     "action": "ansible.builtin.uri",
+     "changed": false,
+     "skipped": true,
+     "skip_reason": "Conditional result was False"
+    }
+   },
+   "_event": "v2_runner_on_skipped",
+   "_timestamp": "2026-08-15T09:41:55.555493Z"
+  },
+  "task": "Wait for health endpoint to report ready",
+  "play": "",
+  "created_at": "2026-08-15T09:41:55.555493Z"
+ },
+ {
+  "counter": 158,
+  "event": "runner_on_ok",
+  "event_data": {
+   "task": {
+    "name": "Wait for health endpoint to report ready",
+    "id": "e64d1bcb-7027-43a1-9f98-7c71a65e688e",
+    "path": "/runner/project/roles/app/tasks/service.yml:19",
+    "duration": {
+     "start": "2026-08-15T09:41:52.244284Z",
+     "end": "2026-08-15T09:41:55.691177Z"
+    }
+   },
+   "hosts": {
+    "db02": {
+     "action": "ansible.builtin.uri",
+     "changed": false,
+     "skipped": true,
+     "skip_reason": "Conditional result was False"
+    }
+   },
+   "_event": "v2_runner_on_skipped",
+   "_timestamp": "2026-08-15T09:41:55.691177Z"
+  },
+  "task": "Wait for health endpoint to report ready",
+  "play": "",
+  "created_at": "2026-08-15T09:41:55.691177Z"
+ },
+ {
+  "counter": 159,
+  "event": "runner_on_ok",
+  "event_data": {
+   "task": {
+    "name": "Wait for health endpoint to report ready",
+    "id": "e64d1bcb-7027-43a1-9f98-7c71a65e688e",
+    "path": "/runner/project/roles/app/tasks/service.yml:19",
+    "duration": {
+     "start": "2026-08-15T09:41:52.244284Z",
+     "end": "2026-08-15T09:41:55.784796Z"
+    }
+   },
+   "hosts": {
+    "db03": {
+     "action": "ansible.builtin.uri",
+     "changed": false,
+     "skipped": true,
+     "skip_reason": "Conditional result was False"
+    }
+   },
+   "_event": "v2_runner_on_skipped",
+   "_timestamp": "2026-08-15T09:41:55.784796Z"
+  },
+  "task": "Wait for health endpoint to report ready",
+  "play": "",
+  "created_at": "2026-08-15T09:41:55.784796Z"
+ },
+ {
+  "counter": 160,
+  "event": "runner_on_ok",
+  "event_data": {
+   "task": {
+    "name": "Wait for health endpoint to report ready",
+    "id": "e64d1bcb-7027-43a1-9f98-7c71a65e688e",
+    "path": "/runner/project/roles/app/tasks/service.yml:19",
+    "duration": {
+     "start": "2026-08-15T09:41:52.244284Z",
+     "end": "2026-08-15T09:41:56.028769Z"
+    }
+   },
+   "hosts": {
+    "cache01": {
+     "action": "ansible.builtin.uri",
+     "changed": false,
+     "skipped": true,
+     "skip_reason": "Conditional result was False"
+    }
+   },
+   "_event": "v2_runner_on_skipped",
+   "_timestamp": "2026-08-15T09:41:56.028769Z"
+  },
+  "task": "Wait for health endpoint to report ready",
+  "play": "",
+  "created_at": "2026-08-15T09:41:56.028769Z"
+ },
+ {
+  "counter": 161,
+  "event": "runner_on_ok",
+  "event_data": {
+   "task": {
+    "name": "Wait for health endpoint to report ready",
+    "id": "e64d1bcb-7027-43a1-9f98-7c71a65e688e",
+    "path": "/runner/project/roles/app/tasks/service.yml:19",
+    "duration": {
+     "start": "2026-08-15T09:41:52.244284Z",
+     "end": "2026-08-15T09:41:56.269379Z"
+    }
+   },
+   "hosts": {
+    "cache02": {
+     "action": "ansible.builtin.uri",
+     "changed": false,
+     "skipped": true,
+     "skip_reason": "Conditional result was False"
+    }
+   },
+   "_event": "v2_runner_on_skipped",
+   "_timestamp": "2026-08-15T09:41:56.269379Z"
+  },
+  "task": "Wait for health endpoint to report ready",
+  "play": "",
+  "created_at": "2026-08-15T09:41:56.269379Z"
+ },
+ {
+  "counter": 162,
+  "event": "runner_on_ok",
+  "event_data": {
+   "task": {
+    "name": "Wait for health endpoint to report ready",
+    "id": "e64d1bcb-7027-43a1-9f98-7c71a65e688e",
+    "path": "/runner/project/roles/app/tasks/service.yml:19",
+    "duration": {
+     "start": "2026-08-15T09:41:52.244284Z",
+     "end": "2026-08-15T09:41:56.529540Z"
+    }
+   },
+   "hosts": {
+    "lb01": {
+     "action": "ansible.builtin.uri",
+     "changed": false,
+     "skipped": true,
+     "skip_reason": "Conditional result was False"
+    }
+   },
+   "_event": "v2_runner_on_skipped",
+   "_timestamp": "2026-08-15T09:41:56.529540Z"
+  },
+  "task": "Wait for health endpoint to report ready",
+  "play": "",
+  "created_at": "2026-08-15T09:41:56.529540Z"
+ },
+ {
+  "counter": 163,
+  "event": "runner_on_ok",
+  "event_data": {
+   "task": {
+    "name": "Report deployed version",
+    "id": "a748dbcf-ac61-4e63-8dde-29a6baa4b71a",
+    "path": "/runner/project/deploy.yml:41",
+    "duration": {
+     "start": "2026-08-15T09:41:56.729540Z"
+    }
+   },
+   "hosts": {},
+   "_event": "v2_playbook_on_task_start",
+   "_timestamp": "2026-08-15T09:41:56.729540Z"
+  },
+  "task": "Report deployed version",
+  "play": "",
+  "created_at": "2026-08-15T09:41:56.729540Z"
+ },
+ {
+  "counter": 164,
+  "event": "runner_on_ok",
+  "event_data": {
+   "task": {
+    "name": "Report deployed version",
+    "id": "a748dbcf-ac61-4e63-8dde-29a6baa4b71a",
+    "path": "/runner/project/deploy.yml:41",
+    "duration": {
+     "start": "2026-08-15T09:41:56.729540Z",
+     "end": "2026-08-15T09:41:57.222414Z"
+    }
+   },
+   "hosts": {
+    "web01": {
+     "action": "ansible.builtin.debug",
+     "changed": false,
+     "msg": "web01: release v2.14.1 (build 8f21c4d) active"
+    }
+   },
+   "_event": "v2_runner_on_ok",
+   "_timestamp": "2026-08-15T09:41:57.222414Z"
+  },
+  "task": "Report deployed version",
+  "play": "",
+  "created_at": "2026-08-15T09:41:57.222414Z"
+ },
+ {
+  "counter": 165,
+  "event": "runner_on_ok",
+  "event_data": {
+   "task": {
+    "name": "Report deployed version",
+    "id": "a748dbcf-ac61-4e63-8dde-29a6baa4b71a",
+    "path": "/runner/project/deploy.yml:41",
+    "duration": {
+     "start": "2026-08-15T09:41:56.729540Z",
+     "end": "2026-08-15T09:41:57.316702Z"
+    }
+   },
+   "hosts": {
+    "web02": {
+     "action": "ansible.builtin.debug",
+     "changed": false,
+     "msg": "web02: release v2.14.1 (build 8f21c4d) active"
+    }
+   },
+   "_event": "v2_runner_on_ok",
+   "_timestamp": "2026-08-15T09:41:57.316702Z"
+  },
+  "task": "Report deployed version",
+  "play": "",
+  "created_at": "2026-08-15T09:41:57.316702Z"
+ },
+ {
+  "counter": 166,
+  "event": "runner_on_ok",
+  "event_data": {
+   "task": {
+    "name": "Report deployed version",
+    "id": "a748dbcf-ac61-4e63-8dde-29a6baa4b71a",
+    "path": "/runner/project/deploy.yml:41",
+    "duration": {
+     "start": "2026-08-15T09:41:56.729540Z",
+     "end": "2026-08-15T09:41:57.547882Z"
+    }
+   },
+   "hosts": {
+    "web03": {
+     "action": "ansible.builtin.debug",
+     "changed": false,
+     "msg": "web03: release v2.14.1 (build 8f21c4d) active"
+    }
+   },
+   "_event": "v2_runner_on_ok",
+   "_timestamp": "2026-08-15T09:41:57.547882Z"
+  },
+  "task": "Report deployed version",
+  "play": "",
+  "created_at": "2026-08-15T09:41:57.547882Z"
+ },
+ {
+  "counter": 167,
+  "event": "runner_on_ok",
+  "event_data": {
+   "task": {
+    "name": "Report deployed version",
+    "id": "a748dbcf-ac61-4e63-8dde-29a6baa4b71a",
+    "path": "/runner/project/deploy.yml:41",
+    "duration": {
+     "start": "2026-08-15T09:41:56.729540Z",
+     "end": "2026-08-15T09:41:57.750568Z"
+    }
+   },
+   "hosts": {
+    "web04": {
+     "action": "ansible.builtin.debug",
+     "changed": false,
+     "msg": "web04: release v2.14.1 (build 8f21c4d) active"
+    }
+   },
+   "_event": "v2_runner_on_ok",
+   "_timestamp": "2026-08-15T09:41:57.750568Z"
+  },
+  "task": "Report deployed version",
+  "play": "",
+  "created_at": "2026-08-15T09:41:57.750568Z"
+ },
+ {
+  "counter": 168,
+  "event": "runner_on_ok",
+  "event_data": {
+   "task": {
+    "name": "Report deployed version",
+    "id": "a748dbcf-ac61-4e63-8dde-29a6baa4b71a",
+    "path": "/runner/project/deploy.yml:41",
+    "duration": {
+     "start": "2026-08-15T09:41:56.729540Z",
+     "end": "2026-08-15T09:41:58.188321Z"
+    }
+   },
+   "hosts": {
+    "web05": {
+     "action": "ansible.builtin.debug",
+     "changed": false,
+     "msg": "web05: release v2.14.1 (build 8f21c4d) active"
+    }
+   },
+   "_event": "v2_runner_on_ok",
+   "_timestamp": "2026-08-15T09:41:58.188321Z"
+  },
+  "task": "Report deployed version",
+  "play": "",
+  "created_at": "2026-08-15T09:41:58.188321Z"
+ },
+ {
+  "counter": 169,
+  "event": "runner_on_ok",
+  "event_data": {
+   "task": {
+    "name": "Report deployed version",
+    "id": "a748dbcf-ac61-4e63-8dde-29a6baa4b71a",
+    "path": "/runner/project/deploy.yml:41",
+    "duration": {
+     "start": "2026-08-15T09:41:56.729540Z",
+     "end": "2026-08-15T09:41:58.350216Z"
+    }
+   },
+   "hosts": {
+    "web06": {
+     "action": "ansible.builtin.debug",
+     "changed": false,
+     "msg": "web06: release v2.14.1 (build 8f21c4d) active"
+    }
+   },
+   "_event": "v2_runner_on_ok",
+   "_timestamp": "2026-08-15T09:41:58.350216Z"
+  },
+  "task": "Report deployed version",
+  "play": "",
+  "created_at": "2026-08-15T09:41:58.350216Z"
+ },
+ {
+  "counter": 170,
+  "event": "runner_on_ok",
+  "event_data": {
+   "task": {
+    "name": "Report deployed version",
+    "id": "a748dbcf-ac61-4e63-8dde-29a6baa4b71a",
+    "path": "/runner/project/deploy.yml:41",
+    "duration": {
+     "start": "2026-08-15T09:41:56.729540Z",
+     "end": "2026-08-15T09:41:58.485810Z"
+    }
+   },
+   "hosts": {
+    "web08": {
+     "action": "ansible.builtin.debug",
+     "changed": false,
+     "msg": "web08: release v2.14.1 (build 8f21c4d) active"
+    }
+   },
+   "_event": "v2_runner_on_ok",
+   "_timestamp": "2026-08-15T09:41:58.485810Z"
+  },
+  "task": "Report deployed version",
+  "play": "",
+  "created_at": "2026-08-15T09:41:58.485810Z"
+ },
+ {
+  "counter": 171,
+  "event": "runner_on_ok",
+  "event_data": {
+   "task": {
+    "name": "Report deployed version",
+    "id": "a748dbcf-ac61-4e63-8dde-29a6baa4b71a",
+    "path": "/runner/project/deploy.yml:41",
+    "duration": {
+     "start": "2026-08-15T09:41:56.729540Z",
+     "end": "2026-08-15T09:41:58.737686Z"
+    }
+   },
+   "hosts": {
+    "api01": {
+     "action": "ansible.builtin.debug",
+     "changed": false,
+     "msg": "api01: release v2.14.1 (build 8f21c4d) active"
+    }
+   },
+   "_event": "v2_runner_on_ok",
+   "_timestamp": "2026-08-15T09:41:58.737686Z"
+  },
+  "task": "Report deployed version",
+  "play": "",
+  "created_at": "2026-08-15T09:41:58.737686Z"
+ },
+ {
+  "counter": 172,
+  "event": "runner_on_ok",
+  "event_data": {
+   "task": {
+    "name": "Report deployed version",
+    "id": "a748dbcf-ac61-4e63-8dde-29a6baa4b71a",
+    "path": "/runner/project/deploy.yml:41",
+    "duration": {
+     "start": "2026-08-15T09:41:56.729540Z",
+     "end": "2026-08-15T09:41:58.977533Z"
+    }
+   },
+   "hosts": {
+    "api02": {
+     "action": "ansible.builtin.debug",
+     "changed": false,
+     "msg": "api02: release v2.14.1 (build 8f21c4d) active"
+    }
+   },
+   "_event": "v2_runner_on_ok",
+   "_timestamp": "2026-08-15T09:41:58.977533Z"
+  },
+  "task": "Report deployed version",
+  "play": "",
+  "created_at": "2026-08-15T09:41:58.977533Z"
+ },
+ {
+  "counter": 173,
+  "event": "runner_on_ok",
+  "event_data": {
+   "task": {
+    "name": "Report deployed version",
+    "id": "a748dbcf-ac61-4e63-8dde-29a6baa4b71a",
+    "path": "/runner/project/deploy.yml:41",
+    "duration": {
+     "start": "2026-08-15T09:41:56.729540Z",
+     "end": "2026-08-15T09:41:59.152878Z"
+    }
+   },
+   "hosts": {
+    "api04": {
+     "action": "ansible.builtin.debug",
+     "changed": false,
+     "msg": "api04: release v2.14.1 (build 8f21c4d) active"
+    }
+   },
+   "_event": "v2_runner_on_ok",
+   "_timestamp": "2026-08-15T09:41:59.152878Z"
+  },
+  "task": "Report deployed version",
+  "play": "",
+  "created_at": "2026-08-15T09:41:59.152878Z"
+ },
+ {
+  "counter": 174,
+  "event": "runner_on_ok",
+  "event_data": {
+   "task": {
+    "name": "Report deployed version",
+    "id": "a748dbcf-ac61-4e63-8dde-29a6baa4b71a",
+    "path": "/runner/project/deploy.yml:41",
+    "duration": {
+     "start": "2026-08-15T09:41:56.729540Z",
+     "end": "2026-08-15T09:41:59.315291Z"
+    }
+   },
+   "hosts": {
+    "api05": {
+     "action": "ansible.builtin.debug",
+     "changed": false,
+     "msg": "api05: release v2.14.1 (build 8f21c4d) active"
+    }
+   },
+   "_event": "v2_runner_on_ok",
+   "_timestamp": "2026-08-15T09:41:59.315291Z"
+  },
+  "task": "Report deployed version",
+  "play": "",
+  "created_at": "2026-08-15T09:41:59.315291Z"
+ },
+ {
+  "counter": 175,
+  "event": "runner_on_ok",
+  "event_data": {
+   "task": {
+    "name": "Report deployed version",
+    "id": "a748dbcf-ac61-4e63-8dde-29a6baa4b71a",
+    "path": "/runner/project/deploy.yml:41",
+    "duration": {
+     "start": "2026-08-15T09:41:56.729540Z",
+     "end": "2026-08-15T09:41:59.780761Z"
+    }
+   },
+   "hosts": {
+    "api06": {
+     "action": "ansible.builtin.debug",
+     "changed": false,
+     "msg": "api06: release v2.14.1 (build 8f21c4d) active"
+    }
+   },
+   "_event": "v2_runner_on_ok",
+   "_timestamp": "2026-08-15T09:41:59.780761Z"
+  },
+  "task": "Report deployed version",
+  "play": "",
+  "created_at": "2026-08-15T09:41:59.780761Z"
+ },
+ {
+  "counter": 176,
+  "event": "runner_on_ok",
+  "event_data": {
+   "task": {
+    "name": "Report deployed version",
+    "id": "a748dbcf-ac61-4e63-8dde-29a6baa4b71a",
+    "path": "/runner/project/deploy.yml:41",
+    "duration": {
+     "start": "2026-08-15T09:41:56.729540Z",
+     "end": "2026-08-15T09:42:00.030170Z"
+    }
+   },
+   "hosts": {
+    "db01": {
+     "action": "ansible.builtin.debug",
+     "changed": false,
+     "msg": "db01: release v2.14.1 (build 8f21c4d) active"
+    }
+   },
+   "_event": "v2_runner_on_ok",
+   "_timestamp": "2026-08-15T09:42:00.030170Z"
+  },
+  "task": "Report deployed version",
+  "play": "",
+  "created_at": "2026-08-15T09:42:00.030170Z"
+ },
+ {
+  "counter": 177,
+  "event": "runner_on_ok",
+  "event_data": {
+   "task": {
+    "name": "Report deployed version",
+    "id": "a748dbcf-ac61-4e63-8dde-29a6baa4b71a",
+    "path": "/runner/project/deploy.yml:41",
+    "duration": {
+     "start": "2026-08-15T09:41:56.729540Z",
+     "end": "2026-08-15T09:42:00.467777Z"
+    }
+   },
+   "hosts": {
+    "db02": {
+     "action": "ansible.builtin.debug",
+     "changed": false,
+     "msg": "db02: release v2.14.1 (build 8f21c4d) active"
+    }
+   },
+   "_event": "v2_runner_on_ok",
+   "_timestamp": "2026-08-15T09:42:00.467777Z"
+  },
+  "task": "Report deployed version",
+  "play": "",
+  "created_at": "2026-08-15T09:42:00.467777Z"
+ },
+ {
+  "counter": 178,
+  "event": "runner_on_ok",
+  "event_data": {
+   "task": {
+    "name": "Report deployed version",
+    "id": "a748dbcf-ac61-4e63-8dde-29a6baa4b71a",
+    "path": "/runner/project/deploy.yml:41",
+    "duration": {
+     "start": "2026-08-15T09:41:56.729540Z",
+     "end": "2026-08-15T09:42:00.765423Z"
+    }
+   },
+   "hosts": {
+    "db03": {
+     "action": "ansible.builtin.debug",
+     "changed": false,
+     "msg": "db03: release v2.14.1 (build 8f21c4d) active"
+    }
+   },
+   "_event": "v2_runner_on_ok",
+   "_timestamp": "2026-08-15T09:42:00.765423Z"
+  },
+  "task": "Report deployed version",
+  "play": "",
+  "created_at": "2026-08-15T09:42:00.765423Z"
+ },
+ {
+  "counter": 179,
+  "event": "runner_on_ok",
+  "event_data": {
+   "task": {
+    "name": "Report deployed version",
+    "id": "a748dbcf-ac61-4e63-8dde-29a6baa4b71a",
+    "path": "/runner/project/deploy.yml:41",
+    "duration": {
+     "start": "2026-08-15T09:41:56.729540Z",
+     "end": "2026-08-15T09:42:00.838188Z"
+    }
+   },
+   "hosts": {
+    "cache01": {
+     "action": "ansible.builtin.debug",
+     "changed": false,
+     "msg": "cache01: release v2.14.1 (build 8f21c4d) active"
+    }
+   },
+   "_event": "v2_runner_on_ok",
+   "_timestamp": "2026-08-15T09:42:00.838188Z"
+  },
+  "task": "Report deployed version",
+  "play": "",
+  "created_at": "2026-08-15T09:42:00.838188Z"
+ },
+ {
+  "counter": 180,
+  "event": "runner_on_ok",
+  "event_data": {
+   "task": {
+    "name": "Report deployed version",
+    "id": "a748dbcf-ac61-4e63-8dde-29a6baa4b71a",
+    "path": "/runner/project/deploy.yml:41",
+    "duration": {
+     "start": "2026-08-15T09:41:56.729540Z",
+     "end": "2026-08-15T09:42:01.337865Z"
+    }
+   },
+   "hosts": {
+    "cache02": {
+     "action": "ansible.builtin.debug",
+     "changed": false,
+     "msg": "cache02: release v2.14.1 (build 8f21c4d) active"
+    }
+   },
+   "_event": "v2_runner_on_ok",
+   "_timestamp": "2026-08-15T09:42:01.337865Z"
+  },
+  "task": "Report deployed version",
+  "play": "",
+  "created_at": "2026-08-15T09:42:01.337865Z"
+ },
+ {
+  "counter": 181,
+  "event": "runner_on_ok",
+  "event_data": {
+   "task": {
+    "name": "Report deployed version",
+    "id": "a748dbcf-ac61-4e63-8dde-29a6baa4b71a",
+    "path": "/runner/project/deploy.yml:41",
+    "duration": {
+     "start": "2026-08-15T09:41:56.729540Z",
+     "end": "2026-08-15T09:42:01.764077Z"
+    }
+   },
+   "hosts": {
+    "lb01": {
+     "action": "ansible.builtin.debug",
+     "changed": false,
+     "msg": "lb01: release v2.14.1 (build 8f21c4d) active"
+    }
+   },
+   "_event": "v2_runner_on_ok",
+   "_timestamp": "2026-08-15T09:42:01.764077Z"
+  },
+  "task": "Report deployed version",
+  "play": "",
+  "created_at": "2026-08-15T09:42:01.764077Z"
+ },
+ {
+  "counter": 182,
+  "event": "v2_playbook_on_stats",
+  "event_data": {
+   "stats": {
+    "web01": {
+     "ok": 8,
+     "changed": 4,
+     "failures": 0,
+     "skipped": 1,
+     "unreachable": 0,
+     "rescued": 0,
+     "ignored": 0
+    },
+    "web02": {
+     "ok": 8,
+     "changed": 3,
+     "failures": 0,
+     "skipped": 1,
+     "unreachable": 0,
+     "rescued": 0,
+     "ignored": 0
+    },
+    "web03": {
+     "ok": 8,
+     "changed": 4,
+     "failures": 0,
+     "skipped": 1,
+     "unreachable": 0,
+     "rescued": 0,
+     "ignored": 0
+    },
+    "web04": {
+     "ok": 8,
+     "changed": 3,
+     "failures": 0,
+     "skipped": 1,
+     "unreachable": 0,
+     "rescued": 0,
+     "ignored": 0
+    },
+    "web05": {
+     "ok": 8,
+     "changed": 4,
+     "failures": 0,
+     "skipped": 1,
+     "unreachable": 0,
+     "rescued": 0,
+     "ignored": 0
+    },
+    "web06": {
+     "ok": 8,
+     "changed": 3,
+     "failures": 0,
+     "skipped": 1,
+     "unreachable": 0,
+     "rescued": 0,
+     "ignored": 0
+    },
+    "web07": {
+     "ok": 1,
+     "changed": 0,
+     "failures": 0,
+     "skipped": 0,
+     "unreachable": 1,
+     "rescued": 0,
+     "ignored": 0
+    },
+    "web08": {
+     "ok": 8,
+     "changed": 3,
+     "failures": 0,
+     "skipped": 1,
+     "unreachable": 0,
+     "rescued": 0,
+     "ignored": 0
+    },
+    "api01": {
+     "ok": 7,
+     "changed": 3,
+     "failures": 0,
+     "skipped": 2,
+     "unreachable": 0,
+     "rescued": 0,
+     "ignored": 0
+    },
+    "api02": {
+     "ok": 7,
+     "changed": 2,
+     "failures": 0,
+     "skipped": 2,
+     "unreachable": 0,
+     "rescued": 0,
+     "ignored": 0
+    },
+    "api03": {
+     "ok": 4,
+     "changed": 2,
+     "failures": 1,
+     "skipped": 2,
+     "unreachable": 0,
+     "rescued": 0,
+     "ignored": 0
+    },
+    "api04": {
+     "ok": 7,
+     "changed": 2,
+     "failures": 0,
+     "skipped": 2,
+     "unreachable": 0,
+     "rescued": 0,
+     "ignored": 0
+    },
+    "api05": {
+     "ok": 7,
+     "changed": 3,
+     "failures": 0,
+     "skipped": 2,
+     "unreachable": 0,
+     "rescued": 0,
+     "ignored": 0
+    },
+    "api06": {
+     "ok": 7,
+     "changed": 2,
+     "failures": 0,
+     "skipped": 2,
+     "unreachable": 0,
+     "rescued": 0,
+     "ignored": 0
+    },
+    "db01": {
+     "ok": 5,
+     "changed": 2,
+     "failures": 0,
+     "skipped": 4,
+     "unreachable": 0,
+     "rescued": 0,
+     "ignored": 0
+    },
+    "db02": {
+     "ok": 4,
+     "changed": 0,
+     "failures": 0,
+     "skipped": 5,
+     "unreachable": 0,
+     "rescued": 0,
+     "ignored": 0
+    },
+    "db03": {
+     "ok": 4,
+     "changed": 1,
+     "failures": 0,
+     "skipped": 5,
+     "unreachable": 0,
+     "rescued": 0,
+     "ignored": 0
+    },
+    "cache01": {
+     "ok": 4,
+     "changed": 0,
+     "failures": 0,
+     "skipped": 5,
+     "unreachable": 0,
+     "rescued": 0,
+     "ignored": 0
+    },
+    "cache02": {
+     "ok": 4,
+     "changed": 1,
+     "failures": 0,
+     "skipped": 5,
+     "unreachable": 0,
+     "rescued": 0,
+     "ignored": 0
+    },
+    "lb01": {
+     "ok": 5,
+     "changed": 1,
+     "failures": 0,
+     "skipped": 4,
+     "unreachable": 0,
+     "rescued": 0,
+     "ignored": 0
+    }
+   },
+   "custom_stats": {},
+   "global_custom_stats": {},
+   "_event": "v2_playbook_on_stats",
+   "_timestamp": "2026-08-15T09:42:02.064077Z"
+  },
+  "task": "",
+  "play": "",
+  "created_at": "2026-08-15T09:42:02.064077Z"
+ }
+]

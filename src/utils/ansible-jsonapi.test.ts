@@ -226,10 +226,12 @@ describe('getAnsibleJobEventFromJsonApi', () => {
       host: 'web-server-01',
       task: 'Install nginx',
       play: 'Deploy',
+      role: 'nginx',
       counter: 5,
       stdout: 'ok: [web-server-01]',
       changed: false,
       failed: false,
+      timestamp: '2024-01-01T00:00:01Z',
       'created-at': '2024-01-01T00:00:00Z',
     }, {
       job: { data: { id: 'job-1', type: 'ansible-jobs' } },
@@ -241,6 +243,9 @@ describe('getAnsibleJobEventFromJsonApi', () => {
     expect(event.task).toBe('Install nginx');
     expect(event.counter).toBe(5);
     expect(event.job_id).toBe('job-1');
+    // Both were served by the API and silently dropped before.
+    expect(event.role).toBe('nginx');
+    expect(event.timestamp).toBe('2024-01-01T00:00:01Z');
   });
 });
 

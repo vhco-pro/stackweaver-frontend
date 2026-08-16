@@ -97,22 +97,29 @@ The job will start running and you'll see live output.
 
 ## Step 6: Watch the Job Run
 
-As the job runs, you'll see real-time updates in the job output. Each task appears as it executes, with related tasks grouped together for easier navigation. Tasks are color-coded by result:
+As the job runs, you'll see real-time updates. The **Run** tab opens by default and lays the run out as a grid: one row per host, one column per task, and one cell per result, filling in as hosts report back. Each cell carries both a colour and a glyph, so results stay readable at a glance:
 
-- **Green**: Task completed successfully
-- **Yellow**: Task made changes (modified something)
-- **Red**: Task failed
+- **Green ✓**: Task completed successfully
+- **Amber ~**: Task made changes (modified something)
+- **Red ✕**: Task failed
+- **Magenta ⚡**: Host was unreachable
+- **Cyan ⊘**: Task was skipped on that host
+- **Faint dot**: Task did not run on that host
 
-Each task shows timing information so you can see how long it took. Expand any task to see its detailed output, including any stdout or stderr messages from Ansible.
+Every task column header shows how long that task took and how its hosts came out, so a single failing host inside an otherwise successful task is visible without scrolling. Clicking a cell opens the full result for that host and task - the module that ran, the file and line it came from, its message, output, and any diff it made. Clicking a host name shows everything that ran on that host in order, and clicking a task column shows how the whole fleet fared on that task.
+
+The same run has two other views, switched with the Matrix / Timeline / Stream buttons. **Timeline** puts each task on the job clock, which answers where a slow run spent its time. **Stream** is the run as chronological terminal-style lines, each one expandable to the raw event behind it; anything the viewer cannot interpret shows up there verbatim, so nothing the runner printed is ever lost. Its **Raw** toggle swaps those lines for the runner's own output, unmodified, still filtered and searchable.
+
+The status strip above the grid reads out how the fleet came out; the legend beneath it doubles as the filter, so pressing a status narrows every view to it. The search box matches host names, task names, and the full result of every task, so searching for the text of an error finds the hosts that hit it. Press `/` to jump to the search box. Task names are shortened to keep the whole run on screen; drag a column's right edge when you want to read one in full, and double-click that edge to put it back.
 
 ## Step 7: Review the Results
 
 After the job completes:
 
 1. Check the overall status (success, failed, or changed)
-2. Review any failed tasks in red
+2. Scan the Run grid for red or magenta cells to see exactly which hosts and tasks went wrong
 3. Look at the summary showing how many tasks ran, succeeded, and changed
-4. Use the raw output tab for full JSON output if needed
+4. Switch to Stream and expand a line for the raw event behind it, or copy the job's whole raw output with the button beside the search box
 
 ## Troubleshooting Your First Job
 
