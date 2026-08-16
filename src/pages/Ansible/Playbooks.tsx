@@ -57,7 +57,6 @@ import {
   GitBranch,
   RefreshCw,
   Eye,
-  Clock,
   CheckCircle2,
 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -725,21 +724,10 @@ export default function Playbooks() {
                     </span>
                   ) : null}
 
-                  {/* Last Synced */}
-                  {playbook.last_synced_at && (
-                    <span className="text-muted-foreground flex items-center gap-1">
-                      <Clock className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400" />
-                      Synced {formatRelativeTime(playbook.last_synced_at)}
-                    </span>
-                  )}
-
-                  {/* Created */}
-                  <span className="text-muted-foreground">
-                    Created {formatRelativeTime(playbook.created_at)}
-                  </span>
-
-                  {/* Sync status - small icon, red on failure, hover reveals last_sync_error */}
+                  {/* Sync status + last-synced time - one item; icon reflects the
+                      state, hover reveals the error and the retry affordance */}
                   <SyncStatusIndicator
+                    showLabel
                     status={playbook.last_sync_status}
                     error={playbook.last_sync_error}
                     syncedAt={playbook.last_synced_at}
@@ -747,6 +735,11 @@ export default function Playbooks() {
                     onRetry={playbook.vcs_connection_id ? () => { void handleSync(playbook); } : undefined}
                     retrying={syncing === playbook.id}
                   />
+
+                  {/* Created */}
+                  <span className="text-muted-foreground">
+                    Created {formatRelativeTime(playbook.created_at)}
+                  </span>
                 </div>
               </CardContent>
             </Card>

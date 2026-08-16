@@ -29,7 +29,7 @@ import type {
 } from '@/api/ansible';
 
 import type { JsonApiResource } from './jsonapi';
-import { getAttribute, getRelationship } from './jsonapi';
+import { getAttribute, getRelationship, getRelationships } from './jsonapi';
 
 /**
  * Transform JSON:API resource to flat AnsibleJob object
@@ -41,7 +41,7 @@ export function getAnsibleJobFromJsonApi(resource: JsonApiResource): AnsibleJob 
     playbook_id: getRelationship(resource, 'playbook')?.id || '',
     inventory_id: getRelationship(resource, 'inventory')?.id || '',
     job_template_id: getRelationship(resource, 'template')?.id,
-    credential_id: getRelationship(resource, 'credential')?.id,
+    credential_ids: getRelationships(resource, 'credentials').map((r) => r.id),
     name: getAttribute<string>(resource, 'name', '') || '',
     status: (getAttribute<string>(resource, 'status', 'pending') || 'pending') as AnsibleJobStatus,
     extra_vars: getAttribute<Record<string, unknown>>(resource, 'extra-vars'),
@@ -165,7 +165,7 @@ export function getAnsibleJobTemplateFromJsonApi(resource: JsonApiResource): Ans
     project_id: getRelationship(resource, 'project')?.id || '',
     playbook_id: getRelationship(resource, 'playbook')?.id || '',
     inventory_id: getRelationship(resource, 'inventory')?.id || '',
-    credential_id: getRelationship(resource, 'credential')?.id,
+    credential_ids: getRelationships(resource, 'credentials').map((r) => r.id),
     agent_pool_id: getRelationship(resource, 'agent-pool')?.id,
     name: getAttribute<string>(resource, 'name', '') || '',
     description: getAttribute<string>(resource, 'description'),
