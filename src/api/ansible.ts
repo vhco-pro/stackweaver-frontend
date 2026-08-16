@@ -153,7 +153,8 @@ export interface AnsibleJobTemplate {
   project_id: string;
   playbook_id: string;
   inventory_id: string;
-  credential_id?: string;
+  /** The template's credential set: at most one per type, vault may repeat. */
+  credential_ids?: string[];
   agent_pool_id?: string;
   name: string;
   description?: string;
@@ -180,7 +181,8 @@ export interface AnsibleJobTemplate {
 export interface CreateJobTemplateInput {
   playbook_id: string;
   inventory_id: string;
-  credential_id?: string;
+  /** The template's credential set: at most one per type, vault may repeat. */
+  credential_ids?: string[];
   agent_pool_id?: string;
   name: string;
   description?: string;
@@ -208,7 +210,8 @@ export interface AnsibleJob {
   playbook_id: string;
   inventory_id: string;
   job_template_id?: string;
-  credential_id?: string;
+  /** The job's own credential set, snapshotted at launch. */
+  credential_ids?: string[];
   name: string;
   status: AnsibleJobStatus;
   extra_vars?: Record<string, unknown>;
@@ -249,7 +252,7 @@ export interface AnsibleJob {
 export interface CreateJobInput {
   playbook_id: string;
   inventory_id: string;
-  credential_id?: string;
+  credential_ids?: string[];
   name?: string;
   extra_vars?: Record<string, unknown>;
   limit?: string;
@@ -794,9 +797,9 @@ export const ansibleJobTemplatesApi = {
             inventory: {
               data: { id: data.inventory_id, type: 'ansible-inventories' },
             },
-            ...(data.credential_id ? {
-              credential: {
-                data: { id: data.credential_id, type: 'ansible-credentials' },
+            ...(data.credential_ids && data.credential_ids.length > 0 ? {
+              credentials: {
+                data: data.credential_ids.map((id) => ({ id, type: 'ansible-credentials' })),
               },
             } : {}),
             ...(data.agent_pool_id ? {
@@ -846,7 +849,7 @@ export const ansibleJobTemplatesApi = {
             'allow-callbacks': data.allow_callbacks,
             'launch-on-webhook': data.launch_on_webhook,
           },
-          ...(data.playbook_id !== undefined || data.inventory_id !== undefined || data.credential_id !== undefined || data.agent_pool_id !== undefined ? {
+          ...(data.playbook_id !== undefined || data.inventory_id !== undefined || data.credential_ids !== undefined || data.agent_pool_id !== undefined ? {
             relationships: {
               ...(data.playbook_id !== undefined ? {
                 playbook: {
@@ -858,11 +861,11 @@ export const ansibleJobTemplatesApi = {
                   data: { id: data.inventory_id, type: 'ansible-inventories' },
                 },
               } : {}),
-              ...(data.credential_id !== undefined ? {
-                credential: {
-                  data: data.credential_id
-                    ? { id: data.credential_id, type: 'ansible-credentials' }
-                    : { id: '', type: 'ansible-credentials' },
+              ...(data.credential_ids !== undefined ? {
+                // Sending the relationship replaces the set wholesale; an empty
+                // array clears it. Omit it to leave the set alone.
+                credentials: {
+                  data: data.credential_ids.map((id) => ({ id, type: 'ansible-credentials' })),
                 },
               } : {}),
               ...(data.agent_pool_id !== undefined ? {
@@ -1057,9 +1060,9 @@ export const ansibleJobsApi = {
             inventory: {
               data: { id: data.inventory_id, type: 'ansible-inventories' },
             },
-            ...(data.credential_id ? {
-              credential: {
-                data: { id: data.credential_id, type: 'ansible-credentials' },
+            ...(data.credential_ids && data.credential_ids.length > 0 ? {
+              credentials: {
+                data: data.credential_ids.map((id) => ({ id, type: 'ansible-credentials' })),
               },
             } : {}),
           },

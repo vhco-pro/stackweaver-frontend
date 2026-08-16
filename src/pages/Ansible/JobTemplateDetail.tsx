@@ -221,7 +221,6 @@ export default function JobTemplateDetail() {
     skip_tags: '',
     verbosity: 0,
     forks: 5,
-    credential_id: '',
     inventory_id: '',
     agent_pool_id: '',
     enabled: true,
@@ -388,7 +387,6 @@ export default function JobTemplateDetail() {
         skip_tags: template.skip_tags || '',
         verbosity: template.verbosity || 0,
         forks: template.forks || 5,
-        credential_id: template.credential_id || '',
         inventory_id: template.inventory_id || '',
         agent_pool_id: template.agent_pool_id || '',
         enabled: template.enabled,
@@ -468,8 +466,8 @@ export default function JobTemplateDetail() {
         launch_on_webhook: editForm.launch_on_webhook,
         playbook_id: playbookId,
         inventory_id: editForm.inventory_id,
-        // Use empty string (not undefined) to clear the relationship, undefined to skip updating it
-        credential_id: editForm.credential_id === '' ? '' : (editForm.credential_id || undefined),
+        // Credentials are managed by the Credentials card (the set is the source
+        // of truth), so the edit dialog deliberately leaves them untouched.
         agent_pool_id: editForm.agent_pool_id === '' ? '' : (editForm.agent_pool_id || undefined),
       };
       
@@ -478,8 +476,6 @@ export default function JobTemplateDetail() {
         console.log('[DEBUG] JobTemplateDetail.handleUpdate: Sending update request:', {
           template_id: template.id,
           inventory_id: updateData.inventory_id,
-          credential_id: updateData.credential_id,
-          credential_id_original: editForm.credential_id,
         });
       }
       
@@ -1506,23 +1502,6 @@ export default function JobTemplateDetail() {
                   <SelectContent>
                     {inventories.map((inv) => (
                       <SelectItem key={inv.id} value={inv.id}>{inv.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="credential_id">Credential (Optional)</Label>
-                <Select
-                  value={editForm.credential_id || '__none__'}
-                  onValueChange={(value) => setEditForm({ ...editForm, credential_id: value === '__none__' ? '' : value })}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select a credential (optional)" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="__none__">None</SelectItem>
-                    {credentials.map((cred) => (
-                      <SelectItem key={cred.id} value={cred.id}>{cred.name}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>

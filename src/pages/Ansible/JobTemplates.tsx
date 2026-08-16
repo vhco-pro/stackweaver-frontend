@@ -238,7 +238,7 @@ export default function JobTemplates() {
         description: createForm.description || undefined,
         playbook_id: playbookId,
         inventory_id: createForm.inventory_id,
-        credential_id: createForm.credential_id || undefined,
+        credential_ids: createForm.credential_id ? [createForm.credential_id] : undefined,
         agent_pool_id: createForm.agent_pool_id || undefined,
         verbosity: createForm.verbosity,
         forks: createForm.forks,
@@ -527,11 +527,13 @@ export default function JobTemplates() {
                     </span>
                   )}
 
-                  {/* Credential */}
-                  {template.credential_id && (
+                  {/* Credentials */}
+                  {template.credential_ids && template.credential_ids.length > 0 && (
                     <span className="text-muted-foreground flex items-center gap-1">
                       <Key className="h-3.5 w-3.5" />
-                      Credential
+                      {template.credential_ids.length === 1
+                        ? 'Credential'
+                        : `${template.credential_ids.length} credentials`}
                     </span>
                   )}
 
