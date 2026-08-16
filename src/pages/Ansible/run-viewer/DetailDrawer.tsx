@@ -33,6 +33,7 @@ import {
   type TaskMeta,
 } from './model';
 import { STATUS_META, asText, formatDuration, formatOffset, shortPath } from './status';
+import { HostStatusChip, HostStatusIcon } from '@/components/ansible/HostStatus';
 
 interface DetailDrawerProps {
   model: RunModel;
@@ -211,16 +212,6 @@ function FactsGrid({ facts }: { facts: Record<string, unknown> }) {
   );
 }
 
-function StatusPill({ status }: { status: RunStatus }) {
-  const meta = STATUS_META[status];
-  return (
-    <span className={cn('inline-flex items-center gap-1.5 rounded-md border px-2 py-0.5 text-xs', meta.cell)}>
-      <span aria-hidden="true">{meta.glyph}</span>
-      {meta.label}
-    </span>
-  );
-}
-
 function RawEvent({ result }: { result: ModuleResult }) {
   return (
     <details className="rounded-lg border border-border/60">
@@ -290,7 +281,7 @@ function CellDetail({
     <div className="space-y-5">
       <dl className="grid grid-cols-[7rem_1fr] gap-x-3 gap-y-2">
         <KeyValue label="Status">
-          <StatusPill status={result.status} />
+          <HostStatusChip status={result.status} />
         </KeyValue>
         {module.action && (
           <KeyValue label="Module">
@@ -422,7 +413,7 @@ function TaskDetail({
         return (
           <div key={status} className="space-y-2">
             <h4 className={cn('flex items-center gap-1.5 text-[10px] font-medium uppercase tracking-wider', meta.text)}>
-              <span aria-hidden="true">{meta.glyph}</span>
+              <HostStatusIcon status={status} className="h-3 w-3" labelled={false} />
               {meta.label} · {hosts.length}
             </h4>
             <div className="flex flex-wrap gap-1.5">
@@ -517,7 +508,7 @@ export function DetailDrawer({ model, target, onNavigate, onClose, onBack, backL
                 aria-hidden="true"
                 className={cn('mt-0.5 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border', STATUS_META[status].cell)}
               >
-                {STATUS_META[status].glyph}
+                <HostStatusIcon status={status} className="h-4 w-4" labelled={false} />
               </span>
             )}
             <div className="min-w-0">

@@ -26,6 +26,7 @@ import { TimelineView } from './TimelineView';
 import { cellMatches, isFiltering, normalizeQuery, streamLineMatches, type RunFilters } from './filters';
 import { drawerTargetLabel, resultFor, type DrawerTarget, type RunStatus } from './model';
 import { STATUS_META, formatDuration } from './status';
+import { HostStatusIcon } from '@/components/ansible/HostStatus';
 
 interface RunViewProps {
   events: AnsibleJobEvent[];
@@ -266,7 +267,7 @@ export function RunView({
                       slice.worst ? STATUS_META[slice.worst].cell : 'text-muted-foreground',
                     )}
                   >
-                    {slice.worst && <span aria-hidden="true">{STATUS_META[slice.worst].glyph}</span>}
+                    {slice.worst && <HostStatusIcon status={slice.worst} className="h-3 w-3" labelled={false} />}
                     #{slice.sliceNumber}
                     <span className="opacity-70">{slice.hosts}h</span>
                   </span>

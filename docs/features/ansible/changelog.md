@@ -8,6 +8,9 @@ covers:
 
 # Changelog
 
+### Changed
+- **One status vocabulary for every host result**: the job list, a template's run history, a job's host facts and the run viewer all now draw per-host outcomes from a single shared component, instead of four hand-rolled sets of icons. The icons are the ones already in use, recoloured to one contrast-validated palette that follows Ansible's own terminal output (changed is amber, skipped is cyan), with unreachable moving from a disabled-radio icon to a bolt. Ansible host results no longer share icons with Terraform run statuses, so a green check means one thing rather than two. See `frontend/src/components/ansible/hostStatus.ts`.
+
 ### Added
 - **Sliced launches read as one run**: opening any slice of a job launched with slicing now shows the whole fleet - every slice's hosts in one grid, one set of totals, one timeline and one stream - with a chip per slice showing its host count and worst result. Each slice is a separate `ansible-playbook` invocation, so the same task carries a different id in each; they are matched on task name and source file so the fan-out collapses back into the columns it started from. Opening a cell belonging to another slice fetches that slice's event. See `frontend/src/pages/Ansible/run-viewer/slices.ts`.
 - **Raw output, back in the Stream lane**: the Stream pivot has a **Raw** toggle that swaps the synthesized lines for the runner's own output verbatim, one line per event. Unlike the Output tab it replaces, it is virtualized, obeys the status filters, and highlights search matches, so a fleet-sized run stays usable; for a run large enough to load in the summary projection the toggle is disabled, since that projection omits stdout by design. Individual raw events are still one click away in the default line view.

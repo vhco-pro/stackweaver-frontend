@@ -99,12 +99,14 @@ The job will start running and you'll see live output.
 
 As the job runs, you'll see real-time updates. The **Run** tab opens by default and lays the run out as a grid: one row per host, one column per task, and one cell per result, filling in as hosts report back. Each cell carries both a colour and a glyph, so results stay readable at a glance:
 
-- **Green ✓**: Task completed successfully
-- **Amber ~**: Task made changes (modified something)
-- **Red ✕**: Task failed
-- **Magenta ⚡**: Host was unreachable
-- **Cyan ⊘**: Task was skipped on that host
+- **Green check**: Task completed successfully
+- **Amber refresh**: Task made changes (modified something)
+- **Red alert**: Task failed
+- **Magenta bolt**: Host was unreachable
+- **Cyan ban**: Task was skipped on that host
 - **Faint dot**: Task did not run on that host
+
+These are the same icons and colours the job list and a template's run history use, so a result looks the same wherever you meet it. The colours follow Ansible's own terminal output, where changed is yellow and skipped is cyan.
 
 Every task column header shows how long that task took and how its hosts came out, so a single failing host inside an otherwise successful task is visible without scrolling. Clicking a cell opens the full result for that host and task - the module that ran, the file and line it came from, its message, output, and any diff it made. Clicking a host name shows everything that ran on that host in order, and clicking a task column shows how the whole fleet fared on that task.
 

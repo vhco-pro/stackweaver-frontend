@@ -16,6 +16,7 @@ import { JsonSyntaxHighlighter } from '@/components/code/JsonSyntaxHighlighter';
 import { cn } from '@/lib/utils';
 import type { StreamLine } from './model';
 import { STATUS_META, formatOffset } from './status';
+import { HostStatusIcon } from '@/components/ansible/HostStatus';
 
 interface StreamViewProps {
   lines: StreamLine[];
@@ -168,9 +169,9 @@ export function StreamView({ lines, startMs, query, emptyNote, rawAvailable = tr
                 )}
               >
                 <span className="w-14 shrink-0 tabular-nums text-muted-foreground">{formatOffset(line.atMs, startMs)}</span>
-                <span className={cn('w-28 shrink-0 truncate uppercase', meta?.text)}>
+                <span className={cn('flex w-28 shrink-0 items-center gap-1 truncate uppercase', meta?.text)}>
+                  {line.status && <HostStatusIcon status={line.status} className="h-3 w-3" labelled={false} />}
                   {line.label}
-                  {meta && <span aria-hidden="true"> {meta.glyph}</span>}
                 </span>
                 <span className="w-24 shrink-0 truncate">{highlight(line.host, query)}</span>
                 <span className="min-w-0 flex-1 whitespace-pre-wrap break-words">{highlight(line.message, query)}</span>

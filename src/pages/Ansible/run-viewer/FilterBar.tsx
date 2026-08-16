@@ -18,6 +18,7 @@ import { useMountEffect } from '@/hooks/useMountEffect';
 import { cn } from '@/lib/utils';
 import { RUN_STATUSES, type RunModel, type RunStatus } from './model';
 import { DID_NOT_RUN_GLYPH, STATUS_META } from './status';
+import { HostStatusIcon } from '@/components/ansible/HostStatus';
 import type { RunFilters } from './filters';
 
 export type RunPivot = 'matrix' | 'timeline' | 'stream';
@@ -75,9 +76,9 @@ export function StatusToggles({
           >
             <span
               aria-hidden="true"
-              className={cn('inline-flex h-5 w-5 items-center justify-center rounded-md border text-xs leading-none', meta.cell)}
+              className={cn('inline-flex h-5 w-5 items-center justify-center rounded-md border', meta.cell)}
             >
-              {meta.glyph}
+              <meta.Icon className="h-3 w-3" />
             </span>
             {meta.label}
           </button>
@@ -141,11 +142,9 @@ export function FilterBar({
             <span
               key={status}
               title={`${count} ${meta.label}`}
-              className={cn('flex items-baseline gap-1.5', count === 0 && 'opacity-40')}
+              className={cn('flex items-center gap-1.5', count === 0 && 'opacity-40')}
             >
-              <span aria-hidden="true" className={cn('text-sm', meta.text)}>
-                {meta.glyph}
-              </span>
+              <HostStatusIcon status={status} className="h-4 w-4" labelled={false} />
               <span className={cn('text-lg font-semibold tabular-nums', meta.text)}>{count}</span>
               <span className="sr-only">{meta.label}</span>
             </span>
