@@ -498,13 +498,17 @@ POST /api/v2/organizations/:name/ansible/job-templates
       "inventory": {
         "data": { "id": "inventory-uuid", "type": "inventories" }
       },
-      "credential": {
-        "data": { "id": "credential-uuid", "type": "credentials" }
+      "credentials": {
+        "data": [{ "id": "credential-uuid", "type": "ansible-credentials" }]
       }
     }
   }
 }
 ```
+
+A job template holds a *set* of credentials rather than a single one: at most one per type, plus any number of vault credentials with distinct vault IDs. Sending the `credentials` relationship on create attaches them; sending it on update replaces the set wholesale, and an empty array clears it. Omitting it on update leaves the set untouched. The same set can also be managed one credential at a time through the attach and detach endpoints below.
+
+Launching snapshots the template's set onto the job, so the job records what it actually ran with. Editing a template afterwards never changes an already-launched job, and relaunching reproduces the original run rather than picking up the template's current credentials.
 
 ### Get Job Template
 
