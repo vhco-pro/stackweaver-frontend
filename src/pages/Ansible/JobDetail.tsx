@@ -43,9 +43,6 @@ import {
   Cpu,
   HardDrive,
   Monitor,
-  WifiOff,
-  CircleDot,
-  EyeOff,
   Copy,
   Check,
   LayoutGrid,
@@ -53,6 +50,8 @@ import {
 import { RunView } from './run-viewer/RunView';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import { HostStatusCount } from '@/components/ansible/HostStatus';
+import { ANSIBLE_HOST_STATUSES, type HostStatus } from '@/components/ansible/hostStatus';
 
 // Date formatting helpers
 function formatDateTime(dateString: string): string {
@@ -76,6 +75,38 @@ interface JobEventsData {
   summary: boolean;
   /** One fetch has run since the job reached a terminal status. */
   settled: boolean;
+}
+
+/** One host's line of the play recap (`v2_playbook_on_stats`). */
+interface PlaybookStats {
+  ok: number;
+  changed: number;
+  failures: number;
+  skipped: number;
+  unreachable: number;
+  rescued: number;
+  ignored: number;
+}
+
+/** The recap's per-host counters, read through the shared status vocabulary. */
+function recapCount(stats: PlaybookStats | undefined, status: HostStatus): number {
+  if (!stats) return 0;
+  switch (status) {
+    case 'ok':
+      return stats.ok;
+    case 'changed':
+      return stats.changed;
+    case 'failed':
+      return stats.failures;
+    case 'unreachable':
+      return stats.unreachable;
+    case 'skipped':
+      return stats.skipped;
+    case 'rescued':
+      return stats.rescued;
+    case 'ignored':
+      return stats.ignored;
+  }
 }
 
 export default function JobDetail() {
@@ -311,17 +342,6 @@ export default function JobDetail() {
     uptime?: number;
     virtualization?: string;
     rawFacts?: Record<string, unknown>;
-  }
-
-  // Interface for playbook stats (v2_playbook_on_stats)
-  interface PlaybookStats {
-    ok: number;
-    changed: number;
-    failures: number;
-    skipped: number;
-    unreachable: number;
-    rescued: number;
-    ignored: number;
   }
 
   // Warnings, host facts and the play recap: everything the Details and Host
@@ -972,34 +992,13 @@ export default function JobDetail() {
                   </div>
                   {playbookStats.has(facts.hostname) && (
                     <div className="flex items-center gap-3 text-xs">
-                      <div className="flex items-center gap-1" title="OK">
-                        <CheckCircle className="h-3.5 w-3.5 text-green-600" />
-                        <span className="font-medium text-green-600">{playbookStats.get(facts.hostname)?.ok || 0}</span>
-                      </div>
-                      <div className="flex items-center gap-1" title="Changed">
-                        <RefreshCw className="h-3.5 w-3.5 text-blue-600" />
-                        <span className="font-medium text-blue-600">{playbookStats.get(facts.hostname)?.changed || 0}</span>
-                      </div>
-                      <div className="flex items-center gap-1" title="Failed">
-                        <AlertCircle className="h-3.5 w-3.5 text-red-600" />
-                        <span className="font-medium text-red-600">{playbookStats.get(facts.hostname)?.failures || 0}</span>
-                      </div>
-                      <div className="flex items-center gap-1" title="Unreachable">
-                        <WifiOff className="h-3.5 w-3.5 text-orange-600" />
-                        <span className="font-medium text-orange-600">{playbookStats.get(facts.hostname)?.unreachable || 0}</span>
-                      </div>
-                      <div className="flex items-center gap-1" title="Rescued">
-                        <CircleDot className="h-3.5 w-3.5 text-purple-600" />
-                        <span className="font-medium text-purple-600">{playbookStats.get(facts.hostname)?.rescued || 0}</span>
-                      </div>
-                      <div className="flex items-center gap-1" title="Skipped">
-                        <Ban className="h-3.5 w-3.5 text-gray-400" />
-                        <span className="font-medium text-gray-400">{playbookStats.get(facts.hostname)?.skipped || 0}</span>
-                      </div>
-                      <div className="flex items-center gap-1" title="Ignored">
-                        <EyeOff className="h-3.5 w-3.5 text-gray-600" />
-                        <span className="font-medium text-gray-600">{playbookStats.get(facts.hostname)?.ignored || 0}</span>
-                      </div>
+                      {ANSIBLE_HOST_STATUSES.map((status) => (
+                        <HostStatusCount
+                          key={status}
+                          status={status}
+                          count={recapCount(playbookStats.get(facts.hostname), status)}
+                        />
+                      ))}
                     </div>
                   )}
                 </div>

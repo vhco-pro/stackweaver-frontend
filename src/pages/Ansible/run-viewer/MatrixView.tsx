@@ -18,6 +18,7 @@ import { cn } from '@/lib/utils';
 import { hostWorstStatus, resultFor, taskAggregate, type RunModel, type TaskMeta } from './model';
 import { cellMatches, isFiltering, NO_FILTERS, type RunFilters } from './filters';
 import { DID_NOT_RUN_GLYPH, STATUS_META, formatDuration, shortPath } from './status';
+import { HostStatusIcon } from '@/components/ansible/HostStatus';
 
 /** Below this many hosts, plain rows are cheaper than virtualizing them. */
 const VIRTUALIZE_ABOVE_HOSTS = 60;
@@ -151,9 +152,9 @@ function TaskHeader({
       <span className="mt-0.5 flex items-center gap-1.5 text-[10px] text-muted-foreground">
         <span>{running ? 'running' : formatDuration(task.endMs - task.startMs)}</span>
         {AGGREGATE_ORDER.filter((status) => counts[status] > 0).map((status) => (
-          <span key={status} className={cn('tabular-nums', STATUS_META[status].text)}>
+          <span key={status} className={cn('flex items-center gap-0.5 tabular-nums', STATUS_META[status].text)}>
             {counts[status]}
-            {STATUS_META[status].glyph}
+            <HostStatusIcon status={status} className="h-3 w-3" labelled={false} />
           </span>
         ))}
       </span>
@@ -370,7 +371,7 @@ export function MatrixView({
                             'cursor-pointer transition-transform duration-200 hover:scale-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring motion-reduce:transform-none motion-reduce:transition-none',
                           )}
                         >
-                          {meta.glyph}
+                          <HostStatusIcon status={result.status} className="h-3.5 w-3.5" labelled={false} />
                         </button>
                       ) : (
                         <span key={result.eventCounter} className={cellClass} title={`${host} · ${task.name} — ${meta.label}`} aria-label={label} role="img">

@@ -60,12 +60,11 @@ import {
   Ban,
   Eye,
   Trash2,
-  WifiOff,
-  CircleDot,
-  EyeOff,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import { HostStatusCount } from '@/components/ansible/HostStatus';
+import { ANSIBLE_HOST_STATUSES, hostStatusCount } from '@/components/ansible/hostStatus';
 
 // Simple relative time formatter
 function formatRelativeTime(dateString: string): string {
@@ -351,34 +350,9 @@ export default function Jobs() {
                   <TableCell>
                     {(job.status === 'successful' || job.status === 'failed') && (
                       <div className="flex items-center gap-3">
-                        <div className="flex items-center gap-1" title="OK">
-                          <CheckCircle className="h-3.5 w-3.5 text-green-600" />
-                          <span className="text-xs font-medium text-green-600">{job.hosts_ok}</span>
-                        </div>
-                        <div className="flex items-center gap-1" title="Changed">
-                          <RefreshCw className="h-3.5 w-3.5 text-blue-600" />
-                          <span className="text-xs font-medium text-blue-600">{job.hosts_changed}</span>
-                        </div>
-                        <div className="flex items-center gap-1" title="Failed">
-                          <AlertCircle className="h-3.5 w-3.5 text-red-600" />
-                          <span className="text-xs font-medium text-red-600">{job.hosts_failed}</span>
-                        </div>
-                        <div className="flex items-center gap-1" title="Unreachable">
-                          <WifiOff className="h-3.5 w-3.5 text-orange-600" />
-                          <span className="text-xs font-medium text-orange-600">{job.hosts_unreachable}</span>
-                        </div>
-                        <div className="flex items-center gap-1" title="Rescued">
-                          <CircleDot className="h-3.5 w-3.5 text-purple-600" />
-                          <span className="text-xs font-medium text-purple-600">{job.hosts_rescued || 0}</span>
-                        </div>
-                        <div className="flex items-center gap-1" title="Skipped">
-                          <Ban className="h-3.5 w-3.5 text-gray-400" />
-                          <span className="text-xs font-medium text-gray-400">{job.hosts_skipped}</span>
-                        </div>
-                        <div className="flex items-center gap-1" title="Ignored">
-                          <EyeOff className="h-3.5 w-3.5 text-gray-600" />
-                          <span className="text-xs font-medium text-gray-600">{job.hosts_ignored || 0}</span>
-                        </div>
+                        {ANSIBLE_HOST_STATUSES.map((status) => (
+                          <HostStatusCount key={status} status={status} count={hostStatusCount(job, status)} />
+                        ))}
                         {hasWarnings(job) && (
                           <div className="flex items-center gap-1 ml-4 pl-3 border-l border-border" title={`${job.warnings_count || 0} Warning${(job.warnings_count || 0) !== 1 ? 's' : ''}`}>
                             <AlertTriangle className="h-3.5 w-3.5 text-yellow-600" />
