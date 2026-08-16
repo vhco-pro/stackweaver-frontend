@@ -240,6 +240,10 @@ export interface AnsibleJob {
   agent_pool_name?: string;
   runner_id?: string;
   runner_name?: string;
+  /** Set when this job is one slice of a sliced launch; ties the siblings together. */
+  slice_group_id?: string;
+  slice_number?: number;
+  slice_count?: number;
 }
 
 export interface CreateJobInput {
@@ -265,12 +269,19 @@ export interface AnsibleJobEvent {
   host?: string;
   task?: string;
   play?: string;
+  role?: string;
   counter: number;
   stdout?: string;
   stderr?: string;
   changed?: boolean;
   failed?: boolean;
   skipped?: boolean;
+  /**
+   * The runner's own event timestamp. Historically never populated (it
+   * serializes as `0001-01-01`), so treat it as a hint and fall back to
+   * `event_data._timestamp` or `created_at`.
+   */
+  timestamp?: string;
   created_at: string;
 }
 
@@ -992,6 +1003,16 @@ export const ansibleJobsApi = {
       `/projects/${projectId}/ansible/jobs${pageQuery(params)}`
     ),
 
+  /**
+   * The sibling slices of one sliced launch, in slice order. Returns the whole
+   * fan-out unpaginated - a caller asking for it wants to present them as the
+   * single logical run they were.
+   */
+  listSliceGroup: (projectId: string, sliceGroupId: string) =>
+    apiClient.get<JsonApiListResponse<JsonApiResource>>(
+      `/projects/${projectId}/ansible/jobs?filter[slice-group-id]=${encodeURIComponent(sliceGroupId)}`
+    ),
+
   listByOrganization: (organizationName: string, params?: PageParams) =>
     apiClient.get<JsonApiListResponse<JsonApiResource>>(
       `/organizations/${organizationName}/ansible/jobs${pageQuery(params)}`
@@ -1059,11 +1080,33 @@ export const ansibleJobsApi = {
   delete: (id: string) =>
     apiClient.delete(`/ansible/jobs/${id}`),
 
-  getEvents: (id: string, opts?: { after?: number; page?: number; pageSize?: number }) => {
+  /**
+   * Job events, optionally narrowed server-side.
+   *
+   * `filter` composes with `after` and with pagination, so a fleet-sized run can
+   * ask for the rows it needs instead of paging the whole history. `summary`
+   * requests the reduced projection (no stdout/stderr, no facts, no module args)
+   * - fetch one full event afterwards with `filter: { counter }`.
+   */
+  getEvents: (
+    id: string,
+    opts?: {
+      after?: number;
+      page?: number;
+      pageSize?: number;
+      filter?: { host?: string; status?: string; task?: string; counter?: number };
+      summary?: boolean;
+    },
+  ) => {
     const qs = new URLSearchParams();
     if (opts?.after !== undefined) qs.set('after', String(opts.after));
     if (opts?.page !== undefined) qs.set('page[number]', String(opts.page));
     if (opts?.pageSize !== undefined) qs.set('page[size]', String(opts.pageSize));
+    if (opts?.filter?.host) qs.set('filter[host]', opts.filter.host);
+    if (opts?.filter?.status) qs.set('filter[status]', opts.filter.status);
+    if (opts?.filter?.task) qs.set('filter[task]', opts.filter.task);
+    if (opts?.filter?.counter !== undefined) qs.set('filter[counter]', String(opts.filter.counter));
+    if (opts?.summary) qs.set('fields[events]', 'summary');
     const q = qs.toString();
     return apiClient.get<JsonApiListResponse<JsonApiResource>>(
       `/ansible/jobs/${id}/events${q ? `?${q}` : ''}`

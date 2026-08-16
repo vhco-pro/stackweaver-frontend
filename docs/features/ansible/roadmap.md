@@ -13,7 +13,12 @@ covers:
 - Uses `ansible.posix.jsonl` callback for line-by-line streaming
 - Events appear as tasks execute with live progress
 - Frontend polls for updates during job execution
-- Output tab shows raw JSONL, Events tab shows parsed task details
+
+### Fleet Run Viewer ✅ (August 2026)
+- Job page opens on a Run tab with three pivots over one event model: a host-by-task matrix, a task timeline, and a chronological stream
+- One filter state (status tiles plus a search box covering hosts, task names, and whole module results) and one detail drawer for a cell, a host, or a task
+- Events the adapter cannot structure fall through to the stream verbatim, so the page never renders worse than a plain terminal view
+- Replaced the previous Output (raw JSONL) and Events (per-task list) tabs
 
 ### Galaxy Collection Support ✅ (December 2025)
 - Pre-installed essential collections (community.general, ansible.posix, etc.)

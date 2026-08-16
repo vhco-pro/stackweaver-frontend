@@ -1,20 +1,17 @@
 // Copyright (c) 2025 VH & Co BV. Licensed under the Business Source License 1.1. See LICENSE for details.
 
-// @ts-nocheck
-// eslint-disable-next-line no-restricted-imports -- polling + auto-scroll DOM effects
-import React, { useEffect, useState, useRef, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useParams, useNavigate } from 'react-router-dom';
-import { 
-  ansibleJobsApi, 
+import {
+  ansibleJobsApi,
   ansiblePlaybooksApi,
   ansibleInventoriesApi,
-  type AnsibleJob, 
+  type AnsibleJob,
   type AnsibleJobEvent,
   type AnsiblePlaybook,
   type AnsibleInventory,
 } from '@/api/ansible';
-import { JsonSyntaxHighlighter } from '@/components/code/JsonSyntaxHighlighter';
 import {
   getAnsibleJobFromJsonApi,
   getAnsiblePlaybookFromJsonApi,
@@ -23,19 +20,11 @@ import {
 } from '@/utils/ansible-jsonapi';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
 import {
   Card,
   CardContent,
 } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import {
   ArrowLeft,
   RefreshCw,
@@ -46,13 +35,9 @@ import {
   AlertTriangle,
   Clock,
   Ban,
-  Terminal,
-  ListTree,
   Info,
   Server,
   FileCode,
-  Search,
-  Filter,
   ChevronDown,
   ChevronUp,
   Cpu,
@@ -63,27 +48,34 @@ import {
   EyeOff,
   Copy,
   Check,
+  LayoutGrid,
 } from 'lucide-react';
+import { RunView } from './run-viewer/RunView';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
-import { fetchAllPages } from '@/lib/pagination';
 
 // Date formatting helpers
 function formatDateTime(dateString: string): string {
   return new Date(dateString).toLocaleString();
 }
 
-function formatTime(dateString: string): string {
-  return new Date(dateString).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-}
+/** The server's own page-size cap for events. */
+const EVENTS_PAGE_SIZE = 500;
+/**
+ * Above this many events the history is fetched in the server's summary
+ * projection - a fleet run's full events are megabytes of module output, and
+ * the viewer only needs the full one the drawer is showing.
+ */
+const SUMMARY_ABOVE_EVENTS = 5000;
 
-// Strip ANSI escape codes from terminal output
-// ANSI escape codes are used for terminal formatting (colors, bold, etc.)
-// Pattern matches: \x1b[ followed by numbers/semicolons and ending with 'm'
-function stripAnsiCodes(text: string): string {
-  if (!text) return text;
-  // eslint-disable-next-line no-control-regex
-  return text.replace(/\x1b\[[0-9;]*m/g, '');
+interface JobEventsData {
+  events: AnsibleJobEvent[];
+  /** Concatenated raw runner output; empty in summary mode, which omits stdout. */
+  output: string;
+  /** True when the events were fetched in the reduced projection. */
+  summary: boolean;
+  /** One fetch has run since the job reached a terminal status. */
+  settled: boolean;
 }
 
 export default function JobDetail() {
@@ -93,26 +85,32 @@ export default function JobDetail() {
   const queryClient = useQueryClient();
   const [canceling, setCanceling] = useState(false);
   const [relaunching, setRelaunching] = useState(false);
-  const [activeTab, setActiveTab] = useState('output');
-  const outputRef = useRef<HTMLDivElement>(null);
-
-  // Search and filter state
-  const [outputSearch, setOutputSearch] = useState('');
-  const [eventSearch, setEventSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [activeTab, setActiveTab] = useState('run');
   const [showWarnings, setShowWarnings] = useState(false);
   const [copied, setCopied] = useState(false);
   const [errorCopied, setErrorCopied] = useState(false);
 
-  // Fetch job details (job + playbook + inventory)
+  const isActive = (status?: string) => ['pending', 'running'].includes(status ?? '');
+
+  // Fetch job details (job + playbook + inventory).
+  // While the job is pending/running this refetches every 3s (React Query's
+  // refetchInterval, not a hand-rolled setInterval); the playbook and inventory
+  // are fetched once and carried forward, so a poll is a single request.
   const jobDetailQuery = useQuery({
     queryKey: ['jobDetail', jobId],
     queryFn: async () => {
+      const cached = queryClient.getQueryData<{
+        job: AnsibleJob;
+        playbook: AnsiblePlaybook | null;
+        inventory: AnsibleInventory | null;
+      }>(['jobDetail', jobId]);
+
       const response = await ansibleJobsApi.get(jobId!);
       const jobData = getAnsibleJobFromJsonApi(response.data);
 
-      let playbookData: AnsiblePlaybook | null = null;
-      if (jobData.playbook_id) {
+      let playbookData: AnsiblePlaybook | null =
+        cached?.playbook && cached.playbook.id === jobData.playbook_id ? cached.playbook : null;
+      if (jobData.playbook_id && !playbookData) {
         try {
           const playbookResponse = await ansiblePlaybooksApi.get(jobData.playbook_id);
           playbookData = getAnsiblePlaybookFromJsonApi(playbookResponse.data);
@@ -121,8 +119,9 @@ export default function JobDetail() {
         }
       }
 
-      let inventoryData: AnsibleInventory | null = null;
-      if (jobData.inventory_id) {
+      let inventoryData: AnsibleInventory | null =
+        cached?.inventory && cached.inventory.id === jobData.inventory_id ? cached.inventory : null;
+      if (jobData.inventory_id && !inventoryData) {
         try {
           const inventoryResponse = await ansibleInventoriesApi.get(jobData.inventory_id);
           inventoryData = getAnsibleInventoryFromJsonApi(inventoryResponse.data);
@@ -134,6 +133,7 @@ export default function JobDetail() {
       return { job: jobData, playbook: playbookData, inventory: inventoryData };
     },
     enabled: !!jobId,
+    refetchInterval: (query) => (isActive(query.state.data?.job.status) ? 3000 : false),
   });
 
   // Fetch the full event history on initial load and derive the output from it.
@@ -144,17 +144,95 @@ export default function JobDetail() {
   // duplication (a separate full-output endpoint would re-count lines the poll
   // also appends). Paginating also fixes the Events tab being capped at the
   // first 100 events for already-finished jobs.
+  //
+  // While the job runs, the 3s refetch appends only what is new: the query
+  // function reads its own cached result and asks for `?after=<last counter>`,
+  // so long runs stay cheap for the browser and the API. One extra fetch runs
+  // after the job reaches a terminal status, to pick up events written between
+  // the last poll and the status flip. The first event fetch waits for the job
+  // status, which is what tells the query whether it needs to poll at all -
+  // without it, opening an already-finished job would poll once for nothing.
+  //
+  // Past SUMMARY_ABOVE_EVENTS the history is fetched in the server's summary
+  // projection instead: enough to draw the run, without the stdout and gathered
+  // facts that make a fleet-sized job megabytes. The drawer then fetches the one
+  // event it is showing in full (`filter[counter]`).
+  const jobStatus = jobDetailQuery.data?.job.status;
+  const jobRunning = isActive(jobStatus);
   const jobEventsQuery = useQuery({
     queryKey: ['jobEvents', jobId],
     queryFn: async () => {
-      const { items } = await fetchAllPages((page, pageSize) =>
-        ansibleJobsApi.getEvents(jobId!, { page, pageSize })
-      );
-      const eventsData = items.map(getAnsibleJobEventFromJsonApi);
+      const cached = queryClient.getQueryData<JobEventsData>(['jobEvents', jobId]);
+
+      if (cached && cached.events.length > 0) {
+        const lastCounter = cached.events.reduce((max, e) => Math.max(max, e.counter), 0);
+        const response = await ansibleJobsApi.getEvents(jobId!, { after: lastCounter, summary: cached.summary });
+        const freshEvents = (response.data || []).map(getAnsibleJobEventFromJsonApi);
+        if (freshEvents.length === 0) {
+          return { ...cached, settled: !jobRunning };
+        }
+        return {
+          ...cached,
+          events: [...cached.events, ...freshEvents],
+          output: cached.output + freshEvents.map((e) => e.stdout || '').join(''),
+          settled: !jobRunning,
+        };
+      }
+
+      // The first page doubles as the size probe: its `total-count` decides
+      // whether the rest of the history is worth fetching in full. Only a job
+      // over the threshold pays for the probe twice.
+      const firstPage = await ansibleJobsApi.getEvents(jobId!, { page: 1, pageSize: EVENTS_PAGE_SIZE });
+      const total = firstPage.meta?.pagination?.['total-count'] ?? firstPage.data?.length ?? 0;
+      const totalPages = firstPage.meta?.pagination?.['total-pages'] ?? 1;
+      const summary = total > SUMMARY_ABOVE_EVENTS;
+
+      const resources = summary
+        ? (await ansibleJobsApi.getEvents(jobId!, { page: 1, pageSize: EVENTS_PAGE_SIZE, summary: true })).data ?? []
+        : firstPage.data ?? [];
+      for (let page = 2; page <= totalPages; page++) {
+        const response = await ansibleJobsApi.getEvents(jobId!, { page, pageSize: EVENTS_PAGE_SIZE, summary });
+        resources.push(...(response.data ?? []));
+      }
+
+      const eventsData = resources.map(getAnsibleJobEventFromJsonApi);
       const outputData = eventsData.map((e) => e.stdout || '').join('');
-      return { events: eventsData, output: outputData };
+      return { events: eventsData, output: outputData, summary, settled: !jobRunning };
     },
-    enabled: !!jobId,
+    enabled: !!jobId && jobStatus !== undefined,
+    refetchInterval: (query) => (jobRunning || !query.state.data?.settled ? 3000 : false),
+  });
+
+  // A sliced launch is one run to the person who launched it and N jobs to the
+  // database. When this job is a slice, its siblings' events are fetched too so
+  // the Run tab can show the whole fleet; the merge lives in run-viewer/slices.
+  const sliceGroupId = jobDetailQuery.data?.job.slice_group_id;
+  const sliceProjectId = jobDetailQuery.data?.job.project_id;
+  const siblingSlicesQuery = useQuery({
+    queryKey: ['jobSlices', sliceGroupId],
+    queryFn: async () => {
+      const response = await ansibleJobsApi.listSliceGroup(sliceProjectId!, sliceGroupId!);
+      const siblings = (response.data || []).map(getAnsibleJobFromJsonApi).filter((sibling) => sibling.id !== jobId);
+
+      return Promise.all(
+        siblings.map(async (sibling) => {
+          // Siblings are always fetched in the summary projection: the merged
+          // grid only needs their shape, and the drawer fetches the one event
+          // it opens from whichever slice owns it.
+          const events: AnsibleJobEvent[] = [];
+          const first = await ansibleJobsApi.getEvents(sibling.id, { page: 1, pageSize: EVENTS_PAGE_SIZE, summary: true });
+          events.push(...(first.data || []).map(getAnsibleJobEventFromJsonApi));
+          const totalPages = first.meta?.pagination?.['total-pages'] ?? 1;
+          for (let page = 2; page <= totalPages; page++) {
+            const res = await ansibleJobsApi.getEvents(sibling.id, { page, pageSize: EVENTS_PAGE_SIZE, summary: true });
+            events.push(...(res.data || []).map(getAnsibleJobEventFromJsonApi));
+          }
+          return { sliceNumber: sibling.slice_number ?? 0, jobId: sibling.id, events };
+        }),
+      );
+    },
+    enabled: !!sliceGroupId && !!sliceProjectId,
+    staleTime: 30_000,
   });
 
   // Derive server data from query results
@@ -162,64 +240,10 @@ export default function JobDetail() {
   const job = jobDetailQuery.data?.job ?? null;
   const playbook = jobDetailQuery.data?.playbook ?? null;
   const inventory = jobDetailQuery.data?.inventory ?? null;
-  const events = jobEventsQuery.data?.events ?? [];
+  // Stable identity so the parsing below (and the run viewer's model) rebuild
+  // only when events actually arrive.
+  const events = useMemo(() => jobEventsQuery.data?.events ?? [], [jobEventsQuery.data]);
   const output = jobEventsQuery.data?.output ?? '';
-
-  // Poll for updates if job is running
-  useEffect(() => {
-    if (!job || !['pending', 'running'].includes(job.status)) return;
-
-    const interval = setInterval(() => {
-      void (async () => {
-        try {
-          const response = await ansibleJobsApi.get(job.id);
-          const updatedJob = getAnsibleJobFromJsonApi(response.data);
-
-          // Update job in the jobDetail query cache
-          queryClient.setQueryData(['jobDetail', jobId], (prev: typeof jobDetailQuery.data) => prev ? { ...prev, job: updatedJob } : prev);
-
-          // Incremental live updates: fetch only events newer than the last
-          // counter we have and APPEND them (events and their stdout), instead
-          // of re-downloading the whole history every poll - keeps long runs
-          // cheap for both the browser and the API.
-          const cached = queryClient.getQueryData<typeof jobEventsQuery.data>(['jobEvents', jobId]);
-          const lastCounter = cached?.events.length
-            ? Math.max(...cached.events.map((e) => e.counter))
-            : 0;
-          const eventsRes = await ansibleJobsApi.getEvents(job.id, { after: lastCounter });
-          const freshEvents = (eventsRes.data || []).map(getAnsibleJobEventFromJsonApi);
-          if (freshEvents.length > 0) {
-            const freshOutput = freshEvents.map((e) => e.stdout || '').join('');
-            queryClient.setQueryData(['jobEvents', jobId], (prev: typeof jobEventsQuery.data) => {
-              if (!prev) return { events: freshEvents, output: freshOutput };
-              return {
-                events: [...prev.events, ...freshEvents],
-                output: prev.output + freshOutput,
-              };
-            });
-          }
-
-          // When job completes, stop polling
-          if (!['pending', 'running'].includes(updatedJob.status)) {
-            clearInterval(interval);
-          }
-        } catch (err) {
-          console.error('Failed to poll job status:', err);
-        }
-      })();
-    }, 3000);
-
-    return () => clearInterval(interval);
-    // job object is intentionally omitted to avoid recreating interval on every job update
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [job?.id, job?.status]);
-
-  // Auto-scroll output
-  useEffect(() => {
-    if (outputRef.current && job?.status === 'running') {
-      outputRef.current.scrollTop = outputRef.current.scrollHeight;
-    }
-  }, [output, job?.status]);
 
   const handleCancel = async () => {
     if (!job) return;
@@ -270,21 +294,6 @@ export default function JobDetail() {
     return result;
   };
 
-  // Interface for grouped task events
-  interface GroupedTask {
-    task: string;
-    play: string;
-    hosts: {
-      host: string;
-      status: 'ok' | 'changed' | 'failed' | 'skipped' | 'unreachable';
-      stdout?: string;
-      stderr?: string;
-      event: AnsibleJobEvent;
-    }[];
-    timestamp: string;
-    aggregateStatus: 'ok' | 'changed' | 'failed' | 'unreachable' | 'skipped';
-  }
-
   // Interface for host facts extracted from Gathering Facts
   interface HostFacts {
     hostname: string;
@@ -315,25 +324,22 @@ export default function JobDetail() {
     ignored: number;
   }
 
-  // Separate warnings/deprecations from regular events and extract unique hosts
-  const { parsedWarnings, groupedTasks, hostFacts, playbookStats } = useMemo(() => {
+  // Warnings, host facts and the play recap: everything the Details and Host
+  // Facts tabs need. The Run tab derives its own model from the same events
+  // (see run-viewer/adapter.ts), which is what carries the per-task results.
+  const { parsedWarnings, hostFacts, playbookStats } = useMemo(() => {
     const allWarnings: { type: 'warning' | 'deprecation'; message: string }[] = [];
-    const regularEvents: AnsibleJobEvent[] = [];
-    const hostsSet = new Set<string>();
-    const taskMap = new Map<string, GroupedTask>();
     const hostFactsMap = new Map<string, HostFacts>();
     const statsMap = new Map<string, PlaybookStats>();
-    
+
     for (const event of events) {
       // Check both stderr and stdout for warnings
       const stderrWarnings = event.stderr ? parseWarnings(event.stderr) : [];
       const stdoutWarnings = event.stdout ? parseWarnings(event.stdout) : [];
-      
+
       if (stderrWarnings.length > 0 || stdoutWarnings.length > 0) {
         allWarnings.push(...stderrWarnings, ...stdoutWarnings);
       } else {
-        regularEvents.push(event);
-        
         // Extract hosts from event_data.hosts (JSONL format)
         const eventHosts = event.event_data?.hosts as Record<string, Record<string, unknown>> | undefined;
         const eventType = event.event_data?._event as string | undefined;
@@ -497,157 +503,20 @@ export default function JobDetail() {
           }
         }
         
-        // Only process task-related events (v2_runner_on_ok, v2_runner_on_failed, etc.)
-        if (!event.task || !eventType?.includes('runner_on')) {
-          continue;
-        }
-        
-        const taskKey = `${event.play || ''}::${event.task}`;
-        
-        if (!taskMap.has(taskKey)) {
-          taskMap.set(taskKey, {
-            task: event.task,
-            play: event.play || '',
-            hosts: [],
-            timestamp: event.created_at,
-            aggregateStatus: 'ok'
-          });
-        }
-        
-        const group = taskMap.get(taskKey)!;
-        
-        // If we have hosts data in event_data, extract per-host details
-        if (eventHosts && Object.keys(eventHosts).length > 0) {
-          for (const [hostname, hostResult] of Object.entries(eventHosts)) {
-            hostsSet.add(hostname);
-            
-            // Determine status from host result
-            const failed = hostResult.failed === true || eventType?.includes('failed');
-            const unreachable = hostResult.unreachable === true || eventType?.includes('unreachable');
-            const skipped = hostResult.skipped === true || eventType?.includes('skipped');
-            const changed = hostResult.changed === true;
-            
-            const status: 'ok' | 'changed' | 'failed' | 'skipped' | 'unreachable' = 
-              failed ? 'failed' 
-              : unreachable ? 'unreachable'
-              : skipped ? 'skipped'
-              : changed ? 'changed'
-              : 'ok';
-            
-            // Extract output from host result
-            let stdout = '';
-            // eslint-disable-next-line @typescript-eslint/no-base-to-string
-            if (hostResult.stdout) stdout = stripAnsiCodes(String(hostResult.stdout));
-            // eslint-disable-next-line @typescript-eslint/no-base-to-string
-            else if (hostResult.msg) stdout = stripAnsiCodes(String(hostResult.msg));
-            else if (hostResult.stdout_lines && Array.isArray(hostResult.stdout_lines)) {
-              stdout = stripAnsiCodes((hostResult.stdout_lines as string[]).join('\n'));
-            }
-            
-            // For debug tasks, show the msg
-            if (hostResult.action === 'ansible.builtin.debug' && hostResult.msg) {
-              // eslint-disable-next-line @typescript-eslint/no-base-to-string
-              stdout = stripAnsiCodes(String(hostResult.msg));
-            }
-            
-            // Check if host already in group (avoid duplicates from task_start + runner_on events)
-            const existingHost = group.hosts.find(h => h.host === hostname);
-            if (!existingHost) {
-            group.hosts.push({
-              host: hostname,
-              status,
-              stdout,
-              // eslint-disable-next-line @typescript-eslint/no-base-to-string
-              stderr: hostResult.stderr ? stripAnsiCodes(String(hostResult.stderr)) : undefined,
-              event
-            });
-            } else if (stdout && !existingHost.stdout) {
-              // Update existing host entry with output if we didn't have it before
-              existingHost.stdout = stdout;
-              existingHost.status = status;
-            }
-            
-            // Update aggregate status (failed > unreachable > changed > skipped > ok)
-            const statusPriority = { failed: 5, unreachable: 4, changed: 3, skipped: 2, ok: 1 };
-            if (statusPriority[status] > statusPriority[group.aggregateStatus]) {
-              group.aggregateStatus = status;
-            }
-          }
-        } else if (event.host) {
-          // Fallback: use event.host if no hosts in event_data
-          hostsSet.add(event.host);
-          const status: 'ok' | 'changed' | 'failed' | 'skipped' | 'unreachable' = 
-            event.failed ? 'failed' 
-            : event.skipped ? 'skipped'
-            : event.changed ? 'changed'
-            : 'ok';
-          
-          if (!group.hosts.find(h => h.host === event.host)) {
-            group.hosts.push({
-              host: event.host,
-              status,
-              stdout: event.event_data?._parsed_output ? stripAnsiCodes(event.event_data._parsed_output as string) : '',
-              stderr: event.stderr ? stripAnsiCodes(event.stderr) : undefined,
-              event
-            });
-          }
-        }
       }
     }
-    
+
     // Deduplicate warnings by message
-    const uniqueWarnings = allWarnings.filter((w, i, arr) => 
+    const uniqueWarnings = allWarnings.filter((w, i, arr) =>
       arr.findIndex(x => x.message === w.message) === i
     );
-    
-    // Convert task map to array ordered by first event timestamp
-    const groupedTasks: GroupedTask[] = Array.from(taskMap.values());
-    
-    return { 
-      parsedWarnings: uniqueWarnings, 
-      groupedTasks,
+
+    return {
+      parsedWarnings: uniqueWarnings,
       hostFacts: hostFactsMap,
       playbookStats: statsMap
     };
   }, [events]);
-
-  // Parse output - JSONL format (one JSON object per line)
-  // Combine all JSON objects into a single continuous display
-  const parsedOutput = useMemo(() => {
-    if (!output) return { jsonContent: null, hasPlainText: false };
-    
-    const jsonObjects: string[] = [];
-    const plainLines: string[] = [];
-    const allLines = output.split('\n');
-    
-    for (const line of allLines) {
-      const trimmed = line.trim();
-      if (!trimmed) {
-        // Skip empty lines
-        continue;
-      }
-      
-      try {
-        // Try to parse as JSON (JSONL format - one JSON object per line)
-        const parsed = JSON.parse(trimmed) as unknown;
-        // Format nicely with 2-space indent
-        const formatted = JSON.stringify(parsed, null, 2);
-        jsonObjects.push(formatted);
-      } catch {
-        // Not JSON, add as plain text (strip ANSI codes)
-        plainLines.push(stripAnsiCodes(line));
-      }
-    }
-    
-    // Combine all JSON objects into one continuous string
-    const jsonContent = jsonObjects.length > 0 ? jsonObjects.join('\n\n') : null;
-    
-    return {
-      jsonContent,
-      plainLines: plainLines.length > 0 ? plainLines : null,
-      hasPlainText: plainLines.length > 0
-    };
-  }, [output]);
 
   const getStatusIcon = (status: string) => {
     switch (status) {
@@ -872,67 +741,26 @@ export default function JobDetail() {
         </div>
       </div>
 
-      {/* Compact Stats Bar (only for completed jobs) */}
-      {['successful', 'failed'].includes(job.status) && (() => {
-        // Aggregate stats from playbookStats (v2_playbook_on_stats) or fall back to job fields
-        const aggregatedStats = Array.from(playbookStats.values()).reduce(
-          (acc, stats) => ({
-            ok: acc.ok + stats.ok,
-            changed: acc.changed + stats.changed,
-            failures: acc.failures + stats.failures,
-            skipped: acc.skipped + stats.skipped,
-            unreachable: acc.unreachable + stats.unreachable,
-            rescued: acc.rescued + stats.rescued,
-            ignored: acc.ignored + stats.ignored,
-          }),
-          { ok: 0, changed: 0, failures: 0, skipped: 0, unreachable: 0, rescued: 0, ignored: 0 }
-        );
-        // Use aggregated if we have playbookStats, otherwise fall back to job fields
-        const stats = playbookStats.size > 0 ? aggregatedStats : {
-          ok: job.hosts_ok,
-          changed: job.hosts_changed,
-          failures: job.hosts_failed,
-          skipped: job.hosts_skipped,
-          unreachable: job.hosts_unreachable,
-          rescued: job.hosts_rescued || 0,
-          ignored: job.hosts_ignored || 0,
-        };
-        return (
-          <div className="flex items-center gap-6 bg-card border rounded-lg px-4 py-2">
-            <span className="text-sm text-muted-foreground">Stats:</span>
-            <div className="flex items-center gap-4">
-              <div className="flex items-center gap-1.5 cursor-default" title="OK">
-                <CheckCircle className="h-4 w-4 text-green-600" />
-                <span className="text-lg font-bold text-green-600">{stats.ok}</span>
-              </div>
-              <div className="flex items-center gap-1.5 cursor-default" title="Changed">
-                <RefreshCw className="h-4 w-4 text-blue-600" />
-                <span className="text-lg font-bold text-blue-600">{stats.changed}</span>
-              </div>
-              <div className="flex items-center gap-1.5 cursor-default" title="Failed">
-                <AlertCircle className="h-4 w-4 text-red-600" />
-                <span className="text-lg font-bold text-red-600">{stats.failures}</span>
-              </div>
-              <div className="flex items-center gap-1.5 cursor-default" title="Unreachable">
-                <WifiOff className="h-4 w-4 text-orange-600" />
-                <span className="text-lg font-bold text-orange-600">{stats.unreachable}</span>
-              </div>
-              <div className="flex items-center gap-1.5 cursor-default" title="Rescued">
-                <CircleDot className="h-4 w-4 text-purple-600" />
-                <span className="text-lg font-bold text-purple-600">{stats.rescued}</span>
-              </div>
-              <div className="flex items-center gap-1.5 cursor-default" title="Skipped">
-                <Ban className="h-4 w-4 text-gray-400" />
-                <span className="text-lg font-bold text-gray-400">{stats.skipped}</span>
-              </div>
-              <div className="flex items-center gap-1.5 cursor-default" title="Ignored">
-                <EyeOff className="h-4 w-4 text-gray-600" />
-                <span className="text-lg font-bold text-gray-600">{stats.ignored}</span>
-              </div>
-            </div>
+      {/* Failure banner - the job's own error, not any host's */}
+      {['failed', 'error'].includes(job.status) && job.error_message && (
+        <div className="flex items-start gap-2 rounded-lg border border-red-500/30 bg-red-500/5 px-4 py-3 text-red-700 dark:text-red-400">
+          <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+          <div className="flex-1 text-sm">
+            <span className="font-medium">Job failed: </span>
+            <span className="opacity-90">{job.error_message}</span>
           </div>
-        );
-      })()}
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-7 shrink-0 px-2 text-red-600 hover:bg-red-200/50 hover:text-red-700 dark:text-red-400 dark:hover:bg-red-900/50 dark:hover:text-red-300"
+            onClick={() => { void handleCopyError(); }}
+            aria-label="Copy error message to clipboard"
+            title="Copy error message to clipboard"
+          >
+            {errorCopied ? <Check className="h-4 w-4 text-green-400" /> : <Copy className="h-4 w-4" />}
+          </Button>
+        </div>
+      )}
 
       {/* Warnings Banner (collapsible) */}
       {parsedWarnings.length > 0 && (
@@ -979,20 +807,11 @@ export default function JobDetail() {
       <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1">
         <div className="flex items-center justify-between">
           <TabsList>
-            <TabsTrigger value="output" className="flex items-center gap-1.5">
-              <Terminal className="h-4 w-4" />
-              Output
+            <TabsTrigger value="run" className="flex items-center gap-1.5">
+              <LayoutGrid className="h-4 w-4" />
+              Run
               {['pending', 'running'].includes(job.status) && (
                 <Loader2 className="h-3 w-3 animate-spin ml-1" />
-              )}
-            </TabsTrigger>
-            <TabsTrigger value="events" className="flex items-center gap-1.5">
-              <ListTree className="h-4 w-4" />
-              Events
-              {groupedTasks.length > 0 && (
-                <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-xs">
-                  {groupedTasks.length}
-                </Badge>
               )}
             </TabsTrigger>
             <TabsTrigger value="details" className="flex items-center gap-1.5">
@@ -1003,338 +822,26 @@ export default function JobDetail() {
               <TabsTrigger value="hostfacts" className="flex items-center gap-1.5">
                 <Monitor className="h-4 w-4" />
                 Host Facts
-                <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-xs">
-                  {hostFacts.size}
-                </Badge>
               </TabsTrigger>
             )}
           </TabsList>
         </div>
 
-        <TabsContent value="output" className="mt-3">
-          <Card className="overflow-hidden">
-            {/* Search bar for output */}
-            <div className="flex items-center gap-2 p-2 border-b bg-muted/30">
-              <Search className="h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search output..."
-                aria-label="Search output"
-                value={outputSearch}
-                onChange={(e) => setOutputSearch(e.target.value)}
-                className="h-8 text-sm border-0 bg-transparent focus-visible:ring-0 flex-1"
-              />
-              {outputSearch && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-8 px-2"
-                  onClick={() => setOutputSearch('')}
-                >
-                  Clear
-                </Button>
-              )}
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-8 px-2"
-                onClick={() => { void handleCopyOutput(); }}
-                disabled={!output}
-                title="Copy output to clipboard"
-              >
-                {copied ? (
-                  <Check className="h-4 w-4 text-green-600" />
-                ) : (
-                  <Copy className="h-4 w-4" />
-                )}
-              </Button>
-            </div>
-            
-            <CardContent className="p-0">
-              {/* Show error message prominently if job failed */}
-              {job.status === 'failed' && job.error_message && (
-                <div className="p-3 bg-red-100 border-b border-red-200 dark:bg-red-950 dark:border-red-800">
-                  <div className="flex items-start gap-2 text-red-700 dark:text-red-400">
-                    <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
-                    <div className="text-sm flex-1">
-                      <span className="font-medium">Job failed: </span>
-                      <span className="opacity-90">{job.error_message}</span>
-                    </div>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-7 px-2 text-red-600 hover:text-red-700 hover:bg-red-200/50 dark:text-red-400 dark:hover:text-red-300 dark:hover:bg-red-900/50 shrink-0"
-                      onClick={() => { void handleCopyError(); }}
-                      title="Copy error message to clipboard"
-                    >
-                      {errorCopied ? (
-                        <Check className="h-4 w-4 text-green-400" />
-                      ) : (
-                        <Copy className="h-4 w-4" />
-                      )}
-                    </Button>
-                  </div>
-                </div>
-              )}
-              <div
-                ref={outputRef as React.RefObject<HTMLDivElement>}
-                className="overflow-auto max-h-[calc(100vh-350px)] min-h-[400px]"
-              >
-                {parsedOutput.jsonContent || parsedOutput.plainLines ? (
-                  <div>
-                    {parsedOutput.jsonContent && (
-                      <JsonSyntaxHighlighter
-                        json={parsedOutput.jsonContent}
-                        maxHeight="none"
-                        className="mb-0"
-                      />
-                    )}
-                    {parsedOutput.plainLines && parsedOutput.plainLines.map((line, idx) => {
-                      // Plain text line - show with search highlighting if needed
-                      if (outputSearch && line.toLowerCase().includes(outputSearch.toLowerCase())) {
-                        const parts = line.split(new RegExp(`(${outputSearch.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi'));
-                        return (
-                          <div key={idx} className="bg-muted/10 p-4 font-mono text-sm whitespace-pre-wrap">
-                            {parts.map((part, partIdx) => 
-                              part.toLowerCase() === outputSearch.toLowerCase() ? (
-                                <mark key={partIdx} className="bg-yellow-500/50 text-yellow-100 px-0.5 rounded-sm">{part}</mark>
-                              ) : (
-                                <span key={partIdx}>{part}</span>
-                              )
-                            )}
-                          </div>
-                        );
-                      }
-                      return (
-                        <div key={idx} className="bg-muted/10 p-4 font-mono text-sm whitespace-pre-wrap">
-                          {line}
-                        </div>
-                      );
-                    })}
-                  </div>
-                ) : (
-                  <div className="bg-muted/10 p-4 text-muted-foreground">
-                    {job.status === 'pending'
-                      ? 'Waiting for job to start...'
-                      : job.status === 'failed' && job.error_message
-                      ? 'Job failed before producing output. See error message above.'
-                      : 'No output available'}
-                  </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="events" className="mt-3">
-          <Card className="overflow-hidden">
-            {/* Filter bar */}
-            <div className="flex flex-wrap items-center gap-2 p-2 border-b bg-muted/30">
-              <div className="flex items-center gap-2 flex-1 min-w-[200px]">
-                <Search className="h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Search tasks..."
-                  aria-label="Search tasks"
-                  value={eventSearch}
-                  onChange={(e) => setEventSearch(e.target.value)}
-                  className="h-8 text-sm border-0 bg-transparent focus-visible:ring-0"
-                />
-              </div>
-              
-              <div className="flex items-center gap-2">
-                <Filter className="h-4 w-4 text-muted-foreground" />
-                
-                <Select value={statusFilter} onValueChange={setStatusFilter}>
-                  <SelectTrigger className="h-8 w-[130px] text-sm">
-                    <SelectValue placeholder="Status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Status</SelectItem>
-                    <SelectItem value="ok">OK</SelectItem>
-                    <SelectItem value="changed">Changed</SelectItem>
-                    <SelectItem value="failed">Failed</SelectItem>
-                    <SelectItem value="skipped">Skipped</SelectItem>
-                    <SelectItem value="unreachable">Unreachable</SelectItem>
-                  </SelectContent>
-                </Select>
-                
-                {(eventSearch || statusFilter !== 'all') && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-8 px-2"
-                    onClick={() => {
-                      setEventSearch('');
-                      setStatusFilter('all');
-                    }}
-                  >
-                    Clear
-                  </Button>
-                )}
-              </div>
-            </div>
-
-            <CardContent className="p-0 max-h-[calc(100vh-350px)] min-h-[400px] overflow-auto">
-              {groupedTasks.length === 0 ? (
-                <div className="text-center py-8 text-muted-foreground">
-                  {job.status === 'pending' ? 'Waiting for job to start...' : 
-                   job.status === 'running' ? 'Running...' : 'No events recorded'}
-                </div>
-              ) : (
-                <div className="divide-y">
-                  {groupedTasks
-                    .filter(group => {
-                      // Filter by status
-                      if (statusFilter !== 'all' && group.aggregateStatus !== statusFilter) {
-                        return false;
-                      }
-                      // Filter by search
-                      if (eventSearch) {
-                        const searchLower = eventSearch.toLowerCase();
-                        return group.task.toLowerCase().includes(searchLower) ||
-                               group.play.toLowerCase().includes(searchLower) ||
-                               group.hosts.some(h => h.host.toLowerCase().includes(searchLower));
-                      }
-                      return true;
-                    })
-                    .map((group, idx) => {
-                    const status = group.aggregateStatus;
-                    const hostCount: number = group.hosts.length;
-                    const okCount = group.hosts.filter(h => h.status === 'ok').length;
-                    const changedCount = group.hosts.filter(h => h.status === 'changed').length;
-                    const failedCount = group.hosts.filter(h => h.status === 'failed').length;
-                    
-                    return (
-                    <div
-                      key={`${group.play}-${group.task}-${idx}`}
-                      className={cn(
-                        "px-4 py-2.5 hover:bg-muted/50 transition-colors",
-                        status === 'failed' && 'bg-red-500/10 dark:bg-red-950/20',
-                        status === 'unreachable' && 'bg-red-500/10 dark:bg-orange-950/20',
-                        status === 'changed' && 'bg-blue-50 dark:bg-blue-950/10'
-                      )}
-                    >
-                      <div className="flex items-center gap-3">
-                        {/* Status indicator */}
-                        <div>
-                          {status === 'ok' && (
-                            <CheckCircle className="h-4 w-4 text-green-500" />
-                          )}
-                          {status === 'changed' && (
-                            <RefreshCw className="h-4 w-4 text-blue-500" />
-                          )}
-                          {status === 'failed' && (
-                            <AlertCircle className="h-4 w-4 text-red-500" />
-                          )}
-                          {status === 'unreachable' && (
-                            <AlertTriangle className="h-4 w-4 text-red-500" />
-                          )}
-                          {status === 'skipped' && (
-                            <Ban className="h-4 w-4 text-gray-500" />
-                          )}
-                        </div>
-                        
-                        {/* Task info */}
-                        <div className="flex-1 min-w-0">
-                          <span className="text-sm font-medium truncate">{group.task}</span>
-                          {group.play && (
-                            <div className="text-xs text-muted-foreground mt-0.5">
-                              {group.play}
-                            </div>
-                          )}
-                        </div>
-                        
-                        {/* Host count with status breakdown */}
-                        <div className="flex items-center gap-1.5 text-xs shrink-0">
-                          <Server className="h-3 w-3 text-muted-foreground" />
-                          <span className={cn(
-                            "font-medium",
-                            status === 'ok' && 'text-green-500',
-                            status === 'changed' && 'text-blue-500',
-                            status === 'failed' && 'text-red-500',
-                            status === 'unreachable' && 'text-orange-500',
-                            status === 'skipped' && 'text-gray-500'
-                          )}>
-                            {hostCount}
-                          </span>
-                          {/* Show breakdown if mixed statuses */}
-                          {hostCount > 1 && (changedCount > 0 || failedCount > 0) && (
-                            <span className="text-muted-foreground">
-                              ({okCount > 0 && <span className="text-green-500">{okCount}✓</span>}
-                              {changedCount > 0 && <span className="text-blue-500 ml-0.5">{changedCount}~</span>}
-                              {failedCount > 0 && <span className="text-red-500 ml-0.5">{failedCount}✗</span>})
-                            </span>
-                          )}
-                        </div>
-                        
-                        
-                        {/* Timestamp */}
-                        <div className="text-xs text-muted-foreground shrink-0">
-                          {formatTime(group.timestamp)}
-                        </div>
-                      </div>
-                      
-                      {/* Show output for each host */}
-                      <div className="mt-2 ml-7 space-y-1">
-                        {group.hosts.map((hostData, hidx): React.ReactElement => {
-                          // Type assertion to ensure proper typing
-                          const typedHost: GroupedTask['hosts'][0] = hostData;
-                          // Try to get result details from the event
-                          const hosts = typedHost.event?.event_data?.hosts as Record<string, Record<string, unknown>> | undefined;
-                          const hostName: string = String(typedHost.host);
-                          const eventResult = hosts?.[hostName];
-                          const hasOutput = typedHost.stdout || typedHost.stderr || eventResult?.msg || eventResult?.results;
-                          
-                          const showHostBadge: boolean = hostCount > 1;
-                          const hostStatus: 'ok' | 'changed' | 'failed' | 'skipped' | 'unreachable' = typedHost.status;
-                          
-                          return (
-                          <div key={hidx} className="space-y-1">
-                            {/* Show host name if multiple hosts */}
-                            {/* eslint-disable-next-line @typescript-eslint/ban-ts-comment */}
-                            {/* @ts-ignore */}
-                            {showHostBadge ? (
-                              <div className="flex items-center gap-2">
-                                <Badge 
-                                  variant="outline" 
-                                  className={cn(
-                                    "text-[10px] h-4 px-1.5",
-                                    hostStatus === 'ok' && 'border-green-500/30 text-green-500',
-                                    hostStatus === 'changed' && 'border-blue-500/30 text-blue-500',
-                                    hostStatus === 'failed' && 'border-red-500/30 text-red-500',
-                                    hostStatus === 'skipped' && 'border-gray-500/30 text-gray-500'
-                                  )}
-                                >
-                                  {hostName}
-                                </Badge>
-                              </div>
-                            ) : null}
-                            {/* Show output/result if present */}
-                            {hasOutput && (
-                              <pre className={cn(
-                                "text-xs font-mono p-2 rounded-sm max-h-40 overflow-auto whitespace-pre-wrap",
-                                hostData.status === 'failed' || hostData.status === 'unreachable' 
-                                  ? "bg-red-500/15 text-red-900 dark:bg-red-950/50 dark:text-red-200" 
-                                  : hostData.status === 'changed'
-                                  ? "bg-blue-50 text-blue-900 dark:bg-blue-950/30 dark:text-blue-100"
-                                  : "bg-muted text-foreground/80"
-                              )}>
-                                {hostData.stderr || hostData.stdout || 
-                                  (eventResult?.msg ? stripAnsiCodes(String(eventResult.msg as unknown)) : 
-                                  (eventResult?.results ? JSON.stringify(eventResult.results as unknown, null, 2) :
-                                  (eventResult ? JSON.stringify(eventResult, null, 2) : '')))}
-                              </pre>
-                            )}
-                          </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-                    );
-                  })}
-                </div>
-              )}
-            </CardContent>
-          </Card>
+        <TabsContent value="run" className="mt-3">
+          <RunView
+            events={events}
+            siblingSlices={siblingSlicesQuery.data}
+            thisSliceNumber={job.slice_number}
+            jobId={job.id}
+            summaryMode={jobEventsQuery.data?.summary ?? false}
+            jobStatus={job.status}
+            isLoading={jobEventsQuery.isPending}
+            isError={jobEventsQuery.isError}
+            onRetry={() => { void jobEventsQuery.refetch(); }}
+            rawOutput={output}
+            onCopyOutput={() => { void handleCopyOutput(); }}
+            outputCopied={copied}
+          />
         </TabsContent>
 
         <TabsContent value="details" className="mt-3">

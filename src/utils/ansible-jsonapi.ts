@@ -72,6 +72,9 @@ export function getAnsibleJobFromJsonApi(resource: JsonApiResource): AnsibleJob 
     agent_pool_name: getAttribute<string>(resource, 'agent-pool-name'),
     runner_id: getRelationship(resource, 'runner')?.id,
     runner_name: getAttribute<string>(resource, 'runner-name'),
+    slice_group_id: getAttribute<string>(resource, 'slice-group-id'),
+    slice_number: getAttribute<number>(resource, 'slice-number'),
+    slice_count: getAttribute<number>(resource, 'slice-count'),
   };
 }
 
@@ -233,12 +236,14 @@ export function getAnsibleJobEventFromJsonApi(resource: JsonApiResource): Ansibl
     host: getAttribute<string>(resource, 'host'),
     task: getAttribute<string>(resource, 'task'),
     play: getAttribute<string>(resource, 'play'),
+    role: getAttribute<string>(resource, 'role'),
     counter: getAttribute<number>(resource, 'counter', 0) || 0,
     stdout: getAttribute<string>(resource, 'stdout'),
     stderr: getAttribute<string>(resource, 'stderr'),
     changed: getAttribute<boolean>(resource, 'changed'),
     failed: getAttribute<boolean>(resource, 'failed'),
     skipped: getAttribute<boolean>(resource, 'skipped'),
+    timestamp: getAttribute<string>(resource, 'timestamp'),
     created_at: getAttribute<string>(resource, 'created-at', '') || '',
   };
 }

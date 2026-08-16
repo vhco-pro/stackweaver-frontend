@@ -7,7 +7,7 @@ import reactRefresh from 'eslint-plugin-react-refresh'
 import tseslint from 'typescript-eslint'
 
 export default [
-  { ignores: ['dist', '**/src/pages/Ansible/JobDetail.tsx'] },
+  { ignores: ['dist'] },
   js.configs.recommended,
   ...tseslint.configs.recommended,
   // Type-aware linting for TypeScript files (catches build errors)
