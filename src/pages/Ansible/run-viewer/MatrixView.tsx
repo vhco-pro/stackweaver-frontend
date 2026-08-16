@@ -375,7 +375,7 @@ export function MatrixView({
                         </button>
                       ) : (
                         <span key={result.eventCounter} className={cellClass} title={`${host} · ${task.name} — ${meta.label}`} aria-label={label} role="img">
-                          {meta.glyph}
+                          <HostStatusIcon status={result.status} className="h-3.5 w-3.5" labelled={false} />
                         </span>
                       )}
                     </td>
