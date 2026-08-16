@@ -1,7 +1,7 @@
 // Copyright (c) 2025 VH & Co BV. Licensed under the Business Source License 1.1. See LICENSE for details.
 
 import type { ReactElement } from 'react';
-import { CheckCircle, Loader2, XCircle, AlertCircle, RefreshCw } from 'lucide-react';
+import { CheckCircle, Loader2, XCircle, AlertCircle, RefreshCw, Clock } from 'lucide-react';
 import {
   Tooltip,
   TooltipTrigger,
@@ -35,6 +35,12 @@ interface SyncStatusIndicatorProps {
   retrying?: boolean;
   /** Link to the resource's detail page for the full, untruncated error. */
   detailHref?: string;
+  /**
+   * Render the state label + relative sync time next to the icon instead of the
+   * bare icon. Use on list cards so the sync state and "Synced x ago" are one
+   * piece of metadata rather than two competing ones.
+   */
+  showLabel?: boolean;
   className?: string;
 }
 
@@ -47,6 +53,15 @@ const STATE_META: Record<
   failed: { label: 'Sync failed', icon: XCircle, iconClass: 'text-red-600 dark:text-red-400' },
   never: { label: 'Never synced', icon: AlertCircle, iconClass: 'text-muted-foreground' },
 };
+
+// A resource that has a sync timestamp but no status the API recognises (older
+// rows, manually-created playbooks) still deserves its "Synced x ago" line - it
+// renders neutrally rather than claiming success.
+const UNKNOWN_META = {
+  label: 'Synced',
+  icon: Clock,
+  iconClass: 'text-blue-600 dark:text-blue-400',
+} as const;
 
 const MAX_ERROR_LINES = 6;
 
@@ -69,24 +84,35 @@ export function SyncStatusIndicator({
   onRetry,
   retrying,
   detailHref,
+  showLabel,
   className,
 }: SyncStatusIndicatorProps): ReactElement | null {
   const state = normalizeSyncState(status);
-  if (state === 'unknown') return null;
+  // Icon-only callers stay silent on 'unknown'; labelled callers still show the
+  // timestamp they would otherwise have rendered themselves.
+  if (state === 'unknown' && !(showLabel && syncedAt)) return null;
 
-  const meta = STATE_META[state];
+  const meta = state === 'unknown' ? UNKNOWN_META : STATE_META[state];
   const Icon = meta.icon;
+  const spin = 'spin' in meta && meta.spin;
   const { text: errorText, truncated } = error ? truncateError(error) : { text: '', truncated: false };
+  const relative = syncedAt && state !== 'never' ? formatRelative(syncedAt) : undefined;
 
   return (
     <TooltipProvider delayDuration={150}>
       <Tooltip>
         <TooltipTrigger asChild>
           <span
-            className={cn('inline-flex items-center', className)}
+            className={cn('inline-flex items-center', showLabel && 'gap-1', className)}
             aria-label={state === 'failed' ? `Sync failed: ${error || 'unknown error'}` : meta.label}
           >
-            <Icon className={cn('h-3.5 w-3.5', meta.iconClass, meta.spin && 'animate-spin')} />
+            <Icon className={cn('h-3.5 w-3.5 shrink-0', meta.iconClass, spin && 'animate-spin')} />
+            {showLabel && (
+              <span className={cn(state === 'failed' ? 'text-red-600 dark:text-red-400' : 'text-muted-foreground')}>
+                {meta.label}
+                {relative ? ` ${relative}` : ''}
+              </span>
+            )}
           </span>
         </TooltipTrigger>
         <TooltipContent side="top" className="max-w-sm">
@@ -94,8 +120,8 @@ export function SyncStatusIndicator({
             <p className={cn('font-medium', state === 'failed' && 'text-red-600 dark:text-red-400')}>
               {meta.label}
             </p>
-            {syncedAt && state !== 'never' && (
-              <p className="text-xs text-muted-foreground">Last synced {formatRelative(syncedAt)}</p>
+            {relative && (
+              <p className="text-xs text-muted-foreground">Last synced {relative}</p>
             )}
             {state === 'failed' && error && (
               <pre className="mt-1 whitespace-pre-wrap break-words font-mono text-xs text-muted-foreground">
