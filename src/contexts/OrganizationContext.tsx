@@ -5,6 +5,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { organizationsApi, type Organization } from '@/api/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { sectionPathForOrg } from '@/lib/org-navigation';
 
 interface OrganizationContextType {
   currentOrg: Organization | null;
@@ -18,6 +19,7 @@ interface OrganizationContextType {
 
 // eslint-disable-next-line react-refresh/only-export-components
 export const OrganizationContext = createContext<OrganizationContextType | undefined>(undefined);
+
 
 export function OrganizationProvider({ children }: { children: ReactNode }) {
   const [currentOrg, setCurrentOrg] = useState<Organization | null>(null);
@@ -82,17 +84,18 @@ export function OrganizationProvider({ children }: { children: ReactNode }) {
   const switchOrganization = useCallback((orgName: string) => {
     // Try to find the org in the current list
     let org = organizations.find(o => o.name === orgName);
-    
+
     // If not found, create a temporary org object (will be updated on next refresh)
     if (!org) {
       org = { id: '', name: orgName, created_at: new Date().toISOString(), updated_at: new Date().toISOString() };
     }
-    
+
     setCurrentOrg(org);
-    // Navigate to org's workspaces page
-    void navigate(`/app/${orgName}/workspaces`);
-     
-  }, [organizations, navigate]); // currentOrg intentionally excluded - it's set in this function and would cause infinite loop
+    // Stay on the section the user is already looking at, rather than dropping everyone on
+    // Workspaces: switching org is "show me this same thing for that tenant".
+    void navigate(sectionPathForOrg(location.pathname, orgName));
+
+  }, [organizations, navigate, location.pathname]); // currentOrg intentionally excluded - it's set in this function and would cause infinite loop
 
   const hasAccess = useCallback((orgName: string) => {
     return organizations.some(o => o.name === orgName);
