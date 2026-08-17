@@ -109,7 +109,7 @@ export default function Collections() {
       </div>
 
       {/* Collections Grid */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 3xl:grid-cols-5">
         {filteredCollections.map((collection) => (
           <Card key={collection.id} className="hover:border-primary/50 transition-colors">
             <CardHeader className="pb-2">

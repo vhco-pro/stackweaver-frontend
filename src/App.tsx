@@ -106,7 +106,8 @@ function AppContent() {
               path="/organizations"
               element={
                 <ProtectedRoute>
-                    <Layout>
+                    {/* Card grid: extra room becomes extra columns, not fatter cards. */}
+                    <Layout width="wide">
                   <Organizations />
                     </Layout>
                 </ProtectedRoute>
@@ -116,7 +117,8 @@ function AppContent() {
                 path="/organizations/:name"
               element={
                 <ProtectedRoute>
-                    <Layout>
+                    {/* Card grid: extra room becomes extra columns, not fatter cards. */}
+                    <Layout width="wide">
                   <OrganizationDetail />
                     </Layout>
                   </ProtectedRoute>
@@ -126,7 +128,8 @@ function AppContent() {
                 path="/projects"
                 element={
                   <ProtectedRoute>
-                    <Layout>
+                    {/* Card grid: extra room becomes extra columns, not fatter cards. */}
+                    <Layout width="wide">
                       <Projects />
                     </Layout>
                 </ProtectedRoute>
@@ -136,7 +139,8 @@ function AppContent() {
                 path="/organizations/:organizationName/projects/:projectName"
               element={
                 <ProtectedRoute>
-                    <Layout>
+                    {/* Card grid: extra room becomes extra columns, not fatter cards. */}
+                    <Layout width="wide">
                   <ProjectDetail />
                     </Layout>
                   </ProtectedRoute>
@@ -281,7 +285,8 @@ function AppContent() {
                 path="/settings"
                 element={
                   <ProtectedRoute>
-                    <Layout>
+                    {/* Card grid: extra room becomes extra columns, not fatter cards. */}
+                    <Layout width="wide">
                       <Settings />
                     </Layout>
                   </ProtectedRoute>
@@ -381,7 +386,8 @@ function AppContent() {
                 path="/providers"
                 element={
                   <ProtectedRoute>
-                    <Layout>
+                    {/* Card grid: extra room becomes extra columns, not fatter cards. */}
+                    <Layout width="wide">
                       <Providers />
                     </Layout>
                 </ProtectedRoute>
@@ -393,7 +399,8 @@ function AppContent() {
               element={
                 <ProtectedRoute>
                   <OrganizationGuard>
-                    <Layout>
+                    {/* Card grid: extra room becomes extra columns, not fatter cards. */}
+                    <Layout width="wide">
                       <Projects />
                     </Layout>
                   </OrganizationGuard>
@@ -405,7 +412,8 @@ function AppContent() {
               element={
                 <ProtectedRoute>
                   <OrganizationGuard>
-                    <Layout>
+                    {/* Card grid: extra room becomes extra columns, not fatter cards. */}
+                    <Layout width="wide">
                       <ProjectDetail />
                     </Layout>
                   </OrganizationGuard>
@@ -540,7 +548,8 @@ function AppContent() {
               element={
                 <ProtectedRoute>
                   <OrganizationGuard>
-                    <Layout>
+                    {/* Card grid: extra room becomes extra columns, not fatter cards. */}
+                    <Layout width="wide">
                       <Settings />
                     </Layout>
                   </OrganizationGuard>
@@ -734,7 +743,8 @@ function AppContent() {
               element={
                 <ProtectedRoute>
                   <OrganizationGuard>
-                    <Layout>
+                    {/* Card grid: extra room becomes extra columns, not fatter cards. */}
+                    <Layout width="wide">
                       <AnsibleInventories />
                     </Layout>
                   </OrganizationGuard>
@@ -758,7 +768,8 @@ function AppContent() {
               element={
                 <ProtectedRoute>
                   <OrganizationGuard>
-                    <Layout>
+                    {/* Card grid: extra room becomes extra columns, not fatter cards. */}
+                    <Layout width="wide">
                       <AnsibleCredentials />
                     </Layout>
                   </OrganizationGuard>
@@ -782,7 +793,9 @@ function AppContent() {
               element={
                 <ProtectedRoute>
                   <OrganizationGuard>
-                    <Layout>
+                    {/* The run matrix is host x task: its natural width grows with
+                        the playbook and overflows `default` on any real run. */}
+                    <Layout width="wide">
                       <AnsibleJobDetail />
                     </Layout>
                   </OrganizationGuard>
@@ -854,7 +867,8 @@ function AppContent() {
               element={
                 <ProtectedRoute>
                   <OrganizationGuard>
-                    <Layout>
+                    {/* Card grid: extra room becomes extra columns, not fatter cards. */}
+                    <Layout width="wide">
                       <AnsibleCollections />
                     </Layout>
                   </OrganizationGuard>

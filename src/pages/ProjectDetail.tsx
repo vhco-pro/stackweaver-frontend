@@ -229,7 +229,7 @@ export default function ProjectDetail() {
               </div>
             </button>
             {expandedSections.workspaces && (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 3xl:grid-cols-5 gap-4">
                 {workspaces.map((workspace) => (
                   <Link
                     key={workspace.id}
@@ -285,7 +285,7 @@ export default function ProjectDetail() {
               </div>
             </button>
             {expandedSections.inventories && (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 3xl:grid-cols-5 gap-4">
                 {inventories.map((inventory) => (
                   <Link
                     key={inventory.id}
@@ -341,7 +341,7 @@ export default function ProjectDetail() {
               </div>
             </button>
             {expandedSections.playbooks && (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 3xl:grid-cols-5 gap-4">
                 {playbooks.map((playbook) => (
                   <Link
                     key={playbook.id}
@@ -397,7 +397,7 @@ export default function ProjectDetail() {
               </div>
             </button>
             {expandedSections.jobTemplates && (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 3xl:grid-cols-5 gap-4">
                 {jobTemplates.map((template) => (
                   <Link
                     key={template.id}
@@ -453,7 +453,7 @@ export default function ProjectDetail() {
               </div>
             </button>
             {expandedSections.workflows && (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 3xl:grid-cols-5 gap-4">
                 {workflows.map((workflow) => (
                   <Link
                     key={workflow.id}
@@ -509,7 +509,7 @@ export default function ProjectDetail() {
               </div>
             </button>
             {expandedSections.credentials && (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 3xl:grid-cols-5 gap-4">
                 {credentials.map((credential) => (
                   <Link
                     key={credential.id}

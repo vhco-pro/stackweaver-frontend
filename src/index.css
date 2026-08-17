@@ -34,6 +34,16 @@
   --color-chart-5: var(--chart-5);
 }
 
+/* The app shell's wide tier, plus the large-display breakpoint it unlocks.
+   Tailwind's own container scale stops at 7xl (80rem) - the width the whole
+   authenticated app used to be pinned to regardless of what it was showing.
+   `max-w-9xl` backs PageContainer's `wide`; `3xl:` lets grid ladders keep
+   climbing past 2xl on displays that actually have the room. */
+@theme {
+  --container-9xl: 120rem;  /* 1920px */
+  --breakpoint-3xl: 120rem; /* 1920px */
+}
+
 @variant dark (&:is(.dark *));
 
 @layer base {

@@ -867,7 +867,7 @@ export default function JobDetail() {
         <TabsContent value="details" className="mt-3">
           <Card>
             <CardContent className="p-4">
-              <dl className="grid grid-cols-2 md:grid-cols-3 gap-x-6 gap-y-3 text-sm">
+              <dl className="grid grid-cols-2 md:grid-cols-3 2xl:grid-cols-4 3xl:grid-cols-6 gap-x-6 gap-y-3 text-sm">
                 <div>
                   <dt className="text-muted-foreground">Job ID</dt>
                   <dd className="font-mono text-xs mt-0.5">{job.id}</dd>
@@ -982,7 +982,7 @@ export default function JobDetail() {
 
         {/* Host Facts Tab - Shows system information gathered from each host */}
         <TabsContent value="hostfacts" className="mt-3">
-          <div className="grid gap-4 md:grid-cols-2">
+          <div className="grid gap-4 md:grid-cols-2 2xl:grid-cols-3 3xl:grid-cols-4">
             {Array.from(hostFacts.values()).map((facts) => (
               <Card key={facts.hostname} className="overflow-hidden">
                 <div className="bg-muted/50 border-b px-4 py-2 flex items-center justify-between">
