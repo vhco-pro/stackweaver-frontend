@@ -2910,6 +2910,156 @@ export const dashboardApi = {
     }),
 };
 
+// Usage & Analytics Types
+//
+// One request backs the whole Usage page. `success_rate` is deliberately nullable across every
+// shape below: a period in which nothing has finished has no success rate, and the API says so
+// with null rather than inventing a 0% that reads as failure.
+export interface AnalyticsOutcome {
+  total: number;
+  succeeded: number;
+  failed: number;
+  running: number;
+  pending: number;
+  canceled: number;
+  success_rate: number | null;
+  avg_duration_seconds: number;
+  p95_duration_seconds: number;
+  duration_samples: number;
+  previous: {
+    total: number;
+    succeeded: number;
+    failed: number;
+    success_rate: number | null;
+    avg_duration_seconds: number;
+  };
+}
+
+export interface AnalyticsDailyPoint {
+  date: string;
+  runs_succeeded: number;
+  runs_failed: number;
+  runs_other: number;
+  jobs_succeeded: number;
+  jobs_failed: number;
+  jobs_other: number;
+  activity: number;
+}
+
+export interface AnalyticsTopWorkspace {
+  workspace_id: string;
+  workspace_name: string;
+  project_name: string;
+  run_count: number;
+  succeeded: number;
+  failed: number;
+  success_rate: number | null;
+  avg_duration_seconds: number;
+}
+
+export interface AnalyticsTopTemplate {
+  template_id: string;
+  template_name: string;
+  job_count: number;
+  succeeded: number;
+  failed: number;
+  success_rate: number | null;
+  avg_duration_seconds: number;
+}
+
+export interface AnalyticsLabeledCount {
+  label: string;
+  count: number;
+}
+
+export interface AnalyticsFailure {
+  id: string;
+  platform: 'terraform' | 'ansible';
+  name: string;
+  detail: string;
+  /** Present for Terraform runs only - the run detail route is keyed by workspace. */
+  workspace_name?: string;
+  error_message: string;
+  failed_at: string;
+}
+
+export interface Analytics {
+  window: { since: string; until: string; days: number };
+  runs: AnalyticsOutcome;
+  ansible_jobs: AnalyticsOutcome;
+  daily: AnalyticsDailyPoint[];
+  top_workspaces: AnalyticsTopWorkspace[];
+  top_templates: AnalyticsTopTemplate[];
+  activity: {
+    total: number;
+    by_action: AnalyticsLabeledCount[];
+    by_resource_type: AnalyticsLabeledCount[];
+  };
+  resources: {
+    projects: number;
+    workspaces: number;
+    playbooks: number;
+    job_templates: number;
+    inventories: number;
+  };
+  recent_failures: AnalyticsFailure[];
+}
+
+/** One run or job in the drill-down behind a chart bar. */
+export interface AnalyticsExecution {
+  id: string;
+  platform: 'terraform' | 'ansible';
+  name: string;
+  detail: string;
+  status: string;
+  outcome: 'succeeded' | 'failed' | 'other';
+  /** Terraform only - the run detail route is keyed by workspace. */
+  workspace_name?: string;
+  created_at: string;
+  duration_seconds?: number;
+}
+
+export interface AnalyticsExecutions {
+  executions: AnalyticsExecution[];
+  count: number;
+  /** True when the day held more executions than the endpoint returns, so the list is a sample. */
+  truncated: boolean;
+}
+
+export type AnalyticsOutcomeFilter = 'succeeded' | 'failed' | 'other';
+
+export const analyticsApi = {
+  getForOrganization: (orgName: string, since: Date, until: Date) => {
+    const params = new URLSearchParams({
+      since: since.toISOString(),
+      until: until.toISOString(),
+    });
+    return apiClient
+      .get<JsonApiResponse<JsonApiResource>>(
+        `/organizations/${encodeURIComponent(orgName)}/analytics?${params.toString()}`
+      )
+      .then(res => (res.data?.attributes || {}) as unknown as Analytics);
+  },
+
+  /** Lists the executions behind one bar of the daily chart. */
+  getExecutions: (
+    orgName: string,
+    opts: { since: Date; until: Date; outcome?: AnalyticsOutcomeFilter; platform?: 'terraform' | 'ansible' }
+  ) => {
+    const params = new URLSearchParams({
+      since: opts.since.toISOString(),
+      until: opts.until.toISOString(),
+    });
+    if (opts.outcome) params.set('outcome', opts.outcome);
+    if (opts.platform) params.set('platform', opts.platform);
+    return apiClient
+      .get<JsonApiResponse<JsonApiResource>>(
+        `/organizations/${encodeURIComponent(orgName)}/analytics/executions?${params.toString()}`
+      )
+      .then(res => (res.data?.attributes || {}) as unknown as AnalyticsExecutions);
+  },
+};
+
 // Registry Types
 export interface Module {
   id: string;
