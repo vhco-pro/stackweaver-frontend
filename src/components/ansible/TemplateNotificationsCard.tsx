@@ -229,14 +229,10 @@ export function TemplateNotificationsCard({ templateId, orgName, canManage }: Te
                 <SelectTrigger className="flex-1">
                   <SelectValue placeholder="Attach a notification channel" />
                 </SelectTrigger>
-                <SelectContent>
-                  {channels.length === 0 ? (
-                    <div className="px-2 py-1.5 text-sm text-muted-foreground">No channels yet - create one below</div>
-                  ) : (
-                    channels.map((ch) => (
-                      <SelectItem key={ch.id} value={ch.id}>{ch.name} ({ch.type})</SelectItem>
-                    ))
-                  )}
+                <SelectContent emptyMessage="No channels yet - create one below">
+                  {channels.map((ch) => (
+                    <SelectItem key={ch.id} value={ch.id}>{ch.name} ({ch.type})</SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
               <Button variant="outline" disabled={busy || !selectedChannel} onClick={() => { void handleAttach(); }}>

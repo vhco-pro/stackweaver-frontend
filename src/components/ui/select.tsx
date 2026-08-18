@@ -5,6 +5,8 @@ import * as SelectPrimitive from "@radix-ui/react-select"
 import { Check, ChevronDown, ChevronUp } from "lucide-react"
 
 import { cn } from "@/lib/utils"
+import { isMenuEmpty, type MenuContentShape } from "@/components/ui/menu-empty.helpers"
+import { MenuEmptyState } from "@/components/ui/menu-empty"
 
 const Select = SelectPrimitive.Root
 
@@ -69,8 +71,11 @@ SelectScrollDownButton.displayName =
 
 const SelectContent = React.forwardRef<
   React.ElementRef<typeof SelectPrimitive.Content>,
-  React.ComponentPropsWithoutRef<typeof SelectPrimitive.Content>
->(({ className, children, position = "popper", ...props }, ref) => (
+  React.ComponentPropsWithoutRef<typeof SelectPrimitive.Content> & {
+    /** Shown when there is nothing to pick. Defaults to "No options available". */
+    emptyMessage?: React.ReactNode
+  }
+>(({ className, children, position = "popper", emptyMessage, ...props }, ref) => (
   <SelectPrimitive.Portal>
     <SelectPrimitive.Content
       ref={ref}
@@ -91,7 +96,11 @@ const SelectContent = React.forwardRef<
             "h-[var(--radix-select-trigger-height)] w-full min-w-[var(--radix-select-trigger-width)]"
         )}
       >
-        {children}
+        {isMenuEmpty(children, SELECT_CONTENT_SHAPE) ? (
+          <MenuEmptyState>{emptyMessage}</MenuEmptyState>
+        ) : (
+          children
+        )}
       </SelectPrimitive.Viewport>
       <SelectScrollDownButton />
     </SelectPrimitive.Content>
@@ -145,6 +154,14 @@ const SelectSeparator = React.forwardRef<
   />
 ))
 SelectSeparator.displayName = SelectPrimitive.Separator.displayName
+
+// Declared after the parts it names; only read while rendering, which is well
+// after this module has finished evaluating.
+const SELECT_CONTENT_SHAPE: MenuContentShape = {
+  items: [SelectItem, SelectPrimitive.Item],
+  groups: [SelectGroup],
+  decorations: [SelectLabel, SelectSeparator, SelectScrollUpButton, SelectScrollDownButton],
+}
 
 export {
   Select,

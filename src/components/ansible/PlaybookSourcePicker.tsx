@@ -110,14 +110,10 @@ export function PlaybookSourcePicker({ organizationName, playbooks, value, onCha
             <SelectTrigger>
               <SelectValue placeholder="Select a playbook" />
             </SelectTrigger>
-            <SelectContent>
-              {playbooks.length === 0 ? (
-                <div className="px-2 py-1.5 text-sm text-muted-foreground">No playbooks available</div>
-              ) : (
-                playbooks.map((pb) => (
-                  <SelectItem key={pb.id} value={pb.id}>{pb.name}</SelectItem>
-                ))
-              )}
+            <SelectContent emptyMessage="No playbooks available">
+              {playbooks.map((pb) => (
+                <SelectItem key={pb.id} value={pb.id}>{pb.name}</SelectItem>
+              ))}
             </SelectContent>
           </Select>
         )}

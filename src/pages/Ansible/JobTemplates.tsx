@@ -648,14 +648,10 @@ export default function JobTemplates() {
                 <SelectTrigger>
                   <SelectValue placeholder="Select an inventory" />
                 </SelectTrigger>
-                <SelectContent>
-                  {inventories.length === 0 ? (
-                    <div className="px-2 py-1.5 text-sm text-muted-foreground">No inventories available</div>
-                  ) : (
-                    inventories.map((inv) => (
-                      <SelectItem key={inv.id} value={inv.id}>{inv.name}</SelectItem>
-                    ))
-                  )}
+                <SelectContent emptyMessage="No inventories available">
+                  {inventories.map((inv) => (
+                    <SelectItem key={inv.id} value={inv.id}>{inv.name}</SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
