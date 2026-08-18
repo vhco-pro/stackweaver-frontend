@@ -190,7 +190,7 @@ export default function Runners() {
 
   const getRunnerTypeBadgeClass = (type: Runner['runner_type']) => {
     switch (type) {
-      case 'terraform':
+      case 'tofu':
         return 'bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/20';
       case 'ansible':
         return 'bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 border-cyan-500/20';
@@ -221,7 +221,7 @@ export default function Runners() {
                 Self-Hosted Runners
               </h1>
               <p className="text-muted-foreground">
-                Manage self-hosted runners for Terraform and Ansible workloads
+                Manage self-hosted runners for OpenTofu and Ansible workloads
               </p>
               {stats && (
                 <div className="flex gap-4 mt-2 text-sm">
@@ -325,8 +325,8 @@ export default function Runners() {
                         {runner.os_type && runner.os_version && (
                           <span>{runner.os_type} {runner.os_version}</span>
                         )}
-                        {runner.terraform_version && (
-                          <span className="ml-3">TF {runner.terraform_version}</span>
+                        {runner.tofu_version && (
+                          <span className="ml-3">OpenTofu {runner.tofu_version}</span>
                         )}
                         {runner.ansible_version && (
                           <span className="ml-3">Ansible {runner.ansible_version}</span>

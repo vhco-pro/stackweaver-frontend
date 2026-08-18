@@ -1320,7 +1320,7 @@ export interface Runner {
   description: string;
   agent_pool_id: string;
   agent_pool_name?: string;
-  runner_type: 'terraform' | 'ansible' | 'combined';
+  runner_type: 'tofu' | 'ansible' | 'combined';
   status: 'online' | 'offline' | 'busy' | 'error';
   hostname: string;
   ip_address: string;
@@ -1328,7 +1328,7 @@ export interface Runner {
   os_version: string;
   agent_version: string;
   labels: string[];
-  terraform_version: string;
+  tofu_version: string;
   ansible_version: string;
   available_collections: string[];
   max_concurrent_jobs: number;
@@ -1355,7 +1355,7 @@ function runnerFromJsonApi(item: JsonApiResource): Runner {
     os_version: String(attrs['os-version'] || ''),
     agent_version: String(attrs['agent-version'] || ''),
     labels: Array.isArray(attrs['labels']) ? (attrs['labels'] as string[]) : [],
-    terraform_version: String(attrs['terraform-version'] || ''),
+    tofu_version: String(attrs['tofu-version'] || ''),
     ansible_version: String(attrs['ansible-version'] || ''),
     available_collections: Array.isArray(attrs['available-collections']) ? (attrs['available-collections'] as string[]) : [],
     max_concurrent_jobs: Number(attrs['max-concurrent-jobs']) || 1,

@@ -53,7 +53,7 @@ const roadmapSections: RoadmapSection[] = [
     description: 'Remote execution with Kubernetes runners',
     features: [
       'Kubernetes agent pools with RBAC scoping',
-      'Real-time log streaming for Terraform and Ansible',
+      'Real-time log streaming for OpenTofu and Ansible',
       'Ansible job execution with queue-based scheduling',
       'GitLab and Bitbucket VCS provider support',
     ],

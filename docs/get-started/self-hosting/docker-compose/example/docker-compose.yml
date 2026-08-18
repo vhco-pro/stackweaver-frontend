@@ -309,7 +309,7 @@ services:
     network_mode: host
 
   runner:
-    image: ghcr.io/vhco-pro/stackweaver-runner:latest
+    image: ghcr.io/vhco-pro/stackweaver-opentofu-runner:latest
     container_name: runner
     restart: unless-stopped
     env_file:

@@ -49,7 +49,7 @@ import Webhooks from './pages/Settings/Webhooks';
 import VariableSets from './pages/Settings/VariableSets';
 import AgentPools from './pages/Settings/AgentPools';
 import OIDCConfigurations from './pages/Settings/OIDCConfigurations';
-import TerraformVersions from './pages/Settings/TerraformVersions';
+import TofuVersions from './pages/Settings/TofuVersions';
 import Runners from './pages/Settings/Runners';
 import ChangeRequests from './pages/Settings/ChangeRequests';
 import RunTasks from './pages/Settings/RunTasks';
@@ -658,7 +658,7 @@ function AppContent() {
                 <ProtectedRoute>
                   <OrganizationGuard>
                     <Layout>
-                      <TerraformVersions />
+                      <TofuVersions />
                     </Layout>
                   </OrganizationGuard>
                 </ProtectedRoute>

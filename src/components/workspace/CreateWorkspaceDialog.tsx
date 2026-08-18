@@ -525,9 +525,9 @@ export function CreateWorkspaceDialog({
             </div>
           )}
 
-          {/* Terraform Version */}
+          {/* OpenTofu Version */}
           <div className="space-y-2">
-            <Label htmlFor="terraform-version">Terraform Version</Label>
+            <Label htmlFor="terraform-version">OpenTofu Version</Label>
             <Select
               value={terraformVersion || '__default__'}
               onValueChange={(value) => { setTerraformVersion(value === '__default__' ? '' : value); }}

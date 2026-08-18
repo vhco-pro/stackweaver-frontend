@@ -5,11 +5,11 @@ covers: []
 
 # Platform Features
 
-StackWeaver is a unified orchestration platform for managing Terraform and Ansible workflows. It combines the capabilities of Terraform Cloud and Ansible AWX into a single solution. It's available for self hosting or as a managed service.
+StackWeaver is a unified orchestration platform for managing OpenTofu and Ansible workflows. It combines the capabilities of Terraform Cloud and Ansible AWX into a single solution, and stays API-compatible with Terraform Cloud/Enterprise tooling. It's available for self hosting or as a managed service.
 
 ## What StackWeaver Does
 
-StackWeaver provides a web-based dashboard, API and customizable runners for managing infrastructure as code and automation workflows. The platform manages the complete lifecycle of Terraform workspaces, handles Ansible automation with playbook and inventory management, and provides a unified interface where you can monitor both types of operations side by side.
+StackWeaver provides a web-based dashboard, API and customizable runners for managing infrastructure as code and automation workflows. The platform manages the complete lifecycle of OpenTofu workspaces, handles Ansible automation with playbook and inventory management, and provides a unified interface where you can monitor both types of operations side by side.
 
 Version control integration through GitHub App webhooks enables automated runs and playbook synchronization, while organization and team-based RBAC ensures fine-grained access control over all resources.
 
@@ -23,15 +23,15 @@ Projects provide logical grouping of related resources, making it easier to orga
 
 ### Version Control Integration
 
-Connect repositories through GitHub App integration for secure, webhook-based automation. The platform automatically triggers Terraform runs and syncs Ansible playbooks whenever repository changes are pushed.
+Connect repositories through GitHub App integration for secure, webhook-based automation. The platform automatically triggers runs and syncs Ansible playbooks whenever repository changes are pushed.
 
 Path-based filtering ensures that workspaces only trigger when files in their configured paths actually change, preventing unnecessary runs in monorepo setups. Both workspace and playbook configurations can be tied to specific Git branches, supporting environment-specific workflows.
 
 ### State & Execution Management
 
-Terraform state is stored securely with versioning in S3-compatible storage. State locking prevents concurrent applies that could corrupt your infrastructure state. Plan, apply, and destroy operations execute with full output streaming, while Ansible job runs provide real-time output and event tracking for complete visibility into automation workflows.
+State is stored securely with versioning in S3-compatible storage. State locking prevents concurrent applies that could corrupt your infrastructure state. Plan, apply, and destroy operations execute with full output streaming, while Ansible job runs provide real-time output and event tracking for complete visibility into automation workflows.
 
-## Terraform Features
+## OpenTofu Features
 
 ### Workspace Management
 

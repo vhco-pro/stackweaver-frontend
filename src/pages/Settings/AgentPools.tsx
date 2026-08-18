@@ -480,7 +480,7 @@ export default function AgentPools() {
                                     </div>
                                   </td>
                                   <td className="py-3 px-4 text-muted-foreground">
-                                    {runner.terraform_version || runner.ansible_version || runner.agent_version || '-'}
+                                    {runner.tofu_version || runner.ansible_version || runner.agent_version || '-'}
                                   </td>
                                   <td className="py-3 px-4 font-mono text-xs text-muted-foreground">
                                     {runner.id.slice(0, 8)}...

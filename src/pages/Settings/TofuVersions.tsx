@@ -29,7 +29,7 @@ import {
 } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 
-export default function TerraformVersions() {
+export default function TofuVersions() {
   const { orgName } = useParams<{ orgName: string }>();
   const queryClient = useQueryClient();
   const [addDialogOpen, setAddDialogOpen] = useState(false);
@@ -59,7 +59,7 @@ export default function TerraformVersions() {
 
   // Fetch paginated versions for the table
   const { data: versionsData, isLoading: loading, refetch: refetchVersions } = useQuery({
-    queryKey: ['terraformVersions', currentPage, searchQuery],
+    queryKey: ['tofuVersions', currentPage, searchQuery],
     queryFn: async () => {
       const res = await adminTerraformVersionsApi.list({
         page: currentPage,
@@ -81,7 +81,7 @@ export default function TerraformVersions() {
 
   // Fetch ALL enabled versions for the org default dropdown (not just current page)
   const { data: allEnabledVersions = [], refetch: refetchEnabledVersions } = useQuery({
-    queryKey: ['allEnabledTerraformVersions'],
+    queryKey: ['allEnabledTofuVersions'],
     queryFn: async () => {
       const res = await adminTerraformVersionsApi.list({ pageSize: 100 });
       return (res.data || [])
@@ -90,9 +90,9 @@ export default function TerraformVersions() {
     },
   });
 
-  // Load org default terraform version
+  // Load the org default OpenTofu version
   const { data: orgDefaultVersion = '' } = useQuery({
-    queryKey: ['orgDefaultTerraformVersion', orgName],
+    queryKey: ['orgDefaultTofuVersion', orgName],
     queryFn: async () => {
       const org = await organizationsApi.get(orgName!);
       return org.default_terraform_version || '';
@@ -108,7 +108,7 @@ export default function TerraformVersions() {
   const handleToggleEnabled = async (version: TerraformVersionResource) => {
     try {
       await adminTerraformVersionsApi.update(version.id, { enabled: !version.attributes.enabled });
-      toast.success(`Terraform ${version.attributes.version} ${version.attributes.enabled ? 'disabled' : 'enabled'}`);
+      toast.success(`OpenTofu ${version.attributes.version} ${version.attributes.enabled ? 'disabled' : 'enabled'}`);
       refreshAll();
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : 'Failed to update version');
@@ -118,7 +118,7 @@ export default function TerraformVersions() {
   const handleDelete = async (version: TerraformVersionResource) => {
     try {
       await adminTerraformVersionsApi.delete(version.id);
-      toast.success(`Terraform ${version.attributes.version} deleted`);
+      toast.success(`OpenTofu ${version.attributes.version} deleted`);
       refreshAll();
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : 'Cannot delete this version');
@@ -131,7 +131,7 @@ export default function TerraformVersions() {
     try {
       const url = newURL.trim() || undefined;
       await adminTerraformVersionsApi.create({ version: newVersion.trim(), url, enabled: true });
-      toast.success(`Terraform ${newVersion} added`);
+      toast.success(`OpenTofu ${newVersion} added`);
       setAddDialogOpen(false);
       setNewVersion('');
       setNewURL('');
@@ -154,8 +154,8 @@ export default function TerraformVersions() {
           attributes: { 'default-terraform-version': version },
         },
       });
-      queryClient.setQueryData(['orgDefaultTerraformVersion', orgName], version);
-      toast.success(version ? `Organization default set to Terraform ${version}` : 'Organization default version cleared');
+      queryClient.setQueryData(['orgDefaultTofuVersion', orgName], version);
+      toast.success(version ? `Organization default set to OpenTofu ${version}` : 'Organization default version cleared');
     } catch {
       toast.error('Failed to update organization default');
     } finally {
@@ -182,10 +182,10 @@ export default function TerraformVersions() {
         <div className="flex-1 flex items-start justify-between gap-4 mb-2">
           <div>
             <h1 className="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-500 bg-clip-text text-transparent mb-2">
-              Terraform Versions
+              OpenTofu Versions
             </h1>
             <p className="text-muted-foreground">
-              Manage the available Terraform versions for workspaces in this organization.
+              Manage the available OpenTofu versions for workspaces in this organization.
             </p>
           </div>
           <div className="relative inline-flex rounded-xl bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-500 p-[2px]">
@@ -195,7 +195,7 @@ export default function TerraformVersions() {
               className="bg-white dark:bg-slate-950/80 dark:backdrop-blur-xs text-slate-900 dark:text-white hover:bg-slate-50 dark:hover:bg-slate-950/90 border-0 whitespace-nowrap rounded-[calc(0.75rem-2px)] px-4 py-2"
             >
               <Plus className="h-4 w-4 mr-2" />
-              Add Terraform Version
+              Add OpenTofu Version
             </Button>
           </div>
         </div>
@@ -207,7 +207,7 @@ export default function TerraformVersions() {
           <div>
             <h3 className="font-semibold">Organization Default Version</h3>
             <p className="text-sm text-muted-foreground">
-              Used when a workspace does not specify a Terraform version.
+              Used when a workspace does not specify an OpenTofu version.
             </p>
           </div>
           <div className="flex items-center gap-2">
@@ -255,7 +255,7 @@ export default function TerraformVersions() {
       ) : versions.length === 0 ? (
         <div className="flex flex-col items-center justify-center rounded-lg border border-dashed py-12">
           <Tag className="h-12 w-12 text-muted-foreground/50" />
-          <h3 className="mt-4 text-lg font-semibold">No Terraform versions</h3>
+          <h3 className="mt-4 text-lg font-semibold">No OpenTofu versions</h3>
           <p className="text-sm text-muted-foreground">Add a version to get started.</p>
         </div>
       ) : (
@@ -363,9 +363,9 @@ export default function TerraformVersions() {
       <Dialog open={addDialogOpen} onOpenChange={setAddDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Add Terraform Version</DialogTitle>
+            <DialogTitle>Add OpenTofu Version</DialogTitle>
             <DialogDescription>
-              Add a new Terraform version to make it available for workspaces.
+              Add a new OpenTofu version to make it available for workspaces.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
@@ -382,7 +382,7 @@ export default function TerraformVersions() {
               <label htmlFor="tf-new-url" className="text-sm font-medium">Download URL (optional)</label>
               <Input
                 id="tf-new-url"
-                placeholder="Auto-generated from releases.hashicorp.com"
+                placeholder="Auto-generated from the OpenTofu release source"
                 value={newURL}
                 onChange={(e) => { setNewURL(e.target.value); }}
               />

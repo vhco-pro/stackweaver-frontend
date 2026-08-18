@@ -120,8 +120,8 @@ const orgSettingsSections: SettingsSection[] = [
     path: '/app/:orgName/settings/authentication-token', // Will be replaced with actual orgName
   },
   {
-    title: 'Terraform Versions',
-    description: 'Manage available Terraform versions for workspace runs',
+    title: 'OpenTofu Versions',
+    description: 'Manage available OpenTofu versions for workspace runs',
     icon: Tag,
     gradient: 'from-purple-500 to-violet-500',
     path: '/app/:orgName/settings/terraform-versions',
@@ -135,7 +135,7 @@ const orgSettingsSections: SettingsSection[] = [
   },
   {
     title: 'Runners',
-    description: 'View and manage self-hosted runners for Terraform and Ansible',
+    description: 'View and manage self-hosted runners for OpenTofu and Ansible',
     icon: Server,
     gradient: 'from-purple-500 to-pink-500',
     path: '/app/:orgName/settings/runners',
@@ -228,7 +228,7 @@ export default function Settings() {
     ? orgSettingsSections
         .filter((section: SettingsSection) => {
           if (section.title === 'Users & Teams') return hasManageMembershipAccess !== false;
-          if (section.title === 'Terraform Versions') return hasAdminAccess !== false;
+          if (section.title === 'OpenTofu Versions') return hasAdminAccess !== false;
           if (section.title === 'Agent Pools') return hasManageAgentPoolsAccess !== false;
           if (section.title === 'Runners') return hasManageAgentPoolsAccess !== false;
           if (section.title === 'Change Requests') return canManageWorkspaces;

@@ -9,11 +9,11 @@ covers:
 
 # Self-Hosted Runners
 
-Learn how to run Terraform and Ansible workloads on your own infrastructure using StackWeaver self-hosted runners. By the end of this guide, you will know how to create agent pools, register runners, and route jobs to them.
+Learn how to run OpenTofu and Ansible workloads on your own infrastructure using StackWeaver self-hosted runners. By the end of this guide, you will know how to create agent pools, register runners, and route jobs to them.
 
 ## What Are Self-Hosted Runners?
 
-StackWeaver can execute Terraform plans and applies and Ansible jobs in two ways:
+StackWeaver can execute OpenTofu plans and applies and Ansible jobs in two ways:
 
 | Execution type | Description |
 |----------------|-------------|
@@ -26,7 +26,7 @@ Self-hosted runners use the **same runner images** as platform-hosted runs. The 
 
 Consider self-hosted runners when you:
 
-- Need Terraform or Ansible to run inside your private network (e.g., to reach internal APIs or databases).
+- Need OpenTofu or Ansible to run inside your private network (e.g., to reach internal APIs or databases).
 - Want to control where and how jobs run for compliance or security.
 - Prefer to scale capacity yourself instead of using platform-hosted execution.
 - Use the same patterns as Terraform Cloud / HCP Terraform agent pools and want compatibility with tools like the Terraform provider for TFE. Agent pools and agent tokens can also be managed as code with the [StackWeaver Terraform provider](./terraform-provider.md).
@@ -46,7 +46,7 @@ Before you start, make sure you have:
 
 **Agent pools** group runners and define which workspaces or projects can use them. You create a pool in Settings, then register runners into that pool. When you configure a workspace (or project) to use agent execution, you attach it to a pool; jobs for that workspace or project are then dispatched to runners in that pool.
 
-**Runners** are the containers that poll for jobs and execute them. Each runner belongs to one agent pool and is registered using an API key with runner scopes. After registration, the runner appears in Settings > Runners and shows status (online, busy, offline), type (Terraform, Ansible, or combined), and last heartbeat.
+**Runners** are the containers that poll for jobs and execute them. Each runner belongs to one agent pool and is registered using an API key with runner scopes. After registration, the runner appears in Settings > Runners and shows status (online, busy, offline), type (OpenTofu, Ansible, or combined), and last heartbeat.
 
 The flow is:
 
@@ -64,7 +64,7 @@ flowchart LR
 1. **Agent pool** - Create an agent pool and optionally restrict which workspaces or projects can use it.
 2. **API key** - Create an API key with runner scopes.
 3. **Runner** - Run the runner container with that API key and the pool ID; the runner registers itself.
-4. **Routing** - Configure workspaces (Terraform) or projects (Ansible) to use agent execution and the correct pool so jobs are routed to your runners.
+4. **Routing** - Configure workspaces (OpenTofu) or projects (Ansible) to use agent execution and the correct pool so jobs are routed to your runners.
 
 </details>
 
@@ -100,7 +100,7 @@ Runners authenticate using the same API key system as the rest of StackWeaver. Y
 3. For the organization, select the same organization that owns the agent pool.
 4. Enable the **Runner** permissions your runners need:
    - **Runner: Register** – required so the runner can register with the API.
-   - **Runner: Terraform** and/or **Runner: Ansible** (or **Runner: Combined** if one runner will do both).
+   - **Runner: OpenTofu** and/or **Runner: Ansible** (or **Runner: Combined** if one runner will do both).
 5. Save the key and **copy the token** (e.g. `tfe-xxx...`). You will not see it again.
 
 Use this token only when starting the runner container. Do not commit it to source control or share it broadly. You can revoke the key at any time in Settings > API Keys. Because each runner switches to its own runner-scoped token after registration, revoking the registration key does not interrupt runners that are already registered - they keep receiving jobs until they restart, at which point they need a valid registration key to register again.
@@ -140,7 +140,7 @@ docker run -d --restart unless-stopped \
   stackweaver/runner-ansible:latest
 ```
 
-#### Terraform runner (Docker)
+#### OpenTofu runner (Docker)
 
 ```bash
 docker run -d --restart unless-stopped \
@@ -148,8 +148,8 @@ docker run -d --restart unless-stopped \
   -e RUNNER_AGENT_POOL_ID=<pool-uuid> \
   -e STACKWEAVER_TOKEN=<your-api-key> \
   -e STACKWEAVER_SERVER=https://your-stackweaver.example.com \
-  -e RUNNER_NAME=my-terraform-runner \
-  stackweaver/runner-terraform:latest
+  -e RUNNER_NAME=my-tofu-runner \
+  ghcr.io/vhco-pro/stackweaver-opentofu-runner:latest
 ```
 
 ### Kubernetes
@@ -168,7 +168,7 @@ kubectl create secret generic stackweaver-runner-token \
 
 Apply a Deployment manifest for the runner type you need. The examples below deploy a single replica; increase `replicas` to run multiple runners in the same pool.
 
-**Terraform runner (Kubernetes):**
+**OpenTofu runner (Kubernetes):**
 
 ```yaml
 apiVersion: apps/v1
@@ -188,7 +188,7 @@ spec:
     spec:
       containers:
         - name: runner
-          image: stackweaver/runner-terraform:latest
+          image: ghcr.io/vhco-pro/stackweaver-opentofu-runner:latest
           env:
             - name: RUNNER_MODE
               value: agent
@@ -361,7 +361,7 @@ Runners send heartbeats to the API on a regular interval. If heartbeats stop (e.
 ## Common Questions
 
 **Q: Can one runner run both Terraform and Ansible jobs?**  
-A: Yes, if you use a **combined** runner image (when available) or register with scopes that allow both. Otherwise use separate Ansible and Terraform runner containers and put them in the same or different pools as needed.
+A: Yes, if you use a **combined** runner image (when available) or register with scopes that allow both. Otherwise use separate Ansible and OpenTofu runner containers and put them in the same or different pools as needed.
 
 **Q: What happens if all runners in a pool are offline?**  
 A: New jobs that are assigned to that pool will wait until a runner in the pool is online. Ensure at least one runner in the pool is running for critical workloads, or use platform-hosted execution as a fallback by not using agent mode for that workspace.
