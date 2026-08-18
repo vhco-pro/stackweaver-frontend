@@ -260,8 +260,10 @@ services:
           VITE_ZITADEL_REDIRECT_URI: "$$VITE_ZITADEL_REDIRECT_URI",
         };
         EOF
-        # Change nginx listen port from 80 to 5173
-        sed -i 's/listen 80/listen 5173/' /etc/nginx/conf.d/default.conf
+        # Move nginx off its default 8080, which collides with Zitadel under
+        # network_mode: host. The image ships its SPA config as nginx.default.conf
+        # (see frontend/Dockerfile) - not the stock default.conf.
+        sed -i 's/listen 8080;/listen 5173;/' /etc/nginx/conf.d/nginx.default.conf
         exec nginx -g 'daemon off;'
     depends_on:
       api:
