@@ -579,9 +579,9 @@ export default function AgentPools() {
               </div>
               <div className="space-y-2">
                 <Label>Allowed workspaces {editForm.organization_scoped && <span className="text-xs text-muted-foreground">(selecting disables org-scoped)</span>}</Label>
-                <Select value="" onValueChange={(v) => v && toggleAllowedWorkspace(v)} disabled={availableForAllowed.length === 0}>
-                  <SelectTrigger><SelectValue placeholder={availableForAllowed.length === 0 ? 'No workspaces available' : 'Add workspace…'} /></SelectTrigger>
-                  <SelectContent>
+                <Select value="" onValueChange={(v) => v && toggleAllowedWorkspace(v)}>
+                  <SelectTrigger><SelectValue placeholder="Add workspace…" /></SelectTrigger>
+                  <SelectContent emptyMessage="No workspaces available">
                     {availableForAllowed.map((w) => (
                       <SelectItem key={w.id} value={w.id}>
                         {w.name}
@@ -607,9 +607,9 @@ export default function AgentPools() {
               </div>
               <div className="space-y-2">
                 <Label>Allowed projects {editForm.organization_scoped && <span className="text-xs text-muted-foreground">(selecting disables org-scoped)</span>}</Label>
-                <Select value="" onValueChange={(v) => v && toggleAllowedProject(v)} disabled={availableProjects.length === 0}>
-                  <SelectTrigger><SelectValue placeholder={availableProjects.length === 0 ? 'No projects available' : 'Add project…'} /></SelectTrigger>
-                  <SelectContent>
+                <Select value="" onValueChange={(v) => v && toggleAllowedProject(v)}>
+                  <SelectTrigger><SelectValue placeholder="Add project…" /></SelectTrigger>
+                  <SelectContent emptyMessage="No projects available">
                     {availableProjects.map((p) => (
                       <SelectItem key={p.id} value={p.id}>
                         {p.name}
@@ -635,9 +635,9 @@ export default function AgentPools() {
               </div>
               <div className="space-y-2">
                 <Label>Excluded workspaces <span className="text-xs text-muted-foreground">(only applies when org-scoped)</span></Label>
-                <Select value="" onValueChange={(v) => v && toggleExcludedWorkspace(v)} disabled={availableForExcluded.length === 0}>
-                  <SelectTrigger><SelectValue placeholder={availableForExcluded.length === 0 ? 'No workspaces available' : 'Add workspace…'} /></SelectTrigger>
-                  <SelectContent>
+                <Select value="" onValueChange={(v) => v && toggleExcludedWorkspace(v)}>
+                  <SelectTrigger><SelectValue placeholder="Add workspace…" /></SelectTrigger>
+                  <SelectContent emptyMessage="No workspaces available">
                     {availableForExcluded.map((w) => (
                       <SelectItem key={w.id} value={w.id}>
                         {w.name}

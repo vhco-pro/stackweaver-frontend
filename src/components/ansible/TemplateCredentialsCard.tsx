@@ -148,16 +148,12 @@ export function TemplateCredentialsCard({ templateId, canManage, orgCredentials 
               <SelectTrigger className="flex-1">
                 <SelectValue placeholder="Attach a credential" />
               </SelectTrigger>
-              <SelectContent>
-                {attachable.length === 0 ? (
-                  <div className="px-2 py-1.5 text-sm text-muted-foreground">No credentials available</div>
-                ) : (
-                  attachable.map((c) => (
-                    <SelectItem key={c.id} value={c.id}>
-                      {c.name} ({c.type})
-                    </SelectItem>
-                  ))
-                )}
+              <SelectContent emptyMessage="No credentials available">
+                {attachable.map((c) => (
+                  <SelectItem key={c.id} value={c.id}>
+                    {c.name} ({c.type})
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
             <Button

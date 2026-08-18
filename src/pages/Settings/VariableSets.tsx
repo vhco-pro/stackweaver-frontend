@@ -782,75 +782,69 @@ export default function VariableSets() {
                             )}
                           </div>
                         </DropdownMenuTrigger>
-                        <DropdownMenuContent className="w-[var(--radix-dropdown-menu-trigger-width)] max-h-[300px] overflow-y-auto">
-                          {projects.length === 0 ? (
-                            <div className="px-2 py-1.5 text-sm text-muted-foreground">No projects available</div>
-                          ) : (
+                        <DropdownMenuContent emptyMessage="No projects available" className="w-[var(--radix-dropdown-menu-trigger-width)] max-h-[300px] overflow-y-auto">
+                          {(showSelectedProjects 
+                            ? projects.filter(p => variableSetForm.selectedProjects.includes(p.id))
+                            : projects
+                          ).map((project) => (
+                            <DropdownMenuCheckboxItem
+                              key={project.id}
+                              checked={variableSetForm.selectedProjects.includes(project.id)}
+                              onSelect={(e) => {
+                                e.preventDefault();
+                              }}
+                              onCheckedChange={(checked) => {
+                                if (checked) {
+                                  setVariableSetForm({
+                                    ...variableSetForm,
+                                    selectedProjects: [...variableSetForm.selectedProjects, project.id],
+                                  });
+                                } else {
+                                  setVariableSetForm({
+                                    ...variableSetForm,
+                                    selectedProjects: variableSetForm.selectedProjects.filter(id => id !== project.id),
+                                  });
+                                }
+                              }}
+                            >
+                              {project.name}
+                            </DropdownMenuCheckboxItem>
+                          ))}
+                          {variableSetForm.selectedProjects.length > 0 && (
                             <>
-                              {(showSelectedProjects 
-                                ? projects.filter(p => variableSetForm.selectedProjects.includes(p.id))
-                                : projects
-                              ).map((project) => (
-                                <DropdownMenuCheckboxItem
-                                  key={project.id}
-                                  checked={variableSetForm.selectedProjects.includes(project.id)}
-                                  onSelect={(e) => {
-                                    e.preventDefault();
-                                  }}
-                                  onCheckedChange={(checked) => {
-                                    if (checked) {
+                              <div className="border-t my-1" />
+                              <div className="px-2 py-1.5 flex items-center justify-between gap-2">
+                                <span className="text-xs text-muted-foreground">
+                                  {variableSetForm.selectedProjects.length} selected
+                                </span>
+                                <div className="flex gap-1">
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-6 text-xs"
+                                    onClick={() => {
+                                      setShowSelectedProjects(!showSelectedProjects);
+                                    }}
+                                  >
+                                    {showSelectedProjects ? 'Show all' : 'Show selected'}
+                                  </Button>
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-6 text-xs"
+                                    onClick={() => {
                                       setVariableSetForm({
                                         ...variableSetForm,
-                                        selectedProjects: [...variableSetForm.selectedProjects, project.id],
+                                        selectedProjects: [],
                                       });
-                                    } else {
-                                      setVariableSetForm({
-                                        ...variableSetForm,
-                                        selectedProjects: variableSetForm.selectedProjects.filter(id => id !== project.id),
-                                      });
-                                    }
-                                  }}
-                                >
-                                  {project.name}
-                                </DropdownMenuCheckboxItem>
-                              ))}
-                              {variableSetForm.selectedProjects.length > 0 && (
-                                <>
-                                  <div className="border-t my-1" />
-                                  <div className="px-2 py-1.5 flex items-center justify-between gap-2">
-                                    <span className="text-xs text-muted-foreground">
-                                      {variableSetForm.selectedProjects.length} selected
-                                    </span>
-                                    <div className="flex gap-1">
-                                      <Button
-                                        type="button"
-                                        variant="ghost"
-                                        size="sm"
-                                        className="h-6 text-xs"
-                                        onClick={() => {
-                                          setShowSelectedProjects(!showSelectedProjects);
-                                        }}
-                                      >
-                                        {showSelectedProjects ? 'Show all' : 'Show selected'}
-                                      </Button>
-                                      <Button
-                                        type="button"
-                                        variant="ghost"
-                                        size="sm"
-                                        className="h-6 text-xs"
-                                        onClick={() => {
-                                          setVariableSetForm({
-                                            ...variableSetForm,
-                                            selectedProjects: [],
-                                          });
-                                        }}
-                                      >
-                                        Clear selected
-                                      </Button>
-                                    </div>
-                                  </div>
-                                </>
-                              )}
+                                    }}
+                                  >
+                                    Clear selected
+                                  </Button>
+                                </div>
+                              </div>
                             </>
                           )}
                         </DropdownMenuContent>
@@ -884,75 +878,69 @@ export default function VariableSets() {
                             )}
                           </div>
                         </DropdownMenuTrigger>
-                        <DropdownMenuContent className="w-[var(--radix-dropdown-menu-trigger-width)] max-h-[300px] overflow-y-auto">
-                          {workspaces.length === 0 ? (
-                            <div className="px-2 py-1.5 text-sm text-muted-foreground">No workspaces available</div>
-                          ) : (
+                        <DropdownMenuContent emptyMessage="No workspaces available" className="w-[var(--radix-dropdown-menu-trigger-width)] max-h-[300px] overflow-y-auto">
+                          {(showSelectedWorkspaces 
+                            ? workspaces.filter(w => variableSetForm.selectedWorkspaces.includes(w.id))
+                            : workspaces
+                          ).map((workspace) => (
+                            <DropdownMenuCheckboxItem
+                              key={workspace.id}
+                              checked={variableSetForm.selectedWorkspaces.includes(workspace.id)}
+                              onSelect={(e) => {
+                                e.preventDefault();
+                              }}
+                              onCheckedChange={(checked) => {
+                                if (checked) {
+                                  setVariableSetForm({
+                                    ...variableSetForm,
+                                    selectedWorkspaces: [...variableSetForm.selectedWorkspaces, workspace.id],
+                                  });
+                                } else {
+                                  setVariableSetForm({
+                                    ...variableSetForm,
+                                    selectedWorkspaces: variableSetForm.selectedWorkspaces.filter(id => id !== workspace.id),
+                                  });
+                                }
+                              }}
+                            >
+                              {workspace.name}
+                            </DropdownMenuCheckboxItem>
+                          ))}
+                          {variableSetForm.selectedWorkspaces.length > 0 && (
                             <>
-                              {(showSelectedWorkspaces 
-                                ? workspaces.filter(w => variableSetForm.selectedWorkspaces.includes(w.id))
-                                : workspaces
-                              ).map((workspace) => (
-                                <DropdownMenuCheckboxItem
-                                  key={workspace.id}
-                                  checked={variableSetForm.selectedWorkspaces.includes(workspace.id)}
-                                  onSelect={(e) => {
-                                    e.preventDefault();
-                                  }}
-                                  onCheckedChange={(checked) => {
-                                    if (checked) {
+                              <div className="border-t my-1" />
+                              <div className="px-2 py-1.5 flex items-center justify-between gap-2">
+                                <span className="text-xs text-muted-foreground">
+                                  {variableSetForm.selectedWorkspaces.length} selected
+                                </span>
+                                <div className="flex gap-1">
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-6 text-xs"
+                                    onClick={() => {
+                                      setShowSelectedWorkspaces(!showSelectedWorkspaces);
+                                    }}
+                                  >
+                                    {showSelectedWorkspaces ? 'Show all' : 'Show selected'}
+                                  </Button>
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-6 text-xs"
+                                    onClick={() => {
                                       setVariableSetForm({
                                         ...variableSetForm,
-                                        selectedWorkspaces: [...variableSetForm.selectedWorkspaces, workspace.id],
+                                        selectedWorkspaces: [],
                                       });
-                                    } else {
-                                      setVariableSetForm({
-                                        ...variableSetForm,
-                                        selectedWorkspaces: variableSetForm.selectedWorkspaces.filter(id => id !== workspace.id),
-                                      });
-                                    }
-                                  }}
-                                >
-                                  {workspace.name}
-                                </DropdownMenuCheckboxItem>
-                              ))}
-                              {variableSetForm.selectedWorkspaces.length > 0 && (
-                                <>
-                                  <div className="border-t my-1" />
-                                  <div className="px-2 py-1.5 flex items-center justify-between gap-2">
-                                    <span className="text-xs text-muted-foreground">
-                                      {variableSetForm.selectedWorkspaces.length} selected
-                                    </span>
-                                    <div className="flex gap-1">
-                                      <Button
-                                        type="button"
-                                        variant="ghost"
-                                        size="sm"
-                                        className="h-6 text-xs"
-                                        onClick={() => {
-                                          setShowSelectedWorkspaces(!showSelectedWorkspaces);
-                                        }}
-                                      >
-                                        {showSelectedWorkspaces ? 'Show all' : 'Show selected'}
-                                      </Button>
-                                      <Button
-                                        type="button"
-                                        variant="ghost"
-                                        size="sm"
-                                        className="h-6 text-xs"
-                                        onClick={() => {
-                                          setVariableSetForm({
-                                            ...variableSetForm,
-                                            selectedWorkspaces: [],
-                                          });
-                                        }}
-                                      >
-                                        Clear selected
-                                      </Button>
-                                    </div>
-                                  </div>
-                                </>
-                              )}
+                                    }}
+                                  >
+                                    Clear selected
+                                  </Button>
+                                </div>
+                              </div>
                             </>
                           )}
                         </DropdownMenuContent>
@@ -1470,66 +1458,60 @@ export default function VariableSets() {
                           )}
                         </div>
                       </DropdownMenuTrigger>
-                      <DropdownMenuContent className="w-[var(--radix-dropdown-menu-trigger-width)] max-h-[300px] overflow-y-auto">
-                        {projects.length === 0 ? (
-                          <div className="px-2 py-1.5 text-sm text-muted-foreground">No projects available</div>
-                        ) : (
+                      <DropdownMenuContent emptyMessage="No projects available" className="w-[var(--radix-dropdown-menu-trigger-width)] max-h-[300px] overflow-y-auto">
+                        {(showSelectedProjects 
+                          ? projects.filter(p => assignedProjects.includes(p.id))
+                          : projects
+                        ).map((project) => (
+                          <DropdownMenuCheckboxItem
+                            key={project.id}
+                            checked={assignedProjects.includes(project.id)}
+                            onSelect={(e) => {
+                              e.preventDefault();
+                            }}
+                            onCheckedChange={(checked) => {
+                              if (checked) {
+                                setAssignedProjects([...assignedProjects, project.id]);
+                              } else {
+                                setAssignedProjects(assignedProjects.filter(id => id !== project.id));
+                              }
+                            }}
+                          >
+                            {project.name}
+                          </DropdownMenuCheckboxItem>
+                        ))}
+                        {assignedProjects.length > 0 && (
                           <>
-                            {(showSelectedProjects 
-                              ? projects.filter(p => assignedProjects.includes(p.id))
-                              : projects
-                            ).map((project) => (
-                              <DropdownMenuCheckboxItem
-                                key={project.id}
-                                checked={assignedProjects.includes(project.id)}
-                                onSelect={(e) => {
-                                  e.preventDefault();
-                                }}
-                                onCheckedChange={(checked) => {
-                                  if (checked) {
-                                    setAssignedProjects([...assignedProjects, project.id]);
-                                  } else {
-                                    setAssignedProjects(assignedProjects.filter(id => id !== project.id));
-                                  }
-                                }}
-                              >
-                                {project.name}
-                              </DropdownMenuCheckboxItem>
-                            ))}
-                            {assignedProjects.length > 0 && (
-                              <>
-                                <div className="border-t my-1" />
-                                <div className="px-2 py-1.5 flex items-center justify-between gap-2">
-                                  <span className="text-xs text-muted-foreground">
-                                    {assignedProjects.length} selected
-                                  </span>
-                                  <div className="flex gap-1">
-                                    <Button
-                                      type="button"
-                                      variant="ghost"
-                                      size="sm"
-                                      className="h-6 text-xs"
-                                      onClick={() => {
-                                        setShowSelectedProjects(!showSelectedProjects);
-                                      }}
-                                    >
-                                      {showSelectedProjects ? 'Show all' : 'Show selected'}
-                                    </Button>
-                                    <Button
-                                      type="button"
-                                      variant="ghost"
-                                      size="sm"
-                                      className="h-6 text-xs"
-                                      onClick={() => {
-                                        setAssignedProjects([]);
-                                      }}
-                                    >
-                                      Clear selected
-                                    </Button>
-                                  </div>
-                                </div>
-                              </>
-                            )}
+                            <div className="border-t my-1" />
+                            <div className="px-2 py-1.5 flex items-center justify-between gap-2">
+                              <span className="text-xs text-muted-foreground">
+                                {assignedProjects.length} selected
+                              </span>
+                              <div className="flex gap-1">
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-6 text-xs"
+                                  onClick={() => {
+                                    setShowSelectedProjects(!showSelectedProjects);
+                                  }}
+                                >
+                                  {showSelectedProjects ? 'Show all' : 'Show selected'}
+                                </Button>
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-6 text-xs"
+                                  onClick={() => {
+                                    setAssignedProjects([]);
+                                  }}
+                                >
+                                  Clear selected
+                                </Button>
+                              </div>
+                            </div>
                           </>
                         )}
                       </DropdownMenuContent>
@@ -1563,66 +1545,60 @@ export default function VariableSets() {
                           )}
                         </div>
                       </DropdownMenuTrigger>
-                      <DropdownMenuContent className="w-[var(--radix-dropdown-menu-trigger-width)] max-h-[300px] overflow-y-auto">
-                        {workspaces.length === 0 ? (
-                          <div className="px-2 py-1.5 text-sm text-muted-foreground">No workspaces available</div>
-                        ) : (
+                      <DropdownMenuContent emptyMessage="No workspaces available" className="w-[var(--radix-dropdown-menu-trigger-width)] max-h-[300px] overflow-y-auto">
+                        {(showSelectedWorkspaces 
+                          ? workspaces.filter(w => assignedWorkspaces.includes(w.id))
+                          : workspaces
+                        ).map((workspace) => (
+                          <DropdownMenuCheckboxItem
+                            key={workspace.id}
+                            checked={assignedWorkspaces.includes(workspace.id)}
+                            onSelect={(e) => {
+                              e.preventDefault();
+                            }}
+                            onCheckedChange={(checked) => {
+                              if (checked) {
+                                setAssignedWorkspaces([...assignedWorkspaces, workspace.id]);
+                              } else {
+                                setAssignedWorkspaces(assignedWorkspaces.filter(id => id !== workspace.id));
+                              }
+                            }}
+                          >
+                            {workspace.name}
+                          </DropdownMenuCheckboxItem>
+                        ))}
+                        {assignedWorkspaces.length > 0 && (
                           <>
-                            {(showSelectedWorkspaces 
-                              ? workspaces.filter(w => assignedWorkspaces.includes(w.id))
-                              : workspaces
-                            ).map((workspace) => (
-                              <DropdownMenuCheckboxItem
-                                key={workspace.id}
-                                checked={assignedWorkspaces.includes(workspace.id)}
-                                onSelect={(e) => {
-                                  e.preventDefault();
-                                }}
-                                onCheckedChange={(checked) => {
-                                  if (checked) {
-                                    setAssignedWorkspaces([...assignedWorkspaces, workspace.id]);
-                                  } else {
-                                    setAssignedWorkspaces(assignedWorkspaces.filter(id => id !== workspace.id));
-                                  }
-                                }}
-                              >
-                                {workspace.name}
-                              </DropdownMenuCheckboxItem>
-                            ))}
-                            {assignedWorkspaces.length > 0 && (
-                              <>
-                                <div className="border-t my-1" />
-                                <div className="px-2 py-1.5 flex items-center justify-between gap-2">
-                                  <span className="text-xs text-muted-foreground">
-                                    {assignedWorkspaces.length} selected
-                                  </span>
-                                  <div className="flex gap-1">
-                                    <Button
-                                      type="button"
-                                      variant="ghost"
-                                      size="sm"
-                                      className="h-6 text-xs"
-                                      onClick={() => {
-                                        setShowSelectedWorkspaces(!showSelectedWorkspaces);
-                                      }}
-                                    >
-                                      {showSelectedWorkspaces ? 'Show all' : 'Show selected'}
-                                    </Button>
-                                    <Button
-                                      type="button"
-                                      variant="ghost"
-                                      size="sm"
-                                      className="h-6 text-xs"
-                                      onClick={() => {
-                                        setAssignedWorkspaces([]);
-                                      }}
-                                    >
-                                      Clear selected
-                                    </Button>
-                                  </div>
-                                </div>
-                              </>
-                            )}
+                            <div className="border-t my-1" />
+                            <div className="px-2 py-1.5 flex items-center justify-between gap-2">
+                              <span className="text-xs text-muted-foreground">
+                                {assignedWorkspaces.length} selected
+                              </span>
+                              <div className="flex gap-1">
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-6 text-xs"
+                                  onClick={() => {
+                                    setShowSelectedWorkspaces(!showSelectedWorkspaces);
+                                  }}
+                                >
+                                  {showSelectedWorkspaces ? 'Show all' : 'Show selected'}
+                                </Button>
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-6 text-xs"
+                                  onClick={() => {
+                                    setAssignedWorkspaces([]);
+                                  }}
+                                >
+                                  Clear selected
+                                </Button>
+                              </div>
+                            </div>
                           </>
                         )}
                       </DropdownMenuContent>

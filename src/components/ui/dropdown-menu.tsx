@@ -5,6 +5,8 @@ import * as DropdownMenuPrimitive from "@radix-ui/react-dropdown-menu"
 import { Check, ChevronRight, Circle } from "lucide-react"
 
 import { cn } from "@/lib/utils"
+import { isMenuEmpty, type MenuContentShape } from "@/components/ui/menu-empty.helpers"
+import { MenuEmptyState } from "@/components/ui/menu-empty"
 
 const DropdownMenu = DropdownMenuPrimitive.Root
 
@@ -42,8 +44,11 @@ DropdownMenuSubTrigger.displayName =
 
 const DropdownMenuSubContent = React.forwardRef<
   React.ElementRef<typeof DropdownMenuPrimitive.SubContent>,
-  React.ComponentPropsWithoutRef<typeof DropdownMenuPrimitive.SubContent>
->(({ className, ...props }, ref) => (
+  React.ComponentPropsWithoutRef<typeof DropdownMenuPrimitive.SubContent> & {
+    /** Shown when there is nothing to pick. Defaults to "No options available". */
+    emptyMessage?: React.ReactNode
+  }
+>(({ className, children, emptyMessage, ...props }, ref) => (
   <DropdownMenuPrimitive.SubContent
     ref={ref}
     className={cn(
@@ -51,15 +56,24 @@ const DropdownMenuSubContent = React.forwardRef<
       className
     )}
     {...props}
-  />
+  >
+    {isMenuEmpty(children, DROPDOWN_MENU_CONTENT_SHAPE) ? (
+      <MenuEmptyState>{emptyMessage}</MenuEmptyState>
+    ) : (
+      children
+    )}
+  </DropdownMenuPrimitive.SubContent>
 ))
 DropdownMenuSubContent.displayName =
   DropdownMenuPrimitive.SubContent.displayName
 
 const DropdownMenuContent = React.forwardRef<
   React.ElementRef<typeof DropdownMenuPrimitive.Content>,
-  React.ComponentPropsWithoutRef<typeof DropdownMenuPrimitive.Content>
->(({ className, sideOffset = 4, ...props }, ref) => (
+  React.ComponentPropsWithoutRef<typeof DropdownMenuPrimitive.Content> & {
+    /** Shown when there is nothing to pick. Defaults to "No options available". */
+    emptyMessage?: React.ReactNode
+  }
+>(({ className, children, sideOffset = 4, emptyMessage, ...props }, ref) => (
   <DropdownMenuPrimitive.Portal>
     <DropdownMenuPrimitive.Content
       ref={ref}
@@ -69,7 +83,13 @@ const DropdownMenuContent = React.forwardRef<
         className
       )}
       {...props}
-    />
+    >
+      {isMenuEmpty(children, DROPDOWN_MENU_CONTENT_SHAPE) ? (
+        <MenuEmptyState>{emptyMessage}</MenuEmptyState>
+      ) : (
+        children
+      )}
+    </DropdownMenuPrimitive.Content>
   </DropdownMenuPrimitive.Portal>
 ))
 DropdownMenuContent.displayName = DropdownMenuPrimitive.Content.displayName
@@ -180,6 +200,23 @@ const DropdownMenuShortcut = ({
   )
 }
 DropdownMenuShortcut.displayName = "DropdownMenuShortcut"
+
+// Declared after the parts it names; only read while rendering, which is well
+// after this module has finished evaluating.
+const DROPDOWN_MENU_CONTENT_SHAPE: MenuContentShape = {
+  items: [
+    DropdownMenuItem,
+    DropdownMenuPrimitive.Item,
+    DropdownMenuCheckboxItem,
+    DropdownMenuPrimitive.CheckboxItem,
+    DropdownMenuRadioItem,
+    DropdownMenuPrimitive.RadioItem,
+    DropdownMenuSub,
+    DropdownMenuSubTrigger,
+  ],
+  groups: [DropdownMenuGroup, DropdownMenuRadioGroup],
+  decorations: [DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuShortcut],
+}
 
 export {
   DropdownMenu,
