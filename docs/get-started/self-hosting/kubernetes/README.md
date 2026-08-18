@@ -28,7 +28,7 @@ The chart deploys the following resources.
 | API | Deployment | Go REST API (port 8022) |
 | Frontend | Deployment | React SPA served by nginx (port 80) |
 | Orchestrator | Deployment | Job scheduler (no external port) |
-| Terraform Runner | Deployment | Executes Terraform operations |
+| OpenTofu Runner | Deployment | Executes OpenTofu operations |
 | Ansible Runner | Deployment | Executes Ansible playbooks |
 | PostgreSQL | StatefulSet | Database |
 | Redis | Deployment | Job queue and pubsub |
@@ -418,7 +418,7 @@ customCA:
 In all cases the certificate is mounted at `/etc/ssl/certs/custom-ca.crt` using `subPath`, so the system certificate directory is not replaced.
 Go's `crypto/x509` package scans `/etc/ssl/certs/` on Linux automatically - no additional environment variables are required.
 
-The certificate is mounted into the API, Orchestrator, Terraform Runner, and Ansible Runner containers.
+The certificate is mounted into the API, Orchestrator, OpenTofu Runner, and Ansible Runner containers.
 
 ## SSO Configuration
 

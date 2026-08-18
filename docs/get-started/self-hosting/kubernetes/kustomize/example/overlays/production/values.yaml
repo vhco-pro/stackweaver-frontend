@@ -192,7 +192,7 @@ orchestrator:
   githubApp:
     id: ""
     name: ""
-# -- Terraform Runner --
+# -- OpenTofu Runner --
 runner:
   image:
     repository: ghcr.io/vhco-pro/stackweaver-opentofu-runner
