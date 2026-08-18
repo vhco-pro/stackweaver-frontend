@@ -28,6 +28,7 @@ import { WorkspaceTags } from '@/components/workspace/WorkspaceTags';
 import { WorkspaceNotifications } from '@/components/workspace/WorkspaceNotifications';
 import { WorkspaceChangeRequests } from '@/components/workspace/WorkspaceChangeRequests';
 import { WorkspaceRunTasks } from '@/components/workspace/WorkspaceRunTasks';
+import { ImportEnvDialog, type ImportedVariable, type ImportAction } from '@/components/variables/ImportEnvDialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { StatusBadge } from '@/components/runs/StatusBadge';
@@ -65,7 +66,8 @@ import {
   ChevronDown,
   Check,
   X,
-  Server
+  Server,
+  FileUp
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { getVcsProviderIcon, getVcsRepoUrl, getVcsCommitUrl } from '@/lib/vcs';
@@ -244,6 +246,7 @@ export default function WorkspaceDetail() {
     sensitive: false,
     encrypted: false, // Legacy field, kept for compatibility
   });
+  const [importEnvDialogOpen, setImportEnvDialogOpen] = useState(false);
   const [platformVariableOverrideWarningOpen, setPlatformVariableOverrideWarningOpen] = useState(false);
   const [pendingVariableCreate, setPendingVariableCreate] = useState<(() => void) | null>(null);
   const [platformVariablesSectionOpen, setPlatformVariablesSectionOpen] = useState(false);
@@ -612,6 +615,34 @@ export default function WorkspaceDetail() {
         console.error('Failed to save variable:', err);
         toast.error('Failed to save variable');
       });
+  };
+
+  // Writes one variable coming from a .env import. The dialog calls this per
+  // row and turns a rejection into a failed row, so one bad key does not abort
+  // the rest of the import.
+  const handleImportEnvVariable = async (variable: ImportedVariable, action: ImportAction) => {
+    if (!workspace) throw new Error('Workspace not loaded');
+
+    if (action === 'overwrite') {
+      const existing = variables.find((v) => v.key === variable.key);
+      if (existing) {
+        // Category is left alone on purpose: flipping an existing Terraform
+        // variable to an environment variable would silently change how the
+        // run consumes it, which is not what "replace the value" implies.
+        await variablesApi.update(workspace.id, existing.id, {
+          value: variable.value,
+          sensitive: variable.sensitive,
+        });
+        return;
+      }
+    }
+
+    await variablesApi.create(workspace.id, {
+      key: variable.key,
+      value: variable.value,
+      category: variable.category,
+      sensitive: variable.sensitive,
+    });
   };
 
   const handleDeleteResource = async () => {
@@ -1842,14 +1873,20 @@ export default function WorkspaceDetail() {
                 Terraform uses all Terraform and Environment variables for all plans and applies in this workspace. Workspace variables always override variables from variable sets that have the same type and the same key.
               </p>
             </div>
-            <Button onClick={() => {
-              setEditingVariable(null);
-              setVariableForm({ key: '', value: '', description: '', category: 'terraform', hcl: false, sensitive: false, encrypted: false });
-              setCreateVariableDialogOpen(true);
-            }}>
-              <Plus className="mr-2 h-4 w-4" />
-              Add variable
-            </Button>
+            <div className="flex items-center gap-2 shrink-0">
+              <Button variant="outline" onClick={() => { setImportEnvDialogOpen(true); }}>
+                <FileUp className="mr-2 h-4 w-4" />
+                Import .env
+              </Button>
+              <Button onClick={() => {
+                setEditingVariable(null);
+                setVariableForm({ key: '', value: '', description: '', category: 'terraform', hcl: false, sensitive: false, encrypted: false });
+                setCreateVariableDialogOpen(true);
+              }}>
+                <Plus className="mr-2 h-4 w-4" />
+                Add variable
+              </Button>
+            </div>
           </div>
 
           {/* Variable Sets Section */}
@@ -2238,6 +2275,17 @@ export default function WorkspaceDetail() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Bulk .env import - an extra entry point next to the single-variable form above */}
+      <ImportEnvDialog
+        open={importEnvDialogOpen}
+        onOpenChange={setImportEnvDialogOpen}
+        existingKeys={variables.map((v) => v.key)}
+        overrideWarningKeys={platformVariableKeys}
+        targetLabel="workspace"
+        onImportVariable={handleImportEnvVariable}
+        onImported={() => { void refetchData(); }}
+      />
 
       {/* Platform Variable Override Warning Dialog */}
       <Dialog open={platformVariableOverrideWarningOpen} onOpenChange={(open) => {

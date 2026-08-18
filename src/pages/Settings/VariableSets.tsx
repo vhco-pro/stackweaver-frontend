@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useParams, Link } from 'react-router-dom';
-import { Package, Plus, Trash2, Settings, Users, ChevronDown, ArrowLeft } from 'lucide-react';
+import { Package, Plus, Trash2, Settings, Users, ChevronDown, ArrowLeft, FileUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
@@ -55,6 +55,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
+import { ImportEnvDialog, type ImportedVariable, type ImportAction } from '@/components/variables/ImportEnvDialog';
 
 export default function VariableSets() {
   const { orgName } = useParams<{ orgName: string }>();
@@ -121,6 +122,10 @@ export default function VariableSets() {
     category: 'terraform',
     description: '',
   });
+
+  // Bulk .env import, offered next to the single-variable form in both dialogs.
+  const [importEnvCreateOpen, setImportEnvCreateOpen] = useState(false);
+  const [importEnvManageOpen, setImportEnvManageOpen] = useState(false);
 
   const [initialVariables, setInitialVariables] = useState<Array<{
     key: string;
@@ -402,6 +407,61 @@ export default function VariableSets() {
         ? String((err).message)
         : 'Failed to add variable';
       toast.error(errorMessage);
+    }
+  };
+
+  // The set does not exist yet while it is being created, so an imported
+  // variable is staged next to the manually added ones and written on save.
+  const handleStageImportedVariable = (variable: ImportedVariable) => {
+    setInitialVariables((prev) => [
+      ...prev,
+      {
+        key: variable.key,
+        value: variable.value,
+        sensitive: variable.sensitive,
+        encrypted: false,
+        category: variable.category,
+        description: '',
+      },
+    ]);
+    return Promise.resolve();
+  };
+
+  // Writes one imported variable to the set being managed. The dialog turns a
+  // rejection into a failed row so the rest of the import still lands.
+  const handleImportVariable = async (variable: ImportedVariable, action: ImportAction) => {
+    if (!orgName || !selectedVariableSet) throw new Error('Variable set not loaded');
+
+    if (action === 'overwrite') {
+      const existing = selectedVariableSet.variables?.find((v) => v.key === variable.key);
+      if (existing) {
+        // Category is left alone on purpose: flipping an existing Terraform
+        // variable to an environment variable would silently change how the
+        // run consumes it, which is not what "replace the value" implies.
+        await variableSetsApi.updateVariable(orgName, selectedVariableSet.id, existing.id, {
+          value: variable.value,
+          sensitive: variable.sensitive,
+        });
+        return;
+      }
+    }
+
+    await variableSetsApi.createVariable(orgName, selectedVariableSet.id, {
+      key: variable.key,
+      value: variable.value,
+      category: variable.category,
+      sensitive: variable.sensitive,
+    });
+  };
+
+  const handleImportedVariables = async () => {
+    if (!orgName || !selectedVariableSet) return;
+    try {
+      const fullSet = await variableSetsApi.get(orgName, selectedVariableSet.id);
+      setSelectedVariableSet(fullSet);
+      void refetchVariableSets();
+    } catch (err) {
+      console.error('Failed to reload variable set after import:', err);
     }
   };
 
@@ -930,6 +990,16 @@ export default function VariableSets() {
                       {initialVariables.length} variable{initialVariables.length !== 1 ? 's' : ''} added
                     </p>
                   </div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => { setImportEnvCreateOpen(true); }}
+                    disabled={creating}
+                  >
+                    <FileUp className="mr-2 h-4 w-4" />
+                    Import .env
+                  </Button>
                 </div>
 
                 {initialVariables.length > 0 && (
@@ -1150,11 +1220,22 @@ export default function VariableSets() {
             </TabsContent>
 
             <TabsContent value="variables" className="space-y-4 py-4">
-              <div>
-                <h3 className="font-semibold">Variables</h3>
-                <p className="text-sm text-muted-foreground">
-                  {selectedVariableSet?.variables?.length || 0} variable{(selectedVariableSet?.variables?.length || 0) !== 1 ? 's' : ''} in this set
-                </p>
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="font-semibold">Variables</h3>
+                  <p className="text-sm text-muted-foreground">
+                    {selectedVariableSet?.variables?.length || 0} variable{(selectedVariableSet?.variables?.length || 0) !== 1 ? 's' : ''} in this set
+                  </p>
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => { setImportEnvManageOpen(true); }}
+                >
+                  <FileUp className="mr-2 h-4 w-4" />
+                  Import .env
+                </Button>
               </div>
 
               {selectedVariableSet?.variables && selectedVariableSet.variables.length > 0 ? (
@@ -1615,6 +1696,26 @@ export default function VariableSets() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Bulk .env import for the set being created - rows are staged, not written yet */}
+      <ImportEnvDialog
+        open={importEnvCreateOpen}
+        onOpenChange={setImportEnvCreateOpen}
+        existingKeys={initialVariables.map((v) => v.key)}
+        targetLabel="variable set"
+        allowOverwrite={false}
+        onImportVariable={handleStageImportedVariable}
+      />
+
+      {/* Bulk .env import for an existing set */}
+      <ImportEnvDialog
+        open={importEnvManageOpen}
+        onOpenChange={setImportEnvManageOpen}
+        existingKeys={selectedVariableSet?.variables?.map((v) => v.key) ?? []}
+        targetLabel="variable set"
+        onImportVariable={handleImportVariable}
+        onImported={() => { void handleImportedVariables(); }}
+      />
     </div>
   );
 }
