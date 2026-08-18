@@ -1007,7 +1007,7 @@ export default function WorkspaceDetail() {
             </div>
             {workspace.terraform_version && (
               <div className="flex items-center gap-1.5 text-muted-foreground">
-                <span>Terraform {workspace.terraform_version}</span>
+                <span>OpenTofu {workspace.terraform_version}</span>
               </div>
             )}
             <div className="flex items-center gap-1.5 text-muted-foreground">

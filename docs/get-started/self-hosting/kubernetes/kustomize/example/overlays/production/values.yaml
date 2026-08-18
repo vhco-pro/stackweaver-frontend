@@ -195,7 +195,7 @@ orchestrator:
 # -- Terraform Runner --
 runner:
   image:
-    repository: ghcr.io/vhco-pro/stackweaver-runner
+    repository: ghcr.io/vhco-pro/stackweaver-opentofu-runner
     tag: latest
     pullPolicy: IfNotPresent
   replicas: 1

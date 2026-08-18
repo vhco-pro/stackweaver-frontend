@@ -11,7 +11,7 @@ export function Footer() {
           <div>
             <h3 className="text-lg font-semibold text-slate-950 dark:text-white mb-4">About</h3>
             <p className="text-slate-800 dark:text-gray-400 text-sm">
-              Stackweaver is a DevOps automation platform for managing infrastructure and configuration with Terraform, OpenTofu, and Ansible.
+              Stackweaver is a DevOps automation platform for managing infrastructure and configuration with OpenTofu and Ansible.
             </p>
           </div>
           

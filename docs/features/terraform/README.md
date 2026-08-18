@@ -11,7 +11,7 @@ StackWeaver's Terraform integration provides workspace management, run execution
 
 ### [Workspace Editing](./workspace-editing.md)
 
-Change workspace settings after creation without deleting and recreating workspaces. Covers safe changes (name, working directory, Terraform version, timeouts) and state-affecting changes (VCS connection, repository, branch) that require extra confirmation.
+Change workspace settings after creation without deleting and recreating workspaces. Covers safe changes (name, working directory, OpenTofu version, timeouts) and state-affecting changes (VCS connection, repository, branch) that require extra confirmation.
 
 ### [VCS Path Filtering](./vcs-path-filtering.md)
 

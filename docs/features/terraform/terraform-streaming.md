@@ -1,23 +1,23 @@
 ---
-description: "Real-time Terraform plan and apply output streaming with persistent log storage"
+description: "Real-time OpenTofu plan and apply output streaming with persistent log storage"
 covers:
   - "backend/cmd/runner/**"
   - "core/queue/**"
 ---
 
-# Terraform Output Streaming
+# Run Output Streaming
 
-StackWeaver provides real-time, live streaming of Terraform output during plan and apply operations. Watch your infrastructure changes happen in real time without waiting for the entire operation to complete.
+StackWeaver provides real-time, live streaming of OpenTofu output during plan and apply operations. Watch your infrastructure changes happen in real time without waiting for the entire operation to complete.
 
 ## Overview
 
-Traditional Terraform execution shows output only after a command completes. StackWeaver streams output line-by-line as Terraform executes, giving you immediate visibility into what's happening during long-running operations.
+Running the CLI directly shows output only after a command completes. StackWeaver streams output line-by-line as OpenTofu executes, giving you immediate visibility into what's happening during long-running operations.
 
 ## How It Works
 
-When you start a Terraform run (plan or apply), StackWeaver:
+When you start a run (plan or apply), StackWeaver:
 
-1. **Streams Output in Real Time**: Each line of Terraform output appears in the UI as soon as Terraform produces it
+1. **Streams Output in Real Time**: Each line of OpenTofu output appears in the UI as soon as OpenTofu produces it
 2. **Captures All Output**: Both stdout and stderr are captured and streamed to your browser
 3. **Preserves Complete Logs**: All output is saved for later review, even after the run completes
 

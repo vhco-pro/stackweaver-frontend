@@ -1,5 +1,5 @@
 ---
-description: "How to cancel queued, planning, or applying Terraform runs and what happens to partial infrastructure changes"
+description: "How to cancel queued, planning, or applying runs and what happens to partial infrastructure changes"
 covers:
   - "backend/cmd/runner/**"
   - "core/queue/**"
@@ -15,8 +15,8 @@ You can cancel runs in the following states:
 
 - **Queued**: Run hasn't started yet
 - **Pending**: Run is waiting to start
-- **Planning**: Terraform is creating the execution plan
-- **Applying**: Terraform is making infrastructure changes
+- **Planning**: OpenTofu is creating the execution plan
+- **Applying**: OpenTofu is making infrastructure changes
 
 Once a run completes (succeeds, fails, or is cancelled), it can no longer be cancelled.
 

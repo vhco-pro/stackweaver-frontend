@@ -205,7 +205,7 @@ flowchart TB
   - **API Keys**: API authentication tokens
   - **TFE Tokens**: Terraform Enterprise-compatible API tokens
   - **Azure OIDC Configurations**: Workload identity federation
-  - **Terraform Versions**: Terraform version catalog
+  - **OpenTofu Versions**: OpenTofu version catalog
   - **Runners**: Runner agent registration and status
   - **GPG Keys**: Provider signing keys
 - **Audit Logs**: Activity audit trail

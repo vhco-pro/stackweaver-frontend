@@ -134,7 +134,9 @@ Existing data written before encryption was enabled stays readable: state files 
 | `STACKWEAVER_BASE_URL` | Base URL for API-generated links | (derived) |
 | `STACKWEAVER_WEBHOOK_BASE_URL` | Webhook callback base URL | (derived) |
 | `ANSIBLE_SCHEDULER_ENABLED` | Enable Ansible job scheduler | `true` |
-| `TERRAFORM_DRIFT_DETECTION_ENABLED` | Enable Terraform drift detection | `true` |
+| `TERRAFORM_DRIFT_DETECTION_ENABLED` | Enable drift detection | `true` |
+| `TOFU_VERSION_INDEX_URL` | URL of the OpenTofu version index used to seed the version catalogue at startup. See [Using an internal OpenTofu mirror](#using-an-internal-opentofu-mirror). | `https://get.opentofu.org/tofu/api.json` |
+| `TOFU_RELEASES_URL` | Base URL recorded as the download URL on seeded versions | `https://github.com/opentofu/opentofu/releases/download` |
 | `RUNNER_MONITOR_ENABLED` | Enable runner health monitoring | `true` |
 | `STACKWEAVER_NOTIFICATIONS_ALLOW_PRIVATE` | Allow workspace notification webhooks to deliver to internal/private/loopback addresses. Off by default, so notification delivery cannot reach the cloud metadata endpoint or internal services (SSRF guard). Set to `true` only if your notification collectors run on an internal network. Applies to both the API (test deliveries) and the orchestrator (run-event deliveries). | `false` |
 | `STACKWEAVER_RUN_TASKS_ALLOW_PRIVATE` | The run-task twin of the flag above: allow run-task webhooks (and the create-time URL verification) to reach internal/private/loopback addresses. Kept separate from the notifications flag so opening one surface does not silently open the other. Applies to the API (verification handshake) and the orchestrator (stage webhook delivery). | `false` |
@@ -185,9 +187,9 @@ The orchestrator is a background service that assigns pending runs and jobs to r
 
 ---
 
-## Terraform Runner
+## OpenTofu Runner
 
-The runner picks jobs from the Redis queue and executes Terraform plan/apply/destroy operations.
+The runner picks jobs from the Redis queue and executes OpenTofu plan/apply/destroy operations.
 
 | Variable | Description | Default |
 |---|---|---|
@@ -207,9 +209,34 @@ The runner picks jobs from the Redis queue and executes Terraform plan/apply/des
 | `STORAGE_ACCESS_KEY` | Access key | `GK000000000000000000000000` |
 | `STORAGE_SECRET_KEY` | Secret key | (auto-generated) |
 | `STORAGE_USE_SSL` | Use HTTPS | `false` |
-| `STORAGE_BUCKET` | Bucket for Terraform configs and registry | `stackweaver` |
+| `STORAGE_BUCKET` | Bucket for OpenTofu configs and registry | `stackweaver` |
 | `ENCRYPTION_KEY` | 32-byte hex encryption key (**required**; `openssl rand -hex 32`) | (required) |
 | `OIDC_ISSUER_URL` | OIDC issuer URL for workload identity | Falls back to `API_URL` |
+| `TOFU_RELEASES_URL` | Base URL for OpenTofu release artifacts | `https://github.com/opentofu/opentofu/releases/download` |
+| `TOFU_VERSION_INDEX_URL` | URL of the OpenTofu version index | `https://get.opentofu.org/tofu/api.json` |
+
+### Using an internal OpenTofu mirror
+
+Runs download the OpenTofu version pinned on the workspace the first time they need it, verifying
+the archive against the checksums published alongside the release. The runner image already bundles
+one version, so an install that only ever uses that version needs no outbound access at all.
+
+Air-gapped or egress-restricted installs can point both endpoints at an internal mirror by setting
+`TOFU_RELEASES_URL` and `TOFU_VERSION_INDEX_URL` on the API, orchestrator and runner (the Helm chart
+exposes these as `tofu.releasesUrl` and `tofu.versionIndexUrl`). Set both: the first serves the
+binaries and the second populates the version catalogue, so overriding only one still leaves the
+other reaching for the internet.
+
+Your mirror must reproduce the upstream layout exactly, because the runner builds these paths itself:
+
+```
+<TOFU_RELEASES_URL>/v<version>/tofu_<version>_linux_<arch>.zip
+<TOFU_RELEASES_URL>/v<version>/tofu_<version>_SHA256SUMS
+```
+
+Checksum verification runs against your mirror's own `SHA256SUMS` file and cannot be turned off, so
+the mirror must serve that file alongside the archives. A malformed URL in either variable is logged
+at startup and ignored in favour of the upstream default rather than failing the service.
 
 ---
 

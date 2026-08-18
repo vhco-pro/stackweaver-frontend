@@ -20,7 +20,7 @@ These changes don't impact existing infrastructure state:
 - **Name**: Workspace name (must be unique within the project)
 - **Description**: Workspace description
 - **Working Directory**: Path within the repository where Terraform files are located
-- **Terraform Version**: Which Terraform version to use for runs
+- **OpenTofu Version**: Which OpenTofu version to use for runs
 - **Auto Queue Runs**: Automatically trigger runs when code is pushed to the repository
 - **Auto Apply**: Automatically apply plans that complete successfully
 - **Execution Mode**: Choose between `remote` (platform-managed runners), `local`, or `agent` modes
@@ -53,7 +53,7 @@ The workspace will use the new settings for all future runs.
 
 Common scenarios for editing workspaces:
 
-- **Updating Terraform version**: Upgrade to a newer Terraform version for new features or bug fixes
+- **Updating OpenTofu version**: Upgrade to a newer OpenTofu version for new features or bug fixes
 - **Changing working directory**: Reorganize your repository structure without recreating workspaces
 - **Adjusting automation**: Enable or disable auto-apply or auto-queue based on your workflow needs
 - **Setting timeouts**: Configure timeouts for long-running applies to prevent jobs from getting stuck

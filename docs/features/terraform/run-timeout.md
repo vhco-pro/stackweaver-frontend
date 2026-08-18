@@ -1,5 +1,5 @@
 ---
-description: "Configurable apply timeout that auto-cancels long-running Terraform operations"
+description: "Configurable apply timeout that auto-cancels long-running OpenTofu operations"
 covers:
   - "backend/cmd/runner/**"
 ---

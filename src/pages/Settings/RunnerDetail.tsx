@@ -265,10 +265,10 @@ export default function RunnerDetail() {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            {runner.terraform_version && (
+            {runner.tofu_version && (
               <div className="flex justify-between">
-                <span className="text-muted-foreground">Terraform (pre-installed)</span>
-                <span>{runner.terraform_version}</span>
+                <span className="text-muted-foreground">OpenTofu (pre-installed)</span>
+                <span>{runner.tofu_version}</span>
               </div>
             )}
             {runner.ansible_version && (
