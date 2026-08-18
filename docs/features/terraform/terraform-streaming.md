@@ -1,5 +1,5 @@
 ---
-description: "Real-time Terraform plan and apply output streaming via SSE with persistent log storage"
+description: "Real-time Terraform plan and apply output streaming with persistent log storage"
 covers:
   - "backend/cmd/runner/**"
   - "core/queue/**"
@@ -63,15 +63,15 @@ Streaming output is **automatic** - no configuration needed. When viewing a run 
 
 All streamed output is saved permanently:
 
-- **During Execution**: Output streams live via Server-Sent Events (SSE)
+- **During Execution**: Output is streamed incrementally to the run detail page, which fetches the bytes it has not seen yet every couple of seconds
 - **After Completion**: Complete logs are stored in object storage for long-term access
 - **Review Later**: You can view the complete output history for any run, even days or weeks later
 
 ## Technical Details
 
-StackWeaver uses Server-Sent Events (SSE) to push output updates to your browser in real time. The backend captures Terraform's stdout and stderr streams and immediately forwards each line to connected clients.
+The runner captures Terraform's stdout and stderr line by line and appends each line to a short-lived log buffer as it is produced. The run detail page polls the run-log endpoint every two seconds and requests only the bytes it has not seen yet, so output appears incrementally while the run is still executing.
 
-This means you get output as fast as Terraform produces it, with minimal latency between Terraform execution and what you see in the UI.
+This means output appears within a couple of seconds of Terraform producing it, rather than only after the command finishes.
 
 ## Related Documentation
 

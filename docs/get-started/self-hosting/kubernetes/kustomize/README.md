@@ -37,7 +37,7 @@ Open `overlays/production/values.yaml` and replace the example host names and TL
 
 For persistent storage, `overlays/production/pv-pvc.yaml` contains an Azure Blob CSI example.
 If your cluster uses a different storage provider (AWS EFS, an NFS server, or a dynamic provisioner), replace the `csi` block with the appropriate driver configuration.
-The PVC names (`runner-workspaces-pvc` and `zitadel-pat-pvc`) must stay the same because `values.yaml` references them by name.
+The PVC name `runner-workspaces-pvc` must match the value you set for `runnerWorkspaces.existingClaim` in `values.yaml`.
 
 ## Secrets
 
@@ -76,7 +76,7 @@ spec:
 ```
 
 Argo CD requires Helm chart expansion to be explicitly enabled.
-Add `--enable-helm` to the Kustomize build options in your Argo CD config, or add the following annotation to the Application:
+Add `--enable-helm` to the Kustomize build options in your Argo CD config, or set the following field on the Application's source:
 
 ```yaml
     kustomize:
@@ -110,4 +110,4 @@ No additional configuration is required.
 
 The StackWeaver images are hosted on GHCR and require an image pull secret.
 See [Kubernetes Pull Secret for GHCR](../kubernetes-pull-secret-ghcr.md) for instructions on creating the secret.
-The example `values.yaml` already references it under `global.imagePullSecrets`.
+Once created, add its name to `global.imagePullSecrets` in the example `values.yaml`, which ships as an empty list.
