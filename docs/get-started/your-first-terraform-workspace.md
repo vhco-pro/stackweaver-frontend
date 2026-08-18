@@ -78,7 +78,7 @@ If your Terraform code needs variables, you'll need to set them up.
 
 1. Open your workspace
 2. Go to the "Variables" tab
-3. Add any required variables
+3. Add any required variables, or use "Import .env" to bring in a whole `.env` file at once
 4. Mark sensitive variables as such (they'll be encrypted)
 
 ## Step 6: Run Your First Plan

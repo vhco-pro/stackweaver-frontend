@@ -3,6 +3,8 @@ description: "Guide for setting up Terraform variables across workspaces, variab
 covers:
   - "core/services/variable/**"
   - "backend/internal/api/v2/handlers/variable*"
+  - "frontend/src/components/variables/**"
+  - "frontend/src/lib/dotenv.ts"
 ---
 
 # Managing Workspace Variables
@@ -51,6 +53,16 @@ To add variables directly to a workspace, open your workspace and navigate to th
 > Variable keys should match what your Terraform code expects. Check your `.tf` files for variable declarations like `variable "instance_type" {}`.
 
 Once you've filled in the details, save the variable and it will be available for your next Terraform run.
+
+## Importing Variables from a .env File
+
+When you already have the values in a `.env` file, you don't have to retype them one key at a time. The "Import .env" button next to "Add variable" opens a bulk import that accepts a dropped or selected file as well as pasted text. It sits alongside the regular form rather than replacing it, so single variables are still added exactly as before. The same button is available on variable sets, both while you are creating a set and when you manage an existing one.
+
+The parser understands the usual `.env` conventions: comments, blank lines, an optional `export` prefix, single-quoted, double-quoted and backtick-quoted values, values that span several lines (such as a PEM key), and trailing comments after an unquoted value. Escape sequences like `\n` are expanded inside double quotes only, matching the behaviour of the common dotenv libraries. References to other variables such as `${DATABASE_HOST}` are stored exactly as written rather than expanded, because StackWeaver is not a shell and the value would otherwise change meaning. Lines that cannot be read as an assignment are listed with their line number instead of being imported silently, and when a key is assigned more than once the last value in the file wins.
+
+Nothing is written until you have reviewed the preview. Every key is listed with its value and can be renamed, edited or left out before the import runs, and a single "Import as" choice decides whether the whole batch becomes environment variables (the default, since that is what a `.env` file usually holds) or Terraform variables. Keys that look like they hold secrets, such as anything containing `PASSWORD`, `SECRET`, `TOKEN` or `KEY`, are marked sensitive automatically and their values are masked in the preview. That guess is a convenience and not a guarantee, so check the column before importing, and use "Mark all sensitive" when the whole file is secret material.
+
+Keys that already exist in the workspace or variable set are flagged as conflicts, and you choose whether to keep the existing value or replace it with the imported one. Replacing updates the value and its sensitive flag but deliberately leaves the category alone, so an existing Terraform variable is never silently turned into an environment variable. Variables are written one at a time, so a rejected key does not take the rest of the batch with it: the summary at the end reports exactly which keys were created, replaced, skipped or failed, and why. Since a variable value cannot be empty, a line such as `FEATURE_FLAG=` is shown as needing a value, and you can either fill it in from the preview or leave it out.
 
 ## Working with Variable Sets
 
