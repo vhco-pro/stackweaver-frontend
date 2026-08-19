@@ -56,7 +56,7 @@ export default function Usage() {
 
   const runs = data?.runs;
   const jobs = data?.ansible_jobs;
-  const activeNow = (runs?.running ?? 0) + (jobs?.running ?? 0);
+  const activeNow = data?.running_now.total ?? 0;
 
   const runSpark = data?.daily.map(point => point.runs_succeeded + point.runs_failed + point.runs_other) ?? [];
   const jobSpark = data?.daily.map(point => point.jobs_succeeded + point.jobs_failed + point.jobs_other) ?? [];
@@ -161,14 +161,15 @@ export default function Usage() {
               sparkColor={palette.terraform}
               loading={isLoading}
             />
-            {/* Every tile on this row is window-scoped, this one included: it counts executions
-                *started in the period* that are still running. Labelling it "Running now" implied a
-                live count of the whole org, which reads as 0 on a 7-day range while a run started
-                three weeks ago is still applying. */}
+            {/* The one tile on this row that is NOT window-scoped, and deliberately so. It used to
+                count executions *started in the period* that were still running, which reported 0
+                on a 7-day range while a run started three weeks ago was still applying - the single
+                most interesting thing in the org, hidden by the range picker. The server now answers
+                it live, so the label can mean what it says. */}
             <KpiTile
-              label="Still running"
+              label="Running now"
               value={String(activeNow)}
-              sublabel={activeNow === 1 ? 'execution from this period' : 'executions from this period'}
+              sublabel={activeNow === 1 ? 'execution in flight' : 'executions in flight'}
               spark={activitySpark}
               sparkColor={palette.running}
               loading={isLoading}

@@ -3067,6 +3067,11 @@ export interface Analytics {
     inventories: number;
   };
   recent_failures: AnalyticsFailure[];
+  /**
+   * Executions running at this instant, across the whole organization and unbounded by the
+   * selected window - the one live figure on an otherwise historical page.
+   */
+  running_now: { runs: number; jobs: number; total: number };
 }
 
 /** One run or job in the drill-down behind a chart bar. */
