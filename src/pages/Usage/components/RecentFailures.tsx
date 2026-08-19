@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom';
 import { XCircle } from 'lucide-react';
 import type { AnalyticsFailure } from '@/api/client';
 import { useChartPalette } from '../chartTheme';
-import { EmptyState } from './Card';
+import { EmptyState } from '@/components/ui/analytics-card';
 
 /**
  * The one list on this page that exists to be acted on, so it leads the Overview tab: what broke,

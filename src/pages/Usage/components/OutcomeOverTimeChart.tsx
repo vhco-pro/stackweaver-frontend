@@ -9,7 +9,7 @@ import {
   type ChartTooltipRow,
 } from '@/components/ui/chart';
 import { formatDay, useChartPalette, type ChartPalette } from '../chartTheme';
-import { EmptyState } from './Card';
+import { EmptyState } from '@/components/ui/analytics-card';
 import type { DaySelection } from './DayExecutionsSheet';
 
 export type OutcomeSource = 'combined' | 'terraform' | 'ansible';

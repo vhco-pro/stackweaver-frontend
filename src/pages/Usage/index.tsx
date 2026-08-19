@@ -19,7 +19,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { cn } from '@/lib/utils';
 import { TIME_RANGES, useAnalytics, type TimeRange } from './useAnalytics';
 import { formatDuration, formatRate, useChartPalette } from './chartTheme';
-import { AnalyticsCard, ChartSkeleton, ErrorState } from './components/Card';
+import { AnalyticsCard, ChartSkeleton, ErrorState } from '@/components/ui/analytics-card';
 import { KpiTile } from './components/KpiTile';
 import { percentDelta, pointDelta } from './delta';
 import { ChartLegend, OutcomeOverTimeChart } from './components/OutcomeOverTimeChart';

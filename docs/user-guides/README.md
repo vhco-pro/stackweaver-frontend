@@ -40,6 +40,7 @@ Practical, step-by-step guides for using StackWeaver. These guides walk you thro
 
 ## Monitoring and Reporting
 
+- **[Reading the Dashboard](./reading-the-dashboard.md)** - Get the most out of the landing page: what needs your attention, what is running right now, whether delivery is healthy, and how the focus organization works
 - **[Usage & Analytics](./usage-analytics.md)** - Read an organization's delivery health: success rates, run and job durations, busiest workspaces and templates, recent failures, and audit activity
 
 ## Organization and Access

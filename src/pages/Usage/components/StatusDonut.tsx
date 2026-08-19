@@ -5,7 +5,7 @@ import { CheckCircle2, CircleDashed, Clock, Loader2, XCircle } from 'lucide-reac
 import type { AnalyticsOutcome } from '@/api/client';
 import { ChartContainer, ChartTooltipSurface, type ChartTooltipProps } from '@/components/ui/chart';
 import { formatRate, useChartPalette } from '../chartTheme';
-import { EmptyState } from './Card';
+import { EmptyState } from '@/components/ui/analytics-card';
 
 interface Segment {
   key: string;

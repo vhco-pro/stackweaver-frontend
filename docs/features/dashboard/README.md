@@ -1,104 +1,77 @@
 ---
-description: "Dashboard page documentation covering stats endpoint, organization cards, and getting-started guide"
+description: "The cross-organization dashboard: why it spans tenants, what the attention list and live operations show, and the two endpoints behind them"
 covers:
   - "backend/internal/api/v2/handlers/dashboard*"
-  - "frontend/src/pages/Dashboard.tsx"
+  - "core/repository/dashboard*"
+  - "frontend/src/pages/Dashboard/**"
 ---
 
-# Dashboard Documentation
+# Dashboard
 
-The user dashboard (`/dashboard`) is the main landing page for authenticated users in StackWeaver. It provides an overview of the user's infrastructure, operations, and quick access to common tasks.
+The dashboard at `/dashboard` is the landing page for every authenticated user, and the only screen in the product that spans organizations. Its job is to tell you *which* organization needs you, and hand you off to it.
 
-## Overview
+## Why it is not scoped to an organization
 
-The dashboard serves as a central hub where users can:
-- View aggregated metrics across all their organizations
-- Monitor active and completed operations (both Terraform and Ansible)
-- Access quick actions for common tasks
-- See recent activity across all organizations
-- Get guided setup suggestions for new users
+StackWeaver's routing already draws the line: `/app/:orgName/*` is organization space, and everything outside it — the organization list, the activity log, settings, this page — is user space. The dashboard sits in user space and deliberately has no organization selector.
+
+That is a design constraint, not an omission. An organization-scoped dashboard can only ever be a lesser copy of that organization's own pages: its live work is the workspace list, its trends are the Usage page, and both are one click away and better at the job. Spanning tenants is the only thing this page can do that they cannot, and it is exactly what makes the page worth opening — you cannot be told that an organization needs you if you have to name the organization first.
+
+Two consequences follow, and both are deliberate:
+
+- **There is no chart.** A day-by-day breakdown is worth reading when you can drill into a day, next to the status donut, duration percentiles and busiest-workspace tables that explain it. All of that is [Usage & Analytics](../../user-guides/usage-analytics.md), which the organization cards link to.
+- **There is no shortcut row.** A cross-organization "Workspaces" button has no organization to point at. Choosing the organization you mean is the first real step, so the organization cards *are* the navigation.
+
+## What the page shows
+
+**Needs your attention** is the page. It is a list, not a row of totals: every row names one organization, one problem, and a count, and links into that organization. Rows only exist when their count is non-zero, so the length of the list is the size of the problem — something a grid of mostly-zero cards would destroy.
+
+The list covers both halves of the product. Terraform and Ansible kinds are interleaved rather than grouped, so the ranking says how urgent something is and not which platform it came from. In order:
+
+| Rank | Kind | Platform | Means |
+|---|---|---|---|
+| 1 | Runs waiting to apply | Terraform | A plan finished and is holding for someone to confirm |
+| 2 | Workflow approvals waiting | Ansible | A workflow approval node is holding for someone to approve or deny |
+| 3 | Workspaces left broken | Terraform | Most recent run errored, nothing has run since |
+| 4 | Job templates left failing | Ansible | Most recent job errored, nothing has run since |
+| 5 | Inventories failed to sync | Ansible | The hosts a job would target are stale or wrong |
+| 6 | Runners offline | Both | Capacity to execute anything is degraded |
+| 7 | Terraform runs failed | Terraform | Failure events inside the recent-failure window |
+| 8 | Ansible jobs failed | Ansible | The same, for the other platform |
+| 9 | Open change requests | Terraform | Notes the team filed against workspaces |
+
+The ranking is by who is blocked rather than by how alarming the wording is: an execution waiting on a confirm is blocking a person right now, automation broken for a month is not blocking anyone but will not fix itself, and a change request is a note about future work. Rows 1–2 and 3–4 are deliberate pairs — each platform's confirm step, and each platform's "left broken" — because the concepts exist on both sides under different names.
+
+Failures are counted per platform rather than as one "executions" total: which half of the estate is unhealthy is the actionable part, and the two rows lead to different pages. Ad-hoc Ansible jobs are excluded from "job templates left failing" (a one-off that failed is an event in the failure count, not standing automation left broken) but are included in the failure count itself.
+
+Runners and change requests are admin-only. The API resolves that per organization and omits the field entirely where the reader lacks the permission, so a member sees no row rather than a zero — a zero would read as "nothing wrong" to someone who was never allowed to know.
+
+**Live operations** lists the Terraform runs and Ansible jobs executing right now across every organization, each row naming its organization, how long it has been going and its status. Nothing else in the product shows this: the Usage page reports a *count* of executions from a selected window that are still running, and the workspace and job lists are per organization. Runs parked at the confirm step are deliberately absent — they are waiting on a person, which the attention list already reports, so the same run is never counted twice.
+
+**Your organizations** gives each organization a card with its projects, workspaces and playbooks, plus one line of state: what needs attention, what is running, or what succeeded this month. Cards with something waiting are outlined. **Recent activity** is the reader's own last few actions, across organizations.
+
+Until an organization, a project and a workspace all exist, a three-step **Getting started** checklist replaces the attention and live-operations sections: a fresh install has no operations to report, and an empty checklist is more useful than two empty sections.
+
+Every section folds away from its heading, and the choice is remembered per section in local storage. A collapsed section is unmounted rather than hidden, so one that owns a polling query stops polling; that only holds because each section's query lives in its body component rather than in the component that renders the collapsible shell.
+
+## The API
+
+Two endpoints back the page, both cross-organization and neither taking an organization parameter. Both are classified `agnostic()` in the org-resolution wall (`backend/internal/api/middleware/org_wall_registry.go`), because there is no single target organization to resolve.
+
+`GET /api/v2/dashboard/stats` returns the roll-up: totals across the caller's memberships, plus one entry per organization carrying `projects`, `terraform_workspaces`, `ansible_playbooks`, `active_terraform_runs`, `pending_terraform_runs`, `awaiting_approval`, `pending_workflow_approvals`, `errored_workspaces`, `errored_job_templates`, `failed_inventory_syncs`, `recent_run_failures`, `recent_job_failures`, `active_ansible_jobs` and the two `completed_*_this_month` counts. `open_change_requests`, `runners_total` and `runners_offline` appear only for organizations where the caller may see them. The top level repeats the same fields summed, and adds `recent_failure_window_days` so the UI can name the window it is reporting rather than hard-coding it.
+
+`GET /api/v2/dashboard/operations` returns the in-flight executions, bounded, each carrying its organization, name, status and start time, with a `truncated` flag so the UI can say when there is more.
+
+Within an organization, every count is organization-wide. Runs and jobs used to be filtered to the requesting user while projects, workspaces and playbooks were not, so "active operations" meant *your* operations sitting beside a workspace count that meant everyone's. One organization now means one population: what the team has, not what you personally started. The "this month" counts run from the first instant of the current month in UTC.
 
 ## Implementation
 
-**Backend Endpoint**: `GET /api/v2/dashboard/stats`  
-**Handler Implementation**: See `backend/internal/api/v2/handlers/dashboard.go`  
-**Route Registration**: See `backend/internal/api/v2/routes/routes.go:1064-1087`  
-**Frontend Component**: See `frontend/src/pages/Dashboard.tsx`  
-**Frontend API Client**: See `frontend/src/api/client.ts` (dashboardApi)
+Both endpoints read through `core/repository/dashboard.go`, a purpose-built cross-organization read model rather than a dozen more methods spread across the run, job, workspace, project, playbook, change-request and runner repositories. The dashboard asks every question for every organization at once, which per-organization repositories can only answer with N queries per metric — the shape AUD-063 already had to rescue this endpoint from once. Every method takes the whole set of organization ids and returns one row per organization from a single grouped query, so adding an organization to a user's memberships costs nothing.
 
-### Features
+The three "left broken" counts are top-1-per-group problems — latest run per workspace, latest job per template, latest sync per inventory — answered with Postgres `DISTINCT ON` rather than correlated subqueries. Those, and the four-table join that finds a workflow approval waiting on a person, are covered by `core/repository/dashboard_test.go` under the `integration` tag: inventory syncs and workflow approvals have no rows on a typical dev stack, so seeding a scratch organization is the only way to know that SQL is right rather than merely runnable.
 
-1. **Summary Cards**: Display total projects, Terraform workspaces, active operations (Terraform + Ansible), and completed operations this month
-2. **Organization Cards**: Show statistics for each organization the user belongs to, including:
-   - Projects count
-   - Terraform workspaces count
-   - Active operations (Terraform runs + Ansible jobs)
-   - Completed operations this month (Terraform + Ansible)
-3. **Quick Actions**: Shortcuts to create organizations, view organizations, and manage settings
-4. **Recent Activity**: Timeline of recent actions across all organizations
-5. **Dynamic Getting Started**: Step-by-step guide that automatically hides suggestions when resources are created:
-   - "Create Organization" hides when user has organizations
-   - "Create Project" hides when user has projects
-   - "Create Workspace" hides when user has workspaces
-   - Entire section hides when all resources exist
+The page is one section component per concern under `frontend/src/pages/Dashboard/`, each with its own skeleton and its own error state with a retry, so a failing section reports the failure in place while the rest of the page stays usable. The attention list is derived by a pure function (`attention.ts`) from the stats payload, which is what makes its ranking, pluralisation and permission behaviour testable without rendering anything. The folding shell is `frontend/src/components/ui/collapsible-section.tsx`.
 
-### Key Improvements
+## Related documentation
 
-1. ✅ **Multi-Platform Support**: Dashboard now includes both Terraform and Ansible metrics
-2. ✅ **User-Specific Metrics**: All runs and jobs are filtered by the authenticated user (server-side)
-3. ✅ **Dynamic Getting Started**: Suggestions automatically hide based on existing resources
-4. ✅ **Comprehensive Organization View**: Shows data for all organizations the user belongs to
-5. ✅ **Optimized Performance**: Single API call with server-side aggregation using efficient database queries
-
-## API Details
-
-### Dashboard Stats Endpoint
-
-**Endpoint**: `GET /api/v2/dashboard/stats`  
-**Authentication**: Required (JWT or TFE token)  
-**Response Format**: JSON:API compatible
-
-**Response Structure**:
-```json
-{
-  "data": {
-    "type": "dashboard-stats",
-    "attributes": {
-      "projects": 5,
-      "terraform_workspaces": 12,
-      "ansible_playbooks": 8,
-      "active_terraform_runs": 2,
-      "active_ansible_jobs": 1,
-      "completed_terraform_runs_this_month": 45,
-      "completed_ansible_jobs_this_month": 23,
-      "organizations": [
-        {
-          "id": "...",
-          "name": "main",
-          "description": "...",
-          "projects": 3,
-          "terraform_workspaces": 5,
-          "ansible_playbooks": 2,
-          "active_terraform_runs": 1,
-          "active_ansible_jobs": 0,
-          "completed_terraform_runs_this_month": 10,
-          "completed_ansible_jobs_this_month": 2
-        }
-      ]
-    }
-  }
-}
-```
-
-**User Filtering**: All runs and jobs are automatically filtered by the authenticated user's database UUID (extracted from authentication context).
-
-**Repository Methods Used**:
-- `OrganizationRepository.ListByUser()` - Get user's organizations
-- `RunRepository.ListByOrganizationAndUser()` - Get user's Terraform runs per organization
-- `AnsibleJobRepository.ListByOrganizationAndUser()` - Get user's Ansible jobs per organization
-
-## Related Documentation
-
-- **Frontend Architecture**: See `docs/architecture/frontend-v2-design.md:134-177` for dashboard behavior specification
-- **API Reference**: See `docs/api-reference/backend-api-reference.md` for backend endpoints
-- **Activity System**: See `backend/internal/services/activity/service.go` for activity tracking
+- [Reading the dashboard](../../user-guides/reading-the-dashboard.md) — the operator-facing guide
+- [Usage & Analytics](../../user-guides/usage-analytics.md) — the per-organization delivery-health page this one hands off to

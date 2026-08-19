@@ -9,7 +9,15 @@ import { workspacesApi, organizationsApi, projectsApi, changeRequestsApi, type O
 import { usePermissions } from '@/hooks/usePermissions';
 import { EditWorkspaceDialog } from '@/components/workspace/EditWorkspaceDialog';
 import { getRunStatus, getRunOperation, getAttribute, type JsonApiResource } from '@/utils/jsonapi';
-import { hasActiveWorkspaceRun, evaluatePendingCreateDialog } from './Workspaces.helpers';
+import {
+  hasActiveWorkspaceRun,
+  evaluatePendingCreateDialog,
+  latestRunResource,
+  countWorkspacesByStatus,
+  workspaceMatchesStatus,
+  workspaceStatusCategory,
+  type WorkspaceStatusFilter,
+} from './Workspaces.helpers';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -61,20 +69,21 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
 
-type StatusFilter = 'all' | 'needs_attention' | 'errored' | 'running' | 'on_hold' | 'success';
+type StatusFilter = WorkspaceStatusFilter;
 const emptyOrganizations: Organization[] = [];
+
+/** Status filters the URL may deep-link into, so `?status=needs_attention` from the dashboard lands here. */
+const URL_STATUS_FILTERS: StatusFilter[] = ['needs_attention', 'errored', 'running', 'on_hold', 'success'];
+
+function statusFilterFromUrl(): StatusFilter {
+  const requested = new URLSearchParams(window.location.search).get('status');
+  return URL_STATUS_FILTERS.find(f => f === requested) ?? 'all';
+}
 
 interface WorkspaceWithStats extends Workspace {
   project?: Project;
   organization?: Organization;
   latestRun?: JsonApiResource; // JSON:API format - use helper functions to access properties
-  runStatusCounts?: {
-    needsAttention: number;
-    errored: number;
-    running: number;
-    onHold: number;
-    success: number;
-  };
 }
 
 export default function Workspaces() {
@@ -85,7 +94,9 @@ export default function Workspaces() {
   // Prefer orgName from URL params, fallback to currentOrg from context
   const selectedOrg = orgName || currentOrg?.name || '';
   const [searchQuery, setSearchQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
+  // Seeded from `?status=` so the dashboard's attention cards can deep-link into a bucket. Read once
+  // at mount: the filter is user state from then on, and re-reading it would fight the controls.
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>(statusFilterFromUrl);
   const [tagFilter, setTagFilter] = useState<string>('');
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -154,72 +165,14 @@ export default function Workspaces() {
         const project = projects.find(p => p.id === workspace.project_id);
         const org = organizations.find(o => o.name === selectedOrg);
 
-        let latestRun: JsonApiResource | undefined;
-        const runStatusCounts = {
-          needsAttention: 0,
-          errored: 0,
-          running: 0,
-          onHold: 0,
-          success: 0,
-        };
-
         // Convert flat latest_run from API to JsonApiResource shape
-        if (workspace.latest_run) {
-          const lr = workspace.latest_run;
-          latestRun = {
-            id: lr.id,
-            type: 'runs',
-            attributes: {
-              'status': lr.status,
-              'operation': lr.operation,
-              'is-destroy': lr.is_destroy,
-              'plan-only': lr.plan_only,
-              'has-changes': lr.has_changes,
-              'created-at': lr.created_at,
-              'completed-at': lr.completed_at ?? null,
-              'permissions': {
-                'can-apply': !lr.plan_only && lr.status === 'planned',
-              },
-            },
-          };
-
-          // Count status for this workspace's latest run
-          const status = lr.status;
-          const isPlanOnly = lr.plan_only;
-
-          switch (status) {
-            case 'errored':
-            case 'failed':
-              runStatusCounts.errored++;
-              break;
-            case 'planning':
-            case 'applying':
-            case 'running':
-              runStatusCounts.running++;
-              break;
-            case 'pending':
-              runStatusCounts.onHold++;
-              break;
-            case 'planned':
-              if (isPlanOnly) {
-                runStatusCounts.success++;
-              } else {
-                runStatusCounts.onHold++;
-              }
-              break;
-            case 'applied':
-            case 'completed':
-              runStatusCounts.success++;
-              break;
-          }
-        }
+        const latestRun = latestRunResource(workspace);
 
         return {
           ...workspace,
           project,
           organization: org,
           latestRun,
-          runStatusCounts,
         };
       });
 
@@ -355,48 +308,8 @@ export default function Workspaces() {
       workspace.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       workspace.vcs_repository?.toLowerCase().includes(searchQuery.toLowerCase());
 
-    // Status filter
-    let matchesStatus = true;
-    if (statusFilter !== 'all') {
-      if (!workspace.latestRun) {
-        // Workspaces with no runs should not match any status filter
-        matchesStatus = false;
-      } else {
-        const status = getRunStatus(workspace.latestRun);
-        const operation = getRunOperation(workspace.latestRun);
-        const isPlanOnly = operation === 'plan' || getAttribute<boolean>(workspace.latestRun, 'plan-only', false);
-
-        switch (statusFilter) {
-          case 'needs_attention':
-            // Needs attention = runs waiting for user action (planned runs that can be applied, pending runs)
-            // NOT errored/canceled runs (they can't be applied)
-            if (status === 'planned' && !isPlanOnly) {
-              // Plan-and-apply run that's planned and waiting for apply
-              matchesStatus = true;
-            } else if (status === 'pending') {
-              // Pending runs need attention
-              matchesStatus = true;
-            } else {
-              matchesStatus = false;
-            }
-            break;
-          case 'errored':
-            matchesStatus = status === 'failed' || status === 'errored';
-            break;
-          case 'running':
-            matchesStatus = ['running', 'planning', 'applying'].includes(status);
-            break;
-          case 'on_hold':
-            // Plan-only runs in "planned" status are finished, not on hold
-            matchesStatus = status === 'pending' || (status === 'planned' && !isPlanOnly);
-            break;
-          case 'success':
-            // Plan-only runs in "planned" status are also considered success
-            matchesStatus = status === 'completed' || status === 'applied' || (status === 'planned' && isPlanOnly) || false;
-            break;
-        }
-      }
-    }
+    // Status filter (shared with the dashboard's attention strip - see Workspaces.helpers.ts)
+    const matchesStatus = workspaceMatchesStatus(workspace.latestRun, statusFilter);
 
     // Tag filter - match on an exact effective tag (key=value)
     const matchesTag = tagFilter === '' || tagFilter === 'all' ||
@@ -424,70 +337,13 @@ export default function Workspaces() {
     onError: (e: unknown) => { toast.error(e instanceof Error ? e.message : 'Failed to file change request'); },
   });
 
-  // Helper function to determine workspace status category based on latest run
-  // This matches the filter logic used in filteredWorkspaces
-  const getWorkspaceStatusCategory = (workspace: WorkspaceWithStats): StatusFilter | null => {
-    if (!workspace.latestRun) {
-      // Workspaces with no runs should not be categorized
-      return null;
-    }
+  // Aggregate stats: workspaces counted by their latest run's bucket, not runs within workspaces.
+  const aggregateStats = countWorkspacesByStatus(workspaces);
 
-    const status = getRunStatus(workspace.latestRun);
-    const operation = getRunOperation(workspace.latestRun);
-    const isPlanOnly = operation === 'plan' || getAttribute<boolean>(workspace.latestRun, 'plan-only', false);
-
-    // Map run status to workspace status category (matching filter logic)
-    if (status === 'failed' || status === 'errored') {
-      return 'errored';
-    }
-    if (['running', 'planning', 'applying'].includes(status)) {
-      return 'running';
-    }
-    // Needs attention: planned runs waiting for apply, or pending runs
-    // (Note: this overlaps with on_hold, but we prioritize needs_attention)
-    if (status === 'planned' && !isPlanOnly) {
-      return 'needs_attention';
-    }
-    if (status === 'pending') {
-      // Pending runs can be both needs_attention and on_hold, prioritize needs_attention
-      return 'needs_attention';
-    }
-    if (status === 'completed' || status === 'applied' || (status === 'planned' && isPlanOnly)) {
-      return 'success';
-    }
-
-    return null;
-  };
-
-  // Calculate aggregate stats by counting workspaces by their latest run status
-  // This counts workspaces, not all runs within workspaces
-  const aggregateStats = workspaces.reduce((stats, workspace) => {
-    const category = getWorkspaceStatusCategory(workspace);
-    if (category === 'needs_attention') {
-      stats.needsAttention++;
-    } else if (category === 'errored') {
-      stats.errored++;
-    } else if (category === 'running') {
-      stats.running++;
-    } else if (category === 'on_hold') {
-      stats.onHold++;
-    } else if (category === 'success') {
-      stats.success++;
-    }
-    return stats;
-  }, {
-    needsAttention: 0,
-    errored: 0,
-    running: 0,
-    onHold: 0,
-    success: 0,
-  });
-
-  // Calculate total workspaces with running latest runs (for icon animation)
-  const totalRunningRuns = workspaces.filter(w => {
-    const category = getWorkspaceStatusCategory(w);
-    return category === 'running';
-  }).length;
+  // Workspaces whose latest run is executing (drives the spinner on the Running counter).
+  const totalRunningRuns = workspaces.filter(
+    w => workspaceStatusCategory(w.latestRun) === 'running',
+  ).length;
 
   // Derive totalPages from filtered workspaces
   const totalPages = Math.ceil(filteredWorkspaces.length / itemsPerPage);

@@ -1,7 +1,7 @@
 // Copyright (c) 2025 VH & Co BV. Licensed under the Business Source License 1.1. See LICENSE for details.
 
 import { describe, it, expect } from 'vitest';
-import { formatActivityNotification } from './activityFormat';
+import { formatActivityDescription, formatActivityNotification } from './activityFormat';
 
 describe('formatActivityNotification', () => {
   it('formats create with a resource name', () => {
@@ -81,5 +81,53 @@ describe('formatActivityNotification', () => {
       action: 'create', resource_type: 'token', details: { resource_name: { id: 1 } },
     });
     expect(out.message).toBe('"[object Object]" was created');
+  });
+});
+
+describe('formatActivityDescription', () => {
+  it('formats the CRUD actions with the resource name', () => {
+    expect(formatActivityDescription({
+      action: 'create', resource_type: 'workspace', details: { resource_name: 'prod-vpc' },
+    })).toBe('Created workspace "prod-vpc"');
+    expect(formatActivityDescription({
+      action: 'update', resource_type: 'variable', details: { resource_name: 'TF_LOG' },
+    })).toBe('Updated variable "TF_LOG"');
+    expect(formatActivityDescription({
+      action: 'delete', resource_type: 'project', details: { resource_name: 'platform' },
+    })).toBe('Deleted project "platform"');
+  });
+
+  it('falls back to the resource type when no name is recorded', () => {
+    // resource_name || resource_type, so the type becomes the quoted name; the unquoted form
+    // only appears when both are empty.
+    expect(formatActivityDescription({ action: 'create', resource_type: 'workspace' }))
+      .toBe('Created workspace "workspace"');
+    expect(formatActivityDescription({ action: 'create', resource_type: '' })).toBe('Created ');
+  });
+
+  it('formats run activity from the operation and status details', () => {
+    expect(formatActivityDescription({
+      action: 'run_apply', resource_type: 'run', details: { operation: 'apply', status: 'completed' },
+    })).toBe('apply run completed');
+    // Absent status reads as "started" rather than "undefined".
+    expect(formatActivityDescription({ action: 'run_plan', resource_type: 'run' }))
+      .toBe('run_plan run started');
+  });
+
+  it('names the workspace suffix only when the activity carries one', () => {
+    expect(formatActivityDescription({
+      action: 'run_destroy', resource_type: 'run', details: { operation: 'destroy', workspace_id: 'ws-1' },
+    })).toBe('destroy run started for workspace');
+  });
+
+  it('falls back to "<action> <type>" for an unrecognised action', () => {
+    expect(formatActivityDescription({ action: 'archived', resource_type: 'change-request' }))
+      .toBe('archived change-request "change-request"');
+  });
+
+  it('JSON-encodes an object detail rather than printing [object Object]', () => {
+    expect(formatActivityDescription({
+      action: 'create', resource_type: 'token', details: { resource_name: { id: 1 } },
+    })).toBe('Created token "{"id":1}"');
   });
 });

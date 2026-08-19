@@ -1,8 +1,7 @@
 // Copyright (c) 2025 VH & Co BV. Licensed under the Business Source License 1.1. See LICENSE for details.
 
-import { useState, useCallback } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { type EffectivePermissions, permissionsApi } from '@/api/client';
-import { useMountEffect } from './useMountEffect';
 
 interface UsePermissionsResult {
   permissions: EffectivePermissions | null;
@@ -35,46 +34,32 @@ interface UsePermissionsResult {
 /**
  * Hook to fetch and cache the authenticated user's effective permissions for an organization.
  * Returns the union of all permissions from all teams the user is a member of.
- * The component remounts when orgName changes (route param), so useMountEffect is correct.
+ *
+ * Keyed on the organization rather than fetched once at mount: the dashboard changes its focus
+ * organization without remounting, and a mount-once fetch left it answering for the previous
+ * tenant. Callers that do remount per organization are unaffected, and several components asking
+ * for the same organization now share one request.
  *
  * Usage:
  *   const { canManagePlaybooks, canReadInventories, loading } = usePermissions(orgName);
  *   if (!canManagePlaybooks) return <ReadOnlyView />;
  */
 export function usePermissions(orgName: string | undefined): UsePermissionsResult {
-  const [permissions, setPermissions] = useState<EffectivePermissions | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  const fetchPermissions = useCallback(() => {
-    if (!orgName) {
-      setLoading(false);
-      return;
-    }
-
-    setLoading(true);
-    setError(null);
-
-    void permissionsApi.getEffective(orgName).then((perms) => {
-      setPermissions(perms);
-      setLoading(false);
-    }).catch((err: unknown) => {
-      setError(err instanceof Error ? err.message : 'Failed to fetch permissions');
-      setLoading(false);
-    });
-  }, [orgName]);
-
-  useMountEffect(() => {
-    fetchPermissions();
+  const query = useQuery<EffectivePermissions>({
+    queryKey: ['effective-permissions', orgName],
+    queryFn: () => permissionsApi.getEffective(orgName!),
+    enabled: Boolean(orgName),
+    staleTime: 5 * 60_000,
   });
 
-  const p = permissions;
+  const p = query.data ?? null;
 
   return {
-    permissions,
-    loading,
-    error,
-    refresh: fetchPermissions,
+    permissions: p,
+    // With no organization there is nothing to fetch, so the hook is settled rather than pending.
+    loading: Boolean(orgName) && query.isPending,
+    error: query.error instanceof Error ? query.error.message : query.error ? 'Failed to fetch permissions' : null,
+    refresh: () => { void query.refetch(); },
 
     // Ansible fine-grained
     canManagePlaybooks: p?.['ansible:playbook:write'] ?? false,

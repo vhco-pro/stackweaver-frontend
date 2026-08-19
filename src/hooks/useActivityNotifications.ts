@@ -1,101 +1,62 @@
 // Copyright (c) 2025 VH & Co BV. Licensed under the Business Source License 1.1. See LICENSE for details.
 
+// A genuine dependency-based effect: raise a toast when the shared activity query yields rows this
+// hook has not seen. (`**/hooks/**` is exempt from the useEffect import ban - see eslint.config.js.)
 import { useEffect, useRef } from 'react';
 import { useNotifications } from '@/contexts/NotificationContext';
-import { activitiesApi } from '@/api/client';
+import { useMountEffect } from '@/hooks/useMountEffect';
+import { useRecentActivity } from '@/pages/Dashboard/useDashboardData';
 import { formatActivityNotification } from '@/utils/activityFormat';
 
+const RECENT_ACTIVITY_LIMIT = 5;
+
+/**
+ * Raises a toast for each activity that appears after the hook mounts.
+ *
+ * The rows come from the same React Query entry the dashboard's Recent Activity card reads, so the
+ * two share one request instead of each running their own timer against the same endpoint. The
+ * first response only seeds the seen-set: everything already in the feed at mount is history, not
+ * news.
+ */
 export function useActivityNotifications(enabled: boolean = true, pollInterval: number = 30000) {
   const { showNotification } = useNotifications();
-  const lastActivityIdRef = useRef<string | null>(null);
   const seenActivityIdsRef = useRef<Set<string>>(new Set());
-  const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const isInitializedRef = useRef<boolean>(false);
 
-  useEffect(() => {
+  useMountEffect(() => {
     if (!enabled) return;
-
-    // Request notification permission on mount
     if ('Notification' in window && window.Notification.permission === 'default') {
       void window.Notification.requestPermission().catch(err => {
         console.warn('Failed to request notification permission:', err);
       });
     }
+  });
 
-    const pollForNewActivities = async () => {
-      try {
-        // Fetch more activities to catch any we might have missed
-        const response = await activitiesApi.getRecent({ limit: 5 });
-        const activities = response.data || [];
-        
-        if (activities.length === 0) return;
+  const { data } = useRecentActivity(RECENT_ACTIVITY_LIMIT, {
+    enabled,
+    refetchInterval: pollInterval,
+  });
 
-        // On first poll, just initialize the seen set
-        if (!isInitializedRef.current) {
-          activities.forEach(activity => {
-            seenActivityIdsRef.current.add(activity.id);
-          });
-          if (activities.length > 0) {
-            lastActivityIdRef.current = activities[0].id;
-          }
-          isInitializedRef.current = true;
-          return;
-        }
+  useEffect(() => {
+    if (!enabled || !data || data.length === 0) return;
 
-        // Check for new activities (ones we haven't seen before)
-        const newActivities = activities.filter(
-          activity => !seenActivityIdsRef.current.has(activity.id)
-        );
+    if (!isInitializedRef.current) {
+      data.forEach(activity => seenActivityIdsRef.current.add(activity.id));
+      isInitializedRef.current = true;
+      return;
+    }
 
-        if (newActivities.length > 0) {
-          console.log(`[ActivityNotifications] Found ${newActivities.length} new activity/activities`);
-        }
+    const fresh = data.filter(activity => !seenActivityIdsRef.current.has(activity.id));
+    // Oldest first, so a burst reads chronologically.
+    [...fresh].reverse().forEach(activity => {
+      const { title, message, type } = formatActivityNotification(activity.attributes);
+      showNotification(title, message, type, 5000);
+      seenActivityIdsRef.current.add(activity.id);
+    });
 
-        // Process new activities in reverse order (oldest first) to show them chronologically
-        newActivities.reverse().forEach(activity => {
-          const attrs = activity.attributes;
-
-          // Format notification message (pure mapping - see utils/activityFormat.ts)
-          const { title, message, type } = formatActivityNotification(attrs);
-
-          // Show notification
-          console.log(`[ActivityNotifications] Showing notification: ${title} - ${message}`);
-          showNotification(title, message, type, 5000);
-          
-          // Mark as seen
-          seenActivityIdsRef.current.add(activity.id);
-        });
-
-        // Update last seen activity ID
-        if (activities.length > 0) {
-          lastActivityIdRef.current = activities[0].id;
-        }
-
-        // Clean up old seen IDs to prevent memory leak (keep last 100)
-        if (seenActivityIdsRef.current.size > 100) {
-          const idsArray = Array.from(seenActivityIdsRef.current);
-          const toKeep = new Set(idsArray.slice(-50));
-          seenActivityIdsRef.current = toKeep;
-        }
-      } catch (err: unknown) {
-        // Silently fail - don't spam errors
-        // Only log if it's not a 404 (endpoint might not exist yet) or 401 (not authenticated)
-        const status = (err as { status?: number })?.status;
-        if (status !== 404 && status !== 401) {
-          console.error('Failed to poll for activities:', err);
-        }
-      }
-    };
-
-    // Poll immediately, then at intervals
-    void pollForNewActivities();
-    pollIntervalRef.current = setInterval(() => { void pollForNewActivities(); }, pollInterval);
-
-    return () => {
-      if (pollIntervalRef.current) {
-        clearInterval(pollIntervalRef.current);
-      }
-    };
-  }, [enabled, pollInterval, showNotification]);
+    // Bound the seen-set so a long-lived tab does not grow one entry per activity forever.
+    if (seenActivityIdsRef.current.size > 100) {
+      seenActivityIdsRef.current = new Set(Array.from(seenActivityIdsRef.current).slice(-50));
+    }
+  }, [enabled, data, showNotification]);
 }
-
