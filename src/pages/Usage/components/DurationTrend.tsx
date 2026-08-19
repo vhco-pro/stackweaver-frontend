@@ -4,7 +4,7 @@ import { Area, AreaChart, CartesianGrid, Tooltip, XAxis, YAxis } from 'recharts'
 import type { AnalyticsDailyPoint, AnalyticsOutcome } from '@/api/client';
 import { ChartContainer, ChartTooltipSurface, type ChartTooltipProps } from '@/components/ui/chart';
 import { formatDay, formatDuration, useChartPalette } from '../chartTheme';
-import { EmptyState } from './Card';
+import { EmptyState } from '@/components/ui/analytics-card';
 import { ChartLegend } from './OutcomeOverTimeChart';
 
 /**

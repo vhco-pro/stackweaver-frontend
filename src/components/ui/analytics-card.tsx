@@ -6,7 +6,11 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 
-/** The page's card shell - the same glass surface used across Settings, so Usage does not invent a second look. */
+/**
+ * The canonical analytics card shell - the same glass surface used across Settings, so no page
+ * invents a second look. Lives here rather than under a page folder because both Usage and the
+ * Dashboard build their sections out of it.
+ */
 export function AnalyticsCard({
   title,
   hint,
@@ -69,14 +73,22 @@ export function ChartSkeleton({ height = 240 }: { height?: number }) {
  * Error state with a retry. The page this replaced swallowed every failure into a console message
  * and rendered zeros, which reads as "you have no runs" rather than "we could not load your runs".
  */
-export function ErrorState({ message, onRetry }: { message: string; onRetry: () => void }) {
+export function ErrorState({
+  message,
+  onRetry,
+  title = 'Could not load analytics',
+}: {
+  message: string;
+  onRetry: () => void;
+  title?: string;
+}) {
   return (
     <div className="flex flex-col items-center gap-3 py-10 text-center">
       <div className="rounded-full bg-red-500/10 p-3 text-red-500">
         <AlertCircle className="h-6 w-6" />
       </div>
       <div>
-        <p className="font-medium text-foreground">Could not load analytics</p>
+        <p className="font-medium text-foreground">{title}</p>
         <p className="mt-1 max-w-md text-sm text-muted-foreground">{message}</p>
       </div>
       <Button variant="outline" size="sm" onClick={onRetry} className="gap-2">

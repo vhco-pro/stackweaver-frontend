@@ -5,6 +5,7 @@ import { useMountEffect } from '@/hooks/useMountEffect';
 import { Loader2, Clock, Zap, CheckCircle2, XCircle, AlertCircle, Activity } from 'lucide-react';
 import { activitiesApi, type Activity as ActivityData } from '@/api/client';
 import { Button } from '@/components/ui/button';
+import { formatActivityDescription } from '@/utils/activityFormat';
 
 export default function Activities() {
   const [activities, setActivities] = useState<ActivityData[]>([]);
@@ -49,63 +50,6 @@ export default function Activities() {
   useMountEffect(() => {
     void fetchActivities(true);
   });
-
-  const formatActivityDescription = (activity: ActivityData): string => {
-    const attrs = activity.attributes;
-    const details = attrs.details || {};
-    const resourceName = details.resource_name || attrs.resource_type;
-    let resourceNameStr = '';
-    if (resourceName) {
-      if (typeof resourceName === 'string') {
-        resourceNameStr = resourceName;
-      } else if (typeof resourceName !== 'object' && resourceName !== null) {
-        // eslint-disable-next-line @typescript-eslint/no-base-to-string
-        resourceNameStr = String(resourceName);
-      } else {
-        // Handle object types that might be passed
-        resourceNameStr = typeof resourceName === 'object' ? JSON.stringify(resourceName) : String(resourceName);
-      }
-    }
-    const operationRaw = details.operation || attrs.action;
-    let operationStr = '';
-    if (operationRaw) {
-      if (typeof operationRaw === 'string') {
-        operationStr = operationRaw;
-      } else if (typeof operationRaw !== 'object' && operationRaw !== null) {
-        // eslint-disable-next-line @typescript-eslint/no-base-to-string
-        operationStr = String(operationRaw);
-      } else {
-        // eslint-disable-next-line @typescript-eslint/no-base-to-string
-        operationStr = String(operationRaw);
-      }
-    }
-    const statusRaw = details.status || 'started';
-    let statusStr = '';
-    if (statusRaw) {
-      if (typeof statusRaw === 'string') {
-        statusStr = statusRaw;
-      } else if (typeof statusRaw !== 'object' && statusRaw !== null) {
-        // eslint-disable-next-line @typescript-eslint/no-base-to-string
-        statusStr = String(statusRaw);
-      }
-    }
-    if (!statusStr) statusStr = 'started';
-    
-    switch (attrs.action) {
-      case 'create':
-        return `Created ${String(attrs.resource_type)}${resourceNameStr ? ` "${resourceNameStr}"` : ''}`;
-      case 'update':
-        return `Updated ${String(attrs.resource_type)}${resourceNameStr ? ` "${resourceNameStr}"` : ''}`;
-      case 'delete':
-        return `Deleted ${String(attrs.resource_type)}${resourceNameStr ? ` "${resourceNameStr}"` : ''}`;
-      case 'run_plan':
-      case 'run_apply':
-      case 'run_destroy':
-        return `${operationStr} run ${statusStr}${details.workspace_id ? ` for workspace` : ''}`;
-      default:
-        return `${String(attrs.action)} ${String(attrs.resource_type)}${resourceNameStr ? ` "${resourceNameStr}"` : ''}`;
-    }
-  };
 
   const getActivityIcon = (activity: ActivityData) => {
     const attrs = activity.attributes;
@@ -184,7 +128,7 @@ export default function Activities() {
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium text-gray-900 dark:text-white">
-                        {formatActivityDescription(activity)}
+                        {formatActivityDescription(activity.attributes)}
                       </p>
                       <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">
                         {formatTimestamp(activity.attributes.created_at)}

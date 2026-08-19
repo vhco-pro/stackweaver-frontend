@@ -2876,26 +2876,84 @@ export const activitiesApi = {
 };
 
 // Dashboard Types
+//
+// The dashboard is the one cross-organization surface in the API: it answers for every organization
+// the caller belongs to at once, because its job is to say *which* organization needs them. Every
+// count within an organization is organization-wide - runs and jobs included. They used to be
+// filtered to the requesting user while the resource counts were not, which made "active
+// operations" and "workspaces" mean different populations on the same card.
+export interface DashboardOrgStats {
+  id: string;
+  name: string;
+  description?: string;
+  projects: number;
+  terraform_workspaces: number;
+  ansible_playbooks: number;
+  active_terraform_runs: number;
+  /** Runs created but not yet picked up by a runner. */
+  pending_terraform_runs: number;
+  /** Plan-and-apply and destroy runs parked at the confirm step, waiting for a person. */
+  awaiting_approval: number;
+  /** Ansible's equivalent: workflow approval nodes holding a workflow open until someone decides. */
+  pending_workflow_approvals: number;
+  /** Workspaces whose most recent run errored and that have not run since, however long ago. */
+  errored_workspaces: number;
+  /** The Ansible analogue: job templates whose most recent job failed. Ad-hoc jobs excluded. */
+  errored_job_templates: number;
+  /** Inventories whose most recent sync failed, so a job would target stale hosts. */
+  failed_inventory_syncs: number;
+  /** Failures inside `recent_failure_window_days`, per platform - the two lead to different pages. */
+  recent_run_failures: number;
+  recent_job_failures: number;
+  active_ansible_jobs: number;
+  completed_terraform_runs_this_month: number;
+  completed_ansible_jobs_this_month: number;
+  /**
+   * Admin-only signals, absent rather than zero when the caller may not see them - a hard zero
+   * would read as "nothing wrong" to a member who is simply not allowed to know.
+   */
+  open_change_requests?: number;
+  runners_total?: number;
+  runners_offline?: number;
+}
+
 export interface DashboardStats {
   projects: number;
   terraform_workspaces: number;
   ansible_playbooks: number;
   active_terraform_runs: number;
+  pending_terraform_runs: number;
+  awaiting_approval: number;
+  pending_workflow_approvals: number;
+  errored_workspaces: number;
+  errored_job_templates: number;
+  failed_inventory_syncs: number;
+  recent_run_failures: number;
+  recent_job_failures: number;
   active_ansible_jobs: number;
   completed_terraform_runs_this_month: number;
   completed_ansible_jobs_this_month: number;
-  organizations: Array<{
-    id: string;
-    name: string;
-    description?: string;
-    projects: number;
-    terraform_workspaces: number;
-    ansible_playbooks: number;
-    active_terraform_runs: number;
-    active_ansible_jobs: number;
-    completed_terraform_runs_this_month: number;
-    completed_ansible_jobs_this_month: number;
-  }>;
+  recent_failure_window_days: number;
+  organizations: DashboardOrgStats[];
+}
+
+/** One execution running right now, anywhere the caller can see. */
+export interface DashboardOperation {
+  id: string;
+  platform: 'terraform' | 'ansible';
+  organization_id: string;
+  organization_name: string;
+  /** Workspace name for a run, job name for a job. */
+  name: string;
+  detail: string;
+  status: string;
+  started_at: string;
+}
+
+export interface DashboardOperations {
+  executions: DashboardOperation[];
+  /** True when more is in flight than the list returns, so the UI can say so. */
+  truncated: boolean;
 }
 
 // Dashboard API
@@ -2908,6 +2966,12 @@ export const dashboardApi = {
         data: attributes as DashboardStats,
       };
     }),
+
+  /** In-flight runs and jobs across every organization the caller belongs to. */
+  getOperations: () =>
+    apiClient
+      .get<JsonApiResponse<JsonApiResource>>('/dashboard/operations')
+      .then(res => (res.data?.attributes || {}) as unknown as DashboardOperations),
 };
 
 // Usage & Analytics Types

@@ -4,7 +4,7 @@ import { Area, AreaChart, CartesianGrid, Tooltip, XAxis, YAxis } from 'recharts'
 import type { AnalyticsDailyPoint, AnalyticsLabeledCount } from '@/api/client';
 import { ChartContainer, ChartTooltipSurface, type ChartTooltipProps } from '@/components/ui/chart';
 import { formatDay, useChartPalette } from '../chartTheme';
-import { EmptyState } from './Card';
+import { EmptyState } from '@/components/ui/analytics-card';
 
 /** Audit-event volume per day. One series, so it needs no legend - the card title names it. */
 export function ActivityTrend({ daily }: { daily: AnalyticsDailyPoint[] }) {

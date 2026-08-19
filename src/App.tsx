@@ -96,7 +96,9 @@ function AppContent() {
               path="/dashboard"
               element={
                 <ProtectedRoute>
-                    <Layout>
+                    {/* Dashboard: side-by-side sections and a full-width chart, the tier
+                        PageContainer names for exactly this. */}
+                    <Layout width="wide">
                   <Dashboard />
                     </Layout>
                 </ProtectedRoute>

@@ -3,7 +3,7 @@
 import { Link } from 'react-router-dom';
 import type { AnalyticsTopTemplate, AnalyticsTopWorkspace } from '@/api/client';
 import { formatDuration, formatRate, useChartPalette } from '../chartTheme';
-import { EmptyState } from './Card';
+import { EmptyState } from '@/components/ui/analytics-card';
 
 /** Busiest workspaces, most runs first. Each row links to the workspace it describes. */
 export function TopWorkspaces({ rows, orgName }: { rows: AnalyticsTopWorkspace[]; orgName: string }) {

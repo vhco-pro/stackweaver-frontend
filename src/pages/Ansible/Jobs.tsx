@@ -83,6 +83,21 @@ function formatRelativeTime(dateString: string): string {
   return date.toLocaleDateString();
 }
 
+/** Job statuses the URL may deep-link into, so `?status=failed` from the dashboard lands here. */
+const URL_STATUS_FILTERS: AnsibleJobStatus[] = [
+  'pending',
+  'running',
+  'successful',
+  'failed',
+  'canceled',
+  'error',
+];
+
+function statusFilterFromUrl(): AnsibleJobStatus | 'all' {
+  const requested = new URLSearchParams(window.location.search).get('status');
+  return URL_STATUS_FILTERS.find(status => status === requested) ?? 'all';
+}
+
 export default function Jobs() {
   const { orgName } = useParams<{ orgName: string }>();
   const { currentOrg } = useOrganization();
@@ -99,7 +114,9 @@ export default function Jobs() {
     enabled: !!selectedOrg,
   });
   const [searchQuery, setSearchQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState<AnsibleJobStatus | 'all'>('all');
+  // Seeded from `?status=` so the dashboard's attention rows can deep-link into a bucket. Read once
+  // at mount: the filter is user state from then on, and re-reading it would fight the control.
+  const [statusFilter, setStatusFilter] = useState<AnsibleJobStatus | 'all'>(statusFilterFromUrl);
   const [jobsPage, setJobsPage] = useState(1);
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
   const [jobToCancel, setJobToCancel] = useState<AnsibleJob | null>(null);

@@ -11,6 +11,46 @@ export interface ActivityAttributes {
   details?: Record<string, unknown> | null;
 }
 
+/**
+ * One-line description of an activity, for feeds that render a single sentence per row (the
+ * dashboard's Recent Activity card and the Activity Log page). Behaviour is verbatim from the two
+ * copies it replaces; {@link formatActivityNotification} stays separate because a toast needs a
+ * title, a body, and a severity rather than one line.
+ */
+export function formatActivityDescription(attrs: ActivityAttributes): string {
+  const details = attrs.details || {};
+  const resourceNameStr = stringifyDetail(details.resource_name || attrs.resource_type, '');
+  const named = resourceNameStr ? ` "${resourceNameStr}"` : '';
+  const resourceType = String(attrs.resource_type);
+
+  switch (attrs.action) {
+    case 'create':
+      return `Created ${resourceType}${named}`;
+    case 'update':
+      return `Updated ${resourceType}${named}`;
+    case 'delete':
+      return `Deleted ${resourceType}${named}`;
+    case 'run_plan':
+    case 'run_apply':
+    case 'run_destroy': {
+      const operation = stringifyDetail(details.operation || attrs.action, '');
+      const status = stringifyDetail(details.status || 'started', 'started');
+      return `${operation} run ${status}${details.workspace_id ? ' for workspace' : ''}`;
+    }
+    default:
+      return `${String(attrs.action)} ${resourceType}${named}`;
+  }
+}
+
+/** Renders an untyped detail value as text, JSON-encoding objects rather than printing [object Object]. */
+function stringifyDetail(value: unknown, fallback: string): string {
+  if (value == null) return fallback;
+  if (typeof value === 'string') return value;
+  if (typeof value === 'object') return JSON.stringify(value);
+  // eslint-disable-next-line @typescript-eslint/no-base-to-string
+  return String(value);
+}
+
 export interface ActivityNotificationContent {
   title: string;
   message: string;
