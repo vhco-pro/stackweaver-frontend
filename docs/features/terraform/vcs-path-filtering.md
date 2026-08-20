@@ -1,8 +1,7 @@
 ---
-description: "GitOps-style path filtering that triggers workspace runs only when files in the configured working directory change"
+description: "GitOps-style path filtering that triggers workspace runs only when the files a workspace monitors actually change"
 covers:
-  - "core/vcs/**"
-  - "backend/cmd/orchestrator/**"
+  - "backend/internal/api/v2/handlers/**"
 ---
 
 # VCS Path Filtering
@@ -11,7 +10,7 @@ StackWeaver intelligently filters which workspaces should trigger runs based on 
 
 ## How It Works
 
-When you push code to your repository, StackWeaver checks which files changed and only triggers workspaces whose working directories contain those changed files.
+When you push code to your repository, StackWeaver checks which files changed and only triggers workspaces that monitor at least one of them. By default a workspace monitors its working directory; the settings described under [Configuration](#configuration) widen or replace that.
 
 ### Example: Multiple Environments in One Repository
 
@@ -37,6 +36,8 @@ With path filtering:
 If you push changes to `environments/dev/main.tf`, only the dev workspace triggers a run. Staging and production workspaces remain unaffected.
 
 ## Path Matching Rules
+
+These are the rules a workspace follows when it relies on its working directory alone, which is the default.
 
 ### Root-Level Workspaces
 
@@ -69,11 +70,35 @@ This filtering enables GitOps-style workflows where:
 
 ## Configuration
 
-Path filtering is **automatic** - no configuration needed. It works based on your workspace's working directory setting:
+Path filtering needs no configuration to be useful: as soon as a workspace has a working directory, it only triggers when files in that directory change, and leaving the working directory blank monitors the whole repository. The same rules apply to every event StackWeaver receives, so a push, a pull request that opens a speculative plan, and an Azure DevOps delivery all reach the same verdict for the same change.
 
-1. When creating a workspace, set the "Working Directory" to the subfolder path
-2. The workspace will only trigger when files in that path change
-3. Leave it blank to monitor the entire repository
+Three workspace settings adjust that default. They are part of the TFE-compatible API, so you set them through the API or the Terraform provider rather than the web interface.
+
+### Always Trigger Runs
+
+Setting `file_triggers_enabled` to `false` turns path filtering off for that workspace. Every change to the tracked branch queues a run, and the working directory, trigger prefixes and trigger patterns are all ignored. Use this when a workspace depends on the whole repository in ways its directory layout does not express.
+
+### Monitoring Extra Directories
+
+`trigger_prefixes` takes a list of repository-root-relative directories that are monitored **in addition to** the working directory. A workspace whose working directory is `environments/production` and whose trigger prefixes are `["modules/network"]` triggers for changes in either location, which is the usual way to make an environment react to the shared modules it consumes. Prefixes match on directory boundaries, so `modules/net` does not match `modules/network/main.tf`.
+
+### Matching With Glob Patterns
+
+`trigger_patterns` takes a list of glob patterns, always relative to the repository root. When patterns are set they are the only thing consulted - the working directory is no longer monitored on its own, which is what makes patterns able to express "any `.tf` file anywhere" as `**/*.tf`. Within a pattern, `**` spans directory separators, `*` matches within a single path segment, and `?` matches exactly one character. A pattern written as a directory, such as `modules/`, matches everything underneath it.
+
+```hcl
+resource "tfe_workspace" "production" {
+  name              = "production"
+  organization      = "acme"
+  working_directory = "environments/production"
+
+  trigger_prefixes = ["modules/network", "modules/database"]
+  # or, instead of prefixes:
+  # trigger_patterns = ["environments/production/**", "modules/**/*.tf"]
+}
+```
+
+Trigger patterns and trigger prefixes are mutually exclusive. Setting both in one request is rejected with a `422`, and setting one on a workspace that already has the other replaces it.
 
 ## Common Use Cases
 
