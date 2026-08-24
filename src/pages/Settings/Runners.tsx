@@ -30,6 +30,7 @@ import {
 } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
+import { glassSurface, glassDashedEmpty } from '@/lib/surfaces';
 
 export default function Runners() {
   const { orgName } = useParams<{ orgName: string }>();
@@ -217,7 +218,7 @@ export default function Runners() {
         <div className="flex-1">
           <div className="flex items-start justify-between gap-4 mb-2">
             <div>
-              <h1 className="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-purple-400 via-pink-400 to-purple-400 bg-clip-text text-transparent mb-2">
+              <h1 className="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-purple-600 via-pink-600 to-purple-600 dark:from-purple-400 dark:via-pink-400 dark:to-purple-400 bg-clip-text text-transparent mb-2">
                 Self-Hosted Runners
               </h1>
               <p className="text-muted-foreground">
@@ -259,10 +260,7 @@ export default function Runners() {
         <div className="space-y-4">
           {runners.length === 0 ? (
             <div
-              className={cn(
-                'rounded-2xl border border-dashed border-white/20 dark:border-white/10',
-                'p-8 text-center text-muted-foreground'
-              )}
+              className={cn(glassDashedEmpty, 'p-8 text-center text-muted-foreground')}
             >
               <Server className="h-12 w-12 mx-auto mb-4 opacity-50" />
               <p>No runners registered yet.</p>
@@ -280,12 +278,7 @@ export default function Runners() {
             runners.map((runner) => (
               <div
                 key={runner.id}
-                className={cn(
-                  'rounded-2xl bg-gradient-to-br from-white/10 via-white/5 to-transparent',
-                  'dark:from-black/10 dark:via-black/5',
-                  'backdrop-blur-md border border-white/20 dark:border-white/10',
-                  'p-6 shadow-lg'
-                )}
+                className={cn(glassSurface, 'p-6')}
               >
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex-1">

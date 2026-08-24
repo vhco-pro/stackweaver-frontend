@@ -30,6 +30,7 @@ import {
 import { fetchAllPages } from '@/lib/pagination';
 import { Pager } from '@/components/ui/pager';
 import { Button } from '@/components/ui/button';
+import { GradientButton } from '@/components/ui/gradient-button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
@@ -347,7 +348,8 @@ export default function JobTemplates() {
       {/* Header */}
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h1 className="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-violet-500 via-indigo-500 to-blue-500 bg-clip-text text-transparent mb-2">
+          <h1 className="text-3xl font-bold bg-gradient-to-r from-violet-500 via-indigo-500 to-blue-500 bg-clip-text text-transparent mb-2 flex items-center gap-3">
+            <Layers className="h-7 w-7 text-violet-600 dark:text-violet-400 shrink-0" />
             Job Templates
           </h1>
           <p className="text-muted-foreground">
@@ -355,16 +357,14 @@ export default function JobTemplates() {
           </p>
         </div>
         {canManageJobTemplates && (
-          <div className="relative inline-flex rounded-xl bg-gradient-to-r from-violet-500 via-indigo-500 to-blue-500 p-[2px]">
-            <Button
-              variant="ghost"
-              onClick={() => setCreateDialogOpen(true)}
-              className="bg-white dark:bg-slate-950/80 dark:backdrop-blur-xs text-slate-900 dark:text-white hover:bg-slate-50 dark:hover:bg-slate-950/90 border-0 whitespace-nowrap rounded-[calc(0.75rem-2px)] px-4 py-2"
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              New Job Template
-            </Button>
-          </div>
+          <GradientButton
+            ramp="app"
+            onClick={() => setCreateDialogOpen(true)}
+            className="w-auto px-4 py-2"
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            New Job Template
+          </GradientButton>
         )}
       </div>
 
@@ -394,10 +394,10 @@ export default function JobTemplates() {
                 : 'No job templates have been created yet. Click the button above to create your first job template.'}
             </p>
             {!searchQuery && canManageJobTemplates && (
-              <Button onClick={() => setCreateDialogOpen(true)}>
+              <GradientButton ramp="app" onClick={() => setCreateDialogOpen(true)} className="w-auto px-4 py-2">
                 <Plus className="h-4 w-4 mr-2" />
                 Create Job Template
-              </Button>
+              </GradientButton>
             )}
           </CardContent>
         </Card>
@@ -432,23 +432,21 @@ export default function JobTemplates() {
                   </div>
                   <div className="flex items-center gap-2 shrink-0" onClick={(e) => e.stopPropagation()}>
                     {canExecuteJobs && (
-                      <div className="relative inline-flex rounded-xl bg-gradient-to-r from-violet-500 via-indigo-500 to-blue-500 p-[2px]">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => { void handleLaunch(template); }}
-                          disabled={launching === template.id || !template.enabled}
-                          title={!template.enabled ? 'This template is disabled' : undefined}
-                          className="bg-white dark:bg-slate-950/80 dark:backdrop-blur-xs text-slate-900 dark:text-white hover:bg-slate-50 dark:hover:bg-slate-950/90 border-0 whitespace-nowrap rounded-[calc(0.75rem-2px)] px-3 py-1"
-                        >
-                          {launching === template.id ? (
-                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                          ) : (
-                            <Play className="h-4 w-4 mr-2" />
-                          )}
-                          Launch
-                        </Button>
-                      </div>
+                      <GradientButton
+                        ramp="app"
+                        size="sm"
+                        onClick={() => { void handleLaunch(template); }}
+                        disabled={launching === template.id || !template.enabled}
+                        title={!template.enabled ? 'This template is disabled' : undefined}
+                        className="w-auto px-3 py-1"
+                      >
+                        {launching === template.id ? (
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        ) : (
+                          <Play className="h-4 w-4 mr-2" />
+                        )}
+                        Launch
+                      </GradientButton>
                     )}
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
@@ -727,10 +725,10 @@ export default function JobTemplates() {
             <Button variant="outline" onClick={() => setCreateDialogOpen(false)}>
               Cancel
             </Button>
-            <Button onClick={() => { void handleCreate(); }} disabled={creating}>
+            <GradientButton ramp="app" onClick={() => { void handleCreate(); }} disabled={creating} className="w-auto px-4 py-2">
               {creating && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
               Create Template
-            </Button>
+            </GradientButton>
           </DialogFooter>
         </DialogContent>
       </Dialog>

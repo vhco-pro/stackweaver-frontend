@@ -28,7 +28,7 @@ export default function OrganizationTokenSettings() {
           </Button>
         </Link>
         <div className="flex-1">
-          <h1 className="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-cyan-400 via-blue-400 to-cyan-400 bg-clip-text text-transparent mb-2">
+          <h1 className="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-cyan-600 dark:from-cyan-400 via-blue-600 dark:via-blue-400 to-cyan-600 dark:to-cyan-400 bg-clip-text text-transparent mb-2">
             Organization Token
           </h1>
           <p className="text-muted-foreground max-w-2xl">
@@ -46,7 +46,7 @@ export default function OrganizationTokenSettings() {
           audit surface. Shares the endpoint via ?token=audit-trails and coexists with the org token. */}
       <div className="pt-4 border-t border-white/10 dark:border-white/5">
         <div className="mb-4">
-          <h2 className="text-2xl font-bold bg-gradient-to-r from-amber-400 via-orange-400 to-amber-400 bg-clip-text text-transparent mb-2">
+          <h2 className="text-2xl font-bold bg-gradient-to-r from-amber-600 dark:from-amber-400 via-orange-600 dark:via-orange-400 to-amber-600 dark:to-amber-400 bg-clip-text text-transparent mb-2">
             Audit Trail Token
           </h2>
           <p className="text-muted-foreground max-w-2xl">

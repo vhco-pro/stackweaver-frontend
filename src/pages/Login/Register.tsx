@@ -10,7 +10,7 @@ import { createUser, getPasswordComplexitySettings, getLegalSettings } from '@/a
 import type { PasswordComplexitySettings } from '@/api/auth-client';
 import { useMountEffect } from '@/hooks/useMountEffect';
 import LoginLayout from './LoginLayout';
-import { GradientButton } from './GradientButton';
+import { GradientButton } from '@/components/ui/gradient-button';
 import { toFriendlyError } from '@/lib/auth-errors';
 
 interface LegalSettings {

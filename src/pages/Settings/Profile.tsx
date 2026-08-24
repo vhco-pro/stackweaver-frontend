@@ -99,7 +99,7 @@ export default function ProfileSettings() {
           </Button>
         </Link>
         <div className="flex-1">
-          <h1 className="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-blue-400 via-cyan-400 to-blue-500 bg-clip-text text-transparent mb-2">
+          <h1 className="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-blue-600 dark:from-blue-400 via-cyan-600 dark:via-cyan-400 to-blue-500 bg-clip-text text-transparent mb-2">
             Profile Settings
           </h1>
           <p className="text-muted-foreground">
@@ -132,9 +132,8 @@ export default function ProfileSettings() {
             {/* Profile Picture */}
             <div className={cn(
               'rounded-2xl',
-              'bg-gradient-to-br from-white/10 via-white/5 to-transparent',
-              'dark:from-black/10 dark:via-black/5',
-              'backdrop-blur-md border border-white/20 dark:border-white/10',
+              'bg-gradient-to-br from-white/90 via-white/75 to-white/60 dark:from-black/10 dark:via-black/5 dark:to-transparent',
+              'backdrop-blur-md border border-gray-300/80 dark:border-white/10',
               'p-6 shadow-lg shadow-blue-500/10'
             )}>
               <div className="flex items-center gap-6">
@@ -164,9 +163,8 @@ export default function ProfileSettings() {
             {/* Basic Information */}
             <div className={cn(
               'rounded-2xl',
-              'bg-gradient-to-br from-white/10 via-white/5 to-transparent',
-              'dark:from-black/10 dark:via-black/5',
-              'backdrop-blur-md border border-white/20 dark:border-white/10',
+              'bg-gradient-to-br from-white/90 via-white/75 to-white/60 dark:from-black/10 dark:via-black/5 dark:to-transparent',
+              'backdrop-blur-md border border-gray-300/80 dark:border-white/10',
               'p-6 shadow-lg shadow-blue-500/10 space-y-4'
             )}>
               <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
@@ -256,9 +254,8 @@ export default function ProfileSettings() {
         <div className="space-y-6">
           <div className={cn(
             'rounded-2xl',
-            'bg-gradient-to-br from-white/10 via-white/5 to-transparent',
-            'dark:from-black/10 dark:via-black/5',
-            'backdrop-blur-md border border-white/20 dark:border-white/10',
+            'bg-gradient-to-br from-white/90 via-white/75 to-white/60 dark:from-black/10 dark:via-black/5 dark:to-transparent',
+            'backdrop-blur-md border border-gray-300/80 dark:border-white/10',
             'p-6 shadow-lg shadow-blue-500/10'
           )}>
             <h3 className="font-semibold mb-3">Account Information</h3>

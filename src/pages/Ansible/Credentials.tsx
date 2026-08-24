@@ -633,7 +633,7 @@ export default function Credentials() {
         </Link>
         <div className="flex-1 flex items-start justify-between gap-4">
           <div>
-            <h1 className="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-amber-400 via-orange-400 to-amber-400 bg-clip-text text-transparent mb-2">
+            <h1 className="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-amber-600 dark:from-amber-400 via-orange-600 dark:via-orange-400 to-amber-600 dark:to-amber-400 bg-clip-text text-transparent mb-2">
               Credentials
             </h1>
             <p className="text-muted-foreground">

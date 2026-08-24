@@ -147,7 +147,7 @@ export default function UsersSettings() {
             <ArrowLeft className="h-5 w-5" />
           </Link>
           <div>
-            <h1 className="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-violet-400 via-indigo-400 to-blue-400 bg-clip-text text-transparent">
+            <h1 className="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-violet-600 dark:from-violet-400 via-indigo-600 dark:via-indigo-400 to-blue-600 dark:to-blue-400 bg-clip-text text-transparent">
               Users & Teams
             </h1>
           </div>
@@ -171,7 +171,7 @@ export default function UsersSettings() {
             <ArrowLeft className="h-5 w-5" />
           </Link>
           <div>
-            <h1 className="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-violet-400 via-indigo-400 to-blue-400 bg-clip-text text-transparent">
+            <h1 className="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-violet-600 dark:from-violet-400 via-indigo-600 dark:via-indigo-400 to-blue-600 dark:to-blue-400 bg-clip-text text-transparent">
               Users & Teams
             </h1>
           </div>
@@ -200,7 +200,7 @@ export default function UsersSettings() {
             </Button>
           </Link>
           <div>
-            <h1 className="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-violet-400 via-indigo-400 to-blue-400 bg-clip-text text-transparent">
+            <h1 className="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-violet-600 dark:from-violet-400 via-indigo-600 dark:via-indigo-400 to-blue-600 dark:to-blue-400 bg-clip-text text-transparent">
               Users & Teams
             </h1>
             <p className="text-muted-foreground mt-1">

@@ -92,7 +92,7 @@ export default function Activities() {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-4xl font-bold mb-2 bg-gradient-to-r from-purple-400 via-violet-400 to-indigo-400 bg-clip-text text-transparent">
+        <h1 className="text-4xl font-bold mb-2 bg-gradient-to-r from-purple-600 dark:from-purple-400 via-violet-600 dark:via-violet-400 to-indigo-600 dark:to-indigo-400 bg-clip-text text-transparent">
           Activity Log
         </h1>
         <p className="text-gray-600 dark:text-gray-400 text-lg">
@@ -101,7 +101,7 @@ export default function Activities() {
       </div>
 
       {/* Activities List */}
-      <div className="rounded-xl bg-white/5 dark:bg-white/5 backdrop-blur-md border border-gray-200 dark:border-white/10 shadow-xs">
+      <div className="rounded-xl bg-white/5 dark:bg-white/5 backdrop-blur-md border border-gray-300/80 dark:border-white/10 shadow-xs">
         {loading ? (
           <div className="flex items-center justify-center py-12">
             <Loader2 className="h-8 w-8 animate-spin text-purple-500" />

@@ -99,20 +99,6 @@ export default function Registry() {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Breadcrumb Header */}
-      <div className="border-b border-border/40 bg-background/95 backdrop-blur-sm supports-[backdrop-filter]:bg-background/60">
-        <div className="px-6 py-3">
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <span className="hover:text-foreground cursor-pointer" onClick={() => { void navigate(`/app/${selectedOrg}/workspaces`); }}>
-              {selectedOrg}
-            </span>
-            <span>/</span>
-            <span className="text-foreground font-medium">Registry</span>
-            <span>/</span>
-            <span className="text-foreground font-medium">Modules</span>
-          </div>
-        </div>
-      </div>
 
       <div className="p-6 space-y-6">
         {/* Main Title */}
@@ -239,9 +225,8 @@ export default function Registry() {
               <div className="flex min-h-[400px] items-center justify-center">
                 <div className={cn(
                   'text-center space-y-6 p-12 rounded-2xl',
-                  'bg-gradient-to-br from-white/10 via-white/5 to-transparent',
-                  'dark:from-black/10 dark:via-black/5',
-                  'backdrop-blur-md border border-white/20 dark:border-white/10',
+                  'bg-gradient-to-br from-white/90 via-white/75 to-white/60 dark:from-black/10 dark:via-black/5 dark:to-transparent',
+                  'backdrop-blur-md border border-gray-300/80 dark:border-white/10',
                   'shadow-xl shadow-purple-500/10',
                   'max-w-2xl'
                 )}>
@@ -273,7 +258,7 @@ export default function Registry() {
                   <div
                     key={module.id}
                     className="group border rounded-lg p-6 hover:shadow-md transition-shadow cursor-pointer bg-card"
-                    onClick={() => { void navigate(`/organizations/${selectedOrg}/registry/modules/${module.name}/${module.provider}`); }}
+                    onClick={() => { void navigate(`/app/${selectedOrg}/registry/modules/${module.name}/${module.provider}`); }}
                   >
                     <div className="flex items-start justify-between mb-3">
                       <div className="flex-1">

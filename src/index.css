@@ -50,7 +50,9 @@
   :root {
     --background: hsl(0 0% 100%);
     --foreground: hsl(222.2 84% 4.9%);
-    --card: hsl(0 0% 100%);
+    /* Slightly cool off-white so token-driven cards separate from white
+       popover/dialog backgrounds (issue #680). Dark tokens are untouched. */
+    --card: hsl(210 33% 98.5%);
     --card-foreground: hsl(222.2 84% 4.9%);
     --popover: hsl(0 0% 100%);
     --popover-foreground: hsl(222.2 84% 4.9%);
@@ -167,6 +169,152 @@
   input::placeholder,
   textarea::placeholder {
     color: var(--color-muted-foreground);
+  }
+}
+
+/* Canonical gradient-ring button (decision 2026-08-20, see
+   docs/internal/design/heading-button-design-decisions.md). ONE style, used
+   through <GradientButton> (components/ui/gradient-button.tsx) everywhere.
+
+   Faithful to the original wrapper construction: the gradient is a background
+   layer that spans the whole button and the core sits on top of it - so in
+   dark mode the translucent slate core lets the gradient glow through the
+   middle exactly as before, and the ring is the 3px of gradient left showing
+   around the core. Two differences from the old markup: a real border (ring is
+   pixel-even, one element, painted by ::after inside the button's own
+   stacking context so it works on any page) and the hover treatment - on hover the ring becomes
+   a conic gradient that rotates, with a blurred gradient halo underneath; on
+   mouse-out everything snaps straight back to the resting (page-load) look.
+   Unlayered on purpose so it beats Tailwind utility layers (e.g. the ghost
+   variant's hover:bg-accent). Ramp defaults to violet→indigo→blue;
+   .gradient-ring-brand switches to the public-surface blue→indigo→purple;
+   radius via --sw-ring-radius. */
+@property --sw-ring-angle {
+  syntax: '<angle>';
+  initial-value: 0deg;
+  inherits: false;
+}
+
+.gradient-ring-btn {
+  /* Public knobs are read with fallbacks (never defined here) so Tailwind
+     utility classes like [--sw-ring-radius:0.375rem] or [--sw-ring-c1:#f43f5e]
+     can override them - unlayered CSS would otherwise always win. */
+  --_c1: var(--sw-ring-c1, #8b5cf6); /* violet-500 */
+  --_c2: var(--sw-ring-c2, #6366f1); /* indigo-500 */
+  --_c3: var(--sw-ring-c3, #3b82f6); /* blue-500 */
+  --_r: var(--sw-ring-radius, 0.75rem);
+  --sw-ring-width: 3px;
+  --sw-ring-core: #ffffff;           /* light: the original bg-white core */
+  --sw-ring-core-hover: #f8fafc;     /* hover:bg-slate-50 */
+  position: relative;
+  /* The button is its own stacking context so the two layers below always
+     paint inside it: ::after (ring + core, z -1) and ::before (halo, z -2)
+     sit above nothing but each other and below the label. Without this the
+     negative z-index layers fell through to the page's stacking context and
+     vanished behind card/main backgrounds inside the app. */
+  isolation: isolate;
+  border: var(--sw-ring-width) solid transparent;
+  border-radius: var(--_r);
+  background: transparent;
+  color: #0f172a;
+}
+.gradient-ring-btn:hover {
+  --sw-ring-core: var(--sw-ring-core-hover);
+  background: transparent;
+  color: #0f172a;
+}
+.dark .gradient-ring-btn {
+  --sw-ring-core: rgb(15 23 42 / 0.8);        /* dark:bg-slate-900/80 - translucent, gradient shows through */
+  --sw-ring-core-hover: rgb(15 23 42 / 0.9);  /* dark:hover:bg-slate-900/90 */
+  color: #ffffff;
+}
+.dark .gradient-ring-btn:hover {
+  color: #ffffff;
+}
+
+/* ring + core: the core sits over the resting (linear, left→right) gradient -
+   the original look; the ring is the 3px of gradient left showing around it */
+.gradient-ring-btn::after {
+  content: '';
+  position: absolute;
+  inset: calc(-1 * var(--sw-ring-width));
+  z-index: -1;
+  border: var(--sw-ring-width) solid transparent;
+  border-radius: var(--_r);
+  background:
+    linear-gradient(var(--sw-ring-core), var(--sw-ring-core)) padding-box,
+    linear-gradient(90deg, var(--_c1), var(--_c2), var(--_c3)) border-box;
+  pointer-events: none;
+}
+.gradient-ring-btn:hover::after {
+  /* hover: the ring becomes conic and rotates */
+  background:
+    linear-gradient(var(--sw-ring-core), var(--sw-ring-core)) padding-box,
+    conic-gradient(from var(--sw-ring-angle), var(--_c1), var(--_c2), var(--_c3), var(--_c2), var(--_c1)) border-box;
+  animation: sw-ring-spin 2.2s linear infinite;
+}
+
+/* the halo behind the button */
+.gradient-ring-btn::before {
+  content: '';
+  position: absolute;
+  inset: calc(-1 * var(--sw-ring-width));
+  border-radius: var(--_r);
+  z-index: -2;
+  background: linear-gradient(90deg, var(--_c1), var(--_c2), var(--_c3), var(--_c2), var(--_c1));
+  background-size: 250% 100%;
+  background-position: 0% 50%;
+  filter: blur(10px);
+  opacity: 0.4;
+  transition: opacity 0.25s;
+  pointer-events: none;
+}
+.gradient-ring-btn:hover::before {
+  opacity: 0.85;
+  animation: sw-ring-glow 1.8s linear infinite alternate;
+}
+.gradient-ring-btn:disabled::before {
+  display: none;
+}
+
+/* Secondary ring (design lab P2, decided 2026-08-24): same family, half the
+   voice - 1px ring with the gradient faded to 55%, static. No glow, no spin;
+   when a primary and a secondary share a header, only the primary moves. */
+.gradient-ring-btn.gradient-ring-secondary {
+  --sw-ring-width: 1px;
+}
+.gradient-ring-btn.gradient-ring-secondary::after,
+.gradient-ring-btn.gradient-ring-secondary:hover::after {
+  background:
+    linear-gradient(var(--sw-ring-core), var(--sw-ring-core)) padding-box,
+    linear-gradient(90deg,
+      color-mix(in srgb, var(--_c1) 55%, transparent),
+      color-mix(in srgb, var(--_c2) 55%, transparent),
+      color-mix(in srgb, var(--_c3) 55%, transparent)) border-box;
+  animation: none;
+}
+.gradient-ring-btn.gradient-ring-secondary::before {
+  display: none;
+}
+
+/* Public surface + login flow ramp (blue → indigo → purple). */
+.gradient-ring-btn.gradient-ring-brand {
+  --sw-ring-c1: #3b82f6; /* blue-500 */
+  --sw-ring-c2: #6366f1; /* indigo-500 */
+  --sw-ring-c3: #a855f7; /* purple-500 */
+}
+
+@keyframes sw-ring-spin {
+  to { --sw-ring-angle: 360deg; }
+}
+@keyframes sw-ring-glow {
+  from { background-position: 0% 50%; }
+  to { background-position: 100% 50%; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .gradient-ring-btn:hover::after,
+  .gradient-ring-btn:hover::before {
+    animation: none;
   }
 }
 

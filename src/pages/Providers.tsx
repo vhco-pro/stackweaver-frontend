@@ -63,7 +63,7 @@ export default function Providers() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-indigo-400 via-blue-400 to-cyan-400 bg-clip-text text-transparent mb-2">
+          <h1 className="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-indigo-600 dark:from-indigo-400 via-blue-600 dark:via-blue-400 to-cyan-600 dark:to-cyan-400 bg-clip-text text-transparent mb-2">
             Cloud Providers
           </h1>
           <p className="text-muted-foreground">
@@ -83,9 +83,8 @@ export default function Providers() {
             key={provider.name}
             className={cn(
               'group relative overflow-hidden rounded-2xl',
-              'bg-gradient-to-br from-white/10 via-white/5 to-transparent',
-              'dark:from-black/10 dark:via-black/5',
-              'backdrop-blur-md border border-white/20 dark:border-white/10',
+              'bg-gradient-to-br from-white/90 via-white/75 to-white/60 dark:from-black/10 dark:via-black/5 dark:to-transparent',
+              'backdrop-blur-md border border-gray-300/80 dark:border-white/10',
               'p-6 shadow-lg shadow-purple-500/10',
               'transition-all duration-300',
               'hover:shadow-xl hover:shadow-purple-500/20 hover:scale-[1.02]',
@@ -145,9 +144,8 @@ export default function Providers() {
       {/* Coming Soon Notice */}
       <div className={cn(
         'rounded-2xl',
-        'bg-gradient-to-br from-white/10 via-white/5 to-transparent',
-        'dark:from-black/10 dark:via-black/5',
-        'backdrop-blur-md border border-white/20 dark:border-white/10',
+        'bg-gradient-to-br from-white/90 via-white/75 to-white/60 dark:from-black/10 dark:via-black/5 dark:to-transparent',
+        'backdrop-blur-md border border-gray-300/80 dark:border-white/10',
         'p-6 shadow-lg shadow-purple-500/10'
       )}>
         <div className="flex items-center space-x-3">

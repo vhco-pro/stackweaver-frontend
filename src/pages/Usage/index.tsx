@@ -66,7 +66,7 @@ export default function Usage() {
     <div className="space-y-6">
       <header className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 className="mb-2 bg-gradient-to-r from-purple-400 via-indigo-400 to-blue-400 bg-clip-text text-3xl font-bold text-transparent sm:text-4xl">
+          <h1 className="mb-2 bg-gradient-to-r from-purple-600 dark:from-purple-400 via-indigo-600 dark:via-indigo-400 to-blue-600 dark:to-blue-400 bg-clip-text text-3xl font-bold text-transparent sm:text-4xl">
             Usage &amp; Analytics
           </h1>
           <p className="text-muted-foreground">

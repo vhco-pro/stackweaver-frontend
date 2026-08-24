@@ -329,7 +329,7 @@ export default function RunDetail() {
   if (!run) {
     return (
       <div className="flex min-h-[400px] items-center justify-center">
-        <div className="text-center space-y-4 p-12 rounded-2xl bg-gradient-to-br from-white/10 via-white/5 to-transparent dark:from-black/10 dark:via-black/5 backdrop-blur-md border border-white/20 dark:border-white/10">
+        <div className="text-center space-y-4 p-12 rounded-2xl bg-gradient-to-br from-white/90 via-white/75 to-white/60 dark:from-black/10 dark:via-black/5 dark:to-transparent backdrop-blur-md border border-gray-300/80 dark:border-white/10">
           <h3 className="text-2xl font-semibold mb-2">Run not found</h3>
           <p className="text-muted-foreground mb-6">
             The run you're looking for doesn't exist or you don't have access to it.
@@ -442,9 +442,7 @@ export default function RunDetail() {
       <div className="flex items-center gap-2 text-sm text-muted-foreground">
         {org && wsName ? (
           <>
-            <Link to={`/app/${org}/workspaces`} className="hover:text-foreground transition-colors">
-              {org}
-            </Link>
+            <span>{org}</span>
             <span>/</span>
             <Link to={`/app/${org}/workspaces/${wsName}`} className="hover:text-foreground transition-colors">
               {wsName}
@@ -565,7 +563,7 @@ export default function RunDetail() {
             size="sm"
             onClick={() => {
               if (org && wsName) {
-                void navigate(`/organizations/${org}/workspaces/${wsName}`);
+                void navigate(`/app/${org}/workspaces/${wsName}`);
               } else {
                 void navigate(-1);
               }

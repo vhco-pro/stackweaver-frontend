@@ -113,7 +113,7 @@ export default function ProjectDetail() {
   if (!project) {
     return (
       <div className="flex min-h-[400px] items-center justify-center">
-        <div className="text-center space-y-4 p-12 rounded-2xl bg-gradient-to-br from-white/10 via-white/5 to-transparent dark:from-black/10 dark:via-black/5 backdrop-blur-md border border-white/20 dark:border-white/10">
+        <div className="text-center space-y-4 p-12 rounded-2xl bg-gradient-to-br from-white/90 via-white/75 to-white/60 dark:from-black/10 dark:via-black/5 dark:to-transparent backdrop-blur-md border border-gray-300/80 dark:border-white/10">
           <h3 className="text-2xl font-semibold mb-2">Project not found</h3>
           <p className="text-muted-foreground mb-6">
             The project you're looking for doesn't exist or you don't have access to it.
@@ -132,12 +132,7 @@ export default function ProjectDetail() {
       <div className="flex items-center gap-2 text-sm text-muted-foreground">
         {orgName && (
           <>
-            <Link 
-              to={`/app/${orgName}/projects`} 
-              className="hover:text-foreground transition-colors"
-            >
-              {orgName}
-            </Link>
+            <span>{orgName}</span>
             <span>/</span>
           </>
         )}
@@ -233,12 +228,11 @@ export default function ProjectDetail() {
                 {workspaces.map((workspace) => (
                   <Link
                     key={workspace.id}
-                    to={orgName ? `/app/${orgName}/workspaces/${workspace.name}` : `/organizations/${orgName}/workspaces/${workspace.name}`}
+                    to={`/app/${orgName}/workspaces/${workspace.name}`}
                     className={cn(
                       'group relative overflow-hidden rounded-2xl',
-                      'bg-gradient-to-br from-white/10 via-white/5 to-transparent',
-                      'dark:from-black/10 dark:via-black/5',
-                      'backdrop-blur-md border border-white/20 dark:border-white/10',
+                      'bg-gradient-to-br from-white/90 via-white/75 to-white/60 dark:from-black/10 dark:via-black/5 dark:to-transparent',
+                      'backdrop-blur-md border border-gray-300/80 dark:border-white/10',
                       'p-6 shadow-lg shadow-blue-500/10',
                       'transition-all duration-300',
                       'hover:shadow-xl hover:shadow-blue-500/20 hover:scale-[1.02]',
@@ -289,12 +283,11 @@ export default function ProjectDetail() {
                 {inventories.map((inventory) => (
                   <Link
                     key={inventory.id}
-                    to={orgName ? `/app/${orgName}/ansible/inventories/${inventory.id}` : `/organizations/${orgName}/ansible/inventories/${inventory.id}`}
+                    to={`/app/${orgName}/ansible/inventories/${inventory.id}`}
                     className={cn(
                       'group relative overflow-hidden rounded-2xl',
-                      'bg-gradient-to-br from-white/10 via-white/5 to-transparent',
-                      'dark:from-black/10 dark:via-black/5',
-                      'backdrop-blur-md border border-white/20 dark:border-white/10',
+                      'bg-gradient-to-br from-white/90 via-white/75 to-white/60 dark:from-black/10 dark:via-black/5 dark:to-transparent',
+                      'backdrop-blur-md border border-gray-300/80 dark:border-white/10',
                       'p-6 shadow-lg shadow-green-500/10',
                       'transition-all duration-300',
                       'hover:shadow-xl hover:shadow-green-500/20 hover:scale-[1.02]',
@@ -345,12 +338,11 @@ export default function ProjectDetail() {
                 {playbooks.map((playbook) => (
                   <Link
                     key={playbook.id}
-                    to={orgName ? `/app/${orgName}/ansible/playbooks/${playbook.id}` : `/organizations/${orgName}/ansible/playbooks/${playbook.id}`}
+                    to={`/app/${orgName}/ansible/playbooks/${playbook.id}`}
                     className={cn(
                       'group relative overflow-hidden rounded-2xl',
-                      'bg-gradient-to-br from-white/10 via-white/5 to-transparent',
-                      'dark:from-black/10 dark:via-black/5',
-                      'backdrop-blur-md border border-white/20 dark:border-white/10',
+                      'bg-gradient-to-br from-white/90 via-white/75 to-white/60 dark:from-black/10 dark:via-black/5 dark:to-transparent',
+                      'backdrop-blur-md border border-gray-300/80 dark:border-white/10',
                       'p-6 shadow-lg shadow-purple-500/10',
                       'transition-all duration-300',
                       'hover:shadow-xl hover:shadow-purple-500/20 hover:scale-[1.02]',
@@ -401,12 +393,11 @@ export default function ProjectDetail() {
                 {jobTemplates.map((template) => (
                   <Link
                     key={template.id}
-                    to={orgName ? `/app/${orgName}/ansible/job-templates/${template.id}` : `/organizations/${orgName}/ansible/job-templates/${template.id}`}
+                    to={`/app/${orgName}/ansible/job-templates/${template.id}`}
                     className={cn(
                       'group relative overflow-hidden rounded-2xl',
-                      'bg-gradient-to-br from-white/10 via-white/5 to-transparent',
-                      'dark:from-black/10 dark:via-black/5',
-                      'backdrop-blur-md border border-white/20 dark:border-white/10',
+                      'bg-gradient-to-br from-white/90 via-white/75 to-white/60 dark:from-black/10 dark:via-black/5 dark:to-transparent',
+                      'backdrop-blur-md border border-gray-300/80 dark:border-white/10',
                       'p-6 shadow-lg shadow-orange-500/10',
                       'transition-all duration-300',
                       'hover:shadow-xl hover:shadow-orange-500/20 hover:scale-[1.02]',
@@ -457,12 +448,11 @@ export default function ProjectDetail() {
                 {workflows.map((workflow) => (
                   <Link
                     key={workflow.id}
-                    to={orgName ? `/app/${orgName}/ansible/workflows/${workflow.id}` : `/organizations/${orgName}/ansible/workflows/${workflow.id}`}
+                    to={`/app/${orgName}/ansible/workflows/${workflow.id}`}
                     className={cn(
                       'group relative overflow-hidden rounded-2xl',
-                      'bg-gradient-to-br from-white/10 via-white/5 to-transparent',
-                      'dark:from-black/10 dark:via-black/5',
-                      'backdrop-blur-md border border-white/20 dark:border-white/10',
+                      'bg-gradient-to-br from-white/90 via-white/75 to-white/60 dark:from-black/10 dark:via-black/5 dark:to-transparent',
+                      'backdrop-blur-md border border-gray-300/80 dark:border-white/10',
                       'p-6 shadow-lg shadow-indigo-500/10',
                       'transition-all duration-300',
                       'hover:shadow-xl hover:shadow-indigo-500/20 hover:scale-[1.02]',
@@ -513,12 +503,11 @@ export default function ProjectDetail() {
                 {credentials.map((credential) => (
                   <Link
                     key={credential.id}
-                    to={orgName ? `/app/${orgName}/ansible/credentials/${credential.id}` : `/organizations/${orgName}/ansible/credentials/${credential.id}`}
+                    to={`/app/${orgName}/ansible/credentials/${credential.id}`}
                     className={cn(
                       'group relative overflow-hidden rounded-2xl',
-                      'bg-gradient-to-br from-white/10 via-white/5 to-transparent',
-                      'dark:from-black/10 dark:via-black/5',
-                      'backdrop-blur-md border border-white/20 dark:border-white/10',
+                      'bg-gradient-to-br from-white/90 via-white/75 to-white/60 dark:from-black/10 dark:via-black/5 dark:to-transparent',
+                      'backdrop-blur-md border border-gray-300/80 dark:border-white/10',
                       'p-6 shadow-lg shadow-yellow-500/10',
                       'transition-all duration-300',
                       'hover:shadow-xl hover:shadow-yellow-500/20 hover:scale-[1.02]',

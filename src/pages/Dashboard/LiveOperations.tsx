@@ -90,7 +90,7 @@ function OperationRow({ execution, now }: { execution: DashboardOperation; now: 
   return (
     <Link
       to={hrefFor(execution)}
-      className="flex items-center gap-3 rounded-xl border border-white/10 p-3 transition-colors hover:bg-white/5"
+      className="flex items-center gap-3 rounded-xl border border-gray-300/70 dark:border-white/10 p-3 transition-colors hover:bg-gray-100/70 dark:hover:bg-white/5"
     >
       <span
         className={

@@ -321,9 +321,7 @@ export default function StateVersionDetail() {
     <div className={cn("space-y-6", isFullscreen && "fixed inset-0 z-50 bg-background p-6 overflow-auto")}>
       {/* Breadcrumb */}
       <div className="flex items-center gap-2 text-sm text-muted-foreground">
-        <Link to={`/app/${orgName}/workspaces`} className="hover:text-foreground">
-          {orgName}
-        </Link>
+        <span>{orgName}</span>
         <span>/</span>
         <Link to={`/app/${orgName}/workspaces`} className="hover:text-foreground">
           Workspaces

@@ -106,9 +106,8 @@ export function OrganizationToken({ orgName, tokenType, label = 'organization' }
         <div className="flex items-center gap-2 text-muted-foreground text-sm"><Loader2 className="h-4 w-4 animate-spin" /> Loading…</div>
       ) : token ? (
         <div className={cn(
-          'rounded-2xl bg-gradient-to-br from-white/10 via-white/5 to-transparent',
-          'dark:from-black/10 dark:via-black/5',
-          'backdrop-blur-md border border-white/20 dark:border-white/10 p-6 shadow-lg shadow-purple-500/10'
+          'rounded-2xl bg-gradient-to-br from-white/90 via-white/75 to-white/60 dark:from-black/10 dark:via-black/5 dark:to-transparent',
+          'backdrop-blur-md border border-gray-300/80 dark:border-white/10 p-6 shadow-lg shadow-purple-500/10'
         )}>
           <div className="flex items-start justify-between gap-4">
             <div className="flex items-center gap-3">
@@ -138,9 +137,8 @@ export function OrganizationToken({ orgName, tokenType, label = 'organization' }
         </div>
       ) : (
         <div className={cn(
-          'rounded-2xl bg-gradient-to-br from-white/10 via-white/5 to-transparent',
-          'dark:from-black/10 dark:via-black/5',
-          'backdrop-blur-md border border-white/20 dark:border-white/10 p-6 flex items-center justify-between gap-4'
+          'rounded-2xl bg-gradient-to-br from-white/90 via-white/75 to-white/60 dark:from-black/10 dark:via-black/5 dark:to-transparent',
+          'backdrop-blur-md border border-gray-300/80 dark:border-white/10 p-6 flex items-center justify-between gap-4'
         )}>
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <AlertTriangle className="h-4 w-4 text-muted-foreground" />

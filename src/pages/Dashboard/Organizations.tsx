@@ -97,10 +97,10 @@ function OrgCard({ org }: { org: DashboardOrgStats }) {
       to={`/app/${org.name}/workspaces`}
       className={cn(
         'group flex flex-col rounded-2xl p-5 shadow-lg backdrop-blur-md transition-all duration-300 hover:shadow-xl',
-        'bg-gradient-to-br from-white/10 via-white/5 to-transparent dark:from-black/10 dark:via-black/5',
+        'bg-gradient-to-br from-white/90 via-white/75 to-white/60 dark:from-black/10 dark:via-black/5 dark:to-transparent',
         needsAttention > 0
           ? 'border border-amber-400/60 dark:border-amber-400/40'
-          : 'border border-white/20 hover:border-blue-300 dark:border-white/10 dark:hover:border-white/20',
+          : 'border border-gray-300/80 hover:border-blue-300 dark:border-white/10 dark:hover:border-white/20',
       )}
     >
       <div className="mb-4 flex items-center gap-3">

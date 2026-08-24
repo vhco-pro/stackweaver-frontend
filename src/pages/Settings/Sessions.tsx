@@ -80,7 +80,7 @@ export default function SessionsSettings() {
           </Button>
         </Link>
         <div className="flex-1">
-          <h1 className="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-blue-400 via-cyan-400 to-blue-500 bg-clip-text text-transparent mb-2">
+          <h1 className="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-blue-600 dark:from-blue-400 via-cyan-600 dark:via-cyan-400 to-blue-500 bg-clip-text text-transparent mb-2">
             Active Sessions
           </h1>
           <p className="text-muted-foreground">
@@ -110,9 +110,8 @@ export default function SessionsSettings() {
           {sessions.length === 0 ? (
             <div className={cn(
               'rounded-2xl',
-              'bg-gradient-to-br from-white/10 via-white/5 to-transparent',
-              'dark:from-black/10 dark:via-black/5',
-              'backdrop-blur-md border border-white/20 dark:border-white/10',
+              'bg-gradient-to-br from-white/90 via-white/75 to-white/60 dark:from-black/10 dark:via-black/5 dark:to-transparent',
+              'backdrop-blur-md border border-gray-300/80 dark:border-white/10',
               'p-8 shadow-lg shadow-blue-500/10 text-center'
             )}>
               <Monitor className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
@@ -124,9 +123,8 @@ export default function SessionsSettings() {
                 key={session.id}
                 className={cn(
                   'rounded-2xl',
-                  'bg-gradient-to-br from-white/10 via-white/5 to-transparent',
-                  'dark:from-black/10 dark:via-black/5',
-                  'backdrop-blur-md border border-white/20 dark:border-white/10',
+                  'bg-gradient-to-br from-white/90 via-white/75 to-white/60 dark:from-black/10 dark:via-black/5 dark:to-transparent',
+                  'backdrop-blur-md border border-gray-300/80 dark:border-white/10',
                   'p-6 shadow-lg shadow-blue-500/10',
                   session.is_current && 'ring-2 ring-blue-500/50'
                 )}
@@ -195,9 +193,8 @@ export default function SessionsSettings() {
 
       <div className={cn(
         'rounded-2xl',
-        'bg-gradient-to-br from-white/10 via-white/5 to-transparent',
-        'dark:from-black/10 dark:via-black/5',
-        'backdrop-blur-md border border-white/20 dark:border-white/10',
+        'bg-gradient-to-br from-white/90 via-white/75 to-white/60 dark:from-black/10 dark:via-black/5 dark:to-transparent',
+        'backdrop-blur-md border border-gray-300/80 dark:border-white/10',
         'p-6 shadow-lg shadow-blue-500/10'
       )}>
         <h3 className="font-semibold mb-2">About Active Sessions</h3>

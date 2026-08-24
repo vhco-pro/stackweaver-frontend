@@ -10,7 +10,7 @@ import { createSession, listIdpProviders, startIdP, getLoginSettings } from '@/a
 import type { IdpProvider, LoginSettings } from '@/api/auth-client';
 import { useMountEffect } from '@/hooks/useMountEffect';
 import LoginLayout from './LoginLayout';
-import { GradientButton } from './GradientButton';
+import { GradientButton } from '@/components/ui/gradient-button';
 import { toFriendlyError } from '@/lib/auth-errors';
 import { getIdpIcon } from './idpIcons';
 

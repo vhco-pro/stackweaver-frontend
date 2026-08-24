@@ -98,9 +98,7 @@ export default function ProviderList() {
       {/* Breadcrumb Header */}
       <div className="border-b border-border/40 pb-3 mb-6">
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <span className="hover:text-foreground cursor-pointer" onClick={() => { void Promise.resolve(navigate(`/app/${orgName}/registry`)); }}>
-            {orgName}
-          </span>
+          <span>{orgName}</span>
           <span>/</span>
           <span className="hover:text-foreground cursor-pointer" onClick={() => { void Promise.resolve(navigate(`/app/${orgName}/registry`)); }}>
             Registry
@@ -160,9 +158,8 @@ export default function ProviderList() {
         <div className="flex min-h-[400px] items-center justify-center">
           <div className={cn(
             'text-center space-y-6 p-12 rounded-2xl',
-            'bg-gradient-to-br from-white/10 via-white/5 to-transparent',
-            'dark:from-black/10 dark:via-black/5',
-            'backdrop-blur-md border border-white/20 dark:border-white/10',
+            'bg-gradient-to-br from-white/90 via-white/75 to-white/60 dark:from-black/10 dark:via-black/5 dark:to-transparent',
+            'backdrop-blur-md border border-gray-300/80 dark:border-white/10',
             'shadow-xl shadow-blue-500/10',
             'max-w-2xl'
           )}>
@@ -189,7 +186,7 @@ export default function ProviderList() {
           </div>
         </div>
       ) : (
-        <div className="rounded-lg border border-gray-200 dark:border-white/10 bg-white dark:bg-white/5">
+        <div className="rounded-lg border border-gray-300/80 dark:border-white/10 bg-white dark:bg-white/5">
           <Table>
             <TableHeader>
               <TableRow>

@@ -13,6 +13,7 @@ import { fetchAllPages } from '@/lib/pagination';
 import { Pager } from '@/components/ui/pager';
 import { vcsConnectionsApi } from '@/api/client';
 import { Button } from '@/components/ui/button';
+import { GradientButton } from '@/components/ui/gradient-button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
@@ -495,23 +496,35 @@ export default function Playbooks() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-start justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Playbooks</h1>
+          <h1 className="text-3xl font-bold bg-gradient-to-r from-violet-500 via-indigo-500 to-blue-500 bg-clip-text text-transparent mb-2 flex items-center gap-3">
+            <FileText className="h-7 w-7 text-violet-600 dark:text-violet-400 shrink-0" />
+            Playbooks
+          </h1>
           <p className="text-muted-foreground">
             Manage Ansible playbooks for {selectedOrg}
           </p>
         </div>
         {canManagePlaybooks && (
-          <div className="flex items-center gap-2">
-            <Button variant="outline" onClick={() => setImportDialogOpen(true)}>
+          <div className="flex items-center gap-3">
+            <GradientButton
+              ramp="app"
+              emphasis="secondary"
+              onClick={() => setImportDialogOpen(true)}
+              className="w-auto px-4 py-2"
+            >
               <FolderGit2 className="h-4 w-4 mr-2" />
               Import from repository
-            </Button>
-            <Button onClick={() => setCreateDialogOpen(true)}>
+            </GradientButton>
+            <GradientButton
+              ramp="app"
+              onClick={() => setCreateDialogOpen(true)}
+              className="w-auto px-4 py-2"
+            >
               <Plus className="h-4 w-4 mr-2" />
               New Playbook
-            </Button>
+            </GradientButton>
           </div>
         )}
       </div>
@@ -574,10 +587,10 @@ export default function Playbooks() {
                 Clear filters
               </Button>
             ) : canManagePlaybooks && (
-              <Button onClick={() => setCreateDialogOpen(true)}>
+              <GradientButton ramp="app" onClick={() => setCreateDialogOpen(true)} className="w-auto px-4 py-2">
                 <Plus className="h-4 w-4 mr-2" />
                 Create Playbook
-              </Button>
+              </GradientButton>
             )}
           </CardContent>
         </Card>
@@ -1096,13 +1109,15 @@ export default function Playbooks() {
             <Button variant="outline" onClick={() => setCreateDialogOpen(false)}>
               Cancel
             </Button>
-            <Button
+            <GradientButton
+              ramp="app"
               onClick={() => { void handleCreate(); }}
               disabled={creating || !createForm.name || !createForm.vcs_connection_id || !createForm.vcs_repository || !createForm.vcs_branch}
+              className="w-auto px-4 py-2"
             >
               {creating && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
               Create Playbook
-            </Button>
+            </GradientButton>
           </DialogFooter>
         </DialogContent>
       </Dialog>

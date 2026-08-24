@@ -9,7 +9,7 @@ import { Loader2 } from 'lucide-react';
 import { createSession, getSession, requestPasswordReset } from '@/api/auth-client';
 import LoginLayout from './LoginLayout';
 import ReturnCodePanel from './ReturnCodePanel';
-import { GradientButton } from './GradientButton';
+import { GradientButton } from '@/components/ui/gradient-button';
 
 export default function PasswordReset() {
   const navigate = useNavigate();

@@ -9,7 +9,7 @@ import { Loader2 } from 'lucide-react';
 import { createSession, updateSession, finalizeAuthRequest, getSession, getLoginSettings, getUserAuthMethods, getUser } from '@/api/auth-client';
 import { toFriendlyError } from '@/lib/auth-errors';
 import LoginLayout from './LoginLayout';
-import { GradientButton } from './GradientButton';
+import { GradientButton } from '@/components/ui/gradient-button';
 
 /**
  * Checks session factors + login settings to determine if any forced flow

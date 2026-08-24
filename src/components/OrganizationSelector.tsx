@@ -29,7 +29,7 @@ export function OrganizationSelector({ className }: OrganizationSelectorProps) {
   // Check if we're on a route that requires organization context
   const isOrgScopedRoute = location.pathname.startsWith('/app/');
   const isDashboardRoute = location.pathname === '/dashboard';
-  const isOrganizationsRoute = location.pathname === '/organizations' || location.pathname.startsWith('/organizations/');
+  const isOrganizationsRoute = location.pathname === '/organizations';
 
   // If context is not available (provider not mounted yet), return null
   if (context === undefined) {

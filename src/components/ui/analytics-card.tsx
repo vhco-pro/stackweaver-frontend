@@ -5,6 +5,7 @@ import { AlertCircle, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
+import { glassSurface } from '@/lib/surfaces';
 
 /**
  * The canonical analytics card shell - the same glass surface used across Settings, so no page
@@ -28,13 +29,7 @@ export function AnalyticsCard({
 }) {
   return (
     <section
-      className={cn(
-        'rounded-2xl bg-gradient-to-br from-white/10 via-white/5 to-transparent',
-        'dark:from-black/10 dark:via-black/5',
-        'backdrop-blur-md border border-white/20 dark:border-white/10',
-        'p-5 sm:p-6 shadow-lg',
-        className
-      )}
+      className={cn(glassSurface, 'p-5 sm:p-6', className)}
     >
       {(title || action) && (
         <header className="mb-4 flex items-start justify-between gap-4">

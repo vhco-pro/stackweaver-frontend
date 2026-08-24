@@ -11,6 +11,7 @@ import {
   type CreateWorkflowInput,
 } from '@/api/ansible';
 import { Button } from '@/components/ui/button';
+import { GradientButton } from '@/components/ui/gradient-button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -226,23 +227,23 @@ export default function Workflows() {
   }
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <Workflow className="h-6 w-6 text-purple-600 dark:text-purple-400" />
+          <h1 className="text-3xl font-bold bg-gradient-to-r from-violet-500 via-indigo-500 to-blue-500 bg-clip-text text-transparent mb-2 flex items-center gap-3">
+            <Workflow className="h-7 w-7 text-violet-600 dark:text-violet-400 shrink-0" />
             Workflow Templates
           </h1>
-          <p className="text-muted-foreground mt-1">
+          <p className="text-muted-foreground">
             Create multi-job pipelines with conditional branching
           </p>
         </div>
         {canManageJobTemplates && (
-          <Button onClick={() => setCreateDialogOpen(true)}>
+          <GradientButton ramp="app" onClick={() => setCreateDialogOpen(true)} className="w-auto px-4 py-2">
             <Plus className="h-4 w-4 mr-2" />
             New Workflow
-          </Button>
+          </GradientButton>
         )}
       </div>
 
@@ -289,10 +290,10 @@ export default function Workflows() {
                 }
               </p>
               {!searchQuery && canManageJobTemplates && (
-                <Button className="mt-4" onClick={() => setCreateDialogOpen(true)}>
+                <GradientButton ramp="app" className="mt-4 w-auto px-4 py-2" onClick={() => setCreateDialogOpen(true)}>
                   <Plus className="h-4 w-4 mr-2" />
                   Create Workflow
-                </Button>
+                </GradientButton>
               )}
             </div>
           ) : (
@@ -473,10 +474,10 @@ export default function Workflows() {
             <Button variant="outline" onClick={() => setCreateDialogOpen(false)}>
               Cancel
             </Button>
-            <Button onClick={() => { void handleCreate(); }} disabled={creating}>
+            <GradientButton ramp="app" onClick={() => { void handleCreate(); }} disabled={creating} className="w-auto px-4 py-2">
               {creating && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
               Create Workflow
-            </Button>
+            </GradientButton>
           </DialogFooter>
         </DialogContent>
       </Dialog>

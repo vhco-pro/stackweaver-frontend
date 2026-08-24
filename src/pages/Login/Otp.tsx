@@ -10,7 +10,7 @@ import { useMountEffect } from '@/hooks/useMountEffect';
 import { useCodePaste } from '@/hooks/useCodePaste';
 import LoginLayout from './LoginLayout';
 import ReturnCodePanel from './ReturnCodePanel';
-import { GradientButton } from './GradientButton';
+import { GradientButton } from '@/components/ui/gradient-button';
 import { toFriendlyError } from '@/lib/auth-errors';
 
 /**

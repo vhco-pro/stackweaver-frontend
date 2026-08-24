@@ -31,9 +31,8 @@ export function KpiTile({
   return (
     <div
       className={cn(
-        'rounded-2xl bg-gradient-to-br from-white/10 via-white/5 to-transparent',
-        'dark:from-black/10 dark:via-black/5',
-        'backdrop-blur-md border border-white/20 dark:border-white/10',
+        'rounded-2xl bg-gradient-to-br from-white/90 via-white/75 to-white/60 dark:from-black/10 dark:via-black/5 dark:to-transparent',
+        'backdrop-blur-md border border-gray-300/80 dark:border-white/10',
         'p-4 shadow-lg'
       )}
     >

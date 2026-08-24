@@ -40,7 +40,7 @@ export default function TeamDetail() {
           </Button>
         </Link>
         <div className="flex-1">
-          <h1 className="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-blue-400 via-cyan-400 to-blue-400 bg-clip-text text-transparent mb-2">
+          <h1 className="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-blue-600 dark:from-blue-400 via-cyan-600 dark:via-cyan-400 to-blue-600 dark:to-blue-400 bg-clip-text text-transparent mb-2">
             {team?.name ?? 'Team'}
           </h1>
           <p className="text-muted-foreground">Token and notification settings for this team</p>
@@ -52,7 +52,7 @@ export default function TeamDetail() {
           <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
         </div>
       ) : error || !team ? (
-        <div className="rounded-2xl border border-dashed border-white/20 dark:border-white/10 p-8 text-center text-muted-foreground">
+        <div className="rounded-2xl border border-dashed border-gray-300 dark:border-white/10 p-8 text-center text-muted-foreground">
           <Users className="h-12 w-12 mx-auto mb-4 opacity-50" />
           <p>Team not found.</p>
           <p className="text-sm mt-1">It may have been deleted, or you may not have access to it.</p>
