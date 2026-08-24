@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Loader2 } from 'lucide-react';
 import { changePassword } from '@/api/auth-client';
 import LoginLayout from './LoginLayout';
-import { GradientButton } from './GradientButton';
+import { GradientButton } from '@/components/ui/gradient-button';
 import { toFriendlyError } from '@/lib/auth-errors';
 
 export default function RegisterPassword() {

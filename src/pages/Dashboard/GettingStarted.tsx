@@ -50,7 +50,7 @@ export function GettingStarted({
         {steps.map((step, index) => (
           <li
             key={step.title}
-            className="flex items-start gap-3 rounded-xl border border-white/10 p-4"
+            className="flex items-start gap-3 rounded-xl border border-gray-300/70 dark:border-white/10 p-4"
           >
             <span
               className={`grid h-6 w-6 shrink-0 place-items-center rounded-full bg-gradient-to-br ${step.gradient} text-xs font-semibold text-white`}

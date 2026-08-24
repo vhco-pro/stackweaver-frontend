@@ -57,7 +57,7 @@ function RecentActivityList() {
             {activities.map(activity => (
               <li
                 key={activity.id}
-                className="flex items-start gap-3 rounded-xl border border-white/10 p-3"
+                className="flex items-start gap-3 rounded-xl border border-gray-300/70 dark:border-white/10 p-3"
               >
                 <span
                   className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-gradient-to-br from-purple-500 to-violet-500"

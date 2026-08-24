@@ -1,13 +1,17 @@
 // Copyright (c) 2025 VH & Co BV. Licensed under the Business Source License 1.1. See LICENSE for details.
 
-import { motion } from 'motion/react';
 import { Link } from 'react-router-dom';
-import { FileText, Search, Shield, LayoutDashboard, Zap } from 'lucide-react';
+import { FileText } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { HeroTourVisual } from '@/components/landing/HeroTour';
+import { TOUR_PANES, useHeroTour } from '@/components/landing/heroTour';
 import { Button } from '@/components/ui/button';
+import { GradientButton } from '@/components/ui/gradient-button';
 import { RotatingTextContainer, RotatingText } from '@/components/animate-ui/primitives/texts/rotating';
 import { getVcsProviderIcon } from '@/lib/vcs';
 
 export function ProductOverview() {
+  const tour = useHeroTour();
   return (
     <section id="overview" className="py-12 md:py-24 px-4 md:px-6 relative overflow-hidden bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white transition-colors duration-500">
       {/* Background gradients */}
@@ -32,9 +36,9 @@ export function ProductOverview() {
             STACKWEAVER
           </h1>
             <h2 className="text-2xl sm:text-4xl md:text-5xl font-bold tracking-tight text-slate-700 dark:text-gray-200 mb-6 flex flex-wrap items-center gap-x-3">
-              <span>Dashboard for</span>
+              <span>Orchestrate</span>
               <RotatingTextContainer
-                text={['Terraform', 'Ansible']}
+                text={['Terraform', 'Ansible', 'OpenTofu']}
                 className="inline-flex text-blue-600 dark:text-blue-400 min-w-[100px] sm:min-w-[140px] justify-start"
                 y={40}
                 duration={2000}
@@ -48,39 +52,47 @@ export function ProductOverview() {
             </p>
           </div>
 
-          {/* Feature Pills */}
-          <div className="flex flex-wrap gap-3">
-            {[
-              { icon: LayoutDashboard, label: 'Visualize Resources' },
-              { icon: Search, label: 'Search & Filter' },
-              { icon: Shield, label: 'Secure' },
-              { icon: Zap, label: 'Real-time' },
-            ].map((feature, idx) => (
-              <div 
-                key={idx} 
-                className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-white border border-slate-200 shadow-xs dark:bg-white/5 dark:border-white/10 text-sm font-medium text-slate-600 dark:text-gray-300 hover:bg-slate-50 dark:hover:bg-white/10 transition-colors cursor-default"
-              >
-                <feature.icon className="w-4 h-4 text-slate-500 dark:text-gray-400" />
-                <span>{feature.label}</span>
-              </div>
-            ))}
+          {/* Feature pills double as the hero tour's tabs: each one swaps the visual on the right. */}
+          <div className="flex flex-wrap gap-3" role="tablist" aria-label="Product tour">
+            {TOUR_PANES.map((feature) => {
+              const active = feature.id === tour.pane;
+              return (
+                <button
+                  key={feature.id}
+                  type="button"
+                  role="tab"
+                  aria-selected={active}
+                  aria-controls="hero-tour-visual"
+                  onClick={() => { tour.select(feature.id); }}
+                  onMouseEnter={() => { tour.setHovering(true); }}
+                  onMouseLeave={() => { tour.setHovering(false); }}
+                  className={cn(
+                    'flex items-center gap-2 px-4 py-2.5 rounded-lg border text-sm font-medium transition-all duration-300 cursor-pointer',
+                    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/60',
+                    active
+                      ? 'bg-white dark:bg-white/10 border-blue-500/60 dark:border-blue-400/50 text-slate-900 dark:text-white shadow-md shadow-blue-500/10'
+                      : 'bg-white border-slate-200 shadow-xs dark:bg-white/5 dark:border-white/10 text-slate-600 dark:text-gray-300 hover:bg-slate-50 dark:hover:bg-white/10'
+                  )}
+                >
+                  <feature.icon className={cn('w-4 h-4 transition-colors', active ? 'text-blue-600 dark:text-blue-400' : 'text-slate-500 dark:text-gray-400')} />
+                  <span>{feature.label}</span>
+                </button>
+              );
+            })}
           </div>
 
           {/* Actions */}
           <div className="flex flex-col sm:flex-row gap-4 mt-4">
-            <div className="relative inline-flex w-full sm:w-auto rounded-xl bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500 p-[3px] dark:p-[2.5px]">
-              <Button
-                variant="ghost"
-                size="lg"
-                asChild
-                className="w-full sm:w-auto justify-center bg-white dark:bg-slate-900/80 dark:backdrop-blur-xs text-slate-900 dark:text-white hover:bg-slate-50 dark:hover:bg-slate-900/90 border-0 whitespace-nowrap rounded-[calc(0.75rem-3px)] dark:rounded-[calc(0.75rem-2.5px)] h-12 px-6 text-base font-semibold transition-colors duration-200"
-              >
-                <a href="https://github.com/michielvha/stackweaver" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2">
-                  {getVcsProviderIcon('github', 'w-5 h-5')}
-                  <span>View on GitHub</span>
-                </a>
-              </Button>
-            </div>
+            <GradientButton
+              size="lg"
+              asChild
+              className="sm:w-auto justify-center h-12 px-6 text-base font-semibold"
+            >
+              <a href="https://github.com/michielvha/stackweaver" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2">
+                {getVcsProviderIcon('github', 'w-5 h-5')}
+                <span>View on GitHub</span>
+              </a>
+            </GradientButton>
             
             <Button 
               variant="outline" 
@@ -96,100 +108,9 @@ export function ProductOverview() {
           </div>
         </div>
 
-        {/* Right Column: 3D Visual */}
-        <div className="relative perspective-[2000px] lg:h-[600px] flex items-center justify-center">
-          <motion.div 
-            initial={{ rotateY: 15, rotateX: 5, scale: 0.9, opacity: 0 }}
-            whileInView={{ rotateY: -10, rotateX: 5, scale: 1, opacity: 1 }}
-            transition={{ duration: 1.2, ease: "easeOut" }}
-            viewport={{ once: true }}
-            className="relative w-full aspect-[4/3] rounded-xl overflow-hidden shadow-2xl border border-slate-200 dark:border-white/10 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl group"
-            style={{
-              transformStyle: 'preserve-3d',
-              boxShadow: 'var(--shadow-color)',
-            }}
-          >
-            {/* Fake Dashboard Header */}
-            <div className="h-12 border-b border-slate-200 dark:border-white/10 bg-slate-50/50 dark:bg-white/5 flex items-center px-4 justify-between">
-              <div className="flex gap-2">
-                <div className="w-3 h-3 rounded-full bg-red-500" />
-                <div className="w-3 h-3 rounded-full bg-yellow-500" />
-                <div className="w-3 h-3 rounded-full bg-green-500" />
-              </div>
-              <div className="h-6 w-1/3 bg-slate-200 dark:bg-white/5 rounded-md" />
-              <div className="w-8 h-8 rounded-full bg-slate-200 dark:bg-white/10" />
-            </div>
-
-            {/* Fake Dashboard Content */}
-            <div className="p-6 grid grid-cols-12 gap-6 h-[calc(100%-3rem)]">
-              {/* Sidebar */}
-              <div className="col-span-3 space-y-4 border-r border-slate-200 dark:border-white/10 pr-6">
-                <div className="h-8 w-full bg-blue-500/10 dark:bg-blue-500/20 rounded-md" />
-                <div className="h-4 w-3/4 bg-slate-100 dark:bg-white/5 rounded-md" />
-                <div className="h-4 w-1/2 bg-slate-100 dark:bg-white/5 rounded-md" />
-                <div className="h-4 w-5/6 bg-slate-100 dark:bg-white/5 rounded-md" />
-                <div className="mt-8 h-px w-full bg-slate-200 dark:bg-white/10" />
-                <div className="h-4 w-full bg-slate-100 dark:bg-white/5 rounded-md" />
-                <div className="h-4 w-2/3 bg-slate-100 dark:bg-white/5 rounded-md" />
-              </div>
-
-              {/* Main Area */}
-              <div className="col-span-9 space-y-6">
-                 {/* Top Stats */}
-                 <div className="grid grid-cols-3 gap-4">
-                   {[1, 2, 3].map(i => (
-                     <div key={i} className="h-24 rounded-lg bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/5 p-4">
-                       <div className="h-4 w-8 bg-blue-400/20 rounded-sm mb-2" />
-                       <div className="h-8 w-16 bg-slate-200 dark:bg-white/10 rounded-sm" />
-                     </div>
-                   ))}
-                 </div>
-
-                 {/* Graph/Table Area */}
-                 <div className="h-32 rounded-lg bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/5 p-4 flex items-end gap-2 px-8 pb-4">
-                    {[40, 65, 45, 80, 55, 70, 40, 60, 50, 75].map((h, i) => (
-                      <div key={i} className="flex-1 bg-blue-500/30 rounded-t-sm hover:bg-blue-500/50 transition-colors" style={{ height: `${h}%` }} />
-                    ))}
-                 </div>
-
-                 <div className="space-y-3">
-                   {[1, 2, 3].map(i => (
-                     <div key={i} className="h-10 rounded-md bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/5" />
-                   ))}
-                 </div>
-              </div>
-            </div>
-
-            {/* Floating Elements for Depth */}
-            <motion.div 
-               animate={{ y: [0, -10, 0] }}
-               transition={{ duration: 4, repeat: Infinity, ease: "easeInOut", delay: 1 }}
-               className="absolute top-1/4 right-[-20px] bg-white dark:bg-slate-800 p-4 rounded-lg border border-slate-200 dark:border-white/10 shadow-xl w-48 z-20 hidden md:block"
-               style={{ transform: 'translateZ(40px)' }}
-            >
-               <div className="flex items-center gap-3 mb-2">
-                 <div className="p-1.5 bg-green-500/10 dark:bg-green-500/20 rounded-md">
-                   <Shield className="w-4 h-4 text-green-600 dark:text-green-400" />
-                 </div>
-                 <div className="text-xs font-semibold text-slate-900 dark:text-white">Policy Check Passed</div>
-               </div>
-               <div className="h-1.5 w-full bg-slate-100 dark:bg-white/10 rounded-full overflow-hidden">
-                 <div className="h-full w-full bg-green-500" />
-               </div>
-            </motion.div>
-
-            <motion.div 
-               animate={{ y: [0, 15, 0] }}
-               transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
-               className="absolute bottom-1/4 left-[-10px] bg-white dark:bg-slate-800 p-4 rounded-lg border border-slate-200 dark:border-white/10 shadow-xl w-40 z-20 hidden md:block"
-               style={{ transform: 'translateZ(60px)' }}
-            >
-               <div className="text-xs text-slate-500 dark:text-gray-400 mb-1">Active Resources</div>
-               <div className="text-2xl font-bold text-slate-900 dark:text-white">1,248</div>
-               <div className="text-xs text-green-600 dark:text-green-400 mt-1">+12% this week</div>
-            </motion.div>
-
-          </motion.div>
+        {/* Right Column: 3D visual - a miniature of the screen the active pill describes */}
+        <div id="hero-tour-visual" role="tabpanel" className="relative perspective-[2000px] lg:h-[600px] flex items-center justify-center">
+          <HeroTourVisual pane={tour.pane} />
         </div>
       </div>
     </section>

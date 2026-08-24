@@ -235,7 +235,7 @@ export function CreateWorkspaceDialog({
       setExecutionMode('remote');
 
       // Navigate to workspace detail page
-      void navigate(`/organizations/${orgName}/workspaces/${workspace.name}`);
+      void navigate(`/app/${orgName}/workspaces/${workspace.name}`);
     } catch (error: unknown) {
       console.error('Failed to create workspace:', error);
       let errorMessage = 'Failed to create workspace';

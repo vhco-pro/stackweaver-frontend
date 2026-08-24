@@ -7,6 +7,7 @@ import { useNavigate } from 'react-router-dom';
 import { ArrowRight, Zap, Shield, Cloud, Layers3, GitBranch, Cpu, KeyRound, ShieldCheck, Wrench, Database, Globe, PlugZap, Container, Copy, Check, ExternalLink } from 'lucide-react';
 import { getVcsProviderIcon } from '@/lib/vcs';
 import { Button } from '@/components/ui/button';
+import { GradientButton } from '@/components/ui/gradient-button';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import { CookieConsent } from '@/components/gdpr/CookieConsent';
@@ -242,19 +243,16 @@ export default function Landing() {
           </div>
 
           {/* <div className="flex flex-col sm:flex-row gap-4 justify-center items-center w-full max-w-max mx-auto animate-in fade-in slide-in-from-bottom-8 duration-1000 delay-600">
-            <div className="relative inline-flex rounded-xl bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500 p-[3px] dark:p-[2.5px]">
-              <Button
-                variant="ghost"
-                size="lg"
-                onClick={handleGetStarted}
-                className="bg-white dark:bg-slate-900/80 dark:backdrop-blur-xs text-slate-900 dark:text-white hover:bg-slate-50 dark:hover:bg-slate-900/90 border-0 whitespace-nowrap rounded-[calc(0.75rem-3px)] dark:rounded-[calc(0.75rem-2.5px)] px-8 py-3 transition-colors duration-200"
-              >
-                <span className="flex items-center gap-2">
-                  <span>{session ? 'Go to Dashboard' : 'Get Started'}</span>
-                  <ArrowRight className="h-5 w-5 shrink-0" />
-                </span>
-              </Button>
-            </div>
+            <GradientButton
+              size="lg"
+              onClick={handleGetStarted}
+              className="w-auto px-8 py-3"
+            >
+              <span className="flex items-center gap-2">
+                <span>{session ? 'Go to Dashboard' : 'Get Started'}</span>
+                <ArrowRight className="h-5 w-5 shrink-0" />
+              </span>
+            </GradientButton>
 
             <Ripple asChild>
               <Button
@@ -308,7 +306,7 @@ export default function Landing() {
             ].map((feature, index) => (
               <div
                 key={index}
-                className="h-full rounded-xl bg-white/50 dark:bg-transparent backdrop-blur-md border border-white/20 dark:border-white/10 p-6 hover:bg-white/60 hover:border-white/30 dark:hover:border-white/20 transition-colors shadow-xs dark:shadow-none"
+                className="h-full rounded-xl bg-white/50 dark:bg-transparent backdrop-blur-md border border-gray-300/80 dark:border-white/10 p-6 hover:bg-white/60 hover:border-gray-300 dark:hover:border-white/20 transition-colors shadow-xs dark:shadow-none"
               >
                 <div className="flex items-start gap-4">
                   <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-blue-500/20 to-cyan-500/20 dark:from-blue-500/20 dark:to-indigo-500/20 flex items-center justify-center shrink-0">
@@ -437,19 +435,16 @@ export default function Landing() {
             </p>
             
             <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-              <div className="relative inline-flex rounded-xl bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500 p-[3px] dark:p-[2.5px]">
-                <Button
-                  variant="ghost"
-                  size="lg"
-                  onClick={handleGetStarted}
-                  className="bg-white dark:bg-slate-950/80 dark:backdrop-blur-xs text-slate-900 dark:text-white hover:bg-slate-50 dark:hover:bg-slate-950/90 border-0 text-lg px-8 py-6 h-auto whitespace-nowrap rounded-[calc(0.75rem-3px)] dark:rounded-[calc(0.75rem-2.5px)]"
-                >
-                  <span className="flex items-center gap-2">
-                    <span>{session ? 'Go to Dashboard' : 'Get Started'}</span>
-                    <ArrowRight className="h-5 w-5 shrink-0" />
-                  </span>
-                </Button>
-              </div>
+              <GradientButton
+                size="lg"
+                onClick={handleGetStarted}
+                className="w-auto text-lg px-8 py-6 h-auto"
+              >
+                <span className="flex items-center gap-2">
+                  <span>{session ? 'Go to Dashboard' : 'Get Started'}</span>
+                  <ArrowRight className="h-5 w-5 shrink-0" />
+                </span>
+              </GradientButton>
               <Button
                 asChild
                 variant="outline"

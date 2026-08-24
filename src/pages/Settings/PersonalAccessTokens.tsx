@@ -127,7 +127,7 @@ export default function PersonalAccessTokens() {
         <div className="flex-1">
           <div className="flex items-start justify-between gap-4 mb-2">
             <div>
-              <h1 className="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-purple-400 via-fuchsia-400 to-purple-400 bg-clip-text text-transparent mb-2">
+              <h1 className="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-purple-600 dark:from-purple-400 via-fuchsia-600 dark:via-fuchsia-400 to-purple-600 dark:to-purple-400 bg-clip-text text-transparent mb-2">
                 API Tokens
               </h1>
               <p className="text-muted-foreground max-w-2xl">
@@ -199,9 +199,8 @@ export default function PersonalAccessTokens() {
       {showTokenForm && (
         <div className={cn(
           'rounded-2xl',
-          'bg-gradient-to-br from-white/10 via-white/5 to-transparent',
-          'dark:from-black/10 dark:via-black/5',
-          'backdrop-blur-md border border-white/20 dark:border-white/10',
+          'bg-gradient-to-br from-white/90 via-white/75 to-white/60 dark:from-black/10 dark:via-black/5 dark:to-transparent',
+          'backdrop-blur-md border border-gray-300/80 dark:border-white/10',
           'p-6 shadow-lg shadow-purple-500/10'
         )}>
           <h3 className="text-lg font-semibold mb-4">Create Personal Token</h3>
@@ -270,9 +269,8 @@ export default function PersonalAccessTokens() {
                 key={token.id}
                 className={cn(
                   'rounded-2xl',
-                  'bg-gradient-to-br from-white/10 via-white/5 to-transparent',
-                  'dark:from-black/10 dark:via-black/5',
-                  'backdrop-blur-md border border-white/20 dark:border-white/10',
+                  'bg-gradient-to-br from-white/90 via-white/75 to-white/60 dark:from-black/10 dark:via-black/5 dark:to-transparent',
+                  'backdrop-blur-md border border-gray-300/80 dark:border-white/10',
                   'p-6 shadow-lg shadow-purple-500/10',
                   isExpired && 'opacity-60'
                 )}
@@ -327,9 +325,8 @@ export default function PersonalAccessTokens() {
         !showTokenForm && (
           <div className={cn(
             'rounded-2xl',
-            'bg-gradient-to-br from-white/10 via-white/5 to-transparent',
-            'dark:from-black/10 dark:via-black/5',
-            'backdrop-blur-md border border-white/20 dark:border-white/10',
+            'bg-gradient-to-br from-white/90 via-white/75 to-white/60 dark:from-black/10 dark:via-black/5 dark:to-transparent',
+            'backdrop-blur-md border border-gray-300/80 dark:border-white/10',
             'p-12 text-center'
           )}>
             <div className="flex justify-center mb-4">

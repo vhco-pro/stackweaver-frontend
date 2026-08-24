@@ -239,11 +239,6 @@ export default function Workspaces() {
     }
   };
 
-  const handleOrgChange = (newOrgName: string) => {
-    void Promise.resolve(navigate(`/app/${newOrgName}/workspaces`, { replace: true }));
-    setCurrentPage(1);
-  };
-
   const getRunStatusBadge = (run?: JsonApiResource) => {
     if (!run) {
       return <StatusBadge status="no-runs" variant="outline" className="text-muted-foreground" />;
@@ -367,19 +362,6 @@ export default function Workspaces() {
 
   return (
     <div className="space-y-6">
-      {/* Breadcrumb */}
-      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-        {selectedOrg && (
-          <>
-            <Link to={`/organizations/${selectedOrg}`} className="hover:text-foreground">
-              {selectedOrg}
-            </Link>
-            <span>/</span>
-          </>
-        )}
-        <span className="text-foreground font-medium">Workspaces</span>
-      </div>
-
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -392,20 +374,6 @@ export default function Workspaces() {
         </div>
         {selectedOrg && (
           <div className="flex items-center gap-3">
-            {organizations.length > 1 && (
-              <Select value={selectedOrg} onValueChange={handleOrgChange}>
-                <SelectTrigger className="w-[200px]">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {organizations.map((org) => (
-                    <SelectItem key={org.id} value={org.name}>
-                      {org.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            )}
             <Button
               onClick={() => setCreateDialogOpen(true)}
               className="gap-2 bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white"
@@ -630,7 +598,7 @@ export default function Workspaces() {
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
                             <DropdownMenuItem asChild>
-                              <Link to={`/organizations/${selectedOrg}/workspaces/${workspace.name}`}>
+                              <Link to={`/app/${selectedOrg}/workspaces/${workspace.name}`}>
                                 View Details
                               </Link>
                             </DropdownMenuItem>
@@ -676,7 +644,7 @@ export default function Workspaces() {
         </div>
       ) : (
         <div className="flex min-h-[400px] items-center justify-center">
-          <div className="text-center space-y-6 p-8 rounded-2xl bg-gradient-to-br from-white/10 via-white/5 to-transparent dark:from-black/10 dark:via-black/5 backdrop-blur-md border border-white/20 dark:border-white/10">
+          <div className="text-center space-y-6 p-8 rounded-2xl bg-gradient-to-br from-white/90 via-white/75 to-white/60 dark:from-black/10 dark:via-black/5 dark:to-transparent backdrop-blur-md border border-gray-300/80 dark:border-white/10">
             <FolderOpen className="h-16 w-16 mx-auto text-muted-foreground/50" />
             <div>
               <h3 className="text-xl font-semibold mb-2">No workspaces found</h3>

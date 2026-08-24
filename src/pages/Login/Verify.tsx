@@ -10,7 +10,7 @@ import { useCodePaste } from '@/hooks/useCodePaste';
 import { finalizeAuthRequest } from '@/api/auth-client';
 import LoginLayout from './LoginLayout';
 import ReturnCodePanel from './ReturnCodePanel';
-import { GradientButton } from './GradientButton';
+import { GradientButton } from '@/components/ui/gradient-button';
 import { toFriendlyError } from '@/lib/auth-errors';
 
 const AUTH_BASE = config.apiUrl.replace(/\/api\/v2\/?$/, '/auth');

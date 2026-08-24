@@ -9,7 +9,7 @@ import { Loader2 } from 'lucide-react';
 import { config } from '@/config';
 import { useCodePaste } from '@/hooks/useCodePaste';
 import LoginLayout from './LoginLayout';
-import { GradientButton } from './GradientButton';
+import { GradientButton } from '@/components/ui/gradient-button';
 import { toFriendlyError } from '@/lib/auth-errors';
 
 const AUTH_BASE = config.apiUrl.replace(/\/api\/v2\/?$/, '/auth');

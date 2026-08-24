@@ -46,7 +46,7 @@ export default function Dashboard() {
   return (
     <div className="space-y-8">
       <header>
-        <h1 className="mb-2 bg-gradient-to-r from-purple-400 via-violet-400 to-indigo-400 bg-clip-text text-3xl font-bold text-transparent sm:text-4xl">
+        <h1 className="mb-2 bg-gradient-to-r from-purple-600 via-violet-600 to-indigo-600 dark:from-purple-400 dark:via-violet-400 dark:to-indigo-400 bg-clip-text text-3xl font-bold text-transparent sm:text-4xl">
           Welcome back{greetingName ? `, ${greetingName}` : ''}
         </h1>
         <p className="text-muted-foreground">

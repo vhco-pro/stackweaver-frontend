@@ -17,9 +17,9 @@ import { OrganizationGuard } from '@/components/routes/OrganizationGuard';
 import { WorkspacesLegacyRedirect } from '@/components/routes/WorkspacesLegacyRedirect';
 import { RegistryLegacyRedirect } from '@/components/routes/RegistryLegacyRedirect';
 import { SettingsLegacyRedirect } from '@/components/routes/SettingsLegacyRedirect';
+import { ProjectsLegacyRedirect } from '@/components/routes/ProjectsLegacyRedirect';
 import Dashboard from './pages/Dashboard';
 import Organizations from './pages/Organizations';
-import OrganizationDetail from './pages/OrganizationDetail';
 import Projects from './pages/Projects';
 import ProjectDetail from './pages/ProjectDetail';
 import Workspaces from './pages/Workspaces';
@@ -60,7 +60,6 @@ import Providers from './pages/Providers';
 import RunDetail from './pages/RunDetail';
 import StateVersionDetail from './pages/StateVersionDetail';
 import RunRedirect from './components/RunRedirect';
-import TestJsonViewer from './pages/TestJsonViewer';
 import Auth from './pages/Auth';
 import LoginRouter from './pages/Login/LoginRouter';
 import Landing from './pages/Landing';
@@ -116,16 +115,13 @@ function AppContent() {
               }
             />
             <Route
-                path="/organizations/:name"
+              path="/organizations/:name"
               element={
                 <ProtectedRoute>
-                    {/* Card grid: extra room becomes extra columns, not fatter cards. */}
-                    <Layout width="wide">
-                  <OrganizationDetail />
-                    </Layout>
-                  </ProtectedRoute>
-                }
-              />
+                  <ProjectsLegacyRedirect />
+                </ProtectedRoute>
+              }
+            />
               <Route
                 path="/projects"
                 element={
@@ -138,16 +134,13 @@ function AppContent() {
               }
             />
             <Route
-                path="/organizations/:organizationName/projects/:projectName"
+              path="/organizations/:organizationName/projects/:projectName"
               element={
                 <ProtectedRoute>
-                    {/* Card grid: extra room becomes extra columns, not fatter cards. */}
-                    <Layout width="wide">
-                  <ProjectDetail />
-                    </Layout>
-                  </ProtectedRoute>
-                }
-              />
+                  <ProjectsLegacyRedirect />
+                </ProtectedRoute>
+              }
+            />
               <Route
                 path="/workspaces"
                 element={
@@ -210,46 +203,6 @@ function AppContent() {
                 element={
                   <ProtectedRoute>
                     <SettingsLegacyRedirect />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/organizations/:organizationName/registry"
-                element={
-                  <ProtectedRoute>
-                    <Layout>
-                      <Registry />
-                    </Layout>
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/organizations/:organizationName/registry/modules/:moduleName/:provider"
-                element={
-                  <ProtectedRoute>
-                    <Layout>
-                      <ModuleDetail />
-                    </Layout>
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/organizations/:organizationName/registry/providers"
-                element={
-                  <ProtectedRoute>
-                    <Layout>
-                      <ProviderList />
-                    </Layout>
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/organizations/:organizationName/registry/providers/:providerName"
-                element={
-                  <ProtectedRoute>
-                    <Layout>
-                      <ProviderPublish />
-                    </Layout>
                   </ProtectedRoute>
                 }
               />
@@ -360,16 +313,6 @@ function AppContent() {
                   <ProtectedRoute>
                     <Layout>
                       <VCSConnections />
-                    </Layout>
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/organizations/:organizationName/settings/variable-sets"
-                element={
-                  <ProtectedRoute>
-                    <Layout>
-                      <VariableSets />
                     </Layout>
                   </ProtectedRoute>
                 }
@@ -908,16 +851,6 @@ function AppContent() {
                 <ProtectedRoute>
                     <Layout>
                   <RunRedirect />
-                    </Layout>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-                path="/test/json-viewer"
-              element={
-                <ProtectedRoute>
-                    <Layout>
-                  <TestJsonViewer />
                     </Layout>
                 </ProtectedRoute>
               }

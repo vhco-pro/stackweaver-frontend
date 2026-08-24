@@ -890,9 +890,7 @@ export default function WorkspaceDetail() {
     <div className="space-y-6">
       {/* Breadcrumb */}
       <div className="flex items-center gap-2 text-sm text-muted-foreground">
-        <Link to={`/app/${orgName}/workspaces`} className="hover:text-foreground">
-          {orgName}
-        </Link>
+        <span>{orgName}</span>
         <span>/</span>
         <Link to={`/app/${orgName}/workspaces`} className="hover:text-foreground">
           Workspaces

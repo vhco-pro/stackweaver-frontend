@@ -505,7 +505,7 @@ export default function VariableSets() {
         <div className="flex-1">
           <div className="flex items-start justify-between gap-4 mb-2">
             <div>
-              <h1 className="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-blue-400 via-indigo-400 to-blue-400 bg-clip-text text-transparent mb-2">
+              <h1 className="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-blue-600 dark:from-blue-400 via-indigo-600 dark:via-indigo-400 to-blue-600 dark:to-blue-400 bg-clip-text text-transparent mb-2">
                 Variable Sets
               </h1>
               <p className="text-muted-foreground">
@@ -538,7 +538,7 @@ export default function VariableSets() {
         </div>
       ) : variableSets.length === 0 ? (
         <div className="flex min-h-[400px] items-center justify-center">
-          <div className="text-center space-y-6 p-8 rounded-2xl bg-gradient-to-br from-white/10 via-white/5 to-transparent dark:from-black/10 dark:via-black/5 backdrop-blur-md border border-white/20 dark:border-white/10">
+          <div className="text-center space-y-6 p-8 rounded-2xl bg-gradient-to-br from-white/90 via-white/75 to-white/60 dark:from-black/10 dark:via-black/5 dark:to-transparent backdrop-blur-md border border-gray-300/80 dark:border-white/10">
             <Package className="h-16 w-16 mx-auto text-muted-foreground/50" />
             <div>
               <h3 className="text-xl font-semibold mb-2">No variable sets found</h3>

@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { Button } from '@/components/ui/button';
+import { GradientButton } from '@/components/ui/gradient-button';
 import { Loader2 } from 'lucide-react';
 
 export default function Login() {
@@ -37,24 +37,21 @@ export default function Login() {
         </div>
 
         <div className="mt-8 space-y-4">
-          <div className="relative inline-flex w-full rounded-xl bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500 p-[3px] dark:p-[2.5px]">
-            <Button
-              variant="ghost"
-              onClick={() => { void handleLogin(); }}
-              disabled={loading || isRedirecting}
-              className="w-full bg-white dark:bg-slate-900/80 dark:backdrop-blur-xs text-slate-900 dark:text-white hover:bg-slate-50 dark:hover:bg-slate-900/90 border-0 whitespace-nowrap rounded-[calc(0.75rem-3px)] dark:rounded-[calc(0.75rem-2.5px)] px-8 py-3 transition-colors duration-200"
-              size="lg"
-            >
-              {isRedirecting ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Redirecting to Zitadel...
-                </>
-              ) : (
-                'Sign in with Zitadel'
-              )}
-            </Button>
-          </div>
+          <GradientButton
+            onClick={() => { void handleLogin(); }}
+            disabled={loading || isRedirecting}
+            className="px-8 py-3"
+            size="lg"
+          >
+            {isRedirecting ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Redirecting to Zitadel...
+              </>
+            ) : (
+              'Sign in with Zitadel'
+            )}
+          </GradientButton>
 
           <p className="text-xs text-center text-muted-foreground">
             By signing in, you agree to our terms of service and privacy policy.

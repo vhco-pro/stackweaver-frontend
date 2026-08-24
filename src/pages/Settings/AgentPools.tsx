@@ -36,6 +36,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { AgentPoolTokens } from '@/components/settings/AgentPoolTokens';
 import { cn } from '@/lib/utils';
+import { glassSurface, glassDashedEmpty } from '@/lib/surfaces';
 
 export default function AgentPools() {
   const { orgName } = useParams<{ orgName: string }>();
@@ -292,7 +293,7 @@ export default function AgentPools() {
         <div className="flex-1">
           <div className="flex items-start justify-between gap-4 mb-2">
             <div>
-              <h1 className="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-teal-400 via-cyan-400 to-teal-400 bg-clip-text text-transparent mb-2">
+              <h1 className="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-teal-600 via-cyan-600 to-teal-600 dark:from-teal-400 dark:via-cyan-400 dark:to-teal-400 bg-clip-text text-transparent mb-2">
                 Agent Pools
               </h1>
               <p className="text-muted-foreground">
@@ -324,10 +325,7 @@ export default function AgentPools() {
         <div className="space-y-4">
           {pools.length === 0 ? (
             <div
-              className={cn(
-                'rounded-2xl border border-dashed border-white/20 dark:border-white/10',
-                'p-8 text-center text-muted-foreground'
-              )}
+              className={cn(glassDashedEmpty, 'p-8 text-center text-muted-foreground')}
             >
               <Cpu className="h-12 w-12 mx-auto mb-4 opacity-50" />
               <p>No agent pools yet. Create one to scope self-hosted runners.</p>
@@ -349,12 +347,7 @@ export default function AgentPools() {
               return (
                 <div
                   key={pool.id}
-                  className={cn(
-                    'rounded-2xl bg-gradient-to-br from-white/10 via-white/5 to-transparent',
-                    'dark:from-black/10 dark:via-black/5',
-                    'backdrop-blur-md border border-white/20 dark:border-white/10',
-                    'shadow-lg overflow-hidden'
-                  )}
+                  className={cn(glassSurface, 'overflow-hidden')}
                 >
                   {/* Pool Header */}
                   <div className="p-6">
@@ -432,7 +425,7 @@ export default function AgentPools() {
 
                   {/* Runners Table (expandable) */}
                   {isExpanded && (
-                    <div className="border-t border-white/10 dark:border-white/5">
+                    <div className="border-t border-gray-300/70 dark:border-white/5">
                       {isLoadingRunners ? (
                         <div className="flex items-center justify-center py-8">
                           <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
@@ -446,7 +439,7 @@ export default function AgentPools() {
                         <div className="overflow-x-auto">
                           <table className="w-full text-sm">
                             <thead>
-                              <tr className="border-b border-white/10 dark:border-white/5 bg-muted/30">
+                              <tr className="border-b border-gray-300/70 dark:border-white/5 bg-muted/30">
                                 <th scope="col" className="text-left py-3 px-4 font-medium text-muted-foreground">Agent Name</th>
                                 <th scope="col" className="text-left py-3 px-4 font-medium text-muted-foreground">Version</th>
                                 <th scope="col" className="text-left py-3 px-4 font-medium text-muted-foreground">ID</th>
@@ -456,7 +449,7 @@ export default function AgentPools() {
                             </thead>
                             <tbody>
                               {runners.map((runner) => (
-                                <tr key={runner.id} className="border-b border-white/5 dark:border-white/5 last:border-0 hover:bg-muted/20">
+                                <tr key={runner.id} className="border-b border-gray-200/70 dark:border-white/5 last:border-0 hover:bg-muted/20">
                                   <td className="py-3 px-4">
                                     <div className="flex items-center gap-2">
                                       <Circle
@@ -500,7 +493,7 @@ export default function AgentPools() {
                         </div>
                       )}
                       {/* Agent tokens (tfe_agent_token): credentials agents present to register into this pool */}
-                      <div className="border-t border-white/10 dark:border-white/5">
+                      <div className="border-t border-gray-300/70 dark:border-white/5">
                         <AgentPoolTokens poolId={pool.id} />
                       </div>
                     </div>

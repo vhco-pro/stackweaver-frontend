@@ -382,9 +382,7 @@ export default function ModuleDetail() {
       <div className="border-b border-border/40 bg-background/95 backdrop-blur-sm supports-[backdrop-filter]:bg-background/60">
         <div className="px-6 py-3">
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <span className="hover:text-foreground cursor-pointer" onClick={() => { void Promise.resolve(navigate(`/app/${orgName}/workspaces`)); }}>
-              {orgName}
-            </span>
+            <span>{orgName}</span>
             <span>/</span>
             <span className="hover:text-foreground cursor-pointer" onClick={() => { void Promise.resolve(navigate(`/app/${orgName}/registry`)); }}>
               Registry

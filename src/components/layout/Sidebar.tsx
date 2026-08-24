@@ -60,7 +60,7 @@ export function Sidebar({ isOpen = false, onClose, collapsed = false, onToggleCo
   // Determine if we're on a global route (dashboard, organizations, settings) or org-scoped route
   const isOrgScopedRoute = location.pathname.startsWith('/app/');
   const isDashboardRoute = location.pathname === '/dashboard';
-  const isOrganizationsRoute = location.pathname === '/organizations' || location.pathname.startsWith('/organizations/') && !location.pathname.includes('/workspaces') && !location.pathname.includes('/registry') && !location.pathname.includes('/settings');
+  const isOrganizationsRoute = location.pathname === '/organizations';
   const isGlobalSettingsRoute = location.pathname === '/settings' || (location.pathname.startsWith('/settings/') && !location.pathname.startsWith('/app/'));
   const isActivitiesRoute = location.pathname === '/activities';
 
@@ -79,15 +79,11 @@ export function Sidebar({ isOpen = false, onClose, collapsed = false, onToggleCo
     if (path === '/activities') {
       return location.pathname === '/activities';
     }
-    // Special handling for Organizations - only active on /organizations or /organizations/:name (not nested routes)
     if (path === '/organizations') {
-      // Match /organizations exactly or /organizations/:name but not /organizations/:name/workspaces etc
-      const orgPattern = /^\/organizations\/[^/]+$/;
-      return location.pathname === '/organizations' || orgPattern.test(location.pathname);
+      return location.pathname === '/organizations';
     }
-    // Special handling for workspaces - check if we're on any organization's workspaces page (old or new route)
     if (path.includes('/workspaces')) {
-      return location.pathname.includes('/workspaces') && (location.pathname.includes('/app/') || location.pathname.includes('/organizations/'));
+      return location.pathname.includes('/app/') && location.pathname.includes('/workspaces');
     }
     // Check for org-scoped routes
     if (path.includes('/app/') && currentOrg) {
@@ -244,7 +240,8 @@ export function Sidebar({ isOpen = false, onClose, collapsed = false, onToggleCo
                       to={item.path}
                       onClick={handleLinkClick}
                       className={cn(
-                        'group relative flex items-center rounded-xl text-sm font-medium transition-all duration-300',
+                        // overflow-hidden keeps the active accent bar clipped inside the pill
+                        'group relative flex items-center overflow-hidden rounded-xl text-sm font-medium transition-all duration-300',
                         collapsed ? 'justify-center px-2 py-2.5' : 'space-x-3 px-3 py-2.5',
                         // Previous implementation (blue-to-purple balanced)
                         // 'hover:bg-gradient-to-r hover:from-blue-600/10 hover:via-indigo-500/10 hover:to-purple-500/10',
@@ -262,7 +259,7 @@ export function Sidebar({ isOpen = false, onClose, collapsed = false, onToggleCo
                     >
                       {/* Active accent bar */}
                       {active && (
-                        <span className="absolute left-0 top-1 bottom-1 w-1 rounded-full bg-gradient-to-b from-blue-500 via-blue-600 to-purple-500" />
+                        <span className="absolute left-1 top-1.5 bottom-1.5 w-[3px] rounded-full bg-gradient-to-b from-blue-500 via-blue-600 to-purple-500" />
                       )}
                       <Icon className={cn('h-5 w-5 transition-transform duration-300 shrink-0', active && 'scale-110 text-blue-500 dark:text-blue-400')} />
                       {!collapsed && <span className="whitespace-nowrap">{item.label}</span>}

@@ -67,7 +67,7 @@ export function AttentionList({
           ))}
         </div>
       ) : items.length === 0 ? (
-        <p className="flex items-center gap-2 rounded-2xl border border-white/20 bg-gradient-to-br from-white/10 via-white/5 to-transparent p-4 text-sm text-muted-foreground shadow-lg backdrop-blur-md dark:border-white/10 dark:from-black/10 dark:via-black/5">
+        <p className="flex items-center gap-2 rounded-2xl border border-gray-300/80 bg-gradient-to-br from-white/90 via-white/75 to-white/60 p-4 text-sm text-muted-foreground shadow-lg backdrop-blur-md dark:border-white/10 dark:from-black/10 dark:via-black/5 dark:to-transparent">
           <CheckCircle2 className="h-4 w-4 text-emerald-600 dark:text-emerald-400" aria-hidden="true" />
           Nothing needs your attention in any of your organizations.
         </p>

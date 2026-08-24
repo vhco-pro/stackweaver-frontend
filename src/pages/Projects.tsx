@@ -7,6 +7,7 @@ import { projectsApi, type Project } from '@/api/client';
 import { Button } from '@/components/ui/button';
 import { FolderKanban, Loader2, Plus, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { glassSurface } from '@/lib/surfaces';
 import {
   Dialog,
   DialogContent,
@@ -140,18 +141,6 @@ export default function Projects() {
 
   return (
     <div className="space-y-8">
-      {/* Breadcrumb */}
-      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-        {orgName && (
-          <>
-            <Link to={`/app/${orgName}/workspaces`} className="hover:text-foreground">
-              {orgName}
-            </Link>
-            <span>/</span>
-          </>
-        )}
-        <span className="text-foreground font-medium">Projects</span>
-      </div>
 
       {/* Header */}
       <div className="flex items-center justify-between">
@@ -260,7 +249,7 @@ export default function Projects() {
       {/* Projects Grid */}
       {projects.length === 0 ? (
         <div className="flex min-h-[400px] items-center justify-center">
-          <div className="text-center space-y-6 p-12 rounded-2xl bg-gradient-to-br from-white/10 via-white/5 to-transparent dark:from-black/10 dark:from-black/5 backdrop-blur-md border border-white/20 dark:border-white/10 shadow-xl shadow-blue-500/10 max-w-2xl">
+          <div className="text-center space-y-6 p-12 rounded-2xl bg-gradient-to-br from-white/90 via-white/75 to-white/60 dark:from-black/10 dark:via-black/5 dark:to-transparent backdrop-blur-md border border-gray-300/80 dark:border-white/10 shadow-xl shadow-blue-500/10 max-w-2xl">
             <div className="flex justify-center">
               <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-500/20 via-indigo-500/20 to-purple-500/20 border border-blue-500/30">
                 <FolderKanban className="h-10 w-10 text-blue-600 dark:text-blue-400" />
@@ -288,11 +277,8 @@ export default function Projects() {
               key={project.id}
               to={`/app/${orgName}/projects/${project.name}`}
               className={cn(
-                'group relative overflow-hidden rounded-2xl',
-                'bg-gradient-to-br from-white/10 via-white/5 to-transparent',
-                'dark:from-black/10 dark:from-black/5',
-                'backdrop-blur-md border border-white/20 dark:border-white/10',
-                'p-6 shadow-lg shadow-purple-500/10',
+                glassSurface,
+                'group relative flex flex-col overflow-hidden p-6',
                 'transition-all duration-300',
                 'hover:shadow-xl hover:shadow-purple-500/20 hover:scale-[1.02]',
                 'hover:border-purple-500/30'
@@ -329,7 +315,7 @@ export default function Projects() {
                 </p>
               )}
 
-              <div className="flex items-center justify-between text-xs text-muted-foreground">
+              <div className="mt-auto flex items-center justify-between text-xs text-muted-foreground">
                 <span>View Details</span>
                 <span className="opacity-0 group-hover:opacity-100 transition-opacity duration-200">
                   →

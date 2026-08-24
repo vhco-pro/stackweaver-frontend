@@ -116,7 +116,7 @@ export function WorkspaceRunTasks({ workspaceId, orgName }: { workspaceId: strin
       </div>
 
       {attachments.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-white/20 dark:border-white/10 p-8 text-center text-muted-foreground">
+        <div className="rounded-2xl border border-dashed border-gray-300 dark:border-white/10 p-8 text-center text-muted-foreground">
           <Zap className="h-12 w-12 mx-auto mb-4 opacity-50" />
           <p>No run tasks attached.</p>
           <p className="text-sm mt-1">

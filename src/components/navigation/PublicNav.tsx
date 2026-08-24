@@ -5,6 +5,7 @@ import { useMountEffect } from '@/hooks/useMountEffect';
 import { useNavigate, Link } from 'react-router-dom';
 import { ArrowRight, Sun, Moon, Laptop, Menu } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { GradientButton } from '@/components/ui/gradient-button';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import {
@@ -211,19 +212,16 @@ export function PublicNav({ activeLink = 'home' }: PublicNavProps) {
             </DropdownMenuContent>
           </DropdownMenu>
 
-          <div className="relative inline-flex rounded-md bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500 p-[3px] dark:p-[2.5px]">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleGetStarted}
-              className="bg-white dark:bg-slate-900/80 dark:backdrop-blur-xs text-slate-900 dark:text-white hover:bg-slate-50 dark:hover:bg-slate-900/90 border-0 whitespace-nowrap rounded-[calc(0.375rem-3px)] dark:rounded-[calc(0.375rem-2.5px)]"
-            >
-              <span className="flex items-center gap-2">
-                <span>{session ? 'Dashboard' : 'Get Started'}</span>
-                <ArrowRight className="h-4 w-4 shrink-0" />
-              </span>
-            </Button>
-          </div>
+          <GradientButton
+            size="sm"
+            onClick={handleGetStarted}
+            className="w-auto [--sw-ring-radius:0.375rem]"
+          >
+            <span className="flex items-center gap-2">
+              <span>{session ? 'Dashboard' : 'Get Started'}</span>
+              <ArrowRight className="h-4 w-4 shrink-0" />
+            </span>
+          </GradientButton>
         </div>
 
         {/* Mobile Hamburger Button */}
@@ -360,22 +358,19 @@ export function PublicNav({ activeLink = 'home' }: PublicNavProps) {
 
               {/* CTA Button */}
               <div className="border-t border-slate-200 dark:border-white/10 mt-3 pt-4 px-3">
-                <div className="relative inline-flex w-full rounded-md bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500 p-[2px]">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={(e) => {
-                      setMobileMenuOpen(false);
-                      handleGetStarted(e);
-                    }}
-                    className="w-full bg-white dark:bg-slate-900/80 text-slate-900 dark:text-white hover:bg-slate-50 dark:hover:bg-slate-900/90 border-0 rounded-[calc(0.375rem-2px)]"
-                  >
-                    <span className="flex items-center gap-2">
-                      <span>{session ? 'Dashboard' : 'Get Started'}</span>
-                      <ArrowRight className="h-4 w-4 shrink-0" />
-                    </span>
-                  </Button>
-                </div>
+                <GradientButton
+                  size="sm"
+                  onClick={(e) => {
+                    setMobileMenuOpen(false);
+                    handleGetStarted(e);
+                  }}
+                  className="[--sw-ring-radius:0.375rem]"
+                >
+                  <span className="flex items-center gap-2">
+                    <span>{session ? 'Dashboard' : 'Get Started'}</span>
+                    <ArrowRight className="h-4 w-4 shrink-0" />
+                  </span>
+                </GradientButton>
               </div>
             </nav>
           </SheetContent>

@@ -148,7 +148,7 @@ export default function RunTasks() {
         <div className="flex-1">
           <div className="flex items-start justify-between gap-4 mb-2">
             <div>
-              <h1 className="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-amber-400 via-orange-400 to-amber-400 bg-clip-text text-transparent mb-2">
+              <h1 className="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-amber-600 dark:from-amber-400 via-orange-600 dark:via-orange-400 to-amber-600 dark:to-amber-400 bg-clip-text text-transparent mb-2">
                 Run Tasks
               </h1>
               <p className="text-muted-foreground">
@@ -179,7 +179,7 @@ export default function RunTasks() {
           <Button variant="outline" onClick={() => { void refetch(); }}>Retry</Button>
         </div>
       ) : tasks.length === 0 ? (
-        <div className={cn('rounded-2xl border border-dashed border-white/20 dark:border-white/10', 'p-8 text-center text-muted-foreground')}>
+        <div className={cn('rounded-2xl border border-dashed border-gray-300 dark:border-white/10', 'p-8 text-center text-muted-foreground')}>
           <Zap className="h-12 w-12 mx-auto mb-4 opacity-50" />
           <p>No run tasks yet.</p>
           <p className="text-sm mt-1">

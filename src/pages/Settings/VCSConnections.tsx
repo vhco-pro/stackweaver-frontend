@@ -183,8 +183,7 @@ export default function VCSConnections() {
           {/* GitHub */}
           <div className={cn(
             'group relative overflow-hidden rounded-xl border-2 p-6',
-            'bg-gradient-to-br from-white/10 via-white/5 to-transparent',
-            'dark:from-black/10 dark:via-black/5',
+            'bg-gradient-to-br from-white/90 via-white/75 to-white/60 dark:from-black/10 dark:via-black/5 dark:to-transparent',
             'backdrop-blur-md border-gray-300 dark:border-white/10',
             'transition-all duration-300',
             'hover:border-blue-500/50 hover:shadow-lg hover:shadow-blue-500/10',
@@ -219,8 +218,7 @@ export default function VCSConnections() {
           {/* Azure DevOps */}
           <div className={cn(
             'group relative overflow-hidden rounded-xl border-2 p-6',
-            'bg-gradient-to-br from-white/10 via-white/5 to-transparent',
-            'dark:from-black/10 dark:via-black/5',
+            'bg-gradient-to-br from-white/90 via-white/75 to-white/60 dark:from-black/10 dark:via-black/5 dark:to-transparent',
             'backdrop-blur-md border-gray-300 dark:border-white/10',
             'transition-all duration-300',
             'hover:border-blue-500/50 hover:shadow-lg hover:shadow-blue-500/10',
