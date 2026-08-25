@@ -40,9 +40,20 @@ interface StreamViewProps {
  */
 const RAW_ROW_HEIGHT = 22;
 
+/**
+ * Structure lines are banded so they read as boundaries, and coloured so the text says *which* kind
+ * of boundary without the label having to be read.
+ *
+ * The band alone was ambiguous: PLAY, TASK and the recap were the same shape, so telling them apart
+ * meant reading each label. The run-viewer prototype
+ * (`docs/internal/design/prototypes/ansible-fleet-run-viewer.html`) separates them by hue - purple
+ * opens a play, blue opens a task - which is what the text colours pair with. Light values are
+ * darker than the prototype's dark ones (#c084fc purple-400, #93c5fd blue-300); those are too pale
+ * to hold contrast on the light surface. The band itself stays neutral so the hue is the signal.
+ */
 const KIND_STYLES: Record<StreamLine['kind'], string> = {
-  play: 'bg-violet-500/10 text-violet-700 dark:text-violet-300 font-medium',
-  task: 'bg-muted/60 font-medium',
+  play: 'bg-violet-500/10 text-purple-700 dark:text-purple-400 font-bold',
+  task: 'bg-muted/60 text-blue-700 dark:text-blue-300 font-semibold',
   recap: 'bg-muted/60',
   result: '',
   raw: 'text-muted-foreground',
@@ -173,7 +184,11 @@ export function StreamView({ lines, startMs, query, emptyNote, rawAvailable = tr
                   {line.status && <HostStatusIcon status={line.status} className="h-3 w-3" labelled={false} />}
                   {line.label}
                 </span>
-                <span className="w-24 shrink-0 truncate">{highlight(line.host, query)}</span>
+                {/* One hue for every hostname, so the column scans as "who" without being read as
+                    a status. Paired against the prototype's #a78bfa (violet-400). */}
+                <span className="w-24 shrink-0 truncate text-violet-600 dark:text-violet-400">
+                  {highlight(line.host, query)}
+                </span>
                 <span className="min-w-0 flex-1 whitespace-pre-wrap break-words">{highlight(line.message, query)}</span>
               </button>
               {isOpen && (
