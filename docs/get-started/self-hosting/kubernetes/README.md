@@ -61,7 +61,7 @@ The Helm chart is published to an OCI registry for distribution. Since we are al
 
 ## Zero-Config Install
 
-The quickest way to get started. The chart auto-generates all required passwords, keys, and credentials.
+The quickest way to get started. A bootstrap Job generates all required passwords, keys, and credentials before anything else starts.
 You only need to provide your domain names.
 
 ```bash
@@ -162,28 +162,49 @@ If many of your users legitimately share one attributed IP (for example an offic
 
 ## Secrets
 
-By default the chart auto-generates all secrets.
+By default the chart generates all secrets for you.
 For production or GitOps workflows (ArgoCD, Flux), you can provide your own pre-existing Kubernetes Secrets instead.
 
-### Auto-Generated (Default)
+### Chart-Generated (Default)
 
-When you leave `secrets.<component>.secretName` empty, the chart creates a Secret with random credentials.
-These secrets have the `helm.sh/resource-policy: keep` annotation, which means they are preserved even if you run `helm uninstall`.
-Values are also preserved across `helm upgrade`, because the chart checks for existing secrets before generating new ones.
+When you leave `secrets.<component>.secretName` empty, a bootstrap Job named `<release>-secrets-init` creates the Secret with random credentials.
+The Job runs before any workload starts: it is a Helm `pre-install`/`pre-upgrade` hook and an ArgoCD `PreSync` hook at the same time, so plain Helm, Flux, ArgoCD and `helm template | kubectl apply` all take the same path.
 
-To view an auto-generated password:
+The Job only ever creates secrets that are missing.
+It never updates and never overwrites, so re-running an install, syncing repeatedly or upgrading the chart can never rotate a live credential.
+The Secrets it creates are not owned by the Helm release, which means `helm uninstall` leaves them in place and a later reinstall reuses them.
+They carry the label `app.kubernetes.io/managed-by: secrets-init` so you can tell them apart from the ones you supplied.
+
+To view a generated password:
 
 ```bash
 kubectl get secret stackweaver-postgresql -n stackweaver \
   -o jsonpath='{.data.password}' | base64 -d
 ```
 
+If a secret needs to be regenerated, delete it and run `helm upgrade` again; the Job recreates whatever is absent.
+To inspect what the Job did, read its log with `kubectl logs -n stackweaver job/stackweaver-secrets-init` - it prints one line per secret saying whether it was created or skipped, and never prints secret material.
+
+The Job runs the `/secrets-init` binary from the image configured under `secretsInit.image`, a single-purpose image that contains nothing else.
+Point `secretsInit.image.repository` at your own registry when you mirror StackWeaver's images.
+
+```yaml
+secretsInit:
+  image:
+    repository: registry.internal.example.com/stackweaver-secrets-init
+    tag: latest
+```
+
+> [!NOTE]
+> Because the Job is a Helm hook, installing with `--no-hooks` skips secret generation entirely.
+> Supply your own secrets (below) or pre-create them if you need that flag.
+
 ### Bring Your Own Secrets
 
 Create the secrets in advance and reference them in your values file.
 
-> [!IMPORTANT] 
-> If you create secrets manually with `kubectl create`, you must reference all four of them via `secretName` in your values file before running `helm install`. If you run `helm install` without those references, Helm will attempt to create and own the same secrets, which conflicts with the `kubectl-create` field manager and causes the installation to fail.
+> [!IMPORTANT]
+> Reference every secret you create by hand via `secretName` in your values file before running `helm install`. A secret you create but never reference is invisible to the chart, which will happily generate a second one under its own default name and wire the workloads to that one instead.
 
 ```bash
 NAMESPACE=stackweaver
@@ -233,7 +254,8 @@ secrets:
     secretName: my-zitadel-secret
 ```
 
-When all four `secretName` values are set, the chart creates zero Secret resources, which is safe for GitOps.
+The chart never renders Secret manifests in any configuration, so your rendered output is always free of credential material.
+When you supply every secret (`postgresql`, `storage`, `encryption`, `zitadel` and `oidc`) and you are not running the bundled Garage, the bootstrap Job and its RBAC are not rendered either, so the install needs no `secretsInit` image at all - which is what makes this the right path for air-gapped clusters.
 
 ### BYO Zitadel Secret with External Zitadel
 
@@ -254,7 +276,7 @@ kubectl create secret generic my-zitadel-secret \
 ```
 
 > [!WARNING]
-> If you set `zitadel.bundled: false` without providing `secrets.zitadel.secretName`, the chart auto-generates a Zitadel secret with empty derived keys and no sidecar to populate them.
+> If you set `zitadel.bundled: false` without providing `secrets.zitadel.secretName`, the bootstrap Job generates a Zitadel secret with empty derived keys and there is no sidecar to populate them.
 > The API and frontend will fail to start.
 
 ### Required Keys Reference
@@ -476,8 +498,12 @@ helm upgrade stackweaver oci://ghcr.io/vhco-pro/charts/stackweaver \
   --values my-values.yaml
 ```
 
-Auto-generated secrets are preserved across upgrades.
+Generated secrets are preserved across upgrades: the bootstrap Job runs again as a `pre-upgrade` hook, sees that each secret already exists, and skips it.
 Pods are automatically restarted when ConfigMaps change (via checksum annotations).
+
+Upgrading from a chart older than the one that introduced the bootstrap Job needs no manual step.
+Earlier versions generated the secrets from the release manifest; on the first upgrade Helm stops tracking them, but their `helm.sh/resource-policy: keep` annotation leaves them in the cluster untouched, and the Job adopts them by skipping them from then on.
+Because the Job treats each secret as a whole, a chart version that adds a new key to an existing secret's schema will say so explicitly in its release notes.
 
 ## Uninstalling
 
@@ -485,7 +511,7 @@ Pods are automatically restarted when ConfigMaps change (via checksum annotation
 helm uninstall stackweaver --namespace stackweaver
 ```
 
-Auto-generated secrets are **not** deleted on uninstall (due to `helm.sh/resource-policy: keep`).
+Generated secrets are **not** deleted on uninstall, because the bootstrap Job creates them at runtime and they are never part of the Helm release.
 PersistentVolumeClaims for PostgreSQL, Garage, runner workspaces, and the Ansible Galaxy cache are also not deleted automatically.
 Remove them manually if no longer needed.
 
@@ -506,29 +532,31 @@ Remove them manually if no longer needed.
 | Deployments, Services, ConfigMaps, Jobs | Yes | Re-created by Helm |
 | Secrets + PVCs together | Yes | Full clean start, all data lost |
 | PVCs only (keep secrets) | Yes | Fresh databases, credentials still match - zitadel-init re-provisions OIDC apps |
-| Secrets only (keep PVCs) | **No** | New random credentials don't match existing data - **unrecoverable** for masterkey and encryption-key |
+| Secrets only (keep PVCs) | **No** | The bootstrap Job generates new random credentials that don't match existing data - **unrecoverable** for masterkey and encryption-key |
 
 For a full clean start:
 
 ```bash
 kubectl delete pvc -l app.kubernetes.io/instance=stackweaver -n stackweaver
-kubectl delete secret -l app.kubernetes.io/managed-by=Helm -n stackweaver
+kubectl delete secret -l app.kubernetes.io/managed-by=secrets-init -n stackweaver
 ```
+
+The label selector matches exactly the secrets the bootstrap Job created, so secrets you supplied yourself are never caught by it.
 
 ## Troubleshooting
 
-### Installation fails with "Apply failed with conflicts: conflicts with kubectl-create"
+### Installation fails before any pod appears
 
-This error occurs when secrets already exist in the namespace that were created with `kubectl create` (rather than by Helm). Helm uses server-side apply and cannot take ownership of fields managed by a different field manager.
-
-This happens if you ran `kubectl create secret generic` commands manually and then ran `helm install` without providing the `secretName` references in your values file, or if a previous install attempt left behind secrets.
-
-To resolve, delete the conflicting secrets and re-run the install. Helm will recreate them with the correct field manager.
+The bootstrap Job runs before every other resource, so when it fails the install aborts with nothing else deployed.
+Its log is the diagnosis, and it survives for an hour after the run.
 
 ```bash
-kubectl delete secret stackweaver-zitadel stackweaver-storage \
-  stackweaver-postgresql stackweaver-encryption \
-  -n stackweaver
+kubectl logs -n stackweaver job/stackweaver-secrets-init
 ```
 
-Then re-run `helm install`.
+The usual causes are that the `secretsInit.image` cannot be pulled (check `kubectl describe pod` for the Job's pod) or that the namespace's `default` ServiceAccount is denied secret access by an admission policy.
+If you cannot use the Job at all, create every secret yourself and reference each one via `secrets.*.secretName`, which stops the chart from rendering the Job in the first place.
+
+> [!NOTE]
+> Chart versions before the bootstrap Job created secrets from the release manifest and could fail with `Apply failed with conflicts: conflicts with kubectl-create` when a secret already existed under a different field manager.
+> That failure mode is gone: the chart no longer applies Secret resources at all, and the Job skips anything that already exists.

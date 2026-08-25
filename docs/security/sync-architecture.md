@@ -10,9 +10,9 @@ covers:
 
 # Sync Architecture
 
-> **Implementation status - 2026-05-26:** Live on six satellites - [`api`](https://github.com/vhco-pro/stackweaver-api), [`frontend`](https://github.com/vhco-pro/stackweaver-frontend), [`orchestrator`](https://github.com/vhco-pro/stackweaver-orchestrator), [`zitadel-init`](https://github.com/vhco-pro/stackweaver-zitadel-init), [`helm`](https://github.com/vhco-pro/stackweaver-helm), and [`ansible-runner`](https://github.com/vhco-pro/stackweaver-ansible-runner). Each rollout was verified by an end-to-end smoke test: monorepo push opens a `sync/<sha>` PR authored by `stackweaver-release-bot[bot]`, the four hard gates in `auto-approve-sync.yml` pass, `stackweaver-pr-reviewer[bot]` approves, the PR squash-merges after CodeQL goes green, and the existing GitVersion → Release cascade attaches `provenance.intoto.jsonl`, `sbom.spdx.intoto.jsonl`, and `checksums.txt` to the new tag. The seventh satellite, [`stackweaver-runner`](https://github.com/vhco-pro/stackweaver-runner), is intentionally excluded - see [§ Excluded satellites](#excluded-satellites) below.
+> **Implementation status - 2026-08-25:** Live on seven satellites - [`api`](https://github.com/vhco-pro/stackweaver-api), [`frontend`](https://github.com/vhco-pro/stackweaver-frontend), [`orchestrator`](https://github.com/vhco-pro/stackweaver-orchestrator), [`zitadel-init`](https://github.com/vhco-pro/stackweaver-zitadel-init), [`secrets-init`](https://github.com/vhco-pro/stackweaver-secrets-init), [`helm`](https://github.com/vhco-pro/stackweaver-helm), and [`ansible-runner`](https://github.com/vhco-pro/stackweaver-ansible-runner). Each rollout was verified by an end-to-end smoke test: monorepo push opens a `sync/<sha>` PR authored by `stackweaver-release-bot[bot]`, the four hard gates in `auto-approve-sync.yml` pass, `stackweaver-pr-reviewer[bot]` approves, the PR squash-merges after CodeQL goes green, and the existing GitVersion → Release cascade attaches `provenance.intoto.jsonl`, `sbom.spdx.intoto.jsonl`, and `checksums.txt` to the new tag. The remaining satellite, [`stackweaver-runner`](https://github.com/vhco-pro/stackweaver-runner), is intentionally excluded - see [§ Excluded satellites](#excluded-satellites) below.
 
-Stackweaver is developed as a private monorepo at `michielvha/stackweaver`. Each user-facing component is mirrored to its own public satellite repository under the `vhco-pro` organisation (`stackweaver-api`, `stackweaver-frontend`, `stackweaver-orchestrator`, `stackweaver-zitadel-init`, `stackweaver-ansible-runner`, `stackweaver-helm`, and `stackweaver-runner`). The satellites are what users build, audit and depend on; the monorepo is what we develop in.
+Stackweaver is developed as a private monorepo at `michielvha/stackweaver`. Each user-facing component is mirrored to its own public satellite repository under the `vhco-pro` organisation (`stackweaver-api`, `stackweaver-frontend`, `stackweaver-orchestrator`, `stackweaver-zitadel-init`, `stackweaver-secrets-init`, `stackweaver-ansible-runner`, `stackweaver-helm`, and `stackweaver-runner`). The satellites are what users build, audit and depend on; the monorepo is what we develop in.
 
 This page documents how code travels from the monorepo to a satellite. It is the authoritative description of the trust boundary between "internal development" and "what the public consumes", so it should be read before relying on any signed artefact produced by a satellite, before performing an OSPS Baseline audit on the project, and before contributing to any sync-related workflow.
 
@@ -132,7 +132,8 @@ gh api /apps/stackweaver-pr-reviewer --jq '.permissions'
 # 2. Confirm both Apps are installed on the satellite
 gh api /repos/vhco-pro/stackweaver-api/installation --jq '.app_slug'
 # Run for each of: stackweaver-api, stackweaver-frontend, stackweaver-orchestrator,
-# stackweaver-zitadel-init, stackweaver-ansible-runner, stackweaver-helm, stackweaver-runner
+# stackweaver-zitadel-init, stackweaver-secrets-init, stackweaver-ansible-runner,
+# stackweaver-helm, stackweaver-runner
 
 # 3. Confirm the auto-approve workflow has all four gates and zero PR-ref checkouts
 gh api /repos/vhco-pro/stackweaver-api/contents/.github/workflows/auto-approve-sync.yml \
