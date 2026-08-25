@@ -366,6 +366,8 @@ Then open `http://localhost:5173`.
 
 ## Using External Dependencies
 
+The bundled Garage needs no outbound network access. Its `garage-init` sidecar configures the cluster layout, imports the storage access key and creates the bucket entirely through Garage's admin API on the pod's own loopback interface, so an egress-restricted or air-gapped cluster can run the bundled object storage as-is. Earlier chart versions downloaded the Garage CLI from the internet at startup and left the StatefulSet stuck at 1/2 when that download was blocked.
+
 To use an existing PostgreSQL, Redis, or S3-compatible storage instance instead of the bundled ones, disable the in-cluster deployment and provide external connection details.
 
 ```yaml
