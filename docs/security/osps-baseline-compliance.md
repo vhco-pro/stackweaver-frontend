@@ -31,13 +31,13 @@ The OSPS Baseline is a general, vendor-neutral catalogue of security controls fo
 | ⚠️ | Met via a **documented, argued deviation**. OSPS explicitly permits this when the deviation is recorded and compensated; the rationale and compensating control are given in [§ Argued deviations](#argued-deviations). |
 | 🟡 | Partial: a residual gap with a known, bounded plan. Disclosed honestly rather than hidden. |
 
-Each control is evaluated against the **six in-scope public satellites** collectively (`stackweaver-api`, `stackweaver-orchestrator`, `stackweaver-ansible-runner`, `stackweaver-frontend`, `stackweaver-helm`, `stackweaver-zitadel-init`). A status reflects the **worst** satellite, so a ✅ means every in-scope satellite meets it. The seventh satellite, `stackweaver-runner`, is held private pending an OpenTofu rewrite and is treated as an explicit, documented exclusion - see [§ Argued deviations](#argued-deviations).
+Each control is evaluated against the **seven in-scope public satellites** collectively (`stackweaver-api`, `stackweaver-orchestrator`, `stackweaver-ansible-runner`, `stackweaver-frontend`, `stackweaver-helm`, `stackweaver-zitadel-init`, `stackweaver-secrets-init`). A status reflects the **worst** satellite, so a ✅ means every in-scope satellite meets it. The eighth satellite, `stackweaver-runner`, is held private pending an OpenTofu rewrite and is treated as an explicit, documented exclusion - see [§ Argued deviations](#argued-deviations).
 
 ---
 
 ## Scope and repository topology
 
-Stackweaver is developed in a single **private monorepo** (`michielvha/stackweaver`) and published as **seven independent satellite repositories** under the [`vhco-pro`](https://github.com/vhco-pro) GitHub organisation. The satellites are what users build, deploy, and audit; the monorepo is an internal development and review gate that is not itself an audit target. Code crosses the boundary through a hardened, two-App, PR-based sync pipeline described in [Sync Architecture](./sync-architecture.md).
+Stackweaver is developed in a single **private monorepo** (`michielvha/stackweaver`) and published as **eight independent satellite repositories** under the [`vhco-pro`](https://github.com/vhco-pro) GitHub organisation. The satellites are what users build, deploy, and audit; the monorepo is an internal development and review gate that is not itself an audit target. Code crosses the boundary through a hardened, two-App, PR-based sync pipeline described in [Sync Architecture](./sync-architecture.md).
 
 | Satellite | Visibility | Contents | Licence |
 |-----------|:----------:|----------|:-------:|
@@ -47,6 +47,7 @@ Stackweaver is developed in a single **private monorepo** (`michielvha/stackweav
 | [`stackweaver-frontend`](https://github.com/vhco-pro/stackweaver-frontend) | public | React SPA + public docs | BSL 1.1 |
 | [`stackweaver-helm`](https://github.com/vhco-pro/stackweaver-helm) | public | Helm chart | Apache-2.0 |
 | [`stackweaver-zitadel-init`](https://github.com/vhco-pro/stackweaver-zitadel-init) | public | Identity-provider bootstrap | BSL 1.1 |
+| [`stackweaver-secrets-init`](https://github.com/vhco-pro/stackweaver-secrets-init) | public | Secret bootstrap for the chart | BSL 1.1 |
 | [`stackweaver-runner`](https://github.com/vhco-pro/stackweaver-runner) | **private** | Terraform execution runner | Apache-2.0 |
 
 The two-track licensing (original product under BSL 1.1 with an Apache-2.0 change date; ecosystem tooling under Apache-2.0 from day one) is the project's deliberate model. GitHub's licence classifier reports `NOASSERTION` for the BSL satellites because BSL 1.1 is not an OSI-approved SPDX identifier; this is expected and does not indicate a missing licence file.
@@ -65,6 +66,7 @@ Every satellite runs OpenSSF Scorecard on a schedule and exposes a **live badge*
 | stackweaver-frontend | [![Scorecard](https://api.scorecard.dev/projects/github.com/vhco-pro/stackweaver-frontend/badge)](https://scorecard.dev/viewer/?uri=github.com/vhco-pro/stackweaver-frontend) |
 | stackweaver-helm | [![Scorecard](https://api.scorecard.dev/projects/github.com/vhco-pro/stackweaver-helm/badge)](https://scorecard.dev/viewer/?uri=github.com/vhco-pro/stackweaver-helm) |
 | stackweaver-zitadel-init | [![Scorecard](https://api.scorecard.dev/projects/github.com/vhco-pro/stackweaver-zitadel-init/badge)](https://scorecard.dev/viewer/?uri=github.com/vhco-pro/stackweaver-zitadel-init) |
+| stackweaver-secrets-init | [![Scorecard](https://api.scorecard.dev/projects/github.com/vhco-pro/stackweaver-secrets-init/badge)](https://scorecard.dev/viewer/?uri=github.com/vhco-pro/stackweaver-secrets-init) |
 
 For scripted checks, the same data is available as JSON:
 
@@ -126,10 +128,10 @@ A handful of individual Scorecard checks sit below 10 for **structural** reasons
 
 | ID | Requirement | Status | Evidence & verification |
 |----|-------------|:------:|-------------------------|
-| QA-01.01 | The source repository is publicly readable at a static URL | ⚠️ | Six of seven satellites are public. The seventh (`stackweaver-runner`) is a documented exclusion; the closed `core/` module is covered by an NDA-gated auditor-access procedure - see [§ Argued deviations](#argued-deviations). |
+| QA-01.01 | The source repository is publicly readable at a static URL | ⚠️ | Seven of eight satellites are public. The eighth (`stackweaver-runner`) is a documented exclusion; the closed `core/` module is covered by an NDA-gated auditor-access procedure - see [§ Argued deviations](#argued-deviations). |
 | QA-01.02 | There is a public record of every change (who and when) | ✅ | Full git history on each satellite. The link to the human reviewer lives upstream in the monorepo and is cryptographically bound to each satellite commit by SLSA provenance referencing the monorepo commit SHA - see [Verifying a Release](./verifying-releases.md). |
 | QA-02.01 | The repository contains a list of direct dependencies | ✅ | `go.mod`, `package.json` + lockfile, `pyproject.toml` + `uv.lock`, and `Chart.yaml` are present in the relevant satellites. |
-| QA-04.01 | A multi-repository project documents its list of codebases | ✅ | This page (§ Scope and repository topology) and the [`vhco-pro` org profile](https://github.com/vhco-pro) enumerate all seven satellites and the closed `core/` module. |
+| QA-04.01 | A multi-repository project documents its list of codebases | ✅ | This page (§ Scope and repository topology) and the [`vhco-pro` org profile](https://github.com/vhco-pro) enumerate all eight satellites and the closed `core/` module. |
 | QA-05.01 | No generated executable artefacts are stored in version control | ✅ | Build outputs and `node_modules` are gitignored and excluded from sync; the OpenSSF `Binary-Artifacts` check scores **10** on all in-scope satellites. |
 | QA-05.02 | No unreviewable binary artefacts are stored in version control | ✅ | Confirmed by the same `Binary-Artifacts` check (score **10**). |
 
@@ -207,7 +209,7 @@ Because the approving reviewer on the satellite is a GitHub App (`stackweaver-pr
 
 ### 3. `stackweaver-runner` is held private (QA-01.01)
 
-The Terraform execution runner is temporarily private because its image bundles the Terraform CLI, and redistributing it publicly under the current licensing is a risk the project chooses to avoid until the runner is rewritten on top of OpenTofu (MPL-2.0). Its container images are still Sigstore-signed. At the public flip it will inherit the identical sync pipeline, branch protection, and attestation set already running on the other six satellites. Until then it carries the pre-hardening threat model, documented in [Sync Architecture § Excluded satellites](./sync-architecture.md#excluded-satellites).
+The Terraform execution runner is temporarily private because its image bundles the Terraform CLI, and redistributing it publicly under the current licensing is a risk the project chooses to avoid until the runner is rewritten on top of OpenTofu (MPL-2.0). Its container images are still Sigstore-signed. At the public flip it will inherit the identical sync pipeline, branch protection, and attestation set already running on the other seven satellites. Until then it carries the pre-hardening threat model, documented in [Sync Architecture § Excluded satellites](./sync-architecture.md#excluded-satellites).
 
 ---
 
