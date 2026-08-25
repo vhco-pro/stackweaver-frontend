@@ -251,11 +251,13 @@ The Ansible runner processes Ansible playbook jobs from the Redis queue.
 | `REDIS_HOST` | Redis hostname | `localhost` |
 | `REDIS_PORT` | Redis port | `6379` |
 | `REDIS_PASSWORD` | Redis password | (empty) |
+| `REDIS_DB` | Redis database index | `0` |
 | `DATABASE_HOST` | PostgreSQL hostname | `localhost` |
 | `DATABASE_PORT` | PostgreSQL port | `5432` |
 | `DATABASE_USER` | PostgreSQL username | `iac` |
 | `DATABASE_PASSWORD` | PostgreSQL password | `iac_password` |
 | `DATABASE_NAME` | Database name | `iac_platform` |
+| `DATABASE_SSLMODE` | SSL mode | `disable` |
 | `STORAGE_ENDPOINT` | S3-compatible endpoint (host:port) | `localhost:3900` |
 | `STORAGE_ACCESS_KEY` | Access key | `GK000000000000000000000000` |
 | `STORAGE_SECRET_KEY` | Secret key | (auto-generated) |
