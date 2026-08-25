@@ -41,10 +41,10 @@ The PVC name `runner-workspaces-pvc` must match the value you set for `runnerWor
 
 ## Secrets
 
-The example `values.yaml` leaves all `secrets.*` fields empty, which causes the chart to auto-generate credentials.
-For production GitOps you should manage secrets externally.
-Provision secrets ahead of time using the External Secrets Operator, Sealed Secrets, or your platform's secrets store, then set `secrets.<component>.secretName` to the pre-existing Secret name.
-When all four secret names are populated the chart creates zero Secret resources, making the overlay fully declarative and safe to store in Git.
+The example `values.yaml` leaves all `secrets.*` fields empty, which makes the chart's `secrets-init` bootstrap Job generate the credentials in-cluster on the first sync.
+That is safe under GitOps - the Job creates only what is missing and never rewrites a live value, and the rendered manifests contain no secret material - but for production you should still manage secrets externally so the credentials have a lifecycle you control.
+Provision them ahead of time using the External Secrets Operator, Sealed Secrets, or your platform's secrets store, then set `secrets.<component>.secretName` to the pre-existing Secret name.
+When every secret name is populated the chart renders neither the bootstrap Job nor its RBAC, making the overlay fully declarative and independent of the `secretsInit` image.
 
 See the [Kubernetes deployment guide](../README.md#secrets) for the full list of secret fields and example `kubectl create secret` commands.
 
