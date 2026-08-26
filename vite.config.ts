@@ -29,7 +29,12 @@ const securityHeaders: Record<string, string> = {
     "style-src 'self' 'unsafe-inline'",
     "img-src 'self' data: https:",
     "font-src 'self' data:",
-    "connect-src 'self' https: ws: wss:",
+    // VITE_EXTRA_CONNECT_SRC is the parallel-worktree escape hatch: a worktree Vite
+    // instance pointing at a worktree API on another localhost port (plain http, so
+    // blocked by the https-only cross-origin default) sets it to that origin, e.g.
+    // "http://localhost:8023". Never set on the tunnel-facing instance - unset keeps
+    // the header byte-identical. See docs/internal/setup/worktree-parallel-dev.md.
+    `connect-src 'self' https: ws: wss:${process.env.VITE_EXTRA_CONNECT_SRC ? ` ${process.env.VITE_EXTRA_CONNECT_SRC}` : ''}`,
     "worker-src 'self' blob:",
     "frame-ancestors 'none'",
     "base-uri 'self'",
