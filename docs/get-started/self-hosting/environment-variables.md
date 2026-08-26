@@ -107,7 +107,10 @@ Existing data written before encryption was enabled stays readable: state files 
 | `GITHUB_APP_NAME` | GitHub App name (slug) | (none) |
 | `GITHUB_APP_PRIVATE_KEY_PATH` | Path to GitHub App private key PEM file | (none) |
 | `GITHUB_APP_PRIVATE_KEY` | PEM key contents (alternative to path) | (none) |
-| `GITHUB_WEBHOOK_SECRET` | Webhook signing secret. **Required** for GitHub webhooks: the App's incoming deliveries are authenticated by HMAC-SHA256 of the body against this value, and the endpoint **rejects every delivery (401) when it is unset** - set the same value here and in the GitHub App's webhook configuration. | (none) |
+| `GITHUB_WEBHOOK_SECRET` | Webhook signing secret. **Required** for GitHub webhooks: the App's incoming deliveries are authenticated by HMAC-SHA256 of the body against this value, and the endpoint **rejects every delivery (401) when it is unset** - set the same value here and in the GitHub App's webhook configuration. In Docker Compose, put it in `vcs.env` and escape every `$` as `$$` (see the note below). | (none) |
+
+> [!WARNING]
+> **Escape `$` in Docker Compose secrets.** Compose interpolates `$VAR` sequences in both `environment:` entries and `env_file` values, so a secret containing a literal `$` silently loses that sequence: a value of `s3cr3t$Alt!x` reaches the container as `s3cr3t!x`, and every webhook delivery then fails signature validation with a `401` that looks like a broken integration rather than a config typo. Write it as `s3cr3t$$Alt!x`, and confirm what the container will actually receive with `docker compose config | grep GITHUB_WEBHOOK_SECRET`. The same applies to any other secret you set this way.
 
 ### Azure DevOps Integration
 

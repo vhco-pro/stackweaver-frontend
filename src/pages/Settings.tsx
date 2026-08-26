@@ -2,7 +2,7 @@
 
 import { Link, useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { User, Bell, Shield, Key, Globe, ArrowRight, GitBranch, Layers, Monitor, KeyRound, KeySquare, Webhook, Users, Cpu, Server, FileText, Tag, Cloud, ClipboardList, Zap, type LucideIcon } from 'lucide-react';
+import { User, Bell, Shield, Key, Globe, ArrowRight, GitBranch, Layers, Monitor, KeyRound, KeySquare, Webhook, Users, Cpu, Server, FileText, Tag, Cloud, ClipboardList, Zap, Building2, type LucideIcon } from 'lucide-react';
 import { usePermissions } from '@/hooks/usePermissions';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
@@ -63,6 +63,13 @@ const userSettingsSections: SettingsSection[] = [
 
 // Organization-scoped settings (shown on /app/:orgName/settings)
 const orgSettingsSections: SettingsSection[] = [
+  {
+    title: 'Organization',
+    description: 'General settings and org-wide policies (TFE-compatible)',
+    icon: Building2,
+    gradient: 'from-indigo-500 to-purple-500',
+    path: '/app/:orgName/settings/organization',
+  },
   {
     title: 'Users & Teams',
     description: 'Manage organization members and teams',

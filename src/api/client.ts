@@ -181,9 +181,22 @@ export const apiClient = new ApiClient(API_BASE_URL);
 
 // Types
 export interface Organization {
+  /** TFE semantics: the org's id IS its name. The internal UUID is external_id. */
   id: string;
+  /** Internal UUID (JSON:API `external-id` attribute) - use for matching UUID foreign keys. */
+  external_id?: string;
   name: string;
   description?: string;
+  email?: string;
+  collaborator_auth_policy?: 'password' | 'two_factor_mandatory';
+  cost_estimation_enabled?: boolean;
+  /** tfe_organization policy flags (see the Settings → Organization page). */
+  user_tokens_enabled?: boolean;
+  allow_force_delete_workspaces?: boolean;
+  assessments_enforced?: boolean;
+  speculative_plan_management_enabled?: boolean;
+  aggregated_commit_status_enabled?: boolean;
+  send_passing_statuses_for_untriggered_speculative_plans?: boolean;
   default_terraform_version?: string;
   ansible_job_retention_days?: number;
   ansible_adhoc_modules?: string;
@@ -375,8 +388,18 @@ function organizationFromJsonApi(item: JsonApiResource): Organization {
   const name = (item.attributes?.['name'] ?? item.id) as string;
   return {
     id: (item.id ?? name),
+    external_id: (item.attributes?.['external-id'] ?? undefined) as string | undefined,
     name,
     description: item.attributes?.description,
+    email: (item.attributes?.['email'] ?? undefined) as string | undefined,
+    collaborator_auth_policy: (item.attributes?.['collaborator-auth-policy'] ?? undefined) as Organization['collaborator_auth_policy'],
+    cost_estimation_enabled: (item.attributes?.['cost-estimation-enabled'] ?? undefined) as boolean | undefined,
+    user_tokens_enabled: (item.attributes?.['user-tokens-enabled'] ?? undefined) as boolean | undefined,
+    allow_force_delete_workspaces: (item.attributes?.['allow-force-delete-workspaces'] ?? undefined) as boolean | undefined,
+    assessments_enforced: (item.attributes?.['assessments-enforced'] ?? undefined) as boolean | undefined,
+    speculative_plan_management_enabled: (item.attributes?.['speculative-plan-management-enabled'] ?? undefined) as boolean | undefined,
+    aggregated_commit_status_enabled: (item.attributes?.['aggregated-commit-status-enabled'] ?? undefined) as boolean | undefined,
+    send_passing_statuses_for_untriggered_speculative_plans: (item.attributes?.['send-passing-statuses-for-untriggered-speculative-plans'] ?? undefined) as boolean | undefined,
     default_terraform_version: (item.attributes?.['default-terraform-version'] ?? undefined) as string | undefined,
     ansible_job_retention_days: (item.attributes?.['ansible-job-retention-days'] ?? undefined) as number | undefined,
     ansible_adhoc_modules: (item.attributes?.['ansible-adhoc-modules'] ?? undefined) as string | undefined,
@@ -389,7 +412,12 @@ function organizationFromJsonApi(item: JsonApiResource): Organization {
 }
 
 export const organizationsApi = {
-  list: () => apiClient.get<{ data: Organization[]; meta: { pagination: { page: number; per_page: number; total: number } } }>('/organizations'),
+  // The list endpoint is TFE-compatible JSON:API (go-tfe Organizations.List decodes resource
+  // objects), so parse each element like `get` does.
+  list: () =>
+    apiClient
+      .get<{ data: JsonApiResource[]; meta: { pagination: { 'current-page': number; 'page-size': number; 'total-pages': number; 'total-count': number } } }>('/organizations')
+      .then(res => ({ data: (res.data ?? []).map(organizationFromJsonApi), meta: res.meta })),
   get: (name: string) =>
     apiClient
       .get<{ data: JsonApiResource }>(`/organizations/${encodeURIComponent(name)}`)

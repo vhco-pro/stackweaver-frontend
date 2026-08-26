@@ -59,7 +59,7 @@ sequenceDiagram
        - Copy the HTTPS URL (e.g., `https://abc123.ngrok.io`)
        - Use: `https://abc123.ngrok.io/api/v2/vcs-connections/github/webhook`
      - **For production / Kubernetes**: `https://your-domain.com/api/v2/vcs-connections/github/webhook`
-   - **Webhook secret**: Generate a random secret (store securely); it must match the `GITHUB_WEBHOOK_SECRET` environment variable
+   - **Webhook secret**: Generate a random secret (store securely); it must match the `GITHUB_WEBHOOK_SECRET` environment variable. If the secret contains a `$` and you deploy with Docker Compose, escape it as `$$` where you set the variable, because Compose expands `$VAR` sequences and would otherwise hand the API a truncated secret that rejects every delivery.
    - **Webhook events**: subscribe to the following:
 
      | Event | Why |
@@ -281,6 +281,9 @@ kubectl get secret stackweaver-github-app -n stackweaver \
 - Check webhook URL is correct in GitHub App settings
 - Verify webhook secret matches `GITHUB_WEBHOOK_SECRET`
 - Check webhook delivery logs in GitHub App settings
+
+### Every Delivery Returns 401 (Signature Mismatch)
+The GitHub App's delivery log shows deliveries reaching Stackweaver but failing with `401`. This almost always means the secret the API received is not the secret GitHub signed with. On Docker Compose the usual cause is `$` expansion: Compose interpolates `$VAR` sequences in `environment:` entries **and** in `env_file` values, so a secret containing `$Alt` arrives with those four characters removed and you also see a `The "Alt" variable is not set` warning on every `docker compose` command. Escape each `$` as `$$` where you set the variable, recreate the API container, and confirm the effective value with `docker compose config | grep GITHUB_WEBHOOK_SECRET`.
 
 ### Token Generation Fails
 - Verify private key is correct (PEM format)

@@ -56,6 +56,7 @@ import RunTasks from './pages/Settings/RunTasks';
 import TeamDetail from './pages/Settings/TeamDetail';
 import RunnerDetail from './pages/Settings/RunnerDetail';
 import AnsibleConfiguration from './pages/Settings/AnsibleConfig';
+import OrganizationSettings from './pages/Settings/Organization';
 import Providers from './pages/Providers';
 import RunDetail from './pages/RunDetail';
 import StateVersionDetail from './pages/StateVersionDetail';
@@ -676,6 +677,18 @@ function AppContent() {
                   <OrganizationGuard>
                     <Layout>
                       <AnsibleConfiguration />
+                    </Layout>
+                  </OrganizationGuard>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/app/:orgName/settings/organization"
+              element={
+                <ProtectedRoute>
+                  <OrganizationGuard>
+                    <Layout>
+                      <OrganizationSettings />
                     </Layout>
                   </OrganizationGuard>
                 </ProtectedRoute>
