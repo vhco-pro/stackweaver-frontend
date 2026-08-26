@@ -17,6 +17,7 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { CopyButton } from '@/components/animate-ui/components/buttons/copy';
 import { toast } from 'sonner';
 import { Loader2, Building2, Plus, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -370,9 +371,21 @@ export default function Organizations() {
                   <li>All Ansible resources (workflows, inventories, credentials, schedules)</li>
                   <li>All GPG keys and API keys</li>
                 </ul>
-                <p className="mt-4 font-semibold">
-                  To confirm, please type <strong>{organizationToDelete?.name}</strong> below:
-                </p>
+                <p className="mt-4 font-semibold">To confirm, please type the organization name below:</p>
+                <div className="mt-2 flex items-center gap-2 rounded-lg border border-slate-300/70 bg-slate-100/80 py-1 pl-3 pr-1 dark:border-white/10 dark:bg-white/5">
+                  <code className="min-w-0 flex-1 truncate font-mono text-sm font-semibold text-slate-900 dark:text-slate-100">
+                    {organizationToDelete?.name}
+                  </code>
+                  <CopyButton
+                    content={organizationToDelete?.name ?? ''}
+                    variant="ghost"
+                    size="xs"
+                    aria-label="Copy organization name"
+                    onCopiedChange={(isCopied) => {
+                      if (isCopied) toast.success('Organization name copied');
+                    }}
+                  />
+                </div>
               </div>
             </DialogDescription>
           </DialogHeader>
