@@ -72,6 +72,8 @@ This filtering enables GitOps-style workflows where:
 
 Path filtering needs no configuration to be useful: as soon as a workspace has a working directory, it only triggers when files in that directory change, and leaving the working directory blank monitors the whole repository. The same rules apply to every event StackWeaver receives, so a push, a pull request that opens a speculative plan, and an Azure DevOps delivery all reach the same verdict for the same change.
 
+When required status checks are configured on a repository connected to several path-filtered workspaces, an organization can additionally opt in to posting a passing status for the workspaces a pull request does not trigger, so an irrelevant required check never blocks the merge. That policy, along with the aggregated single-status alternative for monorepos, lives at the organization level - see the [Organization Settings guide](../../user-guides/organization-settings.md#pull-request-behavior).
+
 Three workspace settings adjust that default. They are part of the TFE-compatible API, so you set them through the API or the Terraform provider rather than the web interface.
 
 ### Always Trigger Runs

@@ -19,7 +19,11 @@ const Switch = React.forwardRef<
   >
     <SwitchPrimitives.Thumb
       className={cn(
-        "pointer-events-none block h-5 w-5 rounded-full bg-white shadow-lg ring-0 transition-transform data-[state=checked]:translate-x-5 data-[state=unchecked]:translate-x-0"
+        // Theme-paired thumb (stock shadcn recipe, #680 class): dark mode's --primary is
+        // near-white, so the old bg-white thumb vanished on a checked track. In dark the thumb
+        // flips per state - near-white on the dark unchecked track, dark (primary-foreground) on
+        // the near-white checked track; light mode keeps the white thumb on both.
+        "pointer-events-none block h-5 w-5 rounded-full bg-background shadow-lg ring-0 transition-transform data-[state=checked]:translate-x-5 data-[state=unchecked]:translate-x-0 dark:data-[state=unchecked]:bg-foreground dark:data-[state=checked]:bg-primary-foreground"
       )}
     />
   </SwitchPrimitives.Root>

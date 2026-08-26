@@ -57,12 +57,15 @@ export default function ApiKeysSettings() {
   // The org this page is scoped to (always mounted under /app/:orgName). Keys
   // are bound to this org and this org only - there is no org picker, so a
   // key for a different org must be created from that org's own settings.
-  const effectiveOrgId = organizations.find((o) => o.name === orgName)?.id ?? '';
+  // external_id (the org UUID), NOT id: for organizations id IS the name (TFE JSON:API), but the
+  // backend parses scope strings (org:<id>:read, org:<id>:runner:register) with uuid.Parse, so the
+  // scope segment must be the UUID.
+  const effectiveOrgId = organizations.find((o) => o.name === orgName)?.external_id ?? '';
 
   const { data: projects = [] } = useQuery({
     queryKey: ['projects', scopeType, effectiveOrgId],
     queryFn: async () => {
-      const org = organizations.find(o => o.id === effectiveOrgId);
+      const org = organizations.find(o => o.external_id === effectiveOrgId);
       if (!org) return [];
       const response = await projectsApi.list(org.name);
       return response.data || [];
@@ -585,7 +588,7 @@ export default function ApiKeysSettings() {
                         {apiKey.organization_id && (
                           <span className="flex items-center gap-1">
                             <Building2 className="h-3 w-3" />
-                            Org: {organizations.find(o => o.id === apiKey.organization_id)?.name || apiKey.organization_id.substring(0, 8) + '...'}
+                            Org: {organizations.find(o => o.external_id === apiKey.organization_id)?.name || apiKey.organization_id.substring(0, 8) + '...'}
                           </span>
                         )}
                         {apiKey.project_id && (
