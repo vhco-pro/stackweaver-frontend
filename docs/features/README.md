@@ -45,14 +45,14 @@ StackWeaver provides comprehensive run management capabilities:
 
 | Feature | Description |
 |---------|-------------|
-| **[Output Streaming](./terraform/terraform-streaming.md)** | Live, real-time streaming of plan and apply output with resource status updates as they happen |
-| **[Run Timeout](./terraform/run-timeout.md)** | Configurable timeouts automatically cancel long-running applies to prevent stuck jobs |
-| **[Run Cancellation](./terraform/run-cancellation.md)** | Manually cancel runs in progress, whether queued, planning, or applying |
+| **[Output Streaming](./opentofu/opentofu-streaming.md)** | Live, real-time streaming of plan and apply output with resource status updates as they happen |
+| **[Run Timeout](./opentofu/run-timeout.md)** | Configurable timeouts automatically cancel long-running applies to prevent stuck jobs |
+| **[Run Cancellation](./opentofu/run-cancellation.md)** | Manually cancel runs in progress, whether queued, planning, or applying |
 | Run History | Complete audit trail of all plan and apply operations for compliance and debugging |
 
 ### Advanced Features
 
-Modify workspace settings after creation with [workspace editing](./terraform/workspace-editing.md), eliminating the need to delete and recreate workspaces when configuration changes. [VCS path filtering](./terraform/vcs-path-filtering.md) implements GitOps-style filtering that only triggers workspaces when relevant files change, perfect for monorepo architectures.
+Modify workspace settings after creation with [workspace editing](./opentofu/workspace-editing.md), eliminating the need to delete and recreate workspaces when configuration changes. [VCS path filtering](./opentofu/vcs-path-filtering.md) implements GitOps-style filtering that only triggers workspaces when relevant files change, perfect for monorepo architectures.
 
 Variable management includes workspace variables, variable sets for sharing across multiple workspaces, and encrypted storage for sensitive values. Full JSON:API compatibility with Terraform Enterprise and Cloud provider ensures existing tooling and workflows continue to work.
 
@@ -83,6 +83,6 @@ An API-first design means everything is accessible via REST API with JSON:API fo
 ## Related Documentation
 
 - [User Guides](../user-guides/README.md) - Step-by-step guides for using features
-- [Terraform Workspace Editing](./terraform/workspace-editing.md) - Complete Terraform workspace documentation
+- [Terraform Workspace Editing](./opentofu/workspace-editing.md) - Complete Terraform workspace documentation
 - [Ansible Documentation](./ansible/README.md) - Complete Ansible integration documentation
 - [API Reference](../internal/api-reference/backend-api-reference.md) - REST API documentation

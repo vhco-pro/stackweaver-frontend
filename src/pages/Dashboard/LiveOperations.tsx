@@ -23,7 +23,7 @@ export function LiveOperations() {
     <CollapsibleSection
       id="live-operations"
       title="Live operations"
-      hint="Terraform runs and Ansible jobs executing across your organizations"
+      hint="OpenTofu runs and Ansible jobs executing across your organizations"
     >
       {/* The polling query lives in the body, not here, so folding the section away stops it. */}
       <LiveOperationsList />

@@ -1056,7 +1056,7 @@ export default function VariableSets() {
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="terraform">Terraform</SelectItem>
+                          <SelectItem value="terraform">OpenTofu</SelectItem>
                           <SelectItem value="env">Environment</SelectItem>
                         </SelectContent>
                       </Select>
@@ -1296,7 +1296,7 @@ export default function VariableSets() {
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="terraform">Terraform</SelectItem>
+                        <SelectItem value="terraform">OpenTofu</SelectItem>
                         <SelectItem value="env">Environment</SelectItem>
                       </SelectContent>
                     </Select>

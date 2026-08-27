@@ -33,7 +33,7 @@ export function GettingStarted({
     {
       done: state.hasWorkspace,
       title: 'Set up a workspace',
-      body: 'A workspace holds one Terraform state and the runs that change it.',
+      body: 'A workspace holds one OpenTofu state and the runs that change it.',
       cta: 'Create workspace',
       to: firstOrgName ? `/app/${firstOrgName}/workspaces` : '/organizations',
       gradient: 'from-indigo-500 to-blue-500',
@@ -43,7 +43,7 @@ export function GettingStarted({
   return (
     <AnalyticsCard
       title="Getting started"
-      hint="Three steps to your first Terraform run"
+      hint="Three steps to your first OpenTofu run"
       icon={<Rocket className="h-4 w-4 text-purple-400" />}
     >
       <ol className="space-y-3">

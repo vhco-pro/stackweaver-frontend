@@ -10,7 +10,7 @@ Welcome to the StackWeaver documentation. This directory contains comprehensive 
 ## Get Started
 
 - **[Get Started](./get-started/README.md)**: Overview of StackWeaver and how to get up and running
-- **[Your First Terraform Workspace](./get-started/your-first-terraform-workspace.md)**
+- **[Your First OpenTofu Workspace](./get-started/your-first-opentofu-workspace.md)**
 - **[Running Your First Ansible Job](./get-started/your-first-ansible-job.md)**
 - **[Self-Hosting](./get-started/self-hosting/)**
   - **[Environment Variables Reference](./get-started/self-hosting/environment-variables.md)**: All service environment variables
@@ -29,11 +29,11 @@ Welcome to the StackWeaver documentation. This directory contains comprehensive 
 
 ### Terraform
 
-- **[Output Streaming](./features/terraform/terraform-streaming.md)**: Live streaming of plan/apply output with resource status updates
-- **[Run Timeout](./features/terraform/run-timeout.md)**: Automatic cancellation for long-running runs
-- **[Run Cancellation](./features/terraform/run-cancellation.md)**: Manually cancel queued/planning/applying runs
-- **[Workspace Editing](./features/terraform/workspace-editing.md)**: Update workspace settings after creation
-- **[VCS Path Filtering](./features/terraform/vcs-path-filtering.md)**: Trigger runs only when relevant paths change
+- **[Output Streaming](./features/opentofu/opentofu-streaming.md)**: Live streaming of plan/apply output with resource status updates
+- **[Run Timeout](./features/opentofu/run-timeout.md)**: Automatic cancellation for long-running runs
+- **[Run Cancellation](./features/opentofu/run-cancellation.md)**: Manually cancel queued/planning/applying runs
+- **[Workspace Editing](./features/opentofu/workspace-editing.md)**: Update workspace settings after creation
+- **[VCS Path Filtering](./features/opentofu/vcs-path-filtering.md)**: Trigger runs only when relevant paths change
 
 ### Ansible
 
@@ -57,7 +57,7 @@ Welcome to the StackWeaver documentation. This directory contains comprehensive 
   - **[VCS Integration](./user-guides/vcs/README.md)**
     - **[GitHub App](./user-guides/vcs/github-app.md)**: Configure GitHub App integration for VCS connections
     - **[Azure DevOps](./user-guides/vcs/azure-devops.md)**: Connect Azure DevOps repositories
-  - **[Understanding Terraform Runs](./user-guides/understanding-terraform-runs.md)**
+  - **[Understanding OpenTofu Runs](./user-guides/understanding-opentofu-runs.md)**
   - **[Managing Workspace Variables](./user-guides/managing-workspace-variables.md)**
   - **[Managing StackWeaver with Terraform](./user-guides/terraform-provider.md)**: Manage the platform as code with the official Terraform provider
   - **[Troubleshooting Common Issues](./user-guides/troubleshooting-common-issues.md)**

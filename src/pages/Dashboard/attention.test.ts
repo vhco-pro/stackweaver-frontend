@@ -60,7 +60,7 @@ describe('attentionItems', () => {
         ],
       }),
     );
-    // Terraform and Ansible interleave: the order says how urgent, not which half of the product.
+    // OpenTofu and Ansible interleave: the order says how urgent, not which half of the product.
     expect(items.map(item => item.kind)).toEqual([
       'awaiting_approval',
       'pending_workflow_approvals',
@@ -74,7 +74,7 @@ describe('attentionItems', () => {
     ]);
   });
 
-  it('covers Ansible, not only Terraform', () => {
+  it('covers Ansible, not only OpenTofu', () => {
     // The first cut reported workspaces, runs and change requests and nothing else, so an estate
     // whose Ansible half was on fire looked healthy.
     const ansibleOnly = attentionItems(
@@ -111,7 +111,7 @@ describe('attentionItems', () => {
       }),
     );
     expect(items).toHaveLength(2);
-    expect(items[0].label).toContain('Terraform runs failed');
+    expect(items[0].label).toContain('OpenTofu runs failed');
     expect(items[0].href).toBe('/app/acme/usage');
     expect(items[1].label).toContain('Ansible jobs failed');
     expect(items[1].href).toBe('/app/acme/ansible/jobs?status=failed');

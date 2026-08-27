@@ -377,5 +377,5 @@ A: Check that the container is running, that `STACKWEAVER_SERVER` and `STACKWEAV
 ## What's Next?
 
 - Use [Managing Workspace Variables](./managing-workspace-variables.md) to configure variables for workspaces that run on your runners.
-- Use [Understanding Terraform Runs](./understanding-terraform-runs.md) to interpret plan and apply output for runs executed on your runners.
+- Use [Understanding OpenTofu Runs](./understanding-opentofu-runs.md) to interpret plan and apply output for runs executed on your runners.
 - Use [Running Your First Ansible Job](../get-started/your-first-ansible-job.md) to run Ansible jobs that can be routed to your self-hosted Ansible runners.

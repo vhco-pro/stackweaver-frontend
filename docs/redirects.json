@@ -1,0 +1,20 @@
+{
+  "_comment": [
+    "Docs-site redirect map: old doc path -> new doc path, both relative to /docs and without the .md extension.",
+    "Renaming a published doc changes a live URL, so every rename MUST add an entry here or external links,",
+    "bookmarks and search results break silently. scripts/build-docs-index.js copies this to",
+    "frontend/public/docs-redirects.json; DocsViewer consults it before fetching and issues a replacing",
+    "client-side navigation, so deep links keep working. Entries are permanent - never prune them.",
+    "Directory renames need one entry per page, plus the directory index itself."
+  ],
+  "redirects": {
+    "get-started/your-first-terraform-workspace": "get-started/your-first-opentofu-workspace",
+    "user-guides/understanding-terraform-runs": "user-guides/understanding-opentofu-runs",
+    "features/terraform": "features/opentofu",
+    "features/terraform/workspace-editing": "features/opentofu/workspace-editing",
+    "features/terraform/vcs-path-filtering": "features/opentofu/vcs-path-filtering",
+    "features/terraform/terraform-streaming": "features/opentofu/opentofu-streaming",
+    "features/terraform/run-cancellation": "features/opentofu/run-cancellation",
+    "features/terraform/run-timeout": "features/opentofu/run-timeout"
+  }
+}

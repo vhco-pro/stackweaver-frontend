@@ -75,6 +75,6 @@ This means output appears within a couple of seconds of Terraform producing it, 
 
 ## Related Documentation
 
-- [Understanding Terraform Runs](../../user-guides/understanding-terraform-runs.md) - Learn how to read run outputs
+- [Understanding OpenTofu Runs](../../user-guides/understanding-opentofu-runs.md) - Learn how to read run outputs
 - [Run Cancellation](./run-cancellation.md) - Cancel runs while they're streaming
 - [Workspace Editing](./workspace-editing.md) - Workspace configuration and management

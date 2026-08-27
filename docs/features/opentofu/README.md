@@ -1,9 +1,9 @@
 ---
-description: "Terraform features section index"
+description: "OpenTofu features section index"
 covers: []
 ---
 
-# Terraform Features
+# OpenTofu Features
 
 StackWeaver's Terraform integration provides workspace management, run execution, and automation features compatible with Terraform Cloud and Enterprise. This section covers platform-specific capabilities for configuring workspaces, controlling runs, and viewing output.
 
@@ -17,7 +17,7 @@ Change workspace settings after creation without deleting and recreating workspa
 
 Trigger runs only when files in your workspace's working directory change. Supports GitOps-style setups with multiple environments or services in one repository, so each workspace runs only when its paths are modified.
 
-### [Terraform Output Streaming](./terraform-streaming.md)
+### [OpenTofu Output Streaming](./opentofu-streaming.md)
 
 View plan and apply output in real time as Terraform runs. Output streams line-by-line to the UI and is stored for later review.
 
@@ -32,5 +32,5 @@ Manually cancel runs that are queued, planning, or applying. Describes when canc
 ## Related Documentation
 
 - [Platform Features Overview](../README.md): full feature set and platform capabilities
-- [Your First Terraform Workspace](../../get-started/your-first-terraform-workspace.md): end-to-end setup and first run
+- [Your First OpenTofu Workspace](../../get-started/your-first-opentofu-workspace.md): end-to-end setup and first run
 - [Managing StackWeaver with Terraform](../../user-guides/terraform-provider.md): manage workspaces, variables, and the rest of the platform as code with the official `vhco-pro/stackweaver` provider

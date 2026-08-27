@@ -329,5 +329,5 @@ Periodically review which variables are used where. Remove unused variables and 
 
 ## Next Steps
 
-- Read about [workspace editing](../features/terraform/workspace-editing.md)
-- Explore [VCS path filtering](../features/terraform/vcs-path-filtering.md) for multi-environment workflows
+- Read about [workspace editing](../features/opentofu/workspace-editing.md)
+- Explore [VCS path filtering](../features/opentofu/vcs-path-filtering.md) for multi-environment workflows

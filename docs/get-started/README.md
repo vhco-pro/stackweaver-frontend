@@ -43,7 +43,7 @@ If you're self-hosting StackWeaver, follow these steps in order:
    - **Docker Compose**: Follow the [Docker Compose Deployment Guide](self-hosting/docker-compose/), run `docker compose up -d` to start all services.
 2. **Configure authentication** See the [Zitadel Setup Guide](../user-guides/authentication/zitadel-setup.md) for both deployment paths. For custom domains see [Custom Domain](../user-guides/authentication/zitadel-custom-domain.md).
 3. **Connect a VCS provider** [GitHub App](../user-guides/vcs/github-app.md) or [Azure DevOps](../user-guides/vcs/azure-devops.md).
-4. **Create your first Terraform workspace** Follow [Your First Terraform Workspace](./your-first-terraform-workspace.md).
+4. **Create your first OpenTofu workspace** Follow [Your First OpenTofu Workspace](./your-first-opentofu-workspace.md).
 5. **Create your first Ansible job** Follow [Running Your First Ansible Job](./your-first-ansible-job.md).
 
 ## Next Steps
@@ -52,7 +52,7 @@ Once you have StackWeaver set up (either self-hosted or via StackWeaver Cloud), 
 
 - Explore the [Architecture documentation](../architecture/README.md) to understand how StackWeaver works
 - Review the [API Reference](../internal/api-reference/backend-api-reference.md) for integrating with StackWeaver programmatically
-- Check out the [Terraform documentation](../features/terraform/workspace-editing.md) or [Ansible documentation](../features/ansible/README.md) for tool-specific guides
+- Check out the [OpenTofu documentation](../features/opentofu/workspace-editing.md) or [Ansible documentation](../features/ansible/README.md) for tool-specific guides
 
 ## Need Help?
 
