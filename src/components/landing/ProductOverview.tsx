@@ -38,7 +38,7 @@ export function ProductOverview() {
             <h2 className="text-2xl sm:text-4xl md:text-5xl font-bold tracking-tight text-slate-700 dark:text-gray-200 mb-6 flex flex-wrap items-center gap-x-3">
               <span>Orchestrate</span>
               <RotatingTextContainer
-                text={['Terraform', 'Ansible', 'OpenTofu']}
+                text={['OpenTofu', 'Ansible']}
                 className="inline-flex text-blue-600 dark:text-blue-400 min-w-[100px] sm:min-w-[140px] justify-start"
                 y={40}
                 duration={2000}

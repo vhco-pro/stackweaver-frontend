@@ -26,13 +26,14 @@ covers:
 |------|------|------------|-------------|----------|
 | **Upstream monorepo** | `michielvha/stackweaver` | Private (permanent) | Internal upstream gate - not audited directly | All source, including the closed `core/` Go module |
 | **Closed Go module** | `core/` (inside monorepo) | Private (BSL when published) | Argued deviation under NDA - see [`core-auditor-access.md`](../internal/security/core-auditor-access.md) | Shared GORM models, repositories, queue, storage, plugin contracts |
-| **Satellite - API**           | `vhco-pro/stackweaver-api`            | Planned public | ✅ | `backend/cmd/api`, `backend/internal/{api,services}`, `backend/config` |
-| **Satellite - Orchestrator**  | `vhco-pro/stackweaver-orchestrator`   | Planned public | ✅ | `backend/cmd/orchestrator` |
-| **Satellite - Terraform Runner** | `vhco-pro/stackweaver-runner`      | Planned public | ✅ | `backend/cmd/runner`, `runner-images/terraform/Dockerfile` |
-| **Satellite - Ansible Runner**| `vhco-pro/stackweaver-ansible-runner` | Planned public | ✅ | `backend/cmd/ansible-runner`, `runner-images/ansible/*`, OIDC inventory script |
-| **Satellite - Frontend**      | `vhco-pro/stackweaver-frontend`       | Planned public | ✅ | `frontend/`, `docs/` (excluding `docs/internal/`) |
+| **Satellite - API**           | `vhco-pro/stackweaver-api`            | Public | ✅ | `backend/cmd/api`, `backend/internal/{api,services}`, `backend/config` |
+| **Satellite - Orchestrator**  | `vhco-pro/stackweaver-orchestrator`   | Public | ✅ | `backend/cmd/orchestrator` |
+| **Satellite - OpenTofu Runner** | `vhco-pro/stackweaver-opentofu-runner` | Public | ✅ | `backend/cmd/runner`, `runner-images/opentofu/Dockerfile` |
+| **Satellite - Ansible Runner**| `vhco-pro/stackweaver-ansible-runner` | Public | ✅ | `backend/cmd/ansible-runner`, `runner-images/ansible/*`, OIDC inventory script |
+| **Satellite - Frontend**      | `vhco-pro/stackweaver-frontend`       | Public | ✅ | `frontend/`, `docs/` (excluding `docs/internal/`) |
 | **Satellite - Helm chart**    | `vhco-pro/stackweaver-helm`           | Public         | ✅ | `deploy/helm/stackweaver/` |
-| **Satellite - Zitadel Init**  | `vhco-pro/stackweaver-zitadel-init`   | Planned public | ✅ | `scripts/zitadel-init/` |
+| **Satellite - Zitadel Init**  | `vhco-pro/stackweaver-zitadel-init`   | Public | ✅ | `scripts/zitadel-init/` |
+| **Satellite - Secrets Init**  | `vhco-pro/stackweaver-secrets-init`   | Public | ✅ | `scripts/secrets-init/` |
 | **Org-defaults repo**         | `vhco-pro/.github`                    | Public (created 2026-05-23, empty) | Provides defaults - not audited directly | Community-health files, reusable workflows |
 
 ## 2. Sync directionality
@@ -44,7 +45,7 @@ covers:
                   ▼
     vhco-pro/stackweaver-api
     vhco-pro/stackweaver-orchestrator
-    vhco-pro/stackweaver-runner
+    vhco-pro/stackweaver-opentofu-runner
     vhco-pro/stackweaver-ansible-runner
     vhco-pro/stackweaver-frontend
     vhco-pro/stackweaver-helm

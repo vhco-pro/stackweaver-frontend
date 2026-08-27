@@ -49,7 +49,7 @@ export function RecentFailures({ failures, orgName }: { failures: AnalyticsFailu
                   ) : null}
                 </span>
                 <span className="block truncate text-xs text-muted-foreground">
-                  {failure.platform === 'ansible' ? 'Ansible' : 'Terraform'} · {relativeTime(failure.failed_at)}
+                  {failure.platform === 'ansible' ? 'Ansible' : 'OpenTofu'} · {relativeTime(failure.failed_at)}
                   {failure.error_message ? ` · ${failure.error_message}` : ''}
                 </span>
               </span>

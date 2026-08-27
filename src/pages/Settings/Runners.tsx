@@ -141,7 +141,7 @@ export default function Runners() {
   stackweaver/runner-${type}:latest`;
     void navigator.clipboard.writeText(cmd);
     setCopiedCmd(type);
-    toast.success(`${type === 'ansible' ? 'Ansible' : 'Terraform'} runner command copied`);
+    toast.success(`${type === 'ansible' ? 'Ansible' : 'OpenTofu'} runner command copied`);
     setTimeout(() => setCopiedCmd(null), 2000);
   };
 
