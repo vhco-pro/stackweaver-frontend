@@ -235,7 +235,7 @@ function ExecutionGroups({
   }
 
   const groups = [
-    { id: 'terraform', label: 'Terraform', rows: terraform, color: palette.terraform },
+    { id: 'terraform', label: 'OpenTofu', rows: terraform, color: palette.terraform },
     { id: 'ansible', label: 'Ansible', rows: ansible, color: palette.ansible },
   ];
 
@@ -336,7 +336,7 @@ function ExecutionRow({
         <span className="min-w-0 flex-1">
           <span className="block truncate text-sm font-medium text-foreground">{execution.name}</span>
           <span className="block truncate text-xs text-muted-foreground">
-            {execution.platform === 'ansible' ? 'Ansible' : 'Terraform'}
+            {execution.platform === 'ansible' ? 'Ansible' : 'OpenTofu'}
             {execution.detail ? ` · ${execution.detail.replace(/-/g, ' ')}` : ''} · {time}
             {execution.duration_seconds !== undefined ? ` · ${formatDuration(execution.duration_seconds)}` : ''}
           </span>

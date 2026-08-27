@@ -118,7 +118,7 @@ export function Sidebar({ isOpen = false, onClose, collapsed = false, onToggleCo
       return [
         {
           id: 'terraform',
-          label: 'Terraform',
+          label: 'OpenTofu',
           items: [
             { label: 'Workspaces', icon: FolderOpen, path: `/app/${currentOrgName}/workspaces` },
             { label: 'Registry', icon: Package, path: `/app/${currentOrgName}/registry` },

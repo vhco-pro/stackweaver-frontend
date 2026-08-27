@@ -71,7 +71,7 @@ function MiniBar({ value, className }: { value: string; className?: string }) {
 // ---- sidebar ---------------------------------------------------------------------------------
 
 const MOCK_NAV: { section: string; items: string[] }[] = [
-  { section: 'Terraform', items: ['Workspaces', 'Registry'] },
+  { section: 'OpenTofu', items: ['Workspaces', 'Registry'] },
   { section: 'Ansible', items: ['Inventories', 'Playbooks', 'Job Templates', 'Jobs'] },
   { section: 'Core', items: ['Dashboard', 'Settings'] },
 ];
@@ -102,7 +102,7 @@ function MiniSidebar({ active }: { active: string }) {
 // ---- pane 1: dashboard (single pane of glass) --------------------------------------------------
 
 const MOCK_ATTENTION: { org: string; text: string; icon: LucideIcon; tone: string }[] = [
-  { org: 'platform', text: '1 Terraform run is waiting for someone to apply', icon: AlertTriangle, tone: 'text-amber-500' },
+  { org: 'platform', text: '1 OpenTofu run is waiting for someone to apply', icon: AlertTriangle, tone: 'text-amber-500' },
   { org: 'demo', text: '2 workspaces have been left broken', icon: XCircle, tone: 'text-red-500' },
   { org: 'demo', text: '1 of 3 runners is offline', icon: ServerOff, tone: 'text-red-500' },
   { org: 'main', text: '3 open change requests', icon: ClipboardList, tone: 'text-indigo-500' },
@@ -601,7 +601,7 @@ const FLOATS: Record<TourPaneId, { top: ReactNode; bottom: ReactNode }> = {
         </div>
       </>
     ),
-    bottom: <Stat label="Completed this month" value="128" sub="112 Terraform · 16 Ansible" />,
+    bottom: <Stat label="Completed this month" value="128" sub="112 OpenTofu · 16 Ansible" />,
   },
   resources: {
     top: <IconRow icon={CheckCircle2} tone="bg-green-500/10 dark:bg-green-500/20 text-green-600 dark:text-green-400" title="State version 14" sub="11 resources · 1 output" />,
