@@ -7,6 +7,15 @@
 #   3. Wait for zitadel-init to complete (docker compose logs -f zitadel-init)
 #   4. Open http://localhost:5173
 
+# Single user-defined bridge network. Services reach each other by Docker DNS
+# service name (postgres, redis, garage, zitadel, api, ...), and only the three
+# host-facing ports are published. This replaces the previous `network_mode: host`,
+# which is Linux-only (Docker Desktop on macOS/Windows behaves differently) and
+# exposed every internal service on the host interface with no port-mapping control.
+networks:
+  stackweaver:
+    driver: bridge
+
 volumes:
   postgres_data:
   garage_data:
@@ -35,7 +44,7 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
-    network_mode: host
+    networks: [stackweaver]
 
   redis:
     image: redis:8-alpine
@@ -46,7 +55,7 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
-    network_mode: host
+    networks: [stackweaver]
 
   garage:
     image: dxflrs/garage:v2.3.0
@@ -56,7 +65,7 @@ services:
       - garage_data:/var/lib/garage/data
       - garage_meta:/var/lib/garage/meta
       - ./garage.toml:/etc/garage.toml:ro
-    network_mode: host
+    networks: [stackweaver]
 
   garage-init:
     image: alpine:3.24
@@ -65,7 +74,7 @@ services:
       garage:
         condition: service_started
     restart: "no"
-    network_mode: host
+    networks: [stackweaver]
     volumes:
       - ./garage.toml:/etc/garage.toml:ro
       - garage_meta:/var/lib/garage/meta:ro
@@ -124,7 +133,7 @@ services:
       - ./.env
     environment:
       ZITADEL_SERVICE_USER_TOKEN: ${ZITADEL_LOGIN_SERVICE_USER_TOKEN:-}
-      ZITADEL_DATABASE_POSTGRES_HOST: localhost
+      ZITADEL_DATABASE_POSTGRES_HOST: postgres
       # Post-cutover the login UI is the Stackweaver SPA, served from
       # the frontend container on port 5173. Zitadel's LoginV2.BaseURI
       # points at the SPA's /login route; LoginV2 origin must match the
@@ -139,7 +148,9 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-    network_mode: host
+    networks: [stackweaver]
+    ports:
+      - "8080:8080"  # published: the browser hits the OIDC issuer/authorize/discovery endpoints
 
   # The standalone `login-ui` container (ghcr.io/zitadel/zitadel-login)
   # was removed in favor of the in-frontend custom login UI bundled
@@ -163,7 +174,7 @@ services:
       # Stackweaver SPA serves login at `/login/*` instead of the
       # hosted Zitadel UI's `/ui/v2/login/*`.
       ZITADEL_ISSUER: ${ZITADEL_ISSUER:-http://localhost:8080}
-      ZITADEL_INTERNAL_ADDR: localhost:8080
+      ZITADEL_INTERNAL_ADDR: zitadel:8080
       ZITADEL_DOMAIN: ${ZITADEL_EXTERNAL_HOST:-localhost}
       PROJECT_ROOT: /config
       ZITADEL_ADMIN_USERNAME: admin@ZITADEL.localhost
@@ -178,7 +189,7 @@ services:
       zitadel:
         condition: service_started
     restart: "no"
-    network_mode: host
+    networks: [stackweaver]
 
   # ── Application ─────────────────────────────────────────────────────
 
@@ -194,11 +205,15 @@ services:
     environment:
       CONFIG_PATH: /etc/iac/config/config.yaml
       LOG_LEVEL: ${LOG_LEVEL:-info}
+      # Bridge service names. The image's baked config.yaml defaults these to
+      # "localhost", which under bridge networking resolves to this container.
+      DATABASE_HOST: postgres
+      REDIS_HOST: redis
       ZITADEL_ISSUER: ${ZITADEL_ISSUER:-http://localhost:8080}
       ZITADEL_API_CLIENT_ID: ${ZITADEL_API_CLIENT_ID:-}
       ZITADEL_API_CLIENT_SECRET: ${ZITADEL_API_CLIENT_SECRET:-}
       ZITADEL_LOGIN_SERVICE_USER_TOKEN: ${ZITADEL_LOGIN_SERVICE_USER_TOKEN:-}
-      ZITADEL_INTERNAL_ADDR: localhost:8080
+      ZITADEL_INTERNAL_ADDR: zitadel:8080
       CORS_EXTRA_ORIGINS: ${CORS_EXTRA_ORIGINS:-}
       ZITADEL_WEBHOOK_IDP_SYNC_KEY: ${ZITADEL_WEBHOOK_IDP_SYNC_KEY:-}
       ZITADEL_WEBHOOK_COMPLEMENT_TOKEN_KEY: ${ZITADEL_WEBHOOK_COMPLEMENT_TOKEN_KEY:-}
@@ -206,7 +221,7 @@ services:
       ANSIBLE_ENCRYPTION_KEY: ${ENCRYPTION_KEY:-00000000000000000000000000000000}
       # Storage (Garage S3-compatible)
       STORAGE_BACKEND: s3
-      STORAGE_ENDPOINT: localhost:3900
+      STORAGE_ENDPOINT: garage:3900
       STORAGE_ACCESS_KEY: ${STORAGE_ACCESS_KEY:-GK000000000000000000000000}
       STORAGE_SECRET_KEY: ${STORAGE_SECRET_KEY:-abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789}
       STORAGE_BUCKET: stackweaver
@@ -237,7 +252,9 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
-    network_mode: host
+    networks: [stackweaver]
+    ports:
+      - "8022:8022"  # published: the browser and CLI call the API directly
 
   frontend:
     image: ghcr.io/vhco-pro/stackweaver-frontend:latest
@@ -260,9 +277,9 @@ services:
           VITE_ZITADEL_REDIRECT_URI: "$$VITE_ZITADEL_REDIRECT_URI",
         };
         EOF
-        # Move nginx off its default 8080, which collides with Zitadel under
-        # network_mode: host. The image ships its SPA config as nginx.default.conf
-        # (see frontend/Dockerfile) - not the stock default.conf.
+        # Serve the SPA on 5173 so the published port, the healthcheck and
+        # VITE_ZITADEL_REDIRECT_URI all agree. The image ships its SPA config as
+        # nginx.default.conf (see frontend/Dockerfile) - not the stock default.conf.
         sed -i 's/listen 8080;/listen 5173;/' /etc/nginx/conf.d/nginx.default.conf
         exec nginx -g 'daemon off;'
     depends_on:
@@ -277,7 +294,9 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
-    network_mode: host
+    networks: [stackweaver]
+    ports:
+      - "5173:5173"  # published: this is the app itself
 
   orchestrator:
     image: ghcr.io/vhco-pro/stackweaver-orchestrator:latest
@@ -288,7 +307,8 @@ services:
       - ./vcs.env
     environment:
       CONFIG_PATH: /etc/iac/config/config.yaml
-      REDIS_HOST: localhost
+      DATABASE_HOST: postgres  # bridge service name (overrides config.yaml localhost)
+      REDIS_HOST: redis
       REDIS_PORT: "6379"
       REDIS_PASSWORD: ""
       REDIS_DB: "0"
@@ -306,7 +326,7 @@ services:
         condition: service_healthy
       api:
         condition: service_started
-    network_mode: host
+    networks: [stackweaver]
 
   runner:
     image: ghcr.io/vhco-pro/stackweaver-opentofu-runner:latest
@@ -317,13 +337,14 @@ services:
       - ./oidc.env
     environment:
       CONFIG_PATH: /etc/iac/config/config.yaml
-      REDIS_HOST: localhost
+      DATABASE_HOST: postgres  # bridge service name (overrides config.yaml localhost)
+      REDIS_HOST: redis
       REDIS_PORT: "6379"
       REDIS_PASSWORD: ""
       REDIS_DB: "0"
       # Storage (Garage S3-compatible)
       STORAGE_BACKEND: s3
-      STORAGE_ENDPOINT: localhost:3900
+      STORAGE_ENDPOINT: garage:3900
       STORAGE_ACCESS_KEY: ${STORAGE_ACCESS_KEY:-GK000000000000000000000000}
       STORAGE_SECRET_KEY: ${STORAGE_SECRET_KEY:-abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789}
       STORAGE_BUCKET: stackweaver
@@ -342,7 +363,7 @@ services:
         condition: service_completed_successfully
       orchestrator:
         condition: service_started
-    network_mode: host
+    networks: [stackweaver]
 
   ansible-runner:
     image: ghcr.io/vhco-pro/stackweaver-ansible-runner:latest
@@ -353,17 +374,17 @@ services:
       - ./vcs.env
       - ./oidc.env
     environment:
-      REDIS_HOST: localhost
+      REDIS_HOST: redis
       REDIS_PORT: "6379"
       REDIS_PASSWORD: ""
-      DATABASE_HOST: localhost
+      DATABASE_HOST: postgres
       DATABASE_PORT: "5432"
       DATABASE_USER: ${POSTGRES_USER:-iac}
       DATABASE_PASSWORD: ${POSTGRES_PASSWORD:-iac_password}
       DATABASE_NAME: ${POSTGRES_DB:-iac_platform}
       # Storage (Garage S3-compatible)
       STORAGE_BACKEND: s3
-      STORAGE_ENDPOINT: localhost:3900
+      STORAGE_ENDPOINT: garage:3900
       STORAGE_ACCESS_KEY: ${STORAGE_ACCESS_KEY:-GK000000000000000000000000}
       STORAGE_SECRET_KEY: ${STORAGE_SECRET_KEY:-abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789}
       STORAGE_BUCKET: stackweaver
@@ -396,4 +417,4 @@ services:
         condition: service_completed_successfully
       api:
         condition: service_started
-    network_mode: host
+    networks: [stackweaver]

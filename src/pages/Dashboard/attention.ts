@@ -90,7 +90,7 @@ function itemsForOrg(org: DashboardOrgStats, failureWindowDays: number): Attenti
   add(
     'awaiting_approval',
     org.awaiting_approval,
-    `Terraform ${plural(org.awaiting_approval, 'run is', 'runs are')} waiting for someone to apply`,
+    `OpenTofu ${plural(org.awaiting_approval, 'run is', 'runs are')} waiting for someone to apply`,
     `/app/${org.name}/workspaces?status=needs_attention`,
     'amber',
   );
@@ -138,7 +138,7 @@ function itemsForOrg(org: DashboardOrgStats, failureWindowDays: number): Attenti
   add(
     'recent_run_failures',
     org.recent_run_failures,
-    `Terraform ${plural(org.recent_run_failures, 'run', 'runs')} failed in the last ${failureWindowDays} days`,
+    `OpenTofu ${plural(org.recent_run_failures, 'run', 'runs')} failed in the last ${failureWindowDays} days`,
     `/app/${org.name}/usage`,
     'red',
   );

@@ -15,14 +15,14 @@ Practical, step-by-step guides for using StackWeaver. These guides walk you thro
 
 ## VCS Integration
 
-- **[VCS Overview](./vcs/README.md)** - Connect a version control system to trigger Terraform runs from code pushes
+- **[VCS Overview](./vcs/README.md)** - Connect a version control system to trigger OpenTofu runs from code pushes
   - **[GitHub App](./vcs/github-app.md)** - Create and configure a GitHub App for self-service VCS connections
   - **[Azure DevOps](./vcs/azure-devops.md)** - Connect Azure DevOps repositories using Microsoft Entra ID OAuth2
 
-## Terraform Workflows
+## OpenTofu Workflows
 
 - **[Organization Settings](./organization-settings.md)** - Organization-wide policies and what they do at run time: token access, force-delete policy, health assessments, and pull request status behavior
-- **[Understanding Terraform Runs](./understanding-terraform-runs.md)** - Learn how to read plan and apply outputs, understand resource changes, and track run history
+- **[Understanding OpenTofu Runs](./understanding-opentofu-runs.md)** - Learn how to read plan and apply outputs, understand resource changes, and track run history
 - **[Managing Workspace Variables](./managing-workspace-variables.md)** - Set up and organize variables across workspaces and projects
 - **[Change Requests](./change-requests.md)** - File action items against workspaces so teams know what needs fixing, and archive them once the work is done
 
@@ -55,11 +55,11 @@ Practical, step-by-step guides for using StackWeaver. These guides walk you thro
 
 ## Cloud Integration
 
-- **[OIDC Configuration](./oidc-configuration.md)** - Configure keyless authentication from Terraform and Ansible runs to Azure, AWS, and GCP using OpenID Connect workload identity
+- **[OIDC Configuration](./oidc-configuration.md)** - Configure keyless authentication from OpenTofu and Ansible runs to Azure, AWS, and GCP using OpenID Connect workload identity
 
 ## Infrastructure
 
-- **[Self-Hosted Runners](./self-hosted-runners.md)** - Run Terraform and Ansible workloads on your own infrastructure using agent pools and self-hosted runners
+- **[Self-Hosted Runners](./self-hosted-runners.md)** - Run OpenTofu and Ansible workloads on your own infrastructure using agent pools and self-hosted runners
 
 ## Troubleshooting
 

@@ -29,7 +29,7 @@ import { JsonSyntaxHighlighter } from '@/components/code/JsonSyntaxHighlighter';
 interface OutputViewerProps {
   data: Record<string, unknown>;
   showJsonViewer?: boolean;
-  title?: string; // Optional title (defaults to "Terraform Plan" for plan output)
+  title?: string; // Optional title (defaults to "OpenTofu Plan" for plan output)
   logs?: string; // Optional raw logs for terminal view (plan phase output)
   runId?: string; // Run ID for localStorage persistence
 }
@@ -353,7 +353,7 @@ function OutputChangeCard({ output }: { output: OutputChange }) {
   );
 }
 
-export function OutputViewer({ data, showJsonViewer = true, title = "Terraform Plan", logs, runId }: OutputViewerProps) {
+export function OutputViewer({ data, showJsonViewer = true, title = "OpenTofu Plan", logs, runId }: OutputViewerProps) {
   const [viewMode] = useState<'readable' | 'json'>('readable');
   
   // Load UI state from localStorage on mount (per-run basis)

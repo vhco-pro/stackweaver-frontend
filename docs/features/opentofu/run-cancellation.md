@@ -68,5 +68,5 @@ Common scenarios for cancelling runs:
 ## Related Documentation
 
 - [Run Timeout](./run-timeout.md) - Automatic timeout cancellation
-- [Understanding Terraform Runs](../../user-guides/understanding-terraform-runs.md) - How to read run outputs
+- [Understanding OpenTofu Runs](../../user-guides/understanding-opentofu-runs.md) - How to read run outputs
 - [Troubleshooting](../../user-guides/troubleshooting-common-issues.md) - Solutions for common issues

@@ -67,8 +67,8 @@ The `DocImage` component resolves paths using the same logic as the internal lin
 
 | Markdown source | Current page | Resolved URL |
 |---|---|---|
-| `./image.png` | `features/terraform/run-timeout.md` | `/docs/features/terraform/image.png` |
-| `../shared.svg` | `features/terraform/run-timeout.md` | `/docs/features/shared.svg` |
+| `./image.png` | `features/opentofu/run-timeout.md` | `/docs/features/opentofu/image.png` |
+| `../shared.svg` | `features/opentofu/run-timeout.md` | `/docs/features/shared.svg` |
 | `image.png` (bare) | `features/README.md` (directory page) | `/docs/features/image.png` |
 | `https://example.com/img.png` | any | passed through unchanged |
 | `/docs/images/logo.svg` | any | passed through unchanged |

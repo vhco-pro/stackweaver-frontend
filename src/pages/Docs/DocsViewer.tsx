@@ -1,7 +1,7 @@
 // Copyright (c) 2025 VH & Co BV. Licensed under the Business Source License 1.1. See LICENSE for details.
 
 import { useQuery } from '@tanstack/react-query';
-import { useParams, useLocation } from 'react-router-dom';
+import { useParams, useLocation, Navigate } from 'react-router-dom';
 import { DocsLayout } from '@/components/docs/DocsLayout';
 import { Skeleton } from '@/components/ui/skeleton';
 import { AlertCircle } from 'lucide-react';
@@ -25,6 +25,20 @@ export default function DocsViewer({ docsBase = '/docs', indexFile = '/docs-inde
 
   // Convert URL path to file path
   const docPath = params['*'] || 'README';
+
+  // Renaming a published doc changes a live URL, so docs/redirects.json maps the old path to the
+  // new one (see scripts/build-docs-index.js, which emits it here). Resolved before the fetch so a
+  // stale bookmark or external link lands on the renamed page instead of "Document not found".
+  const { data: redirects } = useQuery<Record<string, string>>({
+    queryKey: ['docs-redirects', docsBase],
+    queryFn: async () => {
+      const res = await fetch(`${docsBase === '/docs' ? '' : docsBase}/docs-redirects.json`);
+      if (!res.ok || isHtmlFallback(res)) return {};
+      return (await res.json()) as Record<string, string>;
+    },
+    staleTime: Infinity,
+  });
+  const redirectTarget = redirects?.[docPath.replace(/\/$/, '')];
 
   const { data: docData, isLoading: loading, error: queryError } = useQuery({
     queryKey: ['doc', docsBase, docPath, location.pathname],
@@ -70,6 +84,11 @@ export default function DocsViewer({ docsBase = '/docs', indexFile = '/docs-inde
   const content = docData?.content ?? '';
   const isDirectoryPage = docData?.isDirectoryPage ?? false;
   const error = queryError instanceof Error ? queryError.message : queryError ? 'Failed to load document' : null;
+
+  // `replace` so the retired URL does not linger in history and the back button still works.
+  if (redirectTarget) {
+    return <Navigate to={`${docsBase}/${redirectTarget}`} replace />;
+  }
 
   if (loading) {
     return (

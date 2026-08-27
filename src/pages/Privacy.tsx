@@ -90,7 +90,7 @@ export default function Privacy() {
               </li>
               <li className="flex items-start gap-3">
                 <span className="text-blue-400 mt-1">•</span>
-                <span>To execute and monitor Terraform runs</span>
+                <span>To execute and monitor OpenTofu runs</span>
               </li>
               <li className="flex items-start gap-3">
                 <span className="text-blue-400 mt-1">•</span>

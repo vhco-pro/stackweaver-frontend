@@ -52,7 +52,7 @@ sed -i "s/^ENCRYPTION_KEY=.*/ENCRYPTION_KEY=$(openssl rand -hex 32)/" .env
 docker compose up -d
 ```
 
-This starts all services (PostgreSQL, Redis, Garage, Zitadel, the API, frontend, orchestrator, runners) using Docker Compose with `network_mode: host`.
+This starts all services (PostgreSQL, Redis, Garage, Zitadel, the API, frontend, orchestrator, runners) on a single user-defined bridge network.
 The first run takes a few minutes while Zitadel initialises and the `zitadel-init` container generates credentials.
 
 You can follow the init progress with the following command.
@@ -66,18 +66,27 @@ The default Zitadel admin credentials are `admin@ZITADEL.localhost` / `Password1
 
 ## Architecture
 
-All services run on the host network (`network_mode: host`), so they communicate via `localhost` on their respective ports.
+All services share one user-defined bridge network and reach each other by Docker DNS service name (`postgres`, `redis`, `garage`, `zitadel`, `api`). Only the three host-facing ports are published to your machine, so PostgreSQL, Redis and Garage are reachable from the other containers but not exposed on the host interface. This also means the stack behaves identically on Linux, macOS and Windows, which host networking did not.
+
+Published to your machine:
 
 | Service | Port | Description |
 |---|---|---|
 | Frontend | 5173 | React SPA (nginx), includes the login UI under `/login/*` |
 | API | 8022 | Go REST API, with the auth proxy under `/auth/*` |
 | Zitadel | 8080 | OIDC identity provider |
-| PostgreSQL | 5432 | Database |
-| Redis | 6379 | Job queue and pubsub |
-| Garage | 3900 | S3-compatible object storage (state, configs, registry) |
 
-The orchestrator, Terraform runner, and Ansible runner do not expose ports. They communicate via the Redis queue and PostgreSQL.
+Internal to the Docker network, reachable by service name but not from your host:
+
+| Service | Port | Description |
+|---|---|---|
+| `postgres` | 5432 | Database |
+| `redis` | 6379 | Job queue and pubsub |
+| `garage` | 3900 | S3-compatible object storage (state, configs, registry) |
+
+To reach an internal service for debugging, either publish its port yourself or tunnel to it, for example `docker compose exec postgres psql -U iac -d iac_platform`.
+
+The orchestrator, OpenTofu runner, and Ansible runner expose no ports at all. They communicate via the Redis queue and PostgreSQL.
 Stackweaver serves its own login experience: the frontend SPA renders the login pages under `/login/*`, and the API's auth proxy under `/auth/*` forwards Zitadel session and OIDC calls. The standalone Zitadel-hosted login UI (formerly on port 3000) has been removed.
 
 ## Service Management

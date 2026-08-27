@@ -112,7 +112,7 @@ Once you are running against StackWeaver, you can rename resources to their nati
 
 ## Related Documentation
 
-- [Understanding Terraform Runs](./understanding-terraform-runs.md): how to read the plan and apply output of the runs your configuration creates
+- [Understanding OpenTofu Runs](./understanding-opentofu-runs.md): how to read the plan and apply output of the runs your configuration creates
 - [Managing Workspace Variables](./managing-workspace-variables.md): the variable and variable-set model the provider's variable resources map onto
 - [Self-Hosted Runners](./self-hosted-runners.md): agent pools and runners, which the provider can also create and manage
-- [Your First Terraform Workspace](../get-started/your-first-terraform-workspace.md): the UI walkthrough of the same objects, if you are new to the platform
+- [Your First OpenTofu Workspace](../get-started/your-first-opentofu-workspace.md): the UI walkthrough of the same objects, if you are new to the platform

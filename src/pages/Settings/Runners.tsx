@@ -426,7 +426,7 @@ export default function Runners() {
                 </div>
                 <div>
                   <div className="flex items-center justify-between mb-1">
-                    <span className="text-sm font-medium">Terraform Runner</span>
+                    <span className="text-sm font-medium">OpenTofu Runner</span>
                     <Button
                       variant="ghost"
                       size="sm"

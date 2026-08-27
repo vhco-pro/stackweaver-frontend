@@ -171,7 +171,7 @@ function RunCard({ run, formatTimeAgo, getRunStatusBadge, orgName, workspaceName
               <OutputViewer 
                 data={run.plan_output} 
                 showJsonViewer={false}
-                title="Terraform Plan"
+                title="OpenTofu Plan"
               />
             </div>
           )}
@@ -1255,7 +1255,7 @@ export default function WorkspaceDetail() {
                   {managedResources.length === 0 ? (
                     <div className="p-8 text-center text-muted-foreground">
                       <p>This workspace does not have any resources.</p>
-                      <p className="text-sm mt-2">Resources will appear here after you apply your first Terraform configuration.</p>
+                      <p className="text-sm mt-2">Resources will appear here after you apply your first OpenTofu configuration.</p>
                     </div>
                   ) : (() => {
                     const created = stateCreatedAt
@@ -1343,7 +1343,7 @@ export default function WorkspaceDetail() {
                   {dataSources.length === 0 ? (
                     <div className="p-8 text-center text-muted-foreground">
                       <p>This workspace does not have any data sources.</p>
-                      <p className="text-sm mt-2">Data sources will appear here after you apply your first Terraform configuration.</p>
+                      <p className="text-sm mt-2">Data sources will appear here after you apply your first OpenTofu configuration.</p>
                     </div>
                   ) : (() => {
                     const created = stateCreatedAt
@@ -1417,7 +1417,7 @@ export default function WorkspaceDetail() {
                   {stateOutputs.length === 0 ? (
                     <div className="p-8 text-center text-muted-foreground">
                       <p>No outputs available.</p>
-                      <p className="text-sm mt-2">Outputs will appear here when defined in your Terraform configuration.</p>
+                      <p className="text-sm mt-2">Outputs will appear here when defined in your OpenTofu configuration.</p>
                     </div>
                   ) : (
                     <>
@@ -2236,7 +2236,7 @@ export default function WorkspaceDetail() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="terraform">Terraform</SelectItem>
+                  <SelectItem value="terraform">OpenTofu</SelectItem>
                   <SelectItem value="env">Environment</SelectItem>
                 </SelectContent>
               </Select>
@@ -2249,7 +2249,7 @@ export default function WorkspaceDetail() {
                 disabled={variableForm.category === 'env'} // HCL only applies to terraform variables
               />
               <Label htmlFor="var-hcl" className="text-sm font-normal cursor-pointer">
-                HCL - Evaluate value as HCL code (Terraform variables only)
+                HCL - Evaluate value as HCL code (OpenTofu variables only)
               </Label>
             </div>
             <div className="flex items-center space-x-2">
@@ -2309,7 +2309,7 @@ export default function WorkspaceDetail() {
               </p>
             </div>
             <div className="text-sm text-muted-foreground">
-              <p>Platform variables provide context about your workspace, project, and organization. They are automatically available in all Terraform runs.</p>
+              <p>Platform variables provide context about your workspace, project, and organization. They are automatically available in all OpenTofu runs.</p>
             </div>
           </div>
           <DialogFooter>

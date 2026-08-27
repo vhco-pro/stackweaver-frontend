@@ -6,7 +6,7 @@ covers:
   - "frontend/src/pages/WorkspaceDetail.tsx"
 ---
 
-# Understanding Terraform Runs
+# Understanding OpenTofu Runs
 
 Learn how to read plan and apply outputs, interpret resource changes, and make sense of your Terraform run history.
 
@@ -201,5 +201,5 @@ To understand what changed between runs, review the run history for the workspac
 ## Next Steps
 
 - Learn about [managing workspace variables](./managing-workspace-variables.md)
-- Explore [VCS path filtering](../features/terraform/vcs-path-filtering.md) for automatic PR plans
-- Read about [workspace editing](../features/terraform/workspace-editing.md) to modify workspace settings
+- Explore [VCS path filtering](../features/opentofu/vcs-path-filtering.md) for automatic PR plans
+- Read about [workspace editing](../features/opentofu/workspace-editing.md) to modify workspace settings

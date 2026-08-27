@@ -51,14 +51,14 @@ const PROVIDERS: Record<OIDCProvider, {
     label: 'AWS OIDC',
     gradient: 'from-amber-500 to-orange-500',
     fields: [
-      { key: 'role_arn', label: 'Role ARN', placeholder: 'arn:aws:iam::123456789012:role/my-role', hint: 'The IAM role Terraform runs assume via OIDC web identity' },
+      { key: 'role_arn', label: 'Role ARN', placeholder: 'arn:aws:iam::123456789012:role/my-role', hint: 'The IAM role OpenTofu runs assume via OIDC web identity' },
     ],
   },
   gcp: {
     label: 'GCP OIDC',
     gradient: 'from-[#4285F4] via-[#34A853] to-[#FBBC05]',
     fields: [
-      { key: 'service_account_email', label: 'Service Account Email', placeholder: 'sa@my-project.iam.gserviceaccount.com', hint: 'The GCP service account Terraform runs impersonate via Workload Identity Federation' },
+      { key: 'service_account_email', label: 'Service Account Email', placeholder: 'sa@my-project.iam.gserviceaccount.com', hint: 'The GCP service account OpenTofu runs impersonate via Workload Identity Federation' },
       { key: 'project_number', label: 'Project Number', placeholder: '123456789012', hint: 'The numeric GCP project number that owns the workload identity pool' },
       { key: 'workload_provider_name', label: 'Workload Provider Name', placeholder: 'projects/123456789012/locations/global/workloadIdentityPools/pool/providers/provider', hint: 'The full resource name of the workload identity pool provider' },
     ],

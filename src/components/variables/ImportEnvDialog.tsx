@@ -460,7 +460,7 @@ export function ImportEnvDialog({
                       <SelectTrigger id="env-category"><SelectValue /></SelectTrigger>
                       <SelectContent>
                         <SelectItem value="env">Environment variables</SelectItem>
-                        <SelectItem value="terraform">Terraform variables</SelectItem>
+                        <SelectItem value="terraform">OpenTofu variables</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>

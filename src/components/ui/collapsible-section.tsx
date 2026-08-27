@@ -71,7 +71,7 @@ export function CollapsibleSection({
               navigable as a landmark in a heading list and operable as a button.
 
               The hint sits outside the heading on purpose. Inside, it became part of the heading's
-              accessible name, so "Live operations - Terraform runs ... across your organizations"
+              accessible name, so "Live operations - OpenTofu runs ... across your organizations"
               was the name a screen reader read out and a heading query matched on. It is attached
               with aria-describedby instead, which is what a supporting description is for. */}
           <h2 className="text-xl font-semibold leading-tight text-foreground">

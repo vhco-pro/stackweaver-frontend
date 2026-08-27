@@ -1200,7 +1200,7 @@ export default function JobTemplateDetail() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="env">Environment</SelectItem>
-                  <SelectItem value="terraform">Terraform</SelectItem>
+                  <SelectItem value="terraform">OpenTofu</SelectItem>
                 </SelectContent>
               </Select>
             </div>

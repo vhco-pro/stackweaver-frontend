@@ -18,15 +18,15 @@ Every section folds away from its heading, and StackWeaver remembers which ones 
 
 The list at the top is the page. Each row names one organization, one thing that needs doing, and how many of them there are, and takes you straight to where you would do it. Rows only appear when there is something to report, so the length of the list is the size of your problem — and an empty list is a single line telling you so, rather than a screen of zeroes.
 
-The list covers Terraform and Ansible together, and the two are mixed rather than grouped, so the order tells you how urgent something is instead of which half of the product it came from.
+The list covers OpenTofu and Ansible together, and the two are mixed rather than grouped, so the order tells you how urgent something is instead of which half of the product it came from.
 
-Two rows mean **somebody is blocked on a decision right now**, so they sort to the top: a Terraform run that has planned and is holding until someone confirms the apply, and an Ansible workflow approval holding a workflow open until someone approves or denies it. They are the same idea under two names.
+Two rows mean **somebody is blocked on a decision right now**, so they sort to the top: an OpenTofu run that has planned and is holding until someone confirms the apply, and an Ansible workflow approval holding a workflow open until someone approves or denies it. They are the same idea under two names.
 
 Two more mean **something has been left broken**: a workspace whose most recent run errored and which has not been run since, and a job template whose most recent job failed the same way — however long ago that was. These are the rows that surface what is quietly rotting rather than what just happened. Alongside them, **an inventory that failed to sync** means the hosts your next job would target are stale or wrong.
 
 **Runners offline** tells you an organization has lost the capacity to execute anything at all, on either platform.
 
-Then the recent failures, reported separately for **Terraform runs** and **Ansible jobs** inside a short window. These are the counterpart to "left broken": what went wrong lately, rather than what is still wrong. They are split by platform because which half of your estate is unhealthy is the actionable part, and the two take you to different places. A one-off ad-hoc job that failed shows up here but not as a "left failing" template — it was an event, not a piece of standing automation.
+Then the recent failures, reported separately for **OpenTofu runs** and **Ansible jobs** inside a short window. These are the counterpart to "left broken": what went wrong lately, rather than what is still wrong. They are split by platform because which half of your estate is unhealthy is the actionable part, and the two take you to different places. A one-off ad-hoc job that failed shows up here but not as a "left failing" template — it was an event, not a piece of standing automation.
 
 Last, **open change requests** are notes your team filed against workspaces.
 
@@ -34,7 +34,7 @@ If you do not administer an organization, you will not see its runner or change-
 
 ## What is running right now
 
-Live operations lists the Terraform runs and Ansible jobs executing anywhere you can see, oldest first so the longest-running work leads, each row naming its organization, how long it has been going and where it is in its lifecycle. It refreshes every few seconds while anything is running and slows down when your estate goes quiet, so leaving the page open is a reasonable way to watch a deploy — including one somebody else started, in an organization you were not looking at.
+Live operations lists the OpenTofu runs and Ansible jobs executing anywhere you can see, oldest first so the longest-running work leads, each row naming its organization, how long it has been going and where it is in its lifecycle. It refreshes every few seconds while anything is running and slows down when your estate goes quiet, so leaving the page open is a reasonable way to watch a deploy — including one somebody else started, in an organization you were not looking at.
 
 Runs waiting for you to confirm an apply are not listed here. They are not running, they are waiting, which is what the attention row above says about them.
 

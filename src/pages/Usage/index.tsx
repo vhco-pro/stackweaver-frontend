@@ -120,7 +120,7 @@ export default function Usage() {
         <>
           <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-5">
             <KpiTile
-              label="Terraform runs"
+              label="OpenTofu runs"
               value={String(runs?.total ?? 0)}
               delta={runs ? percentDelta(runs.total, runs.previous.total) : undefined}
               spark={runSpark}
@@ -203,7 +203,7 @@ export default function Usage() {
             <TabsContent value="overview" className="space-y-4">
               <AnalyticsCard
                 title="Executions per day"
-                hint="Terraform runs and Ansible jobs, stacked by outcome"
+                hint="OpenTofu runs and Ansible jobs, stacked by outcome"
                 icon={<Activity className="h-4 w-4 text-purple-400" />}
               >
                 {isLoading || !data ? (

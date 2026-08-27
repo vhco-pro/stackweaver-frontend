@@ -105,6 +105,10 @@ const IMAGE_CACHE_FILE = path.join(__dirname, '..', 'frontend', '.image-cache.js
 const IMAGE_CACHE_DIR = path.join(__dirname, '..', 'frontend', '.docs-image-cache');
 
 const SEARCH_INDEX_FILE = path.join(__dirname, '..', 'frontend', 'public', 'docs-search-index.json');
+// Redirect map: docs/redirects.json is the human-edited source of truth; the build emits the
+// bare old->new object for the SPA to consume.
+const REDIRECTS_SOURCE = path.join(__dirname, '..', 'docs', 'redirects.json');
+const REDIRECTS_FILE = path.join(__dirname, '..', 'frontend', 'public', 'docs-redirects.json');
 
 const INTERNAL_DOCS_ROOT = path.join(DOCS_ROOT, 'internal');
 const INTERNAL_PUBLIC_DOCS = path.join(__dirname, '..', 'frontend', 'public', 'internal-docs');
@@ -1373,6 +1377,19 @@ async function main() {
   const indexPath = path.relative(process.cwd(), INDEX_FILE);
   fs.writeFileSync(INDEX_FILE, JSON.stringify(index, null, 2), 'utf-8');
   console.log(`✅ Index written to ${indexPath}\n`);
+
+  // Emit the redirect map. Renaming a published doc changes a live URL, so
+  // docs/redirects.json keeps the old paths resolving; DocsViewer consults this
+  // before fetching. Missing/!valid file is non-fatal - the site just has no redirects.
+  try {
+    const raw = JSON.parse(fs.readFileSync(REDIRECTS_SOURCE, 'utf-8'));
+    const map = raw.redirects || {};
+    fs.writeFileSync(REDIRECTS_FILE, JSON.stringify(map, null, 2), 'utf-8');
+    console.log(`✅ Redirect map written to ${path.relative(process.cwd(), REDIRECTS_FILE)} (${Object.keys(map).length} entries)\n`);
+  } catch (err) {
+    console.warn(`⚠️  No redirect map emitted (${err.message})\n`);
+    fs.writeFileSync(REDIRECTS_FILE, '{}', 'utf-8');
+  }
 
   // Build search index for public docs
   console.log('🔎 Building search index...');

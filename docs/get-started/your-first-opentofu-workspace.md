@@ -1,14 +1,14 @@
 ---
-description: "Step-by-step tutorial for creating a Terraform workspace and running a plan"
+description: "Step-by-step tutorial for creating an OpenTofu workspace and running a plan"
 covers:
   - "frontend/src/pages/Workspaces.tsx"
   - "frontend/src/pages/WorkspaceDetail.tsx"
   - "frontend/src/pages/RunDetail.tsx"
 ---
 
-# Your First Terraform Workspace
+# Your First OpenTofu Workspace
 
-Learn how to create and run your first Terraform workspace in StackWeaver. By the end of this guide, you'll have successfully executed a plan and understand the basics of workspace management.
+Learn how to create and run your first OpenTofu workspace in StackWeaver. By the end of this guide, you'll have successfully executed a plan and understand the basics of workspace management.
 
 ## What You'll Need
 
@@ -18,8 +18,8 @@ Before you start, make sure you have:
 |------------|-------------|
 | **StackWeaver account** | Sign up if you haven't already |
 | **Organization access** | Create an organization or get access to an existing one |
-| **GitHub repository** | A repository containing Terraform code (we'll use this for your workspace) |
-| **Terraform basics** | Basic understanding of Terraform concepts helps but isn't required |
+| **GitHub repository** | A repository containing OpenTofu configuration (`.tf` files) - we'll use this for your workspace |
+| **OpenTofu basics** | Basic understanding of OpenTofu (or Terraform) concepts helps but isn't required |
 
 ## Step 1: Create an Organization
 
@@ -67,14 +67,14 @@ Now for the main event - creating your workspace.
 3. Give it a name (like "example-infrastructure")
 4. Select your GitHub repository
 5. Choose the branch (usually "main" or "master")
-6. Set the working directory (leave blank if Terraform is in the repo root)
+6. Set the working directory (leave blank if your configuration is in the repo root)
 7. Add a description if helpful
 
 The workspace will be created and ready to use.
 
 ## Step 5: Configure Variables (If Needed)
 
-If your Terraform code needs variables, you'll need to set them up.
+If your configuration needs variables, you'll need to set them up.
 
 1. Open your workspace
 2. Go to the "Variables" tab
@@ -83,15 +83,15 @@ If your Terraform code needs variables, you'll need to set them up.
 
 ## Step 6: Run Your First Plan
 
-Time to see Terraform in action. In your workspace, click "Queue Plan" and choose your run reason. For testing, select "Testing" from the dropdown. Click "Queue Plan" to start the run.
+Time to see OpenTofu in action. In your workspace, click "Queue Plan" and choose your run reason. For testing, select "Testing" from the dropdown. Click "Queue Plan" to start the run.
 
-You'll see the plan run start and watch as Terraform analyzes your code. The output shows what Terraform plans to create, modify, or destroy; giving you a preview of changes before you apply them.
+You'll see the plan run start and watch as OpenTofu analyzes your configuration. The output shows what OpenTofu plans to create, modify, or destroy; giving you a preview of changes before you apply them.
 
 ## Step 7: Review the Plan
 
 Once the plan completes, review the resource changes shown in the plan output. Each resource appears as a card showing what will be created (marked with `+`), modified (`~`), or destroyed (`-`). Check for any errors or warnings - errors will prevent the apply from running, while warnings are issues that won't block the run but might cause problems.
 
-Expand any resource card to see detailed attribute changes. If you need more detail, switch to the "Raw Output" tab to see the full Terraform terminal output or structured JSON.
+Expand any resource card to see detailed attribute changes. If you need more detail, switch to the "Raw Output" tab to see the full OpenTofu terminal output or structured JSON.
 
 > [!IMPORTANT]
 > Plans show what *would* happen. Nothing is actually created until you run an apply.
@@ -111,18 +111,18 @@ The apply will run and show real-time progress as resources are created or modif
 Now that you've run your first workspace:
 
 - Learn about [managing workspace variables](../user-guides/managing-workspace-variables.md)
-- Read about [understanding Terraform run outputs](../user-guides/understanding-terraform-runs.md)
-- Explore [workspace editing](../features/terraform/workspace-editing.md)
-- Set up [VCS path filtering](../features/terraform/vcs-path-filtering.md) for automated runs
+- Read about [understanding Terraform run outputs](../user-guides/understanding-opentofu-runs.md)
+- Explore [workspace editing](../features/opentofu/workspace-editing.md)
+- Set up [VCS path filtering](../features/opentofu/vcs-path-filtering.md) for automated runs
 - Create workspaces like this one as code with the [official Terraform provider](../user-guides/terraform-provider.md)
 
 ## Common Questions
 
-**Q: Can I run Terraform locally instead?**  
+**Q: Can I run OpenTofu locally instead?**  
 A: Yes, workspaces can be configured for local execution, but cloud runs offer better collaboration and history tracking.
 
 **Q: What happens if a run fails?**  
 A: Failed runs are logged with full output. You can review what went wrong and retry after fixing issues.
 
-**Q: How do I update my Terraform code?**  
+**Q: How do I update my configuration?**  
 A: Push changes to your connected repository. For automatic runs, create a pull request. For manual runs, queue a new plan.

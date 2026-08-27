@@ -638,7 +638,7 @@ export default function RunDetail() {
                     <OutputViewer
                       data={planOutput}
                       showJsonViewer={true}
-                      title="Terraform Plan"
+                      title="OpenTofu Plan"
                       logs={displayPlanLogs || undefined}
                       runId={id || undefined}
                     />
