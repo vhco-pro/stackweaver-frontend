@@ -203,14 +203,17 @@ services:
       - ./vcs.env
       - ./oidc.env
     environment:
-      # /etc/iac/config is where the published stackweaver-api image bakes config.yaml. The dev
-      # stack moved to /etc/stackweaver/config; this must not follow until that image does, because
-      # an explicitly-set CONFIG_PATH pointing at a missing file is fatal by design.
-      CONFIG_PATH: /etc/iac/config/config.yaml
+      # No CONFIG_PATH is set: everything the API needs is supplied below, so it runs in the same
+      # environment-only mode as the Helm chart. Pointing at the image's baked config.yaml would
+      # tie this file to wherever that image happens to put it, and an explicitly-set path to a
+      # missing file is fatal by design.
       LOG_LEVEL: ${LOG_LEVEL:-info}
-      # Bridge service names. The image's baked config.yaml defaults these to
-      # "localhost", which under bridge networking resolves to this container.
+      # Database. These must track the postgres service's own POSTGRES_* values - with no config
+      # file in play, environment variables are the API's only source for them.
       DATABASE_HOST: postgres
+      DATABASE_USER: ${POSTGRES_USER:-iac}
+      DATABASE_PASSWORD: ${POSTGRES_PASSWORD:-iac_password}
+      DATABASE_NAME: ${POSTGRES_DB:-iac_platform}
       REDIS_HOST: redis
       ZITADEL_ISSUER: ${ZITADEL_ISSUER:-http://localhost:8080}
       ZITADEL_API_CLIENT_ID: ${ZITADEL_API_CLIENT_ID:-}
@@ -309,8 +312,12 @@ services:
       - ./.env
       - ./vcs.env
     environment:
-      CONFIG_PATH: /etc/iac/config/config.yaml
-      DATABASE_HOST: postgres  # bridge service name (overrides config.yaml localhost)
+      # Neither binary reads a config file, so no CONFIG_PATH here; the database credentials
+      # below must track the postgres service's own POSTGRES_* values.
+      DATABASE_HOST: postgres
+      DATABASE_USER: ${POSTGRES_USER:-iac}
+      DATABASE_PASSWORD: ${POSTGRES_PASSWORD:-iac_password}
+      DATABASE_NAME: ${POSTGRES_DB:-iac_platform}
       REDIS_HOST: redis
       REDIS_PORT: "6379"
       REDIS_PASSWORD: ""
@@ -339,8 +346,12 @@ services:
       - ./.env
       - ./oidc.env
     environment:
-      CONFIG_PATH: /etc/iac/config/config.yaml
-      DATABASE_HOST: postgres  # bridge service name (overrides config.yaml localhost)
+      # Neither binary reads a config file, so no CONFIG_PATH here; the database credentials
+      # below must track the postgres service's own POSTGRES_* values.
+      DATABASE_HOST: postgres
+      DATABASE_USER: ${POSTGRES_USER:-iac}
+      DATABASE_PASSWORD: ${POSTGRES_PASSWORD:-iac_password}
+      DATABASE_NAME: ${POSTGRES_DB:-iac_platform}
       REDIS_HOST: redis
       REDIS_PORT: "6379"
       REDIS_PASSWORD: ""
