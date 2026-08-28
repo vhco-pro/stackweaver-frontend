@@ -129,5 +129,5 @@ Separate infrastructure per team:
 ## Related Documentation
 
 - [Workspace Editing](./workspace-editing.md) - How to set working directories
-- [Your First Terraform Workspace](../../get-started/your-first-opentofu-workspace.md) - Workspace setup and configuration
+- [Your First OpenTofu Workspace](../../get-started/your-first-opentofu-workspace.md) - Workspace setup and configuration
 - [Connecting to GitHub](../../user-guides/vcs/github-app.md) - Setting up VCS integration

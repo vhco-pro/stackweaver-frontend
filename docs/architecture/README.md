@@ -7,7 +7,7 @@ covers:
 
 # Architecture Overview
 
-This document provides a high-level overview of the Stackweaver Orchestration Platform architecture. For the multi-repo topology (monorepo + closed `core/` + the seven satellite distribution repos), see [`repositories.md`](./repositories.md).
+This document provides a high-level overview of the Stackweaver Orchestration Platform architecture. For the multi-repo topology (monorepo + closed `core/` + the eight satellite distribution repos), see [`repositories.md`](./repositories.md).
 
 ## System Architecture
 
@@ -36,7 +36,7 @@ flowchart TB
     end
 
     subgraph Runners["Runner Services"]
-        R1["Terraform Runner"]
+        R1["OpenTofu Runner"]
         R2["Ansible Runner"]
         R3["Orchestrator"]
     end
@@ -60,7 +60,7 @@ flowchart TB
 
 ## Supported IaC Tools
 
-### Terraform
+### OpenTofu
 
 - **Workspace Management**: Full TFE-compatible workspace lifecycle
 - **Run Execution**: Plan, apply, and destroy operations
@@ -98,7 +98,7 @@ flowchart TB
 - Token-based authentication
 - Real-time session management
 - Responsive UI
-- Terraform workspace management
+- OpenTofu workspace management
 - Ansible playbook and job management
 - Live run/job output streaming
 - Activity feed and notifications
@@ -136,19 +136,19 @@ flowchart TB
 **Directory Structure**: The Go codebase is split into two modules connected by `go.work`:
 
 `core/` - shared module used by all binaries:
-- `models/` - GORM database models (Terraform, Ansible, Registry)
+- `models/` - GORM database models (OpenTofu, Ansible, Registry)
 - `repository/` - Data access layer (CRUD per model)
 - `queue/` - Redis job queue (LPush/BRPop pattern)
 - `storage/` - S3-compatible object storage interface
 - `vcs/` - VCS interfaces + github/ + gitlab/
-- `plugins/` - Plugin interfaces + terraform/
+- `plugins/` - Plugin interfaces + opentofu/
 - `crypto/` - Encryption utilities
 - `id/` - ID generation
 - `services/` - Shared services (oidc, vcs, logbuffer, logparser, state, variable, ansible)
 
 `backend/` - binary-specific code:
 - `cmd/api/` - Application entry point
-- `cmd/runner/` - Terraform runner service
+- `cmd/runner/` - OpenTofu runner service
 - `cmd/ansible-runner/` - Ansible runner service
 - `cmd/orchestrator/` - Job orchestrator service
 - `internal/api/v2/` - API v2 implementation (primary)
@@ -326,7 +326,7 @@ sequenceDiagram
     participant Garage as S3 Storage
     participant Redis as Redis Queue
     participant Orchestrator
-    participant TFRunner as Terraform Runner
+    participant TFRunner as OpenTofu Runner
     participant LogBuffer as Redis Log Buffer
     participant Frontend
 
@@ -355,7 +355,7 @@ sequenceDiagram
 2. Run stored in database with `pending` status
 3. Configuration version uploaded to S3-compatible storage
 4. Orchestrator picks up run from Redis queue
-5. Orchestrator assigns run to available Terraform runner
+5. Orchestrator assigns run to available OpenTofu runner
 6. Runner downloads configuration from storage
 7. Runner executes Terraform operation (plan/apply/destroy)
 8. Runner streams logs to Redis log buffer
@@ -578,7 +578,7 @@ flowchart TB
 
 ### Runners
 
-- **Terraform Runner** (`cmd/runner/`): Executes Terraform plans/applies/destroys
+- **OpenTofu Runner** (`cmd/runner/`): Executes OpenTofu plans/applies/destroys
 - **Ansible Runner** (`cmd/ansible-runner/`): Executes Ansible playbooks
 - **Orchestrator** (`cmd/orchestrator/`): Manages job scheduling and runner assignment
 

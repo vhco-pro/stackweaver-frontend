@@ -19,7 +19,7 @@ These changes don't impact existing infrastructure state:
 
 - **Name**: Workspace name (must be unique within the project)
 - **Description**: Workspace description
-- **Working Directory**: Path within the repository where Terraform files are located
+- **Working Directory**: Path within the repository where OpenTofu files are located
 - **OpenTofu Version**: Which OpenTofu version to use for runs
 - **Auto Queue Runs**: Automatically trigger runs when code is pushed to the repository
 - **Auto Apply**: Automatically apply plans that complete successfully
@@ -35,7 +35,7 @@ These changes might affect existing state and the platform will show a warning:
 - **VCS Branch**: Changing the Git branch used by the workspace
 
 > [!WARNING]
-> Changing VCS connection, repository, or branch may invalidate existing state because the workspace will pull Terraform code from a different source. Review carefully before making these changes.
+> Changing VCS connection, repository, or branch may invalidate existing state because the workspace will pull OpenTofu code from a different source. Review carefully before making these changes.
 
 ## Editing a Workspace
 
