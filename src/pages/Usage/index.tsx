@@ -190,7 +190,7 @@ export default function Usage() {
                 <BarChart3 className="h-4 w-4" /> Overview
               </TabsTrigger>
               <TabsTrigger value="terraform" className="gap-2">
-                <Server className="h-4 w-4" /> Terraform
+                <Server className="h-4 w-4" /> OpenTofu
               </TabsTrigger>
               <TabsTrigger value="ansible" className="gap-2">
                 <PlayCircle className="h-4 w-4" /> Ansible
@@ -396,7 +396,7 @@ function PlatformSplit({ terraform, ansible }: { terraform: number; ansible: num
       </div>
       <ChartLegend
         items={[
-          { label: `Terraform · ${terraform}`, color: palette.terraform },
+          { label: `OpenTofu · ${terraform}`, color: palette.terraform },
           { label: `Ansible · ${ansible}`, color: palette.ansible },
         ]}
       />
