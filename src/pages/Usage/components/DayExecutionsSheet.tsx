@@ -120,7 +120,7 @@ function DayExecutionsPanel({
   });
 
   const platformLabel =
-    selection.platform === 'terraform' ? 'Terraform runs' : selection.platform === 'ansible' ? 'Ansible jobs' : null;
+    selection.platform === 'terraform' ? 'OpenTofu runs' : selection.platform === 'ansible' ? 'Ansible jobs' : null;
 
   return (
     <>
