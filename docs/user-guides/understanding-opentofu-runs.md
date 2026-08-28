@@ -1,27 +1,27 @@
 ---
 description: "Guide for reading plan and apply outputs, interpreting resource changes, and tracking run history"
 covers:
-  - "core/plugins/terraform/**"
+  - "core/plugins/opentofu/**"
   - "frontend/src/pages/RunDetail.tsx"
   - "frontend/src/pages/WorkspaceDetail.tsx"
 ---
 
 # Understanding OpenTofu Runs
 
-Learn how to read plan and apply outputs, interpret resource changes, and make sense of your Terraform run history.
+Learn how to read plan and apply outputs, interpret resource changes, and make sense of your OpenTofu run history.
 
 ## What Are Runs?
 
-A run is StackWeaver's term for executing Terraform. There are two main types:
+A run is StackWeaver's term for executing OpenTofu. There are two main types:
 
-- **Plans**: Show what Terraform would change (no actual changes made)
-- **Applies**: Actually make the changes Terraform planned
+- **Plans**: Show what OpenTofu would change (no actual changes made)
+- **Applies**: Actually make the changes OpenTofu planned
 
 Runs can also be plan-only, apply-only, or refresh-only depending on what you're trying to do.
 
 ## Reading Plan Output
 
-When you queue a plan, Terraform analyzes your code and current state to determine what needs to change.
+When you queue a plan, OpenTofu analyzes your configuration and current state to determine what needs to change.
 
 ### The Plan Summary
 
@@ -46,7 +46,7 @@ Expand any resource card to see:
 
 ### Understanding the Diff
 
-Terraform shows changes using standard diff notation:
+OpenTofu shows changes using standard diff notation:
 
 ```
 ~ resource "aws_instance" "example" {
@@ -97,8 +97,8 @@ flowchart LR
 <details>
 <summary><strong>Flow Steps (Legend)</strong></summary>
 
-1. **Initialization** - Terraform sets up and loads modules.
-2. **Planning** - Terraform creates the execution plan (same as plan-only).
+1. **Initialization** - OpenTofu sets up and loads modules.
+2. **Planning** - OpenTofu creates the execution plan (same as plan-only).
 3. **Applying** - Changes are made to actual resources.
 4. **Completion** - State is saved and outputs are available.
 
@@ -117,10 +117,10 @@ Click any resource to see detailed apply logs.
 
 ## Reading Raw Output
 
-Sometimes you need the full Terraform output. Switch to the "Raw Output" tab to see:
+Sometimes you need the full OpenTofu output. Switch to the "Raw Output" tab to see:
 
 - **Plan output**: Full JSON or terminal output
-- **Terminal view**: Exactly what you'd see running Terraform locally
+- **Terminal view**: Exactly what you'd see running OpenTofu locally
 - **JSON view**: Structured output for automation
 
 > [!NOTE]
@@ -168,7 +168,7 @@ If a run fails:
 Common failure reasons:
 - **Invalid configuration**: Syntax errors or wrong resource types
 - **Provider errors**: API issues or authentication problems
-- **State conflicts**: Resources changed outside Terraform
+- **State conflicts**: Resources changed outside OpenTofu
 - **Dependency issues**: Resources depending on non-existent resources
 
 ### Reviewing Past Runs

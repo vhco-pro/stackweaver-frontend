@@ -1,5 +1,5 @@
 ---
-description: "Platform features overview summarizing Terraform, Ansible, VCS, and organization capabilities"
+description: "Platform features overview summarizing OpenTofu, Ansible, VCS, and organization capabilities"
 covers: []
 ---
 
@@ -35,7 +35,7 @@ State is stored securely with versioning in S3-compatible storage. State locking
 
 ### Workspace Management
 
-Create, configure, and edit workspaces throughout their lifecycle without needing to delete and recreate them. Specify Terraform versions per workspace to control which version executes your infrastructure code. Configure working directories within repositories for multi-environment setups, supporting monorepo patterns where different workspaces manage different paths.
+Create, configure, and edit workspaces throughout their lifecycle without needing to delete and recreate them. Specify OpenTofu versions per workspace to control which version executes your infrastructure code. Configure working directories within repositories for multi-environment setups, supporting monorepo patterns where different workspaces manage different paths.
 
 Choose execution modes based on your needs: remote execution with platform-managed runners, local execution, or agent-based execution for specialized scenarios.
 
@@ -76,13 +76,13 @@ Ansible Galaxy collections are automatically installed when specified in require
 
 ## Additional Features
 
-The unified dashboard provides an overview of all Terraform and Ansible operations across your organizations, giving you a single place to monitor infrastructure changes and automation workflows. An activity timeline tracks recent actions and changes across the platform, helping you understand what's happening in your infrastructure.
+The unified dashboard provides an overview of all OpenTofu and Ansible operations across your organizations, giving you a single place to monitor infrastructure changes and automation workflows. An activity timeline tracks recent actions and changes across the platform, helping you understand what's happening in your infrastructure.
 
-An API-first design means everything is accessible via REST API with JSON:API format, enabling automation, integration with other tools, and programmatic management. The platform can also be managed declaratively with the [official Terraform provider](../user-guides/terraform-provider.md), which covers both the Terraform and the Ansible surface. Real-time updates use Server-Sent Events (SSE) for live log streaming and status updates, so you always see current information without refreshing.
+An API-first design means everything is accessible via REST API with JSON:API format, enabling automation, integration with other tools, and programmatic management. The platform can also be managed declaratively with the [official Terraform provider](../user-guides/terraform-provider.md), which covers both the OpenTofu and the Ansible surface. Real-time updates use Server-Sent Events (SSE) for live log streaming and status updates, so you always see current information without refreshing.
 
 ## Related Documentation
 
 - [User Guides](../user-guides/README.md) - Step-by-step guides for using features
-- [Terraform Workspace Editing](./opentofu/workspace-editing.md) - Complete Terraform workspace documentation
+- [OpenTofu Workspace Editing](./opentofu/workspace-editing.md) - Complete OpenTofu workspace documentation
 - [Ansible Documentation](./ansible/README.md) - Complete Ansible integration documentation
 - [API Reference](../internal/api-reference/backend-api-reference.md) - REST API documentation

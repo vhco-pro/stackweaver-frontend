@@ -25,7 +25,7 @@ The API is the primary Go backend serving the REST API, managing authentication,
 
 | Variable | Description | Default |
 |---|---|---|
-| `CONFIG_PATH` | Path to `config.yaml` file | `/etc/iac/config/config.yaml` |
+| `CONFIG_PATH` | Path to `config.yaml`. When unset the API tries `config/config.yaml` and falls back to environment variables only if it is missing; when set, a missing file is fatal. The dev Compose stack sets `/etc/stackweaver/config/config.yaml` | (unset) |
 | `LOG_LEVEL` | Log verbosity (`debug`, `info`, `warn`, `error`) | `info` |
 | `SERVER_HOST` | Listen address | `0.0.0.0` (from config.yaml) |
 | `SERVER_PORT` | Listen port | `8022` (from config.yaml) |
@@ -266,7 +266,7 @@ The Ansible runner processes Ansible playbook jobs from the Redis queue.
 | `STORAGE_SECRET_KEY` | Secret key | (auto-generated) |
 | `STORAGE_USE_SSL` | Use HTTPS | `false` |
 | `STORAGE_BUCKET` | Bucket for Ansible artifacts | `ansible-artifacts` |
-| `WORKSPACES_DIR` | Directory for workspace files | `/home/iac/workspaces` |
+| `WORKSPACES_DIR` | Directory for workspace files | `/home/stackweaver/workspaces` |
 | `ANSIBLE_ENCRYPTION_KEY` | 32-byte hex encryption key | Falls back to `ENCRYPTION_KEY` |
 | `ANSIBLE_RUNNER_KEEP_WORKSPACE` | Keep workspace after execution | `false` |
 | `ANSIBLE_BINARY_PATH` | Custom path to ansible-playbook binary | (auto-detected) |

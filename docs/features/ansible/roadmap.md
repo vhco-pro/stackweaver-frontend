@@ -22,7 +22,7 @@ covers:
 
 ### Galaxy Collection Support ✅ (December 2025)
 - Pre-installed essential collections (community.general, ansible.posix, etc.)
-- Collection caching at `/home/iac/galaxy-cache/` for faster subsequent runs
+- Collection caching for faster subsequent runs (now per-project, under `$WORKSPACES_DIR/galaxy-cache/<project-id>`)
 - `GalaxyRequirements` field added to job template model
 
 ### Dynamic Inventory OIDC & VCS Enhancements ✅ (January 2025)
