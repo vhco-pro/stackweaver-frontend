@@ -77,6 +77,11 @@ The API is the primary Go backend serving the REST API, managing authentication,
 | `REDIS_HOST` | Redis hostname | `localhost` |
 | `REDIS_PORT` | Redis port | `6379` |
 | `REDIS_PASSWORD` | Redis password (leave empty if no auth) | (empty) |
+| `REDIS_DB` | Redis logical database index | `0` |
+
+The API must use the same `REDIS_DB` as the orchestrator and the runners, because that is the
+queue they share. Pointing them at different logical databases is only useful when you deliberately
+want two isolated sets of services on one Redis, as a development slot does.
 
 ### Encryption
 

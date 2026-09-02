@@ -24,7 +24,7 @@ A dash instead of a number is meaningful and is not an error. Success rate and a
 
 ## Reading the success rate
 
-The success rate is the share of *decided* outcomes that succeeded: runs still queued, planning, or applying are excluded from both sides of the fraction, so starting a lot of work does not temporarily depress the number. A OpenTofu run counts as a success when it reaches `applied` or `completed`, and also when a plan-only run reaches `planned`, because a plan-only run has no apply phase to reach and is finished at that point. The same run status on a plan-and-apply run means it is waiting for you to confirm the apply, so it is counted as pending instead. For Ansible, a job counts as a success when it is `successful`, and as a failure when it is either `failed` or `error`.
+The success rate is the share of *decided* outcomes that succeeded: runs still queued, planning, or applying are excluded from both sides of the fraction, so starting a lot of work does not temporarily depress the number. An OpenTofu run counts as a success when it reaches `applied` or `completed`, and also when a plan-only run reaches `planned`, because a plan-only run has no apply phase to reach and is finished at that point. The same run status on a plan-and-apply run means it is waiting for you to confirm the apply, so it is counted as pending instead. For Ansible, a job counts as a success when it is `successful`, and as a failure when it is either `failed` or `error`.
 
 ## The four tabs
 
