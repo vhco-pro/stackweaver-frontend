@@ -495,7 +495,7 @@ function orgTokenFromJsonApi(item: JsonApiResource): OrgToken {
 
 export const projectsApi = {
   list: (organizationName: string) =>
-    apiClient.get<{ data: JsonApiResource[]; meta: { pagination: { page: number; per_page: number; total: number } } }>(`/organizations/${encodeURIComponent(organizationName)}/projects`).then(res => {
+    apiClient.get<{ data: JsonApiResource[]; meta: { pagination: { 'current-page': number; 'page-size': number; 'prev-page': number | null; 'next-page': number | null; 'total-pages': number; 'total-count': number } } }>(`/organizations/${encodeURIComponent(organizationName)}/projects`).then(res => {
       // Parse JSON:API format to flat Project objects
       return {
         data: (res.data || []).map((item: JsonApiResource) => {
@@ -679,7 +679,7 @@ export const workspacesApi = {
   // TFE-compatible endpoints - always JSON:API format. Request effective tags so the list can offer a
   // tag filter (own + project-inherited tags per workspace).
   list: (organizationName: string) =>
-    apiClient.get<{ data: JsonApiResource[]; meta: { pagination: { page: number; per_page: number; total: number } }; included?: JsonApiResource[] }>(`/organizations/${encodeURIComponent(organizationName)}/workspaces?include=effective_tag_bindings&page%5Bsize%5D=100`).then(res => ({
+    apiClient.get<{ data: JsonApiResource[]; meta: { pagination: { 'current-page': number; 'page-size': number; 'prev-page': number | null; 'next-page': number | null; 'total-pages': number; 'total-count': number } }; included?: JsonApiResource[] }>(`/organizations/${encodeURIComponent(organizationName)}/workspaces?include=effective_tag_bindings&page%5Bsize%5D=100`).then(res => ({
       data: (res.data || []).map((item: JsonApiResource) => workspaceFromJsonApi(item, res.included)),
       meta: res.meta,
     })),
@@ -3377,7 +3377,7 @@ export const registryApi = {
 // Organization Memberships API (TFE-compatible)
 export const organizationMembershipsApi = {
   list: (organizationName: string) =>
-    apiClient.get<{ data: JsonApiResource[]; included?: JsonApiResource[]; meta?: { pagination: { page: number; per_page: number; total: number } } }>(`/organizations/${encodeURIComponent(organizationName)}/organization-memberships`).then(res => {
+    apiClient.get<{ data: JsonApiResource[]; included?: JsonApiResource[]; meta?: { pagination: { 'current-page': number; 'page-size': number; 'prev-page': number | null; 'next-page': number | null; 'total-pages': number; 'total-count': number } } }>(`/organizations/${encodeURIComponent(organizationName)}/organization-memberships`).then(res => {
       // Parse JSON:API format - match user data from included array
       const userMap = new Map<string, JsonApiResource>();
       if (res.included) {
@@ -3526,7 +3526,7 @@ export const organizationMembershipsApi = {
 // Teams API (TFE-compatible)
 export const teamsApi = {
   list: (organizationName: string) =>
-    apiClient.get<{ data: JsonApiResource[]; meta?: { pagination: { page: number; per_page: number; total: number } } }>(`/organizations/${encodeURIComponent(organizationName)}/teams`).then(res => {
+    apiClient.get<{ data: JsonApiResource[]; meta?: { pagination: { 'current-page': number; 'page-size': number; 'prev-page': number | null; 'next-page': number | null; 'total-pages': number; 'total-count': number } } }>(`/organizations/${encodeURIComponent(organizationName)}/teams`).then(res => {
       // Parse JSON:API format to flat Team objects
       return {
         data: (res.data || []).map((item: JsonApiResource) => {
