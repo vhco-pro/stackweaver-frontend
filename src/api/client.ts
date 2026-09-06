@@ -82,7 +82,9 @@ class ApiClient {
         // Handle 401 unauthorized - don't auto-redirect, let AuthContext handle it
         if (response.status === 401) {
           const errorData = await response.json().catch(() => ({}));
-          const error = new Error(errorData.error || 'Unauthorized');
+          // #757: errors arrive as the JSON:API envelope; the legacy `error` member is kept as
+          // a fallback only for the OAuth endpoints, whose RFC 6749 shape still uses it.
+          const error = new Error(errorData.errors?.[0]?.detail || errorData.error || 'Unauthorized');
           (error as Error & { status?: number }).status = 401;
           throw error;
         }
