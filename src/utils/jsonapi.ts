@@ -31,14 +31,21 @@ export interface JsonApiResourceIdentifier {
 export interface JsonApiResponse<T extends JsonApiResource | JsonApiResource[] = JsonApiResource> {
   data: T;
   meta?: {
+    /**
+     * The TFE-compatible pagination block every collection now returns (#756).
+     *
+     * This type used to carry both shapes at once - `page`/`per_page`/`total` required and the
+     * hyphenated members optional - which is how the backend divergence reached the frontend:
+     * five endpoints answered in the first shape, the rest in the second, and the type said
+     * both were normal. `prev-page` and `next-page` are null at the first and last page.
+     */
     pagination?: {
-      page: number;
-      per_page: number;
-      total: number;
-      'current-page'?: number;
-      'page-size'?: number;
-      'total-count'?: number;
-      'total-pages'?: number;
+      'current-page': number;
+      'page-size': number;
+      'prev-page': number | null;
+      'next-page': number | null;
+      'total-pages': number;
+      'total-count': number;
     };
   };
   included?: JsonApiResource[];
