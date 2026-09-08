@@ -37,7 +37,6 @@ export default function ProviderList() {
   const [searchQuery, setSearchQuery] = useState('');
   const [creating, setCreating] = useState(false);
   const [name, setName] = useState('');
-  const [description, setDescription] = useState('');
 
   const { data: providers = [], isLoading: loading, refetch: refetchProviders } = useQuery({
     queryKey: ['providers', orgName],
@@ -58,15 +57,11 @@ export default function ProviderList() {
 
     setCreating(true);
     try {
-      await registryApi.providers.create(orgName, {
-        name: name.trim(),
-        description: description.trim() || undefined,
-      });
+      await registryApi.providers.create(orgName, { name: name.trim() });
 
       toast.success('Provider created successfully');
       setCreateDialogOpen(false);
       setName('');
-      setDescription('');
       void refetchProviders();
     } catch (err: unknown) {
       console.error('Failed to create provider:', err);
@@ -82,7 +77,7 @@ export default function ProviderList() {
   const filteredProviders = providers.filter(provider =>
     searchQuery === '' ||
     provider.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    provider.description?.toLowerCase().includes(searchQuery.toLowerCase())
+    provider.namespace.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   if (!orgName) {
@@ -191,8 +186,8 @@ export default function ProviderList() {
             <TableHeader>
               <TableRow>
                 <TableHead>Name</TableHead>
-                <TableHead>Description</TableHead>
-                <TableHead>Verified</TableHead>
+                <TableHead>Namespace</TableHead>
+                <TableHead>Registry</TableHead>
                 <TableHead>Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -200,21 +195,19 @@ export default function ProviderList() {
               {filteredProviders.map((provider) => (
                 <TableRow key={provider.id}>
                   <TableCell className="font-medium">{provider.name}</TableCell>
-                  <TableCell className="text-muted-foreground">
-                    {provider.description || 'No description'}
-                  </TableCell>
+                  <TableCell className="text-muted-foreground">{provider.namespace}</TableCell>
                   <TableCell>
-                    {provider.verified ? (
-                      <Badge variant="default" className="bg-green-500">Verified</Badge>
+                    {provider.registry_name === 'public' ? (
+                      <Badge variant="secondary">Public</Badge>
                     ) : (
-                      <Badge variant="secondary">Unverified</Badge>
+                      <Badge variant="default" className="bg-blue-500">Private</Badge>
                     )}
                   </TableCell>
                   <TableCell>
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() => { void Promise.resolve(navigate(`/app/${orgName}/registry/providers/${provider.name}`)); }}
+                      onClick={() => { void Promise.resolve(navigate(`/app/${orgName}/registry/providers/${provider.registry_name}/${provider.namespace}/${provider.name}`)); }}
                     >
                       <Upload className="h-4 w-4 mr-2" />
                       Publish Version
@@ -233,7 +226,8 @@ export default function ProviderList() {
           <DialogHeader>
             <DialogTitle>Add New Provider</DialogTitle>
             <DialogDescription>
-              Create a new custom Terraform provider in the registry.
+              Create a new custom provider in this organization's private registry. It is
+              namespaced by the organization.
             </DialogDescription>
           </DialogHeader>
           <form onSubmit={(e) => { void handleCreate(e); }} className="space-y-4">
@@ -245,15 +239,6 @@ export default function ProviderList() {
                 onChange={(e) => setName(e.target.value)}
                 placeholder="e.g., custom-cloud"
                 required
-              />
-            </div>
-            <div>
-              <Label htmlFor="provider-description">Description</Label>
-              <Input
-                id="provider-description"
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                placeholder="Brief description of this provider"
               />
             </div>
             <DialogFooter>

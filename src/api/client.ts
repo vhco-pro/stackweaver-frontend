@@ -3199,14 +3199,36 @@ export interface ModuleVersion {
   updated_at: string;
 }
 
+/**
+ * A registry provider, in the shape the go-tfe `registry-providers` surface actually returns.
+ *
+ * This used to carry `description` and `verified`, which the API has never sent since #446
+ * reshaped the resource to the TFE contract. A provider is addressed by the composite
+ * (registry_name, namespace, name) - the name alone does not identify one, because the same name
+ * can exist under `private` and under `public` with different namespaces.
+ */
 export interface Provider {
   id: string;
-  organization_id: string;
   name: string;
-  description?: string;
-  verified: boolean;
+  namespace: string;
+  registry_name: 'private' | 'public';
+  can_delete: boolean;
   created_at: string;
   updated_at: string;
+}
+
+/** Map one `registry-providers` resource onto Provider, translating the kebab-case attributes. */
+function toProvider(item: JsonApiResource): Provider {
+  const permissions = (item.attributes?.['permissions'] ?? {}) as { 'can-delete'?: boolean };
+  return {
+    id: item.id,
+    name: (item.attributes?.['name'] ?? '') as string,
+    namespace: (item.attributes?.['namespace'] ?? '') as string,
+    registry_name: item.attributes?.['registry-name'] === 'public' ? 'public' : 'private',
+    can_delete: permissions['can-delete'] === true,
+    created_at: (item.attributes?.['created-at'] ?? '') as string,
+    updated_at: (item.attributes?.['updated-at'] ?? '') as string,
+  };
 }
 
 export interface ProviderVersion {
@@ -3316,43 +3338,63 @@ export const registryApi = {
   },
   // Provider Management
   providers: {
+    // The go-tfe surface is /organizations/:name/registry-providers, not .../registry/providers.
+    // #446 moved it there and reshaped the resource; the client was never updated, so every one
+    // of these calls 404'd and the Providers page rendered empty (#772).
     list: (organizationName: string) =>
-      apiClient.get<{ data: Array<{ id: string; type: string; attributes: Omit<Provider, 'id'> }> }>(
-        `/organizations/${encodeURIComponent(organizationName)}/registry/providers`
-      ).then(res => {
-        return (res.data || []).map((item: JsonApiResource) => ({
-          id: item.id,
-          organization_id: '',
-          ...item.attributes,
-        })) as Provider[];
-      }),
-    get: (organizationName: string, providerName: string) =>
-      apiClient.get<{ data: { id: string; type: string; attributes: Omit<Provider, 'id'> } }>(
-        `/organizations/${encodeURIComponent(organizationName)}/registry/providers/${providerName}`
-      ).then(res => ({
-        id: res.data.id,
-        ...res.data.attributes,
-        organization_id: '',
-      })) as Promise<Provider>,
-    create: (organizationName: string, data: {
-      name: string;
-      description?: string;
-    }) =>
-      apiClient.post<{ data: { id: string; type: string; attributes: Omit<Provider, 'id'> } }>(
-        `/organizations/${encodeURIComponent(organizationName)}/registry/providers`,
-        data
-      ).then(res => ({
-        id: res.data.id,
-        ...res.data.attributes,
-        organization_id: '',
-      })) as Promise<Provider>,
-    publishPlatform: async (organizationName: string, providerName: string, version: string, os: string, arch: string, file: File) => {
+      apiClient.get<{ data: JsonApiResource[] }>(
+        `/organizations/${encodeURIComponent(organizationName)}/registry-providers`
+      ).then(res => (res.data || []).map(toProvider)),
+
+    // A provider is addressed by the composite (registry_name, namespace, name). The name alone
+    // is not unique: the same name can exist under `private` and under `public`.
+    get: (organizationName: string, registryName: string, namespace: string, providerName: string) =>
+      apiClient.get<{ data: JsonApiResource }>(
+        `/organizations/${encodeURIComponent(organizationName)}/registry-providers/` +
+        `${encodeURIComponent(registryName)}/${encodeURIComponent(namespace)}/${encodeURIComponent(providerName)}`
+      ).then(res => toProvider(res.data)),
+
+    // Body is JSON:API. `namespace` is omitted for private providers - the API namespaces those
+    // by the organization and rejects a namespace that disagrees with it.
+    create: (organizationName: string, data: { name: string; registryName?: 'private' | 'public'; namespace?: string }) =>
+      apiClient.post<{ data: JsonApiResource }>(
+        `/organizations/${encodeURIComponent(organizationName)}/registry-providers`,
+        {
+          data: {
+            type: 'registry-providers',
+            attributes: {
+              name: data.name,
+              'registry-name': data.registryName ?? 'private',
+              ...(data.namespace ? { namespace: data.namespace } : {}),
+            },
+          },
+        }
+      ).then(res => toProvider(res.data)),
+
+    delete: (organizationName: string, registryName: string, namespace: string, providerName: string) =>
+      apiClient.delete(
+        `/organizations/${encodeURIComponent(organizationName)}/registry-providers/` +
+        `${encodeURIComponent(registryName)}/${encodeURIComponent(namespace)}/${encodeURIComponent(providerName)}`
+      ),
+
+    publishPlatform: async (
+      organizationName: string,
+      registryName: string,
+      namespace: string,
+      providerName: string,
+      version: string,
+      os: string,
+      arch: string,
+      file: File,
+    ) => {
       const formData = new FormData();
       formData.append('os', os);
       formData.append('arch', arch);
       formData.append('file', file);
 
-      const url = `${API_BASE_URL}/organizations/${encodeURIComponent(organizationName)}/registry/providers/${providerName}/versions/${version}/platforms`;
+      const url = `${API_BASE_URL}/organizations/${encodeURIComponent(organizationName)}/registry-providers/` +
+        `${encodeURIComponent(registryName)}/${encodeURIComponent(namespace)}/${encodeURIComponent(providerName)}` +
+        `/versions/${encodeURIComponent(version)}/platforms`;
       const { getAccessToken } = await import('@/lib/zitadel');
       const accessToken = getAccessToken();
 
