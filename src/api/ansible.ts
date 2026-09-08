@@ -1363,9 +1363,11 @@ export const ansibleAdHocApi = {
 export type InventorySyncRunStatus = 'pending' | 'running' | 'successful' | 'failed';
 
 export const ansibleInventorySyncsApi = {
-  list: (inventoryId: string, limit = 50) =>
+  // page[size], not limit: the handler used to read limit/offset while reporting a correct
+  // total, and this was the only caller keeping that mismatch harmless by never paging (#761).
+  list: (inventoryId: string, params?: PageParams) =>
     apiClient.get<JsonApiListResponse<JsonApiResource>>(
-      `/ansible/inventories/${inventoryId}/syncs?limit=${limit}`
+      `/ansible/inventories/${inventoryId}/syncs${pageQuery(params ?? { pageSize: 50 })}`
     ),
 
   get: (id: string) =>
