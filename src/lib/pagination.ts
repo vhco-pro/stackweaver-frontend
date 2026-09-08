@@ -23,11 +23,12 @@ import type { JsonApiListResponse, JsonApiResource } from '@/utils/jsonapi';
  * one page holding everything. Both are honest, and this helper handles both without knowing
  * which it is talking to: it asks for page 1, reads `total-pages`, and stops when it runs out.
  *
- * Four endpoints are exempt, listed with their reasons in the backend census test:
- * `/api/v2/activities` keeps an offset-style block by decision in #756, and three top-N views
- * (`/activities/recent`, `.../ansible/jobs/queue`, `.../runs/queue`) report no total at all. The
- * `?? 1` fallback below is what makes those safe rather than broken - it is deliberate, not
- * defensive padding. Do not remove it on the grounds that "every endpoint has pagination now".
+ * One endpoint is exempt, with its reason in the backend census test: `/api/v2/activities` keeps
+ * an offset-style block by decision in #756. Three top-N views used to sit alongside it -
+ * `/activities/recent`, `.../ansible/jobs/queue` and `.../runs/queue` - reporting no total at
+ * all; #773 gave them real ones. The `?? 1` fallback below still covers the remaining exemption
+ * and any endpoint added without a block, so it is deliberate rather than defensive padding.
+ * Do not remove it on the grounds that "every endpoint has pagination now".
  */
 export async function fetchAllPages(
   fetchPage: (page: number, pageSize: number) => Promise<JsonApiListResponse<JsonApiResource>>,
