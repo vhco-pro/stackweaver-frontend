@@ -5,12 +5,29 @@ import type { JsonApiListResponse, JsonApiResource } from '@/utils/jsonapi';
 /**
  * Walk every server page of a JSON:API list endpoint and return the complete item set.
  *
- * Stackweaver's list endpoints paginate with a default page size of 20 and expose
- * `meta.pagination.total-pages`. A page that fetches a single unpaginated response therefore
- * silently shows only the first 20 rows. This helper assembles all of them (page size 100), so
- * the caller can search/filter across the full set and window the display with its own pager.
+ * A caller that fetches one response and renders it shows only the first page, silently - no
+ * error, nothing in the console. This helper assembles all of them (page size 100), so the
+ * caller can search/filter across the full set and window the display with its own pager.
  *
  * `total` comes from the server's `total-count` (falls back to the assembled length).
+ *
+ * ## The contract this relies on
+ *
+ * Every JSON:API collection under `/api/v2` states its size in `meta.pagination`, with the six
+ * members #756 standardised - `current-page`, `page-size`, `prev-page`, `next-page`,
+ * `total-pages`, `total-count`. #761 gave the block to the 36 collections that emitted none, and
+ * `TestEveryCollectionStatesItsPagination` (backend) fails if a new one arrives without it.
+ *
+ * Page *size* is not part of that contract and is not uniform. Collections that genuinely
+ * paginate honour `page[size]`; those the handler materialises in full ignore it and answer with
+ * one page holding everything. Both are honest, and this helper handles both without knowing
+ * which it is talking to: it asks for page 1, reads `total-pages`, and stops when it runs out.
+ *
+ * Four endpoints are exempt, listed with their reasons in the backend census test:
+ * `/api/v2/activities` keeps an offset-style block by decision in #756, and three top-N views
+ * (`/activities/recent`, `.../ansible/jobs/queue`, `.../runs/queue`) report no total at all. The
+ * `?? 1` fallback below is what makes those safe rather than broken - it is deliberate, not
+ * defensive padding. Do not remove it on the grounds that "every endpoint has pagination now".
  */
 export async function fetchAllPages(
   fetchPage: (page: number, pageSize: number) => Promise<JsonApiListResponse<JsonApiResource>>,
