@@ -28,8 +28,12 @@ import {
 } from '@/components/ui/table';
 
 export default function ProviderPublish() {
-  const params = useParams<{ orgName: string; providerName: string }>();
+  // A provider is addressed by the composite (registry_name, namespace, name): the same name can
+  // exist under `private` and under `public`, so the name alone does not identify one.
+  const params = useParams<{ orgName: string; registryName: string; namespace: string; providerName: string }>();
   const orgName = params.orgName;
+  const registryName = params.registryName;
+  const namespace = params.namespace;
   const providerName = params.providerName;
   const navigate = useNavigate();
   const [versions] = useState<ProviderVersion[]>([]);
@@ -40,11 +44,11 @@ export default function ProviderPublish() {
   const [file, setFile] = useState<File | null>(null);
 
   const { data: provider = null, isLoading: loading } = useQuery({
-    queryKey: ['provider', orgName, providerName],
+    queryKey: ['provider', orgName, registryName, namespace, providerName],
     queryFn: async () => {
-      return await registryApi.providers.get(orgName!, providerName!);
+      return await registryApi.providers.get(orgName!, registryName!, namespace!, providerName!);
     },
-    enabled: !!orgName && !!providerName,
+    enabled: !!orgName && !!registryName && !!namespace && !!providerName,
   });
 
   const handleUpload = async (e: React.FormEvent) => {
@@ -55,11 +59,13 @@ export default function ProviderPublish() {
       return;
     }
 
-    if (!orgName || !providerName) return;
+    if (!orgName || !registryName || !namespace || !providerName) return;
 
     setUploading(true);
     try {
-      await registryApi.providers.publishPlatform(orgName, providerName, version, os, arch, file);
+      await registryApi.providers.publishPlatform(
+        orgName, registryName, namespace, providerName, version, os, arch, file,
+      );
       toast.success('Provider binary uploaded successfully');
       setVersion('');
       setOs('');
@@ -110,13 +116,16 @@ export default function ProviderPublish() {
       <div>
         <h1 className="text-3xl font-bold mb-2">
           {provider.name}
-          {provider.verified && (
-            <Badge variant="default" className="ml-2 bg-green-500">Verified</Badge>
+          {provider.registry_name === 'public' ? (
+            <Badge variant="secondary" className="ml-2">Public</Badge>
+          ) : (
+            <Badge variant="default" className="ml-2 bg-blue-500">Private</Badge>
           )}
         </h1>
-        {provider.description && (
-          <p className="text-muted-foreground text-lg mb-4">{provider.description}</p>
-        )}
+        {/* The address a practitioner puts in a required_providers block. */}
+        <p className="text-muted-foreground text-lg mb-4 font-mono">
+          {provider.namespace}/{provider.name}
+        </p>
       </div>
 
       {/* Upload Form */}

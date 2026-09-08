@@ -466,7 +466,7 @@ function AppContent() {
               }
             />
             <Route
-              path="/app/:orgName/registry/providers/:providerName"
+              path="/app/:orgName/registry/providers/:registryName/:namespace/:providerName"
               element={
                 <ProtectedRoute>
                   <OrganizationGuard>
