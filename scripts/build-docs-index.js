@@ -118,6 +118,18 @@ const COVERAGE_INDEX_FILE = path.join(__dirname, '..', 'docs-coverage.json');
 
 const IMAGE_EXTENSIONS = /\.(png|jpe?g|gif|svg|webp|avif)$/i;
 
+// Data assets that ship with the docs: copied verbatim, never indexed as pages.
+//
+// The allowlist is explicit rather than a `.json` glob because docs/redirects.json is a BUILD
+// INPUT, not a published file - it is compiled into docs-redirects.json, and copying it would
+// publish the raw source next to its own output. Only two .json files exist under docs/, and
+// they need opposite treatment, so naming the published one is the honest way to say which.
+//
+// docs/api-reference/README.md tells readers this file sits "alongside this page", which was
+// false for as long as the walk collected .md and images only: the URL fell through to the
+// SPA and served index.html with a 200.
+const PUBLISHED_ASSETS = new Set(['api-reference/openapi.json']);
+
 /** Map file extension -> fenced code block language identifier */
 const EXT_TO_LANG = {
   '.tf': 'hcl',
@@ -252,7 +264,8 @@ function shouldIgnoreDir(dirPath) {
 
 /**
  * Recursively scan docs directory and build file tree.
- * Returns { mdFiles, imageFiles } - image files are copied but not indexed.
+ * Returns { mdFiles, imageFiles } - the second array is the copied-but-not-indexed lane,
+ * carrying images and the PUBLISHED_ASSETS data files.
  *
  * @param {string} dirPath - Directory to scan
  * @param {string} [root] - Root to compute relative paths from (defaults to DOCS_ROOT)
@@ -284,6 +297,8 @@ function scanDocsDir(dirPath, root = DOCS_ROOT, noFilter = false) {
           mdFiles.push({ relativePath, fullPath });
         }
       } else if (IMAGE_EXTENSIONS.test(entry.name)) {
+        imageFiles.push({ relativePath, fullPath });
+      } else if (PUBLISHED_ASSETS.has(relativePath.split(path.sep).join('/'))) {
         imageFiles.push({ relativePath, fullPath });
       }
     }
@@ -1413,4 +1428,4 @@ if (require.main === module) {
   });
 }
 
-module.exports = { main };
+module.exports = { main, scanDocsDir, PUBLISHED_ASSETS };

@@ -10,7 +10,7 @@ covers:
 
 # API Reference
 
-Stackweaver publishes a machine-readable description of its entire HTTP API as an OpenAPI 3 document. It covers every route the server registers, currently 406 operations across 259 paths, with a response schema for each one. If you are writing automation against Stackweaver, generating a client library, or checking how far the Terraform Enterprise compatibility goes, this document is the authoritative answer.
+Stackweaver publishes a machine-readable description of its entire HTTP API as an OpenAPI 3 document. It covers every route the server registers, currently 465 operations across 312 paths, with a response schema for each one. If you are writing automation against Stackweaver, generating a client library, or checking how far the Terraform Enterprise compatibility goes, this document is the authoritative answer.
 
 ## Fetching it
 
@@ -36,10 +36,10 @@ That matters when you are deciding how much to trust it. A schema here cannot de
 
 A handful of things are honestly marked rather than quietly glossed:
 
-- **Twelve resource families are not present in the seeded data** the recordings were made against, so their routes are described from their not-found response rather than a populated one. The route, method and error shape are right; the success payload for those families is not yet described.
+- **Five resource families are not present in the seeded data** the recordings were made against, so their routes are described from their not-found response rather than a populated one. They are VCS connections, state versions, configuration versions, plans and applies. The route, method and error shape are right; the success payload for those five is not yet described.
 - **The run log endpoints return plain text**, not JSON, and are documented as such.
 - **`GET /.well-known/jwks`** publishes key material that changes with each server process, so its schema is written out rather than recorded.
-- **Pagination is not uniform.** Some list endpoints return the Terraform Enterprise `meta.pagination` block, and some return a simpler `{page, per_page, total}`. The document reports what each endpoint actually returns, so check the operation you are calling rather than assuming.
+- **One endpoint paginates differently.** Every collection returns the Terraform Enterprise `meta.pagination` block, with one deliberate survivor of an older shape: `GET /api/v2/activities` reports `{limit, offset, total}` instead. The document records what each endpoint actually returns, and an integration test fails if a second one drifts.
 
 ## Keeping it honest
 
