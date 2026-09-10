@@ -172,7 +172,6 @@ export function DocsSidebar({ className, onNavigate, docsBase = '/docs', indexFi
   const renderNode = (node: DocTreeNode, level = 0): React.ReactNode => {
     if (node.type === 'directory') {
       const isExpanded = expandedDirs.has(node.path);
-      const hasChildren = node.children && node.children.length > 0;
       const readmeFile = findReadmeInDir(node.children);
       const readmePath = readmeFile ? getDocPath(readmeFile.path) : null;
       
@@ -180,6 +179,12 @@ export function DocsSidebar({ className, onNavigate, docsBase = '/docs', indexFi
       const childrenWithoutReadme = node.children?.filter(child => 
         !(child.type === 'file' && /^README\.md$/i.test(child.name))
       ) || [];
+
+      // A directory whose only child is its own README is a PAGE, not a folder.
+      // Expandability is decided on what is LEFT after the README is filtered out, not on the
+      // raw child count - otherwise the chevron offers to expand a folder into nothing, which
+      // is what docs/api-reference, features/dashboard and .../kubernetes/kustomize all did.
+      const hasChildren = childrenWithoutReadme.length > 0;
       
       // Check if current path matches this directory's README
       const currentPathNorm = location.pathname.replace(/\/$/, '');
@@ -212,6 +217,31 @@ export function DocsSidebar({ className, onNavigate, docsBase = '/docs', indexFi
         }
       };
       
+      // Nothing to expand and a README to show: render it exactly as a page, so the sidebar
+      // stops promising a level of navigation that does not exist.
+      if (!hasChildren && readmePath) {
+        const leafActive = location.pathname.replace(/\/$/, '') === readmePath;
+        return (
+          <Link
+            key={node.path}
+            to={readmePath}
+            onClick={() => onNavigate?.()}
+            className={cn(
+              'flex items-center gap-2 px-3 py-2 text-sm rounded-md transition-colors',
+              'hover:bg-muted/50 text-muted-foreground dark:text-[#d7dfe9] hover:text-foreground',
+              leafActive && 'bg-muted text-foreground font-medium',
+              level > 0 && 'pl-6'
+            )}
+            style={{ paddingLeft: `${0.75 + level * 1.5}rem` }}
+            title={readmeFile?.description || undefined}
+          >
+            {isInternal && <StatusDot status={readmeFile?.status} />}
+            <FileText className="h-4 w-4 shrink-0" />
+            <span className="truncate">{node.name}</span>
+          </Link>
+        );
+      }
+
       return (
         <div key={node.path}>
           <button
