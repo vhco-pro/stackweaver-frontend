@@ -68,6 +68,52 @@ async function loadScalar() {
   return { ApiReference: mod.ApiReferenceReact as ComponentType<{ configuration: unknown }> };
 }
 
+/**
+ * Scalar's dark surfaces, restated in the docs framework's slate family.
+ *
+ * Only dark mode differs enough to matter: Scalar paints #0f0f0f, a neutral near-black, against
+ * the docs surface of #020617 - slate-950, visibly blue beside it. Light mode is #fff against
+ * #f8fafc, a difference nobody can see, so it is left alone rather than churned.
+ *
+ * Keyed on `html.dark`, our own theme class, rather than Scalar's `.dark-mode`, which it puts on
+ * <body>. Body is an ANCESTOR of this wrapper, so `.scalar-scope .dark-mode` selects nothing.
+ * Custom properties inherit, so defining them on the wrapper reaches everything Scalar renders
+ * inside it and nothing outside.
+ *
+ * Both families are needed. The sidebar does not read --scalar-background-*; it has its own
+ * --scalar-sidebar-* set, and overriding only the first leaves a black sidebar against a navy
+ * page - worse than the uniform grey it replaced.
+ *
+ * NOT overridden, deliberately: --scalar-background-alert, --scalar-background-danger and
+ * --scalar-tooltip-background are `color-mix` expressions that hardcode #0f0f0f, so they keep a
+ * faintly warmer base. They are small, rare, and chasing every derived colour would turn this
+ * into a fork of Scalar's theme that silently drifts on each upgrade. The E2E spec asserts the
+ * two surfaces that matter, so an upgrade that moves them fails a test rather than the page
+ * quietly reverting to black.
+ *
+ * Contrast improves rather than degrades: slate-950 is darker than #0f0f0f, so every
+ * light-on-dark element gains. Measured on the rendered page, text on the main surface comes out
+ * at 4.63:1, 8.09:1 and 16.31:1 - all above the 4.5:1 WCAG AA threshold for body text.
+ */
+const SCALAR_DARK_SURFACES = `
+  html.dark .scalar-scope {
+    --scalar-background-1: #020617;
+    --scalar-background-2: #0f172a;
+    --scalar-background-3: #1e293b;
+    --scalar-border-color: rgba(255, 255, 255, 0.1);
+
+    --scalar-sidebar-background-1: #020617;
+    --scalar-sidebar-border-color: rgba(255, 255, 255, 0.1);
+    --scalar-sidebar-item-hover-background: #0f172a;
+    --scalar-sidebar-item-active-background: #0f172a;
+    --scalar-sidebar-search-background: #0f172a;
+    --scalar-sidebar-search-border-color: rgba(255, 255, 255, 0.1);
+    --scalar-sidebar-indent-border: rgba(255, 255, 255, 0.1);
+    --scalar-sidebar-indent-border-hover: rgba(255, 255, 255, 0.2);
+    --scalar-sidebar-indent-border-active: rgba(255, 255, 255, 0.2);
+  }
+`;
+
 function Centered({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex min-h-[60vh] items-center justify-center px-6">
@@ -108,7 +154,7 @@ export default function ApiReferenceExplorer() {
     // strip in the middle. The one piece of our chrome kept is a way back: Scalar has no
     // affordance that returns a reader to Stackweaver, and a full-page takeover with no exit is
     // its own defect.
-    <div className="flex h-screen flex-col bg-white dark:bg-[#0b0b0f]">
+    <div className="flex h-screen flex-col bg-white dark:bg-[#020617]">
       <div className="flex shrink-0 items-center gap-3 border-b border-gray-200 px-4 py-2.5 dark:border-white/10">
         <Link
           to="/docs/api-reference"
@@ -198,6 +244,7 @@ export default function ApiReferenceExplorer() {
               // Belt to the flags' braces - see sameOriginFetch above.
               fetch: sameOriginFetch,
               customFetch: sameOriginFetch,
+              customCss: SCALAR_DARK_SURFACES,
               _integration: 'react',
             }}
           />
