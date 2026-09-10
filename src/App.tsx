@@ -38,6 +38,7 @@ import SecuritySettings from './pages/Settings/Security';
 import UsersSettings from './pages/Settings/Users';
 import DocsIndex from './pages/Docs/DocsIndex';
 import DocsViewer from './pages/Docs/DocsViewer';
+import ApiReferenceExplorer from './pages/Docs/ApiReferenceExplorer';
 import SessionsSettings from './pages/Settings/Sessions';
 import OAuthAuthorize from './pages/OAuthAuthorize';
 import ApiKeysSettings from './pages/Settings/ApiKeys';
@@ -89,6 +90,9 @@ function AppContent() {
               <Route path="/oauth/authorize" element={<OAuthAuthorize />} />
               <Route path="/" element={<Landing />} />
               <Route path="/docs" element={<DocsIndex />} />
+              {/* Ahead of /docs/*, which would otherwise resolve "explorer" as a
+                  markdown document and 404. */}
+              <Route path="/docs/api-reference/explorer" element={<ApiReferenceExplorer />} />
               <Route path="/docs/*" element={<DocsViewer />} />
               <Route path="/internal-docs" element={<ProtectedRoute><DocsViewer docsBase="/internal-docs" indexFile="/internal-docs-index.json" /></ProtectedRoute>} />
               <Route path="/internal-docs/*" element={<ProtectedRoute><DocsViewer docsBase="/internal-docs" indexFile="/internal-docs-index.json" /></ProtectedRoute>} />

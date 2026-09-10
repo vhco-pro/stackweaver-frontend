@@ -1,0 +1,202 @@
+// Copyright (c) 2026 VH & Co BV. Licensed under the Business Source License 1.1. See LICENSE for details.
+
+import { useQuery } from '@tanstack/react-query';
+import type { ComponentType } from 'react';
+import { AlertCircle, BookOpen, Loader2 } from 'lucide-react';
+
+import { DocsLayout } from '@/components/docs/DocsLayout';
+import { Button } from '@/components/ui/button';
+import { useTheme } from '@/contexts/ThemeContext';
+import { glassSurface } from '@/lib/surfaces';
+
+/**
+ * The rendered API reference (#794).
+ *
+ * Stackweaver publishes a complete OpenAPI 3 document but rendered it nowhere, so reading the
+ * API meant pasting 770KB into an external tool. This renders it in place.
+ *
+ * The document is the one the docs build publishes, which is byte-identical to what the server
+ * serves at /openapi/stable.json. Fetching it here rather than handing Scalar the URL is
+ * deliberate: it is what makes the loading and error states ours, so a failed fetch shows a
+ * retry instead of an empty pane that reads as "this API has no endpoints".
+ */
+
+/** The published document. Same bytes as GET /openapi/stable.json - see docs/api-reference/README.md. */
+const DOCUMENT_URL = '/docs/api-reference/openapi.json';
+
+/**
+ * Scalar is loaded on demand, following the pattern the docs components already use for shiki,
+ * mermaid and jszip. It is ~1.1MB gzipped across its own chunks, which must not enter the main
+ * entry bundle for the benefit of readers who never open this page.
+ */
+/**
+ * Scalar reaches third-party origins by default, and more than one feature does it:
+ *
+ *   - the default theme injects @font-face rules pointing at fonts.scalar.com;
+ *   - the registry/"Ask AI" integration calls api.scalar.com, including
+ *     `/vector/registry/search?query=` - which would send a reader's search terms to a vendor;
+ *   - `telemetry` defaults to true.
+ *
+ * The configuration flags below turn each of those off, but flags are a promise a dependency
+ * makes and can rename in a minor bump, at which point the calls resume silently. This guard is
+ * the part that cannot regress: same-origin requests pass, everything else is refused before it
+ * leaves the browser. A self-hosted Stackweaver renders its own documentation without calling
+ * anyone, and an air-gapped one must not hang trying.
+ */
+const sameOriginFetch: typeof fetch = (input, init) => {
+  const url =
+    typeof input === 'string'
+      ? input
+      : input instanceof URL
+        ? input.href
+        : input.url;
+  const resolved = new URL(url, window.location.href);
+  if (resolved.origin !== window.location.origin) {
+    return Promise.reject(
+      new Error(`blocked a cross-origin request from the API reference: ${resolved.origin}`),
+    );
+  }
+  return fetch(input, init);
+};
+
+async function loadScalar() {
+  const [mod] = await Promise.all([
+    import('@scalar/api-reference-react'),
+    // Scoped to this chunk so the stylesheet is not fetched by anyone who never opens the page.
+    import('@scalar/api-reference-react/style.css'),
+  ]);
+  return { ApiReference: mod.ApiReferenceReact as ComponentType<{ configuration: unknown }> };
+}
+
+function Centered({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="flex min-h-[60vh] items-center justify-center px-6">
+      <div className={`${glassSurface} w-full max-w-md p-8 text-center`}>{children}</div>
+    </div>
+  );
+}
+
+export default function ApiReferenceExplorer() {
+  const { resolvedTheme } = useTheme();
+
+  const apiDocument = useQuery({
+    queryKey: ['openapi-document'],
+    queryFn: async () => {
+      const res = await fetch(DOCUMENT_URL);
+      if (!res.ok) {
+        throw new Error(`The API description could not be loaded (HTTP ${res.status}).`);
+      }
+      return (await res.json()) as unknown;
+    },
+    staleTime: 5 * 60 * 1000,
+    retry: false,
+  });
+
+  const scalar = useQuery({
+    queryKey: ['scalar-renderer'],
+    queryFn: loadScalar,
+    staleTime: Infinity,
+    retry: false,
+  });
+
+  const failed = apiDocument.error ?? scalar.error;
+  const ready = scalar.data !== undefined && apiDocument.data !== undefined;
+
+  return (
+    <DocsLayout>
+      <div className="px-4 pt-6 sm:px-6">
+        <div className="mb-6 flex items-center gap-3">
+          <BookOpen className="h-7 w-7 text-violet-600 dark:text-violet-400" aria-hidden="true" />
+          <div>
+            <h1 className="bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-600 bg-clip-text text-3xl font-bold text-transparent dark:from-emerald-300 dark:via-teal-300 dark:to-emerald-300">
+              API Reference
+            </h1>
+            <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
+              Every route the server registers, described from recorded responses.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {failed ? (
+        <Centered>
+          <AlertCircle
+            className="mx-auto mb-4 h-10 w-10 text-red-600 dark:text-red-400"
+            aria-hidden="true"
+          />
+          {/* role=alert, because the failure this replaces was a blank pane that reads as
+              "this API has no endpoints" rather than "the description did not load". */}
+          <p role="alert" className="mb-6 text-sm text-gray-700 dark:text-gray-300">
+            {failed.message}
+          </p>
+          <Button
+            onClick={() => {
+              if (apiDocument.error) void apiDocument.refetch();
+              if (scalar.error) void scalar.refetch();
+            }}
+          >
+            Retry
+          </Button>
+        </Centered>
+      ) : !ready ? (
+        <Centered>
+          <Loader2
+            className="mx-auto mb-4 h-8 w-8 animate-spin text-violet-600 dark:text-violet-400"
+            aria-hidden="true"
+          />
+          <p className="text-sm text-gray-600 dark:text-gray-400">Loading the API description…</p>
+        </Centered>
+      ) : (
+        // Scalar paints its own full-surface chrome, so it is given the width rather than being
+        // nested inside another card. The wrapper is a named hook for scoping its styles if that
+        // ever becomes necessary; measured today it does not leak, which the E2E spec pins by
+        // comparing a neighbouring docs page against a context that never loaded the renderer.
+        <div className="scalar-scope">
+          <scalar.data.ApiReference
+            configuration={{
+              content: apiDocument.data,
+              darkMode: resolvedTheme === 'dark',
+              // Scalar's default theme injects @font-face rules pointing at
+              // https://fonts.scalar.com. Our CSP blocks font-src to 'self', so those requests
+              // fail noisily on every load - and a self-hosted, air-gapped Stackweaver should
+              // not be reaching a vendor CDN to render its own documentation. Off; the app's
+              // own font stack applies instead, which also matches the surrounding docs.
+              withDefaultFonts: false,
+              hideClientButton: true,
+              // Read-only for v1 by owner decision; live requests are tracked in #795.
+              hideTestRequestButton: true,
+              // Scalar's own toolbar ("Configure", "Share", "Deploy") and developer tools are
+              // its platform's chrome, not ours. Both default to 'localhost', so they are
+              // invisible in production and present in dev - a hostname heuristic is a poor
+              // reason for a page to differ between the two. Off everywhere.
+              showToolbar: 'never',
+              showDeveloperTools: 'never',
+              // "Ask AI" is Scalar's agent integration: a Scalar-branded chat drawer, with its
+              // own terms-agreement prompt, backed by api.scalar.com. useAgent() enables it
+              // whenever the page is on a local URL and otherwise only with an agent key - so
+              // like the toolbar it would appear in dev and vanish in production. Disabled
+              // explicitly: the guards below mean it could never work here anyway, and a
+              // vendor's AI assistant is not something Stackweaver's own docs should offer.
+              agent: { disabled: true },
+              // No usage reporting from a self-hosted product's own docs page.
+              telemetry: false,
+              // The registry / "Ask AI" integration calls api.scalar.com directly rather than
+              // through the configured fetch. Point it at our own origin so the request cannot
+              // leave the deployment even if the feature is somehow reached.
+              externalUrls: {
+                registryUrl: window.location.origin,
+                dashboardUrl: window.location.origin,
+                apiBaseUrl: window.location.origin,
+                proxyUrl: '',
+              },
+              // Belt to the flags' braces - see sameOriginFetch above.
+              fetch: sameOriginFetch,
+              customFetch: sameOriginFetch,
+              _integration: 'react',
+            }}
+          />
+        </div>
+      )}
+    </DocsLayout>
+  );
+}
