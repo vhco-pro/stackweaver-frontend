@@ -2,9 +2,9 @@
 
 import { useQuery } from '@tanstack/react-query';
 import type { ComponentType } from 'react';
-import { AlertCircle, BookOpen, Loader2 } from 'lucide-react';
+import { AlertCircle, ArrowLeft, Loader2 } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
-import { DocsLayout } from '@/components/docs/DocsLayout';
 import { Button } from '@/components/ui/button';
 import { useTheme } from '@/contexts/ThemeContext';
 import { glassSurface } from '@/lib/surfaces';
@@ -103,19 +103,21 @@ export default function ApiReferenceExplorer() {
   const ready = scalar.data !== undefined && apiDocument.data !== undefined;
 
   return (
-    <DocsLayout>
-      <div className="px-4 pt-6 sm:px-6">
-        <div className="mb-6 flex items-center gap-3">
-          <BookOpen className="h-7 w-7 text-violet-600 dark:text-violet-400" aria-hidden="true" />
-          <div>
-            <h1 className="bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-600 bg-clip-text text-3xl font-bold text-transparent dark:from-emerald-300 dark:via-teal-300 dark:to-emerald-300">
-              API Reference
-            </h1>
-            <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
-              Every route the server registers, described from recorded responses.
-            </p>
-          </div>
-        </div>
+    // Full-bleed. Scalar ships its own sidebar, search and on-this-page rail, so nesting it in
+    // the docs shell produced three navigation columns and left the reference itself a narrow
+    // strip in the middle. The one piece of our chrome kept is a way back: Scalar has no
+    // affordance that returns a reader to Stackweaver, and a full-page takeover with no exit is
+    // its own defect.
+    <div className="flex h-screen flex-col bg-white dark:bg-[#0b0b0f]">
+      <div className="flex shrink-0 items-center gap-3 border-b border-gray-200 px-4 py-2.5 dark:border-white/10">
+        <Link
+          to="/docs/api-reference"
+          className="inline-flex items-center gap-1.5 rounded-lg px-2 py-1 text-sm text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-900 focus-visible:ring-2 focus-visible:ring-violet-500 focus-visible:outline-none dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-white"
+        >
+          <ArrowLeft className="h-4 w-4" aria-hidden="true" />
+          Docs
+        </Link>
+        <span className="text-sm font-medium text-gray-900 dark:text-white">API Reference</span>
       </div>
 
       {failed ? (
@@ -151,7 +153,7 @@ export default function ApiReferenceExplorer() {
         // nested inside another card. The wrapper is a named hook for scoping its styles if that
         // ever becomes necessary; measured today it does not leak, which the E2E spec pins by
         // comparing a neighbouring docs page against a context that never loaded the renderer.
-        <div className="scalar-scope">
+        <div className="scalar-scope min-h-0 flex-1 overflow-auto">
           <scalar.data.ApiReference
             configuration={{
               content: apiDocument.data,
@@ -178,6 +180,10 @@ export default function ApiReferenceExplorer() {
               // explicitly: the guards below mean it could never work here anyway, and a
               // vendor's AI assistant is not something Stackweaver's own docs should offer.
               agent: { disabled: true },
+              // Separate from the agent: Scalar also renders a "Generate MCP" link that hands
+              // this document to its own MCP tooling. Same objection - it is the vendor's
+              // platform surfacing inside Stackweaver's documentation.
+              mcp: { disabled: true },
               // No usage reporting from a self-hosted product's own docs page.
               telemetry: false,
               // The registry / "Ask AI" integration calls api.scalar.com directly rather than
@@ -197,6 +203,6 @@ export default function ApiReferenceExplorer() {
           />
         </div>
       )}
-    </DocsLayout>
+    </div>
   );
 }
