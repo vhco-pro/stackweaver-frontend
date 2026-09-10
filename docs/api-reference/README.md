@@ -12,6 +12,14 @@ covers:
 
 Stackweaver publishes a machine-readable description of its entire HTTP API as an OpenAPI 3 document. It covers every route the server registers, currently 465 operations across 312 paths, with a response schema for each one. If you are writing automation against Stackweaver, generating a client library, or checking how far the Terraform Enterprise compatibility goes, this document is the authoritative answer.
 
+## Reading it
+
+Every Stackweaver deployment renders the document at
+[`/docs/api-reference/explorer`](/docs/api-reference/explorer), grouped by resource and
+searchable, so you can read the API without a tool of your own. The page is public and needs no
+login, and it renders entirely in your browser: it reaches no third-party service, which is
+checked by a test rather than asserted here.
+
 ## Fetching it
 
 Every running Stackweaver server serves its own description, and the endpoint needs no authentication, because a client that cannot read the API description before authenticating cannot generate a client at all.
