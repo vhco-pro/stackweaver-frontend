@@ -15,6 +15,20 @@ dist-ssr
 # under fallow-baselines/ is intentionally tracked and must NOT be ignored.
 .fallow/
 *.sarif
+
+# Image-optimisation manifest written by scripts/build-docs-index.js. Nothing is gained by
+# tracking it: the cache key is `mtimeMs-size` and git does not preserve mtimes, so a
+# committed copy can never hit on a fresh checkout. (It does not currently hit locally
+# either - copyFiles() runs once per corpus and each call overwrites the whole manifest, so
+# the public-docs entries are destroyed by the internal-docs pass on every run. Tracked
+# separately; that is a bug in the script, not a reason to commit its output.)
+# What tracking it *did* do is churn: the script runs in `make verify` and the pre-commit
+# hook, so it is rewritten constantly and rode along into unrelated commits - a TFE
+# run-tasks feature, a dependency batch, a GCP OIDC feature and a docs audit each carry a
+# spurious one-line diff to it.
+# The optimised binaries in .docs-image-cache/ stay tracked on purpose: those are
+# deterministic for a given source image, so they do not churn.
+.image-cache.json
 test-results/
 *.local
 
