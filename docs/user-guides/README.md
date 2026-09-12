@@ -61,6 +61,10 @@ Practical, step-by-step guides for using StackWeaver. These guides walk you thro
 
 - **[Self-Hosted Runners](./self-hosted-runners.md)** - Run OpenTofu and Ansible workloads on your own infrastructure using agent pools and self-hosted runners
 
+## Migrating
+
+- **[Migrating from Terraform Cloud or Enterprise](./migrating-from-terraform-cloud.md)** - Repoint the CLI at a Stackweaver host, move state, and check which `terraform-provider-tfe` resources have been verified to work
+
 ## Troubleshooting
 
 - **[Troubleshooting Common Issues](./troubleshooting-common-issues.md)** - Solutions for frequent problems and questions
