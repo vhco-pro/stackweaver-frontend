@@ -88,7 +88,7 @@ services:
         # Download Garage CLI binary
         ARCH=$$(uname -m)
         wget -qO /usr/local/bin/garage \
-          "https://garagehq.deuxfleurs.fr/_releases/v2.2.0/$${ARCH}-unknown-linux-musl/garage"
+          "https://garagehq.deuxfleurs.fr/_releases/v2.4.1/$${ARCH}-unknown-linux-musl/garage"
         chmod +x /usr/local/bin/garage
 
         # Wait for Garage RPC
