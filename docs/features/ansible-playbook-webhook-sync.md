@@ -95,7 +95,7 @@ This helps you verify that your playbooks are staying in sync with your reposito
 
 Common scenarios for VCS-synced playbooks:
 
-- **Infrastructure as Code**: Store playbooks alongside Terraform configurations in the same repository
+- **Infrastructure as Code**: Store playbooks alongside OpenTofu configurations in the same repository
 - **Environment-Specific Playbooks**: Different branches for dev, staging, and production environments
 - **Shared Playbooks**: Multiple projects can reference the same playbook from a shared repository
 - **Automated Deployment**: Combine webhook sync with job templates for fully automated workflows

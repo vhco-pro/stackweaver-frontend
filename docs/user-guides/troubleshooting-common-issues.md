@@ -1,5 +1,5 @@
 ---
-description: "Solutions for frequent Terraform, Ansible, VCS, and general platform problems"
+description: "Solutions for frequent OpenTofu, Ansible, VCS, and general platform problems"
 covers: []
 ---
 
@@ -7,17 +7,17 @@ covers: []
 
 Solutions for the most frequent problems and questions when using StackWeaver.
 
-## Terraform Issues
+## OpenTofu Issues
 
 ### Workspace Won't Start a Run
 
-**Symptoms**: Run stays queued or fails immediately without running Terraform.
+**Symptoms**: Run stays queued or fails immediately without running OpenTofu.
 
 **Possible causes and solutions:**
 
 - **VCS connection issue**: Verify your GitHub connection is active in organization settings. Try disconnecting and reconnecting.
 - **Repository access**: Ensure StackWeaver has access to the repository. Check repository permissions in GitHub.
-- **Working directory**: If your Terraform files aren't in the repo root, verify the working directory path is correct.
+- **Working directory**: If your OpenTofu files aren't in the repo root, verify the working directory path is correct.
 - **Runner unavailable**: Check if there are any runner issues. Check `docker compose -f deploy/docker-compose.yml logs runner` for errors. If runs consistently fail to start, review the orchestrator logs as well.
 
 ### Plan Shows Unexpected Changes
@@ -26,7 +26,7 @@ Solutions for the most frequent problems and questions when using StackWeaver.
 
 **This usually means:**
 
-- **State drift**: Infrastructure was changed outside Terraform (manually or by another tool)
+- **State drift**: Infrastructure was changed outside OpenTofu (manually or by another tool)
 - **Provider version change**: Provider behavior changed between versions
 - **Code sync issue**: Workspace is using a different branch or commit than expected
 
@@ -54,7 +54,7 @@ Solutions for the most frequent problems and questions when using StackWeaver.
 
 **What's happening:**
 
-Terraform locks state during runs to prevent concurrent modifications. This error means another run is already using the state.
+OpenTofu locks state during runs to prevent concurrent modifications. This error means another run is already using the state.
 
 **To resolve:**
 
@@ -165,7 +165,7 @@ If your servers aren't publicly accessible, you'll need to use self-hosted runne
 - **Import completeness**: Ensure all resources were successfully imported
 - **State version**: Verify you're looking at the correct state version
 - **Workspace connection**: Confirm the imported state matches the workspace configuration
-- **Resource names**: Check that resource names in state match your Terraform code
+- **Resource names**: Check that resource names in state match your OpenTofu code
 
 ## Getting More Help
 

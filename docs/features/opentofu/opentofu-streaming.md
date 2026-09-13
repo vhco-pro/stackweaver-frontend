@@ -23,7 +23,7 @@ When you start a run (plan or apply), StackWeaver:
 
 ## Benefits
 
-- **Faster Feedback**: See what Terraform is doing immediately, not just when it finishes
+- **Faster Feedback**: See what OpenTofu is doing immediately, not just when it finishes
 - **Early Problem Detection**: Spot issues as they occur rather than waiting for the operation to fail
 - **Better Visibility**: Monitor long-running applies without wondering if the system is working
 - **Debugging**: Real-time output makes it easier to understand what's happening during complex operations
@@ -32,8 +32,8 @@ When you start a run (plan or apply), StackWeaver:
 
 When running `terraform plan`, you'll see:
 
-- Resource refresh status as Terraform queries providers
-- Plan calculations as Terraform determines what changes are needed
+- Resource refresh status as OpenTofu queries providers
+- Plan calculations as OpenTofu determines what changes are needed
 - Resource count summaries (add, change, destroy)
 - Any warnings or errors as they're detected
 
@@ -69,9 +69,9 @@ All streamed output is saved permanently:
 
 ## Technical Details
 
-The runner captures Terraform's stdout and stderr line by line and appends each line to a short-lived log buffer as it is produced. The run detail page polls the run-log endpoint every two seconds and requests only the bytes it has not seen yet, so output appears incrementally while the run is still executing.
+The runner captures OpenTofu's stdout and stderr line by line and appends each line to a short-lived log buffer as it is produced. The run detail page polls the run-log endpoint every two seconds and requests only the bytes it has not seen yet, so output appears incrementally while the run is still executing.
 
-This means output appears within a couple of seconds of Terraform producing it, rather than only after the command finishes.
+This means output appears within a couple of seconds of OpenTofu producing it, rather than only after the command finishes.
 
 ## Related Documentation
 

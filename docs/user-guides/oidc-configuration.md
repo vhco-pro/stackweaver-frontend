@@ -9,7 +9,7 @@ covers:
 
 # OIDC Configuration
 
-OIDC (OpenID Connect) configuration enables keyless authentication from Stackweaver-managed Terraform and Ansible runs to your cloud provider or HashiCorp Vault. Instead of storing long-lived credentials in your workspace variables, Stackweaver issues a short-lived signed JWT at run time, which the target accepts in exchange for a scoped access token via workload identity federation.
+OIDC (OpenID Connect) configuration enables keyless authentication from Stackweaver-managed OpenTofu and Ansible runs to your cloud provider or HashiCorp Vault. Instead of storing long-lived credentials in your workspace variables, Stackweaver issues a short-lived signed JWT at run time, which the target accepts in exchange for a scoped access token via workload identity federation.
 
 The same mechanism backs every supported target - only the trust setup on the target side and the registration resource differ:
 
@@ -140,7 +140,7 @@ The App Registration needs permission to create and manage Azure resources on be
    | **Name** | A descriptive label, e.g. `stackweaver-my-org-plan` |
    | **Audience** | `api://AzureADTokenExchange` |
 
-4. Click **Add**. Create one credential for `run_phase:plan` and one for `run_phase:apply` to cover the full Terraform run lifecycle.
+4. Click **Add**. Create one credential for `run_phase:plan` and one for `run_phase:apply` to cover the full OpenTofu run lifecycle.
 
 ### Step 4: Register the Configuration in Stackweaver
 
@@ -414,4 +414,4 @@ The issuer, subject, or audience in the token does not match your cloud-side tru
 
 ### Azure: `Contributor` role is not sufficient
 
-If Terraform gets an `AuthorizationFailed` error creating role assignments (e.g., for managed identities), the App Registration needs the `Owner` role, not `Contributor`.
+If OpenTofu gets an `AuthorizationFailed` error creating role assignments (e.g., for managed identities), the App Registration needs the `Owner` role, not `Contributor`.
