@@ -40,8 +40,10 @@ monorepo .github/workflows/sync-<sat>.yml         [release-bot token]
    • check out monorepo
    • copy the synced subset to a working tree
    • check out the satellite, apply the diff
-   • push to branch sync/<short-sha>
-   • open a PR via peter-evans/create-pull-request
+   • stop if sync/<short-sha> already has an open or merged PR
+   • push to branch sync/<short-sha>, unless a previous run
+     already published it
+   • open a PR for that branch via gh pr create
         │
         ▼
 satellite repo: pull request opens
