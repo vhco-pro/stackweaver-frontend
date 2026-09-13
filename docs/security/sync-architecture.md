@@ -1,12 +1,13 @@
-<!--
-Copyright (c) 2025 VH & Co BV. Licensed under the Business Source License 1.1. See LICENSE for details.
--->
 ---
 description: "How code reaches the public Stackweaver satellite repositories. Documents the two-App, PR-based sync model, the four hard security gates that govern every automated merge, and the commands an external reviewer can run to verify the design is correctly deployed in production."
 covers:
   - ".github/workflows/sync-*.yml"
   - ".github/workflows/auto-approve-sync.yml"
 ---
+
+<!--
+Copyright (c) 2025 VH & Co BV. Licensed under the Business Source License 1.1. See LICENSE for details.
+-->
 
 # Sync Architecture
 

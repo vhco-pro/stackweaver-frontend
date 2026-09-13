@@ -1,12 +1,13 @@
-<!--
-Copyright (c) 2025 VH & Co BV. Licensed under the Business Source License 1.1. See LICENSE for details.
--->
 ---
 description: "How to cryptographically verify a Stackweaver release - container image signatures, SLSA build provenance, and SBOM attestations. Uses Sigstore keyless signing; no long-lived signing keys are involved."
 covers:
   - ".github/workflows/**"
   - "deploy/helm/**"
 ---
+
+<!--
+Copyright (c) 2025 VH & Co BV. Licensed under the Business Source License 1.1. See LICENSE for details.
+-->
 
 # Verifying a Stackweaver Release
 

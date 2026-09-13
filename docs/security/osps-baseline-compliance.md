@@ -1,6 +1,3 @@
-<!--
-Copyright (c) 2025 VH & Co BV. Licensed under the Business Source License 1.1. See LICENSE for details.
--->
 ---
 description: "OSPS Baseline (Level 1 + Level 3) compliance statement for Stackweaver, mapped control-by-control to public evidence with copy-paste verification commands. Aimed at any independent security auditor performing a supply-chain review of the public satellite repositories, without privileged access. Also explains the current OpenSSF Scorecard scores and the project's argued deviations."
 covers:
@@ -8,6 +5,10 @@ covers:
   - "deploy/helm/**"
   - "licenses/**"
 ---
+
+<!--
+Copyright (c) 2025 VH & Co BV. Licensed under the Business Source License 1.1. See LICENSE for details.
+-->
 
 # OSPS Baseline Compliance
 
