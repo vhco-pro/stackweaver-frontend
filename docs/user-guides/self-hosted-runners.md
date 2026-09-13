@@ -360,7 +360,7 @@ Runners send heartbeats to the API on a regular interval. If heartbeats stop (e.
 
 ## Common Questions
 
-**Q: Can one runner run both Terraform and Ansible jobs?**  
+**Q: Can one runner run both OpenTofu and Ansible jobs?**  
 A: Yes, if you use a **combined** runner image (when available) or register with scopes that allow both. Otherwise use separate Ansible and OpenTofu runner containers and put them in the same or different pools as needed.
 
 **Q: What happens if all runners in a pool are offline?**  

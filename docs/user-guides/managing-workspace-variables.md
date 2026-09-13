@@ -1,5 +1,5 @@
 ---
-description: "Guide for setting up Terraform variables across workspaces, variable sets, and projects"
+description: "Guide for setting up OpenTofu variables across workspaces, variable sets, and projects"
 covers:
   - "core/services/variable/**"
   - "backend/internal/api/v2/handlers/variable*"
@@ -9,13 +9,13 @@ covers:
 
 # Managing Workspace Variables
 
-Learn how to set up, organize, and manage variables across your Terraform workspaces and projects.
+Learn how to set up, organize, and manage variables across your OpenTofu workspaces and projects.
 
 ## Overview
 
-Variables let you customize Terraform configurations without changing code. This separation of configuration from code is essential for managing infrastructure across environments, securely handling secrets, creating reusable modules, and enabling team collaboration through centralized configuration management.
+Variables let you customize OpenTofu configurations without changing code. This separation of configuration from code is essential for managing infrastructure across environments, securely handling secrets, creating reusable modules, and enabling team collaboration through centralized configuration management.
 
-Instead of hardcoding values like instance types or region names in your Terraform files, you define variables and set their values in StackWeaver. This means the same code can deploy to any environment with different settings by simply changing the variables.
+Instead of hardcoding values like instance types or region names in your OpenTofu files, you define variables and set their values in StackWeaver. This means the same code can deploy to any environment with different settings by simply changing the variables.
 
 ## Variable Scopes
 
@@ -43,16 +43,16 @@ To add variables directly to a workspace, open your workspace and navigate to th
 
 | Field | Description | Example |
 |-------|-------------|---------|
-| **Key** | The variable name (must match what Terraform expects) | `instance_type` |
+| **Key** | The variable name (must match what OpenTofu expects) | `instance_type` |
 | **Value** | The variable value | `t2.small` |
 | **Category** | Terraform variable (passed to Terraform) or environment variable (available as env var) | Usually "Terraform variable" |
 | **Sensitive** | Encrypt and hide this value in the UI | Check for passwords, API keys |
 | **HCL** | Parse the value as HCL code (for lists, maps) | Check for `["list", "items"]` |
 
 > [!TIP]
-> Variable keys should match what your Terraform code expects. Check your `.tf` files for variable declarations like `variable "instance_type" {}`.
+> Variable keys should match what your OpenTofu code expects. Check your `.tf` files for variable declarations like `variable "instance_type" {}`.
 
-Once you've filled in the details, save the variable and it will be available for your next Terraform run.
+Once you've filled in the details, save the variable and it will be available for your next OpenTofu run.
 
 ## Importing Variables from a .env File
 
@@ -113,9 +113,9 @@ Variables fall into two categories, each serving different purposes:
 | **Terraform variables** | Written to `stackweaver.auto.tfvars` and passed to Terraform | Most variables - instance types, region names, resource counts |
 | **Environment variables** | Set as environment variables during runs | Provider credentials (`AWS_ACCESS_KEY_ID`), tools that read env vars, secrets providers need directly |
 
-Most of the time, you'll use Terraform variables since they're directly consumed by your Terraform code. Environment variables are mainly for provider configuration or when external tools need to read values from the environment.
+Most of the time, you'll use Terraform variables since they're directly consumed by your OpenTofu code. Environment variables are mainly for provider configuration or when external tools need to read values from the environment.
 
-## How StackWeaver passes variables to Terraform
+## How StackWeaver passes variables to OpenTofu
 
 StackWeaver writes workspace and variable set values (Terraform category) to **`stackweaver.auto.tfvars`** in the run directory. Terraform automatically loads `*.auto.tfvars` files, and our file is loaded after `terraform.tfvars`, so our values override the repo’s `terraform.tfvars` for any overlapping keys.
 
@@ -126,7 +126,7 @@ StackWeaver writes workspace and variable set values (Terraform category) to **`
 
 ## Platform variables (workspace, project, organization)
 
-StackWeaver injects **platform variables** as **environment variables** (not in `stackweaver.auto.tfvars`). They are always available during runs and will not trigger Terraform “value for undeclared variable” warnings if you do not use them. This follows the same pattern as Terraform Cloud’s `TFC_WORKSPACE_ID`, `TFC_RUN_ID`, and similar: values are provided in the environment so configs that do not declare or use them keep working without warnings.
+StackWeaver injects **platform variables** as **environment variables** (not in `stackweaver.auto.tfvars`). They are always available during runs and will not trigger OpenTofu “value for undeclared variable” warnings if you do not use them. This follows the same pattern as Terraform Cloud’s `TFC_WORKSPACE_ID`, `TFC_RUN_ID`, and similar: values are provided in the environment so configs that do not declare or use them keep working without warnings.
 
 | Variable | Description |
 |----------|-------------|
@@ -137,7 +137,7 @@ StackWeaver injects **platform variables** as **environment variables** (not in 
 | `TF_ORGANIZATION_ID` | The organization ID |
 | `TF_ORGANIZATION_NAME` | The organization name |
 
-### Using platform variables in Terraform
+### Using platform variables in OpenTofu
 
 Terraform and OpenTofu do **not** have an `env()` or `getenv()` function. To use arbitrary environment variables in expressions, you need the **`external` data source**: it runs a program that prints JSON to stdout, and you use `data.external.<name>.result` in your config. That’s the usual workaround. Below: a small script (cleanest) or a self-contained inline variant.
 
@@ -158,7 +158,7 @@ cat <<EOF
 EOF
 ```
 
-Then in Terraform:
+Then in OpenTofu:
 
 ```hcl
 data "external" "platform" {
@@ -221,7 +221,7 @@ Sensitive variables are:
 - Only accessible to users with workspace permissions
 
 > [!IMPORTANT]
-> Never commit sensitive values to your Terraform code. Always use StackWeaver variables for secrets.
+> Never commit sensitive values to your OpenTofu code. Always use StackWeaver variables for secrets.
 
 ## Variable Values and HCL
 
@@ -275,7 +275,7 @@ Create variable sets for logical groups:
 
 ### Document Variables
 
-Use variable descriptions in your Terraform code:
+Use variable descriptions in your OpenTofu code:
 
 ```hcl
 variable "instance_type" {
@@ -289,7 +289,7 @@ variable "instance_type" {
 
 **Keep secrets in StackWeaver**
 
-Never hardcode sensitive values in your Terraform files. Always use StackWeaver variables marked as sensitive.
+Never hardcode sensitive values in your OpenTofu files. Always use StackWeaver variables marked as sensitive.
 
 **Use variable sets for shared configs**
 
@@ -311,7 +311,7 @@ Periodically review which variables are used where. Remove unused variables and 
 
 **Variable not found error**
 
-- Check the variable key matches what Terraform expects (case-sensitive)
+- Check the variable key matches what OpenTofu expects (case-sensitive)
 - Verify the variable category (Terraform vs environment)
 - Ensure the variable set is attached to the workspace
 
@@ -324,7 +324,7 @@ Periodically review which variables are used where. Remove unused variables and 
 **Sensitive variable visible in output**
 
 - Check that the variable is marked as sensitive
-- Verify it's not being output in your Terraform code
+- Verify it's not being output in your OpenTofu code
 - Review run logs to ensure masking is working
 
 ## Next Steps

@@ -7,7 +7,7 @@ covers:
 
 # Azure DevOps VCS Integration
 
-This guide walks you through connecting Azure DevOps repositories to Stackweaver so it can trigger Terraform runs from code pushes and pull requests.
+This guide walks you through connecting Azure DevOps repositories to Stackweaver so it can trigger OpenTofu runs from code pushes and pull requests.
 
 The integration uses **Microsoft Entra ID OAuth2** (the current Microsoft identity platform) to authenticate with Azure DevOps. The older Azure DevOps-specific OAuth flow was deprecated in April 2025 and is no longer available for new applications.
 
@@ -169,7 +169,7 @@ If `STACKWEAVER_WEBHOOK_BASE_URL` is not set or the automatic registration fails
 4. Configure the workspace settings (working directory, Terraform version, etc.).
 5. Save the workspace.
 
-When you push code to the configured branch, Stackweaver automatically queues a Terraform run. Pull requests trigger speculative plan-only runs if the workspace has speculative execution enabled.
+When you push code to the configured branch, Stackweaver automatically queues an OpenTofu run. Pull requests trigger speculative plan-only runs if the workspace has speculative execution enabled.
 
 ## How It Works
 

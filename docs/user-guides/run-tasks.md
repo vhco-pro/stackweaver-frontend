@@ -1,5 +1,5 @@
 ---
-description: "Guide for run tasks: hooking external services (security scanners, cost checks, custom gates) into your Terraform runs at stage boundaries, with advisory or mandatory enforcement"
+description: "Guide for run tasks: hooking external services (security scanners, cost checks, custom gates) into your OpenTofu runs at stage boundaries, with advisory or mandatory enforcement"
 covers:
   - "core/models/run_task*"
   - "core/models/workspace_task*"
@@ -17,7 +17,7 @@ covers:
 
 # Run Tasks
 
-Run tasks let external services participate in your Terraform runs. At a stage boundary the run pauses, Stackweaver sends the service a signed webhook describing the run, and the service reports back a pass or fail verdict before the run continues. This is how you plug in security scanners, cost estimators, compliance checks, or your own custom gates without Stackweaver having to implement each integration.
+Run tasks let external services participate in your OpenTofu runs. At a stage boundary the run pauses, Stackweaver sends the service a signed webhook describing the run, and the service reports back a pass or fail verdict before the run continues. This is how you plug in security scanners, cost estimators, compliance checks, or your own custom gates without Stackweaver having to implement each integration.
 
 ## How a run task works
 

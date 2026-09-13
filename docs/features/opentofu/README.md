@@ -5,7 +5,7 @@ covers: []
 
 # OpenTofu Features
 
-StackWeaver's Terraform integration provides workspace management, run execution, and automation features compatible with Terraform Cloud and Enterprise. This section covers platform-specific capabilities for configuring workspaces, controlling runs, and viewing output.
+StackWeaver's OpenTofu integration provides workspace management, run execution, and automation features compatible with Terraform Cloud and Enterprise. This section covers platform-specific capabilities for configuring workspaces, controlling runs, and viewing output.
 
 ## In This Section
 
@@ -19,7 +19,7 @@ Trigger runs only when files in your workspace's working directory change. Suppo
 
 ### [OpenTofu Output Streaming](./opentofu-streaming.md)
 
-View plan and apply output in real time as Terraform runs. Output streams line-by-line to the UI and is stored for later review.
+View plan and apply output in real time as OpenTofu runs. Output streams line-by-line to the UI and is stored for later review.
 
 ### [Run Timeout](./run-timeout.md)
 

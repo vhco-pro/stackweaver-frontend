@@ -111,7 +111,7 @@ The apply will run and show real-time progress as resources are created or modif
 Now that you've run your first workspace:
 
 - Learn about [managing workspace variables](../user-guides/managing-workspace-variables.md)
-- Read about [understanding Terraform run outputs](../user-guides/understanding-opentofu-runs.md)
+- Read about [understanding OpenTofu run outputs](../user-guides/understanding-opentofu-runs.md)
 - Explore [workspace editing](../features/opentofu/workspace-editing.md)
 - Set up [VCS path filtering](../features/opentofu/vcs-path-filtering.md) for automated runs
 - Create workspaces like this one as code with the [official Terraform provider](../user-guides/terraform-provider.md)

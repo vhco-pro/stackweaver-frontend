@@ -5,7 +5,7 @@ covers: []
 
 # VCS Integration
 
-Connect a version control system so StackWeaver can trigger Terraform runs from code pushes and pull requests.
+Connect a version control system so StackWeaver can trigger OpenTofu runs from code pushes and pull requests.
 
 ## Providers
 
