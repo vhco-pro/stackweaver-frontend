@@ -79,7 +79,11 @@ Running `npm run build:docs` (or `node scripts/build-docs-index.js`) now:
 
 1. Scans `docs/` for both `.md` files and image files (`.png`, `.jpg`, `.jpeg`, `.gif`, `.svg`, `.webp`, `.avif`)
 2. Copies all files to `frontend/public/docs/` in one pass (single `copyFiles` call to avoid the double-delete bug)
-3. Losslessly optimises images via `svgo` (SVG) and `sharp` (PNG, JPEG)
-4. Caches optimised images in `frontend/.docs-image-cache/`; unchanged images are not re-optimised on the next build
-5. Only `.md` files are indexed in the navigation tree; image files do not appear in the sidebar
-6. Images under `docs/internal/` are excluded (same rule as markdown files)
+3. Optimises images via `svgo` (SVG) and `sharp` (PNG, JPEG). The SVG and PNG paths are lossless, so every pixel and every rendered glyph survives; across the current corpus this removes about 28 percent of the published bytes
+4. Only `.md` files are indexed in the navigation tree; image files do not appear in the sidebar
+5. Images under `docs/internal/` are excluded (same rule as markdown files)
+
+There is no image cache. One existed until it was removed in #801, where it turned out never to
+have produced a single hit; re-optimising the whole corpus costs roughly a quarter of a second,
+which is not worth a manifest and a directory of committed binaries. If the build reports that
+optimisation is unavailable, run `npm install` in `frontend/` - `sharp` and `svgo` live there.

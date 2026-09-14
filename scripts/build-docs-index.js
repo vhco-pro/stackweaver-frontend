@@ -10,7 +10,7 @@
  * 2. Filters out files matching ignore patterns (analysis, plans, implementation, etc.)
  * 3. Filters out excluded directories
  * 4. Copies filtered files to `frontend/public/docs/` (ephemeral)
- * 5. Copies image files (PNG, JPEG, SVG, etc.) with lossless optimisation via sharp/svgo
+ * 5. Copies image files (PNG, JPEG, SVG, etc.), re-encoding them smaller via sharp/svgo
  * 6. Generates `frontend/public/docs-index.json` with navigation tree
  */
 
@@ -72,37 +72,50 @@ try {
   };
 }
 
-// Try to load optional image optimisation packages
-let sharp;
-try {
-  sharp = require('sharp');
-} catch (e) {
-  // sharp not available; images will be copied without PNG/JPEG optimisation
+// These packages are frontend dependencies, but this script lives in scripts/, which has no
+// node_modules of its own. Node resolves a bare require() by walking up from the *file's*
+// directory, never sideways into frontend/, so `require('sharp')` misses in every environment
+// we run in - including the frontend image build, where the script is copied to /scripts and
+// the install lives at /frontend/node_modules. Resolve against the frontend install explicitly.
+const FRONTEND_NODE_MODULES = path.join(__dirname, '..', 'frontend', 'node_modules');
+
+/**
+ * require() the first candidate specifier that resolves, or undefined if none do.
+ * Used for optional build-time enhancements that must not break the build when absent.
+ */
+function requireOptional(...candidates) {
+  for (const candidate of candidates) {
+    try {
+      return require(candidate);
+    } catch (e) {
+      // Try the next candidate.
+    }
+  }
+  return undefined;
 }
 
-let svgoOptimize;
-try {
-  const svgo = require('svgo');
-  svgoOptimize = svgo.optimize;
-} catch (e) {
-  // svgo not available; SVG files will be copied without optimisation
-}
+// Optional image optimisers. A bare specifier is kept as a fallback for trees where the
+// packages happen to be hoisted somewhere this file can see.
+const sharp = requireOptional(path.join(FRONTEND_NODE_MODULES, 'sharp'), 'sharp');
 
-// Try to load MiniSearch for search index generation
-let MiniSearch;
-try {
-  // Use the CJS entry point explicitly - the UMD entry (package.json "main") doesn't
-  // export correctly under Node 24's module resolution.
-  MiniSearch = require(path.join(__dirname, '..', 'frontend', 'node_modules', 'minisearch', 'dist', 'cjs', 'index.cjs'));
-} catch (e) {
-  // MiniSearch not available; search index won't be generated
-}
+// svgo v4 declares only an "exports" map with no "main", and an exports map is honoured for
+// bare specifiers only - requiring the package *directory* finds no entry point at all. Name
+// the CJS bundle it ships.
+const svgo = requireOptional(
+  path.join(FRONTEND_NODE_MODULES, 'svgo', 'dist', 'svgo-node.cjs'),
+  'svgo',
+);
+const svgoOptimize = svgo && svgo.optimize;
+
+// MiniSearch for search index generation. Use the CJS entry point explicitly - the UMD entry
+// (package.json "main") doesn't export correctly under Node 24's module resolution.
+const MiniSearch = requireOptional(
+  path.join(FRONTEND_NODE_MODULES, 'minisearch', 'dist', 'cjs', 'index.cjs'),
+);
 
 const DOCS_ROOT = path.join(__dirname, '..', 'docs');
 const PUBLIC_DOCS = path.join(__dirname, '..', 'frontend', 'public', 'docs');
 const INDEX_FILE = path.join(__dirname, '..', 'frontend', 'public', 'docs-index.json');
-const IMAGE_CACHE_FILE = path.join(__dirname, '..', 'frontend', '.image-cache.json');
-const IMAGE_CACHE_DIR = path.join(__dirname, '..', 'frontend', '.docs-image-cache');
 
 const SEARCH_INDEX_FILE = path.join(__dirname, '..', 'frontend', 'public', 'docs-search-index.json');
 // Redirect map: docs/redirects.json is the human-edited source of truth; the build emits the
@@ -447,42 +460,48 @@ function buildTree(files) {
 }
 
 /**
- * Compute a cache key for a source file based on mtime and size.
+ * Write a size-reduced copy of one image to destPath.
+ *
+ * SVG (svgo) and PNG (sharp) are re-encoded losslessly: every pixel and every rendered
+ * glyph survives. JPEG is re-encoded through mozjpeg at quality 100, which is not strictly
+ * lossless but is visually indistinguishable; the docs corpus currently has no JPEGs.
+ *
+ * Returns true if an optimiser ran. False means the caller should copy the source verbatim,
+ * either because the optimiser is unavailable or because it failed on this file.
+ *
+ * @param {string} srcPath
+ * @param {string} destPath
+ * @returns {Promise<boolean>}
  */
-function fileCacheKey(filePath) {
-  const stat = fs.statSync(filePath);
-  return `${stat.mtimeMs}-${stat.size}`;
-}
-
-/**
- * Load the image cache manifest.
- */
-function loadImageCache() {
+async function optimiseImage(srcPath, destPath) {
+  const ext = path.extname(srcPath).toLowerCase();
   try {
-    if (fs.existsSync(IMAGE_CACHE_FILE)) {
-      return JSON.parse(fs.readFileSync(IMAGE_CACHE_FILE, 'utf-8'));
+    if (ext === '.svg' && svgoOptimize) {
+      const result = svgoOptimize(fs.readFileSync(srcPath, 'utf-8'), { path: srcPath, multipass: true });
+      fs.writeFileSync(destPath, result.data);
+      return true;
+    }
+    if (ext === '.png' && sharp) {
+      // `palette: false` is what keeps this lossless and MUST stay explicit: sharp treats a
+      // `png.effort` option as a request for palette quantisation, so the previous
+      // `{ compressionLevel: 9, effort: 10 }` silently quantised to 256 colours and dropped
+      // the alpha channel - measured at up to 255/255 per-channel error on docs screenshots.
+      await sharp(srcPath).png({ compressionLevel: 9, palette: false }).toFile(destPath);
+      return true;
+    }
+    if ((ext === '.jpg' || ext === '.jpeg') && sharp) {
+      await sharp(srcPath).jpeg({ quality: 100, mozjpeg: true }).toFile(destPath);
+      return true;
     }
   } catch (e) {
-    // Ignore; treat as empty cache
+    console.warn(`⚠️  Could not optimise ${path.basename(srcPath)}, copying verbatim: ${e.message}`);
   }
-  return {};
-}
-
-/**
- * Save the image cache manifest.
- */
-function saveImageCache(cache) {
-  try {
-    fs.writeFileSync(IMAGE_CACHE_FILE, JSON.stringify(cache, null, 2), 'utf-8');
-  } catch (e) {
-    console.warn('Warning: Could not save image cache manifest:', e.message);
-  }
+  return false;
 }
 
 /**
  * Copy all files to public directory.
- * Image files are losslessly optimised (SVG via svgo, PNG/JPEG via sharp).
- * Optimised images are cached in IMAGE_CACHE_DIR to speed up incremental builds.
+ * Image files are size-reduced on the way through - see optimiseImage().
  * Both mdFiles and imageFiles should be passed as a combined array; only mdFiles
  * are passed to buildTree for the navigation index.
  *
@@ -495,12 +514,9 @@ async function copyFiles(files, outputDir = PUBLIC_DOCS) {
     fs.rmSync(outputDir, { recursive: true, force: true });
   }
   fs.mkdirSync(outputDir, { recursive: true });
-  fs.mkdirSync(IMAGE_CACHE_DIR, { recursive: true });
 
-  const imageCache = loadImageCache();
-  const newCache = {};
   let imageCount = 0;
-  let imageCacheHits = 0;
+  let optimisedCount = 0;
 
   for (const file of files) {
     const destPath = path.join(outputDir, file.relativePath);
@@ -514,64 +530,23 @@ async function copyFiles(files, outputDir = PUBLIC_DOCS) {
       fs.writeFileSync(destPath, processed.trimStart(), 'utf-8');
     } else if (IMAGE_EXTENSIONS.test(file.relativePath)) {
       imageCount++;
-      const cacheKey = fileCacheKey(file.fullPath);
-      newCache[file.relativePath] = cacheKey;
-
-      const cachedPath = path.join(IMAGE_CACHE_DIR, file.relativePath);
-
-      // Cache hit: source file unchanged and optimised copy exists
-      if (imageCache[file.relativePath] === cacheKey && fs.existsSync(cachedPath)) {
-        imageCacheHits++;
-        fs.copyFileSync(cachedPath, destPath);
-        continue;
-      }
-
-      // Cache miss: optimise and store result
-      const ext = path.extname(file.relativePath).toLowerCase();
-      const cachedDir = path.dirname(cachedPath);
-      fs.mkdirSync(cachedDir, { recursive: true });
-
-      if (ext === '.svg' && svgoOptimize) {
-        try {
-          const svgContent = fs.readFileSync(file.fullPath, 'utf-8');
-          const result = svgoOptimize(svgContent, { path: file.fullPath, multipass: true });
-          fs.writeFileSync(destPath, result.data);
-          fs.writeFileSync(cachedPath, result.data);
-        } catch (e) {
-          fs.copyFileSync(file.fullPath, destPath);
-          fs.copyFileSync(file.fullPath, cachedPath);
-        }
-      } else if (ext === '.png' && sharp) {
-        try {
-          await sharp(file.fullPath).png({ compressionLevel: 9, effort: 10 }).toFile(destPath);
-          fs.copyFileSync(destPath, cachedPath);
-        } catch (e) {
-          fs.copyFileSync(file.fullPath, destPath);
-          fs.copyFileSync(file.fullPath, cachedPath);
-        }
-      } else if ((ext === '.jpg' || ext === '.jpeg') && sharp) {
-        try {
-          await sharp(file.fullPath).jpeg({ quality: 100, mozjpeg: true }).toFile(destPath);
-          fs.copyFileSync(destPath, cachedPath);
-        } catch (e) {
-          fs.copyFileSync(file.fullPath, destPath);
-          fs.copyFileSync(file.fullPath, cachedPath);
-        }
+      if (await optimiseImage(file.fullPath, destPath)) {
+        optimisedCount++;
       } else {
         fs.copyFileSync(file.fullPath, destPath);
-        fs.copyFileSync(file.fullPath, cachedPath);
       }
     } else {
       fs.copyFileSync(file.fullPath, destPath);
     }
   }
 
-  saveImageCache(newCache);
-
   const mdCount = files.length - imageCount;
   if (imageCount > 0) {
-    const optimised = imageCount - imageCacheHits;
-    console.log(`✅ Copied ${mdCount} docs + ${imageCount} images (${optimised} optimised, ${imageCacheHits} cached) to ${path.relative(process.cwd(), outputDir)}`);
+    const verbatim = imageCount - optimisedCount;
+    const detail = verbatim > 0
+      ? `${optimisedCount} optimised, ${verbatim} copied verbatim`
+      : `${optimisedCount} optimised`;
+    console.log(`✅ Copied ${mdCount} docs + ${imageCount} images (${detail}) to ${path.relative(process.cwd(), outputDir)}`);
   } else {
     console.log(`✅ Copied ${files.length} files to ${path.relative(process.cwd(), outputDir)}`);
   }
@@ -1360,6 +1335,17 @@ function buildCoverageIndex() {
 async function main() {
   console.log('📚 Building documentation index...\n');
 
+  // Say so loudly when an optimiser is missing. The silent try/catch around these requires
+  // hid a resolution bug for the whole life of the feature: nothing was ever optimised, and
+  // the build still reported every image as "optimised".
+  const missingOptimisers = [!sharp && 'sharp', !svgoOptimize && 'svgo'].filter(Boolean);
+  if (missingOptimisers.length > 0) {
+    console.warn(
+      `⚠️  Image optimisation unavailable (${missingOptimisers.join(', ')} not resolvable from ${path.relative(process.cwd(), FRONTEND_NODE_MODULES)}).\n` +
+      '   Images will be copied verbatim. Run "npm install" in frontend/ to restore it.\n',
+    );
+  }
+
   // Scan docs directory
   console.log('🔍 Scanning docs directory...');
   const { mdFiles, imageFiles } = scanDocsDir(DOCS_ROOT);
@@ -1428,4 +1414,4 @@ if (require.main === module) {
   });
 }
 
-module.exports = { main, scanDocsDir, PUBLISHED_ASSETS };
+module.exports = { main, scanDocsDir, optimiseImage, PUBLISHED_ASSETS };
