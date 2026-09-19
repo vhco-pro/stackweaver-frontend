@@ -217,8 +217,9 @@ export default function VariableSets() {
   };
 
   const handleAddInitialVariable = () => {
-    if (!variableForm.key.trim() || !variableForm.value.trim()) {
-      toast.error('Key and value are required');
+    // An empty value is allowed (#674); only the key is required.
+    if (!variableForm.key.trim()) {
+      toast.error('Key is required');
       return;
     }
 
@@ -375,8 +376,9 @@ export default function VariableSets() {
   const handleAddVariable = async () => {
     if (!orgName || !selectedVariableSet) return;
 
-    if (!variableForm.key.trim() || !variableForm.value.trim()) {
-      toast.error('Key and value are required');
+    // An empty value is allowed (#674); only the key is required.
+    if (!variableForm.key.trim()) {
+      toast.error('Key is required');
       return;
     }
 
@@ -1099,7 +1101,7 @@ export default function VariableSets() {
                     type="button" 
                     onClick={() => { void handleAddInitialVariable(); }} 
                     className="w-full"
-                    disabled={!variableForm.key.trim() || !variableForm.value.trim() || creating}
+                    disabled={!variableForm.key.trim() || creating}
                   >
                     <Plus className="mr-2 h-4 w-4" />
                     Add Variable
@@ -1336,7 +1338,7 @@ export default function VariableSets() {
                   type="button" 
                   onClick={() => { void handleAddVariable(); }} 
                   className="w-full"
-                  disabled={!variableForm.key.trim() || !variableForm.value.trim()}
+                  disabled={!variableForm.key.trim()}
                 >
                   <Plus className="mr-2 h-4 w-4" />
                   Add Variable

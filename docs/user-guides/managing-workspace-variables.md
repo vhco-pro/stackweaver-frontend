@@ -44,10 +44,12 @@ To add variables directly to a workspace, open your workspace and navigate to th
 | Field | Description | Example |
 |-------|-------------|---------|
 | **Key** | The variable name (must match what OpenTofu expects) | `instance_type` |
-| **Value** | The variable value | `t2.small` |
+| **Value** | The variable value, which may be left empty | `t2.small` |
 | **Category** | Terraform variable (passed to Terraform) or environment variable (available as env var) | Usually "Terraform variable" |
 | **Sensitive** | Encrypt and hide this value in the UI | Check for passwords, API keys |
 | **HCL** | Parse the value as HCL code (for lists, maps) | Check for `["list", "items"]` |
+
+Only the key is required. An empty value is stored as an empty string, which is what you want for a flag that is deliberately blank or a placeholder filled in per environment. The exception is an HCL variable: because its value is inserted as a raw expression rather than as a quoted string, an empty one would not be valid HCL, so it is refused.
 
 > [!TIP]
 > Variable keys should match what your OpenTofu code expects. Check your `.tf` files for variable declarations like `variable "instance_type" {}`.
@@ -62,7 +64,9 @@ The parser understands the usual `.env` conventions: comments, blank lines, an o
 
 Nothing is written until you have reviewed the preview. Every key is listed with its value and can be renamed, edited or left out before the import runs, and a single "Import as" choice decides whether the whole batch becomes environment variables (the default, since that is what a `.env` file usually holds) or Terraform variables. Keys that look like they hold secrets, such as anything containing `PASSWORD`, `SECRET`, `TOKEN` or `KEY`, are marked sensitive automatically and their values are masked in the preview. That guess is a convenience and not a guarantee, so check the column before importing, and use "Mark all sensitive" when the whole file is secret material.
 
-Keys that already exist in the workspace or variable set are flagged as conflicts, and you choose whether to keep the existing value or replace it with the imported one. Replacing updates the value and its sensitive flag but deliberately leaves the category alone, so an existing Terraform variable is never silently turned into an environment variable. Variables are written one at a time, so a rejected key does not take the rest of the batch with it: the summary at the end reports exactly which keys were created, replaced, skipped or failed, and why. Since a variable value cannot be empty, a line such as `FEATURE_FLAG=` is shown as needing a value, and you can either fill it in from the preview or leave it out.
+Keys that already exist in the workspace or variable set are flagged as conflicts, and you choose whether to keep the existing value or replace it with the imported one. Replacing updates the value and its sensitive flag but deliberately leaves the category alone, so an existing Terraform variable is never silently turned into an environment variable. Variables are written one at a time, so a rejected key does not take the rest of the batch with it: the summary at the end reports exactly which keys were created, replaced, skipped or failed, and why.
+
+A line such as `FEATURE_FLAG=` imports as an empty value, marked "Empty" in the preview, because a deliberately blank flag or a placeholder to be filled in per environment is ordinary `.env` content. The one case the import cannot handle is clearing a value that is already set: a blank line whose key already exists is marked "Cannot clear" and left out of the batch, since replacing a value with an empty one is not yet supported. Delete that variable from the list instead if you want it gone.
 
 ## Working with Variable Sets
 
