@@ -880,14 +880,14 @@ GET    /api/v2/organizations/:name/ansible/notification-templates
 POST   /api/v2/organizations/:name/ansible/notification-templates
 PATCH  /api/v2/ansible/notification-templates/:id
 DELETE /api/v2/ansible/notification-templates/:id
-POST   /api/v2/ansible/notification-templates/:id/actions/test
+POST   /api/v2/ansible/notification-templates/:id/test
 ```
 
 Organization-level notification channels of type `webhook`, `email`, or `teams`. The channel `config` is type-specific (URL and headers for webhook/Teams; SMTP host, port, from, and recipients for email); an optional `secret` (basic-auth password or SMTP password) is stored encrypted and never returned. The test action delivers a synthetic payload.
 
 ```
 POST   /api/v2/organizations/:name/ansible/notification-attachments
-DELETE /api/v2/ansible/notification-attachments/:id
+DELETE /api/v2/organizations/:name/ansible/notification-attachments/:attachment_id
 GET    /api/v2/ansible/job-templates/:id/notifications
 ```
 
