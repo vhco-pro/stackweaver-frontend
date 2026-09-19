@@ -161,8 +161,13 @@ export function ImportEnvDialog({
   const platformKeys = new Set(overrideWarningKeys ?? []);
 
   const isConflict = (row: EnvRow) => existing.has(row.key.trim());
+  // An empty value is a legitimate variable (#674) - `KEY=` is ordinary .env content - so a blank
+  // row is no longer blocked on its own. It is still blocked when it would overwrite an existing
+  // variable: that write goes through PATCH, which treats an empty value as "field not supplied"
+  // (#815), so it would report success and leave the old value in place.
+  const clearsExisting = (row: EnvRow) => row.value === '' && existing.has(row.key.trim());
   const isBlocked = (row: EnvRow) =>
-    row.key.trim() === '' || !isValidVariableKey(row.key.trim()) || row.value === '';
+    row.key.trim() === '' || !isValidVariableKey(row.key.trim()) || clearsExisting(row);
 
   const selectable = rows.filter((r) => !isBlocked(r));
   const selected = selectable.filter((r) => r.selected);
@@ -601,8 +606,10 @@ export function ImportEnvDialog({
                             <TableCell className="px-3 py-2">
                               {row.key.trim() === '' || !isValidVariableKey(row.key.trim()) ? (
                                 <Badge variant="destructive" className="text-xs">Invalid key</Badge>
+                              ) : clearsExisting(row) ? (
+                                <Badge variant="destructive" className="text-xs" title="This variable already exists, and an existing value cannot be replaced with an empty one yet. Clear it from the variables list instead.">Cannot clear</Badge>
                               ) : row.value === '' ? (
-                                <Badge variant="outline" className="text-xs">Needs a value</Badge>
+                                <Badge variant="outline" className="text-xs">Empty</Badge>
                               ) : conflict ? (
                                 <Badge variant="outline" className="text-xs">
                                   {conflictPolicy === 'overwrite' ? 'Replaces' : 'Skipped'}

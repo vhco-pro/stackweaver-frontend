@@ -570,8 +570,18 @@ export default function WorkspaceDetail() {
   };
 
   const handleCreateVariable = () => {
-    if (!workspace || !variableForm.key.trim() || !variableForm.value.trim()) {
-      toast.error('Key and value are required');
+    // An empty value is allowed (#674): a deliberately blank flag is ordinary configuration, and
+    // TFE accepts it. Only the key is required.
+    if (!workspace || !variableForm.key.trim()) {
+      toast.error('Key is required');
+      return;
+    }
+
+    // The API rejects this too (422), but an HCL variable with no value is a mistake the form can
+    // name immediately: it would be written as a bare `key =` into the generated tfvars and fail
+    // the run while OpenTofu parses a file the user never wrote.
+    if (variableForm.hcl && !variableForm.value.trim()) {
+      toast.error('An HCL variable needs a value - an empty one is not valid HCL');
       return;
     }
 
