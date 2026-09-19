@@ -745,11 +745,19 @@ Triggers immediate execution regardless of schedule.
 POST /api/v2/ansible/schedules/validate-cron
 ```
 
+Unlike the schedule resources above, this utility endpoint takes a flat body rather than a
+JSON:API envelope, and its fields are snake_case. `timezone` is optional and defaults to `UTC`.
+
 ```json
 {
-  "cron-expression": "0 */6 * * *"
+  "cron_expression": "0 */6 * * *",
+  "timezone": "Europe/Brussels"
 }
 ```
+
+The response echoes the expression back with the next occurrence resolved in that timezone, as
+`valid`, `cron_expression`, `timezone` and `next_run_at`. An expression the scheduler cannot
+parse is rejected with `400`.
 
 ### Get Cron Presets
 
@@ -757,11 +765,10 @@ POST /api/v2/ansible/schedules/validate-cron
 GET /api/v2/ansible/schedules/cron-presets
 ```
 
-Returns common cron expression presets:
-- `@hourly` → `0 * * * *`
-- `@daily` → `0 0 * * *`
-- `@weekly` → `0 0 * * 0`
-- `@monthly` → `0 0 1 * *`
+Returns the named cron presets as a flat object of name to expression. The set is defined by
+`CronPresets` in `core/models/ansible_schedule.go` and currently covers fifteen entries, from
+`every_15_minutes` through `monthly_15th` - for example `every_hour` is `0 * * * *`,
+`daily_midnight` is `0 0 * * *` and `weekdays_9am` is `0 9 * * 1-5`.
 
 ---
 
