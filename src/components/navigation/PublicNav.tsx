@@ -231,7 +231,7 @@ export function PublicNav({ activeLink = 'home' }: PublicNavProps) {
             size="icon"
             aria-label="Open menu"
             onClick={() => setMobileMenuOpen(true)}
-            className="w-10 h-10 text-slate-700 dark:text-white hover:bg-black/5 dark:hover:bg-white/10 border-none outline-hidden focus-visible:ring-0 focus-visible:ring-offset-0"
+            className="w-11 h-11 text-slate-700 dark:text-white hover:bg-black/5 dark:hover:bg-white/10 border-none outline-hidden focus-visible:ring-0 focus-visible:ring-offset-0"
           >
             <Menu className="h-5 w-5" />
           </Button>

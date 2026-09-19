@@ -1,3 +1,13 @@
+# BuildKit prefers <dockerfile-path>.dockerignore over the build context's .dockerignore, so
+# THIS file - not the repo-root .dockerignore - governs the frontend image build. It exists to
+# re-admit docs/, which the root file excludes for every other image: the frontend build does
+# `COPY docs/ /docs/` and runs scripts/build-docs-index.js over it. Only docs/internal/ is
+# dropped. Keep the remaining entries in step with the root .dockerignore.
+#
+# This file is synced verbatim to the stackweaver-frontend distribution repo, where the build
+# context root is the frontend directory itself and the line below therefore matches nothing.
+# That is harmless: CI builds from a fresh checkout with no node_modules, and `npm ci` runs
+# inside the image.
 distribution/
 frontend/node_modules/
 .git/

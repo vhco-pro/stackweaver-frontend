@@ -142,7 +142,7 @@ export function DocsLayout({ children, docsBase = '/docs', indexFile = '/docs-in
           variant="ghost"
           size="sm"
           onClick={() => setMobileSidebarOpen(true)}
-          className="flex items-center gap-2 text-muted-foreground hover:text-foreground"
+          className="flex h-11 items-center gap-2 text-muted-foreground hover:text-foreground"
         >
           <Menu className="h-4 w-4" />
           <span className="text-sm">Navigation</span>
@@ -151,7 +151,7 @@ export function DocsLayout({ children, docsBase = '/docs', indexFile = '/docs-in
           variant="ghost"
           size="sm"
           onClick={() => setMobileTocOpen(true)}
-          className="flex items-center gap-2 text-muted-foreground hover:text-foreground"
+          className="flex h-11 items-center gap-2 text-muted-foreground hover:text-foreground"
         >
           <List className="h-4 w-4" />
           <span className="text-sm">On this page</span>
