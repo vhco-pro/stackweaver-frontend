@@ -127,7 +127,7 @@ ingress:
 > [!WARNING]
 > The community NGINX ingress controller (`kubernetes/ingress-nginx`) is retired: the project was archived in March 2026 and receives no further bug fixes or security patches (see the [Kubernetes retirement announcement](https://kubernetes.io/blog/2025/11/11/ingress-nginx-retirement/)).
 > The `community-nginx` provider preset remains available so existing deployments keep working during migration, but you should move to a maintained controller - the NGINX Inc controller (`nginx-inc`, the chart default), Traefik (`traefik`), or a [Gateway API](https://gateway-api.sigs.k8s.io/) implementation fronting the chart's Services via `provider: none`.
-> If you are upgrading from an earlier chart version and still run the community controller, set `provider: community-nginx` to preserve the previous behavior while you plan the migration.
+> If you still run the community controller, set `provider: community-nginx` to keep its annotation preset while you plan the migration.
 
 ### Custom Annotations
 
@@ -343,7 +343,7 @@ zitadel:
     ExternalSecure: false
     # Without a reverse proxy handling TLS, Zitadel must use plain HTTP URLs
     tlsMode: disabled
-    # The login UI is now served by the Stackweaver SPA itself; point
+    # The login UI is served by the Stackweaver SPA itself; point
     # Zitadel's LoginV2.BaseURI at the SPA's /login route.
     loginUIBaseURL: "http://localhost:5173/login"
 
@@ -366,7 +366,7 @@ Then open `http://localhost:5173`.
 
 ## Using External Dependencies
 
-The bundled Garage needs no outbound network access. Its `garage-init` sidecar configures the cluster layout, imports the storage access key and creates the bucket entirely through Garage's admin API on the pod's own loopback interface, so an egress-restricted or air-gapped cluster can run the bundled object storage as-is. Earlier chart versions downloaded the Garage CLI from the internet at startup and left the StatefulSet stuck at 1/2 when that download was blocked.
+The bundled Garage needs no outbound network access. Its `garage-init` sidecar configures the cluster layout, imports the storage access key and creates the bucket entirely through Garage's admin API on the pod's own loopback interface, so an egress-restricted or air-gapped cluster can run the bundled object storage as-is.
 
 To use an existing PostgreSQL, Redis, or S3-compatible storage instance instead of the bundled ones, disable the in-cluster deployment and provide external connection details.
 
@@ -503,8 +503,8 @@ helm upgrade stackweaver oci://ghcr.io/vhco-pro/charts/stackweaver \
 Generated secrets are preserved across upgrades: the bootstrap Job runs again as a `pre-upgrade` hook, sees that each secret already exists, and skips it.
 Pods are automatically restarted when ConfigMaps change (via checksum annotations).
 
-Upgrading from a chart older than the one that introduced the bootstrap Job needs no manual step.
-Earlier versions generated the secrets from the release manifest; on the first upgrade Helm stops tracking them, but their `helm.sh/resource-policy: keep` annotation leaves them in the cluster untouched, and the Job adopts them by skipping them from then on.
+If your release was installed by a chart version that rendered these Secrets itself, upgrading needs no manual step.
+Helm stops tracking those Secrets on the upgrade, their `helm.sh/resource-policy: keep` annotation leaves them in the cluster untouched, and the Job skips them because they already exist.
 Because the Job treats each secret as a whole, a chart version that adds a new key to an existing secret's schema will say so explicitly in its release notes.
 
 ## Uninstalling
@@ -560,5 +560,5 @@ The usual causes are that the `secretsInit.image` cannot be pulled (check `kubec
 If you cannot use the Job at all, create every secret yourself and reference each one via `secrets.*.secretName`, which stops the chart from rendering the Job in the first place.
 
 > [!NOTE]
-> Chart versions before the bootstrap Job created secrets from the release manifest and could fail with `Apply failed with conflicts: conflicts with kubectl-create` when a secret already existed under a different field manager.
-> That failure mode is gone: the chart no longer applies Secret resources at all, and the Job skips anything that already exists.
+> An `Apply failed with conflicts: conflicts with kubectl-create` error on a Secret comes from a chart version that rendered Secrets from the release manifest.
+> Upgrade to a chart version that uses the bootstrap Job: it never applies Secret resources, and the Job skips anything that already exists.

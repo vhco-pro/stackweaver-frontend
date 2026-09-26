@@ -241,13 +241,10 @@ export default function Password() {
       // and decoy rejections to gRPC code 7 (FailedPrecondition) with
       // the canonical message "Password is invalid (COMMAND-…)" - see
       // `buildDecoyPasswordInvalidResponse` in auth_proxy.go and the
-      // F-sec-7 anti-enumeration contract. Match by message regex
-      // rather than HTTP status because the SPA receives Zitadel's
-      // gRPC code in the body, not the HTTP code (which would be 400
-      // or 401 depending on the Zitadel version). The original code
-      // (`authErr.code === 400 || 401 || 403`) never fired against a
-      // real proxy and Wave 14 found wrong-password silently fell
-      // through to the generic "An error occurred" friendly-error.
+      // F-sec-7 anti-enumeration contract. `authErr.code` is the HTTP
+      // status (see authFetch); the message regex also matches because
+      // Zitadel answers wrong-password with 400 or 401 depending on
+      // its version.
       const isInvalidCredentials =
         /password is invalid|invalid credentials|invalid.*password/i.test(authErr.message ?? '') ||
         authErr.code === 400 || authErr.code === 401 || authErr.code === 403;

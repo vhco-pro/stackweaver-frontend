@@ -9,7 +9,7 @@ covers:
 
 The main goal of this setup is to run the stack with a custom domain while ensuring that internal components never use external domain resolution to communicate with each other. All inter-service communication stays fully on the local stack using either `localhost` (Docker Compose) or Kubernetes internal services. External users reach Zitadel through the public domain (e.g. `zitadel.example.com`), but internally everything goes through `localhost:8080` with zero DNS lookups or TLS overhead between services.
 
-This guide covers running Zitadel on both a custom domain and `localhost` simultaneously, including the SSO callback URL fix required for external identity providers like Azure AD.
+This guide covers running Zitadel on both a custom domain and `localhost` simultaneously, including the SSO callback URL configuration required for external identity providers like Azure AD.
 
 ## How It Works
 
@@ -42,13 +42,13 @@ The callback URL is constructed in Zitadel's source code as `DomainContext(ctx).
 3. `:authority` (HTTP/2 authority)
 4. Forwarded headers (`forwarded`, `x-forwarded-host`, etc.)
 
-The Login UI communicates with Zitadel internally at `http://localhost:8080`, so the standard `Host` header is `localhost:8080`. Without intervention, Zitadel would construct the callback as `https://localhost:8080/idps/callback`, which external identity providers reject because it does not match the registered redirect URI.
+The auth proxy in the API container communicates with Zitadel internally at `http://localhost:8080`, so the standard `Host` header is `localhost:8080`. Without intervention, Zitadel would construct the callback as `https://localhost:8080/idps/callback`, which external identity providers reject because it does not match the registered redirect URI.
 
-The fix is the `x-zitadel-instance-host` header. Because it is checked first in the `InstanceHostHeaders` list, it overrides the `Host` header. The Login UI supports a `CUSTOM_REQUEST_HEADERS` environment variable that injects custom headers into every gRPC call to Zitadel. Setting `CUSTOM_REQUEST_HEADERS=x-zitadel-instance-host:zitadel.example.com` causes the Login UI to send this header on every request, so Zitadel constructs the callback as `https://zitadel.example.com/idps/callback`.
+The fix is the `x-zitadel-instance-host` header. Because it is checked first in the `InstanceHostHeaders` list, it overrides the `Host` header. The auth proxy supports a `CUSTOM_REQUEST_HEADERS` environment variable that injects custom headers into every call it makes to Zitadel. Setting `CUSTOM_REQUEST_HEADERS=x-zitadel-instance-host:zitadel.example.com` causes the auth proxy to send this header on every request, so Zitadel constructs the callback as `https://zitadel.example.com/idps/callback`.
 
-This approach preserves the design goal: the Login UI still talks to Zitadel on `localhost:8080` (no external DNS resolution), but the IdP callback URL correctly points to the public domain.
+This approach preserves the design goal: the auth proxy still talks to Zitadel on `localhost:8080` (no external DNS resolution), but the IdP callback URL correctly points to the public domain.
 
-The init script automates this by writing `ZITADEL_EXTERNAL_HOST` to `deploy/.env` when `ExternalDomain` is not `localhost`. Docker Compose substitutes it into `CUSTOM_REQUEST_HEADERS=x-zitadel-instance-host:${ZITADEL_EXTERNAL_HOST:-}`. When `ZITADEL_EXTERNAL_HOST` is empty (localhost-only setup), the header value is empty and the Login UI deletes the header, falling back to normal `Host` header behavior.
+The init script automates this by writing `ZITADEL_EXTERNAL_HOST` to `deploy/.env` when `ExternalDomain` is not `localhost`. Docker Compose substitutes it into `CUSTOM_REQUEST_HEADERS=x-zitadel-instance-host:${ZITADEL_EXTERNAL_HOST:-}`. When `ZITADEL_EXTERNAL_HOST` is empty (localhost-only setup), the header value is empty and Zitadel falls back to normal `Host` header behavior.
 
 ### What happens at each domain
 
@@ -138,7 +138,7 @@ When `zitadel-init` runs, it performs the following domain-related steps:
 
 5. **Registers trusted domains** via Zitadel's Instance API v2 (`AddTrustedDomain`). This is idempotent. Domains that already exist are skipped.
 
-6. **Derives `ZITADEL_EXTERNAL_HOST`** from `ExternalDomain`. When `ExternalDomain` is not `localhost`, this is set to the domain name (e.g. `zitadel.example.com`). When `ExternalDomain` is `localhost`, it is left empty. This variable drives the Login UI's `CUSTOM_REQUEST_HEADERS` for correct IdP callback URLs (see "IdP Callback URL" section above).
+6. **Derives `ZITADEL_EXTERNAL_HOST`** from `ExternalDomain`. When `ExternalDomain` is not `localhost`, this is set to the domain name (e.g. `zitadel.example.com`). When `ExternalDomain` is `localhost`, it is left empty. This variable drives the auth proxy's `CUSTOM_REQUEST_HEADERS` for correct IdP callback URLs (see "IdP Callback URL" section above).
 
 7. **Writes `deploy/.env`** with the derived values. The key variables are:
    ```
@@ -159,7 +159,7 @@ After init writes `.env`, Docker Compose injects the issuer into each service:
 | API (auth proxy) | `ZITADEL_EXTERNAL_HOST` | `zitadel.example.com` | Source value for `CUSTOM_REQUEST_HEADERS` (from `.env`) |
 | zitadel-init | `ZITADEL_ISSUER` | `https://zitadel.example.com` | Login redirect URL (no `/ui/v2/login` suffix - the Stackweaver SPA serves login at `/login/*` instead) |
 
-The "Login UI" rows from earlier docs revisions are gone post-cutover: the standalone `login-ui` container was retired and login is now served by the Stackweaver SPA. The auth proxy in the API container picks up the env vars that used to live on the login-ui service.
+Login is served by the Stackweaver SPA, and the auth proxy in the API container makes the login-related calls to Zitadel, which is why it carries the `CUSTOM_REQUEST_HEADERS` and `ZITADEL_EXTERNAL_HOST` variables.
 
 The API uses a split verification approach: it fetches the JWKS signing keys from `http://localhost:8080/oauth/v2/keys` (fast, internal, no DNS/TLS overhead) but validates the `iss` claim in tokens against the external issuer URL (`https://zitadel.example.com`). This ensures tokens are valid for the public domain while keeping key fetching fast and reliable.
 
@@ -231,7 +231,7 @@ You must register this exact URL as a redirect URI in your identity provider's a
 
 > **Important:** The callback URL is **not** derived from the `ExternalDomain` config value. Zitadel constructs it from the request's domain context headers at runtime. The `CUSTOM_REQUEST_HEADERS` / `ZITADEL_EXTERNAL_HOST` mechanism described above is what makes this work correctly. Without it, the callback URL would be `https://localhost:8080/idps/callback`, which external identity providers reject.
 >
-> If you see `AADSTS50011` (Azure AD redirect URI mismatch) or similar errors, verify that `ZITADEL_EXTERNAL_HOST` is set in `deploy/.env` and that the API container has `CUSTOM_REQUEST_HEADERS` in its environment (consumed by the auth proxy post-cutover, formerly by the standalone login-ui container). You can check with:
+> If you see `AADSTS50011` (Azure AD redirect URI mismatch) or similar errors, verify that `ZITADEL_EXTERNAL_HOST` is set in `deploy/.env` and that the API container has `CUSTOM_REQUEST_HEADERS` in its environment (consumed by the auth proxy). You can check with:
 > ```bash
 > docker exec api sh -c 'printenv CUSTOM_REQUEST_HEADERS'
 > # Should output: x-zitadel-instance-host:zitadel.example.com
@@ -337,8 +337,8 @@ The API fetches JWKS from `http://localhost:8080/oauth/v2/keys` (via `ZITADEL_IN
 | `deploy/zitadel-init.yaml` | `custom_domains` | List of additional domains to register as trusted |
 | `deploy/docker-compose.yml` | `--tlsMode` | Must match TLS setup (`external` for reverse proxy) |
 | `deploy/.env` | `ZITADEL_ISSUER` | Auto-generated by init; used by the API for `iss`-claim validation |
-| `deploy/.env` | `ZITADEL_EXTERNAL_HOST` | Auto-generated by init; drives Login UI's `CUSTOM_REQUEST_HEADERS` |
-| `deploy/docker-compose.yml` | `CUSTOM_REQUEST_HEADERS` | Injects `x-zitadel-instance-host` header into Login UI → Zitadel calls |
+| `deploy/.env` | `ZITADEL_EXTERNAL_HOST` | Auto-generated by init; drives the auth proxy's `CUSTOM_REQUEST_HEADERS` |
+| `deploy/docker-compose.yml` | `CUSTOM_REQUEST_HEADERS` | Injects `x-zitadel-instance-host` header into auth proxy to Zitadel calls |
 
 ## References
 

@@ -99,7 +99,7 @@ Runners authenticate using the same API key system as the rest of StackWeaver. Y
 2. Create a new API key.
 3. For the organization, select the same organization that owns the agent pool.
 4. Enable the **Runner** permissions your runners need:
-   - **Runner: Register** – required so the runner can register with the API.
+   - **Runner: Register**: required so the runner can register with the API.
    - **Runner: OpenTofu** and/or **Runner: Ansible** (or **Runner: Combined** if one runner will do both).
 5. Save the key and **copy the token** (e.g. `tfe-xxx...`). You will not see it again.
 
@@ -310,7 +310,7 @@ For Ansible, job routing is typically controlled at the project or organization 
 
 ---
 
-## Step 5: Optional – Ansible Configuration
+## Step 5: Optional Ansible Configuration
 
 If you use Ansible, you can customize `ansible.cfg` per organization, project, or workspace so that jobs run with your preferred settings (e.g. timeouts, SSH options, callback plugins).
 

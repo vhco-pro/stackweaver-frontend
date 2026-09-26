@@ -51,7 +51,7 @@ If you're self-hosting StackWeaver, follow these steps in order:
 Once you have StackWeaver set up (either self-hosted or via StackWeaver Cloud), you can:
 
 - Explore the [Architecture documentation](../architecture/README.md) to understand how StackWeaver works
-- Review the [API Reference](../internal/api-reference/backend-api-reference.md) for integrating with StackWeaver programmatically
+- Review the [API Reference](../api-reference/README.md), or open the rendered [API explorer](/docs/api-reference/explorer) from the **API Reference** link in the top navigation, for integrating with StackWeaver programmatically
 - Check out the [OpenTofu documentation](../features/opentofu/workspace-editing.md) or [Ansible documentation](../features/ansible/README.md) for tool-specific guides
 
 ## Need Help?

@@ -182,7 +182,7 @@ flowchart TB
   - **Workspaces**: Terraform workspaces
   - **Runs**: Terraform execution runs (plan, apply, destroy)
   - **Configuration Versions**: Workspace configuration versions
-  - **State Versions**: Terraform state version metadata (serial, lineage, version). The raw state JSON lives only in object storage, encrypted at rest with AES-256-GCM (legacy plaintext is read transparently); outputs and resources are extracted into dedicated `state_version_outputs` / `state_version_resources` tables for fast, permission-scoped serving (mirrors HashiCorp TFE's state model). Sensitive output values are encrypted at rest in `state_version_outputs`.
+  - **State Versions**: Terraform state version metadata (serial, lineage, version). The raw state JSON lives only in object storage, encrypted at rest with AES-256-GCM (state stored as plaintext is still read transparently); outputs and resources are extracted into dedicated `state_version_outputs` / `state_version_resources` tables for fast, permission-scoped serving (mirrors HashiCorp TFE's state model). Sensitive output values are encrypted at rest in `state_version_outputs`.
   - **Variables**: Workspace variables (encrypted)
   - **Variable Sets**: Reusable variable sets
 - **Ansible Resources**:
@@ -622,7 +622,7 @@ flowchart TB
 
 - [Authentication Documentation](../internal/overviews/authentication.md)
 - [Frontend API Reference](../internal/api-reference/frontend-api-reference.md)
-- [Backend API Reference](../internal/api-reference/backend-api-reference.md)
+- [API Reference](../api-reference/README.md)
 - [Zitadel Documentation](https://zitadel.com/docs)
 - [Gin Framework](https://gin-gonic.com/)
 - [React Documentation](https://react.dev/)

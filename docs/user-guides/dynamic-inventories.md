@@ -170,7 +170,7 @@ Click "Sync" on the source to trigger host discovery. The process is the same as
 
 ### Azure authentication methods
 
-Azure inventory sync supports four authentication methods. For a UI-configured (dynamic) source you choose the method from the Authentication dropdown when you add or edit the source. A VCS-backed inventory is pure passthrough: you choose the method entirely in your own `azure_rm.yml` (via `auth_source`) and the pod runtime - there is no Stackweaver auth toggle for VCS inventories, so the repository stays the single source of truth. Every method runs plain `ansible-inventory` - the `azure.azcollection.azure_rm` plugin authenticates natively (federated tokens are read directly as of collection 3.17.0, so no wrapper is involved).
+Azure inventory sync supports four authentication methods. For a UI-configured (dynamic) source you choose the method from the Authentication dropdown when you add or edit the source. A VCS-backed inventory is pure passthrough: you choose the method entirely in your own `azure_rm.yml` (via `auth_source`) and the pod runtime - there is no Stackweaver auth toggle for VCS inventories, so the repository stays the single source of truth. Every method runs plain `ansible-inventory`, and the `azure.azcollection.azure_rm` plugin authenticates natively, reading federated tokens directly (collection 3.17.0 or later).
 
 The most important distinction between the methods is whether they require your Stackweaver issuer to be reachable from Microsoft's public network.
 
@@ -219,7 +219,7 @@ The polling runs for up to 60 seconds. If the sync takes longer (for example, wh
 
 ## Sync History
 
-Every sync run is recorded on the inventory's Syncs tab, whether it was started manually, by a schedule, by a workflow node, as a pre-launch dependency update, or by a VCS webhook. Each entry shows the run's status, what triggered it, how many hosts and groups it discovered, and how long it took. Clicking a run opens the captured `ansible-inventory` output; while a sync is still running the dialog tails it live (the runner flushes output every couple of seconds), which is where plugin warnings and authentication errors surface - set the source's sync verbosity (0–4, adding `-v` through `-vvvv`) when you need more diagnostic detail in that log.
+Every sync run is recorded on the inventory's Syncs tab, whether it was started manually, by a schedule, by a workflow node, as a pre-launch dependency update, or by a VCS webhook. Each entry shows the run's status, what triggered it, how many hosts and groups it discovered, and how long it took. Clicking a run opens the captured `ansible-inventory` output; while a sync is still running the dialog tails it live (the runner flushes output every couple of seconds), which is where plugin warnings and authentication errors surface - set the source's sync verbosity (0 to 4, adding `-v` through `-vvvv`) when you need more diagnostic detail in that log.
 
 ## Per-Source Sync Behavior
 

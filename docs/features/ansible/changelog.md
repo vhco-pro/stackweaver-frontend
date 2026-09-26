@@ -68,7 +68,7 @@ covers:
 - **Playbook discovery: bulk import and repository browser**: Playbooks no longer have to be registered one by one. The Playbooks page gained an "Import from repository" wizard that scans a connected repository (GitHub via the Git Trees API - one API call instead of one per directory - or Azure DevOps), lists every playbook candidate with already-registered files annotated, and registers the checked files in a single idempotent call with per-file results. The job template create and edit forms gained a dual-mode playbook field: the classic registered-playbooks dropdown, or an AWX-style "From repository" browser that picks a file directly and registers it automatically on save (find-or-create - cancelling never creates anything). Discovery hides conventional non-playbook YAML (roles/, group_vars/, inventories/, CI files, …). Job templates can now also change their playbook after creation. Playbook and job template names are now unique **per project** instead of accidentally globally unique (legacy single-column index rebuilt on startup). See `backend/internal/api/v2/handlers/ansible/playbook_discovery.go`, `frontend/src/components/ansible/`, and the [Managing Ansible Playbooks](../../user-guides/managing-ansible-playbooks.md) guide.
 
 ### Fixed
-- **Dynamic inventory group memberships**: Syncing a dynamic or VCS inventory associated each host with only **one** of its groups - whichever group the sync happened to process first - so groups like `rg_*`, `location_*`, or tag-based `keyed_groups` were missing hosts that clearly belonged to them, and which groups were affected changed from sync to sync. Parent groups whose membership comes only via `children` (for example `keyed_groups` parent groups) were never created at all, and memberships removed at the source were never cleaned up. Inventory syncs now persist every host into every group it belongs to, create children-only groups and flatten their transitive membership (a host in a child group is a member of every ancestor group, with single-parent nesting reflected in the group hierarchy), and remove stale memberships among the synced groups on re-sync - without touching manually created groups. The previously duplicated parsing logic is consolidated into one shared, tested implementation. See `core/services/ansible/inventory_output.go`.
+- **Dynamic inventory group memberships**: Syncing a dynamic or VCS inventory associated each host with only **one** of its groups - whichever group the sync happened to process first - so groups like `rg_*`, `location_*`, or tag-based `keyed_groups` were missing hosts that clearly belonged to them, and which groups were affected changed from sync to sync. Parent groups whose membership comes only via `children` (for example `keyed_groups` parent groups) were never created at all, and memberships removed at the source were never cleaned up. Inventory syncs now persist every host into every group it belongs to, create children-only groups and flatten their transitive membership (a host in a child group is a member of every ancestor group, with single-parent nesting reflected in the group hierarchy), and remove stale memberships among the synced groups on re-sync - without touching manually created groups. See `core/services/ansible/inventory_output.go`.
 
 ### Added
 - **Configurable playbook source (cached snapshot vs fresh)**: A playbook now has a **Source** mode. In `cached` mode (the default) a job runs the last synced snapshot of the playbook and its dependencies, captured to object storage at sync time; the first run with no snapshot yet auto-syncs inline and then runs from it. After that, the playbook keeps running even when its VCS remote is unreachable. In `fresh` mode each run clones the repository at runtime (always latest HEAD). The runner clones using a clone URL the API resolves at enqueue time, so it never needs the VCS provider's OAuth credentials of its own. The create/edit playbook form exposes the selector, and the playbook resource surfaces `source-mode` plus `cached-commit` / `cached-at` / `cached-size-bytes`. A cached run also announces at the top of the job output which snapshot commit it ran and when that commit was captured, so it is obvious the job ran captured-at-sync-time code rather than the remote's current HEAD. See `backend/cmd/ansible-runner/playbook_snapshot.go`, `backend/cmd/ansible-runner/main.go`, `core/services/ansible/job.go`, and `frontend/src/pages/Ansible/Playbooks.tsx`.
@@ -76,7 +76,7 @@ covers:
 - **Group membership on host cards**: Each host card now shows the groups it belongs to as badges. Hosts and groups with more members than fit collapse the remainder behind a `+N` badge that expands them inline (host cards reveal all groups; group cards reveal all member hosts). When searching, hosts matching the query are surfaced ahead of the `+N` overflow.
 
 ### Fixed
-- **List pagination across all Ansible pages**: The Playbooks, Job Templates, Jobs (and queue), Credentials, Schedules, and inventory Sources lists all loaded only the first server page of 20 rows with no pager - so beyond 20 items, the rest were silently hidden and the page's search/filter only saw the loaded 20. Each now loads every page and windows the rendered rows with a pager (and the job-template/schedule create-form dropdowns load all options). Extracted the shared `fetchAllPages` helper (`frontend/src/lib/pagination.ts`) and `Pager` component (`frontend/src/components/ui/pager.tsx`), and migrated the inventory pages onto them. See `frontend/src/pages/Ansible/**` and `frontend/src/api/ansible.ts`.
+- **List pagination across all Ansible pages**: The Playbooks, Job Templates, Jobs (and queue), Credentials, Schedules, and inventory Sources lists all loaded only the first server page of 20 rows with no pager - so beyond 20 items, the rest were silently hidden and the page's search/filter only saw the loaded 20. Each now loads every page and windows the rendered rows with a pager (and the job-template/schedule create-form dropdowns load all options). See `frontend/src/lib/pagination.ts`, `frontend/src/components/ui/pager.tsx`, `frontend/src/pages/Ansible/**`, and `frontend/src/api/ansible.ts`.
 
 ### Changed
 - **Playbooks default to a cached snapshot**: Existing and new VCS-backed playbooks default to the `cached` source mode rather than always cloning fresh at job time. This makes critical playbooks resilient to a VCS outage by default; the first run after the change auto-syncs a snapshot and self-heals. Choose `fresh` on the playbook form to keep the always-latest-HEAD behaviour. See `core/models/ansible_playbook.go` and `frontend/src/pages/Ansible/Playbooks.tsx`.
@@ -230,28 +230,6 @@ Any additional collections should be specified in `requirements.yml`.
   - Removed old `parseAndStoreJSONOutput()` and `parseJobStats()` functions
   - Stats counters are now atomic and updated during streaming
 
-### Documentation Migration ✅
-
-**Migrated from monolithic design doc to organized documentation suite:**
-
-- Archived `ansible-integration-design.md` to `docs/archive/ansible-integration-design-v1.md`
-- Created focused documentation files in `docs/ansible/`:
-  - `README.md` - Index with feature status and code locations
-  - `overview.md` - Architecture overview with code references
-  - `architecture.md` - Data models, services, API layer (reference-focused)
-  - `runner.md` - Runner implementation details
-  - `live-output.md` - JSONL streaming implementation guide
-  - `galaxy-collections.md` - **NEW** - Ansible Galaxy collection support
-  - `implementation-status.md` - Phase tracking and feature checklist
-  - `roadmap.md` - Future development plans with priorities
-  - `api-reference.md` - REST API documentation
-  - `changelog.md` - This file
-
-**Documentation principles:**
-- Reference code locations instead of duplicating code
-- Keep each document focused on one topic
-- Link to actual source files for implementation details
-
 ### Ansible Galaxy Documentation ✅
 
 **Created comprehensive Galaxy documentation:**
@@ -266,7 +244,7 @@ Any additional collections should be specified in `requirements.yml`.
 
 ## December 2025
 
-### Phase 1.9 - Event Type Fix & Enhanced Warnings ✅
+### Event Type Fix & Enhanced Warnings ✅
 
 **Fixed**:
 - Event type attribute naming (`event-type` vs `event`)
@@ -277,7 +255,7 @@ Any additional collections should be specified in `requirements.yml`.
 - AWX-style status indicators with colored icons and badges
 - "Changed" option to status filter dropdown
 
-### Phase 1.8 - Schedules API & Compact Job UI ✅
+### Schedules API & Compact Job UI ✅
 
 **Fixed**:
 - Schedules API organization ID resolution
@@ -292,7 +270,7 @@ Any additional collections should be specified in `requirements.yml`.
 - Filterable events with host/status dropdowns
 - Event count badge on tab
 
-### Phase 1.7 - Job Event Parsing & UI ✅
+### Job Event Parsing & UI ✅
 
 **Fixed**:
 - JSON callback output parsing (now handles complete JSON object)
@@ -305,7 +283,7 @@ Any additional collections should be specified in `requirements.yml`.
 - Separate warnings display with yellow styling
 - Server icon badge for hosts
 
-### Phase 1.6 - UX Improvements & Bug Fixes ✅
+### UX Improvements & Bug Fixes ✅
 
 **Fixed**:
 - Connection status badge dismissal on user interaction
@@ -336,7 +314,7 @@ Any additional collections should be specified in `requirements.yml`.
 
 ---
 
-## Phase 2.5 - Usability Improvements ✅
+## Usability Improvements ✅
 
 ### Playbook Detail Page
 - YAML syntax highlighting with line numbers
@@ -367,7 +345,7 @@ Any additional collections should be specified in `requirements.yml`.
 
 ---
 
-## Phase 1.5 - VCS Sync Implementation ✅
+## VCS Sync ✅
 
 ### Backend
 - Added `PlaybookSyncMessage` and `InventorySyncMessage` structs
@@ -388,7 +366,7 @@ Any additional collections should be specified in `requirements.yml`.
 
 ---
 
-## Phase 1 - Core Infrastructure ✅
+## Core Infrastructure ✅
 
 ### Data Models
 - `AnsibleInventory` with hosts and groups

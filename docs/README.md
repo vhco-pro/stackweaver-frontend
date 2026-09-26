@@ -19,6 +19,10 @@ Welcome to the StackWeaver documentation. This directory contains comprehensive 
   - **[Kubernetes](./get-started/self-hosting/kubernetes/)**: Deploy on Kubernetes using the Helm chart
     - **[Kubernetes Pull Secret for GHCR](./get-started/self-hosting/kubernetes/kubernetes-pull-secret-ghcr.md)**: Pull StackWeaver images in a private cluster
 
+## API Reference
+
+- **[API Reference](./api-reference/README.md)**: The OpenAPI 3 description of the whole HTTP API, how to fetch it, and what it promises. The rendered reference is at [`/docs/api-reference/explorer`](/docs/api-reference/explorer), one click from the **API Reference** link in the top navigation.
+
 ## Architecture
 
 - **[Architecture Overview](./architecture/README.md)**: System architecture, components, and end-to-end data flows

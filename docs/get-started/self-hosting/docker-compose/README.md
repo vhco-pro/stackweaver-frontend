@@ -66,7 +66,7 @@ The default Zitadel admin credentials are `admin@ZITADEL.localhost` / `Password1
 
 ## Architecture
 
-All services share one user-defined bridge network and reach each other by Docker DNS service name (`postgres`, `redis`, `garage`, `zitadel`, `api`). Only the three host-facing ports are published to your machine, so PostgreSQL, Redis and Garage are reachable from the other containers but not exposed on the host interface. This also means the stack behaves identically on Linux, macOS and Windows, which host networking did not.
+All services share one user-defined bridge network and reach each other by Docker DNS service name (`postgres`, `redis`, `garage`, `zitadel`, `api`). Only the three host-facing ports are published to your machine, so PostgreSQL, Redis and Garage are reachable from the other containers but not exposed on the host interface. This also means the stack behaves identically on Linux, macOS and Windows.
 
 Published to your machine:
 
@@ -87,7 +87,7 @@ Internal to the Docker network, reachable by service name but not from your host
 To reach an internal service for debugging, either publish its port yourself or tunnel to it, for example `docker compose exec postgres psql -U iac -d iac_platform`.
 
 The orchestrator, OpenTofu runner, and Ansible runner expose no ports at all. They communicate via the Redis queue and PostgreSQL.
-Stackweaver serves its own login experience: the frontend SPA renders the login pages under `/login/*`, and the API's auth proxy under `/auth/*` forwards Zitadel session and OIDC calls. The standalone Zitadel-hosted login UI (formerly on port 3000) has been removed.
+Stackweaver serves its own login experience: the frontend SPA renders the login pages under `/login/*`, and the API's auth proxy under `/auth/*` forwards Zitadel session and OIDC calls. No separate login UI container runs.
 
 ## Service Management
 
@@ -166,7 +166,7 @@ flowchart LR
 - Everything else (including the SPA's `/login/*` login pages) → `localhost:5173`
 
 **Auth domain** (e.g. `auth.example.com`):
-- All traffic → `localhost:8080`. The standalone Zitadel-hosted login UI on port 3000 was removed at cutover - Stackweaver now serves login via its own SPA pages under the app domain's `/login/*`, with `/auth/*` on the app domain proxying Zitadel's session + OIDC APIs.
+- All traffic → `localhost:8080`. Stackweaver serves login through its own SPA pages under the app domain's `/login/*`, with `/auth/*` on the app domain proxying Zitadel's session + OIDC APIs.
 
 ## Data Persistence
 

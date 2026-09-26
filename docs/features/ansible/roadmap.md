@@ -18,12 +18,11 @@ covers:
 - Job page opens on a Run tab with three pivots over one event model: a host-by-task matrix, a task timeline, and a chronological stream
 - One filter state (status tiles plus a search box covering hosts, task names, and whole module results) and one detail drawer for a cell, a host, or a task
 - Events the adapter cannot structure fall through to the stream verbatim, so the page never renders worse than a plain terminal view
-- Replaced the previous Output (raw JSONL) and Events (per-task list) tabs
 
 ### Galaxy Collection Support ✅ (December 2025)
 - Pre-installed essential collections (community.general, ansible.posix, etc.)
-- Collection caching for faster subsequent runs (now per-project, under `$WORKSPACES_DIR/galaxy-cache/<project-id>`)
-- `GalaxyRequirements` field added to job template model
+- Per-project collection caching for faster subsequent runs, under `$WORKSPACES_DIR/galaxy-cache/<project-id>`
+- `GalaxyRequirements` field on the job template model
 
 ### Dynamic Inventory OIDC & VCS Enhancements ✅ (January 2025)
 - Azure dynamic inventory sources can authenticate via OIDC workload identity (keyless, auto-rotating tokens)
@@ -32,7 +31,7 @@ covers:
 - VCS-backed custom inventory sources (link inventory scripts to Git repositories)
 - Sync schedule support for automatic periodic inventory synchronization
 - Frontend source configuration UI with auth method selection, VCS pickers, and schedule presets
-- Added `azure-mgmt-compute`, `azure-mgmt-network`, `azure-mgmt-subscription` to runner image
+- Runner image includes `azure-mgmt-compute`, `azure-mgmt-network`, `azure-mgmt-subscription`
 
 ---
 
@@ -58,7 +57,7 @@ covers:
 
 **Remaining**:
 - 🔲 Visual workflow builder (React Flow) - nodes and edges are managed via the API
-- 🔲 Nested workflow nodes (rejected at runtime in v1)
+- 🔲 Nested workflow nodes (currently rejected at runtime)
 
 **Data Model**:
 ```go

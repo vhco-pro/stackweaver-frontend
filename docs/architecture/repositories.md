@@ -34,14 +34,14 @@ covers:
 | **Satellite - Helm chart**    | `vhco-pro/stackweaver-helm`           | Public         | ✅ | `deploy/helm/stackweaver/` |
 | **Satellite - Zitadel Init**  | `vhco-pro/stackweaver-zitadel-init`   | Public | ✅ | `scripts/zitadel-init/` |
 | **Satellite - Secrets Init**  | `vhco-pro/stackweaver-secrets-init`   | Public | ✅ | `scripts/secrets-init/` |
-| **Org-defaults repo**         | `vhco-pro/.github`                    | Public (created 2026-05-23, empty) | Provides defaults - not audited directly | Community-health files, reusable workflows |
+| **Org-defaults repo**         | `vhco-pro/.github`                    | Public | Provides defaults - not audited directly | Community-health files, reusable workflows |
 
 ## 2. Sync directionality
 
 ```
        michielvha/stackweaver  (private monorepo, source of truth)
                   │
-                  │  sync-*.yml (push, one-way; no PRs on satellites)
+                  │  sync-*.yml (one-way; opens a sync PR on each satellite)
                   ▼
     vhco-pro/stackweaver-api
     vhco-pro/stackweaver-orchestrator
@@ -50,14 +50,14 @@ covers:
     vhco-pro/stackweaver-frontend
     vhco-pro/stackweaver-helm
     vhco-pro/stackweaver-zitadel-init
+    vhco-pro/stackweaver-secrets-init
 ```
 
-- Sync is performed by the `stackweaver-release-bot` GitHub App
-  (replacing the legacy `SATELLITE_REPO_TOKEN` PAT - planned, see
-  [`secrets-policy.md`](../internal/security/secrets-policy.md)).
-- No human pushes to satellite `main`. The org-level branch ruleset
-  (planned) enforces this with the release-bot as the sole bypass
-  principal.
+- Sync is performed by the `stackweaver-release-bot` GitHub App, which
+  opens a pull request on each satellite; see
+  [Sync Architecture](../security/sync-architecture.md).
+- No human pushes to satellite `main`. Branch protection on every
+  satellite requires a reviewed pull request and passing status checks.
 - Each satellite commit is Sigstore-signed and accompanied by a SLSA L3
   provenance attestation referencing the upstream monorepo commit SHA.
   See [`release-verification.md`](../internal/security/release-verification.md).
@@ -66,9 +66,9 @@ covers:
 
 | File / dir | Satellites that own it locally | Satellites where it's synced from monorepo |
 |------------|--------------------------------|---------------------------------------------|
-| `LICENSE`            | all (today)         | all (planned - `licenses/` canonical, see [`sync-pipeline-audit.md`](../internal/security/sync-pipeline-audit.md)) |
-| `NOTICE`             | none (today)        | runner, ansible-runner (planned) |
-| `README.md`          | all (today)         | all except helm (planned; helm `sed`s its README at release time) |
+| `LICENSE`            | all                 | all (planned - `licenses/` canonical, see [`sync-pipeline-audit.md`](../internal/security/sync-pipeline-audit.md)) |
+| `NOTICE`             | none                | runner, ansible-runner (planned) |
+| `README.md`          | all                 | all except helm (planned; helm `sed`s its README at release time) |
 | `gitversion.yml`     | all                 | - (uniform; could be synced, low priority) |
 | `.github/`           | all                 | - (caller workflows live with the runner - see §5) |
 | Top-level Dockerfile | api / orchestrator / zitadel-init / frontend (intentional, hand-maintained) | runner, ansible-runner (synced from `runner-images/*/Dockerfile`) |

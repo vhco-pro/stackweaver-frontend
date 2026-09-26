@@ -95,7 +95,7 @@ This single key encrypts all sensitive data at rest: workspace and variable-set 
 
 The Helm chart provisions a strong `ENCRYPTION_KEY` automatically into a Kubernetes Secret (preserved across upgrades and uninstall) and injects it into the API, runners, **and orchestrator**, or you can bring your own - see the [Kubernetes guide](kubernetes/README.md#secrets). Self-hosted *agent* runners (`RUNNER_MODE=agent`) do not need this key: they receive already-decrypted job artifacts over the API.
 
-Existing data written before encryption was enabled stays readable: state files and VCS tokens are decrypted on a best-effort basis (plaintext is tolerated) and re-encrypted on the next write, so no migration step is required.
+State files and VCS tokens stored as plaintext remain readable: decryption tolerates plaintext, and each value is re-encrypted on its next write, so no migration step is required.
 
 ### OIDC Workload Identity
 
@@ -336,7 +336,7 @@ These are set by the Helm chart and used by the sidecar for K8s Secret patching 
 
 ## Login (custom Stackweaver SPA)
 
-The standalone `login-ui` container was removed. Login is served by the Stackweaver SPA via `/login/*` routes; the auth proxy in the API container handles all Zitadel session API calls and OIDC endpoint forwarding. The variables below configure the auth proxy.
+Login is served by the Stackweaver SPA via `/login/*` routes; the auth proxy in the API container handles all Zitadel session API calls and OIDC endpoint forwarding. The variables below configure the auth proxy.
 
 | Variable | Description | Default |
 |---|---|---|

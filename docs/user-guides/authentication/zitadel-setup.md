@@ -22,7 +22,7 @@ Zitadel provides OIDC/OAuth 2.0 authentication for StackWeaver, including:
 - OpenID Connect and OAuth 2.0 flows (PKCE for the frontend, client credentials for the API)
 - Multi-factor and passwordless authentication
 - User management and roles
-- Login V2: a custom login UI bundled into the Stackweaver SPA (`/login/*` routes), backed by an auth proxy in the API container that handles all Zitadel session API + OIDC endpoint calls. The standalone `ghcr.io/zitadel/zitadel-login` container is no longer used.
+- Login V2: a custom login UI bundled into the Stackweaver SPA (`/login/*` routes), backed by an auth proxy in the API container that handles all Zitadel session API + OIDC endpoint calls. Stackweaver does not use Zitadel's standalone `ghcr.io/zitadel/zitadel-login` container.
 
 StackWeaver ships a `zitadel-init` bootstrap container that automatically provisions all required OIDC apps, service users, and webhooks after Zitadel starts.
 No manual Zitadel console steps are required.
@@ -178,8 +178,8 @@ failed to get Private IP address no private ip address
 
 This means Zitadel's Sonyflake ID generator cannot identify the machine.
 In Kubernetes each pod runs in its own network namespace, so the private IP scan returns nothing.
-The fix is already applied in the Helm chart (`Machine.Identification.Hostname.Enabled: true`).
-If you see this on an older install, upgrade the chart and resync.
+The Helm chart avoids this by setting `Machine.Identification.Hostname.Enabled: true`.
+If you see this panic, upgrade to the current chart version and resync.
 
 ### Troubleshooting: Zitadel Not Starting
 
@@ -196,8 +196,8 @@ kubectl get pod -n stackweaver -l app.kubernetes.io/component=postgresql
 
 If the browser is redirected to a URL like `http://stackweaver-frontend:5173/login/...` (an internal Kubernetes DNS name) instead of `https://<your-app-host>/login/...`, the Login V2 BaseURI in Zitadel's database is pointing at the internal service instead of the public app domain.
 
-This is already fixed: `zitadel-init` calls the Zitadel Feature API (`SetInstanceFeatures`) on every run to set `LoginV2.BaseUri` to `https://<ingress.hosts.app>/login` (the Stackweaver SPA's `/login` routes).
-The Feature API update runs after every ArgoCD sync, so changing `ingress.hosts.app` in `values.yaml` and resyncing is enough to fix it.
+`zitadel-init` calls the Zitadel Feature API (`SetInstanceFeatures`) on every run to set `LoginV2.BaseUri` to `https://<ingress.hosts.app>/login` (the Stackweaver SPA's `/login` routes).
+The Feature API update runs after every ArgoCD sync, so setting the correct `ingress.hosts.app` in `values.yaml` and resyncing corrects the BaseURI.
 
 If you need to verify what BaseURI is currently active:
 
@@ -229,8 +229,7 @@ docker compose run --rm zitadel-init
 docker compose up -d
 ```
 
-> **Linux tip:** use `network_mode: host` so every container dials `localhost` directly.
-> This is already the default in `deploy/docker-compose.yml`.
+> **Networking:** `deploy/docker-compose.yml` runs every service on a single user-defined bridge network, so containers reach each other by service name (for example `zitadel:8080`) and the browser-facing ports are published on `localhost`.
 
 ### Admin Credentials (Docker Compose)
 
@@ -261,12 +260,10 @@ flowchart TD
 
 1. **Acquire admin PAT** - **Docker Compose**: waits up to 300s for `/pat/admin.pat` (written by Zitadel during `start-from-init`). **Kubernetes (first boot)**: waits for readiness, reads PAT from emptyDir, persists to K8s Secret. **Kubernetes (pod restart)**: falls back to `admin-pat` from K8s Secret. **Manual override**: `ZITADEL_PAT` env var takes highest priority.
 2. **Connect** - Uses the PAT to connect to Zitadel via gRPC (`localhost:8080`).
-3. **Provision** - Creates or updates: Organization `IAC Platform`, Project, Frontend OIDC app (PKCE) with production redirect URI, API app (client secret), service-account machine user + PAT (`IAM_LOGIN_CLIENT` role - consumed post-cutover by the API container's auth proxy + TOTP service + Zitadel webhook handler; the user retains its historical `login-ui-service` name to avoid breaking live deployments), webhook signing keys, and Login V2 BaseURI (via Feature API).
+3. **Provision** - Creates or updates: Organization `IAC Platform`, Project, Frontend OIDC app (PKCE) with production redirect URI, API app (client secret), service-account machine user + PAT (`IAM_LOGIN_CLIENT` role, named `login-ui-service`, consumed by the API container's auth proxy + TOTP service + Zitadel webhook handler), webhook signing keys, and Login V2 BaseURI (via Feature API).
 4. **Write** - Writes the generated values to `deploy/.env`.
 
 </details>
-
-The bootstrap is idempotent - re-running it reuses existing apps and orgs.
 
 The bootstrap is idempotent - re-running it reuses existing apps and orgs.
 
@@ -298,7 +295,7 @@ ZITADEL_WEBHOOK_COMPLEMENT_TOKEN_KEY=<webhook-key>
 | `ZITADEL_PAT` | Optional PAT override instead of `/pat/admin.pat` | empty |
 | `FRONTEND_REDIRECT_URI` | OAuth redirect URI registered on the frontend OIDC app | empty (Kubernetes only) |
 | `FRONTEND_POST_LOGOUT_URI` | Post-logout redirect URI registered on the frontend OIDC app | empty (Kubernetes only) |
-| `LOGIN_UI_BASE_URL` | Login V2 BaseURI set via Feature API (overrides database value) - points at the Stackweaver SPA's `/login` route. Variable name is historical; despite "LOGIN_UI" the value is the SPA URL | empty (Kubernetes only) |
+| `LOGIN_UI_BASE_URL` | Login V2 BaseURI set via Feature API (overrides database value) - points at the Stackweaver SPA's `/login` route. Despite the `LOGIN_UI` prefix, the value is the SPA URL | empty (Kubernetes only) |
 
 ### Troubleshooting: Zitadel Not Starting (Docker Compose)
 
@@ -322,7 +319,7 @@ The OAuth client ID doesn't exist or isn't accessible.
 
 ## Login V2 (Custom Stackweaver SPA)
 
-Both deployment paths use Zitadel's Login V2 feature. Stackweaver replaces the standalone `ghcr.io/zitadel/zitadel-login` Next.js service with a custom login UI bundled into the Stackweaver SPA (`/login/*` routes); the auth proxy in the API container handles all Zitadel session API + OIDC endpoint calls. See the [Zitadel Custom Login UI guide](https://zitadel.com/docs/guides/integrate/login-ui) for the upstream architecture pattern this implementation follows.
+Both deployment paths use Zitadel's Login V2 feature. Instead of Zitadel's standalone `ghcr.io/zitadel/zitadel-login` Next.js service, Stackweaver serves a custom login UI bundled into the Stackweaver SPA (`/login/*` routes); the auth proxy in the API container handles all Zitadel session API + OIDC endpoint calls. See the [Zitadel Custom Login UI guide](https://zitadel.com/docs/guides/integrate/login-ui) for the upstream architecture pattern this implementation follows.
 
 ### How the Login V2 BaseURI is managed
 
@@ -333,7 +330,7 @@ The BaseURI (the browser-reachable URL Zitadel redirects users to for login) is 
 2. `zitadel-init` Feature API call - on every post-install/post-upgrade run, `zitadel-init` calls `SetInstanceFeatures` with `LoginV2.BaseUri` set to the same public URL. This overwrites the database value, so domain changes take effect on the next sync without a database reset.
 
 **Docker Compose:**
-The `DefaultInstance.Features.LoginV2.BaseURI` in the mounted `zitadel-defaults.yaml` is set to `http://localhost:5173/login`, which is directly browser-reachable because `network_mode: host` exposes the SPA on port 5173 of localhost.
+The `DefaultInstance.Features.LoginV2.BaseURI` in the mounted `zitadel-defaults.yaml` is set to `http://localhost:5173/login`, which is directly browser-reachable because the Compose stack publishes the SPA on port 5173 of localhost.
 
 > **Note:** `DefaultInstance` settings only apply during first initialization.
 > In Kubernetes, `zitadel-init` handles ongoing updates via the Feature API - you do not need to reset the database when the auth domain changes.

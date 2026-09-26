@@ -27,7 +27,7 @@ The **Allow user tokens** policy (`user_tokens_enabled`, default on) controls wh
 
 ## Workspace policies
 
-**Allow force-deleting workspaces** (`allow_force_delete_workspaces`, default off) governs who may delete a workspace that still has resources under management. With the policy off, a force deletion of such a workspace requires organization-owner permissions; workspace admins can still delete workspaces whose infrastructure has been destroyed. Switching the policy on restores the more permissive behavior where workspace admins may force-delete regardless of remaining resources.
+**Allow force-deleting workspaces** (`allow_force_delete_workspaces`, default off) governs who may delete a workspace that still has resources under management. With the policy off, a force deletion of such a workspace requires organization-owner permissions; workspace admins can still delete workspaces whose infrastructure has been destroyed. With the policy on, workspace admins may force-delete regardless of remaining resources.
 
 **Enforce health assessments** (`assessments_enforced`, default off) pulls every eligible workspace of the organization into drift detection, regardless of each workspace's own assessment or drift settings. Workspaces without a drift schedule of their own are checked on a default daily cadence; workspaces that already carry an explicit drift detection schedule keep it. A workspace-level opt-out is ignored while the organization enforces assessments - that is what enforcement means. Each drift check plans the workspace's latest configuration version against its current state, so a workspace that has never had a configuration uploaded is skipped until it has one.
 
