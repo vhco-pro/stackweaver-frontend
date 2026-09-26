@@ -85,4 +85,4 @@ An API-first design means everything is accessible via REST API with JSON:API fo
 - [User Guides](../user-guides/README.md) - Step-by-step guides for using features
 - [OpenTofu Workspace Editing](./opentofu/workspace-editing.md) - Complete OpenTofu workspace documentation
 - [Ansible Documentation](./ansible/README.md) - Complete Ansible integration documentation
-- [API Reference](../internal/api-reference/backend-api-reference.md) - REST API documentation
+- [API Reference](../api-reference/README.md) - The OpenAPI description of the REST API, rendered at [`/docs/api-reference/explorer`](/docs/api-reference/explorer)

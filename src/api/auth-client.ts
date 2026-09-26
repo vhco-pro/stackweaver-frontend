@@ -143,14 +143,20 @@ async function authFetch<T>(path: string, options: RequestInit = {}): Promise<T>
   });
 
   if (!response.ok) {
-    let authError: AuthError;
+    // `code` on the thrown error is always the HTTP status, which is what every
+    // caller compares against (404 = not found, 400/401/403 = rejected). The
+    // body's own `code` is Zitadel's gRPC code (5 = NotFound), a different
+    // number space; it is kept separately as `grpcCode`. Taking the
+    // body's value as `code` made every `code === 404` check dead.
+    let body: Partial<AuthError> = {};
     try {
-      authError = await response.json() as AuthError;
+      body = await response.json() as Partial<AuthError>;
     } catch {
-      authError = { code: response.status, message: response.statusText };
+      // Non-JSON error body: the status line is all there is.
     }
-    const err = new Error(authError.message);
-    (err as Error & { code?: number }).code = authError.code;
+    const err = new Error(body.message ?? response.statusText) as Error & { code: number; grpcCode?: number };
+    err.code = response.status;
+    err.grpcCode = body.code;
     throw err;
   }
 

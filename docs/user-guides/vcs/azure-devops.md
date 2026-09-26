@@ -229,9 +229,9 @@ Then retry the authorization flow. See Step 1 for details.
 
 ### OAuth authorization fails with "AADSTS650053: scope 'vso.hooks_write' doesn't exist"
 
-`vso.hooks` and `vso.hooks_write` are no longer public scopes in Microsoft Entra ID. They cannot appear in the API permissions list and must not be requested explicitly. Stackweaver requests only `vso.code` and `vso.project`; service hook access is already included because `vso.code` inherits from `vso.hooks_write` in the Azure DevOps scope hierarchy.
+`vso.hooks` and `vso.hooks_write` are no longer public scopes in Microsoft Entra ID. They cannot appear in the API permissions list and must not be requested explicitly. Stackweaver requests only `vso.code`, `vso.code_status`, and `vso.project` (plus `offline_access` for refresh tokens); service hook access is already included because `vso.code` inherits from `vso.hooks_write` in the Azure DevOps scope hierarchy.
 
-If you see this error, you are running an older version of Stackweaver that explicitly requested `vso.hooks_write`. Update Stackweaver and run `make fresh-backend` to reload the corrected scope list.
+If you see this error, the authorization request is explicitly asking for `vso.hooks_write`. Check that your Entra app registration does not list `vso.hooks_write` or `vso.hooks` under API permissions, and make sure you are running the current Stackweaver release.
 
 ### OAuth authorization fails with "redirect_uri does not match"
 
@@ -294,7 +294,7 @@ Pull request triggers require **Pull request created** and **Pull request update
 
 ### PR status checks not appearing on pull requests
 
-PR status checks require the `vso.code_status` scope. If you set up Stackweaver before this scope was added, you need to add it to the Entra ID app registration (Step 2) and then delete and re-create the VCS connection in Stackweaver so the user re-authorizes with the new scope. Existing OAuth tokens do not automatically pick up new scopes.
+PR status checks require the `vso.code_status` scope. If your Entra ID app registration does not include it, add it (Step 2) and then delete and re-create the VCS connection in Stackweaver so the user re-authorizes with the new scope. Existing OAuth tokens do not automatically pick up new scopes.
 
 ## Terraform Setup (Declarative)
 

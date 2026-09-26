@@ -32,7 +32,7 @@ The OSPS Baseline is a general, vendor-neutral catalogue of security controls fo
 | ⚠️ | Met via a **documented, argued deviation**. OSPS explicitly permits this when the deviation is recorded and compensated; the rationale and compensating control are given in [§ Argued deviations](#argued-deviations). |
 | 🟡 | Partial: a residual gap with a known, bounded plan. Disclosed honestly rather than hidden. |
 
-Each control is evaluated against the **eight in-scope public satellites** collectively (`stackweaver-api`, `stackweaver-orchestrator`, `stackweaver-ansible-runner`, `stackweaver-opentofu-runner`, `stackweaver-frontend`, `stackweaver-helm`, `stackweaver-zitadel-init`, `stackweaver-secrets-init`). A status reflects the **worst** satellite, so a ✅ means every in-scope satellite meets it. The former exclusion - the runner, held private while its image still bundled the Terraform CLI - was resolved by the OpenTofu rewrite; it is public and in scope like the rest.
+Each control is evaluated against the **eight in-scope public satellites** collectively (`stackweaver-api`, `stackweaver-orchestrator`, `stackweaver-ansible-runner`, `stackweaver-opentofu-runner`, `stackweaver-frontend`, `stackweaver-helm`, `stackweaver-zitadel-init`, `stackweaver-secrets-init`). A status reflects the **worst** satellite, so a ✅ means every in-scope satellite meets it.
 
 ---
 
@@ -129,7 +129,7 @@ A handful of individual Scorecard checks sit below 10 for **structural** reasons
 
 | ID | Requirement | Status | Evidence & verification |
 |----|-------------|:------:|-------------------------|
-| QA-01.01 | The source repository is publicly readable at a static URL | ⚠️ | All eight satellites are public. The sole remaining deviation is the closed `core/` module, covered by an NDA-gated auditor-access procedure - see [§ Argued deviations](#argued-deviations). |
+| QA-01.01 | The source repository is publicly readable at a static URL | ⚠️ | All eight satellites are public. The only deviation is the closed `core/` module, covered by an NDA-gated auditor-access procedure - see [§ Argued deviations](#argued-deviations). |
 | QA-01.02 | There is a public record of every change (who and when) | ✅ | Full git history on each satellite. The link to the human reviewer lives upstream in the monorepo and is cryptographically bound to each satellite commit by SLSA provenance referencing the monorepo commit SHA - see [Verifying a Release](./verifying-releases.md). |
 | QA-02.01 | The repository contains a list of direct dependencies | ✅ | `go.mod`, `package.json` + lockfile, `pyproject.toml` + `uv.lock`, and `Chart.yaml` are present in the relevant satellites. |
 | QA-04.01 | A multi-repository project documents its list of codebases | ✅ | This page (§ Scope and repository topology) and the [`vhco-pro` org profile](https://github.com/vhco-pro) enumerate all eight satellites and the closed `core/` module. |
@@ -189,14 +189,14 @@ A handful of individual Scorecard checks sit below 10 for **structural** reasons
 | VM-05.01 | A policy defines remediation thresholds for SCA findings | ✅ | Remediation SLOs (Critical / High / Medium / Low) are defined and wired into the release gate. |
 | VM-05.02 | A policy requires SCA violations to be addressed prior to release | ✅ | `govulncheck` and Trivy run as blocking upstream checks; a release cannot ship with an outstanding blocking finding. |
 | VM-05.03 | Changes are automatically evaluated against a malicious-dependency / known-vulnerability policy and blocked on violation | ✅ | `govulncheck` + Trivy + Dependency-Review run on every change; the OpenSSF `Vulnerabilities` and `Dependency-Update-Tool` checks score **10**. |
-| VM-06.01 | A policy defines remediation thresholds for SAST findings | ✅ | Defined in the vulnerability-management policy; CodeQL findings are tracked to closure (the late-audit CodeQL sweep closed all 21 findings across the public satellites). |
+| VM-06.01 | A policy defines remediation thresholds for SAST findings | ✅ | Defined in the vulnerability-management policy; CodeQL findings are tracked to closure. |
 | VM-06.02 | Changes are automatically evaluated against a SAST policy and blocked on violation | ✅ | CodeQL runs on every sync PR and is a required status check before merge; the OpenSSF `SAST` check scores **10** on the Go satellites. |
 
 ---
 
 ## Argued deviations
 
-OSPS Baseline explicitly permits a control to be satisfied by a documented, compensated deviation. Stackweaver relies on three, all disclosed here in full.
+OSPS Baseline explicitly permits a control to be satisfied by a documented, compensated deviation. Stackweaver relies on two, both disclosed here in full.
 
 ### 1. The `core/` shared module is not public (LE-02.01, QA-01.01, QA-04.02)
 
@@ -207,10 +207,6 @@ The shared Go module `core/` is kept private until Stackweaver is an established
 The monorepo→satellite sync is automated and bot-authored by design, because PR-review automation on the *publication* step has repeatedly been a supply-chain breach vector. Authoritative human review happens **upstream** on the private monorepo, and each satellite commit is cryptographically bound to its reviewed monorepo origin by a Sigstore-signed commit plus SLSA Build L3 provenance. On the satellite side, every sync still flows through a pull request that is gated by four hard security checks, approved, and merged under branch protection that requires a review, dismisses stale reviews, enforces admins, and blocks force-pushes and deletions - the complete model is in [Sync Architecture](./sync-architecture.md).
 
 Because the approving reviewer on the satellite is a GitHub App (`stackweaver-pr-reviewer[bot]`) and the authoritative human review is on the *private* upstream that an external tool cannot see, the OpenSSF Scorecard `Code-Review` check scores 0 on the satellites even though every change is in fact reviewed. This is a structural property of the model, not an unreviewed-change finding.
-
-### 3. ~~`stackweaver-runner` is held private~~ - resolved (QA-01.01)
-
-**Resolved.** The runner was private because its image bundled the Terraform CLI, which the project will not redistribute under BUSL-1.1. It has since been rewritten on OpenTofu (MPL-2.0) and published as [`stackweaver-opentofu-runner`](https://github.com/vhco-pro/stackweaver-opentofu-runner), which is public and carries the identical sync pipeline, branch protection, and attestation set as the rest of the fleet - so this deviation no longer applies. The legacy private repository is retired and referenced by no workflow. See [Sync Architecture § Formerly excluded: the OpenTofu runner](./sync-architecture.md#formerly-excluded-the-opentofu-runner).
 
 ---
 
@@ -235,7 +231,7 @@ Pushing the aggregate higher would require re-introducing a human reviewer into 
 The following block requires no privileged access. A clean run against any in-scope satellite confirms the controls above are live in production.
 
 ```bash
-SAT=stackweaver-api   # try any of: api, orchestrator, ansible-runner, frontend, helm, zitadel-init
+SAT=stackweaver-api   # try any of: api, orchestrator, ansible-runner, opentofu-runner, frontend, helm, zitadel-init, secrets-init
 
 # Live Scorecard score
 curl -s "https://api.scorecard.dev/projects/github.com/vhco-pro/$SAT" | jq '.score'

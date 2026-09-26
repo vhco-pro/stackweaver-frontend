@@ -33,7 +33,7 @@ docker exec ansible-runner ansible-galaxy collection list
 
 ## Auto-Install from requirements.yml ✅
 
-**NEW**: Collections are automatically installed from `requirements.yml` before playbook execution!
+Collections are automatically installed from `requirements.yml` before playbook execution.
 
 The runner checks these locations in order:
 1. `requirements.yml` (repo root)

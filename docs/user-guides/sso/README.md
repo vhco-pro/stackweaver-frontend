@@ -86,7 +86,7 @@ Before configuring SSO, ensure you have:
                      └──────────────┘
 ```
 
-Zitadel acts as an OIDC identity broker. It handles all the protocol-level complexity of communicating with external IdPs, including token exchange, user linking, and claim mapping. StackWeaver only needs to verify Zitadel-issued JWTs, which it already does.
+Zitadel acts as an OIDC identity broker. It handles all the protocol-level complexity of communicating with external IdPs, including token exchange, user linking, and claim mapping. StackWeaver only needs to verify Zitadel-issued JWTs, which it does on every request.
 
 ## Multi-Tenant Isolation
 
@@ -210,7 +210,7 @@ If the zitadel-init logs show an error like this:
    rpc error: code = InvalidArgument desc = Errors.Target.DeniedURL (COMMAND-NcJUKo)
 ```
 
-This means Zitadel is blocking the webhook target URL. Zitadel v4.x includes SSRF protection that denies requests to private/loopback IP addresses by default. The StackWeaver Helm chart already disables this deny list in the Zitadel ConfigMap (since Zitadel needs to call the in-cluster API service), but if you upgraded from an older chart version, the ConfigMap may not include this setting yet. Upgrade your Helm chart to pick up the fix, then delete the Zitadel pod so it restarts with the updated config:
+This means Zitadel is blocking the webhook target URL. Zitadel v4.x includes SSRF protection that denies requests to private/loopback IP addresses by default. The StackWeaver Helm chart disables this deny list in the Zitadel ConfigMap, because Zitadel needs to call the in-cluster API service. If your deployed ConfigMap does not include this setting, upgrade to the current chart version, then delete the Zitadel pod so it restarts with the updated config:
 
 ```bash
 helm upgrade stackweaver oci://ghcr.io/vhco-pro/charts/stackweaver \

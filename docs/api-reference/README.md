@@ -16,7 +16,8 @@ Stackweaver publishes a machine-readable description of its entire HTTP API as a
 
 Every Stackweaver deployment renders the document at
 [`/docs/api-reference/explorer`](/docs/api-reference/explorer), grouped by resource and
-searchable, so you can read the API without a tool of your own. The page is public and needs no
+searchable, so you can read the API without a tool of your own. The **API Reference** link in the
+top navigation of the landing page and every docs page opens it directly. The page is public and needs no
 login, and it renders entirely in your browser: it reaches no third-party service, which is
 checked by a test rather than asserted here.
 
@@ -38,7 +39,7 @@ The same file is published alongside this page as `openapi.json`, if you would r
 
 The response schemas are not transcribed by hand, and they are not written from annotations either. They are generated from recorded responses: a test harness drives every registered route against a freshly seeded database, records exactly what came back, and the document is built from those recordings.
 
-That matters when you are deciding how much to trust it. A schema here cannot describe an endpoint that does not behave that way, because it was produced from an actual response. The reference this replaced was hand-written and twice shipped endpoints and handler names that never existed.
+That matters when you are deciding how much to trust it. A schema here cannot describe an endpoint that does not behave that way, because it was produced from an actual response.
 
 ## What it does not promise
 
@@ -47,7 +48,7 @@ A handful of things are honestly marked rather than quietly glossed:
 - **Five resource families are not present in the seeded data** the recordings were made against, so their routes are described from their not-found response rather than a populated one. They are VCS connections, state versions, configuration versions, plans and applies. The route, method and error shape are right; the success payload for those five is not yet described.
 - **The run log endpoints return plain text**, not JSON, and are documented as such.
 - **`GET /.well-known/jwks`** publishes key material that changes with each server process, so its schema is written out rather than recorded.
-- **One endpoint paginates differently.** Every collection returns the Terraform Enterprise `meta.pagination` block, with one deliberate survivor of an older shape: `GET /api/v2/activities` reports `{limit, offset, total}` instead. The document records what each endpoint actually returns, and an integration test fails if a second one drifts.
+- **One endpoint paginates differently.** Every collection returns the Terraform Enterprise `meta.pagination` block except `GET /api/v2/activities`, which reports `{limit, offset, total}` instead. The document records what each endpoint actually returns, and an integration test fails if a second one drifts.
 
 ## Keeping it honest
 

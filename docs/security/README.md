@@ -21,7 +21,7 @@ Each page in this section is self-contained and answers a single question an ext
 * **"How does code actually reach the satellite repositories I'm building?"** - covered in [Sync Architecture](./sync-architecture.md).
 * **"How does the project measure up against the OpenSSF OSPS Baseline?"** - covered in [OSPS Baseline Compliance](./osps-baseline-compliance.md).
 
-Both pages list the exact commands an external reviewer can run to verify the claims they make. If any of those commands return unexpected output against the live `vhco-pro` organisation, that is a finding worth reporting via the [Private Vulnerability Report channel](https://github.com/vhco-pro/.github/security/policy).
+Each page lists the exact commands an external reviewer can run to verify the claims they make. If any of those commands return unexpected output against the live `vhco-pro` organisation, that is a finding worth reporting via the [Private Vulnerability Report channel](https://github.com/vhco-pro/.github/security/policy).
 
 ## Contents
 

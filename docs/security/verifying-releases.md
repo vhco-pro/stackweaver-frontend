@@ -13,7 +13,7 @@ Copyright (c) 2025 VH & Co BV. Licensed under the Business Source License 1.1. S
 
 Stackweaver follows a **Sigstore-only signing policy**: there are no long-lived PGP or cosign keys to download, and no public-key fingerprint to compare against. Every signed artefact is bound to the GitHub Actions workflow that produced it via a short-lived Fulcio certificate and recorded in the Rekor public transparency log. Verification therefore proves both "this artefact really came out of the Stackweaver release pipeline" and "the transparency log agrees", in a single command, with no project-specific key material.
 
-This page only documents what has been **verified to actually work today** against the live releases on the `vhco-pro` organisation. All eight satellites are public and fully verifiable. The runner satellite - now [`stackweaver-opentofu-runner`](https://github.com/vhco-pro/stackweaver-opentofu-runner), rewritten on OpenTofu and made public - is no longer an exception: its releases carry the same Sigstore signature plus GitHub-native SLSA provenance and SBOM attestations as the rest of the fleet. The retired private `stackweaver-runner` repository is not part of the release surface.
+This page only documents what has been **verified to actually work today** against the live releases on the `vhco-pro` organisation. All eight satellites are public and fully verifiable, including the runner satellite [`stackweaver-opentofu-runner`](https://github.com/vhco-pro/stackweaver-opentofu-runner), whose releases carry the same Sigstore signature plus GitHub-native SLSA provenance and SBOM attestations as the rest of the fleet. The retired private `stackweaver-runner` repository is not part of the release surface.
 
 If any documented verification fails against an artefact you obtained from an official location (`ghcr.io/vhco-pro/*` or a `vhco-pro/stackweaver-*` GitHub Release page), treat the artefact as untrusted and report it via a [Private Vulnerability Report](https://github.com/vhco-pro/.github/security/policy) or to `contact@vhco.pro`.
 
@@ -23,11 +23,11 @@ For background on how code actually reaches the satellite repositories (the trus
 
 | Artefact | Mechanism | Status |
 |----------|-----------|--------|
-| Container image signature (`cosign verify`) | Sigstore keyless, signed by satellite `release.yml` workflow | ✅ **Live today** on all 6 docker satellites (including the private `runner`) |
+| Container image signature (`cosign verify`) | Sigstore keyless, signed by satellite `release.yml` workflow | ✅ **Live today** on all docker satellites |
 | Sync-commit identity (`gitsign verify`) | Sigstore keyless, signed by monorepo `sync-<component>.yml` workflow | ✅ **Live today** on sync commits (not on chart-releaser auto-bumps) |
-| SLSA Build L3 provenance (`gh attestation verify`) | `actions/attest-build-provenance` from satellite `release.yml`, gated on `visibility == 'public'` | ✅ **Live today** on the 5 public docker satellites; not published for `runner` while it stays private |
-| SBOM attestation (SPDX) | `actions/attest-sbom` from satellite `release.yml`, gated on `visibility == 'public'` | ✅ **Live today** on the 5 public docker satellites; not on `runner` |
-| OpenVEX attestation (`gh attestation verify`) | `actions/attest` from satellite `release.yml` over `security/vex/*.openvex.json`, gated on `visibility == 'public'` | ✅ **Live today** on the public docker satellites (first verified on `stackweaver-frontend:0.12.2`); not on `runner` |
+| SLSA Build L3 provenance (`gh attestation verify`) | `actions/attest-build-provenance` from satellite `release.yml`, gated on `visibility == 'public'` | ✅ **Live today** on all docker satellites |
+| SBOM attestation (SPDX) | `actions/attest-sbom` from satellite `release.yml`, gated on `visibility == 'public'` | ✅ **Live today** on all docker satellites |
+| OpenVEX attestation (`gh attestation verify`) | `actions/attest` from satellite `release.yml` over `security/vex/*.openvex.json`, gated on `visibility == 'public'` | ✅ **Live today** on all docker satellites |
 | Helm chart `cosign verify` (Sigstore keyless) | `stackweaver-helm/.github/workflows/release.yml` runs `cosign sign` against the OCI chart ref after `helm push` | ✅ **Live today** for chart versions ≥ `0.6.8` |
 | Helm chart SLSA L3 + SBOM (SPDX) + OpenVEX (`gh attestation verify`) | `actions/attest-build-provenance` / `actions/attest-sbom` / `actions/attest` from `stackweaver-helm/.github/workflows/release.yml`, gated on `visibility == 'public'` | ✅ **Live today** for chart versions ≥ `0.7.8` (the helm satellite is public) |
 
@@ -45,7 +45,7 @@ Verified working with `cosign v2`, `gh 2.87+`, `gitsign v0.13+`.
 
 ## Verifying a Container Image (Live Today)
 
-Replace `<component>` with one of `api`, `orchestrator`, `runner`, `ansible-runner`, `frontend`, `zitadel-init` and `<tag>` with the release tag.
+Replace `<component>` with one of `api`, `orchestrator`, `opentofu-runner`, `ansible-runner`, `frontend`, `zitadel-init` and `<tag>` with the release tag.
 
 ```bash
 IMAGE=ghcr.io/vhco-pro/stackweaver-<component>:<tag>
@@ -60,7 +60,7 @@ The command succeeds only if (a) the image bears a cosign signature, (b) the sig
 
 For production deployments you may want to pin to one exact tag rather than allowing any tag. Replace the trailing `.+$` in the regex with the literal tag, for example `v1\.4\.2$`.
 
-> **Note on GHCR access.** The OCI packages on `ghcr.io/vhco-pro/*` are configured to be pullable without authentication even where the parent GitHub repository is still private. You do **not** need to `docker login` to GHCR to run `cosign verify`.
+> **Note on GHCR access.** The OCI packages on `ghcr.io/vhco-pro/*` are configured to be pullable without authentication. You do **not** need to `docker login` to GHCR to run `cosign verify`.
 
 ### A real, working example
 
@@ -75,11 +75,11 @@ cosign verify \
 
 ## Verifying SLSA Build Provenance (Live Today)
 
-Every release from the public docker satellites publishes a [SLSA Build L3 provenance attestation](https://slsa.dev/spec/v1.0/levels#build-l3) binding the released container digest to the upstream monorepo commit SHA and the workflow run that built it. The `attest-build-provenance` step is gated on `github.event.repository.visibility == 'public'`, which is now true for every satellite including the OpenTofu runner - `gh attestation verify oci://ghcr.io/vhco-pro/stackweaver-opentofu-runner:<tag> --repo vhco-pro/stackweaver-opentofu-runner` succeeds against its published releases.
+Every release from the docker satellites publishes a [SLSA Build L3 provenance attestation](https://slsa.dev/spec/v1.0/levels#build-l3) binding the released container digest to the upstream monorepo commit SHA and the workflow run that built it. The `attest-build-provenance` step is gated on `github.event.repository.visibility == 'public'`, which holds for every satellite, including the OpenTofu runner: `gh attestation verify oci://ghcr.io/vhco-pro/stackweaver-opentofu-runner:<tag> --repo vhco-pro/stackweaver-opentofu-runner` succeeds against its published releases.
 
-Attestations exist only for releases cut **after** each satellite went public; the few pre-public tags have none. For the API satellite, provenance is present from `0.6.11` onward - older tags such as `0.6.8` return `404`, so always verify against a recent tag.
+The earliest tags of each satellite carry no attestations. For the API satellite, provenance is present from `0.6.11` onward - older tags such as `0.6.8` return `404`, so always verify against a recent tag.
 
-Replace `<component>` with one of `api`, `orchestrator`, `ansible-runner`, `frontend`, `zitadel-init` (not `runner`) and `<tag>` with the release tag:
+Replace `<component>` with one of `api`, `orchestrator`, `opentofu-runner`, `ansible-runner`, `frontend`, `zitadel-init` and `<tag>` with the release tag:
 
 ```bash
 gh attestation verify \
@@ -112,7 +112,7 @@ gh attestation verify \
   "oci://ghcr.io/vhco-pro/stackweaver-<component>:<tag>"
 ```
 
-This is subject to the same `visibility == 'public'` gate as the SLSA attestation, so it is live on the five public docker satellites and not yet published for the private `runner`.
+This is subject to the same `visibility == 'public'` gate as the SLSA attestation, so it is live on every docker satellite.
 
 ## Verifying the OpenVEX Document (Live Today)
 
@@ -125,7 +125,7 @@ gh attestation verify \
   "oci://ghcr.io/vhco-pro/stackweaver-<component>:<tag>"
 ```
 
-For example, against the first release that carried it:
+For example:
 
 ```bash
 gh attestation verify \
@@ -134,7 +134,7 @@ gh attestation verify \
   "oci://ghcr.io/vhco-pro/stackweaver-frontend:0.12.2"
 ```
 
-Like the SLSA and SBOM attestations, the OpenVEX attestation is gated on `visibility == 'public'`, so it is live on the public docker satellites and not published for the private `runner`.
+Like the SLSA and SBOM attestations, the OpenVEX attestation is gated on `visibility == 'public'`, so it is live on every docker satellite.
 
 ## Verifying the Helm Chart
 
@@ -146,9 +146,9 @@ ghcr.io/vhco-pro/charts/stackweaver:<chart-version>
 
 (Note the path: `charts/stackweaver`, **not** `stackweaver-helm/charts/stackweaver`.)
 
-The chart is pullable today without authentication. As of chart version **`0.6.8`** (released 2026-05-24), every chart push is Sigstore-signed with `cosign sign`. From chart version **`0.7.8`** (2026-06-06) the SBOM, SLSA L3 provenance, and OpenVEX are published as **GitHub-native attestations** (`actions/attest-*`), verified with `gh attestation verify`. Chart versions `0.6.8`–`0.7.0` instead carried a cosign-attested SPDX SBOM (`cosign verify-attestation`); versions `0.7.1`–`0.7.7` failed to publish and should not be used. Earlier chart versions are unsigned and can only be integrity-checked by digest comparison against the matching [GitHub Release](https://github.com/vhco-pro/stackweaver-helm/releases).
+The chart is pullable without authentication. Every chart version from **`0.6.8`** onward is Sigstore-signed with `cosign sign`. From chart version **`0.7.8`** the SBOM, SLSA L3 provenance, and OpenVEX are published as **GitHub-native attestations** (`actions/attest-*`), verified with `gh attestation verify`. Chart versions `0.6.8` to `0.7.0` instead carry a cosign-attested SPDX SBOM (`cosign verify-attestation`); versions `0.7.1` to `0.7.7` did not publish successfully and should not be used. Earlier chart versions are unsigned and can only be integrity-checked by digest comparison against the matching [GitHub Release](https://github.com/vhco-pro/stackweaver-helm/releases).
 
-> **Why the change at `0.7.8`?** cosign v3 made the new Sigstore bundle format mandatory for keyless signing, and `cosign attest` of the chart's SPDX/OpenVEX predicates fails under it (`invalid attestation: decoding json`). Since the helm satellite is public, the chart moved to the same GitHub-native attestation path the docker satellites already use. The chart *signature* is unaffected and is still verified with `cosign verify`.
+> **Why two attestation methods?** cosign v3 makes the Sigstore bundle format mandatory for keyless signing, and `cosign attest` of the chart's SPDX/OpenVEX predicates fails under it (`invalid attestation: decoding json`). Charts from `0.7.8` therefore use the same GitHub-native attestation path as the docker satellites. The chart *signature* is verified with `cosign verify` for every signed version.
 
 ### Verify the chart signature
 
@@ -186,7 +186,7 @@ gh attestation verify \
 
 This is the same `gh attestation verify` form (and the same predicate types) used for the docker satellite images, so one command shape works fleet-wide.
 
-> **Older charts (`0.6.8`–`0.7.0`).** These carried the SBOM as a *cosign* attestation instead. Verify those with `cosign verify-attestation --type "https://spdx.dev/Document/v2.3" …` and the same certificate-identity regexp as the signature command above. New charts (`≥ 0.7.8`) do **not** have this cosign attestation - use `gh attestation verify` instead.
+> **Older charts (`0.6.8` to `0.7.0`).** These carry the SBOM as a *cosign* attestation instead. Verify those with `cosign verify-attestation --type "https://spdx.dev/Document/v2.3" …` and the same certificate-identity regexp as the signature command above. Charts from `0.7.8` onward do **not** have this cosign attestation - use `gh attestation verify` instead.
 
 ## Verifying Sync-Commit Identity
 

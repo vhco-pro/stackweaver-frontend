@@ -102,38 +102,6 @@ export default function IdpProcess() {
 
     const providerName = provider ?? 'unknown';
 
-    // Zitadel's projection (the read-model behind `userId` lookups) lags
-    // behind a fresh `createUser` write by a few hundred ms under load -
-    // empirically up to ~1s during a full Playwright suite run when
-    // projection workers are saturated. Branch 3 / Branch 4 below do a
-    // `createSession({user: {userId: <just-created-id>}})` microseconds
-    // after `createUser` returns, so they race the projection and get
-    // a 404 ("User could not be found"). Retry on 404 with exponential
-    // backoff. Caught Wave 14 root-causing F3's flake (see
-    // custom-login-ui-plan.md Wave 14 note).
-    const createSessionWithProjectionRetry = async (
-      body: Parameters<typeof createSession>[0],
-      maxAttempts = 4,
-    ): Promise<Awaited<ReturnType<typeof createSession>>> => {
-      let attempt = 0;
-      let lastErr: unknown;
-      while (attempt < maxAttempts) {
-        try {
-          return await createSession(body);
-        } catch (err) {
-          const code = (err as Error & { code?: number }).code;
-          // 404 = "User could not be found" - the projection-lag case.
-          // Anything else is a real error; rethrow immediately.
-          if (code !== 404) throw err;
-          lastErr = err;
-          // Backoff: 150ms, 300ms, 600ms - total ~1s budget across 4 tries.
-          await new Promise((r) => setTimeout(r, 150 * Math.pow(2, attempt)));
-          attempt++;
-        }
-      }
-      throw lastErr;
-    };
-
     const finalizeAndRedirect = async (sessionId: string, sessionToken: string, authReqId: string) => {
       if (authReqId) {
         const resp = await finalizeAuthRequest({ authRequestId: authReqId, sessionId, sessionToken });
@@ -259,7 +227,7 @@ export default function IdpProcess() {
 
             if (!userResult.userId) throw new Error('User creation returned no ID');
 
-            const sessionResp = await createSessionWithProjectionRetry({
+            const sessionResp = await createSession({
               checks: {
                 user: { userId: userResult.userId },
                 idpIntent: { idpIntentId: intentId, idpIntentToken: token },
@@ -297,7 +265,7 @@ export default function IdpProcess() {
 
             if (!userResult.userId) throw new Error('User creation returned no ID');
 
-            const sessionResp = await createSessionWithProjectionRetry({
+            const sessionResp = await createSession({
               checks: {
                 user: { userId: userResult.userId },
                 idpIntent: { idpIntentId: intentId, idpIntentToken: token },

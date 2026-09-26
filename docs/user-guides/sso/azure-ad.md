@@ -200,7 +200,7 @@ Zitadel constructs the callback URL from the HTTP request's domain context, not 
 https://{your-domain}/idps/callback
 ```
 
-If the error shows `https://localhost:8080/idps/callback`, the `CUSTOM_REQUEST_HEADERS` on the API service is not set correctly. Verify the fix:
+If the error shows `https://localhost:8080/idps/callback`, the `CUSTOM_REQUEST_HEADERS` on the API service is not set correctly. Verify the configuration:
 
 ```bash
 # Check that ZITADEL_EXTERNAL_HOST is set in .env
@@ -237,7 +237,7 @@ This is expected behavior. SSO users are provisioned without organization member
 
 ### Login page shows a blank or skeleton page
 
-If the login page loads but shows only a blank skeleton, check the API container logs (the login UI is now bundled into the Stackweaver SPA, and Zitadel calls go through the auth proxy in the API container):
+If the login page loads but shows only a blank skeleton, check the API container logs (the login UI is bundled into the Stackweaver SPA, and Zitadel calls go through the auth proxy in the API container):
 
 ```bash
 docker logs api 2>&1 | tail -50 | grep -iE 'auth|zitadel|proxy'

@@ -290,7 +290,7 @@ POST /api/v2/ansible/inventories/:id/sources
 
 #### Azure authentication
 
-Azure sources select an authentication method explicitly through the `auth_method` field of the source `source-config` (one of `managed_identity`, `workload_identity`, `oidc`, or `credential`). When omitted, the source falls back to legacy behavior (OIDC if the organization has an Azure OIDC Configuration, otherwise the attached credential). For `managed_identity`, an optional `managed_identity_client_id` selects a user-assigned identity.
+Azure sources select an authentication method explicitly through the `auth_method` field of the source `source-config` (one of `managed_identity`, `workload_identity`, `oidc`, or `credential`). When omitted, the source uses OIDC if the organization has an Azure OIDC Configuration, and otherwise the attached credential. For `managed_identity`, an optional `managed_identity_client_id` selects a user-assigned identity.
 
 Every method runs plain `ansible-inventory`; the `azure.azcollection.azure_rm` plugin authenticates natively (it reads `AZURE_FEDERATED_TOKEN_FILE` directly as of collection 3.17.0, so no wrapper is involved):
 
@@ -643,7 +643,7 @@ Returns the job's event stream in counter order. Each event is one line of the r
 
 Every parameter composes: `filter[host]=web07&filter[status]=unreachable` answers "what did this host fail on", and filters apply to `after` and to pagination alike.
 
-Events written before the ingest was fixed to populate the `host`, `event`, `changed`, `failed` and `skipped` columns are still matched correctly - the filters fall back to reading `event-data` for those rows, at the cost of an index-less scan over them.
+Events whose `host`, `event`, `changed`, `failed` and `skipped` columns are empty are still matched correctly: the filters fall back to reading `event-data` for those rows, at the cost of an index-less scan over them.
 
 **Summary projection**
 

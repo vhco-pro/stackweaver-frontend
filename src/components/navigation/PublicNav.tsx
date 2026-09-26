@@ -126,6 +126,18 @@ export function PublicNav({ activeLink = 'home' }: PublicNavProps) {
               >
                 Docs
               </Link>
+              <Link
+                to="/docs/api-reference/explorer"
+                aria-label="API Reference"
+                className={`text-sm whitespace-nowrap transition-all duration-300 hover:text-blue-500 dark:hover:text-blue-300 ${
+                  isScrolled ? 'text-slate-800 dark:text-white' : 'text-slate-800/70 dark:text-white/70'
+                }`}
+              >
+                {/* The desktop row is at its widest just above md, where the full label pushes
+                    the logo off its own width; the short form holds the row until lg. */}
+                <span className="lg:hidden">API</span>
+                <span className="hidden lg:inline">API Reference</span>
+              </Link>
             </>
           ) : (
             <>
@@ -170,6 +182,18 @@ export function PublicNav({ activeLink = 'home' }: PublicNavProps) {
                 }`}
               >
                 Docs
+              </Link>
+              <Link
+                to="/docs/api-reference/explorer"
+                aria-label="API Reference"
+                className={`text-sm whitespace-nowrap transition-all duration-300 hover:text-blue-500 dark:hover:text-blue-300 ${
+                  isScrolled ? 'text-slate-800 dark:text-white' : 'text-slate-800/70 dark:text-white/70'
+                }`}
+              >
+                {/* The desktop row is at its widest just above md, where the full label pushes
+                    the logo off its own width; the short form holds the row until lg. */}
+                <span className="lg:hidden">API</span>
+                <span className="hidden lg:inline">API Reference</span>
               </Link>
             </>
           )}
@@ -279,6 +303,13 @@ export function PublicNav({ activeLink = 'home' }: PublicNavProps) {
                   >
                     Docs
                   </Link>
+                  <Link
+                    to="/docs/api-reference/explorer"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="flex items-center px-3 py-3 text-sm font-medium text-slate-700 dark:text-gray-200 hover:bg-slate-100 dark:hover:bg-white/10 rounded-lg transition-colors"
+                  >
+                    API Reference
+                  </Link>
                 </>
               ) : (
                 <>
@@ -316,6 +347,13 @@ export function PublicNav({ activeLink = 'home' }: PublicNavProps) {
                     className="flex items-center px-3 py-3 text-sm font-medium text-blue-600 dark:text-blue-400 hover:bg-slate-100 dark:hover:bg-white/10 rounded-lg transition-colors"
                   >
                     Docs
+                  </Link>
+                  <Link
+                    to="/docs/api-reference/explorer"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="flex items-center px-3 py-3 text-sm font-medium text-slate-700 dark:text-gray-200 hover:bg-slate-100 dark:hover:bg-white/10 rounded-lg transition-colors"
+                  >
+                    API Reference
                   </Link>
                 </>
               )}
