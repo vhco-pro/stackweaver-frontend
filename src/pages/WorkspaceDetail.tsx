@@ -577,10 +577,15 @@ export default function WorkspaceDetail() {
       return;
     }
 
+    // Editing a sensitive variable starts with a blank value field because the current value is
+    // never sent to the browser. Left blank, it means "keep the hidden value", so the value is
+    // omitted from the update; any other blank value is an explicit request to clear it (#815).
+    const keepsHiddenValue = editingVariable?.sensitive === true && variableForm.value === '';
+
     // The API rejects this too (422), but an HCL variable with no value is a mistake the form can
     // name immediately: it would be written as a bare `key =` into the generated tfvars and fail
     // the run while OpenTofu parses a file the user never wrote.
-    if (variableForm.hcl && !variableForm.value.trim()) {
+    if (variableForm.hcl && !keepsHiddenValue && !variableForm.value.trim()) {
       toast.error('An HCL variable needs a value - an empty one is not valid HCL');
       return;
     }
@@ -610,7 +615,10 @@ export default function WorkspaceDetail() {
 
     // Normal create/update flow
     const apiCall = editingVariable
-      ? variablesApi.update(workspace.id, editingVariable.id, variableForm)
+      ? variablesApi.update(workspace.id, editingVariable.id, {
+          ...variableForm,
+          value: keepsHiddenValue ? undefined : variableForm.value,
+        })
       : variablesApi.create(workspace.id, variableForm);
 
     void apiCall

@@ -1,6 +1,6 @@
 // Copyright (c) 2025 VH & Co BV. Licensed under the Business Source License 1.1. See LICENSE for details.
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useEffectEvent, useRef, useState } from 'react';
 import { runsApi, type Run } from '@/api/client';
 import { getRunFromJsonApi } from '@/utils/jsonapi';
 
@@ -76,6 +76,17 @@ export function useRunPolling({
   const previousStatusRef = useRef<string | null>(null); // Track previous status for change detection
   const consecutiveErrorsRef = useRef(0); // Track consecutive network errors
   const isMountedRef = useRef(true);
+
+  // AUD-030: the callback props are routinely passed as inline arrows (RunDetail does), so
+  // their identity changes on every render. Listing them as effect deps tore down the interval
+  // and fired an immediate fetch on every render, and since each fetch sets state and
+  // re-renders the consumer, polling degraded into a back-to-back request loop. Effect events
+  // always see the latest callbacks without being dependencies, so the polling effect below
+  // restarts only when runId, enabled or pollInterval change.
+  const emitStatusChange = useEffectEvent((updated: Run) => { onStatusChange?.(updated); });
+  const emitPlanOutputChange = useEffectEvent((output: Record<string, unknown>) => { onPlanOutputChange?.(output); });
+  const emitLogsChange = useEffectEvent((next: string) => { onLogsChange?.(next); });
+  const emitPlanLogsChange = useEffectEvent((next: string) => { onPlanLogsChange?.(next); });
 
   // Reset refs when runId changes to allow fetching plan output for new runs
   useEffect(() => {
@@ -162,7 +173,7 @@ export function useRunPolling({
 
         // Notify status change
         if (previousStatus && previousStatus !== runData.status) {
-          onStatusChange?.(runData);
+          emitStatusChange(runData);
         }
 
         // Fetch plan output when plan phase completes
@@ -186,7 +197,7 @@ export function useRunPolling({
             if (hasContent && isMountedRef.current && typeof planResponse === 'object' && !Array.isArray(planResponse)) {
               const planOutputData = planResponse as Record<string, unknown>;
               setPlanOutput(planOutputData);
-              onPlanOutputChange?.(planOutputData);
+              emitPlanOutputChange(planOutputData);
             }
           } catch (err) {
             console.error('Failed to fetch plan output:', err);
@@ -213,7 +224,7 @@ export function useRunPolling({
                   const next = planLogsRef.current + chunk.text;
                   planLogsRef.current = next;
                   setPlanLogs(next);
-                  onPlanLogsChange?.(next);
+                  emitPlanLogsChange(next);
                 }
               }
               if (chunk.done) planLogDoneRef.current = true;
@@ -302,7 +313,7 @@ export function useRunPolling({
                   const next = applyLogsRef.current + chunk.text;
                   applyLogsRef.current = next;
                   setLogs(next);
-                  onLogsChange?.(next);
+                  emitLogsChange(next);
                 }
               } else if ((runData.status === 'canceled' || runData.status === 'failed') &&
                 applyLogOffsetRef.current === 0) {
@@ -310,7 +321,7 @@ export function useRunPolling({
                 // than leaving stale content; never fall back to the plan log.
                 applyLogsRef.current = '';
                 setLogs('');
-                onLogsChange?.('');
+                emitLogsChange('');
               }
               if (chunk.done) applyLogDoneRef.current = true;
             }
@@ -377,11 +388,8 @@ export function useRunPolling({
         pollIntervalRef.current = null;
       }
     };
-     
-    // planLogs and planOutput are intentionally omitted - they're state set by this effect,
-    // and adding them would cause infinite re-renders
-     
-  }, [runId, enabled, pollInterval, onStatusChange, onPlanOutputChange, onLogsChange, onPlanLogsChange]);
+    // The emit* effect events are deliberately not dependencies (see AUD-030 above).
+  }, [runId, enabled, pollInterval]);
 
   return {
     run,

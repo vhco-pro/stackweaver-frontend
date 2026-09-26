@@ -66,7 +66,9 @@ Nothing is written until you have reviewed the preview. Every key is listed with
 
 Keys that already exist in the workspace or variable set are flagged as conflicts, and you choose whether to keep the existing value or replace it with the imported one. Replacing updates the value and its sensitive flag but deliberately leaves the category alone, so an existing Terraform variable is never silently turned into an environment variable. Variables are written one at a time, so a rejected key does not take the rest of the batch with it: the summary at the end reports exactly which keys were created, replaced, skipped or failed, and why.
 
-A line such as `FEATURE_FLAG=` imports as an empty value, marked "Empty" in the preview, because a deliberately blank flag or a placeholder to be filled in per environment is ordinary `.env` content. The one case the import cannot handle is clearing a value that is already set: a blank line whose key already exists is marked "Cannot clear" and left out of the batch, since replacing a value with an empty one is not yet supported. Delete that variable from the list instead if you want it gone.
+A line such as `FEATURE_FLAG=` imports as an empty value, marked "Empty" in the preview, because a deliberately blank flag or a placeholder to be filled in per environment is ordinary `.env` content. A blank line whose key already exists is treated like any other conflict: with "replace" chosen it clears the existing value, and with "keep" it is skipped. The one exception is an HCL variable, which cannot hold an empty value because it would be written into the generated tfvars as an incomplete assignment, so that row fails with an explanation and the variable is left unchanged.
+
+When you edit a variable in the list, clearing its value or description and saving stores the empty field. A sensitive variable's current value is never shown, so its value field starts blank when you open the editor; leaving it blank keeps the hidden value, and typing a new one replaces it.
 
 ## Working with Variable Sets
 
