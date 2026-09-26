@@ -1,6 +1,6 @@
 // Copyright (c) 2025 VH & Co BV. Licensed under the Business Source License 1.1. See LICENSE for details.
 
-import { useState, useRef } from 'react';
+import { useState } from 'react';
 import { useNavigate, useSearchParams, useParams } from 'react-router-dom';
 import { Loader2 } from 'lucide-react';
 import { completeIdP, createSession, finalizeAuthRequest, getLoginSettings, createUser } from '@/api/auth-client';
@@ -52,6 +52,13 @@ interface IdpIntentResult {
   addHumanUser?: IdpAddHumanUserSuggestion;
 }
 
+// #598: the intent token is single-use, so its consumption is guarded per
+// intentId at module scope rather than with a per-mount ref. A ref is reset by
+// a remount, which re-fired completeIdP and let the losing call 400. Each
+// entry holds the in-flight run, resolving to an error message or undefined;
+// a remounted instance awaits the same run instead of consuming the token again.
+const intentRuns = new Map<string, Promise<string | undefined>>();
+
 /**
  * IdP intent handler - consumes the single-use token from the IdP callback.
  *
@@ -63,8 +70,8 @@ interface IdpIntentResult {
  * 5. No user found → account-not-found page
  * 6. Error → failure page
  *
- * CRITICAL: The IdP intent token is SINGLE-USE. Guards against re-render re-call
- * via consumedRef. Strips query params via history.replaceState on mount.
+ * CRITICAL: The IdP intent token is SINGLE-USE. Guards against re-render and
+ * remount re-calls via the module-scoped intentRuns map. Strips query params via history.replaceState on mount.
  */
 export default function IdpProcess() {
   const { provider } = useParams<{ provider: string }>();
@@ -83,14 +90,10 @@ export default function IdpProcess() {
   // consumed.
 
   const [error, setError] = useState('');
-  const consumedRef = useRef(false);
 
   useMountEffect(() => {
     // Strip sensitive params from URL immediately (Referer leak prevention)
     window.history.replaceState({}, '', window.location.pathname);
-
-    if (consumedRef.current) return;
-    consumedRef.current = true;
 
     if (!intentId || !token) {
       setError('Missing identity provider parameters');
@@ -142,7 +145,7 @@ export default function IdpProcess() {
       }
     };
 
-    const process = async () => {
+    const process = async (): Promise<string | undefined> => {
       try {
         // Consume the single-use IdP intent token
         const intentResult = await completeIdP(intentId, token) as IdpIntentResult;
@@ -326,11 +329,18 @@ export default function IdpProcess() {
         // Branch 5: No user found and no data to create from
         void navigate(`/login/idp/${providerName}/account-not-found`);
       } catch (err: unknown) {
-        setError(toFriendlyError(err, 'Identity provider login failed'));
+        return toFriendlyError(err, 'Identity provider login failed');
       }
     };
 
-    void process();
+    let run = intentRuns.get(intentId);
+    if (!run) {
+      run = process();
+      intentRuns.set(intentId, run);
+    }
+    void run.then((message) => {
+      if (message) setError(message);
+    });
   });
 
   if (error) {

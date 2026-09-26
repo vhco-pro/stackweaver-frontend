@@ -2240,7 +2240,9 @@ export const variablesApi = {
         type: 'vars',
         attributes: {
           ...(data.key && { key: data.key }),
-          ...(data.value && { value: data.value }),
+          // An empty string is sent, not dropped: it clears the value (#815). Omit the field
+          // (undefined) to leave the stored value alone.
+          ...(data.value !== undefined && { value: data.value }),
           ...(data.description !== undefined && { description: data.description }),
           ...(data.category && { category: data.category }),
           ...(data.hcl !== undefined && { hcl: data.hcl }),
@@ -2650,7 +2652,9 @@ export const variableSetsApi = {
         type: 'vars', // TFE uses "vars" not "variable-set-variables"
         attributes: {
           ...(data.key && { key: data.key }),
-          ...(data.value && { value: data.value }),
+          // An empty string is sent, not dropped: it clears the value. Omit the field
+          // (undefined) to leave the stored value alone.
+          ...(data.value !== undefined && { value: data.value }),
           ...(data.description !== undefined && { description: data.description }),
           ...(data.category && { category: data.category }),
           ...(data.hcl !== undefined && { hcl: data.hcl }),
