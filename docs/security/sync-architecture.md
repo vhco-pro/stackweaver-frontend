@@ -128,7 +128,7 @@ An external reviewer can verify the design above is correctly deployed in produc
 ```bash
 # 1. Confirm pr-reviewer App permissions match the design
 gh api /apps/stackweaver-pr-reviewer --jq '.permissions'
-# Expect: {"contents":"read","metadata":"read","pull_requests":"write"}
+# Expect: {"contents":"write","metadata":"read","pull_requests":"write"}
 
 # 2. Confirm both Apps are installed on the satellite
 gh api /repos/vhco-pro/stackweaver-api/installation --jq '.app_slug'

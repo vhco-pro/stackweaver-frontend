@@ -50,7 +50,7 @@ sequenceDiagram
 
 - You must be an organization owner in Stackweaver, or have the `manage-vcs-settings` permission.
 - You must have the `hashicorp/tfe` Terraform provider configured against your Stackweaver instance.
-- Your Stackweaver issuer must be **publicly reachable** by the cloud provider (it fetches the JWKS to verify tokens). See [Operator Configuration](#operator-configuration-deployoidcenv).
+- Your Stackweaver issuer must be **publicly reachable** by the cloud provider (it fetches the JWKS to verify tokens). See [Operator Configuration](#operator-configuration).
 - You need permission on the cloud side to create the relevant trust (App Registration / IAM OIDC provider + role / Workload Identity Pool).
 
 ## The Token Subject (shared across clouds)
@@ -360,9 +360,9 @@ token. The `vault` provider (and any provider reading `VAULT_*`) picks it up aut
 
 ---
 
-## Operator Configuration (deploy/oidc.env)
+## Operator Configuration
 
-Two variables in `deploy/oidc.env` control how Stackweaver issues OIDC tokens (the same for every cloud). Copy `deploy/oidc.env.example` to `deploy/oidc.env` and fill in the values.
+Two variables control how Stackweaver issues OIDC tokens (the same for every cloud). On Docker Compose they live in `oidc.env` in your Compose directory (copied from `oidc.env.example` during installation). On Kubernetes, set the issuer with the `oidc.issuerUrl` Helm value; the chart generates the signing key into a Secret shared by the API and both runners, or uses your own Secret when you set `secrets.oidc.secretName`.
 
 | Variable | Required | Description |
 |----------|----------|-------------|
@@ -381,18 +381,21 @@ Docker Compose `env_file` does not support multi-line values. A raw PEM key span
 
 ### Generating the signing key
 
-```bash
-make setup-oidc-key
-```
-
-This generates a 2048-bit RSA key, base64-encodes it, and appends it to `deploy/oidc.env`. Alternatively, generate manually:
+On Docker Compose, generate a 2048-bit RSA key and base64-encode it onto a single line:
 
 ```bash
 openssl genrsa 2048 | base64 -w 0
-# Copy the single-line output and set it as OIDC_SIGNING_KEY in deploy/oidc.env
+# Copy the single-line output and set it as OIDC_SIGNING_KEY in oidc.env
 ```
 
-After editing `oidc.env`, run `make fresh-backend` to restart the API and runner with the new configuration.
+After editing `oidc.env`, recreate the services that read it so they pick up the new configuration:
+
+```bash
+# Run in your Compose directory
+docker compose up -d api runner ansible-runner
+```
+
+On Kubernetes the chart generates the key for you. After changing `oidc.issuerUrl`, apply it with `helm upgrade stackweaver oci://ghcr.io/vhco-pro/charts/stackweaver --namespace stackweaver --values my-values.yaml`.
 
 ## Troubleshooting
 
@@ -410,7 +413,7 @@ The issuer, subject, or audience in the token does not match your cloud-side tru
 
 ### Tokens are rejected only after a Stackweaver restart, or intermittently
 
-`OIDC_SIGNING_KEY` is not set, so a new RSA key pair is generated on each startup (and the API/runner may hold different keys). Set a stable, shared `OIDC_SIGNING_KEY` in `deploy/oidc.env` and run `make fresh-backend`.
+`OIDC_SIGNING_KEY` is not set, so a new RSA key pair is generated on each startup (and the API/runner may hold different keys). On Docker Compose, set a stable, shared `OIDC_SIGNING_KEY` in `oidc.env` and recreate the services as described in [Generating the signing key](#generating-the-signing-key). On Kubernetes, confirm that the API and runner Deployments reference the same OIDC Secret.
 
 ### Azure: `Contributor` role is not sufficient
 

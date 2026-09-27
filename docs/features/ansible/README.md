@@ -12,7 +12,7 @@ This directory contains the authoritative documentation for StackWeaver's Ansibl
 | Document | Description |
 |----------|-------------|
 | [execution-flows.md](./execution-flows.md) | How execution works: job lifecycle, runner vs agent, syncs, workflows - with diagrams |
-| [roadmap.md](./roadmap.md) | Future plans, priorities, timeline |
+| [roadmap.md](./roadmap.md) | What is available today and the known gaps |
 | [api-reference.md](./api-reference.md) | REST API endpoints documentation |
 | [galaxy-collections.md](./galaxy-collections.md) | Ansible Galaxy collections support |
 | [changelog.md](./changelog.md) | Version history and updates |
@@ -74,4 +74,4 @@ This directory contains the authoritative documentation for StackWeaver's Ansibl
 - [GitHub App Setup](../../user-guides/vcs/github-app.md) - VCS integration
 - [Zitadel Setup](../../user-guides/authentication/zitadel-setup.md) - Authentication
 - [Managing StackWeaver with Terraform](../../user-guides/terraform-provider.md) - Manage playbooks, inventories, credentials, job templates, and schedules as code with the official Terraform provider
-- [Frontend API Reference](../../internal/api-reference/frontend-api-reference.md) - React patterns
+- [API Reference](../../api-reference/README.md) - The REST API behind these features

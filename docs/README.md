@@ -44,7 +44,7 @@ Welcome to the StackWeaver documentation. This directory contains comprehensive 
 - **[Ansible Overview](./features/ansible/README.md)**: How Ansible is modeled and executed in StackWeaver
 - **[Ansible API Reference](./features/ansible/api-reference.md)**: Ansible REST API endpoints
 - **[Galaxy Collections](./features/ansible/galaxy-collections.md)**: Automatic collection installation via requirements files
-- **[Roadmap](./features/ansible/roadmap.md)**: Planned Ansible improvements
+- **[Roadmap](./features/ansible/roadmap.md)**: What the Ansible integration provides today and the known gaps
 - **[Changelog](./features/ansible/changelog.md)**: User-visible changes to the Ansible feature set
 - **[Playbook Webhook Sync](./features/ansible-playbook-webhook-sync.md)**: Sync playbooks from VCS on webhook events
 
@@ -71,7 +71,3 @@ Welcome to the StackWeaver documentation. This directory contains comprehensive 
     - **[AWS Cognito](./user-guides/sso/aws-cognito.md)**
     - **[Generic OIDC Provider](./user-guides/sso/generic-oidc.md)**
     - **[SSO Team Mapping](./user-guides/sso/team-mapping.md)**
-
-## Docs Viewer Test Pages
-
-- **[Syntax Highlighting + Rendering Tests](./test-syntax-highlighting.md)**: Single page to verify docs viewer rendering features

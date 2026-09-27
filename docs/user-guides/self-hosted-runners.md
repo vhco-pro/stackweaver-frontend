@@ -126,23 +126,10 @@ Before starting a runner, gather the following values.
 
 ### Docker
 
-Use `docker run` to start a runner on any machine with Docker installed. Replace `<pool-uuid>`, `<your-api-key>`, and the server URL with your actual values.
+Use `docker run` to start a runner on any machine with Docker installed. Pick the tab for the runner type your pool serves, and replace `<pool-uuid>`, `<your-api-key>`, and the server URL with your actual values.
 
-#### Ansible runner (Docker)
-
-```bash
-docker run -d --restart unless-stopped \
-  -e RUNNER_MODE=agent \
-  -e RUNNER_AGENT_POOL_ID=<pool-uuid> \
-  -e STACKWEAVER_TOKEN=<your-api-key> \
-  -e STACKWEAVER_SERVER=https://your-stackweaver.example.com \
-  -e RUNNER_NAME=my-ansible-runner \
-  stackweaver/runner-ansible:latest
-```
-
-#### OpenTofu runner (Docker)
-
-```bash
+::: code-group
+```bash [OpenTofu runner]
 docker run -d --restart unless-stopped \
   -e RUNNER_MODE=agent \
   -e RUNNER_AGENT_POOL_ID=<pool-uuid> \
@@ -151,6 +138,16 @@ docker run -d --restart unless-stopped \
   -e RUNNER_NAME=my-tofu-runner \
   ghcr.io/vhco-pro/stackweaver-opentofu-runner:latest
 ```
+```bash [Ansible runner]
+docker run -d --restart unless-stopped \
+  -e RUNNER_MODE=agent \
+  -e RUNNER_AGENT_POOL_ID=<pool-uuid> \
+  -e STACKWEAVER_TOKEN=<your-api-key> \
+  -e STACKWEAVER_SERVER=https://your-stackweaver.example.com \
+  -e RUNNER_NAME=my-ansible-runner \
+  ghcr.io/vhco-pro/stackweaver-ansible-runner:latest
+```
+:::
 
 ### Kubernetes
 
@@ -234,7 +231,7 @@ spec:
     spec:
       containers:
         - name: runner
-          image: stackweaver/runner-ansible:latest
+          image: ghcr.io/vhco-pro/stackweaver-ansible-runner:latest
           env:
             - name: RUNNER_MODE
               value: agent

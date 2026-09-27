@@ -1,12 +1,12 @@
 ---
-description: "Guide for creating a Kubernetes image pull secret for GHCR private registry access"
+description: "Guide for creating a Kubernetes image pull secret for the private StackWeaver images on GHCR"
 covers:
   - "deploy/helm/**"
 ---
 
 # Creating a Kubernetes Pull Secret for GHCR
 
-StackWeaver container images are hosted in the GitHub Container Registry (GHCR) under the private `vhco-pro` organisation. To pull these images in your Kubernetes cluster you need to request organisation access, create a GitHub personal access token, and register it as a Kubernetes pull secret.
+StackWeaver container images are hosted in the GitHub Container Registry (GHCR) under the `vhco-pro` organisation. The API, frontend, orchestrator, OpenTofu runner, and Zitadel init images are private packages; the Helm chart and the Ansible runner and secrets-init images are public. Because a deployment needs the private images, you must request access, create a GitHub personal access token, and register it as a Kubernetes pull secret before the StackWeaver pods can start. The same token also works with `docker login ghcr.io` for a Docker Compose installation.
 
 ## Prerequisites
 
@@ -18,7 +18,7 @@ Before you start, make sure you have:
 
 ## Step 1: Request Access to the `vhco-pro` Organisation
 
-The StackWeaver images are stored in the private `ghcr.io/vhco-pro` namespace. You must be a member of that GitHub organisation before your token can pull images.
+The private StackWeaver images can only be pulled by members of the `vhco-pro` GitHub organisation, so you must join it before your token can pull them.
 
 Contact the StackWeaver team at `support@stackweaver.co` and ask to be invited to the `vhco-pro` organisation on GitHub. Include the GitHub username that should receive the invitation. Once the team processes your request you will receive an email from GitHub; accept the invitation before continuing.
 

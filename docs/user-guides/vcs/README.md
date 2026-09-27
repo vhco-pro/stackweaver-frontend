@@ -14,4 +14,4 @@ Connect a version control system so StackWeaver can trigger OpenTofu runs from c
 
 ## Terraform Helpers
 
-- **[Entra ID Setup Module](./entra-setup/)** - A Terraform module that provisions the Microsoft Entra ID App Registration needed for the Azure DevOps VCS connection.
+- **[Entra ID Setup Module](./azure-devops.md#terraform-setup-declarative)** - A Terraform module that provisions the Microsoft Entra ID App Registration needed for the Azure DevOps VCS connection.

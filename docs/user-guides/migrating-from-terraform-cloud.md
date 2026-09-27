@@ -70,13 +70,13 @@ Read the states precisely, because they say different things:
 - **did not pass** - a fixture exists and the run did not complete. That may mean Stackweaver does not implement the resource, or that the fixture itself is wrong. The table does not guess which.
 - **untested** - no fixture exercises this resource. It may work perfectly; nothing here demonstrates that either way.
 
-Deliberately absent is any row claiming a resource is *unsupported*. That is a judgment, and this table only reports evidence. For attribute-level detail and the honest supported/divergent/unsupported assessment, see the per-resource compatibility docs in the repository under `docs/internal/tfe-compatibility/`.
+Deliberately absent is any row claiming a resource is *unsupported*. That is a judgment, and this table only reports evidence.
 
 <!-- BEGIN GENERATED: tfe-compat-table -->
 
 Verified by driving the stock `hashicorp/tfe` provider against a running Stackweaver: **58 verified**, 5 did not pass, 0 untested, 63 fixtures total.
 
-Evidence from a run on **2026-09-12T07:05:09Z** using hashicorp/tfe ~> 0.77. A row says what that run showed; it does not say whether Stackweaver implements the resource. See the per-resource docs for that judgment.
+Evidence from a run on **2026-09-12T07:05:09Z** using hashicorp/tfe ~> 0.77. A row says what that run showed; it does not say whether Stackweaver implements the resource.
 
 | Resource | State | Detail |
 |---|---|---|

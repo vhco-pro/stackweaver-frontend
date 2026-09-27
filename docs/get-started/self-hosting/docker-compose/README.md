@@ -21,6 +21,7 @@ You need the following installed on your host machine.
 - Docker Engine 24+ with Docker Compose v2
 - At least 4 GB of free RAM (8 GB recommended)
 - Ports 5173 (frontend), 8022 (API), and 8080 (Zitadel) available
+- Pull access to the private StackWeaver images on GHCR (API, frontend, orchestrator, OpenTofu runner, and Zitadel init). Request access and create a `read:packages` token as described in Steps 1 and 2 of [Creating a Kubernetes Pull Secret for GHCR](../kubernetes/kubernetes-pull-secret-ghcr.md), then run `docker login ghcr.io -u <your-github-username>` and paste the token as the password.
 
 ## Example Files
 
@@ -128,7 +129,7 @@ For a full list of every environment variable, see the [Environment Variables Re
 
 ### GitHub App Integration
 
-The GitHub App integration is optional and disabled by default. To enable it, uncomment the GitHub-related environment variables and volume mounts in `docker-compose.yml` for the `api` and `orchestrator` services. Place your GitHub App private key file in the same directory as `docker-compose.yml`.
+The GitHub App integration is optional and disabled by default. To enable it, uncomment the GitHub App ID, name, and private key path entries and the key volume mount in `docker-compose.yml` for the `api` and `orchestrator` services, and place your GitHub App private key file in the same directory as `docker-compose.yml`. The webhook secret belongs in `vcs.env`, not in `docker-compose.yml`; the [GitHub App guide](../../../user-guides/vcs/github-app.md) walks through every step.
 
 See the [VCS guides](../../../user-guides/vcs/) for detailed setup instructions.
 

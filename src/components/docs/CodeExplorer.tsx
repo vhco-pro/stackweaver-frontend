@@ -156,9 +156,11 @@ function FileTree({ nodes, selectedPath, onSelect, depth = 0 }: FileTreeProps) {
 export interface CodeExplorerProps {
   path: string;
   defaultFile?: string;
+  /** Tree the build wrote the manifest into: '/docs' (public) or '/internal-docs'. */
+  docsBase?: string;
 }
 
-export function CodeExplorer({ path, defaultFile = '' }: CodeExplorerProps) {
+export function CodeExplorer({ path, defaultFile = '', docsBase = '/docs' }: CodeExplorerProps) {
   const [selectedFile, setSelectedFile] = useState<string>(defaultFile);
   const [selectedLang, setSelectedLang] = useState<string>('text');
   const [copied, setCopied] = useState(false);
@@ -184,9 +186,9 @@ export function CodeExplorer({ path, defaultFile = '' }: CodeExplorerProps) {
   // Query's cache (app-root QueryClient) survives the ReactMarkdown remounts that
   // markdownKey changes trigger, so a manual module cache is no longer needed.
   const { data: manifest = null, isError: manifestError } = useQuery({
-    queryKey: ['docs-code-explorer', path],
+    queryKey: ['docs-code-explorer', docsBase, path],
     queryFn: async (): Promise<ExplorerManifest> => {
-      const r = await fetch(`/docs/${path}.explorer.json`);
+      const r = await fetch(`${docsBase}/${path}.explorer.json`);
       if (!r.ok) throw new Error(`${r.status}`);
       return (await r.json()) as ExplorerManifest;
     },
@@ -210,9 +212,9 @@ export function CodeExplorer({ path, defaultFile = '' }: CodeExplorerProps) {
 
   // Fetch the selected file's content.
   const { data: fileContent = null, isError: contentError } = useQuery({
-    queryKey: ['docs-code-explorer-file', path, selectedFile],
+    queryKey: ['docs-code-explorer-file', docsBase, path, selectedFile],
     queryFn: async (): Promise<string> => {
-      const r = await fetch(`/docs/${path}/${selectedFile}`);
+      const r = await fetch(`${docsBase}/${path}/${selectedFile}`);
       if (!r.ok) throw new Error(`${r.status}`);
       return await r.text();
     },
@@ -224,7 +226,7 @@ export function CodeExplorer({ path, defaultFile = '' }: CodeExplorerProps) {
 
   // Highlight with Shiki (theme-dependent transform); re-runs on file/lang/theme.
   const { data: highlightedHtml = null } = useQuery({
-    queryKey: ['docs-code-explorer-hl', path, selectedFile, selectedLang, themeMode],
+    queryKey: ['docs-code-explorer-hl', docsBase, path, selectedFile, selectedLang, themeMode],
     queryFn: async (): Promise<string> => {
       const content = fileContent!;
       try {
@@ -271,7 +273,7 @@ export function CodeExplorer({ path, defaultFile = '' }: CodeExplorerProps) {
       const folder = zip.folder(manifest.root)!;
       await Promise.all(
         manifest.files.map(async (file) => {
-          const res = await fetch(`/docs/${path}/${file.path}`);
+          const res = await fetch(`${docsBase}/${path}/${file.path}`);
           const blob = await res.blob();
           folder.file(file.path, blob);
         })

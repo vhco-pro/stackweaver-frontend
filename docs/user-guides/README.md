@@ -32,8 +32,7 @@ Practical, step-by-step guides for using StackWeaver. These guides walk you thro
 
 ## Ansible Workflows
 
-> [!NOTE]
-> Ansible user guides are coming soon. See [Ansible Documentation](../features/ansible/README.md) for complete Ansible integration documentation.
+The guides below cover specific Ansible tasks. For the full Ansible feature set (job templates, inventories, credentials, and how jobs run), see the [Ansible Documentation](../features/ansible/README.md).
 
 - **[Dynamic Inventories](./dynamic-inventories.md)** - Configure dynamic inventory sources for Ansible jobs
 - **[Managing Ansible Playbooks](./managing-ansible-playbooks.md)** - Register playbooks one at a time, bulk-import them from a repository, or pick them straight from a repository in job template forms

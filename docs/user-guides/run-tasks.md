@@ -45,7 +45,7 @@ When a mandatory task fails, the run holds and the stage shows an override actio
 
 ## Terraform provider support
 
-The full family is supported by the `hashicorp/tfe` provider against Stackweaver: `tfe_organization_run_task`, `tfe_workspace_run_task`, and `tfe_organization_run_task_global_settings`, plus their data sources. Use the plural `stages` attribute on workspace attachments; the singular `stage` is deprecated upstream and only served for compatibility. For the exact attribute mapping and the documented divergences, see the internal compatibility specs under `docs/internal/tfe-compatibility/resources/run-tasks/`.
+The full family is supported by the `hashicorp/tfe` provider against Stackweaver: `tfe_organization_run_task`, `tfe_workspace_run_task`, and `tfe_organization_run_task_global_settings`, plus their data sources. Use the plural `stages` attribute on workspace attachments; the singular `stage` is deprecated upstream and only served for compatibility.
 
 ## Building your own task service
 

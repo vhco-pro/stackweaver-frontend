@@ -29,9 +29,11 @@ function snippetHash(str: string): string {
 
 export interface GitHubSnippetProps {
   url: string;
+  /** Tree the build wrote the snippet into: '/docs' (public) or '/internal-docs'. */
+  docsBase?: string;
 }
 
-export function GitHubSnippet({ url }: GitHubSnippetProps) {
+export function GitHubSnippet({ url, docsBase = '/docs' }: GitHubSnippetProps) {
   const [copied, setCopied] = useState(false);
 
   // Track theme
@@ -51,10 +53,10 @@ export function GitHubSnippet({ url }: GitHubSnippetProps) {
 
   // Fetch snippet data (immutable per URL → cache forever, no retry).
   const { data: snippet = null, isError: error } = useQuery({
-    queryKey: ['docs-github-snippet', url],
+    queryKey: ['docs-github-snippet', docsBase, url],
     queryFn: async (): Promise<SnippetData> => {
       const hash = snippetHash(url);
-      const res = await fetch(`/docs/_snippets/${hash}.snippet.json`);
+      const res = await fetch(`${docsBase}/_snippets/${hash}.snippet.json`);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       return (await res.json()) as SnippetData;
     },

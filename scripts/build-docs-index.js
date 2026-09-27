@@ -777,6 +777,12 @@ async function processCodeExplorers(mdFiles, outputDir = PUBLIC_DOCS, docsRoot =
       }
 
       const relativeDir = path.relative(docsRoot, resolvedDir);
+      // The viewer fetches the manifest from its own tree (`/docs` or `/internal-docs`), so a
+      // directory outside this tree's root has no URL there - and writing it would escape outputDir.
+      if (relativeDir.startsWith('..') || path.isAbsolute(relativeDir)) {
+        console.warn(`⚠ Skipping code-explorer outside ${path.relative(path.dirname(DOCS_ROOT), docsRoot)}/: ${rawPath} (in ${file.relativePath})`);
+        continue;
+      }
       const manifestFiles = [];
 
       // Recursively scan the directory for code files
@@ -1265,6 +1271,9 @@ async function buildInternalDocs() {
 
   console.log('🗂  Processing code explorer directives...');
   await processCodeExplorers(mdFiles, INTERNAL_PUBLIC_DOCS, INTERNAL_DOCS_ROOT);
+
+  console.log('📎 Processing code snippet directives...');
+  await processCodeSnippets(mdFiles, INTERNAL_PUBLIC_DOCS);
 
   console.log('💾 Generating internal docs index file...');
   const index = { tree, flat, generated: new Date().toISOString() };

@@ -60,7 +60,7 @@ The command succeeds only if (a) the image bears a cosign signature, (b) the sig
 
 For production deployments you may want to pin to one exact tag rather than allowing any tag. Replace the trailing `.+$` in the regex with the literal tag, for example `v1\.4\.2$`.
 
-> **Note on GHCR access.** The OCI packages on `ghcr.io/vhco-pro/*` are configured to be pullable without authentication. You do **not** need to `docker login` to GHCR to run `cosign verify`.
+> **Note on GHCR access.** The Helm chart (`ghcr.io/vhco-pro/charts/stackweaver`) and the `stackweaver-ansible-runner` and `stackweaver-secrets-init` images are public packages, so `cosign verify` works against them without authentication. The `stackweaver-api`, `stackweaver-frontend`, `stackweaver-orchestrator`, `stackweaver-opentofu-runner`, and `stackweaver-zitadel-init` images are private packages: run `docker login ghcr.io` with an account that has been granted access (see [Creating a Kubernetes Pull Secret for GHCR](../get-started/self-hosting/kubernetes/kubernetes-pull-secret-ghcr.md) for how to get one) before verifying them. The satellite source repositories are public either way.
 
 ### A real, working example
 

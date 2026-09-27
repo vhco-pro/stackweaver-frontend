@@ -61,4 +61,4 @@ Common scenarios for editing workspaces:
 ## Related Documentation
 
 - [Your First OpenTofu Workspace](../../get-started/your-first-opentofu-workspace.md) - Get started with workspaces
-- [Backend API Reference](../../internal/api-reference/backend-api-reference.md) - API for workspace management
+- [API Reference](../../api-reference/README.md) - API for workspace management

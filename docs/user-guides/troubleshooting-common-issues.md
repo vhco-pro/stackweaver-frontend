@@ -18,7 +18,7 @@ Solutions for the most frequent problems and questions when using StackWeaver.
 - **VCS connection issue**: Verify your GitHub connection is active in organization settings. Try disconnecting and reconnecting.
 - **Repository access**: Ensure StackWeaver has access to the repository. Check repository permissions in GitHub.
 - **Working directory**: If your OpenTofu files aren't in the repo root, verify the working directory path is correct.
-- **Runner unavailable**: Check if there are any runner issues. Check `docker compose -f deploy/docker-compose.yml logs runner` for errors. If runs consistently fail to start, review the orchestrator logs as well.
+- **Runner unavailable**: Check if there are any runner issues. Check the runner logs for errors: `docker compose logs runner` in your Compose directory, or `kubectl logs deployment/stackweaver-runner --namespace stackweaver` on Kubernetes. If runs consistently fail to start, review the orchestrator logs as well.
 
 ### Plan Shows Unexpected Changes
 
