@@ -77,7 +77,7 @@ Choose the instructions for your deployment method.
 
 ### Docker Compose
 
-Add the following variables to **`deploy/sso.env`** (this file is not overwritten by the auto-generated `deploy/.env`):
+Add the following variables to **`sso.env`** in your Compose directory (the directory that holds `docker-compose.yml`; `zitadel-init` never overwrites this file):
 
 ```bash
 # Azure AD / Entra ID SSO Configuration
@@ -91,8 +91,8 @@ If you omit `AZURE_AD_TENANT_ID`, StackWeaver will configure the provider in "co
 Then restart the `zitadel-init` service to apply the configuration:
 
 ```bash
-cd deploy
-docker compose up -d --build zitadel-init
+# Run in your Compose directory
+docker compose up -d zitadel-init
 ```
 
 ### Kubernetes / Helm
@@ -147,7 +147,7 @@ Check the logs to verify:
 
 **Docker Compose:**
 ```bash
-docker compose -f deploy/docker-compose.yml logs zitadel-init
+docker compose logs zitadel-init
 ```
 
 **Kubernetes:**
@@ -165,7 +165,7 @@ Look for output like:
 ✅ Set execution: Function preaccesstoken → Complement Token webhook
 ```
 
-## Step 8: Test the Integration
+## Step 7: Test the Integration
 
 1. Open StackWeaver in your browser (`http://localhost:5173`).
 2. On the login page, you should see a "Sign in with Microsoft" button.
@@ -191,7 +191,7 @@ The Azure AD provider is configured with the following behaviors:
 
 ### "Sign in with Microsoft" button does not appear
 
-Verify that the `AZURE_AD_CLIENT_ID` environment variable is set and non-empty. For Docker Compose, check `deploy/sso.env`. For Kubernetes, verify your Helm values have `sso.azureAd.clientId` set. Then re-run `zitadel-init` and check its logs for errors.
+Verify that the `AZURE_AD_CLIENT_ID` environment variable is set and non-empty. For Docker Compose, check `sso.env`. For Kubernetes, verify your Helm values have `sso.azureAd.clientId` set. Then re-run `zitadel-init` and check its logs for errors.
 
 ### Redirect URI mismatch error (AADSTS50011)
 
@@ -204,14 +204,14 @@ If the error shows `https://localhost:8080/idps/callback`, the `CUSTOM_REQUEST_H
 
 ```bash
 # Check that ZITADEL_EXTERNAL_HOST is set in .env
-grep ZITADEL_EXTERNAL_HOST deploy/.env
+grep ZITADEL_EXTERNAL_HOST .env
 
 # Check that the API container has the header configured
 docker exec api sh -c 'printenv CUSTOM_REQUEST_HEADERS'
 # Expected: x-zitadel-instance-host:zitadel.example.com
 ```
 
-If missing, re-run `docker compose build zitadel-init && docker compose run --rm zitadel-init` to regenerate `.env`, then `make fresh`. See the [Custom Domain guide](../authentication/zitadel-custom-domain.md) for the full explanation of how callback URLs are constructed.
+If missing, re-run `docker compose run --rm zitadel-init` in your Compose directory to regenerate `.env`, then recreate the services with `docker compose up -d`. See the [Custom Domain guide](../authentication/zitadel-custom-domain.md) for the full explanation of how callback URLs are constructed.
 
 Also ensure the redirect URI registered in Azure Portal matches `https://your-domain/idps/callback` exactly.
 
@@ -243,7 +243,7 @@ If the login page loads but shows only a blank skeleton, check the API container
 docker logs api 2>&1 | tail -50 | grep -iE 'auth|zitadel|proxy'
 ```
 
-Common causes include the auth proxy failing to reach Zitadel (`curl http://localhost:8080/debug/healthz` should return 200) or a missing `ZITADEL_LOGIN_SERVICE_USER_TOKEN` in `deploy/.env` (the auth proxy refuses to start without a service-account PAT).
+Common causes include the auth proxy failing to reach Zitadel (`curl http://localhost:8080/debug/healthz` should return 200) or a missing `ZITADEL_LOGIN_SERVICE_USER_TOKEN` in the `.env` that `zitadel-init` writes (without that service-account PAT the API starts but does not initialize the auth proxy, and logs `Auth Proxy not initialized`).
 
 ### "Errors.Target.DeniedURL" when configuring Actions (Kubernetes)
 

@@ -41,7 +41,7 @@ Choose the instructions for your deployment method.
 
 ### Docker Compose
 
-Add the following environment variables to **`deploy/sso.env`** (this file is not overwritten by the auto-generated `deploy/.env`):
+Add the following environment variables to **`sso.env`** in your Compose directory (the directory that holds `docker-compose.yml`; `zitadel-init` never overwrites this file):
 
 ```bash
 # Enable automatic team assignment based on SSO group claims
@@ -55,7 +55,7 @@ OIDC_REMOVE_FROM_NON_SSO_TEAMS=false
 Then restart the API service:
 
 ```bash
-cd deploy
+# Run in your Compose directory
 docker compose up -d api
 ```
 
@@ -192,7 +192,7 @@ The sync only grants membership to organizations that contain teams matching the
 
 By default, team sync only adds memberships. It does not remove users from teams, even if their IdP group claims change. This is the safe default to prevent accidental access revocation.
 
-To enable automatic removal, set `OIDC_REMOVE_FROM_NON_SSO_TEAMS=true` in `deploy/sso.env` (Docker Compose) or `sso.oidcRemoveFromNonSsoTeams: true` in your Helm values (Kubernetes).
+To enable automatic removal, set `OIDC_REMOVE_FROM_NON_SSO_TEAMS=true` in `sso.env` (Docker Compose) or `sso.oidcRemoveFromNonSsoTeams: true` in your Helm values (Kubernetes).
 
 When enabled, on each login, StackWeaver will:
 
@@ -236,7 +236,7 @@ To verify what values your provider sends, check the API logs after an SSO login
 
 **Docker Compose:**
 ```bash
-docker compose -f deploy/docker-compose.yml logs api | grep -i "extracted.*groups"
+docker compose logs api | grep -i "extracted.*groups"
 ```
 
 **Kubernetes:**
@@ -262,25 +262,25 @@ If a user logs in via SSO but their token does not contain group claims (either 
 ### User is not being added to expected teams
 
 1. Verify the team has an `sso_team_id` set, and that it exactly matches the group identifier from the IdP (case-sensitive).
-2. Verify team sync is enabled: `ENABLE_OIDC_TEAM_SYNC=true` in `deploy/sso.env` (Docker Compose) or `sso.enableOidcTeamSync: true` in Helm values (Kubernetes).
+2. Verify team sync is enabled: `ENABLE_OIDC_TEAM_SYNC=true` in `sso.env` (Docker Compose) or `sso.enableOidcTeamSync: true` in Helm values (Kubernetes).
 3. Check the API service logs for "TeamSync" messages:
    ```bash
    # Docker Compose
-   docker compose -f deploy/docker-compose.yml logs api | grep -i teamsync
+   docker compose logs api | grep -i teamsync
    # Kubernetes
    kubectl logs deployment/stackweaver-api -n stackweaver | grep -i teamsync
    ```
 4. Check the API service logs for "Zitadel IDP sync webhook" messages to verify the webhook is receiving IdP claims:
    ```bash
    # Docker Compose
-   docker compose -f deploy/docker-compose.yml logs api | grep -i "idp sync webhook"
+   docker compose logs api | grep -i "idp sync webhook"
    # Kubernetes
    kubectl logs deployment/stackweaver-api -n stackweaver | grep -i "idp sync webhook"
    ```
 5. Check the API service logs for "complement token webhook" messages to verify the sso_groups claim is being appended:
    ```bash
    # Docker Compose
-   docker compose -f deploy/docker-compose.yml logs api | grep -i "complement token webhook"
+   docker compose logs api | grep -i "complement token webhook"
    # Kubernetes
    kubectl logs deployment/stackweaver-api -n stackweaver | grep -i "complement token webhook"
    ```
@@ -288,14 +288,14 @@ If a user logs in via SSO but their token does not contain group claims (either 
 7. If webhooks are not being called, verify the Actions V2 targets and executions are configured in Zitadel. Check the zitadel-init logs:
    ```bash
    # Docker Compose
-   docker compose -f deploy/docker-compose.yml logs zitadel-init | grep -i "actions v2"
+   docker compose logs zitadel-init | grep -i "actions v2"
    # Kubernetes
    kubectl logs deployment/stackweaver-zitadel -c zitadel-init -n stackweaver | grep -i "actions v2"
    ```
 
 ### User is not being removed from teams
 
-Verify that removal is enabled: `OIDC_REMOVE_FROM_NON_SSO_TEAMS=true` in `deploy/sso.env` (Docker Compose) or `sso.oidcRemoveFromNonSsoTeams: true` in Helm values (Kubernetes). When set to `false` (the default), users are never removed automatically.
+Verify that removal is enabled: `OIDC_REMOVE_FROM_NON_SSO_TEAMS=true` in `sso.env` (Docker Compose) or `sso.oidcRemoveFromNonSsoTeams: true` in Helm values (Kubernetes). When set to `false` (the default), users are never removed automatically.
 
 ### Changes are not taking effect
 

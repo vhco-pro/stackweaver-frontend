@@ -9,7 +9,7 @@ description: "Public security documentation for Stackweaver. Covers how to crypt
 
 Public security documentation for Stackweaver. The pages in this section describe how the project's supply-chain and release-integrity controls work in enough detail that an external reviewer can verify the claims independently against the live GitHub APIs, without privileged access.
 
-For internal operational documents (access policies, vulnerability management runbooks, audit workbooks), see `docs/internal/security/` in the source tree. Those are not published here because they are workflow artefacts rather than user-facing material.
+Internal operational documents (access policies, vulnerability management runbooks, audit workbooks) are not published here, because they are workflow artefacts rather than user-facing material.
 
 For vulnerability disclosure, follow the [organisation-wide security policy](https://github.com/vhco-pro/.github/blob/main/SECURITY.md). Do not file public issues for suspected vulnerabilities.
 

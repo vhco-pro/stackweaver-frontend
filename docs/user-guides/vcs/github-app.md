@@ -108,22 +108,28 @@ By default, private apps can only be installed on the owner’s account. To let 
 
 #### Docker Compose
 
-The private key file is mounted directly from the `deploy/` directory. Place your downloaded `.pem` file there:
+Run these steps in your Compose directory (the directory that holds `docker-compose.yml`). First place the downloaded private key next to `docker-compose.yml`:
 
 ```bash
-cp ~/Downloads/your-app-name.*.private-key.pem deploy/github-app-private-key.pem
+cp ~/Downloads/your-app-name.*.private-key.pem ./github-app-private-key.pem
 ```
 
-Then set the three non-secret values directly in `deploy/docker-compose.yml` (they are already wired up under the `api` and `orchestrator` services):
+In `docker-compose.yml`, uncomment the GitHub App lines under both the `api` and `orchestrator` services: the `GITHUB_APP_ID`, `GITHUB_APP_NAME`, and `GITHUB_APP_PRIVATE_KEY_PATH` environment entries, and the `volumes:` block that mounts `./github-app-private-key.pem` at `/etc/github-app-private-key.pem`. Leave the `GITHUB_WEBHOOK_SECRET` line under `api` commented out. Then set the two non-secret values in `.env`, which Compose substitutes into those entries:
 
-```yaml
-- GITHUB_APP_ID=<your-app-id>
-- GITHUB_APP_NAME=<your-app-slug>
-- GITHUB_APP_PRIVATE_KEY_PATH=/etc/github-app-private-key.pem
-- GITHUB_WEBHOOK_SECRET=<your-webhook-secret>
+```bash
+GITHUB_APP_ID=<your-app-id>
+GITHUB_APP_NAME=<your-app-slug>
 ```
 
-The compose file bind-mounts `deploy/github-app-private-key.pem` → `/etc/github-app-private-key.pem` inside the container, so no additional steps are needed.
+Put the webhook secret in `vcs.env`, which the `api` service loads directly:
+
+```bash
+GITHUB_WEBHOOK_SECRET=<your-webhook-secret>
+```
+
+Keep it out of `docker-compose.yml`: an uncommented `GITHUB_WEBHOOK_SECRET` entry under `environment:` takes precedence over `vcs.env`, and would blank the secret unless the same value is also in `.env`. Compose also expands `$VAR` sequences inside `vcs.env` values, so write every `$` in the secret as `$$` (a secret of `s3cr3t$Alt!x` becomes `GITHUB_WEBHOOK_SECRET=s3cr3t$$Alt!x`). You can confirm the value the container receives with `docker compose config | grep GITHUB_WEBHOOK_SECRET`.
+
+Apply the change with `docker compose up -d api orchestrator`.
 
 #### Kubernetes (Helm)
 
@@ -134,7 +140,7 @@ The Helm chart stores the private key and webhook secret in a Kubernetes Secret 
 ```bash
 kubectl create secret generic stackweaver-github-app \
   --namespace stackweaver \
-  --from-file=private-key=deploy/github-app-private-key.pem \
+  --from-file=private-key=./github-app-private-key.pem \
   --from-literal=webhook-secret='<your-webhook-secret>'
 ```
 

@@ -883,11 +883,11 @@ export function MarkdownRenderer({
           explorerPath = rawPath.replace(/^(\.\.\/)+/, '');
           explorerPath = targetDir ? `${targetDir}/${explorerPath}` : explorerPath;
         }
-        return <CodeExplorer path={explorerPath} defaultFile={defaultFile} />;
+        return <CodeExplorer path={explorerPath} defaultFile={defaultFile} docsBase={docsBase} />;
       },
       codesnippet: (props: MarkdownBlockProps) => {
         const url = (props['data-url'] as string) ?? '';
-        return <GitHubSnippet url={url} />;
+        return <GitHubSnippet url={url} docsBase={docsBase} />;
       },
       // Pre wrapper - handles shiki highlighted code
       pre: ({ children, ...props }: MarkdownPreProps) => {

@@ -215,25 +215,26 @@ kubectl logs job/stackweaver-zitadel-init -n stackweaver | grep "Login V2 BaseUR
 
 ### Quick Start (Automated Bootstrap)
 
-The Docker Compose stack ships with a Go bootstrap (`scripts/zitadel-init/main.go`) that provisions all required OIDC apps automatically.
+The Docker Compose stack includes the `zitadel-init` container (image `ghcr.io/vhco-pro/stackweaver-zitadel-init`), which provisions all required OIDC apps automatically. Run these commands in your Compose directory (the directory that holds `docker-compose.yml`, see the [Docker Compose deployment guide](../../get-started/self-hosting/docker-compose/README.md)).
 
 ```bash
-# 1. Start the stack (Zitadel will initialize automatically)
-cd deploy
-docker compose up -d --build
+# 1. Start the stack. zitadel-init runs automatically once Zitadel is up.
+docker compose up -d
 
-# 2. Run the initializer once (after Zitadel is up)
-docker compose run --rm zitadel-init
+# 2. Follow the initializer until it reports completion
+docker compose logs -f zitadel-init
 
-# 3. Restart so services pick up the generated env files
+# 3. Recreate the services so they pick up the values init wrote to .env
 docker compose up -d
 ```
 
-> **Networking:** `deploy/docker-compose.yml` runs every service on a single user-defined bridge network, so containers reach each other by service name (for example `zitadel:8080`) and the browser-facing ports are published on `localhost`.
+To run the initializer again later, for example after changing `zitadel-init.yaml`, use `docker compose run --rm zitadel-init` and then `docker compose up -d`.
+
+> **Networking:** `docker-compose.yml` runs every service on a single user-defined bridge network, so containers reach each other by service name (for example `zitadel:8080`) and the browser-facing ports are published on `localhost`.
 
 ### Admin Credentials (Docker Compose)
 
-The Docker Compose stack uses static credentials defined in `deploy/zitadel-init-steps.yaml`:
+The Docker Compose stack uses static credentials defined in `zitadel-init-steps.yaml`:
 
 | Field | Value |
 |---|---|
@@ -259,15 +260,15 @@ flowchart TD
 <summary><strong>Flow Steps (Legend)</strong></summary>
 
 1. **Acquire admin PAT** - **Docker Compose**: waits up to 300s for `/pat/admin.pat` (written by Zitadel during `start-from-init`). **Kubernetes (first boot)**: waits for readiness, reads PAT from emptyDir, persists to K8s Secret. **Kubernetes (pod restart)**: falls back to `admin-pat` from K8s Secret. **Manual override**: `ZITADEL_PAT` env var takes highest priority.
-2. **Connect** - Uses the PAT to connect to Zitadel via gRPC (`localhost:8080`).
+2. **Connect** - Uses the PAT to connect to Zitadel via gRPC at `ZITADEL_INTERNAL_ADDR`: `zitadel:8080` on the Docker Compose bridge network, or `localhost:8080` on Kubernetes, where the initializer runs inside the Zitadel pod.
 3. **Provision** - Creates or updates: Organization `IAC Platform`, Project, Frontend OIDC app (PKCE) with production redirect URI, API app (client secret), service-account machine user + PAT (`IAM_LOGIN_CLIENT` role, named `login-ui-service`, consumed by the API container's auth proxy + TOTP service + Zitadel webhook handler), webhook signing keys, and Login V2 BaseURI (via Feature API).
-4. **Write** - Writes the generated values to `deploy/.env`.
+4. **Write** - Writes the generated values to `.env` in the Compose directory.
 
 </details>
 
 The bootstrap is idempotent - re-running it reuses existing apps and orgs.
 
-### Environment Variables Written to `deploy/.env`
+### Environment Variables Written to `.env`
 
 ```env
 ZITADEL_FRONTEND_CLIENT_ID=<frontend-client-id>
@@ -275,20 +276,22 @@ ZITADEL_API_CLIENT_ID=<api-client-id>
 ZITADEL_API_CLIENT_SECRET=<api-client-secret>
 ZITADEL_LOGIN_SERVICE_USER_TOKEN=<login-service-user-pat>
 ZITADEL_LOGIN_SERVICE_USER_ID=<login-service-user-id>
+ZITADEL_ISSUER=<issuer-derived-from-zitadel-defaults.yaml>
+ZITADEL_EXTERNAL_HOST=<ExternalDomain>
+ZITADEL_TLS_MODE=<disabled-or-external>
 ZITADEL_WEBHOOK_IDP_SYNC_KEY=<webhook-key>
 ZITADEL_WEBHOOK_COMPLEMENT_TOKEN_KEY=<webhook-key>
 ```
 
-> **Important:** `deploy/.env` is auto-generated and will be overwritten on each `zitadel-init` run.
-> Persistent configuration lives in `deploy/sso.env`, `deploy/vcs.env`, and `deploy/oidc.env`.
-> Never put values directly in `deploy/.env`.
+> **Important:** `zitadel-init` rewrites `.env` on each run.
+> Keep SSO, VCS, and workload identity settings in `sso.env`, `vcs.env`, and `oidc.env`, which it never touches.
 
 ### Environment Variable Reference for `zitadel-init`
 
 | Variable | Description | Default |
 |---|---|---|
 | `ZITADEL_ISSUER` | Public issuer written to `.env` | `http://localhost:8080` |
-| `ZITADEL_INTERNAL_ADDR` | Host:port the initializer dials | `localhost:8080` |
+| `ZITADEL_INTERNAL_ADDR` | Host:port the initializer dials | `zitadel:8080` (set in `docker-compose.yml`) |
 | `ZITADEL_ADMIN_USERNAME` | Admin username (matches init-steps.yaml) | `admin@ZITADEL.localhost` |
 | `ZITADEL_ADMIN_PASSWORD` | Admin password (matches init-steps.yaml) | `Password1!` |
 | `PROJECT_ROOT` | Where env/config files are written | `/config` inside container |
@@ -312,7 +315,7 @@ docker exec postgres psql -U iac -d iac_platform -c "SELECT 1;"
 The OAuth client ID doesn't exist or isn't accessible.
 
 - Run `docker compose run --rm zitadel-init` to create/update applications.
-- Verify the `ClientId` in `deploy/.env` matches what's in Zitadel.
+- Verify the `ZITADEL_FRONTEND_CLIENT_ID` in `.env` matches the frontend app's client ID in Zitadel.
 - Ensure the frontend container has the correct `VITE_ZITADEL_CLIENT_ID`.
 
 ---

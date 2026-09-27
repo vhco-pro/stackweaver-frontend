@@ -1,384 +1,62 @@
 ---
-description: "Ansible development roadmap covering workflow templates, surveys, and future phases"
+description: "Ansible capability status: what the Ansible integration provides today and the gaps that are not yet available"
 covers:
   - "core/services/ansible/**"
   - "backend/cmd/ansible-runner/**"
+  - "backend/internal/api/v2/routes/ansible_routes.go"
+  - "frontend/src/pages/Ansible/**"
 ---
 
-# Development Roadmap
-
-## Completed Features
-
-### Live Output Streaming ✅ (December 2025)
-- Uses `ansible.posix.jsonl` callback for line-by-line streaming
-- Events appear as tasks execute with live progress
-- Frontend polls for updates during job execution
-
-### Fleet Run Viewer ✅ (August 2026)
-- Job page opens on a Run tab with three pivots over one event model: a host-by-task matrix, a task timeline, and a chronological stream
-- One filter state (status tiles plus a search box covering hosts, task names, and whole module results) and one detail drawer for a cell, a host, or a task
-- Events the adapter cannot structure fall through to the stream verbatim, so the page never renders worse than a plain terminal view
-
-### Galaxy Collection Support ✅ (December 2025)
-- Pre-installed essential collections (community.general, ansible.posix, etc.)
-- Per-project collection caching for faster subsequent runs, under `$WORKSPACES_DIR/galaxy-cache/<project-id>`
-- `GalaxyRequirements` field on the job template model
-
-### Dynamic Inventory OIDC & VCS Enhancements ✅ (January 2025)
-- Azure dynamic inventory sources can authenticate via OIDC workload identity (keyless, auto-rotating tokens)
-- Reuses the organization's Azure OIDC Configuration (same as Terraform)
-- OIDC-first authentication with automatic fallback to stored credential
-- VCS-backed custom inventory sources (link inventory scripts to Git repositories)
-- Sync schedule support for automatic periodic inventory synchronization
-- Frontend source configuration UI with auth method selection, VCS pickers, and schedule presets
-- Runner image includes `azure-mgmt-compute`, `azure-mgmt-network`, `azure-mgmt-subscription`
-
----
-
-## In Progress
-
-### Workflow Templates 🚧 (June 2026)
-
-**Status**: Execution engine complete; visual builder pending
-
-**Completed**:
-- ✅ Data models: `AnsibleWorkflow`, `AnsibleWorkflowNode`, `AnsibleWorkflowEdge`, `AnsibleWorkflowJob`, `AnsibleWorkflowNodeJob`
-- ✅ Repository layer with full CRUD operations
-- ✅ API handlers for workflows, nodes, and edges
-- ✅ Routes registered at `/api/v2/organizations/:name/ansible/workflows` and `/api/v2/ansible/workflows/:id`
-- ✅ Frontend list page with create dialog
-- ✅ Sidebar navigation item added
-- ✅ Workflow job execution engine (on_success/on_failure/always edges, any-parent vs all-parents convergence)
-- ✅ Approval gate support (approve/deny with optional deny-on-timeout)
-- ✅ Inventory sync nodes
-- ✅ Workflow runs visualization (Launch / View Runs with per-node status and job output links)
-- ✅ Variable passing (workflow extra vars merged into node launches, node overrides win)
-- ✅ Schedulable workflows (new `workflow` schedule type)
+# Ansible Roadmap
 
-**Remaining**:
-- 🔲 Visual workflow builder (React Flow) - nodes and edges are managed via the API
-- 🔲 Nested workflow nodes (currently rejected at runtime)
-
-**Data Model**:
-```go
-type AnsibleWorkflow struct {
-    ID, OrganizationID, ProjectID, Name, Description
-    AllowSimultaneous, AskVariablesOnLaunch, AskInventoryOnLaunch
-    InventoryID, ExtraVars, Limit, SurveyEnabled, SurveySpec
-    Nodes []AnsibleWorkflowNode
-}
-
-type AnsibleWorkflowNode struct {
-    ID, WorkflowID, JobTemplateID, InventoryID, CredentialID
-    NodeType (job_template | workflow | inventory_sync | approval)
-    PositionX, PositionY  // For visual editor
-    AllParentsMustConverge
-}
-
-type AnsibleWorkflowEdge struct {
-    ID, WorkflowID, SourceNodeID, TargetNodeID
-    Condition (on_success | on_failure | always)
-}
-```
-
-**API Endpoints**:
-- `GET/POST /api/v2/organizations/:name/ansible/workflows` - List/Create workflows
-- `GET/PATCH/DELETE /api/v2/ansible/workflows/:id` - Workflow CRUD
-- `GET/POST /api/v2/ansible/workflows/:id/nodes` - Node management
-- `GET/POST /api/v2/ansible/workflows/:id/edges` - Edge management
-- `PATCH/DELETE /api/v2/ansible/workflow-nodes/:id` - Node update/delete
-- `DELETE /api/v2/ansible/workflow-edges/:id` - Edge delete
-
----
-
-## Immediate Priorities
-
-### 1. Auto-install Galaxy Collections from requirements.yml (P1)
-
-**Goal**: Automatically install collections from `requirements.yml` before job execution.
-
-**Current State**:
-- Essential collections pre-installed in runner image
-- Manual Dockerfile updates for new collections  
-- `GalaxyRequirements` field exists in model
-
-**Target State**:
-- Detect `requirements.yml` in playbook repo
-- Install collections before running playbook
-- Cache for faster subsequent runs
+This page summarises what the Ansible integration provides today and lists the gaps that are not yet available. It does not commit to dates.
 
-**Implementation Plan**:
-1. After cloning repo in runner, check for `requirements.yml` or `collections/requirements.yml`
-2. Run `ansible-galaxy collection install -r requirements.yml` if found
-3. Log installation output as job events
-4. UI to display detected/installed collections
+## Available Today
 
-### 2. WebSocket for Real-time Updates (P2 - Optional)
+### Live Output and the Run Viewer
 
-**Goal**: Sub-second output updates instead of 3-second polling.
+Jobs run with the `ansible.posix.jsonl` callback, so events are recorded line by line as tasks execute, and the job page polls for new events while a job runs. The job page opens on a Run tab with three views over the same events: a host-by-task matrix, a task timeline, and a chronological stream. One filter state (status tiles plus a search box covering hosts, task names, and module results) and one detail drawer apply to all three views. Events that cannot be structured appear verbatim in the stream, so the page never shows less than a plain terminal view.
 
-**Current State**:
-- Polling works well with 3-second interval
-- Acceptable for most use cases
+### Galaxy Collections
 
-**Target State**:
-- WebSocket connection for instant event streaming
-- Fallback to polling if WebSocket unavailable
+The runner image ships with commonly used collections pre-installed (for example `community.general` and `ansible.posix`). Before a job runs, the runner looks for a `requirements.yml` in the playbook directory, in `collections/`, or in `roles/`, installs the collections it lists with `ansible-galaxy collection install`, and caches them per project under `$WORKSPACES_DIR/galaxy-cache/<project-id>` so later runs are faster.
 
----
+### Dynamic Inventories
 
-## Phase 2 Roadmap
+Azure dynamic inventory sources can authenticate with OIDC workload identity, reusing the organization's Azure OIDC configuration, and fall back to a stored credential. Custom inventory sources can be backed by a Git repository, and sources can sync on a schedule. See [Dynamic Inventories](../../user-guides/dynamic-inventories.md).
 
-### 2.1 Survey Prompts ⏳
+### Workflows
 
-**Estimated**: 3-4 days
+Workflows chain job templates, inventory syncs, and approval gates. The execution engine follows `on_success`, `on_failure`, and `always` edges, supports any-parent and all-parents convergence, merges workflow extra vars into node launches (node overrides win), and can run on a schedule. Approval nodes can be approved or denied, with an optional deny on timeout. Workflow runs show per-node status with links to each job's output.
 
-1. **Survey definition**
-   - Add survey fields to job template
-   - Support text, choice, password types
-   
-2. **Launch UI**
-   - Dynamic form generation from survey
-   - Validation before launch
+The workflow endpoints are:
 
-### 2.2 GitHub Webhook Enhancement ⏳
+- `GET/POST /api/v2/organizations/:name/ansible/workflows` - list and create workflows
+- `GET/PATCH/DELETE /api/v2/ansible/workflows/:id` - read, update, and delete a workflow
+- `GET/POST /api/v2/ansible/workflows/:id/nodes` and `/edges` - manage nodes and edges
+- `POST /api/v2/ansible/workflows/:id/launch` and `GET /api/v2/ansible/workflows/:id/jobs` - launch a workflow and list its runs
+- `PATCH/DELETE /api/v2/ansible/workflow-nodes/:id` and `DELETE /api/v2/ansible/workflow-edges/:id` - update or delete individual nodes and edges
 
-**Estimated**: 1 week
+### Launching from Repository Pushes
 
----
+Job templates can opt into launching automatically when the playbook's repository receives a push, from both GitHub and Azure DevOps webhooks. See the [changelog](./changelog.md) for this and the other job template controls (multiple credentials, timeouts, concurrency, job slicing, and provisioning callbacks).
 
-## Phase 3 Roadmap
+### Notifications
 
-### 3.1 Visual Workflow Builder
-
-**Estimated**: 2-3 weeks
-
-**Design**:
-```
-┌─────────┐     ┌─────────┐     ┌─────────┐
-│  Job 1  │────▶│  Job 2  │────▶│  Job 3  │
-└────┬────┘     └─────────┘     └─────────┘
-     │ on failure
-     ▼
-┌─────────┐
-│ Rollback│
-└─────────┘
-```
+Notification templates deliver job events over webhook, email (SMTP), or Microsoft Teams. Each template attachment chooses whether it fires when a job starts, succeeds, or fails.
 
-**Features**:
-- Visual workflow editor using React Flow
-- Success/Failure/Always paths
-- Convergence nodes
-- Parallel execution
-- Inventory override per node
+### Access Control and Activity
 
-### 3.2 Surveys (Job Prompts)
+Ansible resources follow the platform's team-based access control, and the job template page shows which teams can view, edit, and execute it. Jobs can run on self-hosted runners through agent pools. Organization activity, including Ansible jobs, appears in [Usage & Analytics](../../user-guides/usage-analytics.md).
 
-**Estimated**: 2-3 weeks
+## Not Yet Available
 
-**Survey Field Types**:
-- Text (single line, multi-line)
-- Number (integer, float)
-- Password (encrypted)
-- Multiple Choice
-- Multiple Select
+These gaps are known and are not supported today:
 
-**Implementation**:
-- Survey specification stored as JSON in job template
-- Dynamic form generation on launch
-- Validation before submission
-- Variables injected into extra_vars
-
-### 3.3 Notifications
-
-**Estimated**: 2-3 weeks
-
-**Supported Channels**:
-- Slack
-- Email
-- Webhook
-- Microsoft Teams
-
-**Trigger Points**:
-- Job started
-- Job successful
-- Job failed
-- Job timed out
-
----
-
-## Phase 4 Roadmap
-
-### 4.1 Enhanced RBAC
-
-**Estimated**: 4-6 weeks
-
-**Permission Model**:
-| Resource | Permissions |
-|----------|-------------|
-| Inventory | View, Edit, Admin, Use |
-| Credential | View, Use, Admin |
-| Playbook | View, Edit, Admin |
-| Job Template | View, Edit, Execute, Admin |
-| Workflow | View, Edit, Execute, Admin |
-
-**Features**:
-- Team-based access control
-- Credential use separation (can use but not view)
-- Audit trail for permission changes
-
-### 4.2 Unified Terraform + Ansible Workflows
-
-**Estimated**: 6-8 weeks
-
-**Use Cases**:
-1. Provision with Terraform → Configure with Ansible
-2. Share Terraform outputs as Ansible variables
-3. Rollback Ansible on failure
-
-**Design**:
-```yaml
-workflow:
-  - name: provision
-    type: terraform
-    workspace: production-infra
-    
-  - name: configure
-    type: ansible
-    template: configure-servers
-    variables_from: provision.outputs
-    
-  - name: rollback
-    type: ansible
-    template: rollback-config
-    on: failure
-```
-
-### 4.3 Custom Credential Types
-
-**Estimated**: 3-4 weeks
-
-**Implementation**:
-- Credential type definition model
-- Custom input fields specification
-- Injector templates (env vars, files)
-- UI for creating custom types
-
----
-
-## Phase 5 Roadmap
-
-### 5.1 Audit Logging
-
-**Estimated**: 2-3 weeks
-
-**Events to Log**:
-- Resource CRUD operations
-- Job executions
-- Credential usage
-- Authentication events
-
-**Features**:
-- Searchable audit log viewer
-- Export to SIEM systems
-- Retention policies
-
-### 5.2 Metrics & Dashboard
-
-**Estimated**: 3-4 weeks
-
-**Prometheus Metrics**:
-- `ansible_jobs_total` (by status)
-- `ansible_job_duration_seconds`
-- `ansible_hosts_managed`
-- `ansible_runner_queue_depth`
-
-**Dashboard Widgets**:
-- Job success rate over time
-- Average job duration
-- Most active playbooks
-- Failed tasks by host
-
-### 5.3 Instance Groups
-
-**Estimated**: 4-6 weeks
-
-**Features**:
-- Multiple runner pools
-- Job routing by instance group
-- Resource isolation per group
-- Custom execution environments
-
----
-
-## Success Metrics
-
-### Performance
-
-| Metric | Target |
-|--------|--------|
-| Job launch latency | < 5 seconds |
-| First event visible | < 2 seconds |
-| Concurrent jobs per runner | 10+ |
-| Output streaming delay | < 1 second |
-
-### Reliability
-
-| Metric | Target |
-|--------|--------|
-| Job execution success | > 99% (excluding Ansible failures) |
-| Runner availability | > 99.9% |
-| API availability | > 99.9% |
-
-### Usability
-
-| Metric | Target |
-|--------|--------|
-| Time to first job | < 10 minutes |
-| Playbook sync time | < 30 seconds |
-| Job output searchable | ✓ |
-| Events filterable | ✓ |
-
----
-
-## Timeline Overview
-
-```
-2025 Q1:
-├── Phase 2.1: Live Output Streaming
-├── Phase 2.2: Ansible Galaxy Integration
-└── Phase 2.3: Webhook Enhancement
-
-2025 Q2:
-├── Phase 3.1: Workflow Templates
-├── Phase 3.2: Surveys
-└── Phase 3.3: Notifications
-
-2025 Q3:
-├── Phase 4.1: Enhanced RBAC
-└── Phase 4.2: Unified Workflows
-
-2025 Q4:
-├── Phase 4.3: Custom Credential Types
-├── Phase 5.1: Audit Logging
-├── Phase 5.2: Metrics & Dashboard
-└── Phase 5.3: Instance Groups
-```
-
----
-
-## Priority Matrix
-
-| Feature | Impact | Effort | Priority |
-|---------|--------|--------|----------|
-| Live output streaming | High | Medium | P1 |
-| Galaxy integration | Medium | Medium | P2 |
-| Workflow templates | High | High | P2 |
-| Surveys | Medium | Low | P2 |
-| Notifications | Medium | Medium | P2 |
-| Enhanced RBAC | High | High | P2 |
-| Unified workflows | High | Very High | P3 |
-| Custom credentials | Low | Medium | P3 |
-| Audit logging | Medium | Low | P2 |
-| Metrics | Medium | Medium | P3 |
-| Instance groups | Medium | High | P3 |
+- **Visual workflow builder**: workflow nodes and edges are managed through the API; the Workflows page creates, lists, and launches workflows, but there is no drag-and-drop graph editor.
+- **Nested workflows**: a workflow node that runs another workflow fails when the workflow reaches it.
+- **Survey prompts at launch**: a workflow can store a survey definition, but launches do not prompt for survey answers. Pass values as extra vars instead.
+- **Fact caching**: `use_fact_cache` and stored host facts are not supported.
+- **Slack notifications**: there is no Slack channel type.
+- **Custom credential types**: credentials use the built-in types only.
+- **Push-based output**: the job page polls for new events; there is no WebSocket stream.

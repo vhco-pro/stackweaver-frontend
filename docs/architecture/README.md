@@ -266,7 +266,7 @@ sequenceDiagram
 
 </details>
 
-See [Authentication Documentation](../internal/overviews/authentication.md) for details.
+See the [Zitadel Setup guide](../user-guides/authentication/zitadel-setup.md) for how the identity provider behind this flow is configured.
 
 ### API Request Flow
 
@@ -449,28 +449,30 @@ sequenceDiagram
 
 ## Deployment Architecture
 
-### Development (Docker Compose)
+### Docker Compose
 
 ```mermaid
 flowchart TB
-    subgraph AppTier["Application Tier"]
+    subgraph AppTier["Application Tier (published to the host)"]
         Frontend["Frontend<br/>:5173"]
         API["API<br/>:8022"]
         Zitadel["Zitadel<br/>:8080"]
     end
 
-    subgraph DataTier["Data Tier"]
+    subgraph Workers["Workers (no ports)"]
+        Orchestrator["Orchestrator"]
+        Runner["OpenTofu Runner"]
+        AnsibleRunner["Ansible Runner"]
+    end
+
+    subgraph DataTier["Data Tier (internal only)"]
         PostgreSQL["PostgreSQL<br/>:5432"]
         Redis["Redis<br/>:6379"]
         Garage["Garage<br/>:3900"]
     end
-
-    subgraph UIServices["UI Services"]
-        LoginUI["Login UI<br/>:3000"]
-    end
 ```
 
-**Network Mode**: `host` (all services on localhost)
+**Networking**: every service joins one user-defined bridge network and reaches the others by service name (for example `zitadel:8080` or `postgres:5432`). Only the frontend, the API, and Zitadel publish ports to the host. There is no separate login UI container: the frontend serves the login pages under `/login/*`, and the API's auth proxy under `/auth/*` forwards the Zitadel calls.
 
 ### Production (Kubernetes)
 
@@ -480,13 +482,13 @@ flowchart TB
 
     subgraph AppTier["Application Tier"]
         Frontend["Frontend<br/>(Nginx)"]
-        API["API (Go)<br/>3 replicas"]
-        Zitadel["Zitadel<br/>(HA)"]
+        API["API (Go)"]
+        Zitadel["Zitadel"]
     end
 
     subgraph DataTier["Data Tier"]
-        PostgreSQL["PostgreSQL<br/>Primary + Replicas"]
-        Redis["Redis<br/>Cluster"]
+        PostgreSQL["PostgreSQL<br/>(StatefulSet)"]
+        Redis["Redis"]
         Garage["S3 Storage<br/>(Garage / External)"]
     end
 
@@ -620,8 +622,7 @@ flowchart TB
 
 ## References
 
-- [Authentication Documentation](../internal/overviews/authentication.md)
-- [Frontend API Reference](../internal/api-reference/frontend-api-reference.md)
+- [Zitadel Setup](../user-guides/authentication/zitadel-setup.md)
 - [API Reference](../api-reference/README.md)
 - [Zitadel Documentation](https://zitadel.com/docs)
 - [Gin Framework](https://gin-gonic.com/)

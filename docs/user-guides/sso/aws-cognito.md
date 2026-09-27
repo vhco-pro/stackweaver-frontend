@@ -73,7 +73,7 @@ Choose the instructions for your deployment method.
 
 ### Docker Compose
 
-Add the following variables to **`deploy/sso.env`** (this file is not overwritten by the auto-generated `deploy/.env`):
+Add the following variables to **`sso.env`** in your Compose directory (the directory that holds `docker-compose.yml`; `zitadel-init` never overwrites this file):
 
 ```bash
 # AWS Cognito SSO Configuration
@@ -88,8 +88,8 @@ Replace the example values with your actual Cognito app client details.
 Then restart the `zitadel-init` service:
 
 ```bash
-cd deploy
-docker compose up -d --build zitadel-init
+# Run in your Compose directory
+docker compose up -d zitadel-init
 ```
 
 ### Kubernetes / Helm
@@ -133,7 +133,7 @@ Check the logs to verify:
 
 **Docker Compose:**
 ```bash
-docker compose -f deploy/docker-compose.yml logs zitadel-init
+docker compose logs zitadel-init
 ```
 
 **Kubernetes:**
@@ -141,7 +141,7 @@ docker compose -f deploy/docker-compose.yml logs zitadel-init
 kubectl logs -f deployment/stackweaver-zitadel -c zitadel-init --namespace stackweaver
 ```
 
-## Step 7: Test the Integration
+## Step 6: Test the Integration
 
 1. Open StackWeaver in your browser.
 2. On the login page, you should see a "Sign in with AWS Cognito" button.
@@ -183,7 +183,7 @@ The app client must be configured as a **Confidential client** with a client sec
 
 ### Login button does not appear
 
-Verify that `OIDC_IDP_CLIENT_ID` is set and non-empty in `deploy/sso.env`. Re-run `zitadel-init` and check the logs.
+Verify that `OIDC_IDP_CLIENT_ID` is set and non-empty in `sso.env`. Re-run `zitadel-init` and check the logs.
 
 ### "Invalid redirect URI" error
 

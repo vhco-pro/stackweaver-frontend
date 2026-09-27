@@ -25,7 +25,7 @@ covers:
 | Tier | Repo | Visibility | Audit scope | Contents |
 |------|------|------------|-------------|----------|
 | **Upstream monorepo** | `michielvha/stackweaver` | Private (permanent) | Internal upstream gate - not audited directly | All source, including the closed `core/` Go module |
-| **Closed Go module** | `core/` (inside monorepo) | Private (BSL when published) | Argued deviation under NDA - see [`core-auditor-access.md`](../internal/security/core-auditor-access.md) | Shared GORM models, repositories, queue, storage, plugin contracts |
+| **Closed Go module** | `core/` (inside monorepo) | Private (BSL when published) | Argued deviation under NDA - see [OSPS Baseline Compliance, Argued deviations](../security/osps-baseline-compliance.md#argued-deviations) | Shared GORM models, repositories, queue, storage, plugin contracts |
 | **Satellite - API**           | `vhco-pro/stackweaver-api`            | Public | ✅ | `backend/cmd/api`, `backend/internal/{api,services}`, `backend/config` |
 | **Satellite - Orchestrator**  | `vhco-pro/stackweaver-orchestrator`   | Public | ✅ | `backend/cmd/orchestrator` |
 | **Satellite - OpenTofu Runner** | `vhco-pro/stackweaver-opentofu-runner` | Public | ✅ | `backend/cmd/runner`, `runner-images/opentofu/Dockerfile` |
@@ -60,13 +60,13 @@ covers:
   satellite requires a reviewed pull request and passing status checks.
 - Each satellite commit is Sigstore-signed and accompanied by a SLSA L3
   provenance attestation referencing the upstream monorepo commit SHA.
-  See [`release-verification.md`](../internal/security/release-verification.md).
+  See [Verifying a Stackweaver Release](../security/verifying-releases.md).
 
 ## 3. Synced vs satellite-owned files
 
 | File / dir | Satellites that own it locally | Satellites where it's synced from monorepo |
 |------------|--------------------------------|---------------------------------------------|
-| `LICENSE`            | all                 | all (planned - `licenses/` canonical, see [`sync-pipeline-audit.md`](../internal/security/sync-pipeline-audit.md)) |
+| `LICENSE`            | all                 | all (planned, with `licenses/` as the canonical source) |
 | `NOTICE`             | none                | runner, ansible-runner (planned) |
 | `README.md`          | all                 | all except helm (planned; helm `sed`s its README at release time) |
 | `gitversion.yml`     | all                 | - (uniform; could be synced, low priority) |
@@ -76,7 +76,7 @@ covers:
 
 ## 4. Licence per component
 
-See [`license-strategy.md`](../internal/security/license-strategy.md). One-line summary:
+Each component carries one of two licences:
 
 - BSL 1.1 + Apache-2.0 Change Date + SaaS-exclusion AUG → api, orchestrator,
   frontend, helm, zitadel-init, `core/`
@@ -91,10 +91,10 @@ Authoritative human review happens **upstream** in the monorepo:
   non-author CODEOWNERS approval and passing CI.
 - Satellites are immutable distribution mirrors; their content is a
   deterministic re-publication of a reviewed monorepo commit.
-- See [`osps-baseline-audit.md` §10](../internal/security/osps-baseline-audit.md)
-  for the public deviation argument against AC-03.01 / QA-07.02 that
-  this model rests on, and `threat-model.md` §5 for the underlying threat
-  analysis.
+- See [OSPS Baseline Compliance, Argued deviations](../security/osps-baseline-compliance.md#argued-deviations)
+  for the public deviation argument this model rests on, and the
+  [Sync Architecture threat model](../security/sync-architecture.md#threat-model)
+  for the underlying threat analysis.
 
 ## 6. Where to file an issue
 

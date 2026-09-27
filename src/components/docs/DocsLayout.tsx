@@ -90,7 +90,7 @@ export function DocsLayout({ children, docsBase = '/docs', indexFile = '/docs-in
     const parts = path.split('/').filter(Boolean);
     
     // Only show breadcrumbs if we're in a subfolder (have at least 2 path segments)
-    // Single segment paths like "test-syntax-highlighting" are root-level, so no breadcrumbs
+    // Single segment paths like "architecture" are root-level, so no breadcrumbs
     if (parts.length < 2) {
       return null;
     }

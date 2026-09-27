@@ -220,6 +220,10 @@ services:
       ZITADEL_API_CLIENT_SECRET: ${ZITADEL_API_CLIENT_SECRET:-}
       ZITADEL_LOGIN_SERVICE_USER_TOKEN: ${ZITADEL_LOGIN_SERVICE_USER_TOKEN:-}
       ZITADEL_INTERNAL_ADDR: zitadel:8080
+      # The auth proxy reaches Zitadel as zitadel:8080, a Host no instance domain matches, so it
+      # names the instance with this header. zitadel-init writes ZITADEL_EXTERNAL_HOST to .env
+      # (the ExternalDomain, including localhost); it also makes IdP callbacks use that domain.
+      CUSTOM_REQUEST_HEADERS: "x-zitadel-instance-host:${ZITADEL_EXTERNAL_HOST:-}"
       CORS_EXTRA_ORIGINS: ${CORS_EXTRA_ORIGINS:-}
       ZITADEL_WEBHOOK_IDP_SYNC_KEY: ${ZITADEL_WEBHOOK_IDP_SYNC_KEY:-}
       ZITADEL_WEBHOOK_COMPLEMENT_TOKEN_KEY: ${ZITADEL_WEBHOOK_COMPLEMENT_TOKEN_KEY:-}

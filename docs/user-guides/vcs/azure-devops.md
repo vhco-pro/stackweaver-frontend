@@ -76,7 +76,7 @@ Stackweaver needs a client secret to exchange authorization codes for tokens.
 
 ## Step 4: Set Environment Variables
 
-Add the following to `deploy/vcs.env`:
+The API, the orchestrator, and the Ansible runner all read the Azure DevOps settings. On Docker Compose, add the following to `vcs.env` in your Compose directory (the directory that holds `docker-compose.yml`); Compose loads that file into all three services:
 
 ```bash
 # Public base URL of the Stackweaver API - used to auto-register webhook subscriptions.
@@ -97,19 +97,47 @@ The redirect URI must exactly match the URI registered in Step 1. Common mismatc
 
 Replace `your-stackweaver-domain:8022` with the public hostname and port of your Stackweaver API. For local development, see Step 7 for how to use a tunnel.
 
-## Step 5: Restart the API Service
+On Kubernetes, the Helm chart has no dedicated Azure DevOps settings. Pass the same variables through the `env` map of the `api`, `orchestrator`, and `ansibleRunner` components in your values file, for example:
 
-After setting the environment variables, restart the API service to load the new configuration:
-
-```bash
-make fresh-backend
+```yaml
+api:
+  env:
+    STACKWEAVER_WEBHOOK_BASE_URL: "https://stackweaver.example.com"
+    AZURE_DEVOPS_CLIENT_ID: "<Application (client) ID from Step 1>"
+    AZURE_DEVOPS_CLIENT_SECRET: "<Secret value from Step 3>"
+    AZURE_DEVOPS_REDIRECT_URI: "https://stackweaver.example.com/vcs/azure-devops/callback"
 ```
+
+Repeat the same entries under `orchestrator.env` and `ansibleRunner.env`. The `env` map holds plain values that end up in the Deployment specs, so keep the values file out of version control or restrict who can read it.
+
+## Step 5: Restart the Services
+
+After setting the environment variables, recreate the services that read them so they load the new configuration.
+
+::: code-group
+```bash [Docker Compose]
+# Run in your Compose directory
+docker compose up -d api orchestrator ansible-runner
+```
+```bash [Kubernetes (Helm)]
+helm upgrade stackweaver oci://ghcr.io/vhco-pro/charts/stackweaver \
+  --namespace stackweaver \
+  --values my-values.yaml
+```
+:::
+
+A `helm upgrade` that changes the `env` values rolls the affected Deployments automatically.
 
 You can verify the Azure DevOps integration is enabled by checking the API logs:
 
-```bash
-docker compose -f deploy/docker-compose.yml logs api | grep -i "azure"
+::: code-group
+```bash [Docker Compose]
+docker compose logs api | grep -i "azure"
 ```
+```bash [Kubernetes (Helm)]
+kubectl logs deployment/stackweaver-api --namespace stackweaver | grep -i "azure"
+```
+:::
 
 ## Step 6: Create a VCS Connection in Stackweaver
 
@@ -145,7 +173,7 @@ Azure DevOps cannot reach `localhost` directly, so `STACKWEAVER_WEBHOOK_BASE_URL
 STACKWEAVER_WEBHOOK_BASE_URL=https://<your-tunnel-subdomain>.trycloudflare.com
 ```
 
-Restart the API after updating the URL, then re-save any linked workspaces to register subscriptions pointing to the new tunnel URL.
+Recreate the services after updating the URL (Step 5), then re-save any linked workspaces to register subscriptions pointing to the new tunnel URL.
 
 ### Manual Fallback
 
@@ -207,15 +235,15 @@ To rotate the secret:
 
 1. In the Azure Portal, go to the app registration → **Certificates & secrets** → **New client secret**.
 2. Create the new secret and copy its value.
-3. Update `AZURE_DEVOPS_CLIENT_SECRET` in `deploy/vcs.env`.
-4. Run `make fresh-backend` to apply the change.
+3. Update `AZURE_DEVOPS_CLIENT_SECRET` in `vcs.env` (Docker Compose) or in the `env` maps of your Helm values (Kubernetes).
+4. Recreate the services as described in Step 5 to apply the change.
 5. Verify the integration works, then delete the old secret from the portal.
 
 ## Troubleshooting
 
 ### "Azure DevOps integration is not configured" error
 
-Verify that `AZURE_DEVOPS_CLIENT_ID` and `AZURE_DEVOPS_CLIENT_SECRET` are set in `deploy/vcs.env` and that the API container has been restarted after the change.
+Verify that `AZURE_DEVOPS_CLIENT_ID` and `AZURE_DEVOPS_CLIENT_SECRET` are set in `vcs.env` (Docker Compose) or in the `api.env` map of your Helm values (Kubernetes), and that the services were recreated after the change (Step 5).
 
 ### OAuth authorization fails with "AADSTS650052: organization lacks a service principal for Azure DevOps"
 
@@ -251,12 +279,13 @@ An Azure DevOps organization administrator may have disabled third-party applica
 Check the API logs after you save (or re-save) a workspace linked to an Azure DevOps repository:
 
 ```bash
-docker compose -f deploy/docker-compose.yml logs api | grep -i "webhook"
+docker compose logs api | grep -i "webhook"
+# Kubernetes: kubectl logs deployment/stackweaver-api --namespace stackweaver | grep -i "webhook"
 ```
 
 Common causes:
 
-- `STACKWEAVER_WEBHOOK_BASE_URL` is not set or is empty, so subscriptions are skipped silently. Set it in `deploy/vcs.env` and re-save the workspace.
+- `STACKWEAVER_WEBHOOK_BASE_URL` is not set or is empty, so subscriptions are skipped silently. Set it (Step 4), recreate the services (Step 5), and re-save the workspace.
 - The authorizing user does not have permission to create Service Hook subscriptions. The user needs at least **Project Administrator** rights on the project.
 - The Azure DevOps organization has disabled Service Hook creation via API. An administrator can check this under **Organization settings** → **Extensions** and re-enable it, or you can create subscriptions manually (see Step 7).
 
@@ -267,7 +296,8 @@ Common causes:
 3. Confirm the webhook can reach Stackweaver. Azure DevOps cannot reach `localhost`, so use a publicly accessible URL.
 4. Check the API logs for processing errors:
    ```bash
-   docker compose -f deploy/docker-compose.yml logs api | grep -i "webhook"
+   docker compose logs api | grep -i "webhook"
+   # Kubernetes: kubectl logs deployment/stackweaver-api --namespace stackweaver | grep -i "webhook"
    ```
 5. Use the **Test** button in the Service Hook subscription to send a test payload and inspect the response.
 
@@ -298,14 +328,17 @@ PR status checks require the `vso.code_status` scope. If your Entra ID app regis
 
 ## Terraform Setup (Declarative)
 
-If you manage infrastructure as code, you can provision the entire Entra ID configuration with Terraform instead of following Steps 1–3 manually. The template is in [docs/user-guides/vcs/entra-setup/main.tf](entra-setup/main.tf).
+If you manage infrastructure as code, you can provision the entire Entra ID configuration with Terraform instead of following Steps 1 to 3 manually. The complete template is shown below; use the explorer's **Download** button to save all of its files into a local directory.
+
+::: code-explorer ./entra-setup default="main.tf"
+:::
 
 The template uses the [AzureAD Terraform provider](https://registry.terraform.io/providers/hashicorp/azuread/latest/docs) to:
 
 - Provision the Azure DevOps enterprise application in your tenant (fixes AADSTS650052 if it occurs).
 - Create the app registration with `vso.code`, `vso.code_status`, and `vso.project` delegated permissions.
 - Create a client secret with a configurable expiry date.
-- Output the values ready to paste into `deploy/vcs.env`.
+- Output the values ready to paste into your configuration (Step 4).
 
 ### Authentication
 
@@ -320,7 +353,7 @@ Alternatively, set `ARM_CLIENT_ID`, `ARM_CLIENT_SECRET`, and `ARM_TENANT_ID` env
 ### Usage
 
 ```bash
-cd docs/user-guides/vcs/entra-setup
+cd entra-setup   # the folder inside the downloaded archive
 terraform init
 terraform apply \
   -var='redirect_uris=["https://your-stackweaver-domain/vcs/azure-devops/callback"]' \
@@ -336,7 +369,7 @@ terraform apply \
 
 ### Retrieving outputs
 
-After `terraform apply` succeeds, copy the outputs into `deploy/vcs.env`:
+After `terraform apply` succeeds, copy the outputs into your configuration as described in Step 4:
 
 ```bash
 terraform output AZURE_DEVOPS_CLIENT_ID
@@ -344,11 +377,7 @@ terraform output -raw AZURE_DEVOPS_CLIENT_SECRET   # sensitive, printed as plain
 terraform output AZURE_DEVOPS_TENANT_ID
 ```
 
-Then restart the API to load the new values:
-
-```bash
-make fresh-backend
-```
+Then recreate the services as described in Step 5 to load the new values.
 
 ### Secret rotation with Terraform
 

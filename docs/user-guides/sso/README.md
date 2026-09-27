@@ -68,7 +68,7 @@ Before configuring SSO, ensure you have:
 1. A running StackWeaver deployment with Zitadel initialized (see the [Zitadel Setup Guide](../authentication/zitadel-setup.md)).
 2. Administrator access to your external identity provider.
 3. Access to configure SSO environment variables for your deployment method:
-   - **Docker Compose**: edit `deploy/sso.env` (not overwritten by the auto-generated `deploy/.env`).
+   - **Docker Compose**: edit `sso.env` in your Compose directory (`zitadel-init` never overwrites this file).
    - **Kubernetes / Helm**: create a Kubernetes Secret with SSO credentials and reference it in your Helm values (see [Deploying SSO on Kubernetes](#deploying-sso-on-kubernetes) below).
 
 ## Architecture Overview

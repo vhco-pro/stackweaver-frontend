@@ -93,7 +93,7 @@ Choose the instructions for your deployment method.
 
 ### Docker Compose
 
-Add the following variables to **`deploy/sso.env`** (this file is not overwritten by the auto-generated `deploy/.env`):
+Add the following variables to **`sso.env`** in your Compose directory (the directory that holds `docker-compose.yml`; `zitadel-init` never overwrites this file):
 
 ```bash
 # Generic OIDC SSO Configuration
@@ -106,8 +106,8 @@ OIDC_IDP_CLIENT_SECRET=your-client-secret
 Then restart the `zitadel-init` service:
 
 ```bash
-cd deploy
-docker compose up -d --build zitadel-init
+# Run in your Compose directory
+docker compose up -d zitadel-init
 ```
 
 ### Kubernetes / Helm
@@ -163,7 +163,7 @@ Check the logs to verify:
 
 **Docker Compose:**
 ```bash
-docker compose -f deploy/docker-compose.yml logs zitadel-init
+docker compose logs zitadel-init
 ```
 
 **Kubernetes:**
@@ -171,7 +171,7 @@ docker compose -f deploy/docker-compose.yml logs zitadel-init
 kubectl logs -f deployment/stackweaver-zitadel -c zitadel-init --namespace stackweaver
 ```
 
-## Step 6: Test the Integration
+## Step 5: Test the Integration
 
 1. Open StackWeaver in your browser.
 2. On the login page, you should see a "Sign in with {OIDC_IDP_NAME}" button.
