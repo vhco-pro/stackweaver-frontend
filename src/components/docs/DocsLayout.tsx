@@ -9,6 +9,8 @@ import { Footer } from '@/components/layout/Footer';
 import { DocsSidebar } from './DocsSidebar';
 import { TableOfContents } from './TableOfContents';
 import { DocNavigation } from './DocNavigation';
+import { DocsPane } from './DocsPane';
+import { SIDEBAR_PANE, TOC_PANE } from './docsPanes';
 import {
   Sheet,
   SheetContent,
@@ -185,10 +187,10 @@ export function DocsLayout({ children, docsBase = '/docs', indexFile = '/docs-in
       {/* Main Content Area - Three Column Layout */}
       <div className="pt-32 pb-8 flex">
         
-        {/* Left Sidebar - Docs Navigation Tree (desktop only) */}
-        <aside className="hidden lg:block w-[18%] min-w-56 max-w-72 shrink-0 border-r border-border/40 bg-background/50 sticky top-24 h-[calc(100vh-6rem)] overflow-y-auto">
+        {/* Left Sidebar - Docs Navigation Tree (desktop only; resizable and collapsible) */}
+        <DocsPane config={SIDEBAR_PANE} id="docs-sidebar" label="navigation sidebar" className="hidden lg:flex">
           <DocsSidebar docsBase={docsBase} indexFile={indexFile} />
-        </aside>
+        </DocsPane>
         
         {/* Center - Main Content */}
         <main className="flex-1 min-w-0 px-4 md:px-8 py-4 pt-12 lg:pt-4 max-w-4xl mx-auto">
@@ -226,10 +228,10 @@ export function DocsLayout({ children, docsBase = '/docs', indexFile = '/docs-in
           <DocNavigation index={index} docsBase={docsBase} />
         </main>
         
-        {/* Right Sidebar - Table of Contents (desktop only) */}
-        <aside className="hidden xl:block w-64 shrink-0 border-l border-border/40 bg-background/50 sticky top-24 h-[calc(100vh-6rem)] overflow-y-auto">
+        {/* Right Sidebar - Table of Contents (desktop only; resizable and collapsible) */}
+        <DocsPane config={TOC_PANE} id="docs-toc" label="table of contents" className="hidden xl:flex">
           <TableOfContents />
-        </aside>
+        </DocsPane>
       </div>
       
       <Footer />

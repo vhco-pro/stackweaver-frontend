@@ -125,7 +125,7 @@ Navigate to your organization's Ansible section and click "New Inventory". Fill 
 3. **VCS Connection**: Select the GitHub, GitLab, or other VCS connection that has access to your repository.
 4. **Repository**: Enter the repository in `owner/repo` format.
 5. **Branch**: Enter the branch name (e.g., `main`).
-6. **Inventory Path**: Enter the path to your inventory plugin file within the repository (e.g., `inventory/azure_rm.yml`).
+6. **Inventory Path**: Select your inventory plugin file (e.g., `inventory/azure_rm.yml`). The list offers the `.ini`, `.yml`, `.yaml` and `.json` files in the repository that can be an inventory source, and hides playbooks (`playbooks/`, `site.yml`, `playbook.yml`), role internals, `group_vars/` and `host_vars/`, tests, hidden directories such as `.github/`, and dependency or tooling files. When the repository has no candidate, the field accepts a typed path instead.
 
 Click "Create Inventory".
 

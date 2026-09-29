@@ -302,19 +302,33 @@ export default function PlaybookDetail() {
     enabled: editDialogOpen && !!editForm.vcs_connection_id && !!pbOwner && !!pbRepo,
   });
 
-  const { data: yamlFiles = [], isLoading: loadingYamlFiles } = useQuery({
-    queryKey: ['pb-edit-yaml', editForm.vcs_connection_id, editForm.vcs_repository, editForm.vcs_branch],
+  const { data: playbookFiles = [], isLoading: loadingPlaybookFiles } = useQuery({
+    queryKey: ['pb-edit-playbook-files', selectedOrg, editForm.vcs_connection_id, editForm.vcs_repository, editForm.vcs_branch],
     queryFn: async () => {
       try {
-        return (await vcsConnectionsApi.listYamlFiles(editForm.vcs_connection_id, pbOwner, pbRepo, editForm.vcs_branch)) || [];
+        // Playbook candidates only: the discovery endpoint drops roles, vars,
+        // inventories and tooling files (the same filter as the import wizard).
+        const res = await ansiblePlaybooksApi.listVcsFiles(selectedOrg, {
+          vcs_connection_id: editForm.vcs_connection_id,
+          repository: editForm.vcs_repository,
+          branch: editForm.vcs_branch,
+        });
+        return (res.data || []).map((entry) => entry.path);
       } catch (err) {
         // Silent - fall back to manual input
-        console.error('Failed to load YAML files:', err);
+        console.error('Failed to load playbook files:', err);
         return [];
       }
     },
-    enabled: editDialogOpen && !!editForm.vcs_connection_id && !!editForm.vcs_repository && !!editForm.vcs_branch && !!pbOwner && !!pbRepo,
+    enabled: editDialogOpen && !!editForm.vcs_connection_id && !!editForm.vcs_repository && !!editForm.vcs_branch && !!selectedOrg && !!pbOwner && !!pbRepo,
   });
+
+  // Keep the playbook's current path selectable even when the candidate filter
+  // hides it (e.g. a playbook registered before the filter existed), so the
+  // Select never renders blank for an existing playbook.
+  const playbookPathOptions = editForm.playbook_path && playbookFiles.length > 0 && !playbookFiles.includes(editForm.playbook_path)
+    ? [editForm.playbook_path, ...playbookFiles]
+    : playbookFiles;
 
   // Auto-focus search input when repository select opens
   useEffect(() => {
@@ -1239,12 +1253,12 @@ export default function PlaybookDetail() {
             {editForm.vcs_connection_id && editForm.vcs_repository && editForm.vcs_branch && (
               <div className="space-y-2">
                 <Label htmlFor="playbook_path">Playbook Path</Label>
-                {loadingYamlFiles ? (
+                {loadingPlaybookFiles ? (
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
                     <Loader2 className="h-4 w-4 animate-spin" />
                     Loading playbook files...
                   </div>
-                ) : yamlFiles.length > 0 ? (
+                ) : playbookFiles.length > 0 ? (
                   <Select
                     value={editForm.playbook_path}
                     onValueChange={(value) => setEditForm({ ...editForm, playbook_path: value })}
@@ -1272,7 +1286,7 @@ export default function PlaybookDetail() {
                         />
                       </div>
                       <div className="max-h-[250px] overflow-y-auto">
-                        {yamlFiles
+                        {playbookPathOptions
                           .filter((file) =>
                             file.toLowerCase().includes(playbookPathSearch.toLowerCase())
                           )
@@ -1281,7 +1295,7 @@ export default function PlaybookDetail() {
                               {file}
                             </SelectItem>
                           ))}
-                        {yamlFiles.filter((file) =>
+                        {playbookPathOptions.filter((file) =>
                           file.toLowerCase().includes(playbookPathSearch.toLowerCase())
                         ).length === 0 && (
                           <div className="px-2 py-6 text-center text-sm text-muted-foreground">
@@ -1299,9 +1313,9 @@ export default function PlaybookDetail() {
                     placeholder="site.yml"
                   />
                 )}
-                {yamlFiles.length > 0 && (
+                {playbookFiles.length > 0 && (
                   <p className="text-xs text-muted-foreground">
-                    Select a playbook file from the repository ({yamlFiles.length} found)
+                    Select a playbook file from the repository ({playbookFiles.length} found)
                   </p>
                 )}
               </div>

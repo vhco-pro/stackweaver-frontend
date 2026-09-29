@@ -1,12 +1,24 @@
 // Copyright (c) 2025 VH & Co BV. Licensed under the Business Source License 1.1. See LICENSE for details.
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link, useParams } from 'react-router-dom';
-import { Server, ArrowLeft, Trash2, Loader2, Settings2, Copy, Check, Terminal } from 'lucide-react';
+import { Server, ArrowLeft, Trash2, Loader2, Settings2, Copy, Check, Terminal, Tag, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import {
+  headerState,
+  normalizeLabel,
+  runBulk,
+  toggleAll,
+  toggleOne,
+  visibleSelection,
+  withLabel,
+  withoutLabel,
+  type BulkResult,
+} from './runnerSelection';
 import {
   runnersApi,
   agentPoolsApi,
@@ -64,9 +76,81 @@ export default function Runners() {
     },
   });
 
-  const runners = runnersData?.runners ?? [];
+  const runners = useMemo(() => runnersData?.runners ?? [], [runnersData]);
   const pools = runnersData?.pools ?? [];
   const stats = runnersData?.stats ?? null;
+
+  // Bulk selection. The list polls, so the selection is intersected with the runners currently
+  // shown: a runner deleted elsewhere drops out of the selection instead of being acted on.
+  const [selected, setSelected] = useState<Set<string>>(() => new Set());
+  const [bulkAction, setBulkAction] = useState<'delete' | 'add-label' | 'remove-label' | null>(null);
+  const [bulkLabel, setBulkLabel] = useState('');
+  const [bulkBusy, setBulkBusy] = useState(false);
+  const runnerIds = useMemo(() => runners.map((r) => r.id), [runners]);
+  const selectedRunners = useMemo(() => {
+    const ids = new Set(visibleSelection(selected, runnerIds));
+    return runners.filter((r) => ids.has(r.id));
+  }, [selected, runnerIds, runners]);
+  const selectAllState = headerState(selected, runnerIds);
+  const selectedLabels = useMemo(
+    () => [...new Set(selectedRunners.flatMap((r) => r.labels))].sort(),
+    [selectedRunners],
+  );
+
+  const openBulk = (action: 'delete' | 'add-label' | 'remove-label') => {
+    setBulkLabel('');
+    setBulkAction(action);
+  };
+
+  // reportBulk toasts the outcome. After a partial failure only the failed runners stay selected,
+  // so a retry targets exactly what did not go through.
+  const reportBulk = (result: BulkResult, verb: string) => {
+    const n = result.succeeded.length;
+    if (n > 0) toast.success(`${verb} ${n} runner${n === 1 ? '' : 's'}`);
+    if (result.failed.length > 0) {
+      toast.error(`${result.failed.length} runner${result.failed.length === 1 ? '' : 's'} failed: ${result.failed[0].error}`);
+      setSelected(new Set(result.failed.map((f) => f.id)));
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    setBulkBusy(true);
+    try {
+      const result = await runBulk(selectedRunners.map((r) => r.id), (id) => runnersApi.delete(id));
+      reportBulk(result, 'Deleted');
+      if (result.failed.length === 0) setSelected(new Set());
+      setBulkAction(null);
+      void refetchRunners();
+    } finally {
+      setBulkBusy(false);
+    }
+  };
+
+  const handleBulkLabel = async () => {
+    const label = normalizeLabel(bulkLabel);
+    if (!label) return;
+    const adding = bulkAction === 'add-label';
+    // Only runners whose label set actually changes are patched.
+    const targets = selectedRunners.filter((r) => r.labels.includes(label) !== adding);
+    if (targets.length === 0) {
+      toast.success(adding ? `Every selected runner already has "${label}"` : `No selected runner has "${label}"`);
+      setBulkAction(null);
+      return;
+    }
+    setBulkBusy(true);
+    try {
+      const byId = new Map(targets.map((r) => [r.id, r]));
+      const result = await runBulk(targets.map((r) => r.id), (id) => {
+        const current = byId.get(id)?.labels ?? [];
+        return runnersApi.update(id, { labels: adding ? withLabel(current, label) : withoutLabel(current, label) });
+      });
+      reportBulk(result, adding ? `Added "${label}" to` : `Removed "${label}" from`);
+      setBulkAction(null);
+      void refetchRunners();
+    } finally {
+      setBulkBusy(false);
+    }
+  };
 
   const [editForm, setEditForm] = useState<{
     description: string;
@@ -275,12 +359,66 @@ export default function Runners() {
               </Button>
             </div>
           ) : (
-            runners.map((runner) => (
+            <>
+            {/* Bulk selection bar */}
+            <div
+              className={cn(glassSurface, 'px-4 sm:px-6 py-3 flex flex-wrap items-center gap-3')}
+              role="toolbar"
+              aria-label="Bulk runner actions"
+            >
+              <label className="flex items-center gap-3 min-h-[44px] cursor-pointer text-sm">
+                <Checkbox
+                  checked={selectAllState === 'all' ? true : selectAllState === 'some' ? 'indeterminate' : false}
+                  onCheckedChange={() => { setSelected((prev) => toggleAll(prev, runnerIds)); }}
+                  aria-label="Select all runners"
+                />
+                <span className="text-muted-foreground">
+                  {selectedRunners.length > 0
+                    ? <><span className="font-medium text-foreground">{selectedRunners.length}</span> of {runners.length} selected</>
+                    : 'Select all'}
+                </span>
+              </label>
+              {selectedRunners.length > 0 && (
+                <div className="flex flex-wrap items-center gap-2 ml-auto">
+                  <Button variant="outline" size="sm" onClick={() => { openBulk('add-label'); }}>
+                    <Tag className="h-4 w-4 mr-1" />
+                    Add label
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={() => { openBulk('remove-label'); }} disabled={selectedLabels.length === 0}>
+                    <X className="h-4 w-4 mr-1" />
+                    Remove label
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="text-destructive hover:text-destructive"
+                    onClick={() => { openBulk('delete'); }}
+                  >
+                    <Trash2 className="h-4 w-4 mr-1" />
+                    Delete
+                  </Button>
+                  <Button variant="ghost" size="sm" onClick={() => { setSelected(new Set()); }}>
+                    Clear
+                  </Button>
+                </div>
+              )}
+            </div>
+            {runners.map((runner) => (
               <div
                 key={runner.id}
-                className={cn(glassSurface, 'p-6')}
+                className={cn(
+                  glassSurface,
+                  'p-6 transition-all duration-300',
+                  selected.has(runner.id) && 'ring-2 ring-purple-500/40 dark:ring-purple-400/40',
+                )}
               >
                 <div className="flex items-start justify-between gap-4">
+                  <Checkbox
+                    className="mt-1.5"
+                    checked={selected.has(runner.id)}
+                    onCheckedChange={() => { setSelected((prev) => toggleOne(prev, runner.id)); }}
+                    aria-label={`Select runner ${runner.name}`}
+                  />
                   <div className="flex-1">
                     <div className="flex items-center gap-3 mb-2">
                       <div className={cn('w-3 h-3 rounded-full', getStatusColor(runner.status))} />
@@ -345,13 +483,15 @@ export default function Runners() {
                       size="sm"
                       className="text-destructive hover:text-destructive"
                       onClick={() => setDeleteRunner(runner)}
+                      aria-label={`Delete runner ${runner.name}`}
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>
                   </div>
                 </div>
               </div>
-            ))
+            ))}
+            </>
           )}
         </div>
       )}
@@ -544,6 +684,89 @@ export default function Runners() {
               Delete
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Bulk delete confirmation */}
+      <Dialog open={bulkAction === 'delete'} onOpenChange={(open) => { if (!open && !bulkBusy) setBulkAction(null); }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              Delete {selectedRunners.length} runner{selectedRunners.length === 1 ? '' : 's'}
+            </DialogTitle>
+            <DialogDescription>
+              These runners are removed and stop receiving jobs. Each one needs to register again to appear here.
+            </DialogDescription>
+          </DialogHeader>
+          <ul className="max-h-48 overflow-y-auto space-y-1 text-sm" aria-label="Runners to delete">
+            {selectedRunners.map((r) => (
+              <li key={r.id} className="flex items-center gap-2">
+                <div className={cn('w-2 h-2 rounded-full shrink-0', getStatusColor(r.status))} />
+                <span className="truncate">{r.name}</span>
+              </li>
+            ))}
+          </ul>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setBulkAction(null)} disabled={bulkBusy}>Cancel</Button>
+            <Button variant="destructive" onClick={() => { void handleBulkDelete(); }} disabled={bulkBusy || selectedRunners.length === 0}>
+              {bulkBusy ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+              Delete {selectedRunners.length} runner{selectedRunners.length === 1 ? '' : 's'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Bulk label add/remove */}
+      <Dialog
+        open={bulkAction === 'add-label' || bulkAction === 'remove-label'}
+        onOpenChange={(open) => { if (!open && !bulkBusy) setBulkAction(null); }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{bulkAction === 'add-label' ? 'Add label' : 'Remove label'}</DialogTitle>
+            <DialogDescription>
+              {bulkAction === 'add-label' ? 'Add a label to' : 'Remove a label from'} the {selectedRunners.length} selected
+              runner{selectedRunners.length === 1 ? '' : 's'}. Other labels are left as they are.
+            </DialogDescription>
+          </DialogHeader>
+          <form
+            onSubmit={(e) => { e.preventDefault(); void handleBulkLabel(); }}
+            className="space-y-4"
+          >
+            <div className="space-y-2">
+              <Label htmlFor="bulk-label">Label</Label>
+              {bulkAction === 'add-label' ? (
+                <Input
+                  id="bulk-label"
+                  value={bulkLabel}
+                  onChange={(e) => setBulkLabel(e.target.value)}
+                  placeholder="e.g. gpu"
+                  disabled={bulkBusy}
+                  autoFocus
+                />
+              ) : (
+                <Select value={bulkLabel} onValueChange={setBulkLabel} disabled={bulkBusy}>
+                  <SelectTrigger id="bulk-label">
+                    <SelectValue placeholder="Select a label..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {selectedLabels.map((l) => (
+                      <SelectItem key={l} value={l}>{l}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setBulkAction(null)} disabled={bulkBusy}>
+                Cancel
+              </Button>
+              <Button type="submit" disabled={bulkBusy || !normalizeLabel(bulkLabel)}>
+                {bulkBusy ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                {bulkAction === 'add-label' ? 'Add label' : 'Remove label'}
+              </Button>
+            </DialogFooter>
+          </form>
         </DialogContent>
       </Dialog>
     </div>

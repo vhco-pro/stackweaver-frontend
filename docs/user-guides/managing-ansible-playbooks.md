@@ -13,7 +13,7 @@ A playbook in Stackweaver is a registered pointer to a playbook file in a connec
 
 ## Registering a single playbook
 
-On the Playbooks page, the "New Playbook" button opens a form where you pick a VCS connection, repository, and branch, then choose the playbook file. The path field suggests YAML files found in the repository, and the playbook name is generated from the repository, branch, and path unless you type your own. This is the right flow when you want full control over the name, description, and source mode of one playbook.
+On the Playbooks page, the "New Playbook" button opens a form where you pick a VCS connection, repository, and branch, then choose the playbook file. The path field lists the playbook candidates found in the repository, using the same rules as the import wizard described below, and the playbook name is generated from the repository, branch, and path unless you type your own. This is the right flow when you want full control over the name, description, and source mode of one playbook.
 
 ## Finding playbooks on the overview page
 
@@ -23,7 +23,7 @@ Each card states its sync state and when that sync happened as a single piece of
 
 ## Importing many playbooks at once
 
-When a repository contains many playbooks, the "Import from repository" button on the Playbooks page opens the bulk-import wizard. After you select a connection, repository, and branch, Stackweaver scans the repository and lists every playbook candidate it finds. Files that are already registered appear disabled with the name of their existing playbook, so re-running the import is always safe: existing playbooks are skipped, never duplicated. Check the files you want (or use select-all), optionally narrow the list with the directory filter, choose a source mode, and import. Each created playbook is synced immediately, and the wizard shows a per-file result summary of what was created, skipped, or failed.
+When a repository contains many playbooks, the "Import from repository" button on the Playbooks page opens the bulk-import wizard. After you select a connection, repository, and branch, Stackweaver scans the repository and lists every playbook candidate it finds. A candidate is a `.yml` or `.yaml` file outside the locations that conventionally hold something else: role internals (`roles/`, `tasks/`, `handlers/`, `defaults/` and similar), variable files (`group_vars/`, `host_vars/`, `vars/`), inventories (`inventories/`, `inventory/`, files named `hosts` or `inventory`, and cloud inventory plugin files such as `azure_rm.yml`), tests, hidden directories such as `.github/`, and dependency or tooling files such as `requirements.yml` and `docker-compose.yml`. Files that are already registered appear disabled with the name of their existing playbook, so re-running the import is always safe: existing playbooks are skipped, never duplicated. Check the files you want (or use select-all), optionally narrow the list with the directory filter, choose a source mode, and import. Each created playbook is synced immediately, and the wizard shows a per-file result summary of what was created, skipped, or failed.
 
 Playbook names are derived from the filename. When two files would produce the same name (for example two `site.yml` files in different directories), the name is disambiguated deterministically with the parent directory, then the repository name, then a numeric suffix. Names are unique within a project.
 
