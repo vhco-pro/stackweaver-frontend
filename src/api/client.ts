@@ -1036,6 +1036,15 @@ export interface AgentToken {
   description?: string;
   created_at?: string;
   last_used_at?: string;
+  expired_at?: string; // set only on a token retired by rotation
+}
+
+// AgentTokenRotation is the result of rotating an agent token: the replacement (with its plaintext)
+// and when the retired token stops working.
+export interface AgentTokenRotation {
+  token: AgentToken;
+  rotatedFrom: string;
+  previousExpiresAt?: string;
 }
 
 function agentTokenFromJsonApi(item: JsonApiResource): AgentToken {
@@ -1046,6 +1055,7 @@ function agentTokenFromJsonApi(item: JsonApiResource): AgentToken {
     description: a['description'] ? String(a['description']) : '',
     created_at: a['created-at'] ? String(a['created-at']) : undefined,
     last_used_at: a['last-used-at'] ? String(a['last-used-at']) : undefined,
+    expired_at: a['expired-at'] ? String(a['expired-at']) : undefined,
   };
 }
 
@@ -1059,6 +1069,16 @@ export const agentTokensApi = {
     }).then(res => agentTokenFromJsonApi(res.data)),
   delete: (tokenId: string) =>
     apiClient.delete(`/authentication-tokens/${tokenId}`),
+  // Stackweaver extension: mint a replacement and keep the old token working for graceHours.
+  rotate: (tokenId: string, graceHours: number): Promise<AgentTokenRotation> =>
+    apiClient.post<{ data: JsonApiResource; meta?: { 'rotated-from'?: string; 'rotated-from-expired-at'?: string | null } }>(
+      `/authentication-tokens/${tokenId}/actions/rotate`,
+      { data: { type: 'authentication-tokens', attributes: { 'grace-period-hours': graceHours } } },
+    ).then(res => ({
+      token: agentTokenFromJsonApi(res.data),
+      rotatedFrom: res.meta?.['rotated-from'] ?? tokenId,
+      previousExpiresAt: res.meta?.['rotated-from-expired-at'] ?? undefined,
+    })),
 };
 
 // ============ Run Tasks (tfe_organization_run_task family) ============
@@ -1795,15 +1815,12 @@ export const vcsConnectionsApi = {
     const query = params.toString() ? `?${params.toString()}` : '';
     return apiClient.get<{ data: { content: string; path: string; ref: string } }>(`/vcs-connections/${id}/repositories/${owner}/${repo}/contents/${path}${query}`).then(res => res.data);
   },
-  listYamlFiles: (id: string, owner: string, repo: string, ref?: string) => {
+  // Lists inventory candidate files (the server drops playbooks, roles, vars and
+  // tooling files); `path` optionally scopes the listing to a repo directory.
+  listInventoryFiles: (id: string, owner: string, repo: string, ref?: string, path?: string) => {
     const params = new URLSearchParams();
     if (ref) params.append('ref', ref);
-    const query = params.toString() ? `?${params.toString()}` : '';
-    return apiClient.get<{ data: string[] }>(`/vcs-connections/${id}/repositories/${owner}/${repo}/yaml-files${query}`).then(res => res.data);
-  },
-  listInventoryFiles: (id: string, owner: string, repo: string, ref?: string) => {
-    const params = new URLSearchParams();
-    if (ref) params.append('ref', ref);
+    if (path) params.append('path', path);
     const query = params.toString() ? `?${params.toString()}` : '';
     return apiClient.get<{ data: string[] }>(`/vcs-connections/${id}/repositories/${owner}/${repo}/inventory-files${query}`).then(res => res.data);
   },

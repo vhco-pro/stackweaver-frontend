@@ -1028,7 +1028,7 @@ export default function Inventories() {
                       )}
                       <p className="text-xs text-muted-foreground">
                         {inventoryFiles.length > 0 
-                          ? `Select an inventory file from the repository (${inventoryFiles.length} found - .ini, .yaml, .yml, .json)` 
+                          ? `Select an inventory file from the repository (${inventoryFiles.length} found)`
                           : 'Path to the inventory file within the repository (e.g., inventory.ini, inventories/production.yml)'}
                       </p>
                     </div>

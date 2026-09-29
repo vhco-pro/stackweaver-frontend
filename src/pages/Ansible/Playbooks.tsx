@@ -237,17 +237,24 @@ export default function Playbooks() {
     enabled: createDialogOpen && !!createForm.vcs_connection_id && !!pbOwner && !!pbRepo,
   });
 
-  const { data: yamlFiles = [], isLoading: loadingYamlFiles } = useQuery({
-    queryKey: ['pb-create-yaml', createForm.vcs_connection_id, createForm.vcs_repository, createForm.vcs_branch],
+  const { data: playbookFiles = [], isLoading: loadingPlaybookFiles } = useQuery({
+    queryKey: ['pb-create-playbook-files', selectedOrg, createForm.vcs_connection_id, createForm.vcs_repository, createForm.vcs_branch],
     queryFn: async () => {
       try {
-        return (await vcsConnectionsApi.listYamlFiles(createForm.vcs_connection_id, pbOwner, pbRepo, createForm.vcs_branch)) || [];
+        // Playbook candidates only: the discovery endpoint drops roles, vars,
+        // inventories and tooling files (the same filter as the import wizard).
+        const res = await ansiblePlaybooksApi.listVcsFiles(selectedOrg, {
+          vcs_connection_id: createForm.vcs_connection_id,
+          repository: createForm.vcs_repository,
+          branch: createForm.vcs_branch,
+        });
+        return (res.data || []).map((entry) => entry.path);
       } catch (err) {
-        console.error('Failed to load YAML files:', err);
+        console.error('Failed to load playbook files:', err);
         return [];
       }
     },
-    enabled: createDialogOpen && !!createForm.vcs_connection_id && !!createForm.vcs_repository && !!createForm.vcs_branch && !!pbOwner && !!pbRepo,
+    enabled: createDialogOpen && !!createForm.vcs_connection_id && !!createForm.vcs_repository && !!createForm.vcs_branch && !!selectedOrg && !!pbOwner && !!pbRepo,
   });
 
   // Auto-select the sole VCS connection once it loads (during render, once per load).
@@ -1016,12 +1023,12 @@ export default function Playbooks() {
               <>
               <div className="space-y-2">
                 <Label htmlFor="playbook_path">Playbook Path</Label>
-                {loadingYamlFiles ? (
+                {loadingPlaybookFiles ? (
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
                     <Loader2 className="h-4 w-4 animate-spin" />
                     Loading playbook files...
                   </div>
-                ) : yamlFiles.length > 0 ? (
+                ) : playbookFiles.length > 0 ? (
                   <Select
                     value={createForm.playbook_path}
                     onValueChange={(value) => setCreateForm({ ...createForm, playbook_path: value })}
@@ -1049,7 +1056,7 @@ export default function Playbooks() {
                         />
                       </div>
                       <div className="max-h-[250px] overflow-y-auto">
-                        {yamlFiles
+                        {playbookFiles
                           .filter((file) =>
                             file.toLowerCase().includes(playbookPathSearch.toLowerCase())
                           )
@@ -1058,7 +1065,7 @@ export default function Playbooks() {
                               {file}
                             </SelectItem>
                           ))}
-                        {yamlFiles.filter((file) =>
+                        {playbookFiles.filter((file) =>
                           file.toLowerCase().includes(playbookPathSearch.toLowerCase())
                         ).length === 0 && (
                           <div className="px-2 py-6 text-center text-sm text-muted-foreground">
@@ -1077,8 +1084,8 @@ export default function Playbooks() {
                   />
                 )}
                 <p className="text-xs text-muted-foreground">
-                  {yamlFiles.length > 0
-                    ? `Select a playbook file from the repository (${yamlFiles.length} found)`
+                  {playbookFiles.length > 0
+                    ? `Select a playbook file from the repository (${playbookFiles.length} found)`
                     : 'Path to the main playbook file within the repository (e.g., site.yml, playbooks/deploy.yml)'}
                 </p>
               </div>

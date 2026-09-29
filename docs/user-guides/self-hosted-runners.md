@@ -108,6 +108,12 @@ Use this token only when starting the runner container. Do not commit it to sour
 > [!TIP]
 > **Pool-scoped agent tokens.** Instead of a general runner-scoped API key, you can create an agent token directly on a pool: expand the pool on the **Settings > Agent Pools** page and use its **Agent tokens** section (create with a description, copy the value once, revoke when done). An agent token is a registration credential **bound to that one pool** - a runner presenting it can only join that pool - so it is the safest way to hand out registration access per environment. This is the Terraform-compatible `tfe_agent_token` resource, so you can also manage these tokens with the `hashicorp/tfe` provider. Everything below works the same whichever kind of registration token you use.
 
+### Rotating an agent token
+
+To replace an agent token without a registration gap, use **Rotate** on the token's row in the pool's **Agent tokens** section. You choose a grace period (24 hours by default, up to 7 days, or immediate retirement), and StackWeaver creates a new token with the same description and shows its value once. The old token keeps working until the grace period ends and is rejected afterwards; its row shows when it expires. Within that window, update each runner's `STACKWEAVER_TOKEN` to the new value and restart it: a runner that registers again under the same `RUNNER_NAME` keeps its identity, labels, and pool, so the fleet moves over one host at a time without downtime. Rotating a token that is already retiring never extends its expiry.
+
+Rotation is also available over the API as `POST /api/v2/authentication-tokens/:id/actions/rotate`, with an optional `grace-period-hours` attribute (0 to 168). The response carries the new token and, in its `meta`, the id and expiry of the token it replaced. This action is a StackWeaver extension: the TFE agent token API has no rotate operation, so the `hashicorp/tfe` provider cannot drive it, and a token managed by that provider is rotated by replacing the resource instead.
+
 ---
 
 ## Step 3: Run the Runner
@@ -343,6 +349,8 @@ Runners send heartbeats to the API on a regular interval. If heartbeats stop (e.
 
 - **Edit**: From the runner list or detail page, use **Edit** to change the runner’s description and labels. Labels can be used for job targeting (e.g. route only to runners with a `gpu` label).
 - **Delete**: Deleting a runner removes it from the UI. The container will no longer receive jobs. To use that host again, run the container again with the same or a new API key; it will register as a new runner.
+
+To act on several runners at once, tick the checkbox on each runner card, or use **Select all** in the bar above the list. With runners selected, the bar offers **Add label** and **Remove label**, which change only that one label on each selected runner and leave its other labels alone, and **Delete**, which asks for confirmation and lists the runners it will remove. If some runners in a batch fail, the rest are still processed, and only the failed ones stay selected so you can retry them.
 
 ---
 
