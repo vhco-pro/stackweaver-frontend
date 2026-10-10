@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useNavigate, useSearchParams, useParams } from 'react-router-dom';
 import { Loader2 } from 'lucide-react';
-import { completeIdP, createSession, finalizeAuthRequest, getLoginSettings, createUser } from '@/api/auth-client';
+import { completeIdP, createSession, finalizeAuthRequest, createUser } from '@/api/auth-client';
 import { useMountEffect } from '@/hooks/useMountEffect';
 import LoginLayout from './LoginLayout';
 import { toFriendlyError } from '@/lib/auth-errors';
@@ -117,7 +117,6 @@ export default function IdpProcess() {
       try {
         // Consume the single-use IdP intent token
         const intentResult = await completeIdP(intentId, token) as IdpIntentResult;
-        const settings = await getLoginSettings();
         const authRequestId = sessionStorage.getItem('pending_auth_request') ?? '';
 
         const idpInfo = intentResult.idpInformation;
@@ -194,35 +193,16 @@ export default function IdpProcess() {
           }
         }
 
-        // Branch 3: Auto-creation. Triggered by either (a) Zitadel's
-        // pre-shaped `addHumanUser` block (set when the IdP has
-        // `autoRegister: true` and the IdP-side claims carry enough to
-        // create a user - so its presence IS the signal), or (b) the SPA-
-        // level `settings.autoRegister` fallback for IdPs that don't
-        // pre-shape. Prefer (a) because it carries the idpLinks Zitadel
-        // wants - using SPA-rebuilt links risks shape mismatches.
-        const suggestion = intentResult.addHumanUser;
-        if (suggestion) {
+        // Branch 3: Auto-creation. Zitadel returns `addHumanUser` for every identity that is not
+        // linked to a user yet. The SPA sends only the intent: the proxy redeems it with Zitadel and
+        // builds the user from Zitadel's own suggestion (#829 D5), so nothing the browser sends can
+        // change the email, the links or the org. The proxy answers 409 when the email already
+        // belongs to an account, which must sign in with its password first (#829 Q13).
+        if (intentResult.addHumanUser) {
           try {
-            // Zitadel's IDPLink.userName is required (1-200 runes) but
-            // omitted from the pre-shape on some IdP types. Fall back to
-            // the rawInformation `name`/`email` on each link without one.
-            const idpLinks = (suggestion.idpLinks ?? []).map((link) => ({
-              ...link,
-              userName: link.userName && link.userName.length > 0
-                ? link.userName
-                : rawUser?.name ?? rawUser?.email ?? link.userId,
-            }));
             const userResult = await createUser({
-              profile: {
-                givenName: suggestion.profile?.givenName ?? '',
-                familyName: suggestion.profile?.familyName ?? '',
-              },
-              email: {
-                email: suggestion.email?.email ?? '',
-                isVerified: suggestion.email?.isVerified ?? false,
-              },
-              idpLinks,
+              idpIntentId: intentId,
+              idpIntentToken: token,
             }) as { userId?: string };
 
             if (!userResult.userId) throw new Error('User creation returned no ID');
@@ -236,6 +216,9 @@ export default function IdpProcess() {
             await finalizeAndRedirect(sessionResp.sessionId, sessionResp.sessionToken, authRequestId);
             return;
           } catch (err) {
+            if ((err as { code?: number }).code === 409) {
+              return 'An account with this email already exists. Sign in with your password first.';
+            }
             // Surface the cause: the redirect alone gives users (and bug
             // reports, and E2E traces) nothing to diagnose registration
             // failures with - the API error lands only here.
@@ -243,55 +226,6 @@ export default function IdpProcess() {
             void navigate(`/login/idp/${providerName}/registration-failed`);
             return;
           }
-        }
-
-        if (settings.autoRegister && rawUser) {
-          try {
-            const userResult = await createUser({
-              profile: {
-                givenName: rawUser.given_name ?? rawUser.name ?? '',
-                familyName: rawUser.family_name ?? '',
-              },
-              email: {
-                email: rawUser.email ?? '',
-                isVerified: rawUser.email_verified ?? false,
-              },
-              idpLinks: [{
-                idpId: idpInfo?.idpId ?? '',
-                userId: rawUser.sub ?? '',
-                userName: rawUser.name ?? rawUser.email ?? '',
-              }],
-            }) as { userId?: string };
-
-            if (!userResult.userId) throw new Error('User creation returned no ID');
-
-            const sessionResp = await createSession({
-              checks: {
-                user: { userId: userResult.userId },
-                idpIntent: { idpIntentId: intentId, idpIntentToken: token },
-              },
-            });
-            await finalizeAndRedirect(sessionResp.sessionId, sessionResp.sessionToken, authRequestId);
-            return;
-          } catch (err) {
-            // Surface the cause: the redirect alone gives users (and bug
-            // reports, and E2E traces) nothing to diagnose registration
-            // failures with - the API error lands only here.
-            console.error('IdP auto-registration failed:', err);
-            void navigate(`/login/idp/${providerName}/registration-failed`);
-            return;
-          }
-        }
-
-        // Branch 4: Manual creation - show pre-filled registration form
-        if (rawUser?.email) {
-          const params = new URLSearchParams({
-            email: rawUser.email ?? '',
-            firstName: rawUser.given_name ?? '',
-            lastName: rawUser.family_name ?? '',
-          });
-          void navigate(`/login/idp/${providerName}/complete-registration?${params.toString()}`);
-          return;
         }
 
         // Branch 5: No user found and no data to create from

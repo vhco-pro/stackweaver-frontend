@@ -86,7 +86,7 @@ AZURE_AD_CLIENT_SECRET=your-client-secret-value
 AZURE_AD_TENANT_ID=f0e1d2c3-b4a5-6789-0abc-def123456789
 ```
 
-If you omit `AZURE_AD_TENANT_ID`, StackWeaver will configure the provider in "common" multi-tenant mode, which allows any Azure AD tenant to authenticate. For most deployments, you should set the tenant ID to restrict access to your organization.
+`AZURE_AD_TENANT_ID` is required. A first sign-in through Azure AD creates a StackWeaver account even when public sign-up is off (see [Email (SMTP) and sign-up](../../get-started/self-hosting/email.md)), so the tenant ID is what limits sign-in to your organisation's people. To accept any Microsoft account deliberately, leave the tenant ID empty and set `AZURE_AD_ALLOW_MULTI_TENANT=true` (Helm: `sso.azureAd.allowMultiTenant: true`); without one of the two, `zitadel-init` stops with an error naming both settings.
 
 Then restart the `zitadel-init` service to apply the configuration:
 
@@ -181,9 +181,9 @@ The Azure AD provider is configured with the following behaviors:
 
 | Setting | Value | Description |
 |---------|-------|-------------|
-| Auto-creation | Enabled | New users are automatically created in Zitadel on first login |
+| Auto-creation | Enabled | New users are automatically created in Zitadel on first login, with their email marked as verified, even when public sign-up is off |
 | Auto-update | Enabled | User profile (name, email) is synced on each login |
-| Account linking | Email-based | If a Zitadel user with the same email already exists, accounts are linked automatically |
+| Account linking | Not automatic | A first sign-in whose email already belongs to an existing account is refused, and the person is asked to sign in with their password first |
 | Email verification | Trusted | Azure AD emails are treated as verified (Azure AD does not send the `email_verified` claim) |
 | Scopes | `openid`, `profile`, `email`, `User.Read` | Standard OIDC scopes plus Microsoft Graph basic profile |
 
@@ -217,7 +217,7 @@ Also ensure the redirect URI registered in Azure Portal matches `https://your-do
 
 ### User creation failed on first SSO login
 
-If you see a "Login failed" page with `error=user_creation_failed` in the URL, Zitadel could not auto-provision the user. The most common cause is a missing first or last name in the Azure AD profile. Zitadel requires a non-empty `GivenName` (first name) to create a user.
+If the first SSO login ends on a "Registration failed" page (a URL ending in `/registration-failed`), Zitadel could not auto-provision the user. The most common cause is a missing first or last name in the Azure AD profile. Zitadel requires a non-empty `GivenName` (first name) to create a user.
 
 To fix this:
 

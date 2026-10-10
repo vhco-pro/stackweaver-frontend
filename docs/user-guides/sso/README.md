@@ -27,7 +27,7 @@ sequenceDiagram
     Zitadel->>IdP: Redirect to external IdP
     User->>IdP: Authenticates with corporate credentials
     IdP-->>Zitadel: ID token (email, name, groups)
-    Zitadel->>Zitadel: Auto-provision / link user
+    Zitadel->>Zitadel: Sign in linked user / create on first login
     Zitadel-->>StackWeaver: StackWeaver JWT
     StackWeaver->>API: API request with JWT
     API->>API: Verify JWT & provision user
@@ -39,12 +39,12 @@ sequenceDiagram
 1. **External login** - The user clicks the external login button on the StackWeaver login page.
 2. **Broker redirect** - StackWeaver redirects to Zitadel, which redirects to the external IdP (e.g., Azure AD).
 3. **Authentication** - The IdP authenticates the user and returns an ID token with claims (email, name, groups).
-4. **User linking** - Zitadel receives the token, auto-provisions or links the user, and issues a StackWeaver JWT.
+4. **User linking** - Zitadel receives the token. A user already linked to this identity is signed in; on a first sign-in StackWeaver creates the user in Zitadel from the identity provider's profile. Zitadel then issues a StackWeaver JWT.
 5. **API provisioning** - The StackWeaver API verifies the JWT and provisions the user in its local database.
 
 </details>
 
-Users are automatically provisioned in StackWeaver on their first login. However, they do not have access to any organization until an administrator invites them or SSO group-to-team mapping is configured.
+Users are automatically provisioned in StackWeaver on their first login, but they do not have access to any organization until an administrator invites them or SSO group-to-team mapping is configured. The account is created with its email marked as verified, and a configured identity provider creates accounts even when public sign-up is off, so configure only providers that your organisation's people alone can sign in to (see [Email (SMTP) and sign-up](../../get-started/self-hosting/email.md)). If an account with the same email address already exists, the first SSO sign-in is refused and the person is asked to sign in with their password first.
 
 ## Supported Providers
 
@@ -159,6 +159,8 @@ sso:
     clientId: "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
     tenantId: "f0e1d2c3-b4a5-6789-0abc-def123456789"
 ```
+
+`tenantId` is required unless you set `allowMultiTenant: true` to accept any Microsoft account (see the [Azure AD guide](./azure-ad.md)).
 
 **Okta example:**
 

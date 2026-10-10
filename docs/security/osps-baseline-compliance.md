@@ -98,7 +98,7 @@ A handful of individual Scorecard checks sit below 10 for **structural** reasons
 |----|-------------|:------:|-------------------------|
 | BR-01.01 | Untrusted CI metadata is sanitised before use | ✅ | Release workflows trigger on tag push (internal, not attacker-controlled). The one `pull_request_target` workflow (`auto-approve-sync.yml`) never checks out or executes PR code and reads only event metadata - see [Sync Architecture § Why `pull_request_target` is safe here](./sync-architecture.md#why-pull_request_target-is-safe-here). |
 | BR-01.03 | Untrusted code snapshots cannot access privileged CI credentials | ✅ | No satellite workflow exposes secrets to fork PRs; the OpenSSF Scorecard `Dangerous-Workflow` check scores **10** on all in-scope satellites. |
-| BR-03.01 | Official project channels use encrypted transport | ✅ | All channels are HTTPS (GitHub, GHCR, `sw.vhco.pro` docs). |
+| BR-03.01 | Official project channels use encrypted transport | ✅ | All channels are HTTPS (GitHub, GHCR, `stackweaver.sh` docs). |
 | BR-03.02 | The official distribution channel is authenticated against adversary-in-the-middle attacks | ✅ | TLS plus Sigstore keyless signing binds every artefact to its producing workflow - see [Verifying a Release](./verifying-releases.md). |
 | BR-07.01 | Unencrypted secrets are kept out of version control | ✅ | Secret scanning **and** push protection are enabled on every in-scope satellite. `gh api repos/vhco-pro/stackweaver-api --jq '.security_and_analysis.secret_scanning_push_protection.status'` → `enabled` |
 
@@ -106,7 +106,7 @@ A handful of individual Scorecard checks sit below 10 for **structural** reasons
 
 | ID | Requirement | Status | Evidence & verification |
 |----|-------------|:------:|-------------------------|
-| DO-01.01 | Documentation includes user guides for basic functionality | ✅ | Published at `sw.vhco.pro/docs`; the frontend satellite carries the docs source under `docs/`. |
+| DO-01.01 | Documentation includes user guides for basic functionality | ✅ | Published at `stackweaver.sh/docs`; the frontend satellite carries the docs source under `docs/`. |
 | DO-02.01 | Documentation includes a defect-reporting guide | ✅ | Org-wide issue templates and a routing `config.yml` are provided via [`vhco-pro/.github`](https://github.com/vhco-pro/.github/tree/main/.github/ISSUE_TEMPLATE), inherited by every satellite. |
 
 ### Governance

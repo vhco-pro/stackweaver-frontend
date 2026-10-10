@@ -1,6 +1,7 @@
 // Copyright (c) 2025 VH & Co BV. Licensed under the Business Source License 1.1. See LICENSE for details.
 
 import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -184,6 +185,16 @@ export default function Password() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
+  // "Forgot password?" follows the login policy and fails closed (#829): without SMTP the
+  // policy hides it, because a reset code could never arrive. zitadel-init gives every org the
+  // same value, so the unscoped read is the right one.
+  const { data: loginSettings } = useQuery({
+    queryKey: ['login-settings', 'password-page'],
+    queryFn: () => getLoginSettings(),
+    gcTime: 0,
+  });
+  const showPasswordReset = loginSettings !== undefined && loginSettings.hidePasswordReset !== true;
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!password) {
@@ -305,13 +316,15 @@ export default function Password() {
           >
             Use a different account
           </Button>
-          <Button
-            variant="link"
-            className="p-0 h-auto text-muted-foreground"
-            onClick={() => { void navigate(`/login/password-reset?authRequest=${authRequestId}`); }}
-          >
-            Forgot password?
-          </Button>
+          {showPasswordReset && (
+            <Button
+              variant="link"
+              className="p-0 h-auto text-muted-foreground"
+              onClick={() => { void navigate(`/login/password-reset?authRequest=${authRequestId}`); }}
+            >
+              Forgot password?
+            </Button>
+          )}
         </div>
       </form>
     </LoginLayout>

@@ -3,6 +3,7 @@
 import { createContext, useContext, useState, useCallback, type ReactNode } from 'react';
 import { getAccessToken, getUserInfo, getLogoutUrl, clearTokens, clearTokensIfClientChanged, isTokenExpired, refreshAccessToken } from '@/lib/zitadel';
 import { useMountEffect } from '@/hooks/useMountEffect';
+import { needsEmailVerification, verifyEmailRequiredPath } from '@/lib/emailVerification';
 
 // Zitadel user session type
 export type Session = {
@@ -84,7 +85,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // Verify token is still valid by fetching user info
         try {
           const userInfo = await getUserInfo(accessToken);
-          
+
+          // #829 D5: an account with an unverified email cannot use the platform (the API
+          // answers 403), so send it to the page that explains what to do.
+          if (needsEmailVerification(userInfo)) {
+            clearTokens();
+            setSession(null);
+            window.location.assign(verifyEmailRequiredPath(userInfo.email ?? ''));
+            return;
+          }
+
           setSession({
             id: userInfo.sub || '',
             user: {
@@ -139,6 +149,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               // Retry with new token
               try {
                 const userInfo = await getUserInfo(newTokens.access_token);
+                if (needsEmailVerification(userInfo)) {
+                  clearTokens();
+                  setSession(null);
+                  window.location.assign(verifyEmailRequiredPath(userInfo.email ?? ''));
+                  return;
+                }
                 setSession({
                   id: userInfo.sub || '',
                   user: {

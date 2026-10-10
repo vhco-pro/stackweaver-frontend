@@ -26,6 +26,9 @@ DefaultInstance:
   LoginPolicy:
     AllowUsernamePassword: true
     AllowExternalIDPs: true
+    # A new instance starts with registration closed; zitadel-init opens it only when mail can
+    # be delivered and STACKWEAVER_SELF_REGISTRATION=true. Applies at instance creation only.
+    AllowRegister: false
   Org:
     LoginPolicy:
       AllowUsernamePassword: true

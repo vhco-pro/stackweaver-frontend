@@ -40,6 +40,8 @@ flowchart TD
     C --> D["Provisions OIDC apps, webhooks, service users"]
     C --> E["Writes results to K8s Secret"]
     C --> F["Restarts API + frontend pods"]
+    C -->|Admin PAT in K8s Secret| G["4. zitadel-reconcile Job (post-install/post-upgrade)"]
+    G --> H["Applies SMTP provider + login policy"]
 ```
 
 <details>
@@ -50,6 +52,8 @@ flowchart TD
 2. **Zitadel starts** - The Zitadel pod waits for PostgreSQL to be ready (via an initContainer), then runs `start-from-init`. It reads `masterkey` and `adminPassword` from the Kubernetes Secret via environment variables.
 
 3. **zitadel-init sidecar** - A sidecar container in the same pod as Zitadel waits for Zitadel to become ready, then provisions the OIDC apps (frontend, API), registers the production redirect URI, sets the Login V2 BaseURI to the Stackweaver SPA's `/login` path via the Feature API, configures the login service user (whose PAT is consumed by the API container's auth proxy + TOTP service + Zitadel webhook handler), and webhook keys, then writes the results directly into the Zitadel Kubernetes Secret. It also triggers rolling restarts of the API + frontend pods, then enters an idle state with a health endpoint on `:8081`.
+
+4. **zitadel-reconcile Job** - After every `helm install` and `helm upgrade`, a Job (`stackweaver-zitadel-reconcile` for a release named `stackweaver`) runs the same image in reconcile-only mode (`ZITADEL_INIT_MODE=reconcile`). It reads the admin PAT the sidecar stored in the Zitadel Secret, configures Zitadel's SMTP provider from the `smtp.*` values, and sets the login policy (registration, password reset, email codes) to match whether email can be delivered and `signup.selfRegistration`. A failure fails the `helm` command while Zitadel keeps serving sign-ins. The Job renders only with `zitadel.bundled: true`. See [Email (SMTP) and sign-up](../../get-started/self-hosting/email.md).
 
 </details>
 
@@ -202,11 +206,12 @@ The Feature API update runs after every ArgoCD sync, so setting the correct `ing
 If you need to verify what BaseURI is currently active:
 
 ```bash
-# Check the LOGIN_UI_BASE_URL passed to the init job
-kubectl describe job stackweaver-zitadel-init -n stackweaver | grep LOGIN_UI_BASE_URL
+# Check the LOGIN_UI_BASE_URL passed to the zitadel-init sidecar
+kubectl get deploy stackweaver-zitadel -n stackweaver \
+  -o jsonpath='{.spec.template.spec.containers[?(@.name=="zitadel-init")].env[?(@.name=="LOGIN_UI_BASE_URL")].value}'
 
-# Or check the zitadel-init job logs for the confirmation line
-kubectl logs job/stackweaver-zitadel-init -n stackweaver | grep "Login V2 BaseURI"
+# Or check the zitadel-init sidecar logs for the confirmation line
+kubectl logs deploy/stackweaver-zitadel -c zitadel-init -n stackweaver | grep "Login V2 BaseURI"
 ```
 
 ---
@@ -254,6 +259,7 @@ flowchart TD
     C --> C2["OIDC Apps (Frontend PKCE, API)"]
     C --> C3["Service User + PAT (consumed by API auth proxy)"]
     C --> C4["Webhook Signing Keys + BaseURI"]
+    C --> C5["SMTP Provider + Login Policy"]
 ```
 
 <details>
@@ -261,7 +267,7 @@ flowchart TD
 
 1. **Acquire admin PAT** - **Docker Compose**: waits up to 300s for `/pat/admin.pat` (written by Zitadel during `start-from-init`). **Kubernetes (first boot)**: waits for readiness, reads PAT from emptyDir, persists to K8s Secret. **Kubernetes (pod restart)**: falls back to `admin-pat` from K8s Secret. **Manual override**: `ZITADEL_PAT` env var takes highest priority.
 2. **Connect** - Uses the PAT to connect to Zitadel via gRPC at `ZITADEL_INTERNAL_ADDR`: `zitadel:8080` on the Docker Compose bridge network, or `localhost:8080` on Kubernetes, where the initializer runs inside the Zitadel pod.
-3. **Provision** - Creates or updates: Organization `IAC Platform`, Project, Frontend OIDC app (PKCE) with production redirect URI, API app (client secret), service-account machine user + PAT (`IAM_LOGIN_CLIENT` role, named `login-ui-service`, consumed by the API container's auth proxy + TOTP service + Zitadel webhook handler), webhook signing keys, and Login V2 BaseURI (via Feature API).
+3. **Provision** - Creates or updates: Organization `IAC Platform`, Project, Frontend OIDC app (PKCE) with production redirect URI, API app (client secret), service-account machine user + PAT (`IAM_LOGIN_CLIENT` role, named `login-ui-service`, consumed by the API container's auth proxy + TOTP service + Zitadel webhook handler), webhook signing keys, and Login V2 BaseURI (via Feature API). Then it configures Zitadel's SMTP provider from the `SMTP_*` settings in `sso.env` and sets the login policy to match whether email can be delivered and `STACKWEAVER_SELF_REGISTRATION`; an error in either step stops the run (see [Email (SMTP) and sign-up](../../get-started/self-hosting/email.md)). In Kubernetes the sidecar skips these two steps, which the reconcile Job performs instead.
 4. **Write** - Writes the generated values to `.env` in the Compose directory.
 
 </details>
@@ -299,6 +305,8 @@ ZITADEL_WEBHOOK_COMPLEMENT_TOKEN_KEY=<webhook-key>
 | `FRONTEND_REDIRECT_URI` | OAuth redirect URI registered on the frontend OIDC app | empty (Kubernetes only) |
 | `FRONTEND_POST_LOGOUT_URI` | Post-logout redirect URI registered on the frontend OIDC app | empty (Kubernetes only) |
 | `LOGIN_UI_BASE_URL` | Login V2 BaseURI set via Feature API (overrides database value) - points at the Stackweaver SPA's `/login` route. Despite the `LOGIN_UI` prefix, the value is the SPA URL | empty (Kubernetes only) |
+
+The SMTP, sign-up and notification-mode variables (`SMTP_*`, `STACKWEAVER_SELF_REGISTRATION`, `STACKWEAVER_NOTIFICATION_MODE`) are described in [Email (SMTP) and sign-up](../../get-started/self-hosting/email.md) and the [Environment Variables Reference](../../get-started/self-hosting/environment-variables.md).
 
 ### Troubleshooting: Zitadel Not Starting (Docker Compose)
 

@@ -13,4 +13,6 @@ Choose your deployment method:
 - **[Kubernetes](./kubernetes/)**: deploy on Kubernetes using the official Helm chart. Recommended for production.
   - [Kubernetes Pull Secret for GHCR](./kubernetes/kubernetes-pull-secret-ghcr.md): pull StackWeaver images in a private cluster
 
+- **[Email (SMTP) and sign-up](./email.md)**: configure email for sign-up verification, password reset and email login codes, and choose who may create an account
+
 - **[Environment Variables Reference](./environment-variables.md)**: all environment variables for every service, regardless of deployment method

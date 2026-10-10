@@ -71,4 +71,32 @@ describe('IdpProcess', () => {
     expect(mocks.completeIdP).toHaveBeenCalledTimes(1);
     expect(mocks.completeIdP).toHaveBeenCalledWith('intent-other', 'tok');
   });
+
+  // #829 D5: auto-registration sends only the intent; the proxy builds the user from Zitadel.
+  it('auto-registers an unlinked identity by sending only the intent', async () => {
+    mocks.completeIdP.mockResolvedValue({
+      idpInformation: { idpId: 'idp-1', rawInformation: {} },
+      addHumanUser: { email: { email: 'ada@corp.example' }, idpLinks: [{ idpId: 'idp-1', userId: 'sub-1' }] },
+    });
+    mocks.createUser.mockResolvedValue({ userId: 'u-1' });
+    mocks.createSession.mockResolvedValue({ sessionId: 's-1', sessionToken: 't-1' });
+
+    renderAt('intent-create');
+
+    await vi.waitFor(() => { expect(mocks.createUser).toHaveBeenCalledTimes(1); });
+    expect(mocks.createUser).toHaveBeenCalledWith({ idpIntentId: 'intent-create', idpIntentToken: 'tok' });
+  });
+
+  // #829 Q13: an email that already has an account must sign in with its password first.
+  it('tells the user to sign in with their password when the email already has an account', async () => {
+    mocks.completeIdP.mockResolvedValue({
+      idpInformation: { idpId: 'idp-1', rawInformation: {} },
+      addHumanUser: { email: { email: 'ada@corp.example' } },
+    });
+    mocks.createUser.mockRejectedValue(Object.assign(new Error('conflict'), { code: 409 }));
+
+    renderAt('intent-conflict');
+
+    expect(await screen.findByText(/sign in with your password first/i)).toBeInTheDocument();
+  });
 });

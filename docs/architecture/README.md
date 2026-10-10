@@ -114,7 +114,7 @@ flowchart TB
 ### Backend API
 
 **Technology Stack**:
-- **Language**: Go 1.26+
+- **Language**: Go 1.27+
 - **Framework**: Gin (HTTP web framework)
 - **ORM**: GORM (database ORM)
 - **Authentication**: Zitadel OIDC JWT verification
