@@ -8,7 +8,7 @@ covers:
 
 ## Overview
 
-Ansible Galaxy is the official hub for sharing Ansible content. StackWeaver's Ansible runner comes with essential collections pre-installed and **automatically installs additional collections** from `requirements.yml` in your playbook repository.
+Ansible Galaxy is the official hub for sharing Ansible content. StackWeaver's Ansible runner comes with essential collections pre-installed. The platform runner also **automatically installs additional collections** from `requirements.yml` in your playbook repository; jobs that run on a self-hosted agent pool use only the collections installed on the agent host.
 
 ## Pre-Installed Collections
 
@@ -24,7 +24,7 @@ The ansible-runner container includes these essential collections:
 | `ansible.posix` | POSIX operations, JSONL callback |
 | `ansible.netcommon` | Network automation base |
 
-**Code Reference**: `runner-images/ansible/Dockerfile`
+**Code Reference**: `runner-images/ansible/requirements.yml` (the pinned collection list the image installs)
 
 To see all installed collections:
 ```bash
@@ -33,7 +33,7 @@ docker exec ansible-runner ansible-galaxy collection list
 
 ## Auto-Install from requirements.yml ✅
 
-Collections are automatically installed from `requirements.yml` before playbook execution.
+On the platform runner, collections are automatically installed from `requirements.yml` before playbook execution. Self-hosted agent runners do not read `requirements.yml`; install the collections on the agent host instead.
 
 The runner checks these locations in order:
 1. `requirements.yml` (repo root)
@@ -96,30 +96,15 @@ roles:
 
 ## Adding Collections to Runner Image
 
-To permanently add collections, update the Dockerfile:
+To permanently add a collection, add it to the pinned requirements file the image builds from,
+`runner-images/ansible/requirements.yml`, giving it an explicit version the same way the existing
+entries do. The image's Dockerfile copies that file in and runs `ansible-galaxy collection install`
+against it, so the requirements file is the only place the collection list needs to change.
 
-**File**: `runner-images/ansible/Dockerfile`
-
-```dockerfile
-# Install additional Ansible collections
-RUN ansible-galaxy collection install \
-    amazon.aws \
-    azure.azcollection \
-    google.cloud \
-    community.vmware \
-    community.general \
-    ansible.posix \
-    ansible.netcommon \
-    # Add your collections here:
-    cisco.ios \
-    f5networks.f5_modules
-```
-
-Then rebuild:
+Then rebuild the runner:
 ```bash
-cd stackweaver
-docker compose build ansible-runner
-docker compose up -d ansible-runner
+docker compose -f deploy/docker-compose.yml build ansible-runner
+docker compose -f deploy/docker-compose.yml up -d ansible-runner
 ```
 
 ## Collection Search

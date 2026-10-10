@@ -371,9 +371,9 @@ Two variables control how Stackweaver issues OIDC tokens (the same for every clo
 
 ### Why the signing key is required
 
-Stackweaver runs two separate containers that participate in OIDC: the API (which serves the JWKS public key endpoint the cloud fetches) and the runner (which signs the workload identity token injected into each run). If `OIDC_SIGNING_KEY` is not set, each container auto-generates its own independent RSA key pair on startup. The runner then signs tokens with its key, while the API advertises a different public key in the JWKS endpoint - so the cloud cannot find a key matching the `kid` in the runner's token and rejects it (e.g. Azure's `AADSTS700211`).
+Stackweaver runs two separate containers that participate in OIDC: the API (which serves the JWKS public key endpoint the cloud fetches) and the runner (which signs the workload identity token injected into each run). Both read the same `OIDC_SIGNING_KEY`, so the key the runner signs with is the key the API publishes. Without it the API refuses to start, and the runners start with workload identity disabled. An ephemeral key is generated only when `DEV_INSECURE_KEY=1` is set, which is meant for local development: each container then mints its own key, the runner's token carries a `kid` the API's JWKS does not advertise, and the cloud rejects it (for example Azure's `AADSTS700211`).
 
-Setting a shared `OIDC_SIGNING_KEY` ensures both containers use the same key pair.
+On Docker Compose, set `OIDC_SIGNING_KEY` in `oidc.env`; the self-hosting bundle reads that file into the API and both runners. On Kubernetes the chart generates the key into a Secret and mounts it into the same three Deployments, or uses the Secret you name in `secrets.oidc.secretName`.
 
 ### Why the key must be base64-encoded
 
@@ -413,7 +413,7 @@ The issuer, subject, or audience in the token does not match your cloud-side tru
 
 ### Tokens are rejected only after a Stackweaver restart, or intermittently
 
-`OIDC_SIGNING_KEY` is not set, so a new RSA key pair is generated on each startup (and the API/runner may hold different keys). On Docker Compose, set a stable, shared `OIDC_SIGNING_KEY` in `oidc.env` and recreate the services as described in [Generating the signing key](#generating-the-signing-key). On Kubernetes, confirm that the API and runner Deployments reference the same OIDC Secret.
+The containers are running with `DEV_INSECURE_KEY=1` and no `OIDC_SIGNING_KEY`, so each one generates its own RSA key pair on every start and the API and runner hold different keys. On Docker Compose, set a stable, shared `OIDC_SIGNING_KEY` in `oidc.env`, remove `DEV_INSECURE_KEY`, and recreate the services as described in [Generating the signing key](#generating-the-signing-key). On Kubernetes, confirm that the API and runner Deployments reference the same OIDC Secret.
 
 ### Azure: `Contributor` role is not sufficient
 
