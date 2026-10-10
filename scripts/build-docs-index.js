@@ -566,8 +566,24 @@ function processFileInclusions(content, markdownFilePath) {
   const lines = content.split('\n');
   const result = [];
 
+  // An include directive inside a fenced code block is documentation of the syntax, not a
+  // directive. Track the open fence (its character and length) and pass those lines through.
+  let openFence = null;
+
   for (const line of lines) {
-    const match = /^<<<\s+(\S+)$/.exec(line.trim());
+    const fence = /^\s{0,3}(`{3,}|~{3,})/.exec(line);
+    if (fence) {
+      const marker = fence[1];
+      if (!openFence) {
+        openFence = marker;
+      } else if (marker[0] === openFence[0] && marker.length >= openFence.length && line.trim() === marker) {
+        openFence = null;
+      }
+      result.push(line);
+      continue;
+    }
+
+    const match = openFence ? null : /^<<<\s+(\S+)$/.exec(line.trim());
     if (!match) {
       result.push(line);
       continue;
@@ -1423,4 +1439,4 @@ if (require.main === module) {
   });
 }
 
-module.exports = { main, scanDocsDir, optimiseImage, PUBLISHED_ASSETS };
+module.exports = { main, scanDocsDir, optimiseImage, processFileInclusions, PUBLISHED_ASSETS };
