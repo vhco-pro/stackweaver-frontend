@@ -43,4 +43,4 @@ Discovery works for GitHub and Azure DevOps connections. On very large repositor
 
 ## Source modes
 
-Both the wizard and the repository browser register playbooks in `cached` mode by default, meaning jobs run the snapshot captured at sync time and keep working even when the VCS provider is unreachable. Choose `fresh` when a playbook must always run the latest commit. See the changelog entry on configurable playbook sources for the full behavior.
+Both the wizard and the repository browser register playbooks in `cached` mode by default, meaning jobs run the snapshot captured at sync time and keep working even when the VCS provider is unreachable. Choose `fresh` when a playbook must always run the latest commit. Source modes apply to jobs on the platform runner; jobs that run on a self-hosted agent pool always clone the repository fresh, regardless of the playbook's mode. See the changelog entry on configurable playbook sources for the full behavior.
