@@ -55,4 +55,43 @@ describe('LoginName', () => {
       expect(createSession).toHaveBeenCalledWith({ checks: { user: { loginName: 'ada@example.com' } } });
     });
   });
+
+  // #829 AC8: registration and self-service reset are offered only when the policy says so, and
+  // a settings load that fails offers neither (it used to fail open and show both).
+  it('hides "Create account" and "Forgot password?" when the settings cannot be loaded', async () => {
+    vi.mocked(getLoginSettings).mockRejectedValue(new Error('network'));
+    render(
+      <MemoryRouter initialEntries={['/login/loginname?authRequest=req']}>
+        <LoginName />
+      </MemoryRouter>,
+    );
+    expect(await screen.findByLabelText(/username or email/i)).toBeInTheDocument();
+    await waitFor(() => { expect(getLoginSettings).toHaveBeenCalled(); });
+    expect(screen.queryByRole('button', { name: /create account/i })).not.toBeInTheDocument();
+    expect(screen.queryByText(/forgot password/i)).not.toBeInTheDocument();
+  });
+
+  it('shows both when the policy allows registration and password reset', async () => {
+    vi.mocked(getLoginSettings).mockResolvedValue({ allowRegister: true, hidePasswordReset: false });
+    render(
+      <MemoryRouter initialEntries={['/login/loginname?authRequest=req']}>
+        <LoginName />
+      </MemoryRouter>,
+    );
+    expect(await screen.findByRole('button', { name: /create account/i })).toBeInTheDocument();
+    expect(screen.getByText(/forgot password/i)).toBeInTheDocument();
+  });
+
+  it('hides both when the policy closes registration and hides password reset', async () => {
+    vi.mocked(getLoginSettings).mockResolvedValue({ allowRegister: false, hidePasswordReset: true });
+    render(
+      <MemoryRouter initialEntries={['/login/loginname?authRequest=req']}>
+        <LoginName />
+      </MemoryRouter>,
+    );
+    expect(await screen.findByLabelText(/username or email/i)).toBeInTheDocument();
+    await waitFor(() => { expect(getLoginSettings).toHaveBeenCalled(); });
+    expect(screen.queryByRole('button', { name: /create account/i })).not.toBeInTheDocument();
+    expect(screen.queryByText(/forgot password/i)).not.toBeInTheDocument();
+  });
 });

@@ -161,6 +161,9 @@ services:
   # consumed by the auth proxy + TOTP service + Zitadel webhook handler
   # in the API container under the env var ZITADEL_LOGIN_SERVICE_USER_TOKEN.
 
+  # zitadel-init also configures Zitadel's email provider and login policy from the SMTP_* and
+  # STACKWEAVER_SELF_REGISTRATION values in sso.env. The API and zitadel-init both run in email
+  # mode (STACKWEAVER_NOTIFICATION_MODE unset): auth codes are only ever delivered by Zitadel.
   zitadel-init:
     image: ghcr.io/vhco-pro/stackweaver-zitadel-init:latest
     container_name: zitadel-init

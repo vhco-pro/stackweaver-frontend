@@ -230,9 +230,9 @@ After the first login, the user is provisioned but does not have access to any o
 
 | Setting | Value | Description |
 |---------|-------|-------------|
-| Auto-creation | Enabled | New users are automatically created in Zitadel on first login |
+| Auto-creation | Enabled | New users are automatically created in Zitadel on first login, with their email marked as verified, even when public sign-up is off |
 | Auto-update | Enabled | User profile is synced on each login |
-| Account linking | Email-based | Existing users with matching email are automatically linked |
+| Account linking | Not automatic | A first sign-in whose email already belongs to an existing account is refused, and the person is asked to sign in with their password first |
 | Token mapping | Userinfo endpoint | Claims are read from the OIDC userinfo endpoint |
 | Scopes | `openid`, `profile`, `email`, `groups` | Standard OIDC scopes plus groups for team sync |
 

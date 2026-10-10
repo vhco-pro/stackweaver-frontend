@@ -181,9 +181,11 @@ export default function LoginName() {
     }
   };
 
-  // Determine what to show based on login settings
-  const showRegister = settings?.allowRegister !== false;
-  const showPasswordReset = settings?.hidePasswordReset !== true;
+  // Determine what to show based on login settings. Both fail closed (#829): until the policy
+  // has loaded, neither is offered. Zitadel omits false booleans from its JSON, so an absent
+  // `allowRegister` means registration is closed.
+  const showRegister = settings?.allowRegister === true;
+  const showPasswordReset = settings !== null && settings.hidePasswordReset !== true;
 
   // `prompt=none` reached the SPA - Zitadel couldn't silent-renew. Render
   // the failure mode rather than the form. The `Sign in` action drops the

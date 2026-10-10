@@ -489,7 +489,11 @@ sso:
     oidcProviderClientSecret: my-oidc-key   # default: oidc-idp-client-secret
 ```
 
-The zitadel-init sidecar picks up these values, registers the identity provider in Zitadel, and adds the SSO login button automatically. For provider-specific setup instructions (redirect URIs, group claims, etc.), see the [SSO user guides](../../../user-guides/sso/).
+The zitadel-init sidecar picks up these values, registers the identity provider in Zitadel, and adds the SSO login button automatically. `sso.azureAd.tenantId` is required unless you set `sso.azureAd.allowMultiTenant: true` to accept any Microsoft account. For provider-specific setup instructions (redirect URIs, group claims, etc.), see the [SSO user guides](../../../user-guides/sso/).
+
+## Email (SMTP) and Sign-up
+
+Sign-up verification, password reset and email login codes are sent by Zitadel through an SMTP provider you configure with the `smtp.*` values, with the password in a Secret named by `smtp.secretName`. A post-install/post-upgrade Job applies them, together with `signup.selfRegistration`, to the bundled Zitadel; an unusable value fails the `helm` command while Zitadel keeps serving sign-ins. Without SMTP, StackWeaver switches those flows off. See [Email (SMTP) and sign-up](../email.md) for the values, DNS records, and who may create an account.
 
 ## Upgrading
 

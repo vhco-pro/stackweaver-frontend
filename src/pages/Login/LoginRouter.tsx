@@ -19,6 +19,7 @@ import PasswordSet from './PasswordSet';
 import PasswordChange from './PasswordChange';
 import Verify from './Verify';
 import VerifySuccess from './VerifySuccess';
+import VerifyEmailRequired from './VerifyEmailRequired';
 import Accounts from './Accounts';
 import Logout from './Logout';
 import LogoutDone from './LogoutDone';
@@ -27,7 +28,6 @@ import IdpSelect from './IdpSelect';
 import IdpProcess from './IdpProcess';
 import IdpFailure from './IdpFailure';
 import IdpAccountNotFound from './IdpAccountNotFound';
-import IdpCompleteRegistration from './IdpCompleteRegistration';
 import IdpLinkingFailed from './IdpLinkingFailed';
 import IdpRegistrationFailed from './IdpRegistrationFailed';
 import LoginError from './LoginError';
@@ -70,13 +70,13 @@ export default function LoginRouter() {
       {/* Email verification */}
       <Route path="verify" element={<Verify />} errorElement={<LoginError />} />
       <Route path="verify/success" element={<VerifySuccess />} errorElement={<LoginError />} />
+      <Route path="verify-email-required" element={<VerifyEmailRequired />} errorElement={<LoginError />} />
 
       {/* External IdP flow */}
       <Route path="idp" element={<IdpSelect />} errorElement={<LoginError />} />
       <Route path="idp/:provider/process" element={<IdpProcess />} errorElement={<LoginError />} />
       <Route path="idp/:provider/failure" element={<IdpFailure />} errorElement={<LoginError />} />
       <Route path="idp/:provider/account-not-found" element={<IdpAccountNotFound />} errorElement={<LoginError />} />
-      <Route path="idp/:provider/complete-registration" element={<IdpCompleteRegistration />} errorElement={<LoginError />} />
       <Route path="idp/:provider/linking-failed" element={<IdpLinkingFailed />} errorElement={<LoginError />} />
       <Route path="idp/:provider/registration-failed" element={<IdpRegistrationFailed />} errorElement={<LoginError />} />
 
