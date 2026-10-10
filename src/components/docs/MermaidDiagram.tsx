@@ -7,29 +7,12 @@ import {
   Dialog,
   DialogContent,
 } from '@/components/ui/dialog';
+import { useTheme } from '@/contexts/ThemeContext';
+import { mermaidConfig, withBrandGradient, type MermaidThemeMode } from './mermaidTheme';
 
 interface MermaidDiagramProps {
   code: string;
   className?: string;
-}
-
-function mermaidConfig() {
-  return {
-    startOnLoad: false,
-    // AUD-078: 'strict' sanitizes rendered HTML and disallows click-handlers/script in diagram
-    // source, closing a stored-XSS vector (diagrams come from Markdown docs that can be
-    // contributed via PR). 'loose' would let a crafted diagram inject markup/handlers.
-    securityLevel: 'strict' as const,
-    theme: 'dark' as const,
-    themeVariables: {
-      primaryColor: '#3b82f6',
-      primaryTextColor: '#e2e8f0',
-      primaryBorderColor: '#64748b',
-      lineColor: '#94a3b8',
-      secondaryColor: '#1e293b',
-      tertiaryColor: '#0f172a',
-    },
-  };
 }
 
 /**
@@ -40,14 +23,15 @@ function mermaidConfig() {
 export function MermaidDiagram({ code, className = '' }: MermaidDiagramProps) {
   const [expandOpen, setExpandOpen] = useState(false);
   const [id] = useState(() => `mermaid-${Math.random().toString(36).slice(2, 11)}`);
+  const { resolvedTheme: theme } = useTheme();
 
   const { data: svg = null, isLoading: loading, error: renderError } = useQuery({
-    queryKey: ['docs-mermaid', id, code],
+    queryKey: ['docs-mermaid', id, code, theme],
     queryFn: async (): Promise<string> => {
       const mermaid = (await import('mermaid')).default;
-      mermaid.initialize(mermaidConfig());
+      mermaid.initialize(mermaidConfig(theme));
       const result = await mermaid.render(id, code);
-      return result.svg;
+      return withBrandGradient(result.svg, id);
     },
     enabled: !!code.trim(),
     staleTime: Infinity,
@@ -103,6 +87,7 @@ export function MermaidDiagram({ code, className = '' }: MermaidDiagramProps) {
           {expandOpen && (
             <MermaidDiagramCore
               code={code}
+              theme={theme}
               id={`${id}-enlarged`}
               className="flex min-h-[120px] justify-center [&_svg]:max-w-full [&_svg]:h-auto"
             />
@@ -114,14 +99,14 @@ export function MermaidDiagram({ code, className = '' }: MermaidDiagramProps) {
 }
 
 /** Renders the mermaid SVG. Only mounted when the enlarge dialog is open. */
-function MermaidDiagramCore({ code, id, className = '' }: { code: string; id: string; className?: string }) {
+function MermaidDiagramCore({ code, id, theme, className = '' }: { code: string; id: string; theme: MermaidThemeMode; className?: string }) {
   const { data: svg = null, isLoading: loading, error: renderError } = useQuery({
-    queryKey: ['docs-mermaid', id, code],
+    queryKey: ['docs-mermaid', id, code, theme],
     queryFn: async (): Promise<string> => {
       const mermaid = (await import('mermaid')).default;
-      mermaid.initialize(mermaidConfig());
+      mermaid.initialize(mermaidConfig(theme));
       const result = await mermaid.render(id, code);
-      return result.svg;
+      return withBrandGradient(result.svg, id);
     },
     enabled: !!code.trim(),
     staleTime: Infinity,
