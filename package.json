@@ -30,13 +30,12 @@
     "@radix-ui/react-tabs": "^1.1.13",
     "@radix-ui/react-toast": "^1.2.15",
     "@radix-ui/react-tooltip": "^1.2.8",
-    "@scalar/api-reference-react": "^0.9.67",
+    "@scalar/api-reference-react": "^0.9.79",
     "@tanstack/react-query": "^5.91.2",
     "@tanstack/react-virtual": "^3.14.9",
     "buffer": "^6.0.3",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
-    "gray-matter": "^4.0.3",
     "jszip": "^3.10.1",
     "lucide-react": "^1.0.0",
     "mermaid": "^11.15.0",
@@ -68,7 +67,7 @@
     "eslint": "^10.0.0",
     "eslint-plugin-react-hooks": "^7.1.1",
     "eslint-plugin-react-refresh": "^0.5.0",
-    "fallow": "3.28.0",
+    "fallow": "3.33.1",
     "globals": "^17.0.0",
     "happy-dom": "^20.10.2",
     "sharp": "^0.35.0",
@@ -78,5 +77,11 @@
     "typescript-eslint": "^8.61.0",
     "vite": "^8.0.8",
     "vitest": "^5.0.0"
+  },
+  "overrides": {
+    "@ai-sdk/provider-utils": "4.0.33",
+    "mermaid": {
+      "katex": "^0.18.2"
+    }
   }
 }
