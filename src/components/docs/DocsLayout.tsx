@@ -64,9 +64,13 @@ export function DocsLayout({ children, docsBase = '/docs', indexFile = '/docs-in
   // Scroll to top when navigating to a new doc (sidebar, breadcrumbs, prev/next, in-content links).
   // useLayoutEffect runs synchronously before paint to avoid scroll flicker.
   // location.key changes on every navigation, even to the same URL.
+  // A navigation that names an anchor is left alone here: DocAnchorScroll takes
+  // it to the heading once the content exists, and resetting to the top first
+  // would only fight that.
   useLayoutEffect(() => {
+    if (location.hash) return;
     window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
-  }, [location.key]);
+  }, [location.key, location.hash]);
 
   // Close mobile drawers on navigation. Done as a during-render reset keyed on the
   // previous location (React's blessed pattern) rather than in an effect.
