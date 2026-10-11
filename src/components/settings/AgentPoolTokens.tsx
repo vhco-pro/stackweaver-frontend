@@ -2,11 +2,13 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { agentTokensApi, type AgentToken } from '@/api/client';
 import { Button } from '@/components/ui/button';
+import { GradientButton } from '@/components/ui/gradient-button';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
+import { PageDialogContent } from '@/components/layout/Page';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
   Dialog,
-  DialogContent,
   DialogDescription,
   DialogFooter,
   DialogHeader,
@@ -20,6 +22,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
+import { dangerOutline } from '@/lib/surfaces';
 import { KeyRound, Copy, Trash2, Loader2, CheckCircle2, Plus, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
 import { DEFAULT_GRACE_HOURS, GRACE_OPTIONS, expiryStatus } from './agentTokenRotation';
@@ -44,6 +47,8 @@ export function AgentPoolTokens({ poolId }: { poolId: string }) {
   const [revealed, setRevealed] = useState<RevealedToken | null>(null);
   const [description, setDescription] = useState('');
   const [rotating, setRotating] = useState<AgentToken | null>(null);
+  // The token waiting on the revoke confirmation dialog.
+  const [revoking, setRevoking] = useState<AgentToken | null>(null);
   const [graceHours, setGraceHours] = useState(DEFAULT_GRACE_HOURS);
 
   const { data: tokens = [], isLoading } = useQuery({
@@ -105,9 +110,11 @@ export function AgentPoolTokens({ poolId }: { poolId: string }) {
     createMutation.mutate(desc);
   };
 
-  const revoke = (t: AgentToken) => {
-    if (!confirm(`Revoke agent token "${t.description || t.id}"? Agents using it will stop being able to register.`)) return;
-    deleteMutation.mutate(t.id);
+  // Runs only from the confirmation dialog.
+  const revoke = () => {
+    if (!revoking) return;
+    deleteMutation.mutate(revoking.id);
+    setRevoking(null);
   };
 
   const openRotate = (t: AgentToken) => {
@@ -171,11 +178,11 @@ export function AgentPoolTokens({ poolId }: { poolId: string }) {
           className="h-9 text-sm"
           aria-label="Agent token description"
         />
-        <Button size="sm" onClick={create} disabled={createMutation.isPending}
-          className="bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 gap-2 whitespace-nowrap">
+        <GradientButton ramp="app" emphasis="secondary" size="sm" onClick={create} disabled={createMutation.isPending}
+          className="w-auto px-3 py-1.5 text-sm gap-2">
           {createMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
           New token
-        </Button>
+        </GradientButton>
       </div>
 
       {/* Token list */}
@@ -206,8 +213,8 @@ export function AgentPoolTokens({ poolId }: { poolId: string }) {
                     className="gap-1.5" aria-label={`Rotate agent token ${t.description || t.id}`}>
                     <RefreshCw className="h-4 w-4" /> Rotate
                   </Button>
-                  <Button variant="ghost" size="sm" onClick={() => { revoke(t); }} disabled={deleteMutation.isPending}
-                    className="gap-1.5 text-red-500 hover:text-red-600 hover:bg-red-500/10">
+                  <Button variant="outline" size="sm" onClick={() => { setRevoking(t); }} disabled={deleteMutation.isPending}
+                    className={cn(dangerOutline, 'gap-1.5')}>
                     <Trash2 className="h-4 w-4" /> Revoke
                   </Button>
                 </div>
@@ -219,7 +226,7 @@ export function AgentPoolTokens({ poolId }: { poolId: string }) {
 
       {/* Rotate confirmation */}
       <Dialog open={!!rotating} onOpenChange={(open) => { if (!open) setRotating(null); }}>
-        <DialogContent>
+        <PageDialogContent>
           <DialogHeader>
             <DialogTitle>Rotate agent token</DialogTitle>
             <DialogDescription>
@@ -242,16 +249,29 @@ export function AgentPoolTokens({ poolId }: { poolId: string }) {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => { setRotating(null); }}>Cancel</Button>
-            <Button
+            <GradientButton
+              ramp="app"
+              className="w-auto px-4 py-2"
               onClick={() => { if (rotating) rotateMutation.mutate({ tokenId: rotating.id, hours: graceHours }); }}
               disabled={rotateMutation.isPending}
             >
               {rotateMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <RefreshCw className="h-4 w-4 mr-2" />}
               Rotate token
-            </Button>
+            </GradientButton>
           </DialogFooter>
-        </DialogContent>
+        </PageDialogContent>
       </Dialog>
+
+      {/* Revoke confirmation */}
+      <ConfirmDialog
+        open={!!revoking}
+        onOpenChange={(open) => { if (!open) setRevoking(null); }}
+        title="Revoke agent token?"
+        description={`Revoke agent token "${revoking?.description || revoking?.id || ''}"? Agents using it will stop being able to register.`}
+        confirmLabel="Revoke"
+        variant="destructive"
+        onConfirm={revoke}
+      />
     </div>
   );
 }

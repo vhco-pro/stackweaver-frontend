@@ -2,9 +2,11 @@
 
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { useParams, useNavigate } from 'react-router-dom';
-import { Upload, ArrowLeft } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { useParams } from 'react-router-dom';
+import { Upload, Package } from 'lucide-react';
+import { GradientButton } from '@/components/ui/gradient-button';
+import { Page } from '@/components/layout/Page';
+import { PageHeader } from '@/components/layout/PageHeader';
 import { Badge } from '@/components/ui/badge';
 import { registryApi, type ProviderVersion } from '@/api/client';
 import { toast } from 'sonner';
@@ -35,7 +37,6 @@ export default function ProviderPublish() {
   const registryName = params.registryName;
   const namespace = params.namespace;
   const providerName = params.providerName;
-  const navigate = useNavigate();
   const [versions] = useState<ProviderVersion[]>([]);
   const [uploading, setUploading] = useState(false);
   const [version, setVersion] = useState('');
@@ -104,29 +105,25 @@ export default function ProviderPublish() {
   }
 
   return (
-    <div className="p-8 space-y-6">
-      {/* Header */}
-      <div className="flex items-center gap-4">
-        <Button variant="ghost" size="sm" onClick={() => { void Promise.resolve(navigate(orgName ? `/app/${orgName}/registry/providers` : `/organizations/${orgName}/registry/providers`)); }}>
-          <ArrowLeft className="h-4 w-4 mr-2" />
-          Back
-        </Button>
-      </div>
-
-      <div>
-        <h1 className="text-3xl font-bold mb-2">
-          {provider.name}
-          {provider.registry_name === 'public' ? (
-            <Badge variant="secondary" className="ml-2">Public</Badge>
-          ) : (
-            <Badge variant="default" className="ml-2 bg-blue-500">Private</Badge>
-          )}
-        </h1>
-        {/* The address a practitioner puts in a required_providers block. */}
-        <p className="text-muted-foreground text-lg mb-4 font-mono">
-          {provider.namespace}/{provider.name}
-        </p>
-      </div>
+    <Page className="p-8">
+      <PageHeader
+        backTo={{ to: `/app/${orgName}/registry/providers`, label: 'Back to providers' }}
+        icon={Package}
+        title={provider.name}
+        subtitle={
+          <div className="flex flex-wrap items-center gap-2">
+            {provider.registry_name === 'public' ? (
+              <Badge variant="secondary">Public</Badge>
+            ) : (
+              <Badge variant="default" className="bg-blue-500">Private</Badge>
+            )}
+            {/* The address a practitioner puts in a required_providers block. */}
+            <span className="text-lg font-mono">
+              {provider.namespace}/{provider.name}
+            </span>
+          </div>
+        }
+      />
 
       {/* Upload Form */}
       <div className="border rounded-lg p-6 space-y-6">
@@ -186,11 +183,11 @@ export default function ProviderPublish() {
               Upload the provider binary as a ZIP file
             </p>
           </div>
-          <Button type="submit" disabled={uploading || !version || !os || !arch || !file}>
+          <GradientButton ramp="app" className="w-auto" type="submit" disabled={uploading || !version || !os || !arch || !file}>
             {uploading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             <Upload className="h-4 w-4 mr-2" />
             Upload Binary
-          </Button>
+          </GradientButton>
         </form>
       </div>
 
@@ -234,7 +231,7 @@ export default function ProviderPublish() {
           </Table>
         </div>
       )}
-    </div>
+    </Page>
   );
 }
 

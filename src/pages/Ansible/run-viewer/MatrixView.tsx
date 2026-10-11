@@ -363,6 +363,7 @@ export function MatrixView({
                         <button
                           key={result.eventCounter}
                           type="button"
+                          data-status-cell
                           onClick={() => { onSelectCell(host, task); }}
                           title={`${host} · ${task.name} — ${meta.label}`}
                           aria-label={`${label}. Open details.`}

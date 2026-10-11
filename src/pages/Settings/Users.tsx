@@ -1,12 +1,16 @@
 // Copyright (c) 2025 VH & Co BV. Licensed under the Business Source License 1.1. See LICENSE for details.
 
 // eslint-disable-next-line no-restricted-imports -- legitimate dependency-based effect
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Plus, Trash2, Edit, Users as UsersIcon, Bell } from 'lucide-react';
+import { Plus, Trash2, Edit, Users as UsersIcon, Bell } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
+import { GradientButton } from '@/components/ui/gradient-button';
+import { Page, PageDialogContent } from '@/components/layout/Page';
+import { PageHeader, type PageListState } from '@/components/layout/PageHeader';
+import { PageEmptyState } from '@/components/layout/PageEmptyState';
 import { Badge } from '@/components/ui/badge';
 import { organizationMembershipsApi, teamsApi, type OrganizationMembership, type Team } from '@/api/client';
 import { toast } from 'sonner';
@@ -21,7 +25,6 @@ import {
 } from '@/components/ui/table';
 import {
   Dialog,
-  DialogContent,
   DialogDescription,
   DialogFooter,
   DialogHeader,
@@ -38,6 +41,17 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { cn } from '@/lib/utils';
+import { dangerGhostIcon } from '@/lib/surfaces';
+
+// The Teams tab owns this list. The page reads the same cache entry to know whether that tab
+// has anything to list, which decides where the "Create Team" action shows.
+const teamsQueryOptions = (orgName: string) => ({
+  queryKey: ['teams', orgName],
+  queryFn: async () => {
+    const response = await teamsApi.list(orgName);
+    return response.data || [];
+  },
+});
 
 export default function UsersSettings() {
   const { orgName } = useParams<{ orgName: string }>();
@@ -76,6 +90,12 @@ export default function UsersSettings() {
   const memberships = membershipData?.memberships ?? [];
   const hasManageAccess = membershipData?.hasManageAccess ?? null;
   const error = membershipData?.error ?? null;
+
+  // Only read while the Teams tab is open, which is when the tab itself fetches the list.
+  const { data: teams = [], isLoading: teamsLoading, isError: teamsFailed } = useQuery({
+    ...teamsQueryOptions(orgName ?? ''),
+    enabled: !!orgName && activeTab === 'teams',
+  });
 
   const handleAdd = async () => {
     if (!orgName || !newEmail.trim()) {
@@ -135,96 +155,78 @@ export default function UsersSettings() {
     );
   }
 
+  const backTo = { to: `/app/${orgName}/settings`, label: 'Back to Settings' };
+
+  // One action that follows the open tab. It is defined once and handed to the header and to the
+  // open tab's empty-state card: the header does not render it while that tab has nothing to
+  // list, so the action never appears twice.
+  const primaryAction = (
+    <GradientButton
+      ramp="app"
+      onClick={() => {
+        if (activeTab === 'users') {
+          setShowAddDialog(true);
+        } else {
+          setShowCreateTeamDialog(true);
+        }
+      }}
+      className="w-auto px-4 py-2"
+    >
+      <Plus className="h-4 w-4 mr-2" />
+      {activeTab === 'users' ? 'Add User' : 'Create Team'}
+    </GradientButton>
+  );
+  const usersListState: PageListState = loading ? 'loading' : error ? 'error' : memberships.length === 0 ? 'empty' : 'ready';
+  const teamsListState: PageListState = teamsLoading ? 'loading' : teamsFailed ? 'error' : teams.length === 0 ? 'empty' : 'ready';
+  const listState = activeTab === 'users' ? usersListState : teamsListState;
+
   // Show loading state
   if (loading && hasManageAccess === null) {
     return (
-      <div className="space-y-8">
-        <div className="flex items-center gap-4">
-          <Link
-            to={`/app/${orgName}/settings`}
-            className="text-muted-foreground hover:text-foreground transition-colors"
-          >
-            <ArrowLeft className="h-5 w-5" />
-          </Link>
-          <div>
-            <h1 className="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-violet-600 dark:from-violet-400 via-indigo-600 dark:via-indigo-400 to-blue-600 dark:to-blue-400 bg-clip-text text-transparent">
-              Users & Teams
-            </h1>
-          </div>
-        </div>
+      <Page ramp="app" className="space-y-8">
+        <PageHeader
+          icon={UsersIcon}
+          title="Users & Teams"
+          subtitle="Manage organization members and teams"
+          backTo={backTo}
+          action={primaryAction}
+          listState="loading"
+        />
         <div className="flex items-center justify-center py-12">
           <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
         </div>
-      </div>
+      </Page>
     );
   }
 
   // Show access denied if user doesn't have manage-membership permission
   if (hasManageAccess === false) {
     return (
-      <div className="space-y-8">
-        <div className="flex items-center gap-4">
-          <Link
-            to={`/app/${orgName}/settings`}
-            className="text-muted-foreground hover:text-foreground transition-colors"
-          >
-            <ArrowLeft className="h-5 w-5" />
-          </Link>
-          <div>
-            <h1 className="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-violet-600 dark:from-violet-400 via-indigo-600 dark:via-indigo-400 to-blue-600 dark:to-blue-400 bg-clip-text text-transparent">
-              Users & Teams
-            </h1>
-          </div>
-        </div>
+      <Page ramp="app" className="space-y-8">
+        <PageHeader
+          icon={UsersIcon}
+          title="Users & Teams"
+          subtitle="Manage organization members and teams"
+          backTo={backTo}
+        />
         <div className="text-center py-12">
           <p className="text-destructive font-semibold mb-2">Access Denied</p>
           <p className="text-muted-foreground">Only members of the "owners" team can manage users and teams.</p>
         </div>
-      </div>
+      </Page>
     );
   }
 
   return (
-    <div className="space-y-8">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <Link to={`/app/${orgName}/settings`}>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-10 w-10 rounded-xl text-muted-foreground hover:text-foreground"
-              aria-label="Back to Settings"
-            >
-              <ArrowLeft className="h-5 w-5" />
-            </Button>
-          </Link>
-          <div>
-            <h1 className="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-violet-600 dark:from-violet-400 via-indigo-600 dark:via-indigo-400 to-blue-600 dark:to-blue-400 bg-clip-text text-transparent">
-              Users & Teams
-            </h1>
-            <p className="text-muted-foreground mt-1">
-              Manage organization members and teams
-            </p>
-          </div>
-        </div>
-        <div className="relative inline-flex rounded-xl bg-gradient-to-r from-violet-500 via-indigo-500 to-blue-500 p-[2px]">
-          <Button
-            variant="ghost"
-            onClick={() => {
-              if (activeTab === 'users') {
-                setShowAddDialog(true);
-              } else {
-                setShowCreateTeamDialog(true);
-              }
-            }}
-            className="bg-white dark:bg-slate-950/80 dark:backdrop-blur-xs text-slate-900 dark:text-white hover:bg-slate-50 dark:hover:bg-slate-950/90 border-0 whitespace-nowrap rounded-[calc(0.75rem-2px)] px-4 py-2"
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            {activeTab === 'users' ? 'Add User' : 'Create Team'}
-          </Button>
-        </div>
-      </div>
+    <Page ramp="app" className="space-y-8">
+      <PageHeader
+        icon={UsersIcon}
+        title="Users & Teams"
+        subtitle="Manage organization members and teams"
+        backTo={backTo}
+        action={primaryAction}
+        listState={listState}
+      />
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
         <TabsList>
@@ -245,6 +247,13 @@ export default function UsersSettings() {
             <div className="flex items-center justify-center py-12">
               <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
             </div>
+          ) : memberships.length === 0 ? (
+            <PageEmptyState
+              icon={UsersIcon}
+              title="No users found"
+              description="Add users to get started"
+              action={error ? undefined : primaryAction}
+            />
           ) : (
             /* Members Table */
             <div className="border rounded-lg">
@@ -259,62 +268,53 @@ export default function UsersSettings() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {memberships.length === 0 ? (
-                    <TableRow>
-                      <TableCell colSpan={5} className="text-center py-12 text-muted-foreground">
-                        <UsersIcon className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                        <p>No users found</p>
-                        <p className="text-sm mt-2">Add users to get started</p>
+                  {memberships.map((membership) => (
+                    <TableRow key={membership.id}>
+                      <TableCell className="font-medium">
+                        {membership.user?.email || 'N/A'}
+                      </TableCell>
+                      <TableCell>
+                        {membership.user?.name || '-'}
+                      </TableCell>
+                      <TableCell>
+                        {membership.status === 'invited' ? (
+                          <Badge variant="outline" className="border-yellow-500 text-yellow-600 dark:text-yellow-400">
+                            Pending Invitation
+                          </Badge>
+                        ) : (
+                          <Badge variant="outline" className="border-green-500 text-green-600 dark:text-green-400">
+                            Active
+                          </Badge>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        {membership.teams && membership.teams.length > 0 ? (
+                          <div className="flex flex-wrap gap-1">
+                            {membership.teams.map(team => (
+                              <Badge key={team.id} variant="outline" className="text-xs">
+                                {team.name}
+                              </Badge>
+                            ))}
+                          </div>
+                        ) : (
+                          <span className="text-sm text-muted-foreground italic">No teams</span>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex items-center justify-end gap-2">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            aria-label={`Remove ${membership.user?.email || 'user'}`}
+                            onClick={() => openDeleteDialog(membership)}
+                            className={dangerGhostIcon}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
-                  ) : (
-                    memberships.map((membership) => (
-                      <TableRow key={membership.id}>
-                        <TableCell className="font-medium">
-                          {membership.user?.email || 'N/A'}
-                        </TableCell>
-                        <TableCell>
-                          {membership.user?.name || '-'}
-                        </TableCell>
-                        <TableCell>
-                          {membership.status === 'invited' ? (
-                            <Badge variant="outline" className="border-yellow-500 text-yellow-600 dark:text-yellow-400">
-                              Pending Invitation
-                            </Badge>
-                          ) : (
-                            <Badge variant="outline" className="border-green-500 text-green-600 dark:text-green-400">
-                              Active
-                            </Badge>
-                          )}
-                        </TableCell>
-                        <TableCell>
-                          {membership.teams && membership.teams.length > 0 ? (
-                            <div className="flex flex-wrap gap-1">
-                              {membership.teams.map(team => (
-                                <Badge key={team.id} variant="outline" className="text-xs">
-                                  {team.name}
-                                </Badge>
-                              ))}
-                            </div>
-                          ) : (
-                            <span className="text-sm text-muted-foreground italic">No teams</span>
-                          )}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <div className="flex items-center justify-end gap-2">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => openDeleteDialog(membership)}
-                              className="text-destructive hover:text-destructive"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))
-                  )}
+                  ))}
                 </TableBody>
               </Table>
             </div>
@@ -322,7 +322,7 @@ export default function UsersSettings() {
 
           {/* Add User Dialog */}
           <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
-        <DialogContent>
+        <PageDialogContent>
           <DialogHeader>
             <DialogTitle>Add User</DialogTitle>
             <DialogDescription>
@@ -348,7 +348,12 @@ export default function UsersSettings() {
             <Button variant="outline" onClick={() => setShowAddDialog(false)}>
               Cancel
             </Button>
-            <Button onClick={() => { void handleAdd(); }} disabled={saving || !newEmail.trim()}>
+            <GradientButton
+              ramp="app"
+              className="w-auto px-4 py-2"
+              onClick={() => { void handleAdd(); }}
+              disabled={saving || !newEmail.trim()}
+            >
               {saving ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
@@ -357,14 +362,14 @@ export default function UsersSettings() {
               ) : (
                 'Add User'
               )}
-            </Button>
+            </GradientButton>
           </DialogFooter>
-        </DialogContent>
+        </PageDialogContent>
           </Dialog>
 
           {/* Delete User Dialog */}
           <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-        <DialogContent>
+        <PageDialogContent>
           <DialogHeader>
             <DialogTitle>Remove User</DialogTitle>
             <DialogDescription>
@@ -391,27 +396,32 @@ export default function UsersSettings() {
               )}
             </Button>
           </DialogFooter>
-        </DialogContent>
+        </PageDialogContent>
           </Dialog>
         </TabsContent>
 
         <TabsContent value="teams">
-          <TeamsTab orgName={orgName} showCreateDialog={showCreateTeamDialog} setShowCreateDialog={setShowCreateTeamDialog} />
+          <TeamsTab
+            orgName={orgName}
+            showCreateDialog={showCreateTeamDialog}
+            setShowCreateDialog={setShowCreateTeamDialog}
+            createAction={primaryAction}
+          />
         </TabsContent>
       </Tabs>
-    </div>
+    </Page>
   );
 }
 
 // Teams Tab Component (extracted from Teams.tsx)
-function TeamsTab({ orgName, showCreateDialog, setShowCreateDialog }: { orgName: string; showCreateDialog: boolean; setShowCreateDialog: (open: boolean) => void }) {
-  const { data: teams = [], isLoading: loading, refetch: refetchTeams } = useQuery({
-    queryKey: ['teams', orgName],
-    queryFn: async () => {
-      const response = await teamsApi.list(orgName);
-      return response.data || [];
-    },
-  });
+function TeamsTab({ orgName, showCreateDialog, setShowCreateDialog, createAction }: {
+  orgName: string;
+  showCreateDialog: boolean;
+  setShowCreateDialog: (open: boolean) => void;
+  /** The page's primary action, shown in the empty-state card while there are no teams. */
+  createAction: ReactNode;
+}) {
+  const { data: teams = [], isLoading: loading, isError: loadFailed, refetch: refetchTeams } = useQuery(teamsQueryOptions(orgName));
 
   const { data: allMemberships = [] } = useQuery({
     queryKey: ['allMemberships', orgName],
@@ -756,6 +766,13 @@ function TeamsTab({ orgName, showCreateDialog, setShowCreateDialog }: { orgName:
         <div className="flex items-center justify-center py-12">
           <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
         </div>
+      ) : teams.length === 0 ? (
+        <PageEmptyState
+          icon={UsersIcon}
+          title="No teams found"
+          description="Create a team to get started"
+          action={loadFailed ? undefined : createAction}
+        />
       ) : (
         /* Teams Table */
         <div className="border rounded-lg">
@@ -769,66 +786,59 @@ function TeamsTab({ orgName, showCreateDialog, setShowCreateDialog }: { orgName:
               </TableRow>
             </TableHeader>
             <TableBody>
-              {teams.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={4} className="text-center py-12 text-muted-foreground">
-                    <UsersIcon className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                    <p>No teams found</p>
-                    <p className="text-sm mt-2">Create a team to get started</p>
+              {teams.map((team) => (
+                <TableRow key={team.id}>
+                  <TableCell className="font-medium">{team.name}</TableCell>
+                  <TableCell>
+                    <Badge variant={team.visibility === 'organization' ? 'default' : 'secondary'}>
+                      {team.visibility === 'organization' ? 'Organization' : 'Secret'}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-2">
+                      <UsersIcon className="h-4 w-4 text-muted-foreground" />
+                      <span className="text-sm">{team['users-count'] ?? 0} members</span>
+                    </div>
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <div className="flex items-center justify-end gap-2">
+                      <Link to={`/app/${orgName}/settings/teams/${team.id}`}>
+                        <Button variant="ghost" size="icon" title="Team notifications" aria-label={`Notifications for ${team.name}`}>
+                          <Bell className="h-4 w-4" />
+                        </Button>
+                      </Link>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => { void openMembersDialog(team); }}
+                        title="Manage Members"
+                        aria-label={`Manage members of ${team.name}`}
+                      >
+                        <UsersIcon className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => { void openEditDialog(team); }}
+                        title="Edit Team"
+                        aria-label={`Edit team ${team.name}`}
+                      >
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => openDeleteDialog(team)}
+                        className={dangerGhostIcon}
+                        title="Delete Team"
+                        aria-label={`Delete team ${team.name}`}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </TableCell>
                 </TableRow>
-              ) : (
-                teams.map((team) => (
-                  <TableRow key={team.id}>
-                    <TableCell className="font-medium">{team.name}</TableCell>
-                    <TableCell>
-                      <Badge variant={team.visibility === 'organization' ? 'default' : 'secondary'}>
-                        {team.visibility === 'organization' ? 'Organization' : 'Secret'}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <UsersIcon className="h-4 w-4 text-muted-foreground" />
-                        <span className="text-sm">{team['users-count'] ?? 0} members</span>
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex items-center justify-end gap-2">
-                        <Link to={`/app/${orgName}/settings/teams/${team.id}`}>
-                          <Button variant="ghost" size="sm" title="Team notifications" aria-label={`Notifications for ${team.name}`}>
-                            <Bell className="h-4 w-4" />
-                          </Button>
-                        </Link>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => { void openMembersDialog(team); }}
-                          title="Manage Members"
-                        >
-                          <UsersIcon className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => { void openEditDialog(team); }}
-                          title="Edit Team"
-                        >
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => openDeleteDialog(team)}
-                          className="text-destructive hover:text-destructive"
-                          title="Delete Team"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))
-              )}
+              ))}
             </TableBody>
           </Table>
         </div>
@@ -836,7 +846,7 @@ function TeamsTab({ orgName, showCreateDialog, setShowCreateDialog }: { orgName:
 
       {/* Create Team Dialog */}
       <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <PageDialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Create Team</DialogTitle>
             <DialogDescription>
@@ -1058,7 +1068,12 @@ function TeamsTab({ orgName, showCreateDialog, setShowCreateDialog }: { orgName:
             <Button variant="outline" onClick={() => setShowCreateDialog(false)}>
               Cancel
             </Button>
-            <Button onClick={() => { void handleCreate(); }} disabled={saving || !newTeamName.trim()}>
+            <GradientButton
+              ramp="app"
+              className="w-auto px-4 py-2"
+              onClick={() => { void handleCreate(); }}
+              disabled={saving || !newTeamName.trim()}
+            >
               {saving ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
@@ -1067,14 +1082,14 @@ function TeamsTab({ orgName, showCreateDialog, setShowCreateDialog }: { orgName:
               ) : (
                 'Create Team'
               )}
-            </Button>
+            </GradientButton>
           </DialogFooter>
-        </DialogContent>
+        </PageDialogContent>
       </Dialog>
 
       {/* Edit Team Dialog */}
       <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
-        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+        <PageDialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Edit Team - {selectedTeam?.name}</DialogTitle>
             <DialogDescription>
@@ -1616,7 +1631,12 @@ function TeamsTab({ orgName, showCreateDialog, setShowCreateDialog }: { orgName:
             <Button variant="outline" onClick={() => setShowEditDialog(false)}>
               Cancel
             </Button>
-            <Button onClick={() => { void handleEdit(); }} disabled={saving}>
+            <GradientButton
+              ramp="app"
+              className="w-auto px-4 py-2"
+              onClick={() => { void handleEdit(); }}
+              disabled={saving}
+            >
               {saving ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
@@ -1625,14 +1645,14 @@ function TeamsTab({ orgName, showCreateDialog, setShowCreateDialog }: { orgName:
               ) : (
                 'Update team organization access'
               )}
-            </Button>
+            </GradientButton>
           </DialogFooter>
-        </DialogContent>
+        </PageDialogContent>
       </Dialog>
 
       {/* Delete Team Dialog */}
       <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-        <DialogContent>
+        <PageDialogContent>
           <DialogHeader>
             <DialogTitle>Delete Team</DialogTitle>
             <DialogDescription>
@@ -1659,12 +1679,12 @@ function TeamsTab({ orgName, showCreateDialog, setShowCreateDialog }: { orgName:
               )}
             </Button>
           </DialogFooter>
-        </DialogContent>
+        </PageDialogContent>
       </Dialog>
 
       {/* Manage Members Dialog */}
       <Dialog open={showMembersDialog} onOpenChange={setShowMembersDialog}>
-        <DialogContent className="max-w-2xl">
+        <PageDialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle>Manage Team Members</DialogTitle>
             <DialogDescription>
@@ -1680,7 +1700,7 @@ function TeamsTab({ orgName, showCreateDialog, setShowCreateDialog }: { orgName:
             onUpdateMembers={handleUpdateMembers}
             onRefresh={() => selectedTeam && void loadTeamMembers(selectedTeam.id)}
           />
-        </DialogContent>
+        </PageDialogContent>
       </Dialog>
 
     </div>
@@ -1797,7 +1817,9 @@ function TeamMembersManager({
         </div>
       )}
       <DialogFooter>
-        <Button
+        <GradientButton
+          ramp="app"
+          className="w-auto px-4 py-2"
           onClick={() => { void handleSave(); }}
           disabled={updatingMembers || loadingMembers}
         >
@@ -1809,7 +1831,7 @@ function TeamMembersManager({
           ) : (
             'Save Changes'
           )}
-        </Button>
+        </GradientButton>
       </DialogFooter>
     </div>
   );

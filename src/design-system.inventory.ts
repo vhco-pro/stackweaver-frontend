@@ -1,0 +1,80 @@
+// Copyright (c) 2026 VH & Co BV. Licensed under the Business Source License 1.1. See LICENSE for details.
+
+// The design-system inventory, read by design-system.guard.test.ts.
+//
+// SWEPT_PAGES names every page file that renders through Page and PageHeader. EXEMPT_PAGES
+// names the page files that deliberately do not, each with its reason. A file under pages/
+// that is in neither fails the guard, so a new page cannot skip the system: add it here, give
+// it a row in e2e/tests/design-system.routes.ts, and build it on Page and PageHeader.
+
+export const SWEPT_PAGES: string[] = [
+  'pages/Activities.tsx',
+  'pages/Ansible/Collections.tsx',
+  'pages/Ansible/Credentials.tsx',
+  'pages/Ansible/Inventories.tsx',
+  'pages/Ansible/InventoryDetail.tsx',
+  'pages/Ansible/JobDetail.tsx',
+  'pages/Ansible/JobTemplateDetail.tsx',
+  'pages/Ansible/JobTemplates.tsx',
+  'pages/Ansible/Jobs.tsx',
+  'pages/Ansible/PlaybookDetail.tsx',
+  'pages/Ansible/Playbooks.tsx',
+  'pages/Ansible/Schedules.tsx',
+  'pages/Ansible/Workflows.tsx',
+  'pages/Dashboard/index.tsx',
+  'pages/Organizations.tsx',
+  'pages/ProjectDetail.tsx',
+  'pages/Projects.tsx',
+  'pages/Providers.tsx',
+  'pages/Registry.tsx',
+  'pages/Registry/ModuleDetail.tsx',
+  'pages/Registry/ProviderList.tsx',
+  'pages/Registry/ProviderPublish.tsx',
+  'pages/RunDetail.tsx',
+  'pages/Settings.tsx',
+  'pages/Settings/AgentPools.tsx',
+  'pages/Settings/AnsibleConfig.tsx',
+  'pages/Settings/ApiKeys.tsx',
+  'pages/Settings/ChangeRequests.tsx',
+  'pages/Settings/Notifications.tsx',
+  'pages/Settings/OIDCConfigurations.tsx',
+  'pages/Settings/Organization.tsx',
+  'pages/Settings/OrganizationTokenSettings.tsx',
+  'pages/Settings/PersonalAccessTokens.tsx',
+  'pages/Settings/Preferences.tsx',
+  'pages/Settings/Profile.tsx',
+  'pages/Settings/RunTasks.tsx',
+  'pages/Settings/RunnerDetail.tsx',
+  'pages/Settings/Runners.tsx',
+  'pages/Settings/Security.tsx',
+  'pages/Settings/Sessions.tsx',
+  'pages/Settings/TeamDetail.tsx',
+  'pages/Settings/TofuVersions.tsx',
+  'pages/Settings/Users.tsx',
+  'pages/Settings/VCSConnections.tsx',
+  'pages/Settings/VariableSets.tsx',
+  'pages/Settings/Webhooks.tsx',
+  'pages/StateVersionDetail.tsx',
+  'pages/Usage/index.tsx',
+  'pages/WorkspaceDetail.tsx',
+  'pages/Workspaces.tsx',
+];
+
+/** Page files that are deliberately not on Page and PageHeader, each with its reason. */
+export const EXEMPT_PAGES: Array<{ prefix: string; reason: string }> = [
+  { prefix: 'pages/Landing.tsx', reason: 'the public landing page; its design is a separate spec (landing-page-upgrade-plan.md)' },
+  { prefix: 'pages/Privacy.tsx', reason: 'a public page with its own title block, covered by its own criterion' },
+  { prefix: 'pages/Login/', reason: 'the login flow; its title block comes from LoginLayout and it uses the brand ramp' },
+  { prefix: 'pages/Auth/', reason: 'the sign-in entry and OIDC callback; no application title block' },
+  { prefix: 'pages/Auth.tsx', reason: 'the sign-in entry; no application title block' },
+  { prefix: 'pages/OAuthAuthorize.tsx', reason: 'the OAuth consent screen; no application title block' },
+  { prefix: 'pages/VCS/', reason: 'VCS provider callback screens; no application title block' },
+  { prefix: 'pages/Docs/', reason: 'the docs viewer and API reference explorer, out of scope for the sweep' },
+  { prefix: 'pages/Ansible/run-viewer/', reason: 'parts of the job run viewer, rendered inside JobDetail' },
+  { prefix: 'pages/Dashboard/AttentionList.tsx', reason: 'a dashboard section, rendered inside Dashboard/index' },
+  { prefix: 'pages/Dashboard/GettingStarted.tsx', reason: 'a dashboard section, rendered inside Dashboard/index' },
+  { prefix: 'pages/Dashboard/LiveOperations.tsx', reason: 'a dashboard section, rendered inside Dashboard/index' },
+  { prefix: 'pages/Dashboard/Organizations.tsx', reason: 'a dashboard section, rendered inside Dashboard/index' },
+  { prefix: 'pages/Dashboard/RecentActivityCard.tsx', reason: 'a dashboard section, rendered inside Dashboard/index' },
+  { prefix: 'pages/Usage/components/', reason: 'parts of the usage page, rendered inside Usage/index' },
+];

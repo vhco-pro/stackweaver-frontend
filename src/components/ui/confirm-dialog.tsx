@@ -9,7 +9,9 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { GradientButton } from "@/components/ui/gradient-button";
 import { Loader2 } from "lucide-react";
+import { rampVars, useRamp } from "@/lib/ramps";
 import { cn } from "@/lib/utils";
 
 export interface ConfirmDialogProps {
@@ -43,6 +45,9 @@ export function ConfirmDialog({
   loading = false,
   className,
 }: ConfirmDialogProps) {
+  // A dialog renders through a portal, outside the page element that owns the colour, so the
+  // ring reads the opening page's ramp from context.
+  const ramp = useRamp();
   const handleConfirm = () => {
     void (async () => {
       await onConfirm();
@@ -51,7 +56,7 @@ export function ConfirmDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className={cn("max-w-lg", className)}>
+      <DialogContent className={cn("max-w-lg", className)} style={rampVars(ramp)}>
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
           <DialogDescription>{description}</DialogDescription>
@@ -65,22 +70,29 @@ export function ConfirmDialog({
           >
             {cancelLabel}
           </Button>
-          <Button
-            type="button"
-            variant={variant === "destructive" ? "destructive" : "default"}
-            onClick={handleConfirm}
-            disabled={loading}
-            className={cn(loading && "gap-2")}
-          >
-            {loading ? (
-              <>
-                <Loader2 className="h-4 w-4 animate-spin" />
-                {confirmLabel}
-              </>
-            ) : (
-              confirmLabel
-            )}
-          </Button>
+          {variant === "destructive" ? (
+            <Button
+              type="button"
+              variant="destructive"
+              onClick={handleConfirm}
+              disabled={loading}
+              className={cn(loading && "gap-2")}
+            >
+              {loading && <Loader2 className="h-4 w-4 animate-spin" />}
+              {confirmLabel}
+            </Button>
+          ) : (
+            <GradientButton
+              type="button"
+              ramp="app"
+              onClick={handleConfirm}
+              disabled={loading}
+              className={cn("w-auto px-4 py-2", loading && "gap-2")}
+            >
+              {loading && <Loader2 className="h-4 w-4 animate-spin" />}
+              {confirmLabel}
+            </GradientButton>
+          )}
         </DialogFooter>
       </DialogContent>
     </Dialog>

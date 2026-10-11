@@ -2,12 +2,15 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { notificationsApi, type NotificationConfig, type NotificationScope } from '@/api/client';
 import { Button } from '@/components/ui/button';
+import { GradientButton } from '@/components/ui/gradient-button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Bell, Plus, Trash2, Loader2, Send, Webhook } from 'lucide-react';
 import { toast } from 'sonner';
+import { dangerGhostIcon } from '@/lib/surfaces';
 
 // Triggers are scope-specific, matching the provider: workspace and project configs fire on the run
 // lifecycle, while a team config's ONLY valid trigger is change_request:created. Offering run triggers
@@ -51,6 +54,7 @@ export function WorkspaceNotifications({ scope = 'workspaces', id }: { scope?: N
   const [url, setUrl] = useState('');
   const [token, setToken] = useState('');
   const [triggers, setTriggers] = useState<string[]>(() => defaultTriggersForScope(scope));
+  const [pendingDelete, setPendingDelete] = useState<NotificationConfig | null>(null);
   const availableTriggers = triggersForScope(scope);
 
   const { data: configs = [], isLoading } = useQuery({
@@ -105,9 +109,9 @@ export function WorkspaceNotifications({ scope = 'workspaces', id }: { scope?: N
             </p>
           </div>
         </div>
-        <Button type="button" size="sm" onClick={() => { setShowForm(v => !v); }} className="gap-1.5">
+        <GradientButton ramp="app" emphasis="secondary" type="button" size="sm" onClick={() => { setShowForm(v => !v); }} className="w-auto gap-1.5">
           <Plus className="h-4 w-4" /> Add notification
-        </Button>
+        </GradientButton>
       </div>
 
       {showForm && (
@@ -150,10 +154,10 @@ export function WorkspaceNotifications({ scope = 'workspaces', id }: { scope?: N
           </div>
           <div className="flex justify-end gap-2">
             <Button type="button" variant="outline" size="sm" onClick={() => { setShowForm(false); }}>Cancel</Button>
-            <Button type="button" size="sm" disabled={!name.trim() || !url.trim() || triggers.length === 0 || createMutation.isPending}
-              onClick={() => { createMutation.mutate(); }} className="gap-1.5">
+            <GradientButton ramp="app" emphasis="secondary" type="button" size="sm" disabled={!name.trim() || !url.trim() || triggers.length === 0 || createMutation.isPending}
+              onClick={() => { createMutation.mutate(); }} className="w-auto gap-1.5">
               {createMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />} Create
-            </Button>
+            </GradientButton>
           </div>
         </div>
       )}
@@ -183,8 +187,8 @@ export function WorkspaceNotifications({ scope = 'workspaces', id }: { scope?: N
                 <Button type="button" variant="ghost" size="sm" onClick={() => { toggleMutation.mutate(c); }} disabled={toggleMutation.isPending}>
                   {c.enabled ? 'Disable' : 'Enable'}
                 </Button>
-                <Button type="button" variant="ghost" size="sm" onClick={() => { if (confirm('Delete this notification?')) deleteMutation.mutate(c.id); }}
-                  disabled={deleteMutation.isPending} className="text-red-500 hover:text-red-600 hover:bg-red-500/10" aria-label={`Delete ${c.name}`}>
+                <Button type="button" variant="ghost" size="icon" onClick={() => { setPendingDelete(c); }}
+                  disabled={deleteMutation.isPending} className={dangerGhostIcon} aria-label={`Delete ${c.name}`}>
                   <Trash2 className="h-4 w-4" />
                 </Button>
               </div>
@@ -192,6 +196,19 @@ export function WorkspaceNotifications({ scope = 'workspaces', id }: { scope?: N
           ))}
         </div>
       )}
+
+      <ConfirmDialog
+        open={pendingDelete !== null}
+        onOpenChange={open => { if (!open) setPendingDelete(null); }}
+        title="Delete notification?"
+        description="Delete this notification?"
+        confirmLabel="Delete"
+        variant="destructive"
+        onConfirm={() => {
+          if (pendingDelete) deleteMutation.mutate(pendingDelete.id);
+          setPendingDelete(null);
+        }}
+      />
     </div>
   );
 }

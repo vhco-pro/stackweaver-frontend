@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Link, useParams } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { usePermissions } from '@/hooks/usePermissions';
 import {
@@ -15,6 +15,10 @@ import { getAnsibleCredentialFromJsonApi } from '@/utils/ansible-jsonapi';
 import { fetchAllPages } from '@/lib/pagination';
 import { Pager } from '@/components/ui/pager';
 import { Button } from '@/components/ui/button';
+import { GradientButton } from '@/components/ui/gradient-button';
+import { Page, PageDialogContent } from '@/components/layout/Page';
+import { PageHeader } from '@/components/layout/PageHeader';
+import { PageEmptyState } from '@/components/layout/PageEmptyState';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -26,7 +30,6 @@ import {
 } from '@/components/ui/card';
 import {
   Dialog,
-  DialogContent,
   DialogDescription,
   DialogFooter,
   DialogHeader,
@@ -62,7 +65,7 @@ import {
   GitBranch,
   Eye,
   EyeOff,
-  ArrowLeft,
+  KeyRound,
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -97,7 +100,7 @@ export default function Credentials() {
   const [typeFilter, setTypeFilter] = useState<CredentialType | 'all'>('all');
   const [credPage, setCredPage] = useState(1);
 
-  const { data: credentials = [], isLoading: loading, refetch: refetchCredentials } = useQuery({
+  const { data: credentials = [], isLoading: loading, isError: loadFailed, refetch: refetchCredentials } = useQuery({
     queryKey: ['credentials', selectedOrg, typeFilter],
     queryFn: async () => {
       const { items } = await fetchAllPages((page, pageSize) =>
@@ -342,6 +345,7 @@ export default function Credentials() {
                 <button
                   type="button"
                   onClick={() => setShowKeyPassphrase(!showKeyPassphrase)}
+                  aria-label={showKeyPassphrase ? 'Hide key passphrase' : 'Show key passphrase'}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                 >
                   {showKeyPassphrase ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
@@ -376,6 +380,7 @@ export default function Credentials() {
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
+                  aria-label={showPassword ? 'Hide password' : 'Show password'}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                 >
                   {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
@@ -410,6 +415,7 @@ export default function Credentials() {
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
+                  aria-label={showPassword ? 'Hide password or token' : 'Show password or token'}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                 >
                   {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
@@ -444,6 +450,7 @@ export default function Credentials() {
               <button
                 type="button"
                 onClick={() => setShowVaultPassword(!showVaultPassword)}
+                aria-label={showVaultPassword ? 'Hide vault password' : 'Show vault password'}
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
               >
                 {showVaultPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
@@ -477,6 +484,7 @@ export default function Credentials() {
                 <button
                   type="button"
                   onClick={() => setShowSecretKey(!showSecretKey)}
+                  aria-label={showSecretKey ? 'Hide secret access key' : 'Show secret access key'}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                 >
                   {showSecretKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
@@ -529,6 +537,7 @@ export default function Credentials() {
                 <button
                   type="button"
                   onClick={() => setShowSecretKey(!showSecretKey)}
+                  aria-label={showSecretKey ? 'Hide client secret' : 'Show client secret'}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                 >
                   {showSecretKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
@@ -596,6 +605,7 @@ export default function Credentials() {
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
+                  aria-label={showPassword ? 'Hide password' : 'Show password'}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                 >
                   {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
@@ -609,55 +619,52 @@ export default function Credentials() {
     }
   };
 
+  // Defined once and handed to both the header and the empty-state card: the header does not
+  // render it while there is nothing to list, so the action never appears twice.
+  const newCredentialAction = canManageCredentials ? (
+    <GradientButton ramp="app" onClick={() => setCreateDialogOpen(true)} className="w-auto px-4 py-2">
+      <Plus className="h-4 w-4 mr-2" />
+      New Credential
+    </GradientButton>
+  ) : undefined;
+  // A list emptied by the search box or the type filter is not an empty list.
+  const filtersActive = searchQuery !== '' || typeFilter !== 'all';
+  const listState = loading
+    ? 'loading'
+    : loadFailed
+      ? 'error'
+      : filteredCredentials.length === 0 && !filtersActive
+        ? 'empty'
+        : 'ready';
+  const header = (
+    <PageHeader
+      icon={KeyRound}
+      title="Credentials"
+      subtitle="Manage Ansible credentials for automation"
+      backTo={{ to: orgName ? `/app/${orgName}/settings` : '/settings', label: 'Back to Settings' }}
+      action={newCredentialAction}
+      listState={listState}
+    />
+  );
+
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-      </div>
+      <Page ramp="credentials">
+        {header}
+        <div className="flex items-center justify-center min-h-[400px]">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        </div>
+      </Page>
     );
   }
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-start gap-4">
-        <Link to={orgName ? `/app/${orgName}/settings` : '/settings'}>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-10 w-10 rounded-xl text-muted-foreground hover:text-foreground"
-            aria-label="Back to Settings"
-          >
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
-        </Link>
-        <div className="flex-1 flex items-start justify-between gap-4">
-          <div>
-            <h1 className="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-amber-600 dark:from-amber-400 via-orange-600 dark:via-orange-400 to-amber-600 dark:to-amber-400 bg-clip-text text-transparent mb-2">
-              Credentials
-            </h1>
-            <p className="text-muted-foreground">
-              Manage Ansible credentials for automation
-            </p>
-          </div>
-          {canManageCredentials && (
-            <div className="relative inline-flex rounded-xl bg-gradient-to-r from-amber-500 via-orange-500 to-amber-500 p-[2px]">
-              <Button
-                variant="ghost"
-                onClick={() => setCreateDialogOpen(true)}
-                className="bg-white dark:bg-slate-950/80 dark:backdrop-blur-xs text-slate-900 dark:text-white hover:bg-slate-50 dark:hover:bg-slate-950/90 border-0 whitespace-nowrap rounded-[calc(0.75rem-2px)] px-4 py-2"
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                New Credential
-              </Button>
-            </div>
-          )}
-        </div>
-      </div>
+    <Page ramp="credentials">
+      {header}
 
       {/* Create Credential Dialog */}
       <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
-        <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
+        <PageDialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Create Credential</DialogTitle>
             <DialogDescription>
@@ -715,12 +722,17 @@ export default function Credentials() {
             <Button variant="outline" onClick={() => setCreateDialogOpen(false)}>
               Cancel
             </Button>
-            <Button onClick={() => { void handleCreate(); }} disabled={creating}>
+            <GradientButton
+              ramp="app"
+              className="w-auto px-4 py-2"
+              onClick={() => { void handleCreate(); }}
+              disabled={creating}
+            >
               {creating && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
               Create
-            </Button>
+            </GradientButton>
           </DialogFooter>
-        </DialogContent>
+        </PageDialogContent>
       </Dialog>
 
       {/* Filters */}
@@ -755,23 +767,22 @@ export default function Credentials() {
 
       {/* Credential List */}
       {filteredCredentials.length === 0 ? (
-        <Card>
-          <CardContent className="flex flex-col items-center justify-center py-12">
-            <Shield className="h-12 w-12 text-muted-foreground mb-4" />
-            <h3 className="text-lg font-medium mb-2">No credentials found</h3>
-            <p className="text-muted-foreground text-sm mb-4">
-              {searchQuery || typeFilter !== 'all'
-                ? 'No credentials match your filters.'
-                : 'Create your first credential to get started.'}
-            </p>
-            {!searchQuery && typeFilter === 'all' && (
-              <Button onClick={() => setCreateDialogOpen(true)}>
-                <Plus className="h-4 w-4 mr-2" />
-                Create Credential
-              </Button>
-            )}
-          </CardContent>
-        </Card>
+        filtersActive ? (
+          <PageEmptyState
+            icon={Shield}
+            title="No credentials found"
+            description="No credentials match your filters."
+            filtered
+            onClearFilters={() => { setSearchQuery(''); setTypeFilter('all'); setCredPage(1); }}
+          />
+        ) : (
+          <PageEmptyState
+            icon={Shield}
+            title="No credentials found"
+            description="Create your first credential to get started."
+            action={loadFailed ? undefined : newCredentialAction}
+          />
+        )
       ) : (
         <>
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 3xl:grid-cols-5">
@@ -847,7 +858,7 @@ export default function Credentials() {
 
       {/* Delete Confirmation Dialog */}
       <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <DialogContent>
+        <PageDialogContent>
           <DialogHeader>
             <DialogTitle>Delete Credential</DialogTitle>
             <DialogDescription>
@@ -864,12 +875,12 @@ export default function Credentials() {
               Delete
             </Button>
           </DialogFooter>
-        </DialogContent>
+        </PageDialogContent>
       </Dialog>
 
       {/* Edit Credential Dialog */}
       <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
-        <DialogContent>
+        <PageDialogContent>
           <DialogHeader>
             <DialogTitle>Edit Credential</DialogTitle>
             <DialogDescription>
@@ -956,13 +967,18 @@ export default function Credentials() {
             <Button variant="outline" onClick={() => setEditDialogOpen(false)}>
               Cancel
             </Button>
-            <Button onClick={() => { void handleEdit(); }} disabled={saving}>
+            <GradientButton
+              ramp="app"
+              className="w-auto px-4 py-2"
+              onClick={() => { void handleEdit(); }}
+              disabled={saving}
+            >
               {saving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
               Save Changes
-            </Button>
+            </GradientButton>
           </DialogFooter>
-        </DialogContent>
+        </PageDialogContent>
       </Dialog>
-    </div>
+    </Page>
   );
 }

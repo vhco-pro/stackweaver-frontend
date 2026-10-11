@@ -212,6 +212,7 @@ const JsonNode = ({ keyName, value, level, path, searchTerm = '', defaultExpande
           onClick={() => { void handleCopy(formatted); }}
           className="opacity-0 group-hover:opacity-100 p-1 hover:bg-accent rounded-sm transition-all"
           title="Copy value"
+          aria-label="Copy value"
         >
           <Copy className="h-3 w-3 text-muted-foreground" />
         </button>

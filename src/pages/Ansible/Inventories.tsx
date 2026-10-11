@@ -13,6 +13,9 @@ import { Pager } from '@/components/ui/pager';
 import { vcsConnectionsApi } from '@/api/client';
 import { Button } from '@/components/ui/button';
 import { GradientButton } from '@/components/ui/gradient-button';
+import { Page } from '@/components/layout/Page';
+import { PageHeader } from '@/components/layout/PageHeader';
+import { PageEmptyState } from '@/components/layout/PageEmptyState';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -29,7 +32,6 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from '@/components/ui/dialog';
 import {
   DropdownMenu,
@@ -157,7 +159,7 @@ export default function Inventories() {
   // Fetch ALL inventories (walk every server page) so newly-created ones aren't stranded on a
   // later page and never shown. Counts are fetched separately, only for the visible page (below),
   // to avoid an N+1 host/group request storm across the whole org.
-  const { data: inventoriesData, isLoading: loading } = useQuery({
+  const { data: inventoriesData, isLoading: loading, isError: loadFailed } = useQuery({
     queryKey: ['inventories', selectedOrg],
     queryFn: async () => {
       const { items } = await fetchAllPages((page, pageSize) =>
@@ -544,514 +546,524 @@ export default function Inventories() {
     return inventory.type === 'vcs' ? 'VCS' : inventory.type;
   };
 
+  // Defined once and handed to both the header and the empty-state card: the header does not
+  // render it while there is nothing to list, so the action never appears twice.
+  const createAction = canManageInventories ? (
+    <GradientButton ramp="app" onClick={() => setCreateDialogOpen(true)} className="w-auto px-4 py-2">
+      <Plus className="h-4 w-4 mr-2" />
+      New Inventory
+    </GradientButton>
+  ) : undefined;
+  const listState = loading
+    ? 'loading'
+    : loadFailed
+      ? 'error'
+      : inventories.length === 0 && !filtersActive
+        ? 'empty'
+        : 'ready';
+  const header = (
+    <PageHeader
+      icon={Server}
+      title="Inventories"
+      subtitle={`Manage Ansible inventories for ${selectedOrg}`}
+      action={createAction}
+      listState={listState}
+    />
+  );
+
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-      </div>
+      <Page>
+        {header}
+        <div className="flex items-center justify-center min-h-[400px]">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        </div>
+      </Page>
     );
   }
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold bg-gradient-to-r from-violet-500 via-indigo-500 to-blue-500 bg-clip-text text-transparent mb-2 flex items-center gap-3">
-            <Server className="h-7 w-7 text-violet-600 dark:text-violet-400 shrink-0" />
-            Inventories
-          </h1>
-          <p className="text-muted-foreground">
-            Manage Ansible inventories for {selectedOrg}
-          </p>
-        </div>
-        <Dialog open={createDialogOpen} onOpenChange={(open) => {
-          setCreateDialogOpen(open);
-          if (!open) resetCreateForm();
-        }}>
-          {canManageInventories && (
-            <DialogTrigger asChild>
-              <GradientButton ramp="app" className="w-auto px-4 py-2">
-                <Plus className="h-4 w-4 mr-2" />
-                New Inventory
-              </GradientButton>
-            </DialogTrigger>
-          )}
-          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>Create Inventory</DialogTitle>
-              <DialogDescription>
-                Create a new Ansible inventory to manage hosts and groups.
-              </DialogDescription>
-            </DialogHeader>
-            <div className="space-y-4 py-4">
-              <div className="space-y-2">
-                <Label htmlFor="name">Name *</Label>
-                <Input
-                  id="name"
-                  placeholder={formData.type === 'vcs' ? 'leave empty for auto suggest' : 'production-servers'}
-                  value={formData.name}
-                  onChange={(e) => {
-                    setNameTouched(true);
-                    setFormData({ ...formData, name: e.target.value });
-                  }}
-                />
-                {!nameTouched && formData.vcs_repository && formData.type === 'vcs' && (
-                  <p className="text-xs text-muted-foreground">
-                    Auto-generated from repository, branch, and inventory file path
-                  </p>
-                )}
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="description">Description</Label>
-                <Textarea
-                  id="description"
-                  placeholder={formData.type === 'vcs' ? 'leave empty for auto suggest' : 'Production server inventory'}
-                  value={formData.description}
-                  onChange={(e) => {
-                    setDescriptionTouched(true);
-                    setFormData({ ...formData, description: e.target.value });
-                  }}
-                  rows={2}
-                />
-                {!descriptionTouched && formData.vcs_repository && formData.type === 'vcs' && (
-                  <p className="text-xs text-muted-foreground">
-                    Auto-generated from repository, branch, and inventory file path
-                  </p>
-                )}
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="type">Type *</Label>
-                <Select
-                  value={formData.type}
-                  onValueChange={(value: 'static' | 'dynamic' | 'vcs') => {
-                    setFormData({ 
-                      ...formData, 
-                      type: value,
-                      // Reset VCS fields if switching away from vcs
-                      ...(value !== 'vcs' ? { vcs_connection_id: '', vcs_repository: '', vcs_branch: '', inventory_path: '' } : {})
-                    });
-                  }}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="static">
-                      <div className="flex items-center gap-2">
-                        <Database className="h-4 w-4 text-orange-500" />
-                        <span>Static</span>
-                      </div>
-                    </SelectItem>
-                    <SelectItem value="dynamic">
-                      <div className="flex items-center gap-2">
-                        <Cloud className="h-4 w-4 text-cyan-500" />
-                        <span>Dynamic</span>
-                      </div>
-                    </SelectItem>
-                    <SelectItem value="vcs">
-                      <div className="flex items-center gap-2">
-                        <GitBranch className="h-4 w-4 text-purple-500" />
-                        <span>VCS</span>
-                      </div>
-                    </SelectItem>
-                    <SelectItem value="constructed">
-                      <div className="flex items-center gap-2">
-                        <Layers className="h-4 w-4 text-emerald-500" />
-                        <span>Constructed</span>
-                      </div>
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
-                
-                {/* Type description */}
-                <div className="flex items-start gap-2 p-3 bg-muted rounded-lg mt-2">
-                  <Info className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
-                  <div className="text-sm text-muted-foreground">
-                    {formData.type === 'static' && (
-                      <>
-                        <span className="font-medium text-foreground">Static inventory:</span>{' '}
-                        Manually define hosts and groups. Best for fixed infrastructure.
-                      </>
-                    )}
-                    {formData.type === 'dynamic' && (
-                      <>
-                        <span className="font-medium text-foreground">Dynamic inventory:</span>{' '}
-                        Automatically discover hosts from cloud providers (AWS, Azure, GCP, VMware). 
-                        You'll configure the cloud source after creating the inventory.
-                      </>
-                    )}
-                    {formData.type === 'vcs' && (
-                      <>
-                        <span className="font-medium text-foreground">VCS inventory:</span>{' '}
-                        Load inventory from a Git repository. Keep your inventory versioned with your code.
-                      </>
-                    )}
-                    {formData.type === 'constructed' && (
-                      <>
-                        <span className="font-medium text-foreground">Constructed inventory:</span>{' '}
-                        Combine other inventories and derive groups/variables with ansible.builtin.constructed rules. Rebuilds before every launch.
-                      </>
-                    )}
-                  </div>
-                </div>
-              </div>
+    <Page>
+      {header}
 
-              {/* Constructed configuration - only when type is constructed */}
-              {formData.type === 'constructed' && (
-                <>
-                  <div className="space-y-2 border-t pt-4">
-                    <Label>Input inventories * (in order)</Label>
-                    <div className="max-h-44 overflow-y-auto rounded-md border divide-y">
-                      {inventories.filter((inv) => inv.type !== 'constructed').map((inv) => {
-                        const idx = formData.input_inventory_ids.indexOf(inv.id);
-                        return (
-                          <label key={inv.id} className="flex items-center gap-2 px-3 py-2 text-sm cursor-pointer hover:bg-muted/50">
-                            <input
-                              type="checkbox"
-                              className="rounded-sm border-gray-300"
-                              checked={idx >= 0}
-                              onChange={(e) => {
-                                setFormData({
-                                  ...formData,
-                                  input_inventory_ids: e.target.checked
-                                    ? [...formData.input_inventory_ids, inv.id]
-                                    : formData.input_inventory_ids.filter((id) => id !== inv.id),
-                                });
-                              }}
-                            />
-                            <span className="flex-1 truncate">{inv.name}</span>
-                            {idx >= 0 && <Badge variant="secondary">#{idx + 1}</Badge>}
-                          </label>
-                        );
-                      })}
-                      {inventories.filter((inv) => inv.type !== 'constructed').length === 0 && (
-                        <p className="px-3 py-2 text-sm text-muted-foreground">No inventories available to combine.</p>
-                      )}
-                    </div>
-                    <p className="text-xs text-muted-foreground">
-                      Hosts and groups of the inputs are merged in order; the rules below derive extra groups and variables.
-                    </p>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="source-vars">Constructed rules (YAML, optional)</Label>
-                    <Textarea
-                      id="source-vars"
-                      className="font-mono text-xs min-h-32"
-                      placeholder={"# keyed_groups: a group per value of a host var\n"
-                        + "keyed_groups:\n"
-                        + "  - key: ansible_distribution | default('unknown')\n"
-                        + "    prefix: os\n"
-                        + "# groups: membership by Jinja condition\n"
-                        + "groups:\n"
-                        + "  webservers: \"'web' in inventory_hostname\"\n"
-                        + "# compose: derive new host vars\n"
-                        + "compose:\n"
-                        + "  display_name: inventory_hostname | upper"}
-                      value={formData.source_vars}
-                      onChange={(e) => { setFormData({ ...formData, source_vars: e.target.value }); }}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="constructed-limit">Limit (optional)</Label>
-                    <Input
-                      id="constructed-limit"
-                      placeholder="webservers"
-                      value={formData.constructed_limit}
-                      onChange={(e) => { setFormData({ ...formData, constructed_limit: e.target.value }); }}
-                    />
-                    <p className="text-xs text-muted-foreground">
-                      Only hosts matching this pattern are kept in the constructed inventory.
-                    </p>
-                  </div>
-                </>
-              )}
-
-              {/* VCS Configuration - Only show when type is vcs */}
-              {formData.type === 'vcs' && (
-                <>
-                  <div className="space-y-2 border-t pt-4">
-                    <Label>VCS Connection *</Label>
-                    {loadingVCS ? (
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                        Loading VCS connections...
-                      </div>
-                    ) : vcsConnections.length === 0 ? (
-                      <VCSProviderSelector
-                        orgName={selectedOrg}
-                        selectedConnectionId={undefined}
-                        onConnectionSelect={(id) => {
-                          setSelectedVcsProject('');
-                          setFormData({
-                            ...formData,
-                            vcs_connection_id: id || '',
-                            vcs_repository: '',
-                            vcs_branch: '',
-                            inventory_path: '',
-                          });
-                        }}
-                        showConfigureOption={false}
-                      />
-                    ) : (
-                      <div className="space-y-2">
-                        {vcsConnections.map((conn) => (
-                          <div
-                            key={conn.id}
-                            className={cn(
-                              'p-3 border-2 rounded-lg cursor-pointer transition-all',
-                              formData.vcs_connection_id === conn.id
-                                ? 'border-blue-500 bg-blue-50 dark:bg-blue-950/20'
-                                : 'border-gray-200 dark:border-white/10 hover:border-blue-300'
-                            )}
-                            onClick={() => {
-                              const newValue = formData.vcs_connection_id === conn.id ? '' : conn.id;
-                              setSelectedVcsProject('');
-                              setFormData({
-                                ...formData,
-                                vcs_connection_id: newValue,
-                                vcs_repository: '',
-                                vcs_branch: '',
-                                inventory_path: '',
-                              });
-                            }}
-                          >
-                            <div className="flex items-center justify-between">
-                              <div className="flex items-center gap-2">
-                                {getVcsProviderIcon(conn.provider, 'h-4 w-4')}
-                                <span className="text-sm font-medium">
-                                  {getVcsProviderLabel(conn.provider)} - {conn.account_name}
-                                </span>
-                                <Badge variant="outline" className="text-xs">
-                                  {conn.account_type}
-                                </Badge>
-                              </div>
-                              {formData.vcs_connection_id === conn.id && (
-                                <CheckCircle2 className="h-4 w-4 text-blue-500" />
-                              )}
-                            </div>
-                          </div>
-                        ))}
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => { window.open(`/app/${selectedOrg}/settings/vcs-connections`, '_blank'); }}
-                          className="w-full text-xs"
-                        >
-                          <Plus className="h-3 w-3 mr-2" />
-                          Connect to a different VCS
-                        </Button>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Project Selector (Azure DevOps only) */}
-                  {formData.vcs_connection_id && (
-                    <VCSProjectSelect
-                      connectionId={formData.vcs_connection_id}
-                      provider={vcsConnections.find(c => c.id === formData.vcs_connection_id)?.provider}
-                      value={selectedVcsProject}
-                      onChange={(project) => {
-                        setSelectedVcsProject(project);
-                        setFormData(prev => ({ ...prev, vcs_repository: '', vcs_branch: '', inventory_path: '' }));
-                      }}
-                    />
-                  )}
-
-                  {/* Repository Selector */}
-                  {formData.vcs_connection_id && (
-                    <div className="space-y-2">
-                      <Label>Repository *</Label>
-                      {loadingRepos ? (
-                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                          Loading repositories...
-                        </div>
-                      ) : repositories.length === 0 ? (
-                        <div className="text-sm text-muted-foreground space-y-2">
-                          <p>No repositories found for this installation.</p>
-                        </div>
-                      ) : (
-                        <Select
-                          value={formData.vcs_repository}
-                          onValueChange={(value) => {
-                            setFormData({ ...formData, vcs_repository: value, vcs_branch: '', inventory_path: '' });
-                          }}
-                          open={repositorySelectOpen}
-                          onOpenChange={setRepositorySelectOpen}
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select a repository" />
-                          </SelectTrigger>
-                          <SelectContent className="max-h-[300px]">
-                            <div className="p-2 border-b sticky top-0 bg-background z-10">
-                              <Input
-                                ref={repositorySearchInputRef}
-                                placeholder="Search repositories..."
-                                aria-label="Search repositories"
-                                value={repositorySearch}
-                                onChange={(e) => {
-                                  setRepositorySearch(e.target.value);
-                                  e.stopPropagation();
-                                }}
-                                onClick={(e) => e.stopPropagation()}
-                                onKeyDown={(e) => e.stopPropagation()}
-                                className="h-8"
-                                autoFocus
-                              />
-                            </div>
-                            <div className="max-h-[250px] overflow-y-auto">
-                              {repositories
-                                .filter((repo) =>
-                                  repo.full_name.toLowerCase().includes(repositorySearch.toLowerCase())
-                                )
-                                .map((repo) => (
-                                  <SelectItem key={repo.id} value={repo.full_name}>
-                                    <div className="flex items-center gap-2">
-                                      {getVcsProviderIcon(vcsConnections.find(c => c.id === formData.vcs_connection_id)?.provider ?? '', 'h-4 w-4')}
-                                      <span>{repo.full_name}</span>
-                                      {repo.private && (
-                                        <Badge variant="outline" className="ml-2 text-xs">
-                                          Private
-                                        </Badge>
-                                      )}
-                                    </div>
-                                  </SelectItem>
-                                ))}
-                              {repositories.filter((repo) =>
-                                repo.full_name.toLowerCase().includes(repositorySearch.toLowerCase())
-                              ).length === 0 && (
-                                <div className="px-2 py-6 text-center text-sm text-muted-foreground">
-                                  No repositories found
-                                </div>
-                              )}
-                            </div>
-                          </SelectContent>
-                        </Select>
-                      )}
-                    </div>
-                  )}
-
-                  {/* Branch Selector */}
-                  {formData.vcs_repository && (
-                    <div className="space-y-2">
-                      <Label>Branch *</Label>
-                      {loadingBranches ? (
-                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                          Loading branches...
-                        </div>
-                      ) : (
-                        <Select
-                          value={formData.vcs_branch}
-                          onValueChange={(value) => setFormData({ ...formData, vcs_branch: value, inventory_path: '' })}
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select a branch" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {branches.map((branch) => (
-                              <SelectItem key={branch.name} value={branch.name}>
-                                {branch.name} {branch.protected ? '(Protected)' : ''}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      )}
-                    </div>
-                  )}
-
-                  {/* Inventory Path */}
-                  {formData.vcs_connection_id && formData.vcs_repository && formData.vcs_branch && (
-                    <div className="space-y-2">
-                      <Label htmlFor="inventory_path">Inventory File Path *</Label>
-                      {loadingInventoryFiles ? (
-                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                          Loading inventory files...
-                        </div>
-                      ) : inventoryFiles.length > 0 ? (
-                        <Select
-                          value={formData.inventory_path}
-                          onValueChange={(value) => setFormData({ ...formData, inventory_path: value })}
-                          open={inventoryPathSelectOpen}
-                          onOpenChange={setInventoryPathSelectOpen}
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select an inventory file" />
-                          </SelectTrigger>
-                          <SelectContent className="max-h-[300px]">
-                            <div className="p-2 border-b sticky top-0 bg-background z-10">
-                              <Input
-                                ref={inventoryPathSearchInputRef}
-                                placeholder="Search inventory files..."
-                                aria-label="Search inventory files"
-                                value={inventoryPathSearch}
-                                onChange={(e) => {
-                                  setInventoryPathSearch(e.target.value);
-                                  e.stopPropagation();
-                                }}
-                                onClick={(e) => e.stopPropagation()}
-                                onKeyDown={(e) => e.stopPropagation()}
-                                className="h-8"
-                                autoFocus
-                              />
-                            </div>
-                            <div className="max-h-[250px] overflow-y-auto">
-                              {inventoryFiles
-                                .filter((file) =>
-                                  file.toLowerCase().includes(inventoryPathSearch.toLowerCase())
-                                )
-                                .map((file) => (
-                                  <SelectItem key={file} value={file}>
-                                    {file}
-                                  </SelectItem>
-                                ))}
-                              {inventoryFiles.filter((file) =>
-                                file.toLowerCase().includes(inventoryPathSearch.toLowerCase())
-                              ).length === 0 && (
-                                <div className="px-2 py-6 text-center text-sm text-muted-foreground">
-                                  No inventory files found
-                                </div>
-                              )}
-                            </div>
-                          </SelectContent>
-                        </Select>
-                      ) : (
-                        <Input
-                          id="inventory_path"
-                          value={formData.inventory_path}
-                          onChange={(e) => setFormData({ ...formData, inventory_path: e.target.value })}
-                          placeholder="inventory.ini or inventories/production.yml"
-                        />
-                      )}
-                      <p className="text-xs text-muted-foreground">
-                        {inventoryFiles.length > 0 
-                          ? `Select an inventory file from the repository (${inventoryFiles.length} found)`
-                          : 'Path to the inventory file within the repository (e.g., inventory.ini, inventories/production.yml)'}
-                      </p>
-                    </div>
-                  )}
-                </>
+      <Dialog open={createDialogOpen} onOpenChange={(open) => {
+        setCreateDialogOpen(open);
+        if (!open) resetCreateForm();
+      }}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Create Inventory</DialogTitle>
+            <DialogDescription>
+              Create a new Ansible inventory to manage hosts and groups.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="name">Name *</Label>
+              <Input
+                id="name"
+                placeholder={formData.type === 'vcs' ? 'leave empty for auto suggest' : 'production-servers'}
+                value={formData.name}
+                onChange={(e) => {
+                  setNameTouched(true);
+                  setFormData({ ...formData, name: e.target.value });
+                }}
+              />
+              {!nameTouched && formData.vcs_repository && formData.type === 'vcs' && (
+                <p className="text-xs text-muted-foreground">
+                  Auto-generated from repository, branch, and inventory file path
+                </p>
               )}
             </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setCreateDialogOpen(false)}>
-                Cancel
-              </Button>
-              <GradientButton ramp="app"
-                onClick={() => { void handleCreate(); }}
-                disabled={creating || !formData.name || (formData.type === 'vcs' && (!formData.vcs_connection_id || !formData.vcs_repository || !formData.vcs_branch || !formData.inventory_path))}
-                className="w-auto px-4 py-2"
+            <div className="space-y-2">
+              <Label htmlFor="description">Description</Label>
+              <Textarea
+                id="description"
+                placeholder={formData.type === 'vcs' ? 'leave empty for auto suggest' : 'Production server inventory'}
+                value={formData.description}
+                onChange={(e) => {
+                  setDescriptionTouched(true);
+                  setFormData({ ...formData, description: e.target.value });
+                }}
+                rows={2}
+              />
+              {!descriptionTouched && formData.vcs_repository && formData.type === 'vcs' && (
+                <p className="text-xs text-muted-foreground">
+                  Auto-generated from repository, branch, and inventory file path
+                </p>
+              )}
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="type">Type *</Label>
+              <Select
+                value={formData.type}
+                onValueChange={(value: 'static' | 'dynamic' | 'vcs') => {
+                  setFormData({ 
+                    ...formData, 
+                    type: value,
+                    // Reset VCS fields if switching away from vcs
+                    ...(value !== 'vcs' ? { vcs_connection_id: '', vcs_repository: '', vcs_branch: '', inventory_path: '' } : {})
+                  });
+                }}
               >
-                {creating && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-                Create
-              </GradientButton>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-      </div>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="static">
+                    <div className="flex items-center gap-2">
+                      <Database className="h-4 w-4 text-orange-500" />
+                      <span>Static</span>
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="dynamic">
+                    <div className="flex items-center gap-2">
+                      <Cloud className="h-4 w-4 text-cyan-500" />
+                      <span>Dynamic</span>
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="vcs">
+                    <div className="flex items-center gap-2">
+                      <GitBranch className="h-4 w-4 text-purple-500" />
+                      <span>VCS</span>
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="constructed">
+                    <div className="flex items-center gap-2">
+                      <Layers className="h-4 w-4 text-emerald-500" />
+                      <span>Constructed</span>
+                    </div>
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+              
+              {/* Type description */}
+              <div className="flex items-start gap-2 p-3 bg-muted rounded-lg mt-2">
+                <Info className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
+                <div className="text-sm text-muted-foreground">
+                  {formData.type === 'static' && (
+                    <>
+                      <span className="font-medium text-foreground">Static inventory:</span>{' '}
+                      Manually define hosts and groups. Best for fixed infrastructure.
+                    </>
+                  )}
+                  {formData.type === 'dynamic' && (
+                    <>
+                      <span className="font-medium text-foreground">Dynamic inventory:</span>{' '}
+                      Automatically discover hosts from cloud providers (AWS, Azure, GCP, VMware). 
+                      You'll configure the cloud source after creating the inventory.
+                    </>
+                  )}
+                  {formData.type === 'vcs' && (
+                    <>
+                      <span className="font-medium text-foreground">VCS inventory:</span>{' '}
+                      Load inventory from a Git repository. Keep your inventory versioned with your code.
+                    </>
+                  )}
+                  {formData.type === 'constructed' && (
+                    <>
+                      <span className="font-medium text-foreground">Constructed inventory:</span>{' '}
+                      Combine other inventories and derive groups/variables with ansible.builtin.constructed rules. Rebuilds before every launch.
+                    </>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Constructed configuration - only when type is constructed */}
+            {formData.type === 'constructed' && (
+              <>
+                <div className="space-y-2 border-t pt-4">
+                  <Label>Input inventories * (in order)</Label>
+                  <div className="max-h-44 overflow-y-auto rounded-md border divide-y">
+                    {inventories.filter((inv) => inv.type !== 'constructed').map((inv) => {
+                      const idx = formData.input_inventory_ids.indexOf(inv.id);
+                      return (
+                        <label key={inv.id} className="flex items-center gap-2 px-3 py-2 text-sm cursor-pointer hover:bg-muted/50">
+                          <input
+                            type="checkbox"
+                            className="rounded-sm border-gray-300"
+                            checked={idx >= 0}
+                            onChange={(e) => {
+                              setFormData({
+                                ...formData,
+                                input_inventory_ids: e.target.checked
+                                  ? [...formData.input_inventory_ids, inv.id]
+                                  : formData.input_inventory_ids.filter((id) => id !== inv.id),
+                              });
+                            }}
+                          />
+                          <span className="flex-1 truncate">{inv.name}</span>
+                          {idx >= 0 && <Badge variant="secondary">#{idx + 1}</Badge>}
+                        </label>
+                      );
+                    })}
+                    {inventories.filter((inv) => inv.type !== 'constructed').length === 0 && (
+                      <p className="px-3 py-2 text-sm text-muted-foreground">No inventories available to combine.</p>
+                    )}
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Hosts and groups of the inputs are merged in order; the rules below derive extra groups and variables.
+                  </p>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="source-vars">Constructed rules (YAML, optional)</Label>
+                  <Textarea
+                    id="source-vars"
+                    className="font-mono text-xs min-h-32"
+                    placeholder={"# keyed_groups: a group per value of a host var\n"
+                      + "keyed_groups:\n"
+                      + "  - key: ansible_distribution | default('unknown')\n"
+                      + "    prefix: os\n"
+                      + "# groups: membership by Jinja condition\n"
+                      + "groups:\n"
+                      + "  webservers: \"'web' in inventory_hostname\"\n"
+                      + "# compose: derive new host vars\n"
+                      + "compose:\n"
+                      + "  display_name: inventory_hostname | upper"}
+                    value={formData.source_vars}
+                    onChange={(e) => { setFormData({ ...formData, source_vars: e.target.value }); }}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="constructed-limit">Limit (optional)</Label>
+                  <Input
+                    id="constructed-limit"
+                    placeholder="webservers"
+                    value={formData.constructed_limit}
+                    onChange={(e) => { setFormData({ ...formData, constructed_limit: e.target.value }); }}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Only hosts matching this pattern are kept in the constructed inventory.
+                  </p>
+                </div>
+              </>
+            )}
+
+            {/* VCS Configuration - Only show when type is vcs */}
+            {formData.type === 'vcs' && (
+              <>
+                <div className="space-y-2 border-t pt-4">
+                  <Label>VCS Connection *</Label>
+                  {loadingVCS ? (
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Loading VCS connections...
+                    </div>
+                  ) : vcsConnections.length === 0 ? (
+                    <VCSProviderSelector
+                      orgName={selectedOrg}
+                      selectedConnectionId={undefined}
+                      onConnectionSelect={(id) => {
+                        setSelectedVcsProject('');
+                        setFormData({
+                          ...formData,
+                          vcs_connection_id: id || '',
+                          vcs_repository: '',
+                          vcs_branch: '',
+                          inventory_path: '',
+                        });
+                      }}
+                      showConfigureOption={false}
+                    />
+                  ) : (
+                    <div className="space-y-2">
+                      {vcsConnections.map((conn) => (
+                        <div
+                          key={conn.id}
+                          className={cn(
+                            'p-3 border-2 rounded-lg cursor-pointer transition-all',
+                            formData.vcs_connection_id === conn.id
+                              ? 'border-blue-500 bg-blue-50 dark:bg-blue-950/20'
+                              : 'border-gray-200 dark:border-white/10 hover:border-blue-300'
+                          )}
+                          onClick={() => {
+                            const newValue = formData.vcs_connection_id === conn.id ? '' : conn.id;
+                            setSelectedVcsProject('');
+                            setFormData({
+                              ...formData,
+                              vcs_connection_id: newValue,
+                              vcs_repository: '',
+                              vcs_branch: '',
+                              inventory_path: '',
+                            });
+                          }}
+                        >
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              {getVcsProviderIcon(conn.provider, 'h-4 w-4')}
+                              <span className="text-sm font-medium">
+                                {getVcsProviderLabel(conn.provider)} - {conn.account_name}
+                              </span>
+                              <Badge variant="outline" className="text-xs">
+                                {conn.account_type}
+                              </Badge>
+                            </div>
+                            {formData.vcs_connection_id === conn.id && (
+                              <CheckCircle2 className="h-4 w-4 text-blue-500" />
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => { window.open(`/app/${selectedOrg}/settings/vcs-connections`, '_blank'); }}
+                        className="w-full text-xs"
+                      >
+                        <Plus className="h-3 w-3 mr-2" />
+                        Connect to a different VCS
+                      </Button>
+                    </div>
+                  )}
+                </div>
+
+                {/* Project Selector (Azure DevOps only) */}
+                {formData.vcs_connection_id && (
+                  <VCSProjectSelect
+                    connectionId={formData.vcs_connection_id}
+                    provider={vcsConnections.find(c => c.id === formData.vcs_connection_id)?.provider}
+                    value={selectedVcsProject}
+                    onChange={(project) => {
+                      setSelectedVcsProject(project);
+                      setFormData(prev => ({ ...prev, vcs_repository: '', vcs_branch: '', inventory_path: '' }));
+                    }}
+                  />
+                )}
+
+                {/* Repository Selector */}
+                {formData.vcs_connection_id && (
+                  <div className="space-y-2">
+                    <Label>Repository *</Label>
+                    {loadingRepos ? (
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        Loading repositories...
+                      </div>
+                    ) : repositories.length === 0 ? (
+                      <div className="text-sm text-muted-foreground space-y-2">
+                        <p>No repositories found for this installation.</p>
+                      </div>
+                    ) : (
+                      <Select
+                        value={formData.vcs_repository}
+                        onValueChange={(value) => {
+                          setFormData({ ...formData, vcs_repository: value, vcs_branch: '', inventory_path: '' });
+                        }}
+                        open={repositorySelectOpen}
+                        onOpenChange={setRepositorySelectOpen}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select a repository" />
+                        </SelectTrigger>
+                        <SelectContent className="max-h-[300px]">
+                          <div className="p-2 border-b sticky top-0 bg-background z-10">
+                            <Input
+                              ref={repositorySearchInputRef}
+                              placeholder="Search repositories..."
+                              aria-label="Search repositories"
+                              value={repositorySearch}
+                              onChange={(e) => {
+                                setRepositorySearch(e.target.value);
+                                e.stopPropagation();
+                              }}
+                              onClick={(e) => e.stopPropagation()}
+                              onKeyDown={(e) => e.stopPropagation()}
+                              className="h-8"
+                              autoFocus
+                            />
+                          </div>
+                          <div className="max-h-[250px] overflow-y-auto">
+                            {repositories
+                              .filter((repo) =>
+                                repo.full_name.toLowerCase().includes(repositorySearch.toLowerCase())
+                              )
+                              .map((repo) => (
+                                <SelectItem key={repo.id} value={repo.full_name}>
+                                  <div className="flex items-center gap-2">
+                                    {getVcsProviderIcon(vcsConnections.find(c => c.id === formData.vcs_connection_id)?.provider ?? '', 'h-4 w-4')}
+                                    <span>{repo.full_name}</span>
+                                    {repo.private && (
+                                      <Badge variant="outline" className="ml-2 text-xs">
+                                        Private
+                                      </Badge>
+                                    )}
+                                  </div>
+                                </SelectItem>
+                              ))}
+                            {repositories.filter((repo) =>
+                              repo.full_name.toLowerCase().includes(repositorySearch.toLowerCase())
+                            ).length === 0 && (
+                              <div className="px-2 py-6 text-center text-sm text-muted-foreground">
+                                No repositories found
+                              </div>
+                            )}
+                          </div>
+                        </SelectContent>
+                      </Select>
+                    )}
+                  </div>
+                )}
+
+                {/* Branch Selector */}
+                {formData.vcs_repository && (
+                  <div className="space-y-2">
+                    <Label>Branch *</Label>
+                    {loadingBranches ? (
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        Loading branches...
+                      </div>
+                    ) : (
+                      <Select
+                        value={formData.vcs_branch}
+                        onValueChange={(value) => setFormData({ ...formData, vcs_branch: value, inventory_path: '' })}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select a branch" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {branches.map((branch) => (
+                            <SelectItem key={branch.name} value={branch.name}>
+                              {branch.name} {branch.protected ? '(Protected)' : ''}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    )}
+                  </div>
+                )}
+
+                {/* Inventory Path */}
+                {formData.vcs_connection_id && formData.vcs_repository && formData.vcs_branch && (
+                  <div className="space-y-2">
+                    <Label htmlFor="inventory_path">Inventory File Path *</Label>
+                    {loadingInventoryFiles ? (
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        Loading inventory files...
+                      </div>
+                    ) : inventoryFiles.length > 0 ? (
+                      <Select
+                        value={formData.inventory_path}
+                        onValueChange={(value) => setFormData({ ...formData, inventory_path: value })}
+                        open={inventoryPathSelectOpen}
+                        onOpenChange={setInventoryPathSelectOpen}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select an inventory file" />
+                        </SelectTrigger>
+                        <SelectContent className="max-h-[300px]">
+                          <div className="p-2 border-b sticky top-0 bg-background z-10">
+                            <Input
+                              ref={inventoryPathSearchInputRef}
+                              placeholder="Search inventory files..."
+                              aria-label="Search inventory files"
+                              value={inventoryPathSearch}
+                              onChange={(e) => {
+                                setInventoryPathSearch(e.target.value);
+                                e.stopPropagation();
+                              }}
+                              onClick={(e) => e.stopPropagation()}
+                              onKeyDown={(e) => e.stopPropagation()}
+                              className="h-8"
+                              autoFocus
+                            />
+                          </div>
+                          <div className="max-h-[250px] overflow-y-auto">
+                            {inventoryFiles
+                              .filter((file) =>
+                                file.toLowerCase().includes(inventoryPathSearch.toLowerCase())
+                              )
+                              .map((file) => (
+                                <SelectItem key={file} value={file}>
+                                  {file}
+                                </SelectItem>
+                              ))}
+                            {inventoryFiles.filter((file) =>
+                              file.toLowerCase().includes(inventoryPathSearch.toLowerCase())
+                            ).length === 0 && (
+                              <div className="px-2 py-6 text-center text-sm text-muted-foreground">
+                                No inventory files found
+                              </div>
+                            )}
+                          </div>
+                        </SelectContent>
+                      </Select>
+                    ) : (
+                      <Input
+                        id="inventory_path"
+                        value={formData.inventory_path}
+                        onChange={(e) => setFormData({ ...formData, inventory_path: e.target.value })}
+                        placeholder="inventory.ini or inventories/production.yml"
+                      />
+                    )}
+                    <p className="text-xs text-muted-foreground">
+                      {inventoryFiles.length > 0 
+                        ? `Select an inventory file from the repository (${inventoryFiles.length} found)`
+                        : 'Path to the inventory file within the repository (e.g., inventory.ini, inventories/production.yml)'}
+                    </p>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setCreateDialogOpen(false)}>
+              Cancel
+            </Button>
+            <GradientButton ramp="app"
+              onClick={() => { void handleCreate(); }}
+              disabled={creating || !formData.name || (formData.type === 'vcs' && (!formData.vcs_connection_id || !formData.vcs_repository || !formData.vcs_branch || !formData.inventory_path))}
+              className="w-auto px-4 py-2"
+            >
+              {creating && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              Create
+            </GradientButton>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Search + sort + filters */}
       <div className="flex flex-wrap items-center gap-3">
@@ -1093,29 +1105,16 @@ export default function Inventories() {
 
       {/* Inventory List */}
       {sortedInventories.length === 0 ? (
-        <Card>
-          <CardContent className="flex flex-col items-center justify-center py-12">
-            <Server className="h-12 w-12 text-orange-500 mb-4" />
-            <h3 className="text-lg font-medium mb-2">
-              {statusFilter === 'failed' ? 'No failed inventories 🎉' : 'No inventories found'}
-            </h3>
-            <p className="text-muted-foreground text-sm mb-4">
-              {filtersActive
-                ? 'No inventories match the current filters.'
-                : 'Create your first inventory to get started.'}
-            </p>
-            {filtersActive ? (
-              <Button variant="outline" onClick={clearFilters}>
-                Clear filters
-              </Button>
-            ) : (
-              <GradientButton ramp="app" onClick={() => setCreateDialogOpen(true)} className="w-auto px-4 py-2">
-                <Plus className="h-4 w-4 mr-2" />
-                Create Inventory
-              </GradientButton>
-            )}
-          </CardContent>
-        </Card>
+        <PageEmptyState
+          icon={Server}
+          title={statusFilter === 'failed' ? 'No failed inventories 🎉' : 'No inventories found'}
+          description={filtersActive
+            ? 'No inventories match the current filters.'
+            : 'Create your first inventory to get started.'}
+          action={loadFailed ? undefined : createAction}
+          filtered={filtersActive}
+          onClearFilters={clearFilters}
+        />
       ) : (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 3xl:grid-cols-5">
           {paginatedInventories.map((inventory) => (
@@ -1263,6 +1262,6 @@ export default function Inventories() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+    </Page>
   );
 }

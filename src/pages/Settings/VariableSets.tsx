@@ -2,9 +2,13 @@
 
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { useParams, Link } from 'react-router-dom';
-import { Package, Plus, Trash2, Settings, Users, ChevronDown, ArrowLeft, FileUp } from 'lucide-react';
+import { useParams } from 'react-router-dom';
+import { Layers, Package, Plus, Trash2, Settings, Users, ChevronDown, FileUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { GradientButton } from '@/components/ui/gradient-button';
+import { Page, PageDialogContent } from '@/components/layout/Page';
+import { PageHeader } from '@/components/layout/PageHeader';
+import { PageEmptyState } from '@/components/layout/PageEmptyState';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -27,7 +31,6 @@ import {
 } from '@/components/ui/table';
 import {
   Dialog,
-  DialogContent,
   DialogDescription,
   DialogFooter,
   DialogHeader,
@@ -55,12 +58,13 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
+import { dangerGhostIcon } from '@/lib/surfaces';
 import { ImportEnvDialog, type ImportedVariable, type ImportAction } from '@/components/variables/ImportEnvDialog';
 
 export default function VariableSets() {
   const { orgName } = useParams<{ orgName: string }>();
 
-  const { data: variableSets = [], isLoading: loading, refetch: refetchVariableSets } = useQuery({
+  const { data: variableSets = [], isLoading: loading, isError: loadFailed, refetch: refetchVariableSets } = useQuery({
     queryKey: ['variable-sets', orgName],
     queryFn: async () => {
       const sets = await variableSetsApi.list(orgName!);
@@ -491,47 +495,35 @@ export default function VariableSets() {
 
 
 
+  // Defined once and handed to both the header and the empty-state card: the header does not
+  // render it while there is nothing to list, so the action never appears twice.
+  const newVariableSetAction = (
+    <GradientButton
+      ramp="app"
+      onClick={() => {
+        setVariableSetForm({ name: '', description: '', global: true, priority: false, selectedProjects: [], selectedWorkspaces: [] });
+        setShowSelectedProjects(false);
+        setShowSelectedWorkspaces(false);
+        setCreateDialogOpen(true);
+      }}
+      className="w-auto px-4 py-2"
+    >
+      <Plus className="h-4 w-4 mr-2" />
+      New Variable Set
+    </GradientButton>
+  );
+  const listState = loading ? 'loading' : loadFailed ? 'error' : variableSets.length === 0 ? 'empty' : 'ready';
+
   return (
-    <div className="space-y-8">
-      <div className="flex items-start gap-4">
-        <Link to={orgName ? `/app/${orgName}/settings` : '/settings'}>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-10 w-10 rounded-xl text-muted-foreground hover:text-foreground"
-            aria-label="Back to Settings"
-          >
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
-        </Link>
-        <div className="flex-1">
-          <div className="flex items-start justify-between gap-4 mb-2">
-            <div>
-              <h1 className="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-blue-600 dark:from-blue-400 via-indigo-600 dark:via-indigo-400 to-blue-600 dark:to-blue-400 bg-clip-text text-transparent mb-2">
-                Variable Sets
-              </h1>
-              <p className="text-muted-foreground">
-                Manage variable sets that can be applied to multiple workspaces
-              </p>
-            </div>
-            <div className="relative inline-flex rounded-xl bg-gradient-to-r from-blue-500 via-indigo-500 to-blue-500 p-[2px]">
-              <Button
-                variant="ghost"
-                onClick={() => {
-                  setVariableSetForm({ name: '', description: '', global: true, priority: false, selectedProjects: [], selectedWorkspaces: [] });
-                  setShowSelectedProjects(false);
-                  setShowSelectedWorkspaces(false);
-                  setCreateDialogOpen(true);
-                }}
-                className="bg-white dark:bg-slate-950/80 dark:backdrop-blur-xs text-slate-900 dark:text-white hover:bg-slate-50 dark:hover:bg-slate-950/90 border-0 whitespace-nowrap rounded-[calc(0.75rem-2px)] px-4 py-2"
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                New Variable Set
-              </Button>
-            </div>
-          </div>
-        </div>
-      </div>
+    <Page ramp="variableSets" className="space-y-8">
+      <PageHeader
+        icon={Layers}
+        title="Variable Sets"
+        subtitle="Manage variable sets that can be applied to multiple workspaces"
+        backTo={{ to: orgName ? `/app/${orgName}/settings` : '/settings', label: 'Back to Settings' }}
+        action={newVariableSetAction}
+        listState={listState}
+      />
 
       {/* Variable Sets List */}
       {loading ? (
@@ -539,23 +531,12 @@ export default function VariableSets() {
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
         </div>
       ) : variableSets.length === 0 ? (
-        <div className="flex min-h-[400px] items-center justify-center">
-          <div className="text-center space-y-6 p-8 rounded-2xl bg-gradient-to-br from-white/90 via-white/75 to-white/60 dark:from-black/10 dark:via-black/5 dark:to-transparent backdrop-blur-md border border-gray-300/80 dark:border-white/10">
-            <Package className="h-16 w-16 mx-auto text-muted-foreground/50" />
-            <div>
-              <h3 className="text-xl font-semibold mb-2">No variable sets found</h3>
-              <p className="text-muted-foreground mb-6">
-                Create your first variable set to share variables across workspaces
-              </p>
-              {orgName && (
-                <Button onClick={() => setCreateDialogOpen(true)}>
-                  <Plus className="mr-2 h-4 w-4" />
-                  Create Variable Set
-                </Button>
-              )}
-            </div>
-          </div>
-        </div>
+        <PageEmptyState
+          icon={Package}
+          title="No variable sets found"
+          description="Create your first variable set to share variables across workspaces"
+          action={loadFailed ? undefined : newVariableSetAction}
+        />
       ) : (
         <div className="border rounded-lg overflow-hidden">
           <Table>
@@ -609,7 +590,8 @@ export default function VariableSets() {
                     <div className="flex justify-end gap-2">
                       <Button
                         variant="ghost"
-                        size="sm"
+                        size="icon"
+                        aria-label={`Manage variable set ${variableSet.name}`}
                         onClick={() => { void handleOpenManage(variableSet); }}
                         title="Manage variable set"
                       >
@@ -617,7 +599,9 @@ export default function VariableSets() {
                       </Button>
                       <Button
                         variant="ghost"
-                        size="sm"
+                        size="icon"
+                        aria-label={`Delete variable set ${variableSet.name}`}
+                        className={dangerGhostIcon}
                         onClick={() => {
                           setSelectedVariableSet(variableSet);
                           setDeleteDialogOpen(true);
@@ -645,7 +629,7 @@ export default function VariableSets() {
           setShowSelectedWorkspaces(false);
         }
       }}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+        <PageDialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <form onSubmit={(e) => { void handleCreateVariableSet(e); }}>
             <DialogHeader>
               <DialogTitle>Create Variable Set</DialogTitle>
@@ -1019,8 +1003,10 @@ export default function VariableSets() {
                             <TableCell className="text-right">
                               <Button
                                 variant="ghost"
-                                size="sm"
+                                size="icon"
                                 type="button"
+                                aria-label={`Remove variable ${variable.key}`}
+                                className={dangerGhostIcon}
                                 onClick={() => handleRemoveInitialVariable(index)}
                               >
                                 <Trash2 className="h-4 w-4" />
@@ -1097,15 +1083,15 @@ export default function VariableSets() {
                       Sensitive - Variable value will be hidden in the UI
                     </Label>
                   </div>
-                  <Button 
+                  <GradientButton ramp="app" emphasis="secondary" 
                     type="button" 
                     onClick={() => { void handleAddInitialVariable(); }} 
-                    className="w-full"
+                    className="w-auto w-full"
                     disabled={!variableForm.key.trim() || creating}
                   >
                     <Plus className="mr-2 h-4 w-4" />
                     Add Variable
-                  </Button>
+                  </GradientButton>
                 </div>
               </div>
             </div>
@@ -1118,13 +1104,13 @@ export default function VariableSets() {
               >
                 Cancel
               </Button>
-              <Button type="submit" disabled={creating}>
+              <GradientButton ramp="app" type="submit" disabled={creating} className="w-auto px-4 py-2">
                 {creating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Create Variable Set
-              </Button>
+              </GradientButton>
             </DialogFooter>
           </form>
-        </DialogContent>
+        </PageDialogContent>
       </Dialog>
 
       {/* Unified Manage Variable Set Dialog */}
@@ -1141,7 +1127,7 @@ export default function VariableSets() {
           setManageDialogTab('general');
         }
       }}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+        <PageDialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Manage Variable Set: {selectedVariableSet?.name}</DialogTitle>
             <DialogDescription>
@@ -1255,7 +1241,9 @@ export default function VariableSets() {
                           <TableCell className="text-right">
                             <Button
                               variant="ghost"
-                              size="sm"
+                              size="icon"
+                              aria-label={`Delete variable ${variable.key}`}
+                              className={dangerGhostIcon}
                               onClick={() => {
                                 setVariableToDelete(variable.id);
                                 setDeleteVariableDialogOpen(true);
@@ -1334,15 +1322,15 @@ export default function VariableSets() {
                     Sensitive - Variable value will be hidden in the UI
                   </Label>
                 </div>
-                <Button 
+                <GradientButton ramp="app" emphasis="secondary" 
                   type="button" 
                   onClick={() => { void handleAddVariable(); }} 
-                  className="w-full"
+                  className="w-auto w-full"
                   disabled={!variableForm.key.trim()}
                 >
                   <Plus className="mr-2 h-4 w-4" />
                   Add Variable
-                </Button>
+                </GradientButton>
               </div>
             </TabsContent>
 
@@ -1618,17 +1606,22 @@ export default function VariableSets() {
             <Button variant="outline" onClick={() => setManageDialogOpen(false)} disabled={saving}>
               Cancel
             </Button>
-            <Button onClick={() => { void handleSaveVariableSet(); }} disabled={saving}>
+            <GradientButton
+              ramp="app"
+              onClick={() => { void handleSaveVariableSet(); }}
+              disabled={saving}
+              className="w-auto px-4 py-2"
+            >
               {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Save Changes
-            </Button>
+            </GradientButton>
           </DialogFooter>
-        </DialogContent>
+        </PageDialogContent>
       </Dialog>
 
       {/* Delete Variable Set Confirmation Dialog */}
       <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <DialogContent>
+        <PageDialogContent>
           <DialogHeader>
             <DialogTitle>Delete Variable Set</DialogTitle>
             <DialogDescription>
@@ -1644,12 +1637,12 @@ export default function VariableSets() {
               Delete Variable Set
             </Button>
           </DialogFooter>
-        </DialogContent>
+        </PageDialogContent>
       </Dialog>
 
       {/* Delete Variable Confirmation Dialog */}
       <Dialog open={deleteVariableDialogOpen} onOpenChange={setDeleteVariableDialogOpen}>
-        <DialogContent>
+        <PageDialogContent>
           <DialogHeader>
             <DialogTitle>Delete Variable</DialogTitle>
             <DialogDescription>
@@ -1672,7 +1665,7 @@ export default function VariableSets() {
               Delete Variable
             </Button>
           </DialogFooter>
-        </DialogContent>
+        </PageDialogContent>
       </Dialog>
 
       {/* Bulk .env import for the set being created - rows are staged, not written yet */}
@@ -1694,7 +1687,7 @@ export default function VariableSets() {
         onImportVariable={handleImportVariable}
         onImported={() => { void handleImportedVariables(); }}
       />
-    </div>
+    </Page>
   );
 }
 

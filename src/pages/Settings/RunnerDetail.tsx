@@ -3,8 +3,11 @@
 import { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Server, Activity, Clock, Cpu, Tag, Trash2, Edit2, Loader2, BarChart3 } from 'lucide-react';
+import { Server, Activity, Clock, Cpu, Tag, Trash2, Edit2, Loader2, BarChart3 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { GradientButton } from '@/components/ui/gradient-button';
+import { Page, PageDialogContent } from '@/components/layout/Page';
+import { PageHeader } from '@/components/layout/PageHeader';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -12,7 +15,6 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import {
   Dialog,
-  DialogContent,
   DialogDescription,
   DialogFooter,
   DialogHeader,
@@ -21,6 +23,7 @@ import {
 import { runnersApi } from '@/api/client';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import { dangerOutline } from '@/lib/surfaces';
 
 export default function RunnerDetail() {
   const { orgName, runnerId } = useParams<{ orgName: string; runnerId: string }>();
@@ -174,57 +177,47 @@ export default function RunnerDetail() {
   }
 
   return (
-    <div className="space-y-8">
+    <Page ramp="runners" className="space-y-8">
       {/* Header */}
-      <div className="flex items-start gap-4">
-        <Link to={`/app/${orgName}/settings/runners`}>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-10 w-10 rounded-xl text-muted-foreground hover:text-foreground"
-            aria-label="Back to Runners"
-          >
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
-        </Link>
-        <div className="flex-1">
-          <div className="flex items-start justify-between gap-4 mb-2">
-            <div>
-              <div className="flex items-center gap-3 mb-2">
-                <h1 className="text-3xl sm:text-4xl font-bold">{runner.name}</h1>
-                <Badge variant="outline" className={cn(getStatusColor(runner.status))}>
-                  {runner.status}
-                </Badge>
-                <Badge variant="outline" className={cn(getTypeColor(runner.runner_type))}>
-                  {runner.runner_type}
-                </Badge>
-              </div>
-              <p className="text-muted-foreground">
-                {runner.description || 'No description'}
-              </p>
+      <PageHeader
+        icon={Server}
+        title={runner.name}
+        subtitle={
+          <div className="space-y-2">
+            <div className="flex flex-wrap items-center gap-2">
+              <Badge variant="outline" className={cn(getStatusColor(runner.status))}>
+                {runner.status}
+              </Badge>
+              <Badge variant="outline" className={cn(getTypeColor(runner.runner_type))}>
+                {runner.runner_type}
+              </Badge>
             </div>
-            <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setEditDialogOpen(true)}
-              >
-                <Edit2 className="h-4 w-4 mr-2 text-muted-foreground" />
-                Edit
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/20"
-                onClick={() => setDeleteDialogOpen(true)}
-              >
-                <Trash2 className="h-4 w-4 mr-2" />
-                Delete
-              </Button>
-            </div>
+            <p>{runner.description || 'No description'}</p>
           </div>
-        </div>
-      </div>
+        }
+        backTo={{ to: `/app/${orgName}/settings/runners`, label: 'Back to Runners' }}
+        actions={
+          <>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setEditDialogOpen(true)}
+            >
+              <Edit2 className="h-4 w-4 mr-2 text-muted-foreground" />
+              Edit
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className={cn(dangerOutline)}
+              onClick={() => setDeleteDialogOpen(true)}
+            >
+              <Trash2 className="h-4 w-4 mr-2" />
+              Delete
+            </Button>
+          </>
+        }
+      />
 
       {/* Info Cards */}
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
@@ -472,7 +465,7 @@ export default function RunnerDetail() {
 
       {/* Edit Dialog */}
       <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
-        <DialogContent>
+        <PageDialogContent>
           <DialogHeader>
             <DialogTitle>Edit Runner</DialogTitle>
             <DialogDescription>
@@ -506,17 +499,17 @@ export default function RunnerDetail() {
             <Button variant="outline" onClick={() => setEditDialogOpen(false)}>
               Cancel
             </Button>
-            <Button onClick={() => { void handleSave(); }} disabled={saving}>
+            <GradientButton ramp="app" className="w-auto px-4 py-2" onClick={() => { void handleSave(); }} disabled={saving}>
               {saving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
               Save
-            </Button>
+            </GradientButton>
           </DialogFooter>
-        </DialogContent>
+        </PageDialogContent>
       </Dialog>
 
       {/* Delete Confirmation */}
       <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <DialogContent>
+        <PageDialogContent>
           <DialogHeader>
             <DialogTitle>Delete Runner</DialogTitle>
             <DialogDescription>
@@ -536,8 +529,8 @@ export default function RunnerDetail() {
               Delete
             </Button>
           </DialogFooter>
-        </DialogContent>
+        </PageDialogContent>
       </Dialog>
-    </div>
+    </Page>
   );
 }

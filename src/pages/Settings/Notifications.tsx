@@ -1,9 +1,10 @@
 // Copyright (c) 2025 VH & Co BV. Licensed under the Business Source License 1.1. See LICENSE for details.
 
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
-import { Bell, ArrowLeft, Mail, Smartphone, MessageSquare } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { Bell, Mail, Smartphone, MessageSquare } from 'lucide-react';
+import { GradientButton } from '@/components/ui/gradient-button';
+import { Page } from '@/components/layout/Page';
+import { PageHeader } from '@/components/layout/PageHeader';
 import { cn } from '@/lib/utils';
 
 interface NotificationSetting {
@@ -69,9 +70,12 @@ export default function NotificationSettings() {
     );
   };
 
-  const ToggleSwitch = ({ enabled, onChange }: { enabled: boolean; onChange: () => void }) => (
+  const ToggleSwitch = ({ enabled, onChange, label }: { enabled: boolean; onChange: () => void; label: string }) => (
     <button
       type="button"
+      role="switch"
+      aria-checked={enabled}
+      aria-label={label}
       onClick={onChange}
       className={cn(
         'relative inline-flex h-6 w-11 items-center rounded-full transition-colors',
@@ -88,28 +92,13 @@ export default function NotificationSettings() {
   );
 
   return (
-    <div className="space-y-8">
-      {/* Header */}
-      <div className="flex items-start gap-4">
-        <Link to="/settings">
-          <Button 
-            variant="ghost" 
-            size="icon"
-            className="h-10 w-10 rounded-xl text-muted-foreground hover:text-foreground hover:bg-white/10 dark:hover:bg-black/10 transition-colors"
-            aria-label="Back to Settings"
-          >
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
-        </Link>
-        <div className="flex-1">
-          <h1 className="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-indigo-600 dark:from-indigo-400 via-blue-600 dark:via-blue-400 to-cyan-600 dark:to-cyan-400 bg-clip-text text-transparent mb-2">
-            Notification Settings
-          </h1>
-          <p className="text-muted-foreground">
-            Configure email and in-app notification preferences
-          </p>
-        </div>
-      </div>
+    <Page ramp="notifications" className="space-y-8">
+      <PageHeader
+        icon={Bell}
+        title="Notification Settings"
+        subtitle="Configure email and in-app notification preferences"
+        backTo={{ to: '/settings', label: 'Back to Settings' }}
+      />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Main Settings */}
@@ -146,6 +135,7 @@ export default function NotificationSettings() {
                       <ToggleSwitch
                         enabled={setting.email}
                         onChange={() => toggleSetting(setting.id, 'email')}
+                        label={`${setting.label}: Email`}
                       />
                     </div>
                     <div className="flex items-center gap-2">
@@ -154,6 +144,7 @@ export default function NotificationSettings() {
                       <ToggleSwitch
                         enabled={setting.push}
                         onChange={() => toggleSetting(setting.id, 'push')}
+                        label={`${setting.label}: Push`}
                       />
                     </div>
                     <div className="flex items-center gap-2">
@@ -162,6 +153,7 @@ export default function NotificationSettings() {
                       <ToggleSwitch
                         enabled={setting.inApp}
                         onChange={() => toggleSetting(setting.id, 'inApp')}
+                        label={`${setting.label}: In-App`}
                       />
                     </div>
                   </div>
@@ -172,9 +164,9 @@ export default function NotificationSettings() {
 
           {/* Actions */}
           <div className="flex justify-end">
-            <Button className="bg-gradient-to-r from-indigo-500 to-blue-500 hover:from-indigo-600 hover:to-blue-600">
+            <GradientButton ramp="app" className="w-auto px-4 py-2">
               Save Preferences
-            </Button>
+            </GradientButton>
           </div>
         </div>
 
@@ -207,7 +199,7 @@ export default function NotificationSettings() {
           </div>
         </div>
       </div>
-    </div>
+    </Page>
   );
 }
 

@@ -3,8 +3,11 @@
 import { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link, useParams } from 'react-router-dom';
-import { ArrowLeft, Building2, GitPullRequest, KeyRound, Loader2, Save, ShieldCheck, Trash2 } from 'lucide-react';
+import { Building2, GitPullRequest, KeyRound, Loader2, Save, ShieldCheck, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { GradientButton } from '@/components/ui/gradient-button';
+import { Page } from '@/components/layout/Page';
+import { PageHeader } from '@/components/layout/PageHeader';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
@@ -147,26 +150,13 @@ export default function OrganizationSettings() {
   const busy = savingFlag !== null;
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center gap-4">
-        <Link to={`/app/${orgName}/settings`}>
-          <Button variant="ghost" size="icon" aria-label="Back to settings">
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
-        </Link>
-        <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-indigo-500/10 border border-indigo-500/20">
-            <Building2 className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
-          </div>
-          <div>
-            <h1 className="text-2xl font-semibold tracking-tight">Organization Settings</h1>
-            <p className="text-sm text-muted-foreground">
-              General settings and policies for {org.name} (TFE-compatible: tfe_organization)
-            </p>
-          </div>
-        </div>
-      </div>
+    <Page ramp="app">
+      <PageHeader
+        icon={Building2}
+        title="Organization Settings"
+        subtitle={<>General settings and policies for {org.name} (TFE-compatible: tfe_organization)</>}
+        backTo={{ to: `/app/${orgName}/settings`, label: 'Back to Settings' }}
+      />
 
       {/* General */}
       <Card>
@@ -211,7 +201,9 @@ export default function OrganizationSettings() {
             </div>
           </div>
           <div className="flex justify-end">
-            <Button
+            <GradientButton
+              ramp="app"
+              className="w-auto"
               onClick={() => { void handleSaveGeneral(); }}
               disabled={savingGeneral || !generalDirty}
             >
@@ -221,7 +213,7 @@ export default function OrganizationSettings() {
                 <Save className="h-4 w-4 mr-2" />
               )}
               Save
-            </Button>
+            </GradientButton>
           </div>
         </CardContent>
       </Card>
@@ -344,6 +336,6 @@ export default function OrganizationSettings() {
           </div>
         </CardContent>
       </Card>
-    </div>
+    </Page>
   );
 }

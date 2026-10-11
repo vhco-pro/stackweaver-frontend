@@ -14,6 +14,9 @@ import { Pager } from '@/components/ui/pager';
 import { vcsConnectionsApi } from '@/api/client';
 import { Button } from '@/components/ui/button';
 import { GradientButton } from '@/components/ui/gradient-button';
+import { Page } from '@/components/layout/Page';
+import { PageHeader } from '@/components/layout/PageHeader';
+import { PageEmptyState } from '@/components/layout/PageEmptyState';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
@@ -160,7 +163,7 @@ export default function Playbooks() {
 
   // Fetch playbooks
   const playbooksQueryKey = ['playbooks', selectedOrg];
-  const { data: playbooks = [], isLoading: loading } = useQuery({
+  const { data: playbooks = [], isLoading: loading, isError: loadFailed } = useQuery({
     queryKey: playbooksQueryKey,
     queryFn: async () => {
       const { items } = await fetchAllPages((page, pageSize) =>
@@ -492,49 +495,65 @@ export default function Playbooks() {
     }
   };
 
+  // Defined once and handed to both the header and the empty-state card: the header does not
+  // render it while there is nothing to list, so the action never appears twice.
+  const createAction = canManagePlaybooks ? (
+    <GradientButton
+      ramp="app"
+      onClick={() => setCreateDialogOpen(true)}
+      className="w-auto px-4 py-2"
+    >
+      <Plus className="h-4 w-4 mr-2" />
+      New Playbook
+    </GradientButton>
+  ) : undefined;
+  // The second way to add a playbook. It follows the primary action: in the header once
+  // something is listed, in the empty-state card while nothing is.
+  const importAction = canManagePlaybooks ? (
+    <GradientButton
+      ramp="app"
+      emphasis="secondary"
+      onClick={() => setImportDialogOpen(true)}
+      className="w-auto px-4 py-2"
+    >
+      <FolderGit2 className="h-4 w-4 mr-2" />
+      Import from repository
+    </GradientButton>
+  ) : undefined;
+  const listState = loading
+    ? 'loading'
+    : loadFailed
+      ? 'error'
+      : playbooks.length === 0 && !filtersActive
+        ? 'empty'
+        : 'ready';
+  const header = (
+    <PageHeader
+      icon={FileText}
+      title="Playbooks"
+      subtitle={`Manage Ansible playbooks for ${selectedOrg}`}
+      // Held back while loading too: whether it belongs here or in the empty-state card is not
+      // known yet, and the header would otherwise show it and then take it away.
+      actions={listState === 'empty' || listState === 'loading' ? undefined : importAction}
+      action={createAction}
+      listState={listState}
+    />
+  );
+
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-      </div>
+      <Page>
+        {header}
+        <div className="flex items-center justify-center min-h-[400px]">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        </div>
+      </Page>
     );
   }
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold bg-gradient-to-r from-violet-500 via-indigo-500 to-blue-500 bg-clip-text text-transparent mb-2 flex items-center gap-3">
-            <FileText className="h-7 w-7 text-violet-600 dark:text-violet-400 shrink-0" />
-            Playbooks
-          </h1>
-          <p className="text-muted-foreground">
-            Manage Ansible playbooks for {selectedOrg}
-          </p>
-        </div>
-        {canManagePlaybooks && (
-          <div className="flex items-center gap-3">
-            <GradientButton
-              ramp="app"
-              emphasis="secondary"
-              onClick={() => setImportDialogOpen(true)}
-              className="w-auto px-4 py-2"
-            >
-              <FolderGit2 className="h-4 w-4 mr-2" />
-              Import from repository
-            </GradientButton>
-            <GradientButton
-              ramp="app"
-              onClick={() => setCreateDialogOpen(true)}
-              className="w-auto px-4 py-2"
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              New Playbook
-            </GradientButton>
-          </div>
-        )}
-      </div>
+    <Page>
+      {header}
 
       {/* Search + sort + filters */}
       <div className="flex flex-wrap items-center gap-3">
@@ -578,29 +597,17 @@ export default function Playbooks() {
 
       {/* Playbooks List */}
       {sortedPlaybooks.length === 0 ? (
-        <Card>
-          <CardContent className="flex flex-col items-center justify-center py-12">
-            <FileText className="h-12 w-12 text-muted-foreground mb-4" />
-            <h3 className="text-lg font-semibold mb-2">
-              {statusFilter === 'failed' ? 'No failed playbooks 🎉' : 'No playbooks found'}
-            </h3>
-            <p className="text-muted-foreground text-center max-w-md mb-4">
-              {filtersActive
-                ? 'No playbooks match the current filters.'
-                : 'No playbooks have been created yet. Click the button above to create your first playbook.'}
-            </p>
-            {filtersActive ? (
-              <Button variant="outline" onClick={clearFilters}>
-                Clear filters
-              </Button>
-            ) : canManagePlaybooks && (
-              <GradientButton ramp="app" onClick={() => setCreateDialogOpen(true)} className="w-auto px-4 py-2">
-                <Plus className="h-4 w-4 mr-2" />
-                Create Playbook
-              </GradientButton>
-            )}
-          </CardContent>
-        </Card>
+        <PageEmptyState
+          icon={FileText}
+          title={statusFilter === 'failed' ? 'No failed playbooks 🎉' : 'No playbooks found'}
+          description={filtersActive
+            ? 'No playbooks match the current filters.'
+            : 'No playbooks have been created yet. Create your first playbook to get started.'}
+          action={loadFailed ? undefined : createAction}
+          secondaryAction={listState === 'empty' ? importAction : undefined}
+          filtered={filtersActive}
+          onClearFilters={clearFilters}
+        />
       ) : (
         <>
         <div className="grid gap-4">
@@ -1186,6 +1193,6 @@ export default function Playbooks() {
         organizationName={selectedOrg}
         onImported={() => { void queryClient.invalidateQueries({ queryKey: playbooksQueryKey }); }}
       />
-    </div>
+    </Page>
   );
 }

@@ -7,10 +7,13 @@ import { useMountEffect } from '@/hooks/useMountEffect';
 import { stateVersionsApi } from '@/api/client';
 import { JsonSyntaxHighlighter } from '@/components/code/JsonSyntaxHighlighter';
 import { Button } from '@/components/ui/button';
+import { Page } from '@/components/layout/Page';
+import { PageHeader } from '@/components/layout/PageHeader';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import {
   ArrowLeft,
+  FolderOpen,
   Download,
   Maximize2,
   ChevronDown,
@@ -25,6 +28,7 @@ import {
   Trash2,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { dangerOutline } from '@/lib/surfaces';
 import { toast } from 'sonner';
 import {
   Dialog,
@@ -318,7 +322,7 @@ export default function StateVersionDetail() {
   }
 
   return (
-    <div className={cn("space-y-6", isFullscreen && "fixed inset-0 z-50 bg-background p-6 overflow-auto")}>
+    <Page className={cn(isFullscreen && "fixed inset-0 z-50 bg-background p-6 overflow-auto")}>
       {/* Breadcrumb */}
       <div className="flex items-center gap-2 text-sm text-muted-foreground">
         <span>{orgName}</span>
@@ -338,50 +342,37 @@ export default function StateVersionDetail() {
         <span className="text-foreground font-medium">{stateVersion.id}</span>
       </div>
 
-      {/* Header */}
-      <div className="flex items-start justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-primary">{workspaceName}</h1>
-          <div className="flex items-center gap-2 mt-1 text-sm text-muted-foreground">
+      <PageHeader
+        backTo={{ to: `/app/${orgName}/workspaces/${workspaceName}?tab=states`, label: 'Back to states' }}
+        icon={FolderOpen}
+        title={workspaceName}
+        subtitle={
+          <div className="flex items-center gap-2 text-sm">
             <span>ID:</span>
             <span className="font-mono">{stateVersion.id}</span>
             <Button
               variant="ghost"
-              size="sm"
+              size="icon"
+              aria-label="Copy state version ID"
               className="h-6 w-6 p-0"
               onClick={() => { void handleCopyId(); }}
             >
               {copiedId ? <Check className="h-3 w-3 text-green-500" /> : <Copy className="h-3 w-3" />}
             </Button>
           </div>
-        </div>
-        <div className="flex items-center gap-2">
+        }
+        actions={
           <Button
-            variant="destructive"
+            variant="outline"
+            className={dangerOutline}
             onClick={() => setDeleteDialogOpen(true)}
             disabled={!stateVersion}
           >
             <Trash2 className="mr-2 h-4 w-4" />
             Delete State
           </Button>
-          <Button 
-            variant="outline"
-            onClick={(e) => {
-              e.preventDefault();
-              try {
-                void navigate(`/app/${orgName}/workspaces/${workspaceName}?tab=states`, { replace: false });
-              } catch (err) {
-                console.error('Navigation error:', err);
-                // Fallback navigation
-                window.location.href = `/app/${orgName}/workspaces/${workspaceName}?tab=states`;
-              }
-            }}
-          >
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Back
-          </Button>
-        </div>
-      </div>
+        }
+      />
 
       {/* State Version Info Card */}
       <div className="border rounded-lg p-4">
@@ -648,6 +639,6 @@ export default function StateVersionDetail() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+    </Page>
   );
 }

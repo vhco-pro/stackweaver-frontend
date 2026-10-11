@@ -26,3 +26,17 @@ export const glassDashedEmpty = 'rounded-2xl border border-dashed border-gray-40
 
 /** Row/section divider inside a {@link glassSurface}. Dark keeps the legacy `border-white/5`. */
 export const glassDivider = 'border-gray-200 dark:border-white/5';
+
+/**
+ * The quiet red style for a control that starts a destructive action on a page. Apply it to a
+ * `variant="outline"` Button. Solid red (`variant="destructive"`) is reserved for the confirm
+ * button inside the dialog, so the loud button appears only at the click that destroys something.
+ */
+export const dangerOutline = [
+  'text-red-600 border-red-600/45 hover:bg-red-600/10 hover:border-red-600 hover:text-red-700',
+  'dark:text-red-400 dark:border-red-400/45 dark:hover:bg-red-400/10 dark:hover:border-red-400 dark:hover:text-red-300',
+].join(' ');
+
+/** The destructive form of an icon-only button. Apply it to a `variant="ghost" size="icon"` Button. */
+export const dangerGhostIcon =
+  'text-red-600 hover:bg-red-600/10 hover:text-red-700 dark:text-red-400 dark:hover:bg-red-400/10 dark:hover:text-red-300';

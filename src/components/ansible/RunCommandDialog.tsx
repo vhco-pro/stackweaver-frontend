@@ -6,6 +6,7 @@ import { useQuery } from '@tanstack/react-query';
 import { ansibleAdHocApi, type AnsibleCredential } from '@/api/ansible';
 import { agentPoolsApi } from '@/api/client';
 import { Button } from '@/components/ui/button';
+import { GradientButton } from '@/components/ui/gradient-button';
 import {
   Dialog,
   DialogContent,
@@ -217,10 +218,10 @@ export function RunCommandDialog({ open, onOpenChange, inventoryId, orgName, pro
         </div>
         <div className="flex justify-end gap-2">
           <Button variant="outline" onClick={() => { onOpenChange(false); }}>Cancel</Button>
-          <Button disabled={busy || !form.module} onClick={() => { void handleRun(); }}>
+          <GradientButton ramp="app" className="w-auto" disabled={busy || !form.module} onClick={() => { void handleRun(); }}>
             {busy ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Terminal className="h-4 w-4 mr-2" />}
             Run
-          </Button>
+          </GradientButton>
         </div>
       </DialogContent>
     </Dialog>

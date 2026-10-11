@@ -3,7 +3,7 @@
 // eslint-disable-next-line no-restricted-imports -- legitimate dependency-based effect
 import { useEffect, useState, useRef, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { useParams, Link, useNavigate } from 'react-router-dom';
+import { useParams, Link } from 'react-router-dom';
 import { runsApi, workspacesApi } from '@/api/client';
 import { getRunFromJsonApi } from '@/utils/jsonapi';
 import { OutputViewer } from '@/components/runs/OutputViewer';
@@ -17,9 +17,11 @@ import { useRunPolling } from '@/hooks/useRunPolling';
 import { useRunDisplayPreferences } from '@/contexts/RunDisplayPreferencesContext';
 import { TerminalOutput } from '@/components/runs/TerminalOutput';
 import { Button } from '@/components/ui/button';
+import { GradientButton } from '@/components/ui/gradient-button';
+import { Page } from '@/components/layout/Page';
+import { PageHeader } from '@/components/layout/PageHeader';
 import {
-  ArrowLeft,
-  PlayCircle,
+  FolderOpen,
   X,
   Copy,
   Check,
@@ -32,6 +34,7 @@ import { StatusBadge } from '@/components/runs/StatusBadge';
 import { computeDisplayStatus } from '@/utils/runStatus';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import { dangerOutline } from '@/lib/surfaces';
 import {
   Dialog,
   DialogContent,
@@ -50,7 +53,6 @@ export default function RunDetail() {
   const id = runId;
   const org = orgName;
   const wsName = workspaceName;
-  const navigate = useNavigate();
   const [cancelling, setCancelling] = useState(false);
   const [applying, setApplying] = useState(false);
   const [discarding, setDiscarding] = useState(false);
@@ -437,7 +439,7 @@ export default function RunDetail() {
   }
 
   return (
-    <div className="space-y-6">
+    <Page>
       {/* Breadcrumb */}
       <div className="flex items-center gap-2 text-sm text-muted-foreground">
         {org && wsName ? (
@@ -461,88 +463,86 @@ export default function RunDetail() {
         )}
       </div>
 
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row items-start justify-between gap-4">
-        <div className="flex-1 min-w-0">
-          <div className="flex items-start gap-3 mb-4">
-            <div className="shrink-0 flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500/20 via-indigo-500/20 to-purple-500/20 border border-blue-500/30">
-              <PlayCircle className="h-5 w-5 sm:h-6 sm:w-6 text-blue-600 dark:text-blue-400" />
-            </div>
-            <div className="min-w-0 flex-1">
-              <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 bg-clip-text text-transparent mb-2 truncate">
-                {run.operation === 'plan-and-apply' ? 'Plan and Apply' :
-                  run.operation === 'plan-only' ? 'Plan Only' :
-                    run.operation === 'destroy' ? 'Destroy' :
-                      run.operation.charAt(0).toUpperCase() + run.operation.slice(1)}
-              </h1>
-              <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
-                <StatusBadge status={displayStatus} />
-                <span className="text-xs sm:text-sm text-muted-foreground">
-                  {formatTimeAgo(run.created_at)}
-                </span>
-              </div>
-              <div className="mt-2 flex items-center gap-2 flex-wrap text-xs sm:text-sm">
-                <RunSourceDisplay run={run} workspace={workspaceData || undefined} />
-                {planOutput && 'terraform_version' in planOutput && (() => {
-                  const version = planOutput.terraform_version;
-                  return version ? (
-                    <>
-                      <span className="text-muted-foreground">•</span>
-                      <span className="px-2 py-1 rounded-md bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20 backdrop-blur-xs">
-                        {/* eslint-disable-next-line @typescript-eslint/no-base-to-string */}
-                        v{typeof version === 'string' ? version : String(version)}
-                      </span>
-                    </>
-                  ) : null;
-                })()}
-                {/* Self-hosted runner info - only show which runner executed */}
-                {run.runner_name && (
-                  <>
-                    <span className="text-muted-foreground">•</span>
-                    <span className="px-2 py-1 rounded-md bg-teal-500/10 text-teal-600 dark:text-teal-400 border border-teal-500/20 backdrop-blur-xs flex items-center gap-1">
-                      <Server className="h-3 w-3" />
-                      {run.runner_name}
-                    </span>
-                  </>
-                )}
+      <PageHeader
+        backTo={org && wsName ? { to: `/app/${org}/workspaces/${wsName}`, label: 'Back to workspace' } : undefined}
+        icon={FolderOpen}
+        title={
+          run.operation === 'plan-and-apply' ? 'Plan and Apply' :
+            run.operation === 'plan-only' ? 'Plan Only' :
+              run.operation === 'destroy' ? 'Destroy' :
+                run.operation.charAt(0).toUpperCase() + run.operation.slice(1)
+        }
+        subtitle={
+          <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
+            <StatusBadge status={displayStatus} />
+            <span className="text-xs sm:text-sm text-muted-foreground">
+              {formatTimeAgo(run.created_at)}
+            </span>
+          </div>
+        }
+        stats={
+          <div className="flex items-center gap-2 flex-wrap text-xs sm:text-sm">
+            <RunSourceDisplay run={run} workspace={workspaceData || undefined} />
+            {planOutput && 'terraform_version' in planOutput && (() => {
+              const version = planOutput.terraform_version;
+              return version ? (
+                <>
+                  <span className="text-muted-foreground">•</span>
+                  <span className="px-2 py-1 rounded-md bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20 backdrop-blur-xs">
+                    {/* eslint-disable-next-line @typescript-eslint/no-base-to-string */}
+                    v{typeof version === 'string' ? version : String(version)}
+                  </span>
+                </>
+              ) : null;
+            })()}
+            {/* Self-hosted runner info - only show which runner executed */}
+            {run.runner_name && (
+              <>
                 <span className="text-muted-foreground">•</span>
-                <div className="flex items-center gap-1.5">
-                  <span className="text-muted-foreground font-mono text-xs">{run.id}</span>
-                  <button
-                    onClick={() => {
-                      void (async () => {
-                        try {
-                          await navigator.clipboard.writeText(run.id);
-                          setCopiedRunId(true);
-                          toast.success('Run ID copied to clipboard');
-                          setTimeout(() => setCopiedRunId(false), 2000);
-                        } catch {
-                          toast.error('Failed to copy run ID');
-                        }
-                      })();
-                    }}
-                    className="p-1 hover:bg-muted rounded-sm transition-colors"
-                    title="Copy run ID"
-                  >
-                    {copiedRunId ? (
-                      <Check className="h-3 w-3 text-green-500" />
-                    ) : (
-                      <Copy className="h-3 w-3 text-muted-foreground" />
-                    )}
-                  </button>
-                </div>
-              </div>
+                <span className="px-2 py-1 rounded-md bg-teal-500/10 text-teal-600 dark:text-teal-400 border border-teal-500/20 backdrop-blur-xs flex items-center gap-1">
+                  <Server className="h-3 w-3" />
+                  {run.runner_name}
+                </span>
+              </>
+            )}
+            <span className="text-muted-foreground">•</span>
+            <div className="flex items-center gap-1.5">
+              <span className="text-muted-foreground font-mono text-xs">{run.id}</span>
+              <button
+                onClick={() => {
+                  void (async () => {
+                    try {
+                      await navigator.clipboard.writeText(run.id);
+                      setCopiedRunId(true);
+                      toast.success('Run ID copied to clipboard');
+                      setTimeout(() => setCopiedRunId(false), 2000);
+                    } catch {
+                      toast.error('Failed to copy run ID');
+                    }
+                  })();
+                }}
+                className="p-1 hover:bg-muted rounded-sm transition-colors"
+                title="Copy run ID"
+                aria-label="Copy run ID"
+              >
+                {copiedRunId ? (
+                  <Check className="h-3 w-3 text-green-500" />
+                ) : (
+                  <Copy className="h-3 w-3 text-muted-foreground" />
+                )}
+              </button>
             </div>
           </div>
-        </div>
-        <div className="flex items-center gap-2 shrink-0 flex-wrap">
-          {canCancel && (
+        }
+        actions={
+          canCancel && (
             <Button
               variant="outline"
               size="sm"
               onClick={() => { void handleCancel(); }}
               disabled={cancelling}
-              className="text-destructive hover:text-destructive whitespace-nowrap"
+              aria-label="Cancel run"
+              className={cn(dangerOutline, 'whitespace-nowrap')}
             >
               {cancelling ? (
                 <>
@@ -557,24 +557,9 @@ export default function RunDetail() {
                 </>
               )}
             </Button>
-          )}
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => {
-              if (org && wsName) {
-                void navigate(`/app/${org}/workspaces/${wsName}`);
-              } else {
-                void navigate(-1);
-              }
-            }}
-            className="whitespace-nowrap"
-          >
-            <ArrowLeft className="h-4 w-4 sm:mr-2" />
-            <span className="hidden sm:inline">Back</span>
-          </Button>
-        </div>
-      </div>
+          )
+        }
+      />
 
       {/* Unified Timeline and Content */}
       <div className="flex-1 min-w-0 space-y-6 overflow-hidden">
@@ -724,20 +709,39 @@ export default function RunDetail() {
             >
               Cancel
             </Button>
-            <Button
-              variant={run?.operation === 'destroy' ? 'destructive' : 'default'}
-              onClick={() => { void handleApply(); }}
-              disabled={applying}
-            >
-              {applying ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  {run?.operation === 'destroy' ? 'Destroying...' : 'Applying...'}
-                </>
-              ) : (
-                run?.operation === 'destroy' ? 'Confirm Destroy' : 'Apply Plan'
-              )}
-            </Button>
+            {/* Solid red confirms a destroy; an apply takes the gradient ring. */}
+            {run?.operation === 'destroy' ? (
+              <Button
+                variant="destructive"
+                onClick={() => { void handleApply(); }}
+                disabled={applying}
+              >
+                {applying ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Destroying...
+                  </>
+                ) : (
+                  'Confirm Destroy'
+                )}
+              </Button>
+            ) : (
+              <GradientButton
+                ramp="app"
+                className="w-auto px-4 py-2"
+                onClick={() => { void handleApply(); }}
+                disabled={applying}
+              >
+                {applying ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Applying...
+                  </>
+                ) : (
+                  'Apply Plan'
+                )}
+              </GradientButton>
+            )}
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -776,7 +780,7 @@ export default function RunDetail() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+    </Page>
   );
 }
 

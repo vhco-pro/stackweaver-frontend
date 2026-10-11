@@ -2,8 +2,8 @@
 
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Link, useParams } from 'react-router-dom';
-import { 
+import { useParams } from 'react-router-dom';
+import {
   Webhook,
   Copy,
   CheckCircle2,
@@ -14,13 +14,14 @@ import {
   Shield,
   Clock,
   Activity,
-  ArrowLeft,
   Loader2,
   ChevronDown,
   ChevronRight
 } from 'lucide-react';
 import { getVcsProviderIcon } from '@/lib/vcs';
 import { Button } from '@/components/ui/button';
+import { Page } from '@/components/layout/Page';
+import { PageHeader } from '@/components/layout/PageHeader';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -162,28 +163,13 @@ export default function Webhooks() {
   };
 
   return (
-    <div className="space-y-8 p-8">
-      {/* Header */}
-      <div className="flex items-start gap-4">
-        <Link to={orgName ? `/app/${orgName}/settings` : '/settings'}>
-          <Button 
-            variant="ghost" 
-            size="icon"
-            className="h-10 w-10 rounded-xl text-muted-foreground hover:text-foreground hover:bg-white/10 dark:hover:bg-black/10 transition-colors"
-            aria-label="Back to Settings"
-          >
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
-        </Link>
-        <div className="flex-1">
-          <h1 className="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 bg-clip-text text-transparent mb-2">
-            Webhooks
-          </h1>
-          <p className="text-muted-foreground">
-            Configure webhook endpoints for automatic syncing when code changes are pushed
-          </p>
-        </div>
-      </div>
+    <Page ramp="integrations" className="space-y-8 p-8">
+      <PageHeader
+        icon={Webhook}
+        title="Webhooks"
+        subtitle="Configure webhook endpoints for automatic syncing when code changes are pushed"
+        backTo={{ to: orgName ? `/app/${orgName}/settings` : '/settings', label: 'Back to Settings' }}
+      />
 
       {/* Info Card */}
       <Card className="border-blue-500/30 bg-blue-500/5">
@@ -225,13 +211,13 @@ export default function Webhooks() {
                 {webhookUrl}
               </code>
               <Button
-                variant="outline"
+                variant="ghost"
                 size="icon"
                 aria-label="Copy payload URL"
                 onClick={() => { void copyToClipboard(); }}
                 className={cn(
                   "shrink-0 transition-colors",
-                  copied && "bg-green-500/10 border-green-500/50"
+                  copied && "bg-green-500/10"
                 )}
               >
                 {copied ? (
@@ -290,13 +276,13 @@ export default function Webhooks() {
                 {adoWebhookUrl}
               </code>
               <Button
-                variant="outline"
+                variant="ghost"
                 size="icon"
                 aria-label="Copy Azure DevOps payload URL"
                 onClick={() => { void copyAdoToClipboard(); }}
                 className={cn(
                   "shrink-0 transition-colors",
-                  copiedAdo && "bg-green-500/10 border-green-500/50"
+                  copiedAdo && "bg-green-500/10"
                 )}
               >
                 {copiedAdo ? (
@@ -546,6 +532,6 @@ export default function Webhooks() {
           </div>
         </CardContent>
       </Card>
-    </div>
+    </Page>
   );
 }

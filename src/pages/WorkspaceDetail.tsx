@@ -30,6 +30,10 @@ import { WorkspaceChangeRequests } from '@/components/workspace/WorkspaceChangeR
 import { WorkspaceRunTasks } from '@/components/workspace/WorkspaceRunTasks';
 import { ImportEnvDialog, type ImportedVariable, type ImportAction } from '@/components/variables/ImportEnvDialog';
 import { Button } from '@/components/ui/button';
+import { GradientButton } from '@/components/ui/gradient-button';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
+import { Page } from '@/components/layout/Page';
+import { PageHeader } from '@/components/layout/PageHeader';
 import { Badge } from '@/components/ui/badge';
 import { StatusBadge } from '@/components/runs/StatusBadge';
 import { computeDisplayStatus } from '@/utils/runStatus';
@@ -70,6 +74,7 @@ import {
   FileUp
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { dangerGhostIcon, dangerOutline } from '@/lib/surfaces';
 import { getVcsProviderIcon, getVcsRepoUrl, getVcsCommitUrl } from '@/lib/vcs';
 import { toast } from 'sonner';
 import {
@@ -226,6 +231,8 @@ export default function WorkspaceDetail() {
   const [deleteConfirmName, setDeleteConfirmName] = useState('');
   const [lockDialogOpen, setLockDialogOpen] = useState(false);
   const [lockReason, setLockReason] = useState('');
+  const [forceUnlockDialogOpen, setForceUnlockDialogOpen] = useState(false);
+  const [forceUnlocking, setForceUnlocking] = useState(false);
   const [timeoutDialogOpen, setTimeoutDialogOpen] = useState(false);
   const [timeoutValue, setTimeoutValue] = useState<number>(7200); // Default: 2 hours in seconds
   const [savingTimeout, setSavingTimeout] = useState(false);
@@ -708,6 +715,29 @@ export default function WorkspaceDetail() {
     setIsEditingDescription(false);
   };
 
+  // The API's error detail when it sent one, otherwise the error's own message.
+  const toggleLockErrorMessage = (err: unknown): string =>
+    (err instanceof Error && 'response' in err && typeof err.response === 'object' && err.response !== null && 'data' in err.response && typeof err.response.data === 'object' && err.response.data !== null && 'errors' in err.response.data && Array.isArray(err.response.data.errors) && err.response.data.errors.length > 0 && typeof err.response.data.errors[0] === 'object' && err.response.data.errors[0] !== null && 'detail' in err.response.data.errors[0] && typeof err.response.data.errors[0].detail === 'string')
+      ? err.response.data.errors[0].detail
+      : (err instanceof Error ? err.message : 'Failed to toggle lock');
+
+  // Runs only from the force-unlock confirmation, which opens when a normal unlock is refused
+  // because another user holds the lock.
+  const handleForceUnlock = async () => {
+    if (!workspace) return;
+    setForceUnlocking(true);
+    try {
+      await workspacesApi.forceUnlock(workspace.id);
+      void refetchData();
+      toast.success('Workspace force unlocked');
+    } catch (err: unknown) {
+      toast.error(toggleLockErrorMessage(err));
+    } finally {
+      setForceUnlocking(false);
+      setForceUnlockDialogOpen(false);
+    }
+  };
+
   const handleDeleteVariable = () => {
     if (!workspace || !variableToDelete) return;
 
@@ -895,7 +925,7 @@ export default function WorkspaceDetail() {
       <div className="flex min-h-[400px] items-center justify-center">
         <div className="text-center space-y-4">
           <p className="text-muted-foreground">Workspace not found</p>
-          <Button onClick={() => { void navigate(`/app/${orgName}/workspaces`); }}>
+          <Button variant="outline" onClick={() => { void navigate(`/app/${orgName}/workspaces`); }}>
             <ArrowLeft className="mr-2 h-4 w-4" />
             Back to Workspaces
           </Button>
@@ -905,7 +935,7 @@ export default function WorkspaceDetail() {
   }
 
   return (
-    <div className="space-y-6">
+    <Page>
       {/* Breadcrumb */}
       <div className="flex items-center gap-2 text-sm text-muted-foreground">
         <span>{orgName}</span>
@@ -935,71 +965,74 @@ export default function WorkspaceDetail() {
       )}
 
       {/* Header */}
-      <div className="flex items-start justify-between">
-        <div className="flex-1">
-          <div className="flex items-center gap-3 mb-2">
-            <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 bg-clip-text text-transparent">
-              {workspace.name}
-            </h1>
-          </div>
-          <div className="flex items-center gap-2 text-sm text-muted-foreground mb-4">
-            <span>ID: {workspace.id}</span>
-            <Copy 
-              className="h-3.5 w-3.5 cursor-pointer hover:text-foreground" 
-              onClick={() => { void navigator.clipboard.writeText(workspace.id).then(() => {
-                toast.success('Workspace ID copied');
-              }); }}
-            />
-          </div>
-          {isEditingDescription ? (
-            <div className="flex items-center gap-2">
-              <Input
-                value={inlineDescription}
-                onChange={(e) => setInlineDescription(e.target.value)}
-                placeholder="Add workspace description"
-                className="max-w-md"
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    void handleSaveInlineDescription();
-                  } else if (e.key === 'Escape') {
-                    handleCancelInlineDescription();
-                  }
-                }}
-                autoFocus
+      <PageHeader
+        icon={FolderOpen}
+        title={workspace.name}
+        subtitle={
+          <>
+            <div className="flex items-center gap-2 text-sm text-muted-foreground mb-4">
+              <span>ID: {workspace.id}</span>
+              <Copy
+                className="h-3.5 w-3.5 cursor-pointer hover:text-foreground"
+                onClick={() => { void navigator.clipboard.writeText(workspace.id).then(() => {
+                  toast.success('Workspace ID copied');
+                }); }}
               />
-              <Button
-                size="sm"
-                variant="ghost"
-                onClick={() => { void handleSaveInlineDescription(); }}
-                disabled={savingDescription}
-              >
-                {savingDescription ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Check className="h-4 w-4" />
-                )}
-              </Button>
-              <Button
-                size="sm"
-                variant="ghost"
-                onClick={handleCancelInlineDescription}
-                disabled={savingDescription}
-              >
-                <X className="h-4 w-4" />
-              </Button>
             </div>
-          ) : (
-            <button
-              className="text-sm text-muted-foreground hover:text-foreground transition-colors"
-              onClick={() => {
-                setInlineDescription(workspace.description || '');
-                setIsEditingDescription(true);
-              }}
-            >
-              {workspace.description || 'Add workspace description.'}
-            </button>
-          )}
-          <div className="flex items-center flex-wrap gap-x-4 gap-y-1 mt-4 text-sm">
+            {isEditingDescription ? (
+              <div className="flex items-center gap-2">
+                <Input
+                  value={inlineDescription}
+                  onChange={(e) => setInlineDescription(e.target.value)}
+                  placeholder="Add workspace description"
+                  className="max-w-md"
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      void handleSaveInlineDescription();
+                    } else if (e.key === 'Escape') {
+                      handleCancelInlineDescription();
+                    }
+                  }}
+                  autoFocus
+                />
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  aria-label="Save description"
+                  onClick={() => { void handleSaveInlineDescription(); }}
+                  disabled={savingDescription}
+                >
+                  {savingDescription ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Check className="h-4 w-4" />
+                  )}
+                </Button>
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  aria-label="Cancel editing description"
+                  onClick={handleCancelInlineDescription}
+                  disabled={savingDescription}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+            ) : (
+              <button
+                className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+                onClick={() => {
+                  setInlineDescription(workspace.description || '');
+                  setIsEditingDescription(true);
+                }}
+              >
+                {workspace.description || 'Add workspace description.'}
+              </button>
+            )}
+          </>
+        }
+        stats={
+          <>
             <div className="flex items-center gap-1.5 text-muted-foreground whitespace-nowrap">
               {workspace.locked ? (
                 <>
@@ -1036,90 +1069,87 @@ export default function WorkspaceDetail() {
                 <span>{workspace.agent_pool_name}</span>
               </div>
             )}
-          </div>
-        </div>
-        <div className="flex items-center gap-2">
-          <Button 
-            variant="outline" 
-            size="sm"
-            onClick={() => { setEditWorkspaceDialogOpen(true); }}
-            disabled={!workspace}
-          >
-            <Edit className="mr-2 h-4 w-4" />
-            Edit
-          </Button>
-          <Button 
-            variant="outline" 
-            size="sm"
-            onClick={() => {
-              void (async () => {
-                if (!workspace) return;
-                try {
-                  if (workspace.locked) {
-                    // Try normal unlock first
-                    try {
-                      await workspacesApi.unlock(workspace.id);
-                      void refetchData();
-                      toast.success('Workspace unlocked');
-                    } catch (unlockErr: unknown) {
-                      // If locked by different user, try force-unlock
-                      const unlockErrResponse = (unlockErr instanceof Error && 'response' in unlockErr && typeof unlockErr.response === 'object' && unlockErr.response !== null) 
-                        ? unlockErr.response as { status?: number; data?: { errors?: Array<{ detail?: string }> } } 
-                        : null;
-                      if (unlockErrResponse?.status === 409 &&
-                          unlockErrResponse?.data?.errors?.[0]?.detail?.includes('different user')) {
-                        const forceUnlock = confirm('This workspace is locked by a different user. Would you like to force unlock it?');
-                        if (forceUnlock) {
-                          await workspacesApi.forceUnlock(workspace.id);
-                          void refetchData();
-                          toast.success('Workspace force unlocked');
+          </>
+        }
+        actions={
+          <>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => { setEditWorkspaceDialogOpen(true); }}
+              disabled={!workspace}
+            >
+              <Edit className="mr-2 h-4 w-4" />
+              Edit
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                void (async () => {
+                  if (!workspace) return;
+                  try {
+                    if (workspace.locked) {
+                      // Try normal unlock first
+                      try {
+                        await workspacesApi.unlock(workspace.id);
+                        void refetchData();
+                        toast.success('Workspace unlocked');
+                      } catch (unlockErr: unknown) {
+                        // If locked by different user, offer a force-unlock
+                        const unlockErrResponse = (unlockErr instanceof Error && 'response' in unlockErr && typeof unlockErr.response === 'object' && unlockErr.response !== null)
+                          ? unlockErr.response as { status?: number; data?: { errors?: Array<{ detail?: string }> } }
+                          : null;
+                        if (unlockErrResponse?.status === 409 &&
+                            unlockErrResponse?.data?.errors?.[0]?.detail?.includes('different user')) {
+                          // The force-unlock itself runs from the confirmation dialog (handleForceUnlock)
+                          setForceUnlockDialogOpen(true);
+                        } else {
+                          throw unlockErr;
                         }
-                      } else {
-                        throw unlockErr;
                       }
+                    } else {
+                      // Open dialog for lock reason
+                      setLockReason('');
+                      setLockDialogOpen(true);
                     }
-                  } else {
-                    // Open dialog for lock reason
-                    setLockReason('');
-                    setLockDialogOpen(true);
+                  } catch (err: unknown) {
+                    toast.error(toggleLockErrorMessage(err));
                   }
-                } catch (err: unknown) {
-                  const errorMessage = (err instanceof Error && 'response' in err && typeof err.response === 'object' && err.response !== null && 'data' in err.response && typeof err.response.data === 'object' && err.response.data !== null && 'errors' in err.response.data && Array.isArray(err.response.data.errors) && err.response.data.errors.length > 0 && typeof err.response.data.errors[0] === 'object' && err.response.data.errors[0] !== null && 'detail' in err.response.data.errors[0] && typeof err.response.data.errors[0].detail === 'string')
-                    ? err.response.data.errors[0].detail
-                    : (err instanceof Error ? err.message : 'Failed to toggle lock');
-                  toast.error(errorMessage);
-                }
-              })();
-            }}
-            disabled={!workspace}
-          >
-            {workspace?.locked ? (
-              <>
-                <Unlock className="mr-2 h-4 w-4" />
-                Unlock
-              </>
-            ) : (
-              <>
-            <Lock className="mr-2 h-4 w-4" />
-            Lock
-              </>
-            )}
-          </Button>
-          <Button 
-            variant="outline" 
-            size="sm"
-            className="text-destructive hover:text-destructive"
-            onClick={() => { setDeleteDialogOpen(true); }}
-          >
-            <Trash2 className="mr-2 h-4 w-4" />
-            Delete
-          </Button>
-          <Button size="sm" onClick={() => { setCreateRunDialogOpen(true); }}>
+                })();
+              }}
+              disabled={!workspace}
+            >
+              {workspace?.locked ? (
+                <>
+                  <Unlock className="mr-2 h-4 w-4" />
+                  Unlock
+                </>
+              ) : (
+                <>
+                  <Lock className="mr-2 h-4 w-4" />
+                  Lock
+                </>
+              )}
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className={dangerOutline}
+              onClick={() => { setDeleteDialogOpen(true); }}
+            >
+              <Trash2 className="mr-2 h-4 w-4" />
+              Delete
+            </Button>
+          </>
+        }
+        action={
+          <GradientButton ramp="app" className="w-auto px-4 py-2" onClick={() => { setCreateRunDialogOpen(true); }}>
             <Plus className="mr-2 h-4 w-4" />
             New run
-          </Button>
-        </div>
-      </div>
+          </GradientButton>
+        }
+      />
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as TabType)}>
@@ -1335,12 +1365,13 @@ export default function WorkspaceDetail() {
                                   <td className="px-4 py-3 text-right">
                                     <Button
                                       variant="ghost"
-                                      size="sm"
+                                      size="icon"
+                                      aria-label={`Remove ${resource.address} from state`}
                                       onClick={() => {
                                         setResourceToDelete(resource.address);
                                         setDeleteResourceDialogOpen(true);
                                       }}
-                                      className="text-destructive hover:text-destructive"
+                                      className={dangerGhostIcon}
                                     >
                                       <Trash2 className="h-4 w-4" />
                                     </Button>
@@ -1627,7 +1658,9 @@ export default function WorkspaceDetail() {
                 >
                   Cancel
                 </Button>
-                <Button
+                <GradientButton
+                  ramp="app"
+                  className="w-auto px-4 py-2"
                   onClick={() => {
                     void (async () => {
                       if (!orgName || !workspaceName) return;
@@ -1657,7 +1690,7 @@ export default function WorkspaceDetail() {
                   ) : (
                     'Save'
                   )}
-                </Button>
+                </GradientButton>
               </DialogFooter>
             </DialogContent>
           </Dialog>
@@ -1894,14 +1927,14 @@ export default function WorkspaceDetail() {
                 <FileUp className="mr-2 h-4 w-4" />
                 Import .env
               </Button>
-              <Button onClick={() => {
+              <GradientButton ramp="app" emphasis="secondary" className="w-auto" onClick={() => {
                 setEditingVariable(null);
                 setVariableForm({ key: '', value: '', description: '', category: 'terraform', hcl: false, sensitive: false, encrypted: false });
                 setCreateVariableDialogOpen(true);
               }}>
                 <Plus className="mr-2 h-4 w-4" />
                 Add variable
-              </Button>
+              </GradientButton>
             </div>
           </div>
 
@@ -2034,7 +2067,8 @@ export default function WorkspaceDetail() {
                           <div className="flex justify-end gap-2">
                             <Button
                               variant="ghost"
-                              size="sm"
+                              size="icon"
+                              aria-label={`Edit variable ${variable.key}`}
                               onClick={() => {
                                 setEditingVariable(variable);
                                 setVariableForm({
@@ -2053,7 +2087,9 @@ export default function WorkspaceDetail() {
                             </Button>
                             <Button
                               variant="ghost"
-                              size="sm"
+                              size="icon"
+                              aria-label={`Delete variable ${variable.key}`}
+                              className={dangerGhostIcon}
                               onClick={() => {
                                 setVariableToDelete(variable);
                                 setDeleteVariableDialogOpen(true);
@@ -2285,9 +2321,9 @@ export default function WorkspaceDetail() {
             <Button variant="outline" onClick={() => setCreateVariableDialogOpen(false)}>
               Cancel
             </Button>
-            <Button onClick={() => { void handleCreateVariable(); }}>
+            <GradientButton ramp="app" className="w-auto px-4 py-2" onClick={() => { void handleCreateVariable(); }}>
               {editingVariable ? 'Update' : 'Create'}
-            </Button>
+            </GradientButton>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -2340,7 +2376,9 @@ export default function WorkspaceDetail() {
             >
               Cancel
             </Button>
-            <Button
+            <GradientButton
+              ramp="app"
+              className="w-auto px-4 py-2"
               onClick={() => {
                 if (pendingVariableCreate) {
                   pendingVariableCreate();
@@ -2350,7 +2388,7 @@ export default function WorkspaceDetail() {
               }}
             >
               Create Anyway
-            </Button>
+            </GradientButton>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -2527,7 +2565,9 @@ export default function WorkspaceDetail() {
             <Button variant="outline" onClick={() => setLockDialogOpen(false)}>
               Cancel
             </Button>
-            <Button 
+            <GradientButton
+              ramp="app"
+              className="w-auto px-4 py-2"
               onClick={() => {
                 void (async () => {
                   if (!workspace) return;
@@ -2548,10 +2588,22 @@ export default function WorkspaceDetail() {
             >
               <Lock className="mr-2 h-4 w-4" />
               Lock Workspace
-            </Button>
+            </GradientButton>
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Force Unlock Confirmation */}
+      <ConfirmDialog
+        open={forceUnlockDialogOpen}
+        onOpenChange={setForceUnlockDialogOpen}
+        title="Force unlock workspace?"
+        description="This workspace is locked by a different user. Would you like to force unlock it?"
+        confirmLabel="Force unlock"
+        variant="destructive"
+        loading={forceUnlocking}
+        onConfirm={handleForceUnlock}
+      />
 
       {/* Edit Workspace Dialog */}
       {orgName && workspaceName && (
@@ -2565,6 +2617,6 @@ export default function WorkspaceDetail() {
           }}
         />
       )}
-    </div>
+    </Page>
   );
 }

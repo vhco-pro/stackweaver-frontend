@@ -12,6 +12,9 @@ import {
 } from '@/api/ansible';
 import { Button } from '@/components/ui/button';
 import { GradientButton } from '@/components/ui/gradient-button';
+import { Page } from '@/components/layout/Page';
+import { PageHeader } from '@/components/layout/PageHeader';
+import { PageEmptyState } from '@/components/layout/PageEmptyState';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -114,7 +117,7 @@ export default function Workflows() {
   const selectedOrg = orgName || currentOrg?.name || '';
   const { canManageJobTemplates, canExecuteJobs } = usePermissions(selectedOrg);
 
-  const { data: workflows = [], isLoading: loading, refetch: refetchWorkflows } = useQuery({
+  const { data: workflows = [], isLoading: loading, isError: loadFailed, refetch: refetchWorkflows } = useQuery({
     queryKey: ['workflows', selectedOrg],
     queryFn: async () => {
       const res = await ansibleWorkflowsApi.list(selectedOrg);
@@ -226,26 +229,31 @@ export default function Workflows() {
     );
   }
 
+  // Defined once and handed to both the header and the empty-state card: the header does not
+  // render it while there is nothing to list, so the action never appears twice.
+  const createAction = canManageJobTemplates ? (
+    <GradientButton ramp="app" onClick={() => setCreateDialogOpen(true)} className="w-auto px-4 py-2">
+      <Plus className="h-4 w-4 mr-2" />
+      New Workflow
+    </GradientButton>
+  ) : undefined;
+  const listState = loading
+    ? 'loading'
+    : loadFailed
+      ? 'error'
+      : workflows.length === 0 && searchQuery === ''
+        ? 'empty'
+        : 'ready';
+
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold bg-gradient-to-r from-violet-500 via-indigo-500 to-blue-500 bg-clip-text text-transparent mb-2 flex items-center gap-3">
-            <Workflow className="h-7 w-7 text-violet-600 dark:text-violet-400 shrink-0" />
-            Workflow Templates
-          </h1>
-          <p className="text-muted-foreground">
-            Create multi-job pipelines with conditional branching
-          </p>
-        </div>
-        {canManageJobTemplates && (
-          <GradientButton ramp="app" onClick={() => setCreateDialogOpen(true)} className="w-auto px-4 py-2">
-            <Plus className="h-4 w-4 mr-2" />
-            New Workflow
-          </GradientButton>
-        )}
-      </div>
+    <Page>
+      <PageHeader
+        icon={Workflow}
+        title="Workflow Templates"
+        subtitle="Create multi-job pipelines with conditional branching"
+        action={createAction}
+        listState={listState}
+      />
 
       {/* Search */}
       <Card>
@@ -280,22 +288,16 @@ export default function Workflows() {
               <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
             </div>
           ) : filteredWorkflows.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-12 text-center">
-              <GitBranch className="h-12 w-12 text-muted-foreground mb-4" />
-              <h3 className="text-lg font-medium">No workflow templates found</h3>
-              <p className="text-muted-foreground mt-1">
-                {searchQuery 
-                  ? 'Try adjusting your search query'
-                  : 'Create your first workflow template to orchestrate multiple jobs'
-                }
-              </p>
-              {!searchQuery && canManageJobTemplates && (
-                <GradientButton ramp="app" className="mt-4 w-auto px-4 py-2" onClick={() => setCreateDialogOpen(true)}>
-                  <Plus className="h-4 w-4 mr-2" />
-                  Create Workflow
-                </GradientButton>
-              )}
-            </div>
+            <PageEmptyState
+              icon={GitBranch}
+              title="No workflow templates found"
+              description={searchQuery
+                ? 'Try adjusting your search query'
+                : 'Create your first workflow template to orchestrate multiple jobs'}
+              action={loadFailed ? undefined : createAction}
+              filtered={searchQuery !== ''}
+              onClearFilters={() => { setSearchQuery(''); }}
+            />
           ) : (
             <Table>
               <TableHeader>
@@ -349,7 +351,7 @@ export default function Workflows() {
                     <TableCell className="text-right">
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="sm">
+                          <Button variant="ghost" size="icon" aria-label="Workflow actions">
                             <MoreVertical className="h-4 w-4" />
                           </Button>
                         </DropdownMenuTrigger>
@@ -514,6 +516,6 @@ export default function Workflows() {
           canExecute={canExecuteJobs}
         />
       )}
-    </div>
+    </Page>
   );
 }

@@ -1,16 +1,19 @@
 // Copyright (c) 2025 VH & Co BV. Licensed under the Business Source License 1.1. See LICENSE for details.
 
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
-import { ArrowLeft, Palette, Languages, Clock, Layout } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { Globe, Palette, Languages, Clock, Layout } from 'lucide-react';
+import { Page } from '@/components/layout/Page';
+import { PageHeader } from '@/components/layout/PageHeader';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
 import { useRunDisplayPreferences } from '@/contexts/RunDisplayPreferencesContext';
 
-const ToggleSwitch = ({ enabled, onChange }: { enabled: boolean; onChange: () => void }) => (
+const ToggleSwitch = ({ enabled, onChange, label }: { enabled: boolean; onChange: () => void; label: string }) => (
   <button
     type="button"
+    role="switch"
+    aria-checked={enabled}
+    aria-label={label}
     onClick={onChange}
     className={cn(
       'relative inline-flex h-6 w-11 items-center rounded-full transition-colors',
@@ -76,28 +79,13 @@ export default function PreferencesSettings() {
   };
 
   return (
-    <div className="space-y-8">
-      {/* Header */}
-      <div className="flex items-start gap-4">
-        <Link to="/settings">
-          <Button 
-            variant="ghost" 
-            size="icon"
-            className="h-10 w-10 rounded-xl text-muted-foreground hover:text-foreground hover:bg-white/10 dark:hover:bg-black/10 transition-colors"
-            aria-label="Back to Settings"
-          >
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
-        </Link>
-        <div className="flex-1">
-          <h1 className="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-indigo-600 dark:from-indigo-400 via-violet-600 dark:via-violet-400 to-indigo-600 dark:to-indigo-400 bg-clip-text text-transparent mb-2">
-            Preferences
-          </h1>
-          <p className="text-muted-foreground">
-            Customize your workspace and display preferences
-          </p>
-        </div>
-      </div>
+    <Page ramp="preferences" className="space-y-8">
+      <PageHeader
+        icon={Globe}
+        title="Preferences"
+        subtitle="Customize your workspace and display preferences"
+        backTo={{ to: '/settings', label: 'Back to Settings' }}
+      />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Main Settings */}
@@ -271,6 +259,7 @@ export default function PreferencesSettings() {
                 <ToggleSwitch
                   enabled={preferences.compactMode}
                   onChange={() => setPreferences(prev => ({ ...prev, compactMode: !prev.compactMode }))}
+                  label="Compact Mode"
                 />
               </div>
             </div>
@@ -299,6 +288,7 @@ export default function PreferencesSettings() {
                 <ToggleSwitch
                   enabled={runDisplayPrefs.showActionText}
                   onChange={() => updateRunDisplayPref('showActionText', !runDisplayPrefs.showActionText)}
+                  label="Show Action Text"
                 />
               </div>
               <div className="flex items-center justify-between">
@@ -311,6 +301,7 @@ export default function PreferencesSettings() {
                 <ToggleSwitch
                   enabled={runDisplayPrefs.showTotalChangesBadge}
                   onChange={() => updateRunDisplayPref('showTotalChangesBadge', !runDisplayPrefs.showTotalChangesBadge)}
+                  label="Show Total Changes Badge"
                 />
               </div>
               <div className="flex items-center justify-between">
@@ -323,6 +314,7 @@ export default function PreferencesSettings() {
                 <ToggleSwitch
                   enabled={runDisplayPrefs.showTerminalDuringPlanning}
                   onChange={() => updateRunDisplayPref('showTerminalDuringPlanning', !runDisplayPrefs.showTerminalDuringPlanning)}
+                  label="Show Terminal During Planning"
                 />
               </div>
               <div className="flex items-center justify-between">
@@ -387,7 +379,7 @@ export default function PreferencesSettings() {
           </div>
         </div>
       </div>
-    </div>
+    </Page>
   );
 }
 

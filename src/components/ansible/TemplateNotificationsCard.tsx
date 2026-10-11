@@ -5,6 +5,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { ansibleNotificationsApi } from '@/api/ansible';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { GradientButton } from '@/components/ui/gradient-button';
 import {
   Card,
   CardContent,
@@ -314,7 +315,7 @@ export function TemplateNotificationsCard({ templateId, orgName, canManage }: Te
                   )}
                 </div>
                 <div className="flex gap-2">
-                  <Button size="sm" disabled={busy} onClick={() => { void handleCreateChannel(); }}>Create</Button>
+                  <GradientButton ramp="app" emphasis="secondary" className="w-auto" size="sm" disabled={busy} onClick={() => { void handleCreateChannel(); }}>Create</GradientButton>
                   <Button size="sm" variant="outline" onClick={() => { setShowCreate(false); }}>Cancel</Button>
                 </div>
               </div>

@@ -19,6 +19,9 @@ import {
   getAnsibleJobEventFromJsonApi,
 } from '@/utils/ansible-jsonapi';
 import { Button } from '@/components/ui/button';
+import { GradientButton } from '@/components/ui/gradient-button';
+import { Page } from '@/components/layout/Page';
+import { PageHeader } from '@/components/layout/PageHeader';
 import { Badge } from '@/components/ui/badge';
 import {
   Card,
@@ -46,10 +49,12 @@ import {
   Copy,
   Check,
   LayoutGrid,
+  Play,
 } from 'lucide-react';
 import { RunView } from './run-viewer/RunView';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import { dangerOutline } from '@/lib/surfaces';
 import { HostStatusCount } from '@/components/ansible/HostStatus';
 import { ANSIBLE_HOST_STATUSES, type HostStatus } from '@/components/ansible/hostStatus';
 
@@ -642,7 +647,7 @@ export default function JobDetail() {
         <p className="text-muted-foreground mb-4">
           The job you're looking for doesn't exist or has been deleted.
         </p>
-        <Button onClick={() => { void navigate(`/app/${orgName}/ansible/jobs`); }}>
+        <Button variant="outline" onClick={() => { void navigate(`/app/${orgName}/ansible/jobs`); }}>
           <ArrowLeft className="h-4 w-4 mr-2" />
           Back to Jobs
         </Button>
@@ -651,24 +656,13 @@ export default function JobDetail() {
   }
 
   return (
-    <div className="space-y-4">
-      {/* Compact Header Bar */}
-      <div className="flex items-center justify-between bg-card border rounded-lg px-4 py-3">
-        <div className="flex items-center gap-4">
-          <Button
-            variant="ghost"
-            size="icon"
-            aria-label="Back to jobs"
-            className="h-8 w-8"
-            onClick={() => { void navigate(`/app/${orgName}/ansible/jobs`); }}
-          >
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
-          
-          <div className="flex items-center gap-3">
-            <h1 className="text-xl font-semibold">
-              {job.name || `Job ${job.id.slice(0, 8)}`}
-            </h1>
+    <Page className="space-y-4">
+      <PageHeader
+        backTo={{ to: `/app/${orgName}/ansible/jobs`, label: 'Back to jobs' }}
+        icon={Play}
+        title={job.name || `Job ${job.id.slice(0, 8)}`}
+        subtitle={
+          <div className="flex flex-wrap items-center gap-3">
             <Badge
               variant="outline"
               className={cn("capitalize", getStatusColor(job.status))}
@@ -676,67 +670,67 @@ export default function JobDetail() {
               {getStatusIcon(job.status)}
               <span className="ml-1">{job.status}</span>
             </Badge>
-          </div>
-          
-          <div className="hidden md:flex items-center gap-4 text-sm text-muted-foreground border-l pl-4">
-            <div className="flex items-center gap-1.5">
-              <Clock className="h-3.5 w-3.5" />
-              <span>{formatDuration(job.started_at, job.finished_at)}</span>
+
+            <div className="hidden md:flex items-center gap-4 text-sm text-muted-foreground border-l pl-4">
+              <div className="flex items-center gap-1.5">
+                <Clock className="h-3.5 w-3.5" />
+                <span>{formatDuration(job.started_at, job.finished_at)}</span>
+              </div>
+              {playbook && (
+                <button
+                  onClick={() => { void navigate(`/app/${orgName}/ansible/playbooks/${playbook.id}`); }}
+                  className="flex items-center gap-1.5 hover:text-foreground transition-colors"
+                >
+                  <FileCode className="h-3.5 w-3.5" />
+                  <span className="truncate max-w-[150px] underline-offset-2 hover:underline">{playbook.name}</span>
+                </button>
+              )}
+              {!playbook && (
+                <div className="flex items-center gap-1.5">
+                  <FileCode className="h-3.5 w-3.5" />
+                  <span className="truncate max-w-[150px]">Unknown</span>
+                </div>
+              )}
+              {inventory && (
+                <button
+                  onClick={() => { void navigate(`/app/${orgName}/ansible/inventories/${inventory.id}`); }}
+                  className="flex items-center gap-1.5 hover:text-foreground transition-colors"
+                >
+                  <Server className="h-3.5 w-3.5" />
+                  <span className="truncate max-w-[120px] underline-offset-2 hover:underline">{inventory.name}</span>
+                </button>
+              )}
+              {!inventory && (
+                <div className="flex items-center gap-1.5">
+                  <Server className="h-3.5 w-3.5" />
+                  <span className="truncate max-w-[120px]">Unknown</span>
+                </div>
+              )}
+              {/* Self-hosted runner info */}
+              {(job.agent_pool_name || job.runner_name) && (
+                <div className="flex items-center gap-1.5 text-teal-600 dark:text-teal-400">
+                  <Cpu className="h-3.5 w-3.5" />
+                  <span className="truncate max-w-[150px]">
+                    {job.runner_name ? (
+                      <>
+                        {job.runner_name}
+                        {job.agent_pool_name && <span className="text-muted-foreground ml-1">({job.agent_pool_name})</span>}
+                      </>
+                    ) : (
+                      job.agent_pool_name
+                    )}
+                  </span>
+                </div>
+              )}
             </div>
-            {playbook && (
-              <button 
-                onClick={() => { void navigate(`/app/${orgName}/ansible/playbooks/${playbook.id}`); }}
-                className="flex items-center gap-1.5 hover:text-foreground transition-colors"
-              >
-                <FileCode className="h-3.5 w-3.5" />
-                <span className="truncate max-w-[150px] underline-offset-2 hover:underline">{playbook.name}</span>
-              </button>
-            )}
-            {!playbook && (
-              <div className="flex items-center gap-1.5">
-                <FileCode className="h-3.5 w-3.5" />
-                <span className="truncate max-w-[150px]">Unknown</span>
-              </div>
-            )}
-            {inventory && (
-              <button 
-                onClick={() => { void navigate(`/app/${orgName}/ansible/inventories/${inventory.id}`); }}
-                className="flex items-center gap-1.5 hover:text-foreground transition-colors"
-              >
-                <Server className="h-3.5 w-3.5" />
-                <span className="truncate max-w-[120px] underline-offset-2 hover:underline">{inventory.name}</span>
-              </button>
-            )}
-            {!inventory && (
-              <div className="flex items-center gap-1.5">
-                <Server className="h-3.5 w-3.5" />
-                <span className="truncate max-w-[120px]">Unknown</span>
-              </div>
-            )}
-            {/* Self-hosted runner info */}
-            {(job.agent_pool_name || job.runner_name) && (
-              <div className="flex items-center gap-1.5 text-teal-600 dark:text-teal-400">
-                <Cpu className="h-3.5 w-3.5" />
-                <span className="truncate max-w-[150px]">
-                  {job.runner_name ? (
-                    <>
-                      {job.runner_name}
-                      {job.agent_pool_name && <span className="text-muted-foreground ml-1">({job.agent_pool_name})</span>}
-                    </>
-                  ) : (
-                    job.agent_pool_name
-                  )}
-                </span>
-              </div>
-            )}
           </div>
-        </div>
-        
-        <div className="flex items-center gap-2">
-          {['pending', 'running'].includes(job.status) && (
+        }
+        actions={
+          ['pending', 'running'].includes(job.status) && (
             <Button
-              variant="destructive"
+              variant="outline"
               size="sm"
+              className={dangerOutline}
               onClick={() => { void handleCancel(); }}
               disabled={canceling}
             >
@@ -747,19 +741,26 @@ export default function JobDetail() {
               )}
               <span className="ml-1.5 hidden sm:inline">Cancel</span>
             </Button>
-          )}
-          {['successful', 'failed', 'canceled', 'error'].includes(job.status) && (
-            <Button size="sm" onClick={() => { void handleRelaunch(); }} disabled={relaunching}>
+          )
+        }
+        action={
+          ['successful', 'failed', 'canceled', 'error'].includes(job.status) && (
+            <GradientButton
+              ramp="app"
+              className="w-auto px-4 py-2"
+              onClick={() => { void handleRelaunch(); }}
+              disabled={relaunching}
+            >
               {relaunching ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
               ) : (
                 <RefreshCw className="h-4 w-4" />
               )}
               <span className="ml-1.5 hidden sm:inline">Relaunch</span>
-            </Button>
-          )}
-        </div>
-      </div>
+            </GradientButton>
+          )
+        }
+      />
 
       {/* Failure banner - the job's own error, not any host's */}
       {['failed', 'error'].includes(job.status) && job.error_message && (
@@ -771,8 +772,8 @@ export default function JobDetail() {
           </div>
           <Button
             variant="ghost"
-            size="sm"
-            className="h-7 shrink-0 px-2 text-red-600 hover:bg-red-200/50 hover:text-red-700 dark:text-red-400 dark:hover:bg-red-900/50 dark:hover:text-red-300"
+            size="icon"
+            className="h-7 w-8 shrink-0 text-red-600 hover:bg-red-200/50 hover:text-red-700 dark:text-red-400 dark:hover:bg-red-900/50 dark:hover:text-red-300"
             onClick={() => { void handleCopyError(); }}
             aria-label="Copy error message to clipboard"
             title="Copy error message to clipboard"
@@ -1130,6 +1131,6 @@ export default function JobDetail() {
           )}
         </TabsContent>
       </Tabs>
-    </div>
+    </Page>
   );
 }

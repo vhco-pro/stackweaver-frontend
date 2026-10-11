@@ -5,6 +5,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
+import { GradientButton } from '@/components/ui/gradient-button';
 import {
   Dialog,
   DialogContent,
@@ -624,10 +625,10 @@ export function CreateWorkspaceDialog({
             >
               Cancel
             </Button>
-            <Button type="submit" disabled={creating}>
+            <GradientButton ramp="app" type="submit" disabled={creating} className="w-auto px-4 py-2">
               {creating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Create Workspace
-            </Button>
+            </GradientButton>
           </DialogFooter>
         </form>
       </DialogContent>

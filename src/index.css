@@ -278,13 +278,13 @@
 }
 
 /* Secondary ring (design lab P2, decided 2026-08-24): same family, half the
-   voice - 1px ring with the gradient faded to 55%, static. No glow, no spin;
-   when a primary and a secondary share a header, only the primary moves. */
+   voice - a 1px ring with the gradient faded to 55% and no glow at rest. Used
+   for a second action in a header and for a primary action repeated on every
+   row of a list. */
 .gradient-ring-btn.gradient-ring-secondary {
   --sw-ring-width: 1px;
 }
-.gradient-ring-btn.gradient-ring-secondary::after,
-.gradient-ring-btn.gradient-ring-secondary:hover::after {
+.gradient-ring-btn.gradient-ring-secondary::after {
   background:
     linear-gradient(var(--sw-ring-core), var(--sw-ring-core)) padding-box,
     linear-gradient(90deg,
@@ -293,8 +293,23 @@
       color-mix(in srgb, var(--_c3) 55%, transparent)) border-box;
   animation: none;
 }
+/* Hover (owner decision 2026-10-11, option H5 in
+   docs/internal/design/prototypes/row-action-hover.html): the ring comes up to full colour
+   and rotates like the primary's, with a soft halo that is weaker than the primary's. The
+   ring stays 1px, so the button does not change size under the pointer. */
+.gradient-ring-btn.gradient-ring-secondary:hover::after {
+  background:
+    linear-gradient(var(--sw-ring-core), var(--sw-ring-core)) padding-box,
+    conic-gradient(from var(--sw-ring-angle), var(--_c1), var(--_c2), var(--_c3), var(--_c2), var(--_c1)) border-box;
+  animation: sw-ring-spin 2.2s linear infinite;
+}
 .gradient-ring-btn.gradient-ring-secondary::before {
-  display: none;
+  opacity: 0;
+  filter: blur(8px);
+}
+.gradient-ring-btn.gradient-ring-secondary:hover::before {
+  opacity: 0.45;
+  animation: sw-ring-glow 1.8s linear infinite alternate;
 }
 
 /* Public surface + login flow ramp (blue → indigo → purple). */
@@ -313,7 +328,9 @@
 }
 @media (prefers-reduced-motion: reduce) {
   .gradient-ring-btn:hover::after,
-  .gradient-ring-btn:hover::before {
+  .gradient-ring-btn:hover::before,
+  .gradient-ring-btn.gradient-ring-secondary:hover::after,
+  .gradient-ring-btn.gradient-ring-secondary:hover::before {
     animation: none;
   }
 }

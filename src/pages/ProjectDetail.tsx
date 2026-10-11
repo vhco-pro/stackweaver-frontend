@@ -20,6 +20,9 @@ import {
   getAnsibleWorkflowFromJsonApi,
 } from '@/utils/ansible-jsonapi';
 import { Button } from '@/components/ui/button';
+import { GradientButton } from '@/components/ui/gradient-button';
+import { Page } from '@/components/layout/Page';
+import { PageHeader } from '@/components/layout/PageHeader';
 import { CreateWorkspaceDialog } from '@/components/workspace/CreateWorkspaceDialog';
 import { ProjectTags } from '@/components/project/ProjectTags';
 import { WorkspaceNotifications } from '@/components/workspace/WorkspaceNotifications';
@@ -127,7 +130,7 @@ export default function ProjectDetail() {
   }
 
   return (
-    <div className="space-y-8">
+    <Page className="space-y-8">
       {/* Breadcrumb Navigation */}
       <div className="flex items-center gap-2 text-sm text-muted-foreground">
         {orgName && (
@@ -146,17 +149,12 @@ export default function ProjectDetail() {
         <span className="text-foreground font-medium">{project.name}</span>
       </div>
 
-      {/* Header */}
-      <div className="flex items-start justify-between gap-4">
-        <div className="flex-1">
-          <div className="flex items-center gap-4 mb-4">
-            <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-500/20 via-indigo-500/20 to-purple-500/20 border border-blue-500/30">
-              <FolderKanban className="h-8 w-8 text-blue-600 dark:text-blue-400" />
-            </div>
-            <div>
-              <h1 className="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 bg-clip-text text-transparent mb-2">
-                {project.name}
-              </h1>
+      <PageHeader
+        icon={FolderKanban}
+        title={project.name}
+        subtitle={
+          (project.description || orgName) && (
+            <>
               {project.description && (
                 <p className="text-muted-foreground text-lg">
                   {project.description}
@@ -165,7 +163,7 @@ export default function ProjectDetail() {
               {orgName && (
                 <div className="flex items-center gap-2 mt-3">
                   <Building2 className="h-4 w-4 text-muted-foreground" />
-                  <Link 
+                  <Link
                     to={`/app/${orgName}/workspaces`}
                     className="text-sm text-muted-foreground hover:text-primary transition-colors"
                   >
@@ -173,17 +171,16 @@ export default function ProjectDetail() {
                   </Link>
                 </div>
               )}
-            </div>
-          </div>
-        </div>
-        <Button 
-          onClick={() => setCreateDialogOpen(true)}
-          className="bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white"
-        >
-          <Plus className="mr-2 h-4 w-4" />
-          Create Workspace
-        </Button>
-      </div>
+            </>
+          )
+        }
+        action={
+          <GradientButton ramp="app" onClick={() => setCreateDialogOpen(true)} className="w-auto px-4 py-2">
+            <Plus className="mr-2 h-4 w-4" />
+            Create Workspace
+          </GradientButton>
+        }
+      />
 
       {orgName && (
         <CreateWorkspaceDialog
@@ -536,7 +533,7 @@ export default function ProjectDetail() {
           </div>
         )}
       </div>
-    </div>
+    </Page>
   );
 }
 

@@ -2,9 +2,13 @@
 
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Link, useParams } from 'react-router-dom';
-import { Shield, ArrowLeft, Plus, Trash2, Loader2, Settings2, Copy, Check } from 'lucide-react';
+import { useParams } from 'react-router-dom';
+import { Cloud, Shield, Plus, Trash2, Loader2, Settings2, Copy, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { GradientButton } from '@/components/ui/gradient-button';
+import { Page, PageDialogContent } from '@/components/layout/Page';
+import { PageHeader } from '@/components/layout/PageHeader';
+import { PageEmptyState } from '@/components/layout/PageEmptyState';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
@@ -19,13 +23,13 @@ import {
 import { toast } from 'sonner';
 import {
   Dialog,
-  DialogContent,
   DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
+import { dangerGhostIcon } from '@/lib/surfaces';
 
 // Per-provider presentation + form metadata.
 type OIDCFieldKey =
@@ -86,7 +90,7 @@ const EMPTY_FORM: OIDCForm = {
 
 export default function OIDCConfigurations() {
   const { orgName } = useParams<{ orgName: string }>();
-  const { data: configs = [], isLoading: loading, refetch: refetchConfigs } = useQuery({
+  const { data: configs = [], isLoading: loading, isError: loadFailed, refetch: refetchConfigs } = useQuery({
     queryKey: ['oidc-configs', orgName],
     queryFn: () => oidcConfigApi.list(orgName!),
     enabled: !!orgName,
@@ -288,41 +292,26 @@ export default function OIDCConfigurations() {
     </div>
   );
 
+  // Defined once and handed to both the header and the empty-state card: the header does not
+  // render it while there is nothing to list, so the action never appears twice.
+  const addOidcAction = (
+    <GradientButton ramp="app" onClick={openCreate} className="w-auto px-4 py-2">
+      <Plus className="h-4 w-4 mr-2" />
+      Add OIDC
+    </GradientButton>
+  );
+  const listState = loading ? 'loading' : loadFailed ? 'error' : configs.length === 0 ? 'empty' : 'ready';
+
   return (
-    <div className="space-y-8">
-      {/* Header */}
-      <div className="flex items-start gap-4">
-        <Link to={`/app/${orgName}/settings`}>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-10 w-10 rounded-xl text-muted-foreground hover:text-foreground"
-            aria-label="Back to Settings"
-          >
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
-        </Link>
-        <div className="flex-1 flex items-start justify-between gap-4 mb-2">
-          <div>
-            <h1 className="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-sky-600 dark:from-sky-400 via-blue-600 dark:via-blue-400 to-sky-600 dark:to-sky-400 bg-clip-text text-transparent mb-2">
-              OIDC Configurations
-            </h1>
-            <p className="text-muted-foreground">
-              Manage keyless authentication from Terraform runs to cloud providers and HashiCorp Vault via OIDC workload identity
-            </p>
-          </div>
-          <div className="relative inline-flex rounded-xl bg-gradient-to-r from-sky-500 via-blue-500 to-sky-500 p-[2px]">
-            <Button
-              variant="ghost"
-              onClick={openCreate}
-              className="bg-white dark:bg-slate-950/80 dark:backdrop-blur-xs text-slate-900 dark:text-white hover:bg-slate-50 dark:hover:bg-slate-950/90 border-0 whitespace-nowrap rounded-[calc(0.75rem-2px)] px-4 py-2"
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              Add OIDC
-            </Button>
-          </div>
-        </div>
-      </div>
+    <Page ramp="oidc" className="space-y-8">
+      <PageHeader
+        icon={Cloud}
+        title="OIDC Configurations"
+        subtitle="Manage keyless authentication from Terraform runs to cloud providers and HashiCorp Vault via OIDC workload identity"
+        backTo={{ to: `/app/${orgName}/settings`, label: 'Back to Settings' }}
+        action={addOidcAction}
+        listState={listState}
+      />
 
       {/* Config List */}
       {loading ? (
@@ -330,18 +319,12 @@ export default function OIDCConfigurations() {
           <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
         </div>
       ) : configs.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-white/10 p-12 text-center">
-          <Shield className="mx-auto h-12 w-12 text-muted-foreground/50 mb-4" />
-          <h3 className="text-lg font-semibold mb-2">No OIDC configurations</h3>
-          <p className="text-sm text-muted-foreground mb-4">
-            Create an OIDC configuration to enable keyless authentication from Terraform runs to a cloud provider.
-            This eliminates the need to store cloud credentials as variables.
-          </p>
-          <Button onClick={openCreate} variant="outline" className="gap-2">
-            <Plus className="h-4 w-4" />
-            Add OIDC Configuration
-          </Button>
-        </div>
+        <PageEmptyState
+          icon={Shield}
+          title="No OIDC configurations"
+          description="Create an OIDC configuration to enable keyless authentication from Terraform runs to a cloud provider. This eliminates the need to store cloud credentials as variables."
+          action={loadFailed ? undefined : addOidcAction}
+        />
       ) : (
         <div className="space-y-4">
           {configs.map((config) => (
@@ -405,7 +388,7 @@ export default function OIDCConfigurations() {
                     size="icon"
                     aria-label="Delete configuration"
                     onClick={() => { setDeleteConfig(config); }}
-                    className="h-8 w-8 text-destructive hover:text-destructive"
+                    className={cn(dangerGhostIcon, 'h-8 w-8')}
                   >
                     <Trash2 className="h-4 w-4" />
                   </Button>
@@ -418,7 +401,7 @@ export default function OIDCConfigurations() {
 
       {/* Create Dialog */}
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
-        <DialogContent>
+        <PageDialogContent>
           <DialogHeader>
             <DialogTitle>Add OIDC Configuration</DialogTitle>
             <DialogDescription>
@@ -439,7 +422,7 @@ export default function OIDCConfigurations() {
                 className={cn(
                   'rounded-lg text-sm',
                   createProvider === p
-                    ? cn('bg-gradient-to-r text-white', PROVIDERS[p].gradient)
+                    ? 'bg-background text-foreground shadow-sm hover:bg-background'
                     : 'text-muted-foreground hover:text-foreground',
                 )}
               >
@@ -453,18 +436,18 @@ export default function OIDCConfigurations() {
               <Button type="button" variant="outline" onClick={() => { setCreateOpen(false); }}>
                 Cancel
               </Button>
-              <Button type="submit" disabled={creating}>
+              <GradientButton ramp="app" type="submit" disabled={creating} className="w-auto px-4 py-2">
                 {creating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Create
-              </Button>
+              </GradientButton>
             </DialogFooter>
           </form>
-        </DialogContent>
+        </PageDialogContent>
       </Dialog>
 
       {/* Edit Dialog */}
       <Dialog open={!!editConfig} onOpenChange={(open) => { if (!open) setEditConfig(null); }}>
-        <DialogContent>
+        <PageDialogContent>
           <DialogHeader>
             <DialogTitle>Edit {editConfig ? PROVIDERS[editConfig.provider].label : 'OIDC'} Configuration</DialogTitle>
             <DialogDescription>
@@ -477,18 +460,18 @@ export default function OIDCConfigurations() {
               <Button type="button" variant="outline" onClick={() => { setEditConfig(null); }}>
                 Cancel
               </Button>
-              <Button type="submit" disabled={saving}>
+              <GradientButton ramp="app" type="submit" disabled={saving} className="w-auto px-4 py-2">
                 {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Save Changes
-              </Button>
+              </GradientButton>
             </DialogFooter>
           </form>
-        </DialogContent>
+        </PageDialogContent>
       </Dialog>
 
       {/* Delete Confirmation Dialog */}
       <Dialog open={!!deleteConfig} onOpenChange={(open) => { if (!open) setDeleteConfig(null); }}>
-        <DialogContent>
+        <PageDialogContent>
           <DialogHeader>
             <DialogTitle>Delete {deleteConfig ? PROVIDERS[deleteConfig.provider].label : 'OIDC'} Configuration</DialogTitle>
             <DialogDescription>
@@ -505,8 +488,8 @@ export default function OIDCConfigurations() {
               Delete
             </Button>
           </DialogFooter>
-        </DialogContent>
+        </PageDialogContent>
       </Dialog>
-    </div>
+    </Page>
   );
 }

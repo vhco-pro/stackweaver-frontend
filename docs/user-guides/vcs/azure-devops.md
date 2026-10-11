@@ -191,7 +191,7 @@ If `STACKWEAVER_WEBHOOK_BASE_URL` is not set or the automatic registration fails
 
 ## Step 8: Create a Workspace with an Azure DevOps Repository
 
-1. In Stackweaver, navigate to your organization and click **Create Workspace**.
+1. In Stackweaver, open your organization's **Workspaces** page and click **New Workspace** to open the **Create Workspace** dialog.
 2. Under **VCS Connection**, select your Azure DevOps connection.
 3. Browse and select the repository and branch. Repositories are listed in `project/repository` format.
 4. Configure the workspace settings (working directory, Terraform version, etc.).

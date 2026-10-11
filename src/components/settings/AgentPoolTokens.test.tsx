@@ -4,7 +4,7 @@
 // grace window, reveals the replacement once, and says when the old token stops working.
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { agentTokensApi } from '@/api/client';
@@ -62,5 +62,45 @@ describe('AgentPoolTokens rotate', () => {
     ]);
     renderTokens();
     expect(await screen.findByText(/rotated, expires/i)).toBeInTheDocument();
+  });
+});
+
+// Revoking asks in the in-app dialog, not the browser's native confirm, and the token is deleted
+// only when that dialog is confirmed.
+describe('AgentPoolTokens revoke', () => {
+  beforeEach(() => {
+    vi.mocked(agentTokensApi.delete).mockReset();
+    vi.mocked(agentTokensApi.delete).mockResolvedValue(undefined);
+    vi.mocked(agentTokensApi.list).mockResolvedValue([
+      { id: 'at-1', description: 'prod agents', created_at: '2026-09-01T00:00:00Z' },
+    ]);
+  });
+
+  it('does not revoke when the dialog is cancelled', async () => {
+    const user = userEvent.setup();
+    renderTokens();
+
+    await user.click(await screen.findByRole('button', { name: /^revoke$/i }));
+    const dialog = screen.getByRole('dialog', { name: /revoke agent token\?/i });
+    expect(within(dialog).getByText(/revoke agent token "prod agents"\?/i)).toBeInTheDocument();
+    expect(agentTokensApi.delete).not.toHaveBeenCalled();
+
+    await user.click(within(dialog).getByRole('button', { name: /^cancel$/i }));
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(agentTokensApi.delete).not.toHaveBeenCalled();
+  });
+
+  it('revokes only once the dialog is confirmed', async () => {
+    const user = userEvent.setup();
+    renderTokens();
+
+    await user.click(await screen.findByRole('button', { name: /^revoke$/i }));
+    expect(agentTokensApi.delete).not.toHaveBeenCalled();
+
+    const dialog = screen.getByRole('dialog', { name: /revoke agent token\?/i });
+    await user.click(within(dialog).getByRole('button', { name: /^revoke$/i }));
+
+    await waitFor(() => { expect(agentTokensApi.delete).toHaveBeenCalledWith('at-1'); });
+    expect(agentTokensApi.delete).toHaveBeenCalledTimes(1);
   });
 });

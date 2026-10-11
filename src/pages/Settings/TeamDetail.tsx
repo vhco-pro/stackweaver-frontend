@@ -1,12 +1,13 @@
 // Copyright (c) 2026 VH & Co BV. Licensed under the Business Source License 1.1. See LICENSE for details.
 
 import { useQuery } from '@tanstack/react-query';
-import { Link, useParams } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import { teamsApi } from '@/api/client';
 import { WorkspaceNotifications } from '@/components/workspace/WorkspaceNotifications';
 import { TeamToken } from '@/components/settings/TeamToken';
-import { Button } from '@/components/ui/button';
-import { ArrowLeft, Loader2, Users } from 'lucide-react';
+import { Page } from '@/components/layout/Page';
+import { PageHeader } from '@/components/layout/PageHeader';
+import { Loader2, Users } from 'lucide-react';
 
 /**
  * TeamDetail is the per-team settings page. Teams are otherwise managed from a tab inside the Users
@@ -27,25 +28,13 @@ export default function TeamDetail() {
   });
 
   return (
-    <div className="space-y-8">
-      <div className="flex items-start gap-4">
-        <Link to={orgName ? `/app/${orgName}/settings/users` : '/settings'}>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-10 w-10 rounded-xl text-muted-foreground hover:text-foreground"
-            aria-label="Back to Users & Teams"
-          >
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
-        </Link>
-        <div className="flex-1">
-          <h1 className="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-blue-600 dark:from-blue-400 via-cyan-600 dark:via-cyan-400 to-blue-600 dark:to-blue-400 bg-clip-text text-transparent mb-2">
-            {team?.name ?? 'Team'}
-          </h1>
-          <p className="text-muted-foreground">Token and notification settings for this team</p>
-        </div>
-      </div>
+    <Page ramp="account" className="space-y-8">
+      <PageHeader
+        icon={Users}
+        title={team?.name ?? 'Team'}
+        subtitle="Token and notification settings for this team"
+        backTo={{ to: orgName ? `/app/${orgName}/settings/users` : '/settings', label: 'Back to Users & Teams' }}
+      />
 
       {isLoading ? (
         <div className="flex items-center justify-center py-12">
@@ -72,6 +61,6 @@ export default function TeamDetail() {
           <WorkspaceNotifications scope="teams" id={team.id} />
         </div>
       )}
-    </div>
+    </Page>
   );
 }

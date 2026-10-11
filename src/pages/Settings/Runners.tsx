@@ -3,8 +3,12 @@
 import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link, useParams } from 'react-router-dom';
-import { Server, ArrowLeft, Trash2, Loader2, Settings2, Copy, Check, Terminal, Tag, X } from 'lucide-react';
+import { Server, Trash2, Loader2, Settings2, Copy, Check, Terminal, Tag, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { GradientButton } from '@/components/ui/gradient-button';
+import { Page, PageDialogContent } from '@/components/layout/Page';
+import { PageHeader } from '@/components/layout/PageHeader';
+import { PageEmptyState } from '@/components/layout/PageEmptyState';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -27,7 +31,6 @@ import {
 import { toast } from 'sonner';
 import {
   Dialog,
-  DialogContent,
   DialogDescription,
   DialogFooter,
   DialogHeader,
@@ -42,7 +45,7 @@ import {
 } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
-import { glassSurface, glassDashedEmpty } from '@/lib/surfaces';
+import { dangerGhostIcon, dangerOutline, glassSurface } from '@/lib/surfaces';
 
 export default function Runners() {
   const { orgName } = useParams<{ orgName: string }>();
@@ -54,7 +57,7 @@ export default function Runners() {
   const [selectedPool, setSelectedPool] = useState<string>('');
   const [copiedCmd, setCopiedCmd] = useState<'ansible' | 'terraform' | null>(null);
 
-  const { data: runnersData, isLoading: loading, refetch: refetchRunners } = useQuery({
+  const { data: runnersData, isLoading: loading, isError: loadFailed, refetch: refetchRunners } = useQuery({
     queryKey: ['runners', orgName],
     queryFn: async () => {
       const [runnersRes, poolsRes, statsRes] = await Promise.all([
@@ -286,55 +289,41 @@ export default function Runners() {
     }
   };
 
+  // Defined once and handed to both the header and the empty-state card: the header does not
+  // render it while there is nothing to list, so the action never appears twice.
+  const addRunnerAction = (
+    <GradientButton ramp="app" onClick={() => setAddOpen(true)} className="w-auto px-4 py-2">
+      <Terminal className="h-4 w-4 mr-2" />
+      Add runner
+    </GradientButton>
+  );
+  const listState = loading ? 'loading' : loadFailed ? 'error' : runners.length === 0 ? 'empty' : 'ready';
+
   return (
-    <div className="space-y-8">
-      <div className="flex items-start gap-4">
-        <Link to={orgName ? `/app/${orgName}/settings` : '/settings'}>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-10 w-10 rounded-xl text-muted-foreground hover:text-foreground"
-            aria-label="Back to Settings"
-          >
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
-        </Link>
-        <div className="flex-1">
-          <div className="flex items-start justify-between gap-4 mb-2">
-            <div>
-              <h1 className="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-purple-600 via-pink-600 to-purple-600 dark:from-purple-400 dark:via-pink-400 dark:to-purple-400 bg-clip-text text-transparent mb-2">
-                Self-Hosted Runners
-              </h1>
-              <p className="text-muted-foreground">
-                Manage self-hosted runners for OpenTofu and Ansible workloads
-              </p>
-              {stats && (
-                <div className="flex gap-4 mt-2 text-sm">
-                  <span className="text-muted-foreground">
-                    <span className="font-medium text-foreground">{stats.total}</span> total
-                  </span>
-                  <span className="text-muted-foreground">
-                    <span className="font-medium text-green-600 dark:text-green-400">{stats.online}</span> online
-                  </span>
-                  <span className="text-muted-foreground">
-                    <span className="font-medium text-gray-500">{stats.offline}</span> offline
-                  </span>
-                </div>
-              )}
-            </div>
-            <div className="relative inline-flex rounded-xl bg-gradient-to-r from-purple-500 via-pink-500 to-purple-500 p-[2px]">
-              <Button
-                variant="ghost"
-                onClick={() => setAddOpen(true)}
-                className="bg-white dark:bg-slate-950/80 dark:backdrop-blur-xs text-slate-900 dark:text-white hover:bg-slate-50 dark:hover:bg-slate-950/90 border-0 whitespace-nowrap rounded-[calc(0.75rem-2px)] px-4 py-2"
-              >
-                <Terminal className="h-4 w-4 mr-2" />
-                Add runner
-              </Button>
-            </div>
-          </div>
-        </div>
-      </div>
+    <Page ramp="runners" className="space-y-8">
+      <PageHeader
+        icon={Server}
+        title="Self-Hosted Runners"
+        subtitle="Manage self-hosted runners for OpenTofu and Ansible workloads"
+        backTo={{ to: orgName ? `/app/${orgName}/settings` : '/settings', label: 'Back to Settings' }}
+        stats={
+          stats && (
+            <>
+              <span className="text-muted-foreground">
+                <span className="font-medium text-foreground">{stats.total}</span> total
+              </span>
+              <span className="text-muted-foreground">
+                <span className="font-medium text-green-600 dark:text-green-400">{stats.online}</span> online
+              </span>
+              <span className="text-muted-foreground">
+                <span className="font-medium text-gray-500">{stats.offline}</span> offline
+              </span>
+            </>
+          )
+        }
+        action={addRunnerAction}
+        listState={listState}
+      />
 
       {loading ? (
         <div className="flex items-center justify-center py-12">
@@ -343,21 +332,12 @@ export default function Runners() {
       ) : (
         <div className="space-y-4">
           {runners.length === 0 ? (
-            <div
-              className={cn(glassDashedEmpty, 'p-8 text-center text-muted-foreground')}
-            >
-              <Server className="h-12 w-12 mx-auto mb-4 opacity-50" />
-              <p>No runners registered yet.</p>
-              <p className="text-sm mt-1">Register a runner by running the agent on your infrastructure.</p>
-              <Button
-                variant="outline"
-                className="mt-4"
-                onClick={() => setAddOpen(true)}
-              >
-                <Terminal className="h-4 w-4 mr-2" />
-                Add runner
-              </Button>
-            </div>
+            <PageEmptyState
+              icon={Server}
+              title="No runners registered yet"
+              description="Register a runner by running the agent on your infrastructure."
+              action={loadFailed ? undefined : addRunnerAction}
+            />
           ) : (
             <>
             {/* Bulk selection bar */}
@@ -391,7 +371,7 @@ export default function Runners() {
                   <Button
                     variant="outline"
                     size="sm"
-                    className="text-destructive hover:text-destructive"
+                    className={cn(dangerOutline)}
                     onClick={() => { openBulk('delete'); }}
                   >
                     <Trash2 className="h-4 w-4 mr-1" />
@@ -479,9 +459,9 @@ export default function Runners() {
                       Edit
                     </Button>
                     <Button
-                      variant="outline"
-                      size="sm"
-                      className="text-destructive hover:text-destructive"
+                      variant="ghost"
+                      size="icon"
+                      className={cn(dangerGhostIcon, 'h-9 w-9')}
                       onClick={() => setDeleteRunner(runner)}
                       aria-label={`Delete runner ${runner.name}`}
                     >
@@ -498,7 +478,7 @@ export default function Runners() {
 
       {/* Add Runner dialog */}
       <Dialog open={addOpen} onOpenChange={setAddOpen}>
-        <DialogContent className="max-w-2xl">
+        <PageDialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle>Register a Self-Hosted Runner</DialogTitle>
             <DialogDescription>
@@ -543,7 +523,9 @@ export default function Runners() {
                     <span className="text-sm font-medium">Ansible Runner</span>
                     <Button
                       variant="ghost"
-                      size="sm"
+                      size="icon"
+                      className="h-9 w-9"
+                      aria-label="Copy Ansible runner command"
                       onClick={() => copyCommand('ansible')}
                       disabled={!selectedPool}
                     >
@@ -569,7 +551,9 @@ export default function Runners() {
                     <span className="text-sm font-medium">OpenTofu Runner</span>
                     <Button
                       variant="ghost"
-                      size="sm"
+                      size="icon"
+                      className="h-9 w-9"
+                      aria-label="Copy OpenTofu runner command"
                       onClick={() => copyCommand('terraform')}
                       disabled={!selectedPool}
                     >
@@ -598,12 +582,12 @@ export default function Runners() {
               Close
             </Button>
           </DialogFooter>
-        </DialogContent>
+        </PageDialogContent>
       </Dialog>
 
       {/* Edit dialog */}
       <Dialog open={!!editRunner} onOpenChange={(open) => { if (!open) setEditRunner(null); }}>
-        <DialogContent>
+        <PageDialogContent>
           <DialogHeader>
             <DialogTitle>Edit runner</DialogTitle>
             <DialogDescription>Update description and labels for &quot;{editRunner?.name}&quot;</DialogDescription>
@@ -656,19 +640,19 @@ export default function Runners() {
                 <Button type="button" variant="outline" onClick={() => setEditRunner(null)}>
                   Cancel
                 </Button>
-                <Button type="submit" disabled={saving}>
+                <GradientButton ramp="app" className="w-auto px-4 py-2" type="submit" disabled={saving}>
                   {saving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
                   Save
-                </Button>
+                </GradientButton>
               </DialogFooter>
             </form>
           )}
-        </DialogContent>
+        </PageDialogContent>
       </Dialog>
 
       {/* Delete confirmation */}
       <Dialog open={!!deleteRunner} onOpenChange={(open) => { if (!open) setDeleteRunner(null); }}>
-        <DialogContent>
+        <PageDialogContent>
           <DialogHeader>
             <DialogTitle>Delete runner</DialogTitle>
             <DialogDescription>
@@ -684,12 +668,12 @@ export default function Runners() {
               Delete
             </Button>
           </DialogFooter>
-        </DialogContent>
+        </PageDialogContent>
       </Dialog>
 
       {/* Bulk delete confirmation */}
       <Dialog open={bulkAction === 'delete'} onOpenChange={(open) => { if (!open && !bulkBusy) setBulkAction(null); }}>
-        <DialogContent>
+        <PageDialogContent>
           <DialogHeader>
             <DialogTitle>
               Delete {selectedRunners.length} runner{selectedRunners.length === 1 ? '' : 's'}
@@ -713,7 +697,7 @@ export default function Runners() {
               Delete {selectedRunners.length} runner{selectedRunners.length === 1 ? '' : 's'}
             </Button>
           </DialogFooter>
-        </DialogContent>
+        </PageDialogContent>
       </Dialog>
 
       {/* Bulk label add/remove */}
@@ -721,7 +705,7 @@ export default function Runners() {
         open={bulkAction === 'add-label' || bulkAction === 'remove-label'}
         onOpenChange={(open) => { if (!open && !bulkBusy) setBulkAction(null); }}
       >
-        <DialogContent>
+        <PageDialogContent>
           <DialogHeader>
             <DialogTitle>{bulkAction === 'add-label' ? 'Add label' : 'Remove label'}</DialogTitle>
             <DialogDescription>
@@ -761,14 +745,14 @@ export default function Runners() {
               <Button type="button" variant="outline" onClick={() => setBulkAction(null)} disabled={bulkBusy}>
                 Cancel
               </Button>
-              <Button type="submit" disabled={bulkBusy || !normalizeLabel(bulkLabel)}>
+              <GradientButton ramp="app" className="w-auto px-4 py-2" type="submit" disabled={bulkBusy || !normalizeLabel(bulkLabel)}>
                 {bulkBusy ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
                 {bulkAction === 'add-label' ? 'Add label' : 'Remove label'}
-              </Button>
+              </GradientButton>
             </DialogFooter>
           </form>
-        </DialogContent>
+        </PageDialogContent>
       </Dialog>
-    </div>
+    </Page>
   );
 }

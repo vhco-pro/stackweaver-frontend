@@ -2,9 +2,14 @@
 
 import { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Link, useParams } from 'react-router-dom';
-import { ArrowLeft, Plus, Search, Loader2, Trash2, Tag } from 'lucide-react';
+import { useParams } from 'react-router-dom';
+import { Plus, Search, Loader2, Trash2, Tag } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { GradientButton } from '@/components/ui/gradient-button';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
+import { Page, PageDialogContent } from '@/components/layout/Page';
+import { PageHeader } from '@/components/layout/PageHeader';
+import { PageEmptyState } from '@/components/layout/PageEmptyState';
 import { Input } from '@/components/ui/input';
 import {
   adminTerraformVersionsApi,
@@ -14,7 +19,6 @@ import {
 import { toast } from 'sonner';
 import {
   Dialog,
-  DialogContent,
   DialogDescription,
   DialogFooter,
   DialogHeader,
@@ -28,6 +32,8 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
+import { cn } from '@/lib/utils';
+import { dangerGhostIcon } from '@/lib/surfaces';
 
 export default function TofuVersions() {
   const { orgName } = useParams<{ orgName: string }>();
@@ -39,6 +45,10 @@ export default function TofuVersions() {
   const [savingDefault, setSavingDefault] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [searchQuery, setSearchQuery] = useState('');
+  // The version the confirmation dialog is about. Nothing is deleted until it is confirmed.
+  // It stays set after the dialog closes, so the wording does not change while it fades out.
+  const [pendingDelete, setPendingDelete] = useState<TerraformVersionResource | null>(null);
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
 
   // Semver sort: properly compares version strings like 1.13.0 > 1.9.8 > 1.5.0
   const semverCompare = (a: string, b: string): number => {
@@ -58,7 +68,7 @@ export default function TofuVersions() {
   };
 
   // Fetch paginated versions for the table
-  const { data: versionsData, isLoading: loading, refetch: refetchVersions } = useQuery({
+  const { data: versionsData, isLoading: loading, isError: loadFailed, refetch: refetchVersions } = useQuery({
     queryKey: ['tofuVersions', currentPage, searchQuery],
     queryFn: async () => {
       const res = await adminTerraformVersionsApi.list({
@@ -125,6 +135,12 @@ export default function TofuVersions() {
     }
   };
 
+  const confirmDelete = async () => {
+    setConfirmingDelete(false);
+    if (!pendingDelete) return;
+    await handleDelete(pendingDelete);
+  };
+
   const handleAdd = async () => {
     if (!newVersion.trim()) return;
     setAdding(true);
@@ -165,41 +181,37 @@ export default function TofuVersions() {
 
   // Use allEnabledVersions for the dropdown (all versions, not just current page)
 
+  // Defined once and handed to both the header and the empty-state card: the header does not
+  // render it while there is nothing to list, so the action never appears twice.
+  const addVersionAction = (
+    <GradientButton ramp="app" onClick={() => { setAddDialogOpen(true); }} className="w-auto px-4 py-2">
+      <Plus className="h-4 w-4 mr-2" />
+      Add OpenTofu Version
+    </GradientButton>
+  );
+  // The query key carries the search and the page, so `loading` is true again on every new
+  // search or page. Only the first, unfiltered load counts as loading for the header, and a
+  // list that is empty because of a search is not an empty list.
+  const filtered = searchQuery !== '';
+  const listState =
+    loading && !filtered && currentPage === 1
+      ? 'loading'
+      : loadFailed
+        ? 'error'
+        : !loading && !filtered && versions.length === 0
+          ? 'empty'
+          : 'ready';
+
   return (
-    <div className="space-y-8">
-      {/* Header */}
-      <div className="flex items-start gap-4">
-        <Link to={`/app/${orgName || ''}/settings`}>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-10 w-10 rounded-xl text-muted-foreground hover:text-foreground"
-            aria-label="Back to Settings"
-          >
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
-        </Link>
-        <div className="flex-1 flex items-start justify-between gap-4 mb-2">
-          <div>
-            <h1 className="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-500 bg-clip-text text-transparent mb-2">
-              OpenTofu Versions
-            </h1>
-            <p className="text-muted-foreground">
-              Manage the available OpenTofu versions for workspaces in this organization.
-            </p>
-          </div>
-          <div className="relative inline-flex rounded-xl bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-500 p-[2px]">
-            <Button
-              variant="ghost"
-              onClick={() => { setAddDialogOpen(true); }}
-              className="bg-white dark:bg-slate-950/80 dark:backdrop-blur-xs text-slate-900 dark:text-white hover:bg-slate-50 dark:hover:bg-slate-950/90 border-0 whitespace-nowrap rounded-[calc(0.75rem-2px)] px-4 py-2"
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              Add OpenTofu Version
-            </Button>
-          </div>
-        </div>
-      </div>
+    <Page ramp="tofuVersions" className="space-y-8">
+      <PageHeader
+        icon={Tag}
+        title="OpenTofu Versions"
+        subtitle="Manage the available OpenTofu versions for workspaces in this organization."
+        backTo={{ to: `/app/${orgName || ''}/settings`, label: 'Back to Settings' }}
+        action={addVersionAction}
+        listState={listState}
+      />
 
       {/* Org default version selector */}
       <div className="rounded-lg border bg-card p-4">
@@ -253,11 +265,22 @@ export default function TofuVersions() {
           <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
         </div>
       ) : versions.length === 0 ? (
-        <div className="flex flex-col items-center justify-center rounded-lg border border-dashed py-12">
-          <Tag className="h-12 w-12 text-muted-foreground/50" />
-          <h3 className="mt-4 text-lg font-semibold">No OpenTofu versions</h3>
-          <p className="text-sm text-muted-foreground">Add a version to get started.</p>
-        </div>
+        filtered ? (
+          <PageEmptyState
+            icon={Tag}
+            title="No OpenTofu versions"
+            description="No versions match your search."
+            filtered
+            onClearFilters={() => { setSearchQuery(''); setCurrentPage(1); }}
+          />
+        ) : (
+          <PageEmptyState
+            icon={Tag}
+            title="No OpenTofu versions"
+            description="Add a version to get started."
+            action={loadFailed ? undefined : addVersionAction}
+          />
+        )
       ) : (
         <>
           <div className="rounded-lg border bg-card">
@@ -316,9 +339,13 @@ export default function TofuVersions() {
                         {!v.attributes.official && (
                           <Button
                             variant="ghost"
-                            size="sm"
-                            onClick={() => { void handleDelete(v); }}
-                            className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive"
+                            size="icon"
+                            aria-label={`Delete OpenTofu ${v.attributes.version}`}
+                            onClick={() => {
+                              setPendingDelete(v);
+                              setConfirmingDelete(true);
+                            }}
+                            className={cn(dangerGhostIcon, 'h-8 w-8')}
                           >
                             <Trash2 className="h-4 w-4" />
                           </Button>
@@ -361,7 +388,7 @@ export default function TofuVersions() {
 
       {/* Add Version Dialog */}
       <Dialog open={addDialogOpen} onOpenChange={setAddDialogOpen}>
-        <DialogContent>
+        <PageDialogContent>
           <DialogHeader>
             <DialogTitle>Add OpenTofu Version</DialogTitle>
             <DialogDescription>
@@ -395,13 +422,28 @@ export default function TofuVersions() {
             <Button variant="outline" onClick={() => { setAddDialogOpen(false); }} disabled={adding}>
               Cancel
             </Button>
-            <Button onClick={() => { void handleAdd(); }} disabled={adding || !newVersion.trim()}>
+            <GradientButton
+              ramp="app"
+              className="w-auto px-4 py-2"
+              onClick={() => { void handleAdd(); }}
+              disabled={adding || !newVersion.trim()}
+            >
               {adding && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Add Version
-            </Button>
+            </GradientButton>
           </DialogFooter>
-        </DialogContent>
+        </PageDialogContent>
       </Dialog>
-    </div>
+
+      <ConfirmDialog
+        open={confirmingDelete}
+        onOpenChange={setConfirmingDelete}
+        title={`Delete OpenTofu ${pendingDelete?.attributes.version ?? ''}?`}
+        description={`OpenTofu ${pendingDelete?.attributes.version ?? ''} will no longer be available to workspaces. You can add it again later.`}
+        confirmLabel="Delete version"
+        variant="destructive"
+        onConfirm={confirmDelete}
+      />
+    </Page>
   );
 }

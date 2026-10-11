@@ -20,6 +20,10 @@ import {
 } from './Workspaces.helpers';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { Button } from '@/components/ui/button';
+import { GradientButton } from '@/components/ui/gradient-button';
+import { Page } from '@/components/layout/Page';
+import { PageHeader } from '@/components/layout/PageHeader';
+import { PageEmptyState } from '@/components/layout/PageEmptyState';
 import { Input } from '@/components/ui/input';
 import { StatusBadge } from '@/components/runs/StatusBadge';
 import { computeDisplayStatus } from '@/utils/runStatus';
@@ -149,7 +153,7 @@ export default function Workspaces() {
   }, [orgName, navigate, currentOrg, organizations]);
 
   // Fetch and enrich workspaces with project info and latest run from server
-  const { isLoading: loading, data: workspacesData, refetch: refetchWorkspaces } = useQuery({
+  const { isLoading: loading, isError: loadFailed, data: workspacesData, refetch: refetchWorkspaces } = useQuery({
     queryKey: ['workspaces', selectedOrg],
     queryFn: async () => {
       const [workspacesRes, projectsRes] = await Promise.all([
@@ -349,41 +353,51 @@ export default function Workspaces() {
     currentPage * itemsPerPage
   );
 
+  // A search, a status bucket or a tag narrows the list. A list that is empty only because of
+  // one of them is not an empty state: the header keeps the action and the card offers to clear.
+  const filtersActive = searchQuery !== '' || statusFilter !== 'all' || (tagFilter !== '' && tagFilter !== 'all');
+  const clearFilters = () => {
+    setSearchQuery('');
+    setStatusFilter('all');
+    setTagFilter('all');
+  };
+
+  // Defined once and handed to both the header and the empty-state card: the header does not
+  // render it while there is nothing to list, so the action never appears twice.
+  const newWorkspaceAction = selectedOrg ? (
+    <GradientButton ramp="app" onClick={() => setCreateDialogOpen(true)} className="w-auto px-4 py-2">
+      <Plus className="h-4 w-4 mr-2" />
+      New Workspace
+    </GradientButton>
+  ) : undefined;
+  const listState = loading ? 'loading' : loadFailed ? 'error' : workspaces.length === 0 && !filtersActive ? 'empty' : 'ready';
+  const header = (
+    <PageHeader
+      icon={FolderOpen}
+      title="Workspaces"
+      subtitle="Manage and monitor your infrastructure workspaces"
+      action={newWorkspaceAction}
+      listState={listState}
+    />
+  );
+
   if (loading) {
     return (
-      <div className="flex min-h-[400px] items-center justify-center">
-        <div className="text-center space-y-4">
-          <Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" />
-          <p className="text-muted-foreground">Loading workspaces...</p>
+      <Page>
+        {header}
+        <div className="flex min-h-[400px] items-center justify-center">
+          <div className="text-center space-y-4">
+            <Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" />
+            <p className="text-muted-foreground">Loading workspaces...</p>
+          </div>
         </div>
-      </div>
+      </Page>
     );
   }
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 bg-clip-text text-transparent">
-            Workspaces
-          </h1>
-          <p className="text-muted-foreground mt-1">
-            Manage and monitor your infrastructure workspaces
-          </p>
-        </div>
-        {selectedOrg && (
-          <div className="flex items-center gap-3">
-            <Button
-              onClick={() => setCreateDialogOpen(true)}
-              className="gap-2 bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white"
-            >
-              <Plus className="h-4 w-4" />
-              New
-            </Button>
-          </div>
-        )}
-      </div>
+    <Page>
+      {header}
 
       {/* Stats Bar */}
       <div className="flex items-center gap-6 p-4 bg-muted/50 rounded-lg border border-border/40">
@@ -496,15 +510,11 @@ export default function Workspaces() {
             <SelectItem value="success">Success</SelectItem>
           </SelectContent>
         </Select>
-        {(searchQuery || statusFilter !== 'all' || (tagFilter && tagFilter !== 'all')) && (
+        {filtersActive && (
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => {
-              setSearchQuery('');
-              setStatusFilter('all');
-              setTagFilter('all');
-            }}
+            onClick={clearFilters}
             className="gap-2"
           >
             <X className="h-4 w-4" />
@@ -642,29 +652,21 @@ export default function Workspaces() {
             </table>
           </div>
         </div>
+      ) : filtersActive ? (
+        <PageEmptyState
+          icon={FolderOpen}
+          title="No workspaces found"
+          description="Try adjusting your filters to see more results"
+          filtered
+          onClearFilters={clearFilters}
+        />
       ) : (
-        <div className="flex min-h-[400px] items-center justify-center">
-          <div className="text-center space-y-6 p-8 rounded-2xl bg-gradient-to-br from-white/90 via-white/75 to-white/60 dark:from-black/10 dark:via-black/5 dark:to-transparent backdrop-blur-md border border-gray-300/80 dark:border-white/10">
-            <FolderOpen className="h-16 w-16 mx-auto text-muted-foreground/50" />
-            <div>
-              <h3 className="text-xl font-semibold mb-2">No workspaces found</h3>
-              <p className="text-muted-foreground mb-6">
-                {searchQuery || statusFilter !== 'all'
-                  ? 'Try adjusting your filters to see more results'
-                  : 'Create your first workspace to start managing infrastructure'}
-              </p>
-              {!searchQuery && statusFilter === 'all' && selectedOrg && (
-                <Button
-                  onClick={() => setCreateDialogOpen(true)}
-                  className="gap-2 bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white"
-                >
-                  <Plus className="h-4 w-4" />
-                  Create Workspace
-                </Button>
-              )}
-            </div>
-          </div>
-        </div>
+        <PageEmptyState
+          icon={FolderOpen}
+          title="No workspaces found"
+          description="Create your first workspace to start managing infrastructure"
+          action={listState === 'empty' ? newWorkspaceAction : undefined}
+        />
       )}
 
       {/* Pagination */}
@@ -794,8 +796,9 @@ export default function Workspaces() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => { setFileDialogOpen(false); }}>Cancel</Button>
-            <Button
-              className="gap-1.5"
+            <GradientButton
+              ramp="app"
+              className="w-auto px-4 py-2 gap-1.5"
               disabled={!crSubject.trim() || !workspaceToFileAgainst || fileChangeRequest.isPending}
               onClick={() => { fileChangeRequest.mutate(); }}
             >
@@ -803,7 +806,7 @@ export default function Workspaces() {
                 ? <Loader2 className="h-4 w-4 animate-spin" />
                 : <ClipboardList className="h-4 w-4" />}
               File request
-            </Button>
+            </GradientButton>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -867,6 +870,6 @@ export default function Workspaces() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+    </Page>
   );
 }

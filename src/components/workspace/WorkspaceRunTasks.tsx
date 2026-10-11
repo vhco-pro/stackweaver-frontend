@@ -5,6 +5,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { runTasksApi, type TaskStageName, type TaskEnforcementLevel, type WorkspaceRunTask } from '@/api/client';
 import { Button } from '@/components/ui/button';
+import { GradientButton } from '@/components/ui/gradient-button';
 import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
 import {
@@ -13,6 +14,8 @@ import {
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Zap, Plus, Loader2, Trash2, ShieldAlert, Info } from 'lucide-react';
 import { toast } from 'sonner';
+import { cn } from '@/lib/utils';
+import { dangerGhostIcon } from '@/lib/surfaces';
 
 const ALL_STAGES: TaskStageName[] = ['pre_plan', 'post_plan', 'pre_apply', 'post_apply'];
 const STAGE_LABELS: Record<TaskStageName, string> = {
@@ -109,10 +112,10 @@ export function WorkspaceRunTasks({ workspaceId, orgName }: { workspaceId: strin
             External checks that run at stage boundaries of this workspace's runs.
           </p>
         </div>
-        <Button size="sm" className="gap-1.5" onClick={openAttach} disabled={attachable.length === 0}>
+        <GradientButton ramp="app" emphasis="secondary" size="sm" className="w-auto gap-1.5" onClick={openAttach} disabled={attachable.length === 0}>
           <Plus className="h-4 w-4" />
           Attach task
-        </Button>
+        </GradientButton>
       </div>
 
       {attachments.length === 0 ? (
@@ -152,7 +155,7 @@ export function WorkspaceRunTasks({ workspaceId, orgName }: { workspaceId: strin
               </div>
               <Button
                 variant="ghost" size="icon" aria-label={`Detach ${taskNames.get(a.task_id) ?? a.task_id}`}
-                className="text-red-500 hover:text-red-600 shrink-0"
+                className={cn(dangerGhostIcon, 'shrink-0')}
                 onClick={() => { setDetaching(a); }}
               >
                 <Trash2 className="h-4 w-4" />
@@ -208,13 +211,15 @@ export function WorkspaceRunTasks({ workspaceId, orgName }: { workspaceId: strin
           </div>
           <DialogFooter>
             <Button variant="ghost" onClick={() => { setAttachOpen(false); }}>Cancel</Button>
-            <Button
+            <GradientButton
+              ramp="app"
+              className="w-auto px-4 py-2"
               disabled={taskId === '' || stages.length === 0 || attachMutation.isPending}
               onClick={() => { attachMutation.mutate(); }}
             >
               {attachMutation.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
               Attach
-            </Button>
+            </GradientButton>
           </DialogFooter>
         </DialogContent>
       </Dialog>
