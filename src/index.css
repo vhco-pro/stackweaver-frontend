@@ -356,6 +356,24 @@
   margin-top: 0;
 }
 
+/* A heading reached through an anchor (a deep link, an in-page link, the table
+   of contents) lands clear of the fixed navigation instead of at the very top
+   of the window underneath it.
+   Below `lg` that is where a page title sits, under the fixed docs bar: `pt-32`
+   on the wrapper plus `pt-12` on <main> in DocsLayout.
+   From `lg` up it is level with the search box and "On this page" rows of the
+   side panes, which is where a title sits too. On a scrolled page those rows
+   are at the panes' sticky offset (`top-24` in DocsPane) plus their `pt-4`. */
+.docs-main .markdown-content :is(h1, h2, h3, h4, h5, h6) {
+  scroll-margin-top: calc(var(--spacing) * 44);
+}
+
+@media (width >= 64rem) {
+  .docs-main .markdown-content :is(h1, h2, h3, h4, h5, h6) {
+    scroll-margin-top: calc(var(--spacing) * 28);
+  }
+}
+
 /* Typographic hierarchy: headings in full foreground, body in softer tone (Auth0/docs-style contrast) */
 .markdown-content h1 {
   @apply text-foreground text-3xl font-bold mt-8 mb-4 pb-2 border-b border-border;

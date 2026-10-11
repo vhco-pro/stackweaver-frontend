@@ -113,18 +113,13 @@ export function TableOfContents({ content, className, headerAction }: TableOfCon
   const scrollToHeading = (id: string) => {
     const element = document.getElementById(id);
     if (element) {
-      const offset = 100; // Account for fixed nav
-      const elementPosition = element.getBoundingClientRect().top;
-      const offsetPosition = elementPosition + window.pageYOffset - offset;
-
       // Set manual scroll flag to prevent IntersectionObserver from overriding
       setIsManualScroll(true);
       setActiveId(id);
 
-      window.scrollTo({
-        top: offsetPosition,
-        behavior: 'smooth',
-      });
+      // Where the heading lands below the fixed navigation is the heading's own
+      // scroll-margin-top (index.css), shared with deep links and in-page links.
+      element.scrollIntoView({ block: 'start', behavior: 'smooth' });
 
       // Re-enable IntersectionObserver after scroll completes
       setTimeout(() => {

@@ -3,6 +3,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { useParams, useLocation, Navigate } from 'react-router-dom';
 import { DocsLayout } from '@/components/docs/DocsLayout';
+import { DocAnchorScroll } from '@/components/docs/DocAnchorScroll';
 import { Skeleton } from '@/components/ui/skeleton';
 import { AlertCircle } from 'lucide-react';
 import { MarkdownRenderer } from '@/components/docs/MarkdownRenderer';
@@ -129,6 +130,8 @@ export default function DocsViewer({ docsBase = '/docs', indexFile = '/docs-inde
         enableCodeGroups={true}
         enableMermaid={true}
       />
+      {/* After the content, so the heading a URL anchor names exists when it looks for it. */}
+      <DocAnchorScroll />
     </DocsLayout>
   );
 }
