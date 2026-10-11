@@ -2,6 +2,7 @@
 description: "Guide for running workloads on self-hosted infrastructure using agent pools and runners"
 covers:
   - "backend/cmd/runner/**"
+  - "backend/cmd/ansible-runner/**"
   - "core/queue/**"
   - "backend/internal/api/v2/handlers/agent*"
   - "backend/internal/api/v2/handlers/runner*"
@@ -323,6 +324,34 @@ If you use Ansible, you can customize `ansible.cfg` per organization, project, o
 4. Save.
 
 When a job runs (on a platform-hosted or self-hosted runner), StackWeaver injects the appropriate `ansible.cfg` into the job environment. More specific scope overrides less specific (e.g. workspace over project over organization).
+
+### Ansible runner prerequisites
+
+A self-hosted Ansible runner prepares a playbook the same way the platform runner does, and it does so from inside your network using only its outbound connection to the Stackweaver API plus whatever the playbook itself needs.
+
+A playbook in `cached` source mode is downloaded from Stackweaver as a snapshot, so the runner does not need to reach your VCS provider to run it. A playbook in `fresh` mode, and a `cached` playbook that has not been synced yet, is cloned by the runner, which then needs outbound access to the VCS provider. A runner tells Stackweaver that it can run snapshots when it fetches a job. A runner image that does not do so is sent the repository's clone URL and clones every playbook, including `cached` ones, so it needs that outbound access for all of them. Use a current runner image to run `cached` playbooks from their snapshot and to keep clone credentials off the runner for them.
+
+When the playbook repository contains a `requirements.yml`, the runner installs its collections and roles before the play. The runner host therefore needs a route to the source of those collections: `galaxy.ansible.com`, your Git host for `type: git` entries, or a private Galaxy server or Automation Hub. Configure a private server in the `[galaxy]` section of the `ansible.cfg` described above. If the install fails, the job output says so and the play still runs.
+
+Installed collections are cached per project under `GALAXY_CACHE_DIR`, which defaults to `galaxy-cache` under `WORKSPACES_DIR` (`/home/stackweaver/workspaces` in the runner image). The cache is optional, and without a volume it is rebuilt after the container restarts. To keep it, mount a volume at that path, and use that volume for nothing else, because the runner manages the directory's contents. With Docker, add a named volume to the `docker run` command for the Ansible runner:
+
+```bash
+-v stackweaver-galaxy-cache:/home/stackweaver/workspaces/galaxy-cache
+```
+
+With Kubernetes, mount a `PersistentVolumeClaim` at the same path in the runner container:
+
+```yaml
+        volumeMounts:
+          - name: galaxy-cache
+            mountPath: /home/stackweaver/workspaces/galaxy-cache
+      volumes:
+        - name: galaxy-cache
+          persistentVolumeClaim:
+            claimName: stackweaver-galaxy-cache
+```
+
+A project's cache that has not been used for `GALAXY_CACHE_TTL_DAYS` days (14 by default) is removed automatically. Collections that you installed on the runner host yourself, for example under `~/.ansible/collections`, remain available to every job. See [Galaxy Collections](../features/ansible/galaxy-collections.md) for the details.
 
 ---
 

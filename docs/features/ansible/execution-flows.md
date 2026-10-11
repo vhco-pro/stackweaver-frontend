@@ -88,7 +88,7 @@ Both paths run the same playbook with the same options - the difference is **how
 |---|---|---|
 | Transport | Redis queue (`ansible_jobs`) | Outbound HTTPS polling (heartbeat) |
 | Job assignment | Any platform runner takes the next queued job | Only jobs whose template targets the agent's pool, offered up to the agent's free capacity and claimed atomically on start so exactly one agent runs each job (or slice) |
-| Inputs | Reads playbook/inventory/credentials from the database and object storage itself | Downloads one artifacts bundle: rendered inventory, decrypted credentials and vault passwords, cloud auth environment, playbook (VCS clone info, or generated content for ad hoc) |
+| Inputs | Reads playbook/inventory/credentials from the database and object storage itself | Downloads one artifacts bundle: rendered inventory, decrypted credentials and vault passwords, cloud auth environment, and the playbook source (the cached snapshot to download from the API, VCS clone info for a fresh playbook, or generated content for ad hoc). Galaxy requirements are installed on the agent host from the playbook's `requirements.yml` |
 | Results | Writes job events and status directly to the database | Posts events and status back over HTTPS |
 | Network position | Inside the Stackweaver deployment | Anywhere with outbound HTTPS to the API |
 
@@ -123,9 +123,18 @@ sequenceDiagram
     end
     Agent->>API: POST job start (atomic claim)
     API-->>Agent: 200 claimed / 409 already taken → skip
-    Agent->>API: GET job artifacts
-    API-->>Agent: inventory content (sliced), credentials,<br/>vault passwords, env vars, playbook info/content
-    Note over Agent: clone repo (VCS) or write<br/>shipped playbook content (ad hoc)
+    Agent->>API: GET job artifacts<br/>(X-Stackweaver-Runner-Capabilities: playbook-snapshot)
+    API-->>Agent: inventory content (sliced), credentials,<br/>vault passwords, env vars, playbook source mode
+    alt cached playbook with a snapshot
+        Agent->>API: GET playbook snapshot
+        API-->>Agent: snapshot tarball (streamed from object storage)
+    else fresh playbook, or cached with no snapshot yet
+        Note over Agent: clone repo (VCS)
+    else ad hoc
+        Note over Agent: write shipped playbook content
+    end
+    Note over Agent: install requirements.yml<br/>(per-project Galaxy cache)
+    Agent->>API: POST source banner + Galaxy install events
     Agent->>Agent: ansible-playbook
     Agent->>API: POST events + final status
 ```
@@ -138,6 +147,7 @@ sequenceDiagram
 3. **Ad hoc on agents** - the transient playbook is generated server-side and shipped as content in the artifacts bundle, so no repository access is needed.
 4. **One agent per job** - when several agents share a pool, the API only offers an agent as many jobs as it has free capacity, and the start call claims the job atomically. A second agent that was offered the same job loses the race and skips it, so a job (or a slice) never runs twice.
 5. **Choosing the path** - set an agent pool on the job template (or pick a runner in the Run Command dialog); leave it empty to run on platform runners.
+6. **Same playbook preparation on both paths** - a `cached` playbook runs its snapshot and a `fresh` one is cloned, and a repository's `requirements.yml` is installed before the play. An agent cannot reach object storage, so it downloads the snapshot through the API, and when a `cached` playbook has no snapshot yet the agent clones for that one run while the API queues a sync for the next. The agent announces that it can run snapshots in the `X-Stackweaver-Runner-Capabilities` header of the artifacts request; an agent that does not send it is given the clone URL for every VCS-backed playbook and clones.
 
 </details>
 

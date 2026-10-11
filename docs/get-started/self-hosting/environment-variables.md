@@ -277,6 +277,19 @@ The Ansible runner processes Ansible playbook jobs from the Redis queue.
 | `ANSIBLE_BINARY_PATH` | Custom path to ansible-playbook binary | (auto-detected) |
 | `ANSIBLE_HOST_KEY_CHECKING` | Enable SSH host-key verification for playbook runs. Left at the default, the runner disables strict checking (managed hosts are ephemeral). Set it to `true` to enforce verification and honor a project or organization `ansible.cfg` `known_hosts`. | `false` |
 | `OIDC_ISSUER_URL` | OIDC issuer URL for workload identity | Falls back to `API_URL` |
+| `GALAXY_CACHE_TTL_DAYS` | Days an unused per-project Galaxy cache is kept before the runner removes it. `0` disables the cleanup. Applies in both modes. | `14` |
+
+In agent mode (`RUNNER_MODE=agent`) the runner talks only to the Stackweaver API, so the Redis, database and storage variables above are not read. It is configured with the variables below instead.
+
+| Variable | Description | Default |
+|---|---|---|
+| `STACKWEAVER_SERVER` | Base URL of the Stackweaver API the runner connects to | (required) |
+| `STACKWEAVER_TOKEN` | Agent token or API key the runner registers with | (required) |
+| `RUNNER_AGENT_POOL_ID` | ID of the agent pool the runner joins | (required) |
+| `RUNNER_NAME` | Name shown in the UI | Hostname |
+| `RUNNER_LABELS` | Comma-separated labels | (none) |
+| `POLL_INTERVAL` | How often the runner polls for work, as a duration such as `10s` | `10s` |
+| `GALAXY_CACHE_DIR` | Directory that holds the per-project Galaxy caches for collections and roles installed from `requirements.yml`. Mount a volume here to keep the cache across restarts. Use a directory dedicated to the runner: it manages the per-project subdirectories in it and removes the ones that go unused. | `$WORKSPACES_DIR/galaxy-cache` |
 
 ---
 
