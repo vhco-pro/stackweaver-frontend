@@ -27,6 +27,8 @@ interface DocsSidebarProps {
   onNavigate?: () => void;
   docsBase?: string;
   indexFile?: string;
+  /** Control seated on the search box's row: the desktop pane's collapse button. */
+  headerAction?: React.ReactNode;
 }
 
 const STATUS_COLORS: Record<string, string> = {
@@ -67,7 +69,7 @@ function filterTree(nodes: DocTreeNode[], hideCompleted: boolean): DocTreeNode[]
     .filter((n): n is DocTreeNode => n !== null);
 }
 
-export function DocsSidebar({ className, onNavigate, docsBase = '/docs', indexFile = '/docs-index.json' }: DocsSidebarProps) {
+export function DocsSidebar({ className, onNavigate, docsBase = '/docs', indexFile = '/docs-index.json', headerAction }: DocsSidebarProps) {
   const location = useLocation();
   const navigate = useNavigate();
   const [index, setIndex] = useState<DocsIndex | null>(null);
@@ -305,49 +307,57 @@ export function DocsSidebar({ className, onNavigate, docsBase = '/docs', indexFi
     }
   };
 
-  if (loading) {
+  const renderBody = () => {
+    if (loading) {
+      return (
+        <div className="space-y-2">
+          <div className="h-6 bg-muted/50 rounded-sm animate-pulse" />
+          <div className="h-6 bg-muted/50 rounded-sm animate-pulse ml-4" />
+          <div className="h-6 bg-muted/50 rounded-sm animate-pulse ml-4" />
+        </div>
+      );
+    }
+
+    if (!index || !index.tree.length) {
+      return <p className="text-sm text-muted-foreground">No documentation available</p>;
+    }
+
     return (
-      <div className={cn('p-4 space-y-2', className)}>
-        <div className="h-6 bg-muted/50 rounded-sm animate-pulse" />
-        <div className="h-6 bg-muted/50 rounded-sm animate-pulse ml-4" />
-        <div className="h-6 bg-muted/50 rounded-sm animate-pulse ml-4" />
+      <div className="space-y-1">
+        {isInternal && (
+          <label className="flex items-center gap-2 px-3 py-1.5 text-xs text-muted-foreground cursor-pointer select-none mb-1">
+            <input
+              type="checkbox"
+              checked={hideCompleted}
+              onChange={(e) => {
+                setHideCompleted(e.target.checked);
+                localStorage.setItem('internal-docs-hide-completed', String(e.target.checked));
+              }}
+              className="rounded-sm border-border"
+            />
+            Hide completed
+          </label>
+        )}
+        {filterTree(index.tree, isInternal && hideCompleted).map(node => renderNode(node))}
       </div>
     );
-  }
-
-  if (!index || !index.tree.length) {
-    return (
-      <div className={cn('p-4 text-sm text-muted-foreground', className)}>
-        No documentation available
-      </div>
-    );
-  }
-
-  const visibleTree = filterTree(index.tree, isInternal && hideCompleted);
+  };
 
   return (
-    <nav className={cn('p-4 space-y-1', className)}>
-      <div className="mb-3">
-        <DocsSearch
-          docsBase={docsBase}
-          searchIndexFile={isInternal ? '/internal-docs-search-index.json' : '/docs-search-index.json'}
-        />
-      </div>
-      {isInternal && (
-        <label className="flex items-center gap-2 px-3 py-1.5 text-xs text-muted-foreground cursor-pointer select-none mb-1">
-          <input
-            type="checkbox"
-            checked={hideCompleted}
-            onChange={(e) => {
-              setHideCompleted(e.target.checked);
-              localStorage.setItem('internal-docs-hide-completed', String(e.target.checked));
-            }}
-            className="rounded-sm border-border"
+    <nav className={cn('px-4 pb-4', className)}>
+      {/* The search row stays pinned while the tree scrolls, so search and the
+          collapse button are reachable from anywhere in a long nav. The action
+          sits on the outer edge, where the collapsed rail's expand button lands. */}
+      <div className="sticky top-0 z-10 -mx-4 flex items-center gap-2 bg-background px-4 pb-3 pt-4">
+        {headerAction}
+        <div className="min-w-0 flex-1">
+          <DocsSearch
+            docsBase={docsBase}
+            searchIndexFile={isInternal ? '/internal-docs-search-index.json' : '/docs-search-index.json'}
           />
-          Hide completed
-        </label>
-      )}
-      {visibleTree.map(node => renderNode(node))}
+        </div>
+      </div>
+      {renderBody()}
     </nav>
   );
 }

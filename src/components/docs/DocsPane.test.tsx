@@ -2,7 +2,9 @@
 
 // DocsPane wiring (#131): the collapse toggle and the keyboard-resizable
 // separator update the pane and persist to localStorage, and a remount (a page
-// reload) restores what was saved.
+// reload) restores what was saved. The pane hands its collapse button to the
+// body, which seats it in its own header row; the collapsed rail carries the
+// expand button.
 
 import { describe, it, expect, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
@@ -13,7 +15,12 @@ import { SIDEBAR_PANE, TOC_PANE } from './docsPanes';
 function renderPane(config = SIDEBAR_PANE, label = 'navigation sidebar') {
   return render(
     <DocsPane config={config} id="pane" label={label}>
-      <p>pane body</p>
+      {(collapseButton) => (
+        <div data-testid="pane-header">
+          {collapseButton}
+          <p>pane body</p>
+        </div>
+      )}
     </DocsPane>,
   );
 }
@@ -65,5 +72,25 @@ describe('DocsPane', () => {
     expect(screen.getByText('pane body')).toBeVisible();
     expect(screen.getByRole('separator')).toHaveAttribute('aria-valuenow', '256');
     expect(JSON.parse(localStorage.getItem('docs-toc-pane') ?? '{}')).toEqual({ width: 256, collapsed: false });
+  });
+
+  it('seats the collapse button inside the body it is handed to, not in a row of its own', () => {
+    renderPane();
+    const collapse = screen.getByRole('button', { name: 'Collapse navigation sidebar' });
+    expect(screen.getByTestId('pane-header')).toContainElement(collapse);
+    expect(collapse).toHaveAttribute('aria-expanded', 'true');
+  });
+
+  it('hands focus to the counterpart button across a collapse and an expand', async () => {
+    const user = userEvent.setup();
+    renderPane();
+
+    // The pressed button is hidden by the toggle, so without the hand-over
+    // keyboard focus would fall back to <body>.
+    await user.click(screen.getByRole('button', { name: 'Collapse navigation sidebar' }));
+    expect(screen.getByRole('button', { name: 'Expand navigation sidebar' })).toHaveFocus();
+
+    await user.keyboard('{Enter}');
+    expect(screen.getByRole('button', { name: 'Collapse navigation sidebar' })).toHaveFocus();
   });
 });

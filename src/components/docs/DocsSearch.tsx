@@ -281,11 +281,12 @@ export function DocsSearch({ docsBase = '/docs', searchIndexFile = '/docs-search
       <button
         type="button"
         onClick={() => { handleOpenChange(true); }}
-        className="flex items-center w-full gap-2 rounded-lg border border-border/60 bg-muted/30 px-3 py-2 text-sm text-muted-foreground hover:bg-muted/60 hover:border-border transition-colors"
+        className="@container flex items-center w-full gap-2 rounded-lg border border-border/60 bg-muted/30 px-3 py-2 text-sm text-muted-foreground hover:bg-muted/60 hover:border-border transition-colors"
       >
         <Search className="h-4 w-4 shrink-0" />
-        <span className="flex-1 text-left">Search docs…</span>
-        <kbd className="hidden sm:inline-flex items-center gap-0.5 rounded-sm border border-border/60 bg-muted/50 px-1.5 py-0.5 text-[10px] font-mono text-muted-foreground">
+        <span className="min-w-0 flex-1 truncate text-left">Search docs…</span>
+        {/* The shortcut hint yields first when the sidebar is dragged narrow, so the label never truncates to make room for it. */}
+        <kbd className="hidden shrink-0 items-center gap-0.5 rounded-sm border border-border/60 bg-muted/50 px-1.5 py-0.5 text-[10px] font-mono text-muted-foreground sm:@[11rem]:inline-flex">
           {shortcutLabel}
         </kbd>
       </button>
