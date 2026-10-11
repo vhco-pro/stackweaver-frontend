@@ -239,29 +239,36 @@ export function Sidebar({ isOpen = false, onClose, collapsed = false, onToggleCo
                       key={`${item.path}-${item.label}-${index}`}
                       to={item.path}
                       onClick={handleLinkClick}
+                      aria-current={active ? 'page' : undefined}
+                      aria-label={collapsed ? item.label : undefined}
                       className={cn(
-                        // overflow-hidden keeps the active accent bar clipped inside the pill
-                        'group relative flex items-center overflow-hidden rounded-xl text-sm font-medium transition-all duration-300',
+                        'group relative flex items-center rounded-xl text-sm font-medium transition-all duration-300',
                         collapsed ? 'justify-center px-2 py-2.5' : 'space-x-3 px-3 py-2.5',
-                        // Previous implementation (blue-to-purple balanced)
-                        // 'hover:bg-gradient-to-r hover:from-blue-600/10 hover:via-indigo-500/10 hover:to-purple-500/10',
-                        // 'hover:shadow-md hover:shadow-blue-600/10 hover:scale-[1.02]',
-                        // active
-                        //   ? 'bg-gradient-to-r from-blue-600/15 via-indigo-500/15 to-purple-500/15 text-foreground shadow-lg shadow-blue-600/20 border border-blue-600/30'
-                        //   : 'text-muted-foreground hover:text-foreground'
-                        // New implementation (blue-dominant with purple accent)
-                        'hover:bg-gradient-to-r hover:from-blue-500/10 hover:via-blue-600/10 hover:to-purple-500/10',
-                        'hover:shadow-md hover:shadow-blue-500/10 hover:scale-[1.02]',
+                        // The active item is a gradient bar on the leading edge and a tint, with no
+                        // border, ring or shadow: a boxed item reads as a button (decision N1, see
+                        // docs/internal/guidelines/frontend/page-header-pattern.md). Open, the tint
+                        // fades out across the row; collapsed there is no room to fade, so it is flat.
                         active
-                          ? 'bg-gradient-to-r from-blue-500/15 via-blue-600/15 to-purple-500/15 text-foreground shadow-lg shadow-blue-500/20 border border-blue-500/30'
-                          : 'text-muted-foreground hover:text-foreground'
+                          ? cn(
+                              'font-semibold text-foreground',
+                              collapsed
+                                ? 'bg-indigo-500/20'
+                                : 'bg-gradient-to-r from-indigo-500/25 via-blue-500/10 to-transparent'
+                            )
+                          : cn(
+                              'text-muted-foreground hover:text-foreground',
+                              'hover:bg-gradient-to-r hover:from-blue-500/10 hover:via-blue-600/10 hover:to-purple-500/10',
+                              'hover:shadow-md hover:shadow-blue-500/10 hover:scale-[1.02]'
+                            )
                       )}
                     >
-                      {/* Active accent bar */}
                       {active && (
-                        <span className="absolute left-1 top-1.5 bottom-1.5 w-[3px] rounded-full bg-gradient-to-b from-blue-500 via-blue-600 to-purple-500" />
+                        <span
+                          data-active-bar
+                          className="absolute left-0 top-1.5 bottom-1.5 w-[3px] rounded-full bg-gradient-to-b from-violet-500 via-indigo-500 to-blue-500 shadow-[0_0_10px_1px_rgb(99_102_241/0.55)]"
+                        />
                       )}
-                      <Icon className={cn('h-5 w-5 transition-transform duration-300 shrink-0', active && 'scale-110 text-blue-500 dark:text-blue-400')} />
+                      <Icon className={cn('h-5 w-5 transition-transform duration-300 shrink-0', active && 'scale-110 text-indigo-600 dark:text-indigo-400')} />
                       {!collapsed && <span className="whitespace-nowrap">{item.label}</span>}
                     </Link>
                   );

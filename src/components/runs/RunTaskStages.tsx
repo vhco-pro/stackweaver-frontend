@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { runTasksApi, type TaskStage, type TaskResult, type TaskStageName } from '@/api/client';
 import { Button } from '@/components/ui/button';
+import { GradientButton } from '@/components/ui/gradient-button';
 import { Badge } from '@/components/ui/badge';
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
@@ -207,13 +208,15 @@ export function RunTaskStages({ runId, runStatus }: { runId: string; runStatus: 
           />
           <DialogFooter>
             <Button variant="ghost" onClick={() => { setOverriding(null); }}>Cancel</Button>
-            <Button
+            <GradientButton
+              ramp="app"
+              className="w-auto px-4 py-2"
               disabled={overrideMutation.isPending}
               onClick={() => { if (overriding) overrideMutation.mutate(overriding); }}
             >
               {overrideMutation.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
               Override
-            </Button>
+            </GradientButton>
           </DialogFooter>
         </DialogContent>
       </Dialog>

@@ -4,6 +4,7 @@ import { useRef, useState } from 'react';
 import { cn } from '@/lib/utils';
 import { parseDotenv, looksSensitive, isValidVariableKey, type DotenvIssue } from '@/lib/dotenv';
 import { Button } from '@/components/ui/button';
+import { GradientButton } from '@/components/ui/gradient-button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
@@ -631,18 +632,18 @@ export function ImportEnvDialog({
 
         <DialogFooter>
           {outcomes ? (
-            <Button onClick={() => { handleOpenChange(false); }}>Done</Button>
+            <GradientButton ramp="app" className="w-auto px-4 py-2" onClick={() => { handleOpenChange(false); }}>Done</GradientButton>
           ) : (
             <>
               <Button variant="outline" onClick={() => { handleOpenChange(false); }} disabled={importing}>
                 Cancel
               </Button>
-              <Button onClick={() => { void handleImport(); }} disabled={importing || writeCount === 0}>
+              <GradientButton ramp="app" className="w-auto px-4 py-2" onClick={() => { void handleImport(); }} disabled={importing || writeCount === 0}>
                 {importing && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
                 {importing
                   ? `Importing ${progress} of ${writeCount}...`
                   : `Import ${writeCount > 0 ? `${writeCount} variable${writeCount === 1 ? '' : 's'}` : 'variables'}`}
-              </Button>
+              </GradientButton>
             </>
           )}
         </DialogFooter>

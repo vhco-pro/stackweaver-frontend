@@ -182,6 +182,7 @@ function ResourceChangeCard({ resource }: { resource: ResourceChange }) {
                 }}
                 className="p-1 hover:bg-muted rounded-sm transition-colors"
                 title={`Copy resource address: ${resource.address}`}
+                aria-label={`Copy address ${resource.address}`}
               >
                 <Copy className="h-4 w-4 text-muted-foreground" />
               </button>
@@ -190,6 +191,8 @@ function ResourceChangeCard({ resource }: { resource: ResourceChange }) {
                   e.stopPropagation();
                   setShowDetails(!showDetails);
                 }}
+                aria-label={`${showDetails ? 'Collapse' : 'Expand'} details for ${resource.address}`}
+                aria-expanded={showDetails}
                 className="text-sm text-primary hover:underline flex items-center gap-1"
               >
                 {showDetails ? <ChevronDown className="h-4 w-4 rotate-180 transition-transform" /> : <ChevronDown className="h-4 w-4 transition-transform" />}
@@ -282,6 +285,7 @@ function OutputChangeCard({ output }: { output: OutputChange }) {
                 }}
                 className="p-1 hover:bg-muted rounded-sm transition-colors"
                 title={`Copy output name: output.${output.name}`}
+                aria-label={`Copy reference output.${output.name}`}
               >
                 <Copy className="h-4 w-4 text-muted-foreground" />
               </button>
@@ -290,6 +294,8 @@ function OutputChangeCard({ output }: { output: OutputChange }) {
                   e.stopPropagation();
                   setShowDetails(!showDetails);
                 }}
+                aria-label={`${showDetails ? 'Collapse' : 'Expand'} details for output.${output.name}`}
+                aria-expanded={showDetails}
                 className="text-sm text-primary hover:underline flex items-center gap-1"
               >
                 {showDetails ? <ChevronDown className="h-4 w-4 rotate-180 transition-transform" /> : <ChevronDown className="h-4 w-4 transition-transform" />}

@@ -10,12 +10,11 @@ import { getAnsibleJobFromJsonApi } from '@/utils/ansible-jsonapi';
 import { fetchAllPages } from '@/lib/pagination';
 import { Pager } from '@/components/ui/pager';
 import { Button } from '@/components/ui/button';
+import { Page } from '@/components/layout/Page';
+import { PageHeader } from '@/components/layout/PageHeader';
+import { PageEmptyState } from '@/components/layout/PageEmptyState';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import {
-  Card,
-  CardContent,
-} from '@/components/ui/card';
 import {
   Dialog,
   DialogContent,
@@ -104,7 +103,7 @@ export default function Jobs() {
   const selectedOrg = orgName || currentOrg?.name || '';
   const { canExecuteJobs } = usePermissions(selectedOrg);
 
-  const { data: jobs = [], isLoading: loading, refetch: refetchJobs } = useQuery({
+  const { data: jobs = [], isLoading: loading, isError: loadFailed, refetch: refetchJobs } = useQuery({
     queryKey: ['jobs', selectedOrg],
     queryFn: async () => {
       const { items } = await fetchAllPages((page, pageSize) =>
@@ -253,25 +252,42 @@ export default function Jobs() {
     return job.has_warnings || false;
   };
 
+  const filtersActive = searchQuery !== '' || statusFilter !== 'all';
+  const clearFilters = () => {
+    setSearchQuery('');
+    setStatusFilter('all');
+    setJobsPage(1);
+  };
+  const listState = loading
+    ? 'loading'
+    : loadFailed
+      ? 'error'
+      : jobs.length === 0 && !filtersActive
+        ? 'empty'
+        : 'ready';
+  const header = (
+    <PageHeader
+      icon={Play}
+      title="Ansible Jobs"
+      subtitle={`View and manage Ansible job executions for ${selectedOrg}`}
+      listState={listState}
+    />
+  );
+
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-      </div>
+      <Page>
+        {header}
+        <div className="flex items-center justify-center min-h-[400px]">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        </div>
+      </Page>
     );
   }
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Ansible Jobs</h1>
-          <p className="text-muted-foreground">
-            View and manage Ansible job executions for {selectedOrg}
-          </p>
-        </div>
-      </div>
+    <Page>
+      {header}
 
       {/* Filters */}
       <div className="flex gap-4 flex-wrap">
@@ -306,17 +322,15 @@ export default function Jobs() {
 
       {/* Jobs Table */}
       {filteredJobs.length === 0 ? (
-        <Card>
-          <CardContent className="flex flex-col items-center justify-center py-12">
-            <Play className="h-12 w-12 text-muted-foreground mb-4" />
-            <h3 className="text-lg font-medium mb-2">No jobs found</h3>
-            <p className="text-muted-foreground text-sm">
-              {searchQuery || statusFilter !== 'all'
-                ? 'No jobs match your filters.'
-                : 'Launch a playbook to create your first job.'}
-            </p>
-          </CardContent>
-        </Card>
+        <PageEmptyState
+          icon={Play}
+          title="No jobs found"
+          description={filtersActive
+            ? 'No jobs match your filters.'
+            : 'Launch a playbook to create your first job.'}
+          filtered={filtersActive}
+          onClearFilters={clearFilters}
+        />
       ) : (
         <>
         <div className="rounded-lg border">
@@ -494,6 +508,6 @@ export default function Jobs() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+    </Page>
   );
 }

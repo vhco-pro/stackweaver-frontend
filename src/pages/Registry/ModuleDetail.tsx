@@ -3,6 +3,9 @@
 import { useParams, useNavigate } from 'react-router-dom';
 import { Package, Upload, Tag, Download, ExternalLink, Clock, Settings, Code, Copy, CheckCircle2, Trash2, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { GradientButton } from '@/components/ui/gradient-button';
+import { Page } from '@/components/layout/Page';
+import { PageHeader } from '@/components/layout/PageHeader';
 import { Badge } from '@/components/ui/badge';
 import { registryApi, type ModuleVersion } from '@/api/client';
 import { toast } from 'sonner';
@@ -377,7 +380,7 @@ export default function ModuleDetail() {
   const optionalInputs: InputDefinition[] = inputsList.filter((input) => !input.required);
 
   return (
-    <div className="min-h-screen bg-background">
+    <Page className="min-h-screen bg-background space-y-0">
       {/* Breadcrumb Header */}
       <div className="border-b border-border/40 bg-background/95 backdrop-blur-sm supports-[backdrop-filter]:bg-background/60">
         <div className="px-6 py-3">
@@ -408,81 +411,87 @@ export default function ModuleDetail() {
       </div>
 
       <div className="p-6">
-        {/* Module Header */}
-        <div className="mb-6">
-          <div className="flex items-center gap-3 mb-3">
-            <h1 className="text-3xl font-bold">{moduleName}</h1>
-            <Badge variant="outline" className="bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/20">
-              <Package className="h-3 w-3 mr-1" />
-              Private
-            </Badge>
-            {module.auto_publish_tags && (
-              <Badge variant="outline" className="bg-green-500/10 text-green-600 dark:text-green-400 border-green-500/20">
-                <Tag className="h-3 w-3 mr-1" />
-                Tag-Based
-              </Badge>
-            )}
-          </div>
-          {module.description && (
-            <p className="text-muted-foreground text-lg mb-4">{module.description}</p>
-          )}
-          <div className="flex items-center gap-6 text-sm text-muted-foreground">
-            <span>Published by {orgName}</span>
-            <div className="flex items-center gap-2">
-              <span className="font-medium text-foreground">Provider</span>
-              <Badge variant="outline" className="bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20">
-                {provider}
-              </Badge>
-            </div>
-            {versions.length > 0 && (
-              <>
-                <div className="flex items-center gap-2">
-                  <span className="font-medium text-foreground">Version</span>
-                  <Select
-                    value={selectedVersion?.version || versions[0].version}
-                    onValueChange={(value) => {
-                      const version = versions.find(v => v.version === value);
-                      if (version) setSelectedVersion(version);
-                    }}
-                  >
-                    <SelectTrigger className="w-[140px] h-8">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {versions.map((v) => (
-                        <SelectItem key={v.id} value={v.version}>
-                          {v.version} {v.version === versions[0].version && '(latest)'}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                {selectedVersion && (
-                  <div className="flex items-center gap-1">
-                    <Clock className="h-4 w-4" />
-                    <span>Published {new Date(selectedVersion.published_at).toLocaleDateString()}</span>
-                  </div>
+        {/* Module Header: the chips, description and metadata line ride in the subtitle */}
+        <PageHeader
+          className="mb-6"
+          icon={Package}
+          title={moduleName}
+          subtitle={
+            <>
+              <div className="flex items-center gap-3 mb-3">
+                <Badge variant="outline" className="bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/20">
+                  <Package className="h-3 w-3 mr-1" />
+                  Private
+                </Badge>
+                {module.auto_publish_tags && (
+                  <Badge variant="outline" className="bg-green-500/10 text-green-600 dark:text-green-400 border-green-500/20">
+                    <Tag className="h-3 w-3 mr-1" />
+                    Tag-Based
+                  </Badge>
                 )}
-              </>
-            )}
-            {module.vcs_repository && (() => {
-              const repoUrl = getVcsRepoUrl(module.vcs_provider ?? '', module.vcs_repository ?? '', module.vcs_account_name);
-              return repoUrl ? (
-                <a href={repoUrl} target="_blank" rel="noopener noreferrer"
-                  className="flex items-center gap-1.5 hover:underline">
-                  {getVcsProviderIcon(module.vcs_provider ?? '', 'h-3.5 w-3.5 dark:text-white')}
-                  <span>{module.vcs_repository}</span>
-                  <ExternalLink className="h-3 w-3" />
-                </a>
-              ) : (
-                <span className="flex items-center gap-1.5">
-                  {getVcsProviderIcon(module.vcs_provider ?? '', 'h-3.5 w-3.5 dark:text-white')}
-                  <span>{module.vcs_repository}</span>
-                </span>
-              );
-            })()}
-          </div>
-        </div>
+              </div>
+              {module.description && (
+                <p className="text-muted-foreground text-lg mb-4">{module.description}</p>
+              )}
+              <div className="flex items-center gap-6 text-sm text-muted-foreground">
+                <span>Published by {orgName}</span>
+                <div className="flex items-center gap-2">
+                  <span className="font-medium text-foreground">Provider</span>
+                  <Badge variant="outline" className="bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20">
+                    {provider}
+                  </Badge>
+                </div>
+                {versions.length > 0 && (
+                  <>
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium text-foreground">Version</span>
+                      <Select
+                        value={selectedVersion?.version || versions[0].version}
+                        onValueChange={(value) => {
+                          const version = versions.find(v => v.version === value);
+                          if (version) setSelectedVersion(version);
+                        }}
+                      >
+                        <SelectTrigger className="w-[140px] h-8">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {versions.map((v) => (
+                            <SelectItem key={v.id} value={v.version}>
+                              {v.version} {v.version === versions[0].version && '(latest)'}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    {selectedVersion && (
+                      <div className="flex items-center gap-1">
+                        <Clock className="h-4 w-4" />
+                        <span>Published {new Date(selectedVersion.published_at).toLocaleDateString()}</span>
+                      </div>
+                    )}
+                  </>
+                )}
+                {module.vcs_repository && (() => {
+                  const repoUrl = getVcsRepoUrl(module.vcs_provider ?? '', module.vcs_repository ?? '', module.vcs_account_name);
+                  return repoUrl ? (
+                    <a href={repoUrl} target="_blank" rel="noopener noreferrer"
+                      className="flex items-center gap-1.5 hover:underline">
+                      {getVcsProviderIcon(module.vcs_provider ?? '', 'h-3.5 w-3.5 dark:text-white')}
+                      <span>{module.vcs_repository}</span>
+                      <ExternalLink className="h-3 w-3" />
+                    </a>
+                  ) : (
+                    <span className="flex items-center gap-1.5">
+                      {getVcsProviderIcon(module.vcs_provider ?? '', 'h-3.5 w-3.5 dark:text-white')}
+                      <span>{module.vcs_repository}</span>
+                    </span>
+                  );
+                })()}
+              </div>
+            </>
+          }
+        />
 
         <div className="flex gap-6">
           {/* Main Content */}
@@ -852,10 +861,10 @@ export default function ModuleDetail() {
                       <p className="text-sm text-muted-foreground mb-4">
                         Upload a version manually or push a Git tag to auto-publish
                       </p>
-                      <Button onClick={() => setUploadDialogOpen(true)}>
+                      <GradientButton ramp="app" emphasis="secondary" className="w-auto" onClick={() => setUploadDialogOpen(true)}>
                         <Upload className="h-4 w-4 mr-2" />
                         Upload Version
-                      </Button>
+                      </GradientButton>
                     </div>
                   )}
                 </div>
@@ -1081,14 +1090,14 @@ export default function ModuleDetail() {
               <Button type="button" variant="outline" onClick={() => setUploadDialogOpen(false)}>
                 Cancel
               </Button>
-              <Button type="submit" disabled={uploading || !version || !file}>
+              <GradientButton ramp="app" className="w-auto px-4 py-2" type="submit" disabled={uploading || !version || !file}>
                 {uploading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Upload
-              </Button>
+              </GradientButton>
             </DialogFooter>
           </form>
         </DialogContent>
       </Dialog>
-    </div>
+    </Page>
   );
 }

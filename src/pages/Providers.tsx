@@ -1,7 +1,10 @@
 // Copyright (c) 2025 VH & Co BV. Licensed under the Business Source License 1.1. See LICENSE for details.
 
-import { Cloud, Plus, Check } from 'lucide-react';
+import { Cloud, Package, Plus, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { GradientButton } from '@/components/ui/gradient-button';
+import { Page } from '@/components/layout/Page';
+import { PageHeader } from '@/components/layout/PageHeader';
 import { cn } from '@/lib/utils';
 
 interface Provider {
@@ -59,22 +62,18 @@ const providers: Provider[] = [
 
 export default function Providers() {
   return (
-    <div className="space-y-8">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-indigo-600 dark:from-indigo-400 via-blue-600 dark:via-blue-400 to-cyan-600 dark:to-cyan-400 bg-clip-text text-transparent mb-2">
-            Cloud Providers
-          </h1>
-          <p className="text-muted-foreground">
-            Connect and manage your cloud provider accounts
-          </p>
-        </div>
-        <Button className="bg-gradient-to-r from-indigo-500 to-blue-500 hover:from-indigo-600 hover:to-blue-600 text-white shadow-lg shadow-indigo-500/20 hover:shadow-xl hover:shadow-indigo-500/30 transition-all duration-300 w-full sm:w-auto">
-          <Plus className="h-4 w-4 mr-2 text-white" />
-          Add Provider
-        </Button>
-      </div>
+    <Page className="space-y-8">
+      <PageHeader
+        icon={Package}
+        title="Cloud Providers"
+        subtitle="Connect and manage your cloud provider accounts"
+        action={
+          <GradientButton ramp="app" className="w-auto px-4 py-2">
+            <Plus className="h-4 w-4 mr-2" />
+            Add Provider
+          </GradientButton>
+        }
+      />
 
       {/* Providers Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 3xl:grid-cols-5 gap-6">
@@ -160,7 +159,7 @@ export default function Providers() {
           </div>
         </div>
       </div>
-    </div>
+    </Page>
   );
 }
 

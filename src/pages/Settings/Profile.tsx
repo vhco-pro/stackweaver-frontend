@@ -2,9 +2,11 @@
 
 import { useState } from 'react';
 import { useMountEffect } from '@/hooks/useMountEffect';
-import { Link } from 'react-router-dom';
-import { User, ArrowLeft, Save, Camera } from 'lucide-react';
+import { User, Save, Camera } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { GradientButton } from '@/components/ui/gradient-button';
+import { Page } from '@/components/layout/Page';
+import { PageHeader } from '@/components/layout/PageHeader';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
@@ -85,28 +87,13 @@ export default function ProfileSettings() {
   };
 
   return (
-    <div className="space-y-8">
-      {/* Header */}
-      <div className="flex items-start gap-4">
-        <Link to="/settings">
-          <Button 
-            variant="ghost" 
-            size="icon"
-            className="h-10 w-10 rounded-xl text-muted-foreground hover:text-foreground hover:bg-white/10 dark:hover:bg-black/10 transition-colors"
-            aria-label="Back to Settings"
-          >
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
-        </Link>
-        <div className="flex-1">
-          <h1 className="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-blue-600 dark:from-blue-400 via-cyan-600 dark:via-cyan-400 to-blue-500 bg-clip-text text-transparent mb-2">
-            Profile Settings
-          </h1>
-          <p className="text-muted-foreground">
-            Manage your personal information and preferences
-          </p>
-        </div>
-      </div>
+    <Page ramp="account" className="space-y-8">
+      <PageHeader
+        icon={User}
+        title="Profile Settings"
+        subtitle="Manage your personal information and preferences"
+        backTo={{ to: '/settings', label: 'Back to Settings' }}
+      />
 
       {error && (
         <div className="rounded-lg bg-red-500/10 border border-red-500/20 p-4 text-red-400">
@@ -143,6 +130,7 @@ export default function ProfileSettings() {
                   </div>
                   <button
                     type="button"
+                    aria-label="Change profile picture"
                     className="absolute bottom-0 right-0 h-8 w-8 rounded-full bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center text-white shadow-lg hover:scale-110 transition-transform"
                   >
                     <Camera className="h-4 w-4" />
@@ -242,10 +230,10 @@ export default function ProfileSettings() {
               <Button type="button" variant="outline" onClick={() => { void loadProfile(); }} disabled={saving}>
                 Cancel
               </Button>
-              <Button type="submit" disabled={saving} className="bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600">
+              <GradientButton ramp="app" type="submit" disabled={saving} className="w-auto px-4 py-2">
                 <Save className="h-4 w-4 mr-2" />
                 {saving ? 'Saving...' : 'Save Changes'}
-              </Button>
+              </GradientButton>
             </div>
           </form>
         </div>
@@ -273,7 +261,7 @@ export default function ProfileSettings() {
         </div>
         </div>
       )}
-    </div>
+    </Page>
   );
 }
 

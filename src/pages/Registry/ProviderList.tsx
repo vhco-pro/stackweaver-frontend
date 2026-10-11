@@ -5,6 +5,10 @@ import { useQuery } from '@tanstack/react-query';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Package, Plus, Search, Upload } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { GradientButton } from '@/components/ui/gradient-button';
+import { Page } from '@/components/layout/Page';
+import { PageHeader } from '@/components/layout/PageHeader';
+import { PageEmptyState } from '@/components/layout/PageEmptyState';
 import { cn } from '@/lib/utils';
 import { registryApi } from '@/api/client';
 import { toast } from 'sonner';
@@ -38,7 +42,7 @@ export default function ProviderList() {
   const [creating, setCreating] = useState(false);
   const [name, setName] = useState('');
 
-  const { data: providers = [], isLoading: loading, refetch: refetchProviders } = useQuery({
+  const { data: providers = [], isLoading: loading, isError: loadFailed, refetch: refetchProviders } = useQuery({
     queryKey: ['providers', orgName],
     queryFn: async () => {
       const providersList = await registryApi.providers.list(orgName!);
@@ -88,8 +92,24 @@ export default function ProviderList() {
     );
   }
 
+  // Defined once and handed to both the header and the empty-state card: the header does not
+  // render it while there is nothing to list, so the action never appears twice.
+  const addProviderAction = (
+    <GradientButton ramp="app" onClick={() => setCreateDialogOpen(true)} className="w-auto px-4 py-2">
+      <Plus className="h-4 w-4 mr-2" />
+      Add New Provider
+    </GradientButton>
+  );
+  const listState = loading
+    ? 'loading'
+    : loadFailed
+      ? 'error'
+      : providers.length === 0 && searchQuery === ''
+        ? 'empty'
+        : 'ready';
+
   return (
-    <div className="space-y-8 p-8">
+    <Page className="space-y-8 p-8">
       {/* Breadcrumb Header */}
       <div className="border-b border-border/40 pb-3 mb-6">
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -103,24 +123,13 @@ export default function ProviderList() {
         </div>
       </div>
 
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 bg-clip-text text-transparent mb-2">
-            Provider Registry
-          </h1>
-          <p className="text-muted-foreground">
-            Manage custom Terraform providers
-          </p>
-        </div>
-        <Button 
-          onClick={() => setCreateDialogOpen(true)}
-          className="bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white shadow-lg shadow-blue-500/20 hover:shadow-xl hover:shadow-blue-500/30 transition-all duration-300 w-full sm:w-auto"
-        >
-          <Plus className="h-4 w-4 mr-2" />
-          Add New Provider
-        </Button>
-      </div>
+      <PageHeader
+        icon={Package}
+        title="Provider Registry"
+        subtitle="Manage custom Terraform providers"
+        action={addProviderAction}
+        listState={listState}
+      />
 
       {/* Search Bar */}
       <div className="relative">
@@ -150,36 +159,22 @@ export default function ProviderList() {
           <div className="text-muted-foreground">Loading providers...</div>
         </div>
       ) : filteredProviders.length === 0 ? (
-        <div className="flex min-h-[400px] items-center justify-center">
-          <div className={cn(
-            'text-center space-y-6 p-12 rounded-2xl',
-            'bg-gradient-to-br from-white/90 via-white/75 to-white/60 dark:from-black/10 dark:via-black/5 dark:to-transparent',
-            'backdrop-blur-md border border-gray-300/80 dark:border-white/10',
-            'shadow-xl shadow-blue-500/10',
-            'max-w-2xl'
-          )}>
-            <div className="flex justify-center">
-              <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-500/20 via-indigo-500/20 to-purple-500/20 border border-blue-500/30">
-                <Package className="h-10 w-10 text-blue-600 dark:text-blue-400" />
-              </div>
-            </div>
-            <div>
-              <h3 className="text-2xl font-semibold mb-2">No Providers Found</h3>
-              <p className="text-muted-foreground text-lg">
-                {searchQuery ? 'No providers match your search.' : 'Get started by creating your first provider.'}
-              </p>
-            </div>
-            {!searchQuery && (
-              <Button 
-                onClick={() => setCreateDialogOpen(true)}
-                className="bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white"
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                Add New Provider
-              </Button>
-            )}
-          </div>
-        </div>
+        searchQuery ? (
+          <PageEmptyState
+            icon={Package}
+            title="No Providers Found"
+            description="No providers match your search."
+            filtered
+            onClearFilters={() => setSearchQuery('')}
+          />
+        ) : (
+          <PageEmptyState
+            icon={Package}
+            title="No Providers Found"
+            description="Get started by creating your first provider."
+            action={loadFailed ? undefined : addProviderAction}
+          />
+        )
       ) : (
         <div className="rounded-lg border border-gray-300/80 dark:border-white/10 bg-white dark:bg-white/5">
           <Table>
@@ -245,15 +240,15 @@ export default function ProviderList() {
               <Button type="button" variant="outline" onClick={() => setCreateDialogOpen(false)}>
                 Cancel
               </Button>
-              <Button type="submit" disabled={creating || !name.trim()}>
+              <GradientButton ramp="app" className="w-auto px-4 py-2" type="submit" disabled={creating || !name.trim()}>
                 {creating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Create Provider
-              </Button>
+              </GradientButton>
             </DialogFooter>
           </form>
         </DialogContent>
       </Dialog>
-    </div>
+    </Page>
   );
 }
 

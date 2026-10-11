@@ -3,8 +3,12 @@
 import { useState, useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link, useParams } from 'react-router-dom';
-import { Cpu, ArrowLeft, Plus, Trash2, Loader2, Settings2, ChevronDown, ChevronUp, Server, Circle, Copy, Check } from 'lucide-react';
+import { Cpu, Plus, Trash2, Loader2, Settings2, ChevronDown, ChevronUp, Server, Circle, Copy, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { GradientButton } from '@/components/ui/gradient-button';
+import { Page, PageDialogContent } from '@/components/layout/Page';
+import { PageHeader } from '@/components/layout/PageHeader';
+import { PageEmptyState } from '@/components/layout/PageEmptyState';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
@@ -20,7 +24,6 @@ import { OrgDefaultExecution } from '@/components/settings/OrgDefaultExecution';
 import { toast } from 'sonner';
 import {
   Dialog,
-  DialogContent,
   DialogDescription,
   DialogFooter,
   DialogHeader,
@@ -36,7 +39,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { AgentPoolTokens } from '@/components/settings/AgentPoolTokens';
 import { cn } from '@/lib/utils';
-import { glassSurface, glassDashedEmpty } from '@/lib/surfaces';
+import { dangerGhostIcon, glassSurface } from '@/lib/surfaces';
 
 export default function AgentPools() {
   const { orgName } = useParams<{ orgName: string }>();
@@ -62,7 +65,7 @@ export default function AgentPools() {
     excluded_workspace_ids: string[];
   }>({ name: '', organization_scoped: true, allowed_workspace_ids: [], allowed_project_ids: [], excluded_workspace_ids: [] });
 
-  const { data: pools = [], isLoading: loading, refetch: refetchPools } = useQuery({
+  const { data: pools = [], isLoading: loading, isError: loadFailed, refetch: refetchPools } = useQuery({
     queryKey: ['agentPools', orgName],
     queryFn: async () => {
       const res = await agentPoolsApi.list(orgName!);
@@ -277,42 +280,26 @@ export default function AgentPools() {
     return `${Math.floor(seconds / 86400)} day${Math.floor(seconds / 86400) !== 1 ? 's' : ''} ago`;
   };
 
+  // Defined once and handed to both the header and the empty-state card: the header does not
+  // render it while there is nothing to list, so the action never appears twice.
+  const addPoolAction = (
+    <GradientButton ramp="app" onClick={() => setCreateOpen(true)} className="w-auto px-4 py-2">
+      <Plus className="h-4 w-4 mr-2" />
+      Add pool
+    </GradientButton>
+  );
+  const listState = loading ? 'loading' : loadFailed ? 'error' : pools.length === 0 ? 'empty' : 'ready';
+
   return (
-    <div className="space-y-8">
-      <div className="flex items-start gap-4">
-        <Link to={orgName ? `/app/${orgName}/settings` : '/settings'}>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-10 w-10 rounded-xl text-muted-foreground hover:text-foreground"
-            aria-label="Back to Settings"
-          >
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
-        </Link>
-        <div className="flex-1">
-          <div className="flex items-start justify-between gap-4 mb-2">
-            <div>
-              <h1 className="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-teal-600 via-cyan-600 to-teal-600 dark:from-teal-400 dark:via-cyan-400 dark:to-teal-400 bg-clip-text text-transparent mb-2">
-                Agent Pools
-              </h1>
-              <p className="text-muted-foreground">
-                Manage agent pools for self-hosted runners (TFE-compatible)
-              </p>
-            </div>
-            <div className="relative inline-flex rounded-xl bg-gradient-to-r from-teal-500 via-cyan-500 to-teal-500 p-[2px]">
-              <Button
-                variant="ghost"
-                onClick={() => setCreateOpen(true)}
-                className="bg-white dark:bg-slate-950/80 dark:backdrop-blur-xs text-slate-900 dark:text-white hover:bg-slate-50 dark:hover:bg-slate-950/90 border-0 whitespace-nowrap rounded-[calc(0.75rem-2px)] px-4 py-2"
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                Add pool
-              </Button>
-            </div>
-          </div>
-        </div>
-      </div>
+    <Page ramp="agentPools" className="space-y-8">
+      <PageHeader
+        icon={Cpu}
+        title="Agent Pools"
+        subtitle="Manage agent pools for self-hosted runners (TFE-compatible)"
+        backTo={{ to: orgName ? `/app/${orgName}/settings` : '/settings', label: 'Back to Settings' }}
+        action={addPoolAction}
+        listState={listState}
+      />
 
       {/* tfe_organization_default_settings: which pool workspaces default to, beside the pools. */}
       {orgName && <OrgDefaultExecution orgName={orgName} pools={pools} />}
@@ -324,20 +311,12 @@ export default function AgentPools() {
       ) : (
         <div className="space-y-4">
           {pools.length === 0 ? (
-            <div
-              className={cn(glassDashedEmpty, 'p-8 text-center text-muted-foreground')}
-            >
-              <Cpu className="h-12 w-12 mx-auto mb-4 opacity-50" />
-              <p>No agent pools yet. Create one to scope self-hosted runners.</p>
-              <Button
-                variant="outline"
-                className="mt-4"
-                onClick={() => setCreateOpen(true)}
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                Add pool
-              </Button>
-            </div>
+            <PageEmptyState
+              icon={Cpu}
+              title="No agent pools yet"
+              description="Create one to scope self-hosted runners."
+              action={loadFailed ? undefined : addPoolAction}
+            />
           ) : (
             pools.map((pool) => {
               const isExpanded = expandedPools.has(pool.id);
@@ -355,6 +334,8 @@ export default function AgentPools() {
                       <div className="flex-1">
                         <button
                           onClick={() => togglePoolExpansion(pool.id)}
+                          aria-label={isExpanded ? `Collapse ${pool.name}` : `Expand ${pool.name}`}
+                          aria-expanded={isExpanded}
                           className="flex items-center gap-2 hover:text-primary transition-colors text-left"
                         >
                           {isExpanded ? (
@@ -372,6 +353,7 @@ export default function AgentPools() {
                             onClick={() => { copyPoolId(pool.id); }}
                             className="text-muted-foreground hover:text-foreground transition-colors"
                             title="Copy Pool ID"
+                            aria-label="Copy agent pool ID"
                           >
                             {copiedPoolId === pool.id ? (
                               <Check className="h-3.5 w-3.5 text-green-500" />
@@ -412,10 +394,11 @@ export default function AgentPools() {
                           Edit
                         </Button>
                         <Button
-                          variant="outline"
-                          size="sm"
-                          className="text-destructive hover:text-destructive"
+                          variant="ghost"
+                          size="icon"
+                          className={cn(dangerGhostIcon, 'h-9 w-9')}
                           onClick={() => setDeletePool(pool)}
+                          aria-label={`Delete agent pool ${pool.name}`}
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
@@ -507,7 +490,7 @@ export default function AgentPools() {
 
       {/* Create dialog */}
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
-        <DialogContent>
+        <PageDialogContent>
           <DialogHeader>
             <DialogTitle>Create agent pool</DialogTitle>
             <DialogDescription>Pools group runners and scope which workspaces can use them.</DialogDescription>
@@ -535,18 +518,18 @@ export default function AgentPools() {
               <Button type="button" variant="outline" onClick={() => setCreateOpen(false)}>
                 Cancel
               </Button>
-              <Button type="submit" disabled={creating || !createForm.name.trim()}>
+              <GradientButton ramp="app" className="w-auto px-4 py-2" type="submit" disabled={creating || !createForm.name.trim()}>
                 {creating ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
                 Create
-              </Button>
+              </GradientButton>
             </DialogFooter>
           </form>
-        </DialogContent>
+        </PageDialogContent>
       </Dialog>
 
       {/* Edit dialog */}
       <Dialog open={!!editPool} onOpenChange={(open) => { if (!open) setEditPool(null); }}>
-        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+        <PageDialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Edit agent pool</DialogTitle>
             <DialogDescription>Update name, scoping, and allowed/excluded workspaces and projects.</DialogDescription>
@@ -658,19 +641,19 @@ export default function AgentPools() {
                 <Button type="button" variant="outline" onClick={() => setEditPool(null)}>
                   Cancel
                 </Button>
-                <Button type="submit" disabled={saving || !editForm.name.trim()}>
+                <GradientButton ramp="app" className="w-auto px-4 py-2" type="submit" disabled={saving || !editForm.name.trim()}>
                   {saving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
                   Save
-                </Button>
+                </GradientButton>
               </DialogFooter>
             </form>
           )}
-        </DialogContent>
+        </PageDialogContent>
       </Dialog>
 
       {/* Delete confirmation */}
       <Dialog open={!!deletePool} onOpenChange={(open) => { if (!open) setDeletePool(null); }}>
-        <DialogContent>
+        <PageDialogContent>
           <DialogHeader>
             <DialogTitle>Delete agent pool</DialogTitle>
             <DialogDescription>
@@ -686,8 +669,8 @@ export default function AgentPools() {
               Delete
             </Button>
           </DialogFooter>
-        </DialogContent>
+        </PageDialogContent>
       </Dialog>
-    </div>
+    </Page>
   );
 }

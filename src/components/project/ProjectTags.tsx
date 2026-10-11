@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { projectsApi } from '@/api/client';
-import { Button } from '@/components/ui/button';
+import { GradientButton } from '@/components/ui/gradient-button';
 import { Input } from '@/components/ui/input';
 import { Tag, Plus, X, Loader2 } from 'lucide-react';
 
@@ -98,15 +98,16 @@ export function ProjectTags({ projectId }: { projectId: string }) {
               className="sm:max-w-[200px]"
               aria-label="Tag value"
             />
-            <Button
+            <GradientButton
+              ramp="app" emphasis="secondary"
               type="button"
               onClick={() => { addTag(); }}
               disabled={!newKey.trim() || mutation.isPending}
-              className="gap-1.5"
+              className="w-auto gap-1.5"
             >
               {mutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
               Add tag
-            </Button>
+            </GradientButton>
           </div>
         </>
       )}

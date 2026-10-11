@@ -37,6 +37,9 @@ import { TemplateAccessCard } from '@/components/ansible/TemplateAccessCard';
 import { PlaybookSourcePicker } from '@/components/ansible/PlaybookSourcePicker';
 import { resolvePlaybookSelection, type PlaybookSelection } from '@/components/ansible/playbook-selection';
 import { Button } from '@/components/ui/button';
+import { GradientButton } from '@/components/ui/gradient-button';
+import { Page } from '@/components/layout/Page';
+import { PageHeader } from '@/components/layout/PageHeader';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -95,6 +98,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import { dangerGhostIcon, dangerOutline } from '@/lib/surfaces';
 import { HostStatusCount } from '@/components/ansible/HostStatus';
 import { ANSIBLE_HOST_STATUSES, hostStatusCount } from '@/components/ansible/hostStatus';
 
@@ -574,56 +578,49 @@ export default function JobTemplateDetail() {
   }
 
   return (
-    <div className="container py-6 max-w-6xl">
-      {/* Header */}
-      <div className="flex items-start justify-between mb-6">
-        <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" aria-label="Back to job templates" asChild>
-            <Link to={`/app/${orgName}/ansible/job-templates`}>
-              <ArrowLeft className="h-4 w-4" />
-            </Link>
-          </Button>
-          <div>
-            <div className="flex items-center gap-2">
-              <Layers className="h-6 w-6 text-blue-600 dark:text-blue-400" />
-              <h1 className="text-2xl font-bold">{template.name}</h1>
-            </div>
-            {template.description && (
-              <p className="text-muted-foreground mt-1">{template.description}</p>
+    <Page className="container py-6 max-w-6xl">
+      <PageHeader
+        icon={Layers}
+        title={template.name}
+        subtitle={template.description}
+        backTo={{ to: `/app/${orgName}/ansible/job-templates`, label: 'Back to job templates' }}
+        actions={
+          <>
+            {!template.enabled && (
+              <Badge variant="outline" className="text-muted-foreground border-dashed">Disabled</Badge>
             )}
-          </div>
-        </div>
-        <div className="flex items-center gap-2">
-          {!template.enabled && (
-            <Badge variant="outline" className="text-muted-foreground border-dashed">Disabled</Badge>
-          )}
-          <Button
-            size="sm"
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setEditDialogOpen(true)}
+            >
+              <Edit className="h-4 w-4 mr-2" />
+              Edit
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className={dangerOutline}
+              onClick={() => setDeleteDialogOpen(true)}
+            >
+              <Trash2 className="h-4 w-4 mr-2" />
+              Delete
+            </Button>
+          </>
+        }
+        action={
+          <GradientButton
+            ramp="app"
+            className="w-auto px-4 py-2"
             disabled={!template.enabled}
             title={!template.enabled ? 'This template is disabled' : undefined}
             onClick={() => setLaunchDialogOpen(true)}
           >
             <Play className="h-4 w-4 mr-2" />
             Launch
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setEditDialogOpen(true)}
-          >
-            <Edit className="h-4 w-4 mr-2" />
-            Edit
-          </Button>
-          <Button
-            variant="destructive"
-            size="sm"
-            onClick={() => setDeleteDialogOpen(true)}
-          >
-            <Trash2 className="h-4 w-4 mr-2" />
-            Delete
-          </Button>
-        </div>
-      </div>
+          </GradientButton>
+        }
+      />
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
@@ -816,10 +813,10 @@ export default function JobTemplateDetail() {
                 <p className="text-muted-foreground mb-4">
                   No jobs have been launched from this template.
                 </p>
-                <Button disabled={!template.enabled} onClick={() => setLaunchDialogOpen(true)}>
+                <GradientButton ramp="app" emphasis="secondary" className="w-auto" disabled={!template.enabled} onClick={() => setLaunchDialogOpen(true)}>
                   <Play className="h-4 w-4 mr-2" />
                   Launch First Job
-                </Button>
+                </GradientButton>
               </CardContent>
             </Card>
           ) : (
@@ -899,14 +896,14 @@ export default function JobTemplateDetail() {
                 Ansible uses all Environment variables for all jobs launched from this template. Template variables override variables from variable sets (except priority sets).
               </p>
             </div>
-            <Button onClick={() => {
+            <GradientButton ramp="app" emphasis="secondary" className="w-auto" onClick={() => {
               setEditingTemplateVariable(null);
               setVariableForm({ key: '', value: '', description: '', category: 'env', hcl: false, sensitive: false, encrypted: false });
               setCreateVariableDialogOpen(true);
             }}>
               <Plus className="mr-2 h-4 w-4" />
               Add variable
-            </Button>
+            </GradientButton>
           </div>
 
           {/* Template Variables Section */}
@@ -953,7 +950,8 @@ export default function JobTemplateDetail() {
                           <div className="flex justify-end gap-2">
                             <Button
                               variant="ghost"
-                              size="sm"
+                              size="icon"
+                              aria-label={`Edit variable ${variable.key}`}
                               onClick={() => {
                                 setEditingTemplateVariable(variable);
                                 setVariableForm({
@@ -972,7 +970,9 @@ export default function JobTemplateDetail() {
                             </Button>
                             <Button
                               variant="ghost"
-                              size="sm"
+                              size="icon"
+                              aria-label={`Delete variable ${variable.key}`}
+                              className={dangerGhostIcon}
                               onClick={() => {
                                 setVariableToDelete(variable);
                                 setDeleteVariableDialogOpen(true);
@@ -1219,7 +1219,7 @@ export default function JobTemplateDetail() {
             <Button variant="outline" onClick={() => setCreateVariableDialogOpen(false)}>
               Cancel
             </Button>
-            <Button onClick={() => { void (async () => {
+            <GradientButton ramp="app" className="w-auto px-4 py-2" onClick={() => { void (async () => {
               if (!template || !variableForm.key.trim() || !variableForm.value.trim()) {
                 toast.error('Key and value are required');
                 return;
@@ -1244,7 +1244,7 @@ export default function JobTemplateDetail() {
               }
             })(); }}>
               {editingTemplateVariable ? 'Update' : 'Create'}
-            </Button>
+            </GradientButton>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -1532,10 +1532,10 @@ export default function JobTemplateDetail() {
             <Button variant="outline" onClick={() => setEditDialogOpen(false)}>
               Cancel
             </Button>
-            <Button onClick={() => { void handleUpdate(); }} disabled={saving}>
+            <GradientButton ramp="app" className="w-auto px-4 py-2" onClick={() => { void handleUpdate(); }} disabled={saving}>
               {saving && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
               Save Changes
-            </Button>
+            </GradientButton>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -1593,10 +1593,10 @@ export default function JobTemplateDetail() {
             <Button variant="outline" onClick={() => setLaunchDialogOpen(false)}>
               Cancel
             </Button>
-            <Button onClick={() => { void handleLaunch(); }} disabled={launching}>
+            <GradientButton ramp="app" className="w-auto px-4 py-2" onClick={() => { void handleLaunch(); }} disabled={launching}>
               {launching && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
               Launch Job
-            </Button>
+            </GradientButton>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -1621,6 +1621,6 @@ export default function JobTemplateDetail() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+    </Page>
   );
 }

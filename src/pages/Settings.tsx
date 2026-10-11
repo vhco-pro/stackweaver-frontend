@@ -2,7 +2,9 @@
 
 import { Link, useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { User, Bell, Shield, Key, Globe, ArrowRight, GitBranch, Layers, Monitor, KeyRound, KeySquare, Webhook, Users, Cpu, Server, FileText, Tag, Cloud, ClipboardList, Zap, Building2, type LucideIcon } from 'lucide-react';
+import { User, Bell, Shield, Key, Globe, ArrowRight, GitBranch, Layers, Monitor, KeyRound, KeySquare, Webhook, Users, Cpu, Server, FileText, Tag, Cloud, ClipboardList, Zap, Building2, Settings as SettingsIcon, type LucideIcon } from 'lucide-react';
+import { Page } from '@/components/layout/Page';
+import { PageHeader } from '@/components/layout/PageHeader';
 import { usePermissions } from '@/hooks/usePermissions';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
@@ -249,18 +251,16 @@ export default function Settings() {
     : userSettingsSections;
 
   return (
-    <div className="space-y-8">
-      {/* Header */}
-      <div>
-        <h1 className="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-violet-600 dark:from-violet-400 via-indigo-600 dark:via-indigo-400 to-blue-600 dark:to-blue-400 bg-clip-text text-transparent mb-2">
-          Settings
-        </h1>
-        <p className="text-muted-foreground">
-          {isOrgSettings 
+    <Page ramp="app" className="space-y-8">
+      <PageHeader
+        icon={SettingsIcon}
+        title="Settings"
+        subtitle={
+          isOrgSettings
             ? 'Manage organization settings and configuration'
-            : 'Manage your account settings and preferences'}
-        </p>
-      </div>
+            : 'Manage your account settings and preferences'
+        }
+      />
 
       {/* Settings Sections Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 3xl:grid-cols-5 gap-6">
@@ -302,7 +302,7 @@ export default function Settings() {
           );
         })}
       </div>
-    </div>
+    </Page>
   );
 }
 

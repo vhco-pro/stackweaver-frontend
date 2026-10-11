@@ -26,6 +26,9 @@ import {
   getAnsibleJobFromJsonApi,
 } from '@/utils/ansible-jsonapi';
 import { Button } from '@/components/ui/button';
+import { GradientButton } from '@/components/ui/gradient-button';
+import { Page } from '@/components/layout/Page';
+import { PageHeader } from '@/components/layout/PageHeader';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { YamlViewer } from '@/components/code/YamlViewer';
@@ -55,6 +58,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { cn } from '@/lib/utils';
+import { dangerOutline } from '@/lib/surfaces';
 import { getVcsProviderIcon, getVcsProviderLabel, getVcsRepoUrl, getVcsBranchUrl, getVcsFileUrl, getVcsCommitUrl, getVcsManageUrl } from '@/lib/vcs';
 import { VCSProviderSelector } from '@/components/vcs/VCSProviderSelector';
 import { VCSProjectSelect } from '@/components/vcs/VCSProjectSelect';
@@ -526,60 +530,56 @@ export default function PlaybookDetail() {
   }
 
   return (
-    <div className="container py-6 max-w-6xl">
-      {/* Header */}
-      <div className="flex items-start justify-between mb-6">
-        <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" aria-label="Back to playbooks" asChild>
-            <Link to={`/app/${orgName}/ansible/playbooks`}>
-              <ArrowLeft className="h-4 w-4" />
-            </Link>
-          </Button>
-          <div>
-            <div className="flex items-center gap-2">
-              <FileText className="h-6 w-6 text-purple-600 dark:text-purple-400" />
-              <h1 className="text-2xl font-bold">{playbook.name}</h1>
+    <Page className="container py-6 max-w-6xl">
+      <PageHeader
+        icon={FileText}
+        title={playbook.name}
+        subtitle={
+          (playbook.vcs_connection_id || playbook.description) && (
+            <div className="flex flex-wrap items-center gap-2">
               {playbook.vcs_connection_id && (
                 <Badge variant="outline">VCS</Badge>
               )}
+              {playbook.description && <span>{playbook.description}</span>}
             </div>
-            {playbook.description && (
-              <p className="text-muted-foreground mt-1">{playbook.description}</p>
-            )}
-          </div>
-        </div>
-        <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => { void handleSync(); }}
-            disabled={syncing || !playbook.vcs_connection_id}
-          >
-            {syncing ? (
-              <Loader2 className="h-4 w-4 animate-spin mr-2" />
-            ) : (
-              <RefreshCw className="h-4 w-4 mr-2" />
-            )}
-            Sync from VCS
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setEditDialogOpen(true)}
-          >
-            <Edit className="h-4 w-4 mr-2" />
-            Edit
-          </Button>
-          <Button
-            variant="destructive"
-            size="sm"
-            onClick={() => setDeleteDialogOpen(true)}
-          >
-            <Trash2 className="h-4 w-4 mr-2" />
-            Delete
-          </Button>
-        </div>
-      </div>
+          )
+        }
+        backTo={{ to: `/app/${orgName}/ansible/playbooks`, label: 'Back to playbooks' }}
+        actions={
+          <>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => { void handleSync(); }}
+              disabled={syncing || !playbook.vcs_connection_id}
+            >
+              {syncing ? (
+                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+              ) : (
+                <RefreshCw className="h-4 w-4 mr-2" />
+              )}
+              Sync from VCS
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setEditDialogOpen(true)}
+            >
+              <Edit className="h-4 w-4 mr-2" />
+              Edit
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className={dangerOutline}
+              onClick={() => setDeleteDialogOpen(true)}
+            >
+              <Trash2 className="h-4 w-4 mr-2" />
+              Delete
+            </Button>
+          </>
+        }
+      />
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={handleTabChange}>
@@ -892,8 +892,11 @@ export default function PlaybookDetail() {
                       <div className="flex items-center gap-2">
                         <Badge variant="outline">v{template.verbosity}</Badge>
                         <Badge variant="outline">{template.forks} forks</Badge>
-                        <Button size="sm" variant="ghost" asChild>
-                          <Link to={`/app/${orgName}/ansible/job-templates/${template.id}`}>
+                        <Button size="icon" variant="ghost" asChild>
+                          <Link
+                            to={`/app/${orgName}/ansible/job-templates/${template.id}`}
+                            aria-label={`Open job template ${template.name}`}
+                          >
                             <ExternalLink className="h-4 w-4" />
                           </Link>
                         </Button>
@@ -1325,10 +1328,10 @@ export default function PlaybookDetail() {
             <Button variant="outline" onClick={() => setEditDialogOpen(false)}>
               Cancel
             </Button>
-            <Button onClick={() => { void handleUpdate(); }} disabled={saving}>
+            <GradientButton ramp="app" className="w-auto px-4 py-2" onClick={() => { void handleUpdate(); }} disabled={saving}>
               {saving && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
               Save Changes
-            </Button>
+            </GradientButton>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -1375,6 +1378,6 @@ export default function PlaybookDetail() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+    </Page>
   );
 }

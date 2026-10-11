@@ -3,10 +3,14 @@
 // eslint-disable-next-line no-restricted-imports -- legitimate dependency-based effect
 import { useEffect, useState, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Link, useParams, useSearchParams } from 'react-router-dom';
-import { GitBranch, Plus, Trash2, CheckCircle2, ArrowLeft } from 'lucide-react';
+import { useParams, useSearchParams } from 'react-router-dom';
+import { GitBranch, Plus, Trash2, CheckCircle2 } from 'lucide-react';
 import { getVcsProviderIcon, getVcsProviderLabel } from '@/lib/vcs';
 import { Button } from '@/components/ui/button';
+import { GradientButton } from '@/components/ui/gradient-button';
+import { Page, PageDialogContent } from '@/components/layout/Page';
+import { PageHeader } from '@/components/layout/PageHeader';
+import { PageEmptyState } from '@/components/layout/PageEmptyState';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -23,13 +27,13 @@ import {
 } from '@/components/ui/table';
 import {
   Dialog,
-  DialogContent,
   DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
+import { dangerOutline } from '@/lib/surfaces';
 
 export default function VCSConnections() {
   const { orgName } = useParams<{ orgName: string }>();
@@ -41,7 +45,7 @@ export default function VCSConnections() {
   const [adoOrg, setAdoOrg] = useState('');
   const [adoConnecting, setAdoConnecting] = useState(false);
 
-  const { data: connections = [], isLoading: loading, refetch: refetchConnections } = useQuery({
+  const { data: connections = [], isLoading: loading, isError: loadFailed, refetch: refetchConnections } = useQuery({
     queryKey: ['vcsConnections', orgName],
     queryFn: async () => {
       const conns = await vcsConnectionsApi.list(orgName!);
@@ -153,28 +157,14 @@ export default function VCSConnections() {
 
 
   return (
-    <div className="space-y-8 p-8">
-      {/* Header */}
-      <div className="flex items-start gap-4">
-        <Link to={orgName ? `/app/${orgName}/settings` : '/settings'}>
-          <Button 
-            variant="ghost" 
-            size="icon"
-            className="h-10 w-10 rounded-xl text-muted-foreground hover:text-foreground hover:bg-white/10 dark:hover:bg-black/10 transition-colors"
-            aria-label="Back to Settings"
-          >
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
-        </Link>
-        <div className="flex-1">
-          <h1 className="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 bg-clip-text text-transparent mb-2">
-            VCS Connections
-          </h1>
-          <p className="text-muted-foreground">
-            Connect version control providers to enable repository access for workspaces and modules
-          </p>
-        </div>
-      </div>
+    <Page ramp="integrations" className="space-y-8 p-8">
+      <PageHeader
+        icon={GitBranch}
+        title="VCS Connections"
+        subtitle="Connect version control providers to enable repository access for workspaces and modules"
+        backTo={{ to: orgName ? `/app/${orgName}/settings` : '/settings', label: 'Back to Settings' }}
+        listState={loading ? 'loading' : loadFailed ? 'error' : connections.length === 0 ? 'empty' : 'ready'}
+      />
 
       {/* Connect New Provider */}
       <div className="border rounded-lg p-6">
@@ -295,13 +285,13 @@ export default function VCSConnections() {
             </div>
           </div>
         ) : connections.length === 0 ? (
-          <div className="p-12 text-center">
-            <GitBranch className="h-16 w-16 mx-auto text-muted-foreground/50 mb-4" />
-            <h3 className="text-lg font-semibold mb-2">No VCS Connections</h3>
-            <p className="text-muted-foreground mb-6">
-              Connect a version control provider to get started
-            </p>
-          </div>
+          // The card sits inside the "Connected Providers" box, which already has a border.
+          <PageEmptyState
+            icon={GitBranch}
+            title="No VCS Connections"
+            description="Connect a version control provider to get started"
+            className="border-0"
+          />
         ) : (
           <Table>
             <TableHeader>
@@ -336,8 +326,9 @@ export default function VCSConnections() {
                   </TableCell>
                   <TableCell>
                     <Button
-                      variant="ghost"
+                      variant="outline"
                       size="sm"
+                      className={dangerOutline}
                       onClick={() => {
                         setConnectionToDelete(conn);
                         setDeleteDialogOpen(true);
@@ -356,7 +347,7 @@ export default function VCSConnections() {
 
       {/* Azure DevOps Connect Dialog */}
       <Dialog open={adoDialogOpen} onOpenChange={(open) => { setAdoDialogOpen(open); if (!open) setAdoOrg(''); }}>
-        <DialogContent>
+        <PageDialogContent>
           <DialogHeader>
             <DialogTitle>Connect Azure DevOps</DialogTitle>
             <DialogDescription>
@@ -383,17 +374,22 @@ export default function VCSConnections() {
             <Button variant="outline" onClick={() => { setAdoDialogOpen(false); setAdoOrg(''); }}>
               Cancel
             </Button>
-            <Button onClick={() => { void handleConnectAzureDevOps(); }} disabled={adoConnecting || !adoOrg.trim()}>
+            <GradientButton
+              ramp="app"
+              className="w-auto px-4 py-2"
+              onClick={() => { void handleConnectAzureDevOps(); }}
+              disabled={adoConnecting || !adoOrg.trim()}
+            >
               {adoConnecting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Authorize with Microsoft
-            </Button>
+            </GradientButton>
           </DialogFooter>
-        </DialogContent>
+        </PageDialogContent>
       </Dialog>
 
       {/* Delete Confirmation Dialog */}
       <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <DialogContent>
+        <PageDialogContent>
           <DialogHeader>
             <DialogTitle>Delete VCS Connection</DialogTitle>
             <DialogDescription>
@@ -410,9 +406,9 @@ export default function VCSConnections() {
               Delete
             </Button>
           </DialogFooter>
-        </DialogContent>
+        </PageDialogContent>
       </Dialog>
-    </div>
+    </Page>
   );
 }
 

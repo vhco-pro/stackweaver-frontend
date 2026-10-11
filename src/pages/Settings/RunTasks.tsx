@@ -2,19 +2,23 @@
 
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Link, useParams } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import { runTasksApi, type RunTask, type TaskStageName, type TaskEnforcementLevel } from '@/api/client';
 import { Button } from '@/components/ui/button';
+import { GradientButton } from '@/components/ui/gradient-button';
+import { Page, PageDialogContent } from '@/components/layout/Page';
+import { PageHeader } from '@/components/layout/PageHeader';
+import { PageEmptyState } from '@/components/layout/PageEmptyState';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import {
-  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
+  Dialog, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ArrowLeft, Zap, Plus, Loader2, Globe2, Pencil, Trash2, Link2 } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { Zap, Plus, Loader2, Globe2, Pencil, Trash2, Link2 } from 'lucide-react';
+import { dangerGhostIcon } from '@/lib/surfaces';
 import { toast } from 'sonner';
 
 const ALL_STAGES: TaskStageName[] = ['pre_plan', 'post_plan', 'pre_apply', 'post_apply'];
@@ -137,37 +141,26 @@ export default function RunTasks() {
   const formValid = form.name.trim() !== '' && /^https?:\/\/.+/.test(form.url) &&
     (!form.global_enabled || form.global_stages.length > 0);
 
+  // Defined once and handed to both the header and the empty-state card: the header does not
+  // render it while there is nothing to list, so the action never appears twice.
+  const newRunTaskAction = (
+    <GradientButton ramp="app" onClick={openCreate} className="w-auto px-4 py-2">
+      <Plus className="h-4 w-4 mr-2" />
+      New run task
+    </GradientButton>
+  );
+  const listState = isLoading ? 'loading' : error ? 'error' : tasks.length === 0 ? 'empty' : 'ready';
+
   return (
-    <div className="space-y-8">
-      <div className="flex items-start gap-4">
-        <Link to={orgName ? `/app/${orgName}/settings` : '/settings'}>
-          <Button variant="ghost" size="icon" className="h-10 w-10 rounded-xl text-muted-foreground hover:text-foreground" aria-label="Back to Settings">
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
-        </Link>
-        <div className="flex-1">
-          <div className="flex items-start justify-between gap-4 mb-2">
-            <div>
-              <h1 className="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-amber-600 dark:from-amber-400 via-orange-600 dark:via-orange-400 to-amber-600 dark:to-amber-400 bg-clip-text text-transparent mb-2">
-                Run Tasks
-              </h1>
-              <p className="text-muted-foreground">
-                External services that validate runs at stage boundaries (security scans, cost checks, custom gates)
-              </p>
-            </div>
-            <div className="relative inline-flex rounded-xl bg-gradient-to-r from-amber-500 via-orange-500 to-amber-500 p-[2px]">
-              <Button
-                variant="ghost"
-                onClick={openCreate}
-                className="bg-white dark:bg-slate-950/80 dark:backdrop-blur-xs text-slate-900 dark:text-white hover:bg-slate-50 dark:hover:bg-slate-950/90 border-0 whitespace-nowrap rounded-[calc(0.75rem-2px)] px-4 py-2"
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                New run task
-              </Button>
-            </div>
-          </div>
-        </div>
-      </div>
+    <Page ramp="runTasks" className="space-y-8">
+      <PageHeader
+        icon={Zap}
+        title="Run Tasks"
+        subtitle="External services that validate runs at stage boundaries (security scans, cost checks, custom gates)"
+        backTo={{ to: orgName ? `/app/${orgName}/settings` : '/settings', label: 'Back to Settings' }}
+        action={newRunTaskAction}
+        listState={listState}
+      />
 
       {isLoading ? (
         <div className="flex items-center justify-center py-12">
@@ -179,13 +172,12 @@ export default function RunTasks() {
           <Button variant="outline" onClick={() => { void refetch(); }}>Retry</Button>
         </div>
       ) : tasks.length === 0 ? (
-        <div className={cn('rounded-2xl border border-dashed border-gray-300 dark:border-white/10', 'p-8 text-center text-muted-foreground')}>
-          <Zap className="h-12 w-12 mx-auto mb-4 opacity-50" />
-          <p>No run tasks yet.</p>
-          <p className="text-sm mt-1">
-            Create one to hook an external service into your runs, then attach it to workspaces (or enable it globally).
-          </p>
-        </div>
+        <PageEmptyState
+          icon={Zap}
+          title="No run tasks yet"
+          description="Create one to hook an external service into your runs, then attach it to workspaces (or enable it globally)."
+          action={newRunTaskAction}
+        />
       ) : (
         <div className="space-y-3">
           {tasks.map(t => (
@@ -217,7 +209,7 @@ export default function RunTasks() {
                 <Button variant="ghost" size="icon" aria-label={`Edit ${t.name}`} onClick={() => { openEdit(t); }}>
                   <Pencil className="h-4 w-4" />
                 </Button>
-                <Button variant="ghost" size="icon" aria-label={`Delete ${t.name}`} className="text-red-500 hover:text-red-600" onClick={() => { setDeleting(t); }}>
+                <Button variant="ghost" size="icon" aria-label={`Delete ${t.name}`} className={dangerGhostIcon} onClick={() => { setDeleting(t); }}>
                   <Trash2 className="h-4 w-4" />
                 </Button>
               </div>
@@ -227,7 +219,7 @@ export default function RunTasks() {
       )}
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="sm:max-w-lg">
+        <PageDialogContent className="sm:max-w-lg">
           <DialogHeader>
             <DialogTitle>{editing ? 'Edit run task' : 'New run task'}</DialogTitle>
             <DialogDescription>
@@ -303,16 +295,21 @@ export default function RunTasks() {
           </div>
           <DialogFooter>
             <Button variant="ghost" onClick={() => { setDialogOpen(false); }}>Cancel</Button>
-            <Button disabled={!formValid || saveMutation.isPending} onClick={() => { saveMutation.mutate(); }}>
+            <GradientButton
+              ramp="app"
+              className="w-auto px-4 py-2"
+              disabled={!formValid || saveMutation.isPending}
+              onClick={() => { saveMutation.mutate(); }}
+            >
               {saveMutation.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
               {editing ? 'Save' : 'Create'}
-            </Button>
+            </GradientButton>
           </DialogFooter>
-        </DialogContent>
+        </PageDialogContent>
       </Dialog>
 
       <Dialog open={deleting !== null} onOpenChange={open => { if (!open) setDeleting(null); }}>
-        <DialogContent className="sm:max-w-md">
+        <PageDialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Delete run task</DialogTitle>
             <DialogDescription>
@@ -331,8 +328,8 @@ export default function RunTasks() {
               Delete
             </Button>
           </DialogFooter>
-        </DialogContent>
+        </PageDialogContent>
       </Dialog>
-    </div>
+    </Page>
   );
 }

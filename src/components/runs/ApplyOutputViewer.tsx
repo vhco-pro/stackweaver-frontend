@@ -210,6 +210,7 @@ function AppliedResourceCard({ resource }: { resource: AppliedResource }) {
               }}
               className="p-1 hover:bg-muted rounded-sm transition-colors"
               title={`Copy resource address: ${resource.address}`}
+              aria-label={`Copy address ${resource.address}`}
             >
               <Copy className="h-4 w-4 text-muted-foreground" />
             </button>
@@ -221,6 +222,8 @@ function AppliedResourceCard({ resource }: { resource: AppliedResource }) {
                   e.stopPropagation();
                   setExpanded(!expanded);
                 }}
+                aria-label={`${expanded ? 'Collapse' : 'Expand'} details for ${resource.address}`}
+                aria-expanded={expanded}
                 className="text-sm text-primary hover:underline flex items-center gap-1"
               >
                 {expanded ? <ChevronDown className="h-4 w-4 rotate-180 transition-transform" /> : <ChevronDown className="h-4 w-4 transition-transform" />}

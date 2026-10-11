@@ -4,6 +4,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
+import { GradientButton } from '@/components/ui/gradient-button';
 import {
   Dialog,
   DialogContent,
@@ -413,10 +414,15 @@ export function CreateModuleDialog({
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Cancel
             </Button>
-            <Button type="submit" disabled={creating || (publishMethod === 'vcs' && (!vcsConnectionId || !selectedRepository))}>
+            <GradientButton
+              ramp="app"
+              className="w-auto px-4 py-2"
+              type="submit"
+              disabled={creating || (publishMethod === 'vcs' && (!vcsConnectionId || !selectedRepository))}
+            >
               {creating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Create Module
-            </Button>
+            </GradientButton>
           </DialogFooter>
         </form>
       </DialogContent>

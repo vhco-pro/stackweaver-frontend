@@ -209,7 +209,7 @@ export function FilterBar({
         {onCopyOutput && (
           <Button
             variant="ghost"
-            size="sm"
+            size="icon"
             onClick={onCopyOutput}
             aria-label="Copy the job's raw output"
             title="Copy the job's raw output"

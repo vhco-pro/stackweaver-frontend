@@ -14,6 +14,8 @@ import {
   Zap,
 } from 'lucide-react';
 import { useOrganization } from '@/contexts/OrganizationContext';
+import { Page } from '@/components/layout/Page';
+import { PageHeader } from '@/components/layout/PageHeader';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { cn } from '@/lib/utils';
@@ -63,21 +65,19 @@ export default function Usage() {
   const activitySpark = data?.daily.map(point => point.activity) ?? [];
 
   return (
-    <div className="space-y-6">
-      <header className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <h1 className="mb-2 bg-gradient-to-r from-purple-600 dark:from-purple-400 via-indigo-600 dark:via-indigo-400 to-blue-600 dark:to-blue-400 bg-clip-text text-3xl font-bold text-transparent sm:text-4xl">
-            Usage &amp; Analytics
-          </h1>
-          <p className="text-muted-foreground">
+    <Page>
+      <PageHeader
+        icon={BarChart3}
+        title="Usage & Analytics"
+        subtitle={
+          <>
             Delivery health for <span className="font-medium text-foreground">{orgName}</span>
             {data ? ` · ${window.comparisonLabel.replace('vs ', 'compared with ')}` : ''}
-          </p>
-        </div>
-
-        <div className="flex flex-wrap items-center gap-3">
-          {/* Bounded presets only - see the note on TimeRange for why "all time" is gone.
-              Organization is chosen from the app-wide selector in the top bar, not here. */}
+          </>
+        }
+        actions={
+          // Bounded presets only - see the note on TimeRange for why "all time" is gone.
+          // Organization is chosen from the app-wide selector in the top bar, not here.
           <div
             className="inline-flex rounded-xl border border-white/20 bg-white/5 p-1 dark:border-white/10"
             role="group"
@@ -104,8 +104,8 @@ export default function Usage() {
               </button>
             ))}
           </div>
-        </div>
-      </header>
+        }
+      />
 
       {isError ? (
         <AnalyticsCard>
@@ -360,7 +360,7 @@ export default function Usage() {
           if (!open) setDaySelection(null);
         }}
       />
-    </div>
+    </Page>
   );
 }
 

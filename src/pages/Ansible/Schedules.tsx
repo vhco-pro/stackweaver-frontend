@@ -21,6 +21,11 @@ import {
 import { fetchAllPages } from '@/lib/pagination';
 import { Pager } from '@/components/ui/pager';
 import { Button } from '@/components/ui/button';
+import { GradientButton } from '@/components/ui/gradient-button';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
+import { Page } from '@/components/layout/Page';
+import { PageHeader } from '@/components/layout/PageHeader';
+import { PageEmptyState } from '@/components/layout/PageEmptyState';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
@@ -38,7 +43,6 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from '@/components/ui/dialog';
 import {
   DropdownMenu,
@@ -147,7 +151,7 @@ export default function Schedules() {
   const selectedOrg = orgName || currentOrg?.name || '';
   const { canManageSchedules } = usePermissions(selectedOrg);
 
-  const { data: queryData, isLoading: loading, refetch: refetchSchedules } = useQuery({
+  const { data: queryData, isLoading: loading, isError: loadFailed, refetch: refetchSchedules } = useQuery({
     queryKey: ['schedules', selectedOrg],
     queryFn: async () => {
       const [schedulesRes, templatesRes, workflowsRes] = await Promise.all([
@@ -188,6 +192,10 @@ export default function Schedules() {
   const [togglingId, setTogglingId] = useState<string | null>(null);
   const [runningId, setRunningId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  // The schedule the confirmation dialog is about. Nothing is deleted until it is confirmed.
+  // It stays set after the dialog closes, so the wording does not change while it fades out.
+  const [pendingDelete, setPendingDelete] = useState<AnsibleSchedule | null>(null);
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
 
   const handleCreate = async () => {
     if (!scheduleForm.name.trim()) {
@@ -277,6 +285,12 @@ export default function Schedules() {
     }
   };
 
+  const confirmDelete = async () => {
+    setConfirmingDelete(false);
+    if (!pendingDelete) return;
+    await handleDelete(pendingDelete.id);
+  };
+
   const getStatusBadge = (status: ScheduleStatus) => {
     if (status === 'enabled') {
       return <Badge variant="default" className="bg-green-600"><CheckCircle className="h-3 w-3 mr-1" />Enabled</Badge>;
@@ -336,181 +350,203 @@ export default function Schedules() {
     currentSchedPage * SCHED_PAGE_SIZE,
   );
 
+  const filtersActive = searchQuery !== '' || statusFilter !== 'all' || typeFilter !== 'all';
+  const clearFilters = () => {
+    setSearchQuery('');
+    setStatusFilter('all');
+    setTypeFilter('all');
+    setSchedPage(1);
+  };
+
+  // Defined once and handed to both the header and the empty-state card: the header does not
+  // render it while there is nothing to list, so the action never appears twice.
+  const createAction = canManageSchedules ? (
+    <GradientButton ramp="app" onClick={() => setCreateDialogOpen(true)} className="w-auto px-4 py-2">
+      <Plus className="h-4 w-4 mr-2" />
+      New Schedule
+    </GradientButton>
+  ) : undefined;
+  const listState = loading
+    ? 'loading'
+    : loadFailed
+      ? 'error'
+      : schedules.length === 0 && !filtersActive
+        ? 'empty'
+        : 'ready';
+
+  const header = (
+    <PageHeader
+      icon={Calendar}
+      title="Schedules"
+      subtitle="Manage scheduled job template runs and inventory syncs"
+      action={createAction}
+      listState={listState}
+    />
+  );
+
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-      </div>
+      <Page>
+        {header}
+        <div className="flex items-center justify-center min-h-[400px]">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        </div>
+      </Page>
     );
   }
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">Schedules</h1>
-          <p className="text-muted-foreground">
-            Manage scheduled job template runs and inventory syncs
-          </p>
-        </div>
-        <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
-          {canManageSchedules && (
-            <DialogTrigger asChild>
-              <Button>
-                <Plus className="h-4 w-4 mr-2" />
-                New Schedule
-              </Button>
-            </DialogTrigger>
-          )}
-          <DialogContent className="max-w-lg">
-            <DialogHeader>
-              <DialogTitle>Create Schedule</DialogTitle>
-              <DialogDescription>
-                Set up a recurring schedule to run jobs automatically.
-              </DialogDescription>
-            </DialogHeader>
-            <div className="space-y-4 py-4 max-h-[60vh] overflow-y-auto">
-              <div className="space-y-2">
-                <Label htmlFor="schedule-name">Name *</Label>
-                <Input
-                  id="schedule-name"
-                  placeholder="nightly-backup"
-                  value={scheduleForm.name}
-                  onChange={(e) => setScheduleForm({ ...scheduleForm, name: e.target.value })}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="schedule-description">Description</Label>
-                <Textarea
-                  id="schedule-description"
-                  placeholder="Run backup playbook every night"
-                  value={scheduleForm.description}
-                  onChange={(e) => setScheduleForm({ ...scheduleForm, description: e.target.value })}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="schedule-type">Schedule Type</Label>
-                <Select 
-                  value={scheduleForm.type} 
-                  onValueChange={(value: ScheduleType) => setScheduleForm({ ...scheduleForm, type: value })}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="job_template">Job Template</SelectItem>
-                    <SelectItem value="inventory_source">Inventory Source Sync</SelectItem>
-                    <SelectItem value="playbook_sync">Playbook VCS Sync</SelectItem>
-                    <SelectItem value="workflow">Workflow</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              {scheduleForm.type === 'workflow' && (
-                <div className="space-y-2">
-                  <Label htmlFor="schedule-workflow">Workflow *</Label>
-                  <Select
-                    value={scheduleForm.workflow_id || ''}
-                    onValueChange={(value) => setScheduleForm({ ...scheduleForm, workflow_id: value })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select workflow" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {workflows.map((wf) => (
-                        <SelectItem key={wf.id} value={wf.id}>
-                          {wf.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              )}
+    <Page>
+      {header}
 
-              {scheduleForm.type === 'job_template' && (
-                <div className="space-y-2">
-                  <Label htmlFor="schedule-template">Job Template *</Label>
-                  <Select 
-                    value={scheduleForm.job_template_id || ''} 
-                    onValueChange={(value) => setScheduleForm({ ...scheduleForm, job_template_id: value })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select job template" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {jobTemplates.map(template => (
-                        <SelectItem key={template.id} value={template.id}>
-                          {template.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              )}
-              
+      <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Create Schedule</DialogTitle>
+            <DialogDescription>
+              Set up a recurring schedule to run jobs automatically.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4 max-h-[60vh] overflow-y-auto">
+            <div className="space-y-2">
+              <Label htmlFor="schedule-name">Name *</Label>
+              <Input
+                id="schedule-name"
+                placeholder="nightly-backup"
+                value={scheduleForm.name}
+                onChange={(e) => setScheduleForm({ ...scheduleForm, name: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="schedule-description">Description</Label>
+              <Textarea
+                id="schedule-description"
+                placeholder="Run backup playbook every night"
+                value={scheduleForm.description}
+                onChange={(e) => setScheduleForm({ ...scheduleForm, description: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="schedule-type">Schedule Type</Label>
+              <Select 
+                value={scheduleForm.type} 
+                onValueChange={(value: ScheduleType) => setScheduleForm({ ...scheduleForm, type: value })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="job_template">Job Template</SelectItem>
+                  <SelectItem value="inventory_source">Inventory Source Sync</SelectItem>
+                  <SelectItem value="playbook_sync">Playbook VCS Sync</SelectItem>
+                  <SelectItem value="workflow">Workflow</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            
+            {scheduleForm.type === 'workflow' && (
               <div className="space-y-2">
-                <Label htmlFor="schedule-cron">Cron Expression *</Label>
-                <div className="flex gap-2">
-                  <Input
-                    id="schedule-cron"
-                    placeholder="0 2 * * *"
-                    value={scheduleForm.cron_expression}
-                    onChange={(e) => setScheduleForm({ ...scheduleForm, cron_expression: e.target.value })}
-                    className="flex-1"
-                  />
-                  <Select 
-                    value="" 
-                    onValueChange={(value) => setScheduleForm({ ...scheduleForm, cron_expression: value })}
-                  >
-                    <SelectTrigger className="w-[180px]">
-                      <SelectValue placeholder="Presets" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {CRON_PRESETS.map(preset => (
-                        <SelectItem key={preset.value} value={preset.value}>
-                          {preset.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  Format: minute hour day month weekday (e.g., "0 2 * * *" = every day at 2 AM)
-                </p>
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="schedule-timezone">Timezone</Label>
-                <Select 
-                  value={scheduleForm.timezone || 'UTC'} 
-                  onValueChange={(value) => setScheduleForm({ ...scheduleForm, timezone: value })}
+                <Label htmlFor="schedule-workflow">Workflow *</Label>
+                <Select
+                  value={scheduleForm.workflow_id || ''}
+                  onValueChange={(value) => setScheduleForm({ ...scheduleForm, workflow_id: value })}
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder="Select timezone" />
+                    <SelectValue placeholder="Select workflow" />
                   </SelectTrigger>
                   <SelectContent>
-                    {TIMEZONES.map(tz => (
-                      <SelectItem key={tz} value={tz}>
-                        {tz}
+                    {workflows.map((wf) => (
+                      <SelectItem key={wf.id} value={wf.id}>
+                        {wf.name}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
+            )}
+
+            {scheduleForm.type === 'job_template' && (
+              <div className="space-y-2">
+                <Label htmlFor="schedule-template">Job Template *</Label>
+                <Select 
+                  value={scheduleForm.job_template_id || ''} 
+                  onValueChange={(value) => setScheduleForm({ ...scheduleForm, job_template_id: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select job template" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {jobTemplates.map(template => (
+                      <SelectItem key={template.id} value={template.id}>
+                        {template.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+            
+            <div className="space-y-2">
+              <Label htmlFor="schedule-cron">Cron Expression *</Label>
+              <div className="flex gap-2">
+                <Input
+                  id="schedule-cron"
+                  placeholder="0 2 * * *"
+                  value={scheduleForm.cron_expression}
+                  onChange={(e) => setScheduleForm({ ...scheduleForm, cron_expression: e.target.value })}
+                  className="flex-1"
+                />
+                <Select 
+                  value="" 
+                  onValueChange={(value) => setScheduleForm({ ...scheduleForm, cron_expression: value })}
+                >
+                  <SelectTrigger className="w-[180px]">
+                    <SelectValue placeholder="Presets" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {CRON_PRESETS.map(preset => (
+                      <SelectItem key={preset.value} value={preset.value}>
+                        {preset.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Format: minute hour day month weekday (e.g., "0 2 * * *" = every day at 2 AM)
+              </p>
             </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setCreateDialogOpen(false)}>
-                Cancel
-              </Button>
-              <Button onClick={() => { void handleCreate(); }} disabled={creating}>
-                {creating && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-                Create Schedule
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-      </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="schedule-timezone">Timezone</Label>
+              <Select 
+                value={scheduleForm.timezone || 'UTC'} 
+                onValueChange={(value) => setScheduleForm({ ...scheduleForm, timezone: value })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select timezone" />
+                </SelectTrigger>
+                <SelectContent>
+                  {TIMEZONES.map(tz => (
+                    <SelectItem key={tz} value={tz}>
+                      {tz}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setCreateDialogOpen(false)}>
+              Cancel
+            </Button>
+            <GradientButton ramp="app" className="w-auto px-4 py-2" onClick={() => { void handleCreate(); }} disabled={creating}>
+              {creating && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              Create Schedule
+            </GradientButton>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Stats Cards */}
       <div className="grid gap-4 md:grid-cols-4">
@@ -596,23 +632,16 @@ export default function Schedules() {
 
       {/* Schedules Table */}
       {filteredSchedules.length === 0 ? (
-        <Card>
-          <CardContent className="flex flex-col items-center justify-center py-12">
-            <Calendar className="h-12 w-12 text-muted-foreground mb-4" />
-            <h3 className="text-lg font-medium mb-2">No schedules found</h3>
-            <p className="text-muted-foreground text-sm mb-4 text-center max-w-md">
-              {schedules.length === 0
-                ? 'Create a schedule to automatically run job templates on a recurring basis.'
-                : 'No schedules match your current filters.'}
-            </p>
-            {schedules.length === 0 && canManageSchedules && (
-              <Button onClick={() => setCreateDialogOpen(true)}>
-                <Plus className="h-4 w-4 mr-2" />
-                New Schedule
-              </Button>
-            )}
-          </CardContent>
-        </Card>
+        <PageEmptyState
+          icon={Calendar}
+          title="No schedules found"
+          description={filtersActive
+            ? 'No schedules match your current filters.'
+            : 'Create a schedule to automatically run job templates on a recurring basis.'}
+          action={loadFailed ? undefined : createAction}
+          filtered={filtersActive}
+          onClearFilters={clearFilters}
+        />
       ) : (
         <>
         <Card>
@@ -714,7 +743,10 @@ export default function Schedules() {
                             <DropdownMenuSeparator />
                             <DropdownMenuItem
                               className="text-destructive"
-                              onClick={() => { void handleDelete(schedule.id); }}
+                              onClick={() => {
+                                setPendingDelete(schedule);
+                                setConfirmingDelete(true);
+                              }}
                               disabled={deletingId === schedule.id}
                             >
                               {deletingId === schedule.id ? (
@@ -737,6 +769,16 @@ export default function Schedules() {
         <Pager page={currentSchedPage} totalPages={schedTotalPages} onPageChange={setSchedPage} />
         </>
       )}
-    </div>
+
+      <ConfirmDialog
+        open={confirmingDelete}
+        onOpenChange={setConfirmingDelete}
+        title={`Delete schedule "${pendingDelete?.name ?? ''}"?`}
+        description={`"${pendingDelete?.name ?? ''}" will be removed and will no longer run. This action cannot be undone.`}
+        confirmLabel="Delete schedule"
+        variant="destructive"
+        onConfirm={confirmDelete}
+      />
+    </Page>
   );
 }

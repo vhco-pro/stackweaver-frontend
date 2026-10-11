@@ -2,9 +2,13 @@
 
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Link, useParams } from 'react-router-dom';
-import { FileText, ArrowLeft, Save, Trash2, Loader2, Building2, FolderKanban, Info, Terminal } from 'lucide-react';
+import { useParams } from 'react-router-dom';
+import { FileText, Save, Trash2, Loader2, Building2, FolderKanban, Info, Terminal } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { GradientButton } from '@/components/ui/gradient-button';
+import { Page, PageDialogContent } from '@/components/layout/Page';
+import { PageHeader } from '@/components/layout/PageHeader';
+import { dangerOutline } from '@/lib/surfaces';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
@@ -16,7 +20,6 @@ import { ansibleConfigApi, type AnsibleConfig } from '@/api/ansible';
 import { toast } from 'sonner';
 import {
   Dialog,
-  DialogContent,
   DialogDescription,
   DialogFooter,
   DialogHeader,
@@ -280,35 +283,29 @@ export default function AnsibleConfiguration() {
     setDeleteDialogOpen(true);
   };
 
+  const header = (
+    <PageHeader
+      icon={FileText}
+      title="Ansible Configuration"
+      subtitle="Manage ansible.cfg settings for your organization and projects"
+      backTo={{ to: `/app/${orgName}/settings`, label: 'Back to Settings' }}
+    />
+  );
+
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-      </div>
+      <Page ramp="app">
+        {header}
+        <div className="flex items-center justify-center min-h-[400px]">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        </div>
+      </Page>
     );
   }
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center gap-4">
-        <Link to={`/app/${orgName}/settings`}>
-          <Button variant="ghost" size="icon" aria-label="Back to settings">
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
-        </Link>
-        <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-orange-500/10 border border-orange-500/20">
-            <FileText className="h-5 w-5 text-orange-600 dark:text-orange-400" />
-          </div>
-          <div>
-            <h1 className="text-2xl font-semibold tracking-tight">Ansible Configuration</h1>
-            <p className="text-sm text-muted-foreground">
-              Manage ansible.cfg settings for your organization and projects
-            </p>
-          </div>
-        </div>
-      </div>
+    <Page ramp="app">
+      {header}
 
       {/* Priority Info */}
       <div className="flex items-start gap-3 p-4 rounded-lg bg-blue-500/10 border border-blue-500/20 text-sm">
@@ -385,13 +382,15 @@ export default function AnsibleConfiguration() {
                     <Button
                       variant="outline"
                       onClick={() => openDeleteDialog('org')}
-                      className="text-destructive hover:text-destructive"
+                      className={dangerOutline}
                     >
                       <Trash2 className="h-4 w-4 mr-2" />
                       Delete
                     </Button>
                   )}
-                  <Button
+                  <GradientButton
+                    ramp="app" emphasis="secondary"
+                    className="w-auto"
                     onClick={() => { void handleSaveOrg(); }}
                     disabled={saving || !orgDirty || !orgContent.trim()}
                   >
@@ -401,7 +400,7 @@ export default function AnsibleConfiguration() {
                       <Save className="h-4 w-4 mr-2" />
                     )}
                     Save
-                  </Button>
+                  </GradientButton>
                 </div>
               </div>
             </CardContent>
@@ -432,7 +431,9 @@ export default function AnsibleConfiguration() {
                     onChange={(e) => { setRetentionDays(e.target.value); setRetentionDirty(true); }}
                   />
                 </div>
-                <Button
+                <GradientButton
+                  ramp="app" emphasis="secondary"
+                  className="w-auto"
                   onClick={() => { void handleSaveRetention(); }}
                   disabled={savingRetention || !retentionDirty || retentionDays === ''}
                 >
@@ -442,7 +443,7 @@ export default function AnsibleConfiguration() {
                     <Save className="h-4 w-4 mr-2" />
                   )}
                   Save
-                </Button>
+                </GradientButton>
               </div>
               <p className="text-xs text-muted-foreground">0 = keep jobs forever.</p>
             </CardContent>
@@ -471,7 +472,9 @@ export default function AnsibleConfiguration() {
                     onChange={(e) => { setAdhocModules(e.target.value); setAdhocDirty(true); }}
                   />
                 </div>
-                <Button
+                <GradientButton
+                  ramp="app" emphasis="secondary"
+                  className="w-auto"
                   onClick={() => { void handleSaveAdhocModules(); }}
                   disabled={savingAdhoc || !adhocDirty}
                 >
@@ -481,7 +484,7 @@ export default function AnsibleConfiguration() {
                     <Save className="h-4 w-4 mr-2" />
                   )}
                   Save
-                </Button>
+                </GradientButton>
               </div>
             </CardContent>
           </Card>
@@ -562,13 +565,15 @@ export default function AnsibleConfiguration() {
                           <Button
                             variant="outline"
                             onClick={() => openDeleteDialog('project')}
-                            className="text-destructive hover:text-destructive"
+                            className={dangerOutline}
                           >
                             <Trash2 className="h-4 w-4 mr-2" />
                             Delete
                           </Button>
                         )}
-                        <Button
+                        <GradientButton
+                          ramp="app" emphasis="secondary"
+                          className="w-auto"
                           onClick={() => { void handleSaveProject(); }}
                           disabled={saving || !projectDirty || !projectContent.trim()}
                         >
@@ -578,7 +583,7 @@ export default function AnsibleConfiguration() {
                             <Save className="h-4 w-4 mr-2" />
                           )}
                           Save
-                        </Button>
+                        </GradientButton>
                       </div>
                     </div>
                   </>
@@ -596,7 +601,7 @@ export default function AnsibleConfiguration() {
 
       {/* Delete Confirmation Dialog */}
       <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <DialogContent>
+        <PageDialogContent>
           <DialogHeader>
             <DialogTitle>Delete Ansible Configuration</DialogTitle>
             <DialogDescription>
@@ -621,8 +626,8 @@ export default function AnsibleConfiguration() {
               Delete
             </Button>
           </DialogFooter>
-        </DialogContent>
+        </PageDialogContent>
       </Dialog>
-    </div>
+    </Page>
   );
 }

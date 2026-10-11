@@ -8,7 +8,10 @@ import type { JsonApiResource } from '@/utils/jsonapi';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
-import { Loader2, Package, Search, ExternalLink, Info } from 'lucide-react';
+import { Page } from '@/components/layout/Page';
+import { PageHeader } from '@/components/layout/PageHeader';
+import { PageEmptyState } from '@/components/layout/PageEmptyState';
+import { Blocks, Loader2, Package, Search, ExternalLink, Info } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { YamlViewer } from '@/components/code/YamlViewer';
 
@@ -49,25 +52,29 @@ export default function Collections() {
     col.description?.toLowerCase().includes(search.toLowerCase())
   );
 
+  const header = (
+    <PageHeader
+      icon={Blocks}
+      title="Galaxy Collections"
+      subtitle="Ansible Galaxy collections available in the runner"
+      listState={loading ? 'loading' : collections.length === 0 && search === '' ? 'empty' : 'ready'}
+    />
+  );
+
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-      </div>
+      <Page>
+        {header}
+        <div className="flex items-center justify-center min-h-[400px]">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        </div>
+      </Page>
     );
   }
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">Galaxy Collections</h1>
-          <p className="text-muted-foreground">
-            Ansible Galaxy collections available in the runner
-          </p>
-        </div>
-      </div>
+    <Page>
+      {header}
 
       {/* Info Banner */}
       <Card className="bg-blue-500/5 border-blue-500/20">
@@ -151,9 +158,12 @@ export default function Collections() {
       </div>
 
       {filteredCollections.length === 0 && (
-        <div className="text-center py-12 text-muted-foreground">
-          No collections found matching "{search}"
-        </div>
+        <PageEmptyState
+          icon={Blocks}
+          title={search ? `No collections found matching "${search}"` : 'No collections found'}
+          filtered={search !== ''}
+          onClearFilters={() => { setSearch(''); }}
+        />
       )}
 
       {/* Requirements.yml Example */}
@@ -186,6 +196,6 @@ roles:
           </p>
         </CardContent>
       </Card>
-    </div>
+    </Page>
   );
 }

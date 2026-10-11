@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { cn } from '@/lib/utils';
 import { ansiblePlaybooksApi, type BulkImportResult } from '@/api/ansible';
 import { Button } from '@/components/ui/button';
+import { GradientButton } from '@/components/ui/gradient-button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
@@ -255,14 +256,14 @@ export function PlaybookImportWizard({ open, onOpenChange, organizationName, onI
 
         <DialogFooter>
           {result ? (
-            <Button onClick={() => { handleOpenChange(false); }}>Done</Button>
+            <GradientButton ramp="app" className="w-auto px-4 py-2" onClick={() => { handleOpenChange(false); }}>Done</GradientButton>
           ) : (
             <>
               <Button variant="outline" onClick={() => { handleOpenChange(false); }}>Cancel</Button>
-              <Button onClick={() => { void handleImport(); }} disabled={importing || selected.size === 0}>
+              <GradientButton ramp="app" className="w-auto px-4 py-2" onClick={() => { void handleImport(); }} disabled={importing || selected.size === 0}>
                 {importing && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
                 Import {selected.size > 0 ? `${selected.size} playbook${selected.size === 1 ? '' : 's'}` : 'playbooks'}
-              </Button>
+              </GradientButton>
             </>
           )}
         </DialogFooter>

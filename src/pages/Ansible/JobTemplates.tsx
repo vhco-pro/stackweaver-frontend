@@ -31,6 +31,9 @@ import { fetchAllPages } from '@/lib/pagination';
 import { Pager } from '@/components/ui/pager';
 import { Button } from '@/components/ui/button';
 import { GradientButton } from '@/components/ui/gradient-button';
+import { Page } from '@/components/layout/Page';
+import { PageHeader } from '@/components/layout/PageHeader';
+import { PageEmptyState } from '@/components/layout/PageEmptyState';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
@@ -169,7 +172,7 @@ export default function JobTemplates() {
   const [playbookSelection, setPlaybookSelection] = useState<PlaybookSelection>(null);
 
   // Fetch templates and jobs
-  const { isLoading: loading } = useQuery({
+  const { isLoading: loading, isError: loadFailed } = useQuery({
     queryKey: ['jobTemplates', selectedOrg],
     queryFn: async () => {
       const [templatesRes, jobsRes] = await Promise.all([
@@ -335,38 +338,49 @@ export default function JobTemplates() {
     }
   };
 
+  // Defined once and handed to both the header and the empty-state card: the header does not
+  // render it while there is nothing to list, so the action never appears twice.
+  const createAction = canManageJobTemplates ? (
+    <GradientButton
+      ramp="app"
+      onClick={() => setCreateDialogOpen(true)}
+      className="w-auto px-4 py-2"
+    >
+      <Plus className="h-4 w-4 mr-2" />
+      New Job Template
+    </GradientButton>
+  ) : undefined;
+  const listState = loading
+    ? 'loading'
+    : loadFailed
+      ? 'error'
+      : templates.length === 0 && searchQuery === ''
+        ? 'empty'
+        : 'ready';
+  const header = (
+    <PageHeader
+      icon={Layers}
+      title="Job Templates"
+      subtitle={`Manage reusable Ansible job configurations for ${selectedOrg}`}
+      action={createAction}
+      listState={listState}
+    />
+  );
+
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-      </div>
+      <Page>
+        {header}
+        <div className="flex items-center justify-center min-h-[400px]">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        </div>
+      </Page>
     );
   }
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold bg-gradient-to-r from-violet-500 via-indigo-500 to-blue-500 bg-clip-text text-transparent mb-2 flex items-center gap-3">
-            <Layers className="h-7 w-7 text-violet-600 dark:text-violet-400 shrink-0" />
-            Job Templates
-          </h1>
-          <p className="text-muted-foreground">
-            Manage reusable Ansible job configurations for {selectedOrg}
-          </p>
-        </div>
-        {canManageJobTemplates && (
-          <GradientButton
-            ramp="app"
-            onClick={() => setCreateDialogOpen(true)}
-            className="w-auto px-4 py-2"
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            New Job Template
-          </GradientButton>
-        )}
-      </div>
+    <Page>
+      {header}
 
       {/* Search */}
       <div className="flex items-center gap-4">
@@ -384,23 +398,16 @@ export default function JobTemplates() {
 
       {/* Templates List */}
       {filteredTemplates.length === 0 ? (
-        <Card>
-          <CardContent className="flex flex-col items-center justify-center py-12">
-            <Layers className="h-12 w-12 text-muted-foreground mb-4" />
-            <h3 className="text-lg font-semibold mb-2">No job templates found</h3>
-            <p className="text-muted-foreground text-center max-w-md mb-4">
-              {searchQuery
-                ? 'No job templates match your search criteria.'
-                : 'No job templates have been created yet. Click the button above to create your first job template.'}
-            </p>
-            {!searchQuery && canManageJobTemplates && (
-              <GradientButton ramp="app" onClick={() => setCreateDialogOpen(true)} className="w-auto px-4 py-2">
-                <Plus className="h-4 w-4 mr-2" />
-                Create Job Template
-              </GradientButton>
-            )}
-          </CardContent>
-        </Card>
+        <PageEmptyState
+          icon={Layers}
+          title="No job templates found"
+          description={searchQuery
+            ? 'No job templates match your search criteria.'
+            : 'No job templates have been created yet. Create your first job template to get started.'}
+          action={loadFailed ? undefined : createAction}
+          filtered={searchQuery !== ''}
+          onClearFilters={() => { setSearchQuery(''); setTplPage(1); }}
+        />
       ) : (
         <>
         <div className="grid gap-4">
@@ -434,6 +441,7 @@ export default function JobTemplates() {
                     {canExecuteJobs && (
                       <GradientButton
                         ramp="app"
+                        emphasis="secondary"
                         size="sm"
                         onClick={() => { void handleLaunch(template); }}
                         disabled={launching === template.id || !template.enabled}
@@ -760,6 +768,6 @@ export default function JobTemplates() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+    </Page>
   );
 }

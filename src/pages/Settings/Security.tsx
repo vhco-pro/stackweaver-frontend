@@ -2,22 +2,29 @@
 
 import { useState } from 'react';
 import { useMountEffect } from '@/hooks/useMountEffect';
-import { Link } from 'react-router-dom';
-import { ArrowLeft, Lock, Smartphone, Monitor, Trash2, Eye, EyeOff, Loader2, CheckCircle2, X, Key, Mail, MessageSquare, Shield } from 'lucide-react';
+import { Lock, Smartphone, Monitor, Trash2, Eye, EyeOff, Loader2, CheckCircle2, X, Key, Mail, MessageSquare, Shield } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { GradientButton } from '@/components/ui/gradient-button';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
+import { Page } from '@/components/layout/Page';
+import { PageHeader } from '@/components/layout/PageHeader';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
+import { dangerOutline } from '@/lib/surfaces';
 import { twoFactorApi, settingsApi, type MFADevice, type Session } from '@/api/client';
 import QRCode from 'qrcode';
 import { useAuth } from '@/contexts/AuthContext';
 
 // Module-scope so it isn't re-created on every SecuritySettings render (it closes
 // over nothing but its props and the module-level `cn`).
-function ToggleSwitch({ enabled, onChange }: { enabled: boolean; onChange: () => void }) {
+function ToggleSwitch({ enabled, onChange, label }: { enabled: boolean; onChange: () => void; label: string }) {
   return (
     <button
       type="button"
+      role="switch"
+      aria-checked={enabled}
+      aria-label={label}
       onClick={onChange}
       className={cn(
         'relative inline-flex h-6 w-11 items-center rounded-full transition-colors',
@@ -67,6 +74,10 @@ export default function SecuritySettings() {
   const [loadingSessions, setLoadingSessions] = useState(true);
   const [revoking, setRevoking] = useState<string | null>(null);
   const [sessionsError, setSessionsError] = useState<string | null>(null);
+
+  // What is waiting on a confirmation dialog. Nothing is disabled or revoked until confirmed.
+  const [confirmingDisable2FA, setConfirmingDisable2FA] = useState(false);
+  const [pendingRevoke, setPendingRevoke] = useState<string | null>(null);
 
   const handlePasswordChange = (field: string, value: string) => {
     setPasswordData(prev => ({ ...prev, [field]: value }));
@@ -219,10 +230,6 @@ export default function SecuritySettings() {
   };
 
   const remove2FA = async () => {
-    if (!confirm('Are you sure you want to disable 2FA? This will reduce your account security.')) {
-      return;
-    }
-
     try {
       setError(null);
       await twoFactorApi.remove();
@@ -246,10 +253,6 @@ export default function SecuritySettings() {
   };
 
   const revokeSession = async (sessionId: string) => {
-    if (!confirm('Are you sure you want to revoke this session? You will be logged out from that device.')) {
-      return;
-    }
-
     try {
       setRevoking(sessionId);
       setSessionsError(null);
@@ -265,29 +268,26 @@ export default function SecuritySettings() {
     }
   };
 
+  const confirmDisable2FA = async () => {
+    setConfirmingDisable2FA(false);
+    await remove2FA();
+  };
+
+  const confirmRevoke = async () => {
+    const sessionId = pendingRevoke;
+    setPendingRevoke(null);
+    if (!sessionId) return;
+    await revokeSession(sessionId);
+  };
+
   return (
-    <div className="space-y-8">
-      {/* Header */}
-      <div className="flex items-start gap-4">
-        <Link to="/settings">
-          <Button 
-            variant="ghost" 
-            size="icon"
-            className="h-10 w-10 rounded-xl text-muted-foreground hover:text-foreground hover:bg-white/10 dark:hover:bg-black/10 transition-colors"
-            aria-label="Back to Settings"
-          >
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
-        </Link>
-        <div className="flex-1">
-          <h1 className="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-blue-600 dark:from-blue-400 via-cyan-600 dark:via-cyan-400 to-blue-600 dark:to-blue-400 bg-clip-text text-transparent mb-2">
-            Security Settings
-          </h1>
-          <p className="text-muted-foreground">
-            Manage authentication, API keys, and security settings
-          </p>
-        </div>
-      </div>
+    <Page ramp="account" className="space-y-8">
+      <PageHeader
+        icon={Shield}
+        title="Security Settings"
+        subtitle="Manage authentication, API keys, and security settings"
+        backTo={{ to: '/settings', label: 'Back to Settings' }}
+      />
 
       <div className="space-y-6">
         {/* Change Password */}
@@ -330,6 +330,7 @@ export default function SecuritySettings() {
                 <button
                   type="button"
                   onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                  aria-label={showCurrentPassword ? 'Hide current password' : 'Show current password'}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                 >
                   {showCurrentPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
@@ -350,6 +351,7 @@ export default function SecuritySettings() {
                 <button
                   type="button"
                   onClick={() => setShowNewPassword(!showNewPassword)}
+                  aria-label={showNewPassword ? 'Hide new password' : 'Show new password'}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                 >
                   {showNewPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
@@ -370,6 +372,7 @@ export default function SecuritySettings() {
                 <button
                   type="button"
                   onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  aria-label={showConfirmPassword ? 'Hide confirmed password' : 'Show confirmed password'}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                 >
                   {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
@@ -378,10 +381,11 @@ export default function SecuritySettings() {
             </div>
             
             <div className="flex justify-end">
-              <Button 
-                type="submit" 
+              <GradientButton
+                ramp="app"
+                type="submit"
                 disabled={changingPassword}
-                className="bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600"
+                className="w-auto px-4 py-2"
               >
                 {changingPassword ? (
                   <>
@@ -391,7 +395,7 @@ export default function SecuritySettings() {
                 ) : (
                   'Update Password'
                 )}
-              </Button>
+              </GradientButton>
             </div>
           </form>
         </div>
@@ -418,11 +422,12 @@ export default function SecuritySettings() {
                 enabled={twoFAEnabled} 
                 onChange={() => {
                   if (twoFAEnabled) {
-                    void remove2FA();
+                    setConfirmingDisable2FA(true);
                   } else {
                     void start2FASetup();
                   }
                 }} 
+                label="Two-Factor Authentication"
               />
             )}
             {loading2FA && (
@@ -500,10 +505,12 @@ export default function SecuritySettings() {
                 >
                   Cancel
                 </Button>
-                <Button
+                <GradientButton
+                  ramp="app"
+                  emphasis="secondary"
                   onClick={() => { void verify2FA(); }}
                   disabled={verifying || verificationCode.length !== 6}
-                  className="flex-1 bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600"
+                  className="w-auto flex-1 px-4 py-2"
                 >
                   {verifying ? (
                     <>
@@ -513,7 +520,7 @@ export default function SecuritySettings() {
                   ) : (
                     'Verify & Enable'
                   )}
-                </Button>
+                </GradientButton>
               </div>
             </div>
           )}
@@ -524,8 +531,8 @@ export default function SecuritySettings() {
               {twoFAEnabled ? (
                 <Button
                   variant="outline"
-                  onClick={() => { void remove2FA(); }}
-                  className="text-red-500 hover:text-red-600 hover:bg-red-500/10"
+                  onClick={() => { setConfirmingDisable2FA(true); }}
+                  className={dangerOutline}
                 >
                   Disable 2FA
                 </Button>
@@ -702,11 +709,11 @@ export default function SecuritySettings() {
                     </div>
                     {!isCurrent && (
                       <Button
-                        variant="ghost"
+                        variant="outline"
                         size="sm"
-                        onClick={() => { void revokeSession(session.id); }}
+                        onClick={() => { setPendingRevoke(session.id); }}
                         disabled={revoking === session.id}
-                        className="text-red-500 hover:text-red-600 hover:bg-red-500/10"
+                        className={dangerOutline}
                       >
                         {revoking === session.id ? (
                           <>
@@ -728,7 +735,27 @@ export default function SecuritySettings() {
           )}
         </div>
       </div>
-    </div>
+
+      <ConfirmDialog
+        open={confirmingDisable2FA}
+        onOpenChange={setConfirmingDisable2FA}
+        title="Disable 2FA?"
+        description="Are you sure you want to disable 2FA? This will reduce your account security."
+        confirmLabel="Disable 2FA"
+        variant="destructive"
+        onConfirm={confirmDisable2FA}
+      />
+
+      <ConfirmDialog
+        open={pendingRevoke !== null}
+        onOpenChange={(open) => { if (!open) setPendingRevoke(null); }}
+        title="Revoke session?"
+        description="Are you sure you want to revoke this session? You will be logged out from that device."
+        confirmLabel="Revoke"
+        variant="destructive"
+        onConfirm={confirmRevoke}
+      />
+    </Page>
   );
 }
 

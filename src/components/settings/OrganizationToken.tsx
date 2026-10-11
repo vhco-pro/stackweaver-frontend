@@ -2,7 +2,10 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { organizationsApi, type OrgToken } from '@/api/client';
 import { Button } from '@/components/ui/button';
+import { GradientButton } from '@/components/ui/gradient-button';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { cn } from '@/lib/utils';
+import { dangerOutline } from '@/lib/surfaces';
 import { KeyRound, Copy, Trash2, Calendar, Loader2, CheckCircle2, RefreshCw, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -19,6 +22,8 @@ import { toast } from 'sonner';
 export function OrganizationToken({ orgName, tokenType, label = 'organization' }: { orgName: string; tokenType?: string; label?: string }) {
   const queryClient = useQueryClient();
   const [revealed, setRevealed] = useState<OrgToken | null>(null);
+  // The action waiting on its confirmation dialog.
+  const [confirming, setConfirming] = useState<'regenerate' | 'revoke' | null>(null);
   const queryKey = ['orgToken', orgName, tokenType ?? 'default'];
 
   const { data: token, isLoading } = useQuery({
@@ -59,14 +64,21 @@ export function OrganizationToken({ orgName, tokenType, label = 'organization' }
     }
   };
 
+  // Replacing an existing token asks first; the mutation then runs only from the dialog.
   const regenerate = () => {
-    if (token && !confirm(`Regenerate the ${label} token? The current token will stop working immediately.`)) return;
+    if (token) {
+      setConfirming('regenerate');
+      return;
+    }
     createMutation.mutate();
   };
 
   const revoke = () => {
-    if (!confirm(`Revoke the ${label} token? Any automation using it will stop working immediately.`)) return;
-    deleteMutation.mutate();
+    setConfirming('revoke');
+  };
+
+  const closeConfirm = (open: boolean) => {
+    if (!open) setConfirming(null);
   };
 
   const formatDate = (s?: string) => (s ? new Date(s).toLocaleDateString() : 'Never');
@@ -128,7 +140,7 @@ export function OrganizationToken({ orgName, tokenType, label = 'organization' }
                 {createMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
                 Regenerate
               </Button>
-              <Button variant="ghost" size="sm" onClick={revoke} disabled={deleteMutation.isPending} className="gap-2 text-red-500 hover:text-red-600 hover:bg-red-500/10">
+              <Button variant="outline" size="sm" onClick={revoke} disabled={deleteMutation.isPending} className={cn(dangerOutline, 'gap-2')}>
                 {deleteMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
                 Revoke
               </Button>
@@ -144,13 +156,38 @@ export function OrganizationToken({ orgName, tokenType, label = 'organization' }
             <AlertTriangle className="h-4 w-4 text-muted-foreground" />
             No {label} token yet.
           </div>
-          <Button onClick={() => { createMutation.mutate(); }} disabled={createMutation.isPending}
-            className="bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 gap-2">
+          <GradientButton ramp="app" onClick={() => { createMutation.mutate(); }} disabled={createMutation.isPending}
+            className="w-auto px-4 py-2 gap-2">
             {createMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <KeyRound className="h-4 w-4" />}
             Generate token
-          </Button>
+          </GradientButton>
         </div>
       )}
+
+      <ConfirmDialog
+        open={confirming === 'regenerate'}
+        onOpenChange={closeConfirm}
+        title={`Regenerate ${label} token?`}
+        description={`Regenerate the ${label} token? The current token will stop working immediately.`}
+        confirmLabel="Regenerate"
+        variant="destructive"
+        onConfirm={() => {
+          setConfirming(null);
+          createMutation.mutate();
+        }}
+      />
+      <ConfirmDialog
+        open={confirming === 'revoke'}
+        onOpenChange={closeConfirm}
+        title={`Revoke ${label} token?`}
+        description={`Revoke the ${label} token? Any automation using it will stop working immediately.`}
+        confirmLabel="Revoke"
+        variant="destructive"
+        onConfirm={() => {
+          setConfirming(null);
+          deleteMutation.mutate();
+        }}
+      />
     </div>
   );
 }

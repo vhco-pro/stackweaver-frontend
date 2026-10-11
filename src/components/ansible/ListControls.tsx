@@ -55,7 +55,7 @@ export function ListSortControl({
         </SelectContent>
       </Select>
       <Button
-        variant="outline"
+        variant="ghost"
         size="icon"
         aria-label={order === 'asc' ? 'Sort ascending' : 'Sort descending'}
         onClick={() => onOrderChange(order === 'asc' ? 'desc' : 'asc')}

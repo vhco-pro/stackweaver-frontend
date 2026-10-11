@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { organizationsApi, type AgentPool } from '@/api/client';
 import { Button } from '@/components/ui/button';
+import { GradientButton } from '@/components/ui/gradient-button';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Cpu, Loader2 } from 'lucide-react';
@@ -118,15 +119,16 @@ export function OrgDefaultExecution({ orgName, pools }: { orgName: string; pools
             {changed && (
               <Button variant="ghost" size="sm" onClick={() => { setDirty(null); }}>Cancel</Button>
             )}
-            <Button
+            <GradientButton
+              ramp="app" emphasis="secondary"
               size="sm"
-              className="gap-1.5"
+              className="w-auto gap-1.5"
               disabled={!changed || needsPool || save.isPending}
               onClick={() => { save.mutate(); }}
             >
               {save.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
               {needsPool ? 'Select a pool' : 'Save'}
-            </Button>
+            </GradientButton>
           </div>
         </>
       )}

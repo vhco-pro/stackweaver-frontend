@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Button } from '@/components/ui/button';
+import { GradientButton } from '@/components/ui/gradient-button';
 import { Loader2, ShieldPlus } from 'lucide-react';
 import { config } from '@/config';
 import LoginLayout from './LoginLayout';
@@ -139,9 +139,9 @@ export default function U2fSet() {
       <div className="space-y-4 text-center">
         <ShieldPlus className="h-16 w-16 text-muted-foreground mx-auto" />
         {error && <p className="text-sm text-destructive">{error}</p>}
-        <Button className="w-full" disabled={loading} onClick={() => { void handleRegister(); }}>
+        <GradientButton disabled={loading} onClick={() => { void handleRegister(); }}>
           {loading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Waiting for security key...</> : 'Register security key'}
-        </Button>
+        </GradientButton>
       </div>
     </LoginLayout>
   );

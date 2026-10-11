@@ -5,9 +5,13 @@ import { useQuery } from '@tanstack/react-query';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { projectsApi, type Project } from '@/api/client';
 import { Button } from '@/components/ui/button';
+import { GradientButton } from '@/components/ui/gradient-button';
+import { Page } from '@/components/layout/Page';
+import { PageHeader } from '@/components/layout/PageHeader';
+import { PageEmptyState } from '@/components/layout/PageEmptyState';
 import { FolderKanban, Loader2, Plus, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { glassSurface } from '@/lib/surfaces';
+import { dangerGhostIcon, glassSurface } from '@/lib/surfaces';
 import {
   Dialog,
   DialogContent,
@@ -15,7 +19,6 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -117,14 +120,36 @@ export default function Projects() {
     );
   }
 
+  // Defined once and handed to both the header and the empty-state card: the header does not
+  // render it while there is nothing to list, so the action never appears twice.
+  const newProjectAction = (
+    <GradientButton ramp="app" onClick={() => setCreateDialogOpen(true)} className="w-auto px-4 py-2">
+      <Plus className="mr-2 h-4 w-4" />
+      New Project
+    </GradientButton>
+  );
+  const listState = loading ? 'loading' : projects.length === 0 ? 'empty' : 'ready';
+  const header = (
+    <PageHeader
+      icon={FolderKanban}
+      title="Projects"
+      subtitle="Group workspaces together logically for better organization"
+      action={newProjectAction}
+      listState={listState}
+    />
+  );
+
   if (loading) {
     return (
-      <div className="flex min-h-[400px] items-center justify-center">
-        <div className="text-center space-y-4">
-          <Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" />
-          <p className="text-muted-foreground">Loading projects...</p>
+      <Page className="space-y-8">
+        {header}
+        <div className="flex min-h-[400px] items-center justify-center">
+          <div className="text-center space-y-4">
+            <Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" />
+            <p className="text-muted-foreground">Loading projects...</p>
+          </div>
         </div>
-      </div>
+      </Page>
     );
   }
 
@@ -133,85 +158,68 @@ export default function Projects() {
       <div className="flex min-h-[400px] items-center justify-center">
         <div className="text-center space-y-4">
           <p className="text-destructive">{error}</p>
-          <Button onClick={() => { void refetchProjects(); }}>Retry</Button>
+          <Button variant="outline" onClick={() => { void refetchProjects(); }}>Retry</Button>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-8">
+    <Page className="space-y-8">
+      {header}
 
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 bg-clip-text text-transparent mb-2">
-            Projects
-          </h1>
-          <p className="text-muted-foreground">
-            Group workspaces together logically for better organization
-          </p>
-        </div>
-        <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
-          <DialogTrigger asChild>
-            <Button 
-              className="bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white"
-            >
-              <Plus className="mr-2 h-4 w-4" />
-              New Project
-            </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <form onSubmit={(e) => { void handleCreateProject(e); }}>
-              <DialogHeader>
-                <DialogTitle>Create Project</DialogTitle>
-                <DialogDescription>
-                  Create a new project to group workspaces together logically.
-                </DialogDescription>
-              </DialogHeader>
-              <div className="grid gap-4 py-4">
-                <div className="grid gap-2">
-                  <Label htmlFor="name">Name *</Label>
-                  <Input
-                    id="name"
-                    value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    placeholder="My Project"
-                    required
-                    maxLength={200}
-                    disabled={creating}
-                  />
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="description">Description</Label>
-                  <Input
-                    id="description"
-                    value={formData.description}
-                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                    placeholder="Optional description"
-                    maxLength={500}
-                    disabled={creating}
-                  />
-                </div>
-              </div>
-              <DialogFooter>
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => setCreateDialogOpen(false)}
+      {/* Create Project Dialog */}
+      <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
+        <DialogContent>
+          <form onSubmit={(e) => { void handleCreateProject(e); }}>
+            <DialogHeader>
+              <DialogTitle>Create Project</DialogTitle>
+              <DialogDescription>
+                Create a new project to group workspaces together logically.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+              <div className="grid gap-2">
+                <Label htmlFor="name">Name *</Label>
+                <Input
+                  id="name"
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  placeholder="My Project"
+                  required
+                  maxLength={200}
                   disabled={creating}
-                >
-                  Cancel
-                </Button>
-                <Button type="submit" disabled={creating}>
-                  {creating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  Create
-                </Button>
-              </DialogFooter>
-            </form>
-          </DialogContent>
-        </Dialog>
-      </div>
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="description">Description</Label>
+                <Input
+                  id="description"
+                  value={formData.description}
+                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                  placeholder="Optional description"
+                  maxLength={500}
+                  disabled={creating}
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setCreateDialogOpen(false)}
+                disabled={creating}
+              >
+                Cancel
+              </Button>
+              <GradientButton ramp="app" type="submit" disabled={creating} className="w-auto px-4 py-2">
+                {creating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Create
+              </GradientButton>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
 
       {/* Delete Project Dialog */}
       <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
@@ -248,28 +256,12 @@ export default function Projects() {
 
       {/* Projects Grid */}
       {projects.length === 0 ? (
-        <div className="flex min-h-[400px] items-center justify-center">
-          <div className="text-center space-y-6 p-12 rounded-2xl bg-gradient-to-br from-white/90 via-white/75 to-white/60 dark:from-black/10 dark:via-black/5 dark:to-transparent backdrop-blur-md border border-gray-300/80 dark:border-white/10 shadow-xl shadow-blue-500/10 max-w-2xl">
-            <div className="flex justify-center">
-              <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-500/20 via-indigo-500/20 to-purple-500/20 border border-blue-500/30">
-                <FolderKanban className="h-10 w-10 text-blue-600 dark:text-blue-400" />
-              </div>
-            </div>
-            <div>
-              <h3 className="text-2xl font-semibold mb-2">No Projects Found</h3>
-              <p className="text-muted-foreground text-lg mb-6">
-                Get started by creating your first project to group workspaces together.
-              </p>
-              <Button 
-                onClick={() => setCreateDialogOpen(true)}
-                className="bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white"
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                Create Project
-              </Button>
-            </div>
-          </div>
-        </div>
+        <PageEmptyState
+          icon={FolderKanban}
+          title="No Projects Found"
+          description="Get started by creating your first project to group workspaces together."
+          action={newProjectAction}
+        />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 3xl:grid-cols-5 gap-6">
           {projects.map((project) => (
@@ -296,11 +288,11 @@ export default function Projects() {
                   </div>
                   <Button
                     variant="ghost"
-                    size="sm"
+                    size="icon"
+                    aria-label={`Delete project ${project.name}`}
                     className={cn(
-                      "h-8 w-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity",
-                      "text-muted-foreground hover:text-destructive hover:bg-destructive/10",
-                      "hover:border-destructive/20"
+                      dangerGhostIcon,
+                      "h-8 w-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
                     )}
                     onClick={(e) => handleDeleteClick(e, project)}
                   >
@@ -325,6 +317,6 @@ export default function Projects() {
           ))}
         </div>
       )}
-    </div>
+    </Page>
   );
 }

@@ -29,6 +29,9 @@ import type { JsonApiResource } from '@/utils/jsonapi';
 import { fetchAllPages } from '@/lib/pagination';
 import { Pager } from '@/components/ui/pager';
 import { Button } from '@/components/ui/button';
+import { GradientButton } from '@/components/ui/gradient-button';
+import { Page } from '@/components/layout/Page';
+import { PageHeader } from '@/components/layout/PageHeader';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -63,9 +66,7 @@ import {
   Trash2,
   Edit,
   Loader2,
-  Database,
   Cloud,
-  GitBranch,
   FolderTree,
   RefreshCw,
   Check,
@@ -88,6 +89,7 @@ import { RunCommandDialog } from '@/components/ansible/RunCommandDialog';
 import { getVcsProviderIcon, getVcsRepoUrl, getVcsFileUrl } from '@/lib/vcs';
 import { InventoryFileViewer } from '@/components/code/InventoryFileViewer';
 import { toast } from 'sonner';
+import { dangerOutline } from '@/lib/surfaces';
 import { detectDynamicInventoryPlugin, type DynamicInventoryPlugin } from '@/utils/dynamic-inventory';
 import {
   Select,
@@ -167,6 +169,8 @@ function SyncWarningCard({ title, log }: { title: string; log: string }) {
             </Button>
             <button
               type="button"
+              aria-label={open ? 'Collapse sync log' : 'Expand sync log'}
+              aria-expanded={open}
               className="h-6 w-6 flex items-center justify-center cursor-pointer"
               onClick={() => { setOpen(!open); }}
             >
@@ -1063,315 +1067,290 @@ export default function InventoryDetail() {
     (inventory.type === 'dynamic' && sources.some(s => s.status === 'successful' && !!s.last_sync_log));
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <Button
-            variant="ghost"
-            size="icon"
-            aria-label="Back to inventories"
-            onClick={() => { void navigate(`/app/${orgName}/ansible/inventories`); }}
-          >
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
-          <div className="flex items-center gap-3">
-            <div className={`flex h-12 w-12 items-center justify-center rounded-lg ${
-              inventory.type === 'static' ? 'bg-orange-500/10' : 
-              inventory.type === 'dynamic' ? 'bg-cyan-500/10' : 
-              dynamicPlugin ? dynamicPlugin.bgClass :
-              'bg-purple-500/10'
-            }`}>
-              {inventory.type === 'static' ? (
-                <Database className="h-6 w-6 text-orange-500" />
-              ) : inventory.type === 'dynamic' ? (
-                <Cloud className="h-6 w-6 text-cyan-500" />
-              ) : dynamicPlugin ? (
-                <img src={dynamicPlugin.iconPath} alt="" className="h-6 w-6" />
-              ) : (
-                <GitBranch className="h-6 w-6 text-purple-500" />
-              )}
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h1 className="text-2xl font-bold">{inventory.name}</h1>
-              </div>
-              {isEditingDescription ? (
-                <div className="flex items-center gap-2 mt-1">
-                  <Input
-                    value={inlineDescription}
-                    onChange={(e) => setInlineDescription(e.target.value)}
-                    placeholder="Add description"
-                    className="max-w-md"
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
-                        void handleSaveInlineDescription();
-                      } else if (e.key === 'Escape') {
-                        handleCancelInlineDescription();
-                      }
-                    }}
-                    autoFocus
-                  />
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => { void handleSaveInlineDescription(); }}
-                    disabled={savingDescription}
-                  >
-                    {savingDescription ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <Check className="h-4 w-4" />
-                    )}
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={handleCancelInlineDescription}
-                    disabled={savingDescription}
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
-                </div>
-              ) : (
-                <p
-                  className="text-muted-foreground cursor-pointer hover:text-foreground transition-colors"
-                  onClick={() => {
-                    setInlineDescription(inventory.description || '');
-                    setIsEditingDescription(true);
-                  }}
-                >
-                  {inventory.description || 'add description'}
-                </p>
-              )}
-            </div>
-          </div>
-        </div>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={() => { setRunCommandLimit(''); setRunCommandOpen(true); }}>
-            <Terminal className="h-4 w-4 mr-2" />
-            Run Command
-          </Button>
-          {/* Keyed on the limit so a per-host launch remounts with a fresh prefill. */}
-          <RunCommandDialog
-            key={runCommandLimit}
-            open={runCommandOpen}
-            onOpenChange={setRunCommandOpen}
-            inventoryId={inventoryId!}
-            orgName={orgName || ''}
-            projectId={inventory.project_id || undefined}
-            credentials={allCredentials}
-            initialLimit={runCommandLimit}
-          />
-          {inventory.type === 'vcs' && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => { void handleSync(); }}
-              disabled={syncing || !inventory.vcs_connection_id}
-            >
-              {syncing ? (
-                <Loader2 className="h-4 w-4 animate-spin mr-2" />
-              ) : (
-                <RefreshCw className="h-4 w-4 mr-2" />
-              )}
-              Sync from VCS
-            </Button>
-          )}
-          {inventory.type === 'constructed' && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => { void handleSync(); }}
-              disabled={syncing}
-            >
-              {syncing ? (
-                <Loader2 className="h-4 w-4 animate-spin mr-2" />
-              ) : (
-                <RefreshCw className="h-4 w-4 mr-2" />
-              )}
-              Rebuild
-            </Button>
-          )}
-          <Dialog open={editDialogOpen} onOpenChange={(open) => {
-              if (open && inventory) {
-                setEditForm({ name: inventory.name, description: inventory.description || '', source_vars: inventory.source_vars || '', constructed_limit: inventory.constructed_limit || '', input_inventory_ids: (inventory.input_inventories || []).map((i) => i.id) });
-              }
-              setEditDialogOpen(open);
-            }}>
-            <DialogTrigger asChild>
-              <Button variant="outline">
-                <Edit className="h-4 w-4 mr-2" />
-                Edit
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Edit Inventory</DialogTitle>
-                <DialogDescription>
-                  Update the inventory name and description.
-                </DialogDescription>
-              </DialogHeader>
-              <div className="space-y-4 py-4">
-                <div className="space-y-2">
-                  <Label htmlFor="edit-name">Name</Label>
-                  <Input
-                    id="edit-name"
-                    value={editForm.name}
-                    onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="edit-description">Description</Label>
-                  <Textarea
-                    id="edit-description"
-                    value={editForm.description}
-                    onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
-                  />
-                </div>
-                {inventory.type === 'constructed' && (
-                  <>
-                    <div className="space-y-2">
-                      <Label>Input inventories (in order)</Label>
-                      <div className="max-h-40 overflow-y-auto rounded-md border divide-y">
-                        {allInventories.filter((inv) => inv.type !== 'constructed' && inv.id !== inventory.id).map((inv) => {
-                          const idx = editForm.input_inventory_ids.indexOf(inv.id);
-                          return (
-                            <label key={inv.id} className="flex items-center gap-2 px-3 py-2 text-sm cursor-pointer hover:bg-muted/50">
-                              <input
-                                type="checkbox"
-                                className="rounded-sm border-gray-300"
-                                checked={idx >= 0}
-                                onChange={(e) => {
-                                  setEditForm({
-                                    ...editForm,
-                                    input_inventory_ids: e.target.checked
-                                      ? [...editForm.input_inventory_ids, inv.id]
-                                      : editForm.input_inventory_ids.filter((id) => id !== inv.id),
-                                  });
-                                }}
-                              />
-                              <span className="flex-1 truncate">{inv.name}</span>
-                              {idx >= 0 && <Badge variant="secondary">#{idx + 1}</Badge>}
-                            </label>
-                          );
-                        })}
-                      </div>
-                      <p className="text-xs text-muted-foreground">Changes apply on the next rebuild.</p>
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="edit-source-vars">Constructed rules (YAML)</Label>
-                      <Textarea
-                        id="edit-source-vars"
-                        className="font-mono text-xs min-h-32"
-                        value={editForm.source_vars}
-                        onChange={(e) => setEditForm({ ...editForm, source_vars: e.target.value })}
-                      />
-                      <p className="text-xs text-muted-foreground">
-                        compose / groups / keyed_groups for ansible.builtin.constructed. Takes effect on the next rebuild.
-                      </p>
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="edit-constructed-limit">Limit</Label>
-                      <Input
-                        id="edit-constructed-limit"
-                        value={editForm.constructed_limit}
-                        onChange={(e) => setEditForm({ ...editForm, constructed_limit: e.target.value })}
-                      />
-                    </div>
-                  </>
+    <Page>
+      <PageHeader
+        backTo={{ to: `/app/${orgName}/ansible/inventories`, label: 'Back to inventories' }}
+        icon={Server}
+        title={inventory.name}
+        subtitle={
+          isEditingDescription ? (
+            <div className="flex items-center gap-2 mt-1">
+              <Input
+                value={inlineDescription}
+                onChange={(e) => setInlineDescription(e.target.value)}
+                placeholder="Add description"
+                className="max-w-md"
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    void handleSaveInlineDescription();
+                  } else if (e.key === 'Escape') {
+                    handleCancelInlineDescription();
+                  }
+                }}
+                autoFocus
+              />
+              <Button
+                size="icon"
+                variant="ghost"
+                aria-label="Save description"
+                onClick={() => { void handleSaveInlineDescription(); }}
+                disabled={savingDescription}
+              >
+                {savingDescription ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Check className="h-4 w-4" />
                 )}
-              </div>
-              <DialogFooter>
-                <Button variant="outline" onClick={() => setEditDialogOpen(false)}>
-                  Cancel
-                </Button>
-                <Button onClick={() => { void handleUpdate(); }} disabled={saving}>
-                  {saving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-                  Save Changes
-                </Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
-          <Dialog open={deleteDialogOpen} onOpenChange={(open) => { setDeleteDialogOpen(open); if (!open) setForceDeleteDetail(null); }}>
-            <DialogTrigger asChild>
-              <Button variant="destructive">
-                <Trash2 className="h-4 w-4 mr-2" />
-                Delete
               </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>{forceDeleteDetail ? 'Inventory Is Still in Use' : 'Delete Inventory'}</DialogTitle>
-                <DialogDescription>
-                  {forceDeleteDetail ?? (
-                    <>
-                      Are you sure you want to delete this inventory? This will also delete all hosts and groups. This action cannot be undone.
-                      <br /><br />
-                      To confirm, please type <strong>{inventory.name}</strong> below:
-                    </>
-                  )}
-                </DialogDescription>
-              </DialogHeader>
-              {forceDeleteDetail ? (
-                <div className="rounded-md border border-red-500/20 bg-red-500/5 p-3 text-sm text-muted-foreground">
-                  Force delete removes the inventory <span className="font-medium text-foreground">and everything built on it</span>:
-                  its job templates (with their jobs, schedules, and notification attachments),
-                  jobs run against it, its sources and sync history, and any workflow steps that
-                  run those templates. Constructed inventories using it as an input lose that
-                  input. This cannot be undone.
-                </div>
-              ) : (
-                <div className="grid gap-4 py-4">
-                  <div className="grid gap-2">
-                    <Label htmlFor="confirm-name">Inventory Name</Label>
+              <Button
+                size="icon"
+                variant="ghost"
+                aria-label="Cancel editing description"
+                onClick={handleCancelInlineDescription}
+                disabled={savingDescription}
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+          ) : (
+            <p
+              className="text-muted-foreground cursor-pointer hover:text-foreground transition-colors"
+              onClick={() => {
+                setInlineDescription(inventory.description || '');
+                setIsEditingDescription(true);
+              }}
+            >
+              {inventory.description || 'add description'}
+            </p>
+          )
+        }
+        actions={
+          <>
+            <Button variant="outline" size="sm" onClick={() => { setRunCommandLimit(''); setRunCommandOpen(true); }}>
+              <Terminal className="h-4 w-4 mr-2" />
+              Run Command
+            </Button>
+            {/* Keyed on the limit so a per-host launch remounts with a fresh prefill. */}
+            <RunCommandDialog
+              key={runCommandLimit}
+              open={runCommandOpen}
+              onOpenChange={setRunCommandOpen}
+              inventoryId={inventoryId!}
+              orgName={orgName || ''}
+              projectId={inventory.project_id || undefined}
+              credentials={allCredentials}
+              initialLimit={runCommandLimit}
+            />
+            {inventory.type === 'vcs' && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => { void handleSync(); }}
+                disabled={syncing || !inventory.vcs_connection_id}
+              >
+                {syncing ? (
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                ) : (
+                  <RefreshCw className="h-4 w-4 mr-2" />
+                )}
+                Sync from VCS
+              </Button>
+            )}
+            {inventory.type === 'constructed' && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => { void handleSync(); }}
+                disabled={syncing}
+              >
+                {syncing ? (
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                ) : (
+                  <RefreshCw className="h-4 w-4 mr-2" />
+                )}
+                Rebuild
+              </Button>
+            )}
+            <Dialog open={editDialogOpen} onOpenChange={(open) => {
+                if (open && inventory) {
+                  setEditForm({ name: inventory.name, description: inventory.description || '', source_vars: inventory.source_vars || '', constructed_limit: inventory.constructed_limit || '', input_inventory_ids: (inventory.input_inventories || []).map((i) => i.id) });
+                }
+                setEditDialogOpen(open);
+              }}>
+              <DialogTrigger asChild>
+                <Button variant="outline">
+                  <Edit className="h-4 w-4 mr-2" />
+                  Edit
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Edit Inventory</DialogTitle>
+                  <DialogDescription>
+                    Update the inventory name and description.
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4 py-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-name">Name</Label>
                     <Input
-                      id="confirm-name"
-                      value={confirmName}
-                      onChange={(e) => setConfirmName(e.target.value)}
-                      placeholder={inventory.name}
-                      disabled={deleting}
-                      className="font-mono"
+                      id="edit-name"
+                      value={editForm.name}
+                      onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
                     />
                   </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-description">Description</Label>
+                    <Textarea
+                      id="edit-description"
+                      value={editForm.description}
+                      onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
+                    />
+                  </div>
+                  {inventory.type === 'constructed' && (
+                    <>
+                      <div className="space-y-2">
+                        <Label>Input inventories (in order)</Label>
+                        <div className="max-h-40 overflow-y-auto rounded-md border divide-y">
+                          {allInventories.filter((inv) => inv.type !== 'constructed' && inv.id !== inventory.id).map((inv) => {
+                            const idx = editForm.input_inventory_ids.indexOf(inv.id);
+                            return (
+                              <label key={inv.id} className="flex items-center gap-2 px-3 py-2 text-sm cursor-pointer hover:bg-muted/50">
+                                <input
+                                  type="checkbox"
+                                  className="rounded-sm border-gray-300"
+                                  checked={idx >= 0}
+                                  onChange={(e) => {
+                                    setEditForm({
+                                      ...editForm,
+                                      input_inventory_ids: e.target.checked
+                                        ? [...editForm.input_inventory_ids, inv.id]
+                                        : editForm.input_inventory_ids.filter((id) => id !== inv.id),
+                                    });
+                                  }}
+                                />
+                                <span className="flex-1 truncate">{inv.name}</span>
+                                {idx >= 0 && <Badge variant="secondary">#{idx + 1}</Badge>}
+                              </label>
+                            );
+                          })}
+                        </div>
+                        <p className="text-xs text-muted-foreground">Changes apply on the next rebuild.</p>
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="edit-source-vars">Constructed rules (YAML)</Label>
+                        <Textarea
+                          id="edit-source-vars"
+                          className="font-mono text-xs min-h-32"
+                          value={editForm.source_vars}
+                          onChange={(e) => setEditForm({ ...editForm, source_vars: e.target.value })}
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          compose / groups / keyed_groups for ansible.builtin.constructed. Takes effect on the next rebuild.
+                        </p>
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="edit-constructed-limit">Limit</Label>
+                        <Input
+                          id="edit-constructed-limit"
+                          value={editForm.constructed_limit}
+                          onChange={(e) => setEditForm({ ...editForm, constructed_limit: e.target.value })}
+                        />
+                      </div>
+                    </>
+                  )}
                 </div>
-              )}
-              <DialogFooter>
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    setDeleteDialogOpen(false);
-                    setConfirmName('');
-                    setForceDeleteDetail(null);
-                  }}
-                  disabled={deleting}
-                >
-                  Cancel
+                <DialogFooter>
+                  <Button variant="outline" onClick={() => setEditDialogOpen(false)}>
+                    Cancel
+                  </Button>
+                  <GradientButton ramp="app" className="w-auto px-4 py-2" onClick={() => { void handleUpdate(); }} disabled={saving}>
+                    {saving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                    Save Changes
+                  </GradientButton>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+            <Dialog open={deleteDialogOpen} onOpenChange={(open) => { setDeleteDialogOpen(open); if (!open) setForceDeleteDetail(null); }}>
+              <DialogTrigger asChild>
+                <Button variant="outline" className={dangerOutline}>
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Delete
                 </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>{forceDeleteDetail ? 'Inventory Is Still in Use' : 'Delete Inventory'}</DialogTitle>
+                  <DialogDescription>
+                    {forceDeleteDetail ?? (
+                      <>
+                        Are you sure you want to delete this inventory? This will also delete all hosts and groups. This action cannot be undone.
+                        <br /><br />
+                        To confirm, please type <strong>{inventory.name}</strong> below:
+                      </>
+                    )}
+                  </DialogDescription>
+                </DialogHeader>
                 {forceDeleteDetail ? (
+                  <div className="rounded-md border border-red-500/20 bg-red-500/5 p-3 text-sm text-muted-foreground">
+                    Force delete removes the inventory <span className="font-medium text-foreground">and everything built on it</span>:
+                    its job templates (with their jobs, schedules, and notification attachments),
+                    jobs run against it, its sources and sync history, and any workflow steps that
+                    run those templates. Constructed inventories using it as an input lose that
+                    input. This cannot be undone.
+                  </div>
+                ) : (
+                  <div className="grid gap-4 py-4">
+                    <div className="grid gap-2">
+                      <Label htmlFor="confirm-name">Inventory Name</Label>
+                      <Input
+                        id="confirm-name"
+                        value={confirmName}
+                        onChange={(e) => setConfirmName(e.target.value)}
+                        placeholder={inventory.name}
+                        disabled={deleting}
+                        className="font-mono"
+                      />
+                    </div>
+                  </div>
+                )}
+                <DialogFooter>
                   <Button
-                    variant="destructive"
-                    onClick={() => { void handleDelete(true); }}
+                    variant="outline"
+                    onClick={() => {
+                      setDeleteDialogOpen(false);
+                      setConfirmName('');
+                      setForceDeleteDetail(null);
+                    }}
                     disabled={deleting}
                   >
-                    {deleting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-                    Force Delete Everything
+                    Cancel
                   </Button>
-                ) : (
-                  <Button
-                    variant="destructive"
-                    onClick={() => { void handleDelete(); }}
-                    disabled={deleting || confirmName !== inventory.name}
-                  >
-                    {deleting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-                    Delete Inventory
-                  </Button>
-                )}
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
-        </div>
-      </div>
+                  {forceDeleteDetail ? (
+                    <Button
+                      variant="destructive"
+                      onClick={() => { void handleDelete(true); }}
+                      disabled={deleting}
+                    >
+                      {deleting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                      Force Delete Everything
+                    </Button>
+                  ) : (
+                    <Button
+                      variant="destructive"
+                      onClick={() => { void handleDelete(); }}
+                      disabled={deleting || confirmName !== inventory.name}
+                    >
+                      {deleting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                      Delete Inventory
+                    </Button>
+                  )}
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+          </>
+        }
+      />
 
       {/* Unified bar: view selector (tabs carry the counts) + Type / Last Sync info + the
           contextual Add action - folds the old stat-card grid and the separate tab row into one. */}
@@ -1455,6 +1434,7 @@ export default function InventoryDetail() {
                     <button
                       type="button"
                       title="Sync completed with warnings - view in the Syncs tab"
+                      aria-label="Sync completed with warnings - view in the Syncs tab"
                       className="cursor-pointer shrink-0"
                       onClick={() => { handleTabChange('syncs'); }}
                     >
@@ -1482,6 +1462,7 @@ export default function InventoryDetail() {
               <button
                 type="button"
                 title="Last sync completed with warnings - view in the Syncs tab"
+                aria-label="Last sync completed with warnings - view in the Syncs tab"
                 className="cursor-pointer shrink-0"
                 onClick={() => { handleTabChange('syncs'); }}
               >
@@ -1492,22 +1473,22 @@ export default function InventoryDetail() {
             {/* Contextual action - mirrors the active tab (replaces the per-tab Add buttons) */}
             <div className="ml-auto flex items-center gap-2">
               {activeTab === 'hosts' && inventory.type === 'static' && (
-                <Button size="sm" onClick={() => setAddHostDialogOpen(true)}>
+                <GradientButton ramp="app" emphasis="secondary" className="w-auto" size="sm" onClick={() => setAddHostDialogOpen(true)}>
                   <Plus className="h-4 w-4 mr-2" />
                   Add Host
-                </Button>
+                </GradientButton>
               )}
               {activeTab === 'groups' && inventory.type !== 'vcs' && (
-                <Button size="sm" onClick={() => setAddGroupDialogOpen(true)}>
+                <GradientButton ramp="app" emphasis="secondary" className="w-auto" size="sm" onClick={() => setAddGroupDialogOpen(true)}>
                   <Plus className="h-4 w-4 mr-2" />
                   Add Group
-                </Button>
+                </GradientButton>
               )}
               {activeTab === 'sources' && (
-                <Button size="sm" onClick={() => setAddSourceDialogOpen(true)}>
+                <GradientButton ramp="app" emphasis="secondary" className="w-auto" size="sm" onClick={() => setAddSourceDialogOpen(true)}>
                   <Plus className="h-4 w-4 mr-2" />
                   Add Source
-                </Button>
+                </GradientButton>
               )}
             </div>
           </CardContent>
@@ -1713,6 +1694,8 @@ export default function InventoryDetail() {
                     </Button>
                     <button
                       type="button"
+                      aria-label={errorBannerOpen ? 'Collapse sync error' : 'Expand sync error'}
+                      aria-expanded={errorBannerOpen}
                       className="h-6 w-6 flex items-center justify-center cursor-pointer"
                       onClick={() => { setErrorBannerOpen(!errorBannerOpen); }}
                     >
@@ -1784,10 +1767,10 @@ export default function InventoryDetail() {
                     <Button variant="outline" onClick={() => setAddHostDialogOpen(false)}>
                       Cancel
                     </Button>
-                    <Button onClick={() => { void handleAddHost(); }} disabled={addingHost}>
+                    <GradientButton ramp="app" className="w-auto px-4 py-2" onClick={() => { void handleAddHost(); }} disabled={addingHost}>
                       {addingHost && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
                       Add Host
-                    </Button>
+                    </GradientButton>
                   </DialogFooter>
                 </DialogContent>
               </Dialog>
@@ -1806,15 +1789,15 @@ export default function InventoryDetail() {
                     : 'Add hosts to this inventory to manage them with Ansible.'}
                 </p>
                 {inventory.type === 'dynamic' ? (
-                  <Button onClick={() => setActiveTab('sources')}>
+                  <Button variant="outline" onClick={() => setActiveTab('sources')}>
                     <Cloud className="h-4 w-4 mr-2" />
                     Configure Sources
                   </Button>
                 ) : inventory.type === 'static' ? (
-                  <Button onClick={() => setAddHostDialogOpen(true)}>
+                  <GradientButton ramp="app" emphasis="secondary" className="w-auto" onClick={() => setAddHostDialogOpen(true)}>
                     <Plus className="h-4 w-4 mr-2" />
                     Add Host
-                  </Button>
+                  </GradientButton>
                 ) : null}
               </CardContent>
             </Card>
@@ -2009,10 +1992,10 @@ export default function InventoryDetail() {
                     <Button variant="outline" onClick={() => setAddGroupDialogOpen(false)}>
                       Cancel
                     </Button>
-                    <Button onClick={() => { void handleAddGroup(); }} disabled={addingGroup}>
+                    <GradientButton ramp="app" className="w-auto px-4 py-2" onClick={() => { void handleAddGroup(); }} disabled={addingGroup}>
                       {addingGroup && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
                       Add Group
-                    </Button>
+                    </GradientButton>
                   </DialogFooter>
                 </DialogContent>
               </Dialog>
@@ -2029,10 +2012,10 @@ export default function InventoryDetail() {
                     : 'Create groups to organize hosts for targeted playbook runs.'}
                 </p>
                 {inventory.type !== 'vcs' && (
-                  <Button onClick={() => setAddGroupDialogOpen(true)}>
+                  <GradientButton ramp="app" emphasis="secondary" className="w-auto" onClick={() => setAddGroupDialogOpen(true)}>
                     <Plus className="h-4 w-4 mr-2" />
                     Add Group
-                  </Button>
+                  </GradientButton>
                 )}
               </CardContent>
             </Card>
@@ -2543,10 +2526,10 @@ export default function InventoryDetail() {
                     <Button variant="outline" onClick={() => setAddSourceDialogOpen(false)}>
                       Cancel
                     </Button>
-                    <Button onClick={() => { void handleAddSource(); }} disabled={addingSource}>
+                    <GradientButton ramp="app" className="w-auto px-4 py-2" onClick={() => { void handleAddSource(); }} disabled={addingSource}>
                       {addingSource && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
                       Add Source
-                    </Button>
+                    </GradientButton>
                   </DialogFooter>
                 </DialogContent>
             </Dialog>
@@ -2559,10 +2542,10 @@ export default function InventoryDetail() {
                   <p className="text-muted-foreground text-sm mb-4 text-center max-w-md">
                     Add cloud sources to automatically discover and import hosts from AWS, Azure, GCP, or VMware.
                   </p>
-                  <Button onClick={() => setAddSourceDialogOpen(true)}>
+                  <GradientButton ramp="app" emphasis="secondary" className="w-auto" onClick={() => setAddSourceDialogOpen(true)}>
                     <Plus className="h-4 w-4 mr-2" />
                     Add Source
-                  </Button>
+                  </GradientButton>
                 </CardContent>
               </Card>
             ) : (
@@ -2762,10 +2745,10 @@ export default function InventoryDetail() {
             <Button variant="outline" onClick={() => setEditHostDialogOpen(false)}>
               Cancel
             </Button>
-            <Button onClick={() => { void handleUpdateHost(); }} disabled={editingHost}>
+            <GradientButton ramp="app" className="w-auto px-4 py-2" onClick={() => { void handleUpdateHost(); }} disabled={editingHost}>
               {editingHost && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
               Save Changes
-            </Button>
+            </GradientButton>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -3061,13 +3044,13 @@ export default function InventoryDetail() {
             <Button variant="outline" onClick={() => setEditSourceDialogOpen(false)}>
               Cancel
             </Button>
-            <Button onClick={() => { void handleUpdateSource(); }} disabled={editingSource}>
+            <GradientButton ramp="app" className="w-auto px-4 py-2" onClick={() => { void handleUpdateSource(); }} disabled={editingSource}>
               {editingSource && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
               Save Changes
-            </Button>
+            </GradientButton>
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+    </Page>
   );
 }

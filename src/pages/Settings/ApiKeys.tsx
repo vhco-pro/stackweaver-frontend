@@ -2,14 +2,20 @@
 
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Link, useParams } from 'react-router-dom';
-import { Key, ArrowLeft, Plus, Copy, Trash2, Calendar, Loader2, CheckCircle2, Building2, FolderKanban, Server } from 'lucide-react';
+import { useParams } from 'react-router-dom';
+import { Key, Plus, Copy, Trash2, Calendar, Loader2, CheckCircle2, Building2, FolderKanban, Server } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { GradientButton } from '@/components/ui/gradient-button';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
+import { Page } from '@/components/layout/Page';
+import { PageHeader } from '@/components/layout/PageHeader';
+import { PageEmptyState } from '@/components/layout/PageEmptyState';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
 import { cn } from '@/lib/utils';
+import { dangerGhostIcon } from '@/lib/surfaces';
 import { settingsApi, organizationsApi, projectsApi, type CreateApiKeyResponse } from '@/api/client';
 import { toast } from 'sonner';
 
@@ -27,6 +33,8 @@ export default function ApiKeysSettings() {
   const [newKeyExpiry, setNewKeyExpiry] = useState('');
   const [creating, setCreating] = useState(false);
   const [deleting, setDeleting] = useState<string | null>(null);
+  // The key waiting on the delete confirmation dialog.
+  const [pendingDeleteKeyId, setPendingDeleteKeyId] = useState<string | null>(null);
   const [newlyCreatedKey, setNewlyCreatedKey] = useState<CreateApiKeyResponse | null>(null);
   
   // Scope selection state
@@ -38,7 +46,7 @@ export default function ApiKeysSettings() {
     admin: false,
   });
 
-  const { data: apiKeys = [], isLoading: loading, refetch: refetchApiKeys } = useQuery({
+  const { data: apiKeys = [], isLoading: loading, isError: loadFailed, refetch: refetchApiKeys } = useQuery({
     queryKey: ['apiKeys'],
     queryFn: async () => {
       const response = await settingsApi.listApiKeys();
@@ -187,10 +195,6 @@ export default function ApiKeysSettings() {
   };
 
   const handleDeleteKey = async (keyId: string) => {
-    if (!confirm('Are you sure you want to delete this API key? This action cannot be undone.')) {
-      return;
-    }
-
     try {
       setDeleting(keyId);
       await settingsApi.deleteApiKey(keyId);
@@ -201,6 +205,15 @@ export default function ApiKeysSettings() {
     } finally {
       setDeleting(null);
     }
+  };
+
+  // Runs only from the confirmation dialog. The dialog closes first, so the row's own spinner
+  // shows the delete in progress.
+  const confirmDeleteKey = async () => {
+    const keyId = pendingDeleteKeyId;
+    if (!keyId) return;
+    setPendingDeleteKeyId(null);
+    await handleDeleteKey(keyId);
   };
 
   const formatDate = (dateString: string) => {
@@ -231,43 +244,35 @@ export default function ApiKeysSettings() {
     return keyPrefix + '••••••••••••••••••••';
   };
 
+  // Defined once and handed to both the header and the empty-state card: the header does not
+  // render it while there is nothing to list, so the action never appears twice.
+  const createKeyAction = (
+    <GradientButton ramp="app" onClick={() => setShowCreateForm(!showCreateForm)} className="w-auto px-4 py-2">
+      <Plus className="h-4 w-4 mr-2" />
+      Create API Key
+    </GradientButton>
+  );
+  // The empty-state card is hidden while the create form is open, so the header keeps the
+  // action then: it is the only control that toggles the form.
+  const listState = loading
+    ? 'loading'
+    : loadFailed
+      ? 'error'
+      : apiKeys.length === 0 && !showCreateForm
+        ? 'empty'
+        : 'ready';
+
   return (
-    <div className="space-y-8">
+    <Page ramp="apiKeys" className="space-y-8">
       {/* Header */}
-      <div className="flex items-start gap-4">
-        <Link to={orgName ? `/app/${orgName}/settings` : '/settings'}>
-          <Button 
-            variant="ghost" 
-            size="icon"
-            className="h-10 w-10 rounded-xl text-muted-foreground hover:text-foreground hover:bg-white/10 dark:hover:bg-black/10 transition-colors"
-            aria-label="Back to Settings"
-          >
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
-        </Link>
-        <div className="flex-1">
-          <div className="flex items-start justify-between gap-4 mb-2">
-            <div>
-              <h1 className="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-cyan-600 dark:from-cyan-400 via-blue-600 dark:via-blue-400 to-cyan-600 dark:to-cyan-400 bg-clip-text text-transparent mb-2">
-                API Keys
-              </h1>
-              <p className="text-muted-foreground">
-                Create and manage API keys for programmatic access
-              </p>
-            </div>
-            <div className="relative inline-flex rounded-xl bg-gradient-to-r from-cyan-500 via-blue-500 to-cyan-500 p-[2px]">
-              <Button
-                variant="ghost"
-                onClick={() => setShowCreateForm(!showCreateForm)}
-                className="bg-white dark:bg-slate-950/80 dark:backdrop-blur-xs text-slate-900 dark:text-white hover:bg-slate-50 dark:hover:bg-slate-950/90 border-0 whitespace-nowrap rounded-[calc(0.75rem-2px)] px-4 py-2"
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                Create API Key
-              </Button>
-            </div>
-          </div>
-        </div>
-      </div>
+      <PageHeader
+        icon={Key}
+        title="API Keys"
+        subtitle="Create and manage API keys for programmatic access"
+        backTo={{ to: orgName ? `/app/${orgName}/settings` : '/settings', label: 'Back to Settings' }}
+        action={createKeyAction}
+        listState={listState}
+      />
 
       {/* Show newly created key (only shown once) */}
       {newlyCreatedKey && (
@@ -482,10 +487,12 @@ export default function ApiKeysSettings() {
               >
                 Cancel
               </Button>
-              <Button 
-                type="submit" 
+              <GradientButton
+                ramp="app"
+                emphasis="secondary"
+                type="submit"
                 disabled={creating}
-                className="bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600"
+                className="w-auto px-4 py-2"
               >
                 {creating ? (
                   <>
@@ -495,7 +502,7 @@ export default function ApiKeysSettings() {
                 ) : (
                   'Create Key'
                 )}
-              </Button>
+              </GradientButton>
             </div>
           </form>
         </div>
@@ -558,10 +565,11 @@ export default function ApiKeysSettings() {
                       </code>
                       <Button
                         variant="ghost"
-                        size="sm"
-                        onClick={() => { void handleDeleteKey(apiKey.id); }}
+                        size="icon"
+                        aria-label={`Delete API key ${apiKey.name}`}
+                        onClick={() => { setPendingDeleteKeyId(apiKey.id); }}
                         disabled={deleting === apiKey.id}
-                        className="gap-2 text-red-500 hover:text-red-600 hover:bg-red-500/10"
+                        className={cn(dangerGhostIcon, 'h-9 w-9')}
                       >
                         {deleting === apiKey.id ? (
                           <Loader2 className="h-4 w-4 animate-spin" />
@@ -612,31 +620,24 @@ export default function ApiKeysSettings() {
 
       {/* Empty State */}
       {!loading && apiKeys.length === 0 && !showCreateForm && (
-        <div className={cn(
-          'rounded-2xl',
-          'bg-gradient-to-br from-white/90 via-white/75 to-white/60 dark:from-black/10 dark:via-black/5 dark:to-transparent',
-          'backdrop-blur-md border border-gray-300/80 dark:border-white/10',
-          'p-12 text-center'
-        )}>
-          <div className="flex justify-center mb-4">
-            <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-cyan-500/20 to-blue-500/20 border border-cyan-500/30">
-              <Key className="h-8 w-8 text-cyan-500" />
-            </div>
-          </div>
-          <h3 className="text-lg font-semibold mb-2">No API Keys</h3>
-          <p className="text-muted-foreground mb-4">
-            Create your first API key to get started with programmatic access
-          </p>
-          <Button
-            onClick={() => setShowCreateForm(true)}
-            className="bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600"
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            Create API Key
-          </Button>
-        </div>
+        <PageEmptyState
+          icon={Key}
+          title="No API Keys"
+          description="Create your first API key to get started with programmatic access"
+          action={loadFailed ? undefined : createKeyAction}
+        />
       )}
-    </div>
+
+      <ConfirmDialog
+        open={pendingDeleteKeyId !== null}
+        onOpenChange={(open) => { if (!open) setPendingDeleteKeyId(null); }}
+        title="Delete API key?"
+        description="Are you sure you want to delete this API key? This action cannot be undone."
+        confirmLabel="Delete"
+        variant="destructive"
+        onConfirm={confirmDeleteKey}
+      />
+    </Page>
   );
 }
 

@@ -5,6 +5,9 @@ import { useMountEffect } from '@/hooks/useMountEffect';
 import { Loader2, Clock, Zap, CheckCircle2, XCircle, AlertCircle, Activity } from 'lucide-react';
 import { activitiesApi, type Activity as ActivityData } from '@/api/client';
 import { Button } from '@/components/ui/button';
+import { Page } from '@/components/layout/Page';
+import { PageHeader } from '@/components/layout/PageHeader';
+import { PageEmptyState } from '@/components/layout/PageEmptyState';
 import { formatActivityDescription } from '@/utils/activityFormat';
 
 export default function Activities() {
@@ -88,31 +91,29 @@ export default function Activities() {
     });
   };
 
+  const listState = loading ? 'loading' : activities.length === 0 ? 'empty' : 'ready';
+
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div>
-        <h1 className="text-4xl font-bold mb-2 bg-gradient-to-r from-purple-600 dark:from-purple-400 via-violet-600 dark:via-violet-400 to-indigo-600 dark:to-indigo-400 bg-clip-text text-transparent">
-          Activity Log
-        </h1>
-        <p className="text-gray-600 dark:text-gray-400 text-lg">
-          View all activities and events across your infrastructure
-        </p>
-      </div>
+    <Page>
+      <PageHeader
+        icon={Activity}
+        title="Activity Log"
+        subtitle="View all activities and events across your infrastructure"
+        listState={listState}
+      />
 
       {/* Activities List */}
+      {listState === 'empty' ? (
+        <PageEmptyState
+          icon={Activity}
+          title="No activities found"
+          description="Activities will appear here as you use the platform"
+        />
+      ) : (
       <div className="rounded-xl bg-white/5 dark:bg-white/5 backdrop-blur-md border border-gray-300/80 dark:border-white/10 shadow-xs">
         {loading ? (
           <div className="flex items-center justify-center py-12">
             <Loader2 className="h-8 w-8 animate-spin text-purple-500" />
-          </div>
-        ) : activities.length === 0 ? (
-          <div className="text-center py-12">
-            <Activity className="h-12 w-12 text-purple-400/30 mx-auto mb-4" />
-            <p className="text-gray-600 dark:text-gray-400 mb-2">No activities found</p>
-            <p className="text-sm text-gray-500 dark:text-gray-500">
-              Activities will appear here as you use the platform
-            </p>
           </div>
         ) : (
           <>
@@ -160,7 +161,8 @@ export default function Activities() {
           </>
         )}
       </div>
-    </div>
+      )}
+    </Page>
   );
 }
 

@@ -2,10 +2,14 @@
 
 import { useState } from 'react';
 import { useMountEffect } from '@/hooks/useMountEffect';
-import { Link } from 'react-router-dom';
-import { ArrowLeft, Monitor, Trash2, Shield, Clock } from 'lucide-react';
+import { Monitor, Trash2, Shield, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
+import { Page } from '@/components/layout/Page';
+import { PageHeader } from '@/components/layout/PageHeader';
+import { PageEmptyState } from '@/components/layout/PageEmptyState';
 import { cn } from '@/lib/utils';
+import { dangerOutline } from '@/lib/surfaces';
 import { settingsApi, type Session } from '@/api/client';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -14,6 +18,8 @@ export default function SessionsSettings() {
   const [sessions, setSessions] = useState<Session[]>([]);
   const [loading, setLoading] = useState(true);
   const [revoking, setRevoking] = useState<string | null>(null);
+  // The session waiting on the confirmation dialog. Nothing is revoked until it is confirmed.
+  const [pendingRevoke, setPendingRevoke] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [success] = useState<string | null>(null);
   void success; // Suppress unused variable warning
@@ -36,10 +42,6 @@ export default function SessionsSettings() {
   });
 
   const handleRevoke = async (sessionId: string) => {
-    if (!confirm('Are you sure you want to revoke this session? You will be logged out from that device.')) {
-      return;
-    }
-
     try {
       setRevoking(sessionId);
       setError(null);
@@ -63,31 +65,26 @@ export default function SessionsSettings() {
     return date.toLocaleString();
   };
 
+  const confirmRevoke = async () => {
+    const sessionId = pendingRevoke;
+    setPendingRevoke(null);
+    if (!sessionId) return;
+    await handleRevoke(sessionId);
+  };
+
   // Use is_current field from backend instead of client-side detection
 
+  const listState = loading ? 'loading' : error ? 'error' : sessions.length === 0 ? 'empty' : 'ready';
+
   return (
-    <div className="space-y-8">
-      {/* Header */}
-      <div className="flex items-start gap-4">
-        <Link to="/settings">
-          <Button 
-            variant="ghost" 
-            size="icon"
-            className="h-10 w-10 rounded-xl text-muted-foreground hover:text-foreground hover:bg-white/10 dark:hover:bg-black/10 transition-colors"
-            aria-label="Back to Settings"
-          >
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
-        </Link>
-        <div className="flex-1">
-          <h1 className="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-blue-600 dark:from-blue-400 via-cyan-600 dark:via-cyan-400 to-blue-500 bg-clip-text text-transparent mb-2">
-            Active Sessions
-          </h1>
-          <p className="text-muted-foreground">
-            Manage your active sessions and devices
-          </p>
-        </div>
-      </div>
+    <Page ramp="account" className="space-y-8">
+      <PageHeader
+        icon={Monitor}
+        title="Active Sessions"
+        subtitle="Manage your active sessions and devices"
+        backTo={{ to: '/settings', label: 'Back to Settings' }}
+        listState={listState}
+      />
 
       {error && (
         <div className="rounded-lg bg-red-500/10 border border-red-500/20 p-4 text-red-400">
@@ -108,15 +105,7 @@ export default function SessionsSettings() {
       ) : (
         <div className="space-y-4">
           {sessions.length === 0 ? (
-            <div className={cn(
-              'rounded-2xl',
-              'bg-gradient-to-br from-white/90 via-white/75 to-white/60 dark:from-black/10 dark:via-black/5 dark:to-transparent',
-              'backdrop-blur-md border border-gray-300/80 dark:border-white/10',
-              'p-8 shadow-lg shadow-blue-500/10 text-center'
-            )}>
-              <Monitor className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-              <p className="text-muted-foreground">No active sessions found</p>
-            </div>
+            <PageEmptyState icon={Monitor} title="No active sessions found" />
           ) : (
             sessions.map((session) => (
               <div
@@ -171,9 +160,9 @@ export default function SessionsSettings() {
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => { void handleRevoke(session.id); }}
+                    onClick={() => { setPendingRevoke(session.id); }}
                     disabled={revoking === session.id}
-                    className="text-red-400 hover:text-red-300 hover:bg-red-500/10 border-red-500/20"
+                    className={dangerOutline}
                   >
                     {revoking === session.id ? (
                       'Revoking...'
@@ -204,7 +193,17 @@ export default function SessionsSettings() {
           you'll be logged out immediately.
         </p>
       </div>
-    </div>
+
+      <ConfirmDialog
+        open={pendingRevoke !== null}
+        onOpenChange={(open) => { if (!open) setPendingRevoke(null); }}
+        title="Revoke session?"
+        description="Are you sure you want to revoke this session? You will be logged out from that device."
+        confirmLabel="Revoke"
+        variant="destructive"
+        onConfirm={confirmRevoke}
+      />
+    </Page>
   );
 }
 
