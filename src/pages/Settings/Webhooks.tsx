@@ -41,6 +41,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { apiClient } from '@/api/client';
+import { webhookDeliveryFromJsonApi, type WebhookEventResource } from './webhookDeliveries';
 
 // Parse workspace names from message like "2 workspace(s) triggered: ws1, ws2"
 function parseWorkspacesFromMessage(message?: string): { summary: string; workspaces: string[] } {
@@ -102,19 +103,6 @@ function WebhookMessageCell({ message }: { message?: string }) {
   );
 }
 
-interface WebhookDelivery {
-  id: string;
-  event_type: string;
-  status: 'success' | 'failed' | 'ignored' | 'pending';
-  provider: string;
-  repository?: string;
-  branch?: string;
-  commit?: string;
-  delivered_at: string;
-  response_code?: number;
-  message?: string;
-}
-
 export default function Webhooks() {
   const { orgName } = useParams<{ orgName: string }>();
   const [copied, setCopied] = useState(false);
@@ -123,10 +111,10 @@ export default function Webhooks() {
   const { data: recentDeliveries = [], isLoading: loading, refetch: fetchDeliveries } = useQuery({
     queryKey: ['webhook-deliveries', orgName],
     queryFn: async () => {
-      const response = await apiClient.get<{ data: WebhookDelivery[] }>(
-        `/organizations/${orgName}/webhook-events?format=simple&page[size]=20`
+      const response = await apiClient.get<{ data: WebhookEventResource[] }>(
+        `/organizations/${orgName}/webhook-events?page[size]=20`
       );
-      return response.data || [];
+      return (response.data ?? []).map(webhookDeliveryFromJsonApi);
     },
     enabled: !!orgName,
   });

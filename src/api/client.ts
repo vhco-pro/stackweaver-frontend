@@ -283,6 +283,9 @@ export interface Workspace {
   working_directory?: string;
   auto_queue_runs?: boolean;
   auto_apply?: boolean;
+  // Whether destroy plans can be queued on the workspace (on unless turned off). The API refuses
+  // a destroy run when it is false, and the new-run dialog disables its Destroy choice.
+  allow_destroy_plan?: boolean;
   execution_mode?: string;
   agent_pool_id?: string;
   agent_pool_name?: string;
@@ -424,9 +427,19 @@ export const organizationsApi = {
     apiClient
       .get<{ data: JsonApiResource }>(`/organizations/${encodeURIComponent(name)}`)
       .then(res => organizationFromJsonApi(res.data)),
-  create: (data: { name: string; description?: string }) =>
+  // The endpoint accepts a JSON:API document only; a body without `data` is a 400. `description`
+  // is a Stackweaver attribute beside the ones Terraform Enterprise defines.
+  create: (org: { name: string; description?: string }) =>
     apiClient
-      .post<{ data: JsonApiResource }>('/organizations', data)
+      .post<{ data: JsonApiResource }>('/organizations', {
+        data: {
+          type: 'organizations',
+          attributes: {
+            name: org.name,
+            ...(org.description ? { description: org.description } : {}),
+          },
+        },
+      })
       .then(res => organizationFromJsonApi(res.data)),
   update: (name: string, data: Record<string, unknown>) =>
     apiClient
@@ -630,6 +643,7 @@ function workspaceFromJsonApi(item: JsonApiResource, included?: JsonApiResource[
     working_directory: attrs['working-directory'] ? String(attrs['working-directory']) : undefined,
     auto_queue_runs: attrs['auto-queue-runs'] as boolean | undefined,
     auto_apply: attrs['auto-apply'] as boolean | undefined,
+    allow_destroy_plan: attrs['allow-destroy-plan'] as boolean | undefined,
     execution_mode: attrs['execution-mode'] ? String(attrs['execution-mode']) : undefined,
     agent_pool_id: agentPoolRel?.id || undefined,
     agent_pool_name: attrs['agent-pool-name'] ? String(attrs['agent-pool-name']) : undefined,
@@ -1886,6 +1900,29 @@ export const parseLogChunk = (buf: Uint8Array): LogChunk => {
 const readLogChunk = async (response: Response): Promise<LogChunk> =>
   parseLogChunk(new Uint8Array(await response.arrayBuffer()));
 
+/**
+ * What a new run is for. `autoApply` is the workspace's auto-apply setting: true applies the run
+ * as soon as its plan finishes, false leaves it waiting at `planned` for a confirmation.
+ */
+export type RunIntent =
+  | { kind: 'plan-only' }
+  | { kind: 'plan-and-apply'; autoApply: boolean }
+  | { kind: 'destroy'; autoApply: boolean };
+
+// The run-create attributes for an intent, in Terraform Enterprise's vocabulary. A speculative
+// run opts in with `plan-only`; a destroy with `is-destroy`; anything else is an applyable run,
+// so plan-and-apply needs no marker of its own, only whether to apply without confirmation.
+function runIntentAttributes(intent: RunIntent): Record<string, boolean> {
+  switch (intent.kind) {
+    case 'plan-only':
+      return { 'plan-only': true };
+    case 'plan-and-apply':
+      return { 'auto-apply': intent.autoApply };
+    case 'destroy':
+      return { 'is-destroy': true, 'auto-apply': intent.autoApply };
+  }
+}
+
 export const runsApi = {
   // TFE-compatible: List runs by workspace ID
   // Returns JSON:API format directly - pages should use helper functions
@@ -1896,49 +1933,25 @@ export const runsApi = {
   // Returns JSON:API format directly - pages should use helper functions
   get: (id: string) =>
     apiClient.get<JsonApiResponse<JsonApiResource>>(`/runs/${id}`),
-  // TFE-compatible: Create run (not workspace-scoped in URL, but workspace in body)
-  create: (data: { 
-    workspace_id: string;
-    configuration_version_id?: string;
-    operation?: 'plan-only' | 'plan-and-apply' | 'destroy';
-    auto_apply_after_plan?: boolean; // TFE: auto-apply after plan (from workspace.auto_apply)
-  }) =>
+  // TFE-compatible: Create run (not workspace-scoped in URL; the workspace is a relationship).
+  //
+  // The body is the document go-tfe marshals for RunCreateOptions and nothing else: the endpoint
+  // answers 400 to any top-level key beside `data`. The run's intent travels in the three
+  // attributes Terraform Enterprise defines (see runIntentAttributes).
+  create: (run: { workspaceId: string; configurationVersionId?: string; intent: RunIntent }) =>
     apiClient.post<JsonApiResponse<JsonApiResource>>(`/runs`, {
-      // Send both JSON:API format and legacy format for the operation
-      // The backend checks req.Operation first (legacy field), then falls back to JSON:API attrs
-      operation: data.operation || 'plan-only',
-      auto_apply_after_plan: data.auto_apply_after_plan || false,
       data: {
         type: 'runs',
-        attributes: {
-          'is-destroy': data.operation === 'destroy',
-          'auto-apply-after-plan': data.auto_apply_after_plan || false,
-        },
+        attributes: runIntentAttributes(run.intent),
         relationships: {
-          workspace: {
-            data: {
-              type: 'workspaces',
-              id: data.workspace_id,
-            },
-          },
-          ...(data.configuration_version_id && {
+          workspace: { data: { type: 'workspaces', id: run.workspaceId } },
+          ...(run.configurationVersionId && {
             'configuration-version': {
-              data: {
-                type: 'configuration-versions',
-                id: data.configuration_version_id,
-              },
+              data: { type: 'configuration-versions', id: run.configurationVersionId },
             },
           }),
         },
       },
-      // Legacy format support
-      workspace_id: data.workspace_id,
-      configuration_version_id: data.configuration_version_id,
-      // Only send operation if explicitly provided
-      // If auto_apply_after_plan is true, backend determines operation from that flag (plan-and-apply)
-      // If auto_apply_after_plan is false/undefined, backend defaults to plan-only
-      // So we only need to send operation for destroy or explicit plan
-      ...(data.operation ? { operation: data.operation } : {}),
     }),
   
   // Returns JSON:API format directly - pages should use helper functions

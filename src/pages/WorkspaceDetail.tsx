@@ -12,6 +12,7 @@ import {
   vcsConnectionsApi,
   type Workspace,
   type Run,
+  type RunIntent,
   type StateVersion,
   type Variable,
   type VariableSet
@@ -24,6 +25,7 @@ import { OutputViewer } from '@/components/runs/OutputViewer';
 import { RunSourceDisplay } from '@/components/runs/RunSourceDisplay';
 import { ErrorDisplay } from '@/components/runs/ErrorDisplay';
 import { EditWorkspaceDialog } from '@/components/workspace/EditWorkspaceDialog';
+import { CreateRunDialog } from '@/components/workspace/CreateRunDialog';
 import { WorkspaceTags } from '@/components/workspace/WorkspaceTags';
 import { WorkspaceNotifications } from '@/components/workspace/WorkspaceNotifications';
 import { WorkspaceChangeRequests } from '@/components/workspace/WorkspaceChangeRequests';
@@ -49,7 +51,6 @@ import {
   CheckCircle2,
   XCircle,
   Clock,
-  FileText,
   Trash2,
   FolderOpen,
   Tag,
@@ -543,16 +544,16 @@ export default function WorkspaceDetail() {
     setIsCreatingRun(true);
     
     const isDestroy = operation === 'destroy';
-    const isPlanAndApply = operation === 'plan-and-apply';
-    
-    // TFE-compatible: Send explicit operation type
-    // auto_apply_after_plan controls whether the run auto-applies after plan
-    // (derived from workspace auto_apply setting, not from operation type)
-    void runsApi.create({ 
-      workspace_id: workspace.id,
-      operation: isDestroy ? 'destroy' as const : (isPlanAndApply ? 'plan-and-apply' as const : 'plan-only' as const),
-      auto_apply_after_plan: isPlanAndApply && (workspace.auto_apply === true),
-    })
+
+    // The run's intent in Terraform Enterprise's terms. A plan-only run is speculative and has
+    // no apply phase. The other two are applyable: they wait at `planned` for a confirmation
+    // unless the workspace has auto-apply on, in which case they apply as soon as the plan
+    // finishes.
+    const autoApply = workspace.auto_apply === true;
+    const intent: RunIntent =
+      operation === 'plan-only' ? { kind: 'plan-only' } : { kind: operation, autoApply };
+
+    void runsApi.create({ workspaceId: workspace.id, intent })
       .then((runRes) => {
         // Convert JSON:API format to Run object
         const run = getRunFromJsonApi(runRes.data);
@@ -567,9 +568,11 @@ export default function WorkspaceDetail() {
           void refetchData();
         }
       })
-      .catch((err) => {
+      .catch((err: unknown) => {
         console.error('Failed to create run:', err);
-        toast.error('Failed to create run');
+        // The API client puts the response's error detail in the message, so a refusal such as
+        // a locked workspace reads as what it is. The dialog stays open on the step it was on.
+        toast.error(err instanceof Error && err.message ? err.message : 'Failed to create run');
       })
       .finally(() => {
         setIsCreatingRun(false);
@@ -2185,54 +2188,15 @@ export default function WorkspaceDetail() {
       </Tabs>
 
       {/* Create Run Dialog */}
-      <Dialog open={createRunDialogOpen} onOpenChange={setCreateRunDialogOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Start a new run</DialogTitle>
-            <DialogDescription>
-              Select the run type for this workspace.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="grid gap-3 py-4">
-            <Button
-              className="w-full h-auto py-3 px-4 justify-start text-left"
-              variant="default"
-              onClick={() => { void handleCreateRun('plan-and-apply'); }}
-              disabled={isCreatingRun}
-            >
-              <PlayCircle className="mr-3 h-5 w-5 shrink-0" />
-              <div className="flex flex-col gap-0.5">
-                <span className="font-medium">Plan & Apply</span>
-                <span className="text-xs opacity-80 font-normal">Plan changes, then confirm to apply</span>
-              </div>
-            </Button>
-            <Button
-              className="w-full h-auto py-3 px-4 justify-start text-left"
-              variant="outline"
-              onClick={() => { void handleCreateRun('plan-only'); }}
-              disabled={isCreatingRun}
-            >
-              <FileText className="mr-3 h-5 w-5 shrink-0" />
-              <div className="flex flex-col gap-0.5">
-                <span className="font-medium">Plan Only</span>
-                <span className="text-xs text-muted-foreground font-normal">Preview changes without applying</span>
-              </div>
-            </Button>
-            <Button
-              className="w-full h-auto py-3 px-4 justify-start text-left"
-              variant="destructive"
-              onClick={() => { void handleCreateRun('destroy'); }}
-              disabled={isCreatingRun}
-            >
-              <Trash2 className="mr-3 h-5 w-5 shrink-0" />
-              <div className="flex flex-col gap-0.5">
-                <span className="font-medium">Destroy</span>
-                <span className="text-xs opacity-80 font-normal">Remove all managed resources</span>
-              </div>
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
+      {workspace && (
+        <CreateRunDialog
+          open={createRunDialogOpen}
+          onOpenChange={setCreateRunDialogOpen}
+          workspace={workspace}
+          isCreatingRun={isCreatingRun}
+          onCreateRun={handleCreateRun}
+        />
+      )}
 
       {/* Create/Edit Variable Dialog */}
       <Dialog open={createVariableDialogOpen} onOpenChange={(open) => {

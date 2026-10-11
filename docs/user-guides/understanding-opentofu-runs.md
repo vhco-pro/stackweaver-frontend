@@ -4,6 +4,7 @@ covers:
   - "core/plugins/opentofu/**"
   - "frontend/src/pages/RunDetail.tsx"
   - "frontend/src/pages/WorkspaceDetail.tsx"
+  - "frontend/src/components/workspace/CreateRunDialog.tsx"
 ---
 
 # Understanding OpenTofu Runs
@@ -18,6 +19,14 @@ A run is StackWeaver's term for executing OpenTofu. There are two main types:
 - **Applies**: Actually make the changes OpenTofu planned
 
 Runs can also be plan-only, apply-only, or refresh-only depending on what you're trying to do.
+
+## Starting a Run
+
+The **New run** button on a workspace page opens a dialog with three choices. **Plan & Apply** plans the changes and then waits for you to confirm the apply, unless the workspace has auto-apply turned on, in which case it applies as soon as the plan finishes. **Plan Only** previews the changes and can never be applied. **Destroy** removes every resource the workspace manages.
+
+A destroy is never queued from a single click. Choosing **Destroy** asks you to type the workspace's name, and the **Queue destroy run** button stays disabled until what you typed matches the name exactly. The dialog also tells you what will happen next: on a workspace without auto-apply the destroy plans first and waits for your confirmation before it removes anything, and on a workspace with auto-apply it removes the resources as soon as its plan finishes, with no further step. **Back** returns to the three choices, and closing the dialog discards what you typed.
+
+A workspace can refuse destroy runs altogether through its `allow-destroy-plan` setting, which is on by default and can be turned off by updating the workspace through the API. While it is off, the **Destroy** choice is disabled and says why, and the API answers a destroy run for that workspace with `422`. Plan & Apply and Plan Only are not affected.
 
 ## Reading Plan Output
 
