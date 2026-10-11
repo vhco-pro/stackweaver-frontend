@@ -348,6 +348,14 @@
   max-width: none;
 }
 
+/* A page's opening element (its H1, when no breadcrumb or frontmatter table
+   precedes it) starts flush with the column's top padding, level with the
+   search box and "On this page" rows of the panes on either side. The heading
+   margin is spacing from the content above it, and here there is none. */
+.docs-main .markdown-content > :first-child {
+  margin-top: 0;
+}
+
 /* Typographic hierarchy: headings in full foreground, body in softer tone (Auth0/docs-style contrast) */
 .markdown-content h1 {
   @apply text-foreground text-3xl font-bold mt-8 mb-4 pb-2 border-b border-border;
