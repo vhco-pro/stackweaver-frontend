@@ -8,7 +8,7 @@ covers:
 
 ## Overview
 
-Ansible Galaxy is the official hub for sharing Ansible content. StackWeaver's Ansible runner comes with essential collections pre-installed. The platform runner also **automatically installs additional collections** from `requirements.yml` in your playbook repository; jobs that run on a self-hosted agent pool use only the collections installed on the agent host.
+Ansible Galaxy is the official hub for sharing Ansible content. StackWeaver's Ansible runner comes with essential collections pre-installed. The runner also **automatically installs additional collections** from `requirements.yml` in your playbook repository, whether the job runs on the platform runner or on a self-hosted agent pool.
 
 ## Pre-Installed Collections
 
@@ -33,14 +33,26 @@ docker exec ansible-runner ansible-galaxy collection list
 
 ## Auto-Install from requirements.yml ✅
 
-On the platform runner, collections are automatically installed from `requirements.yml` before playbook execution. Self-hosted agent runners do not read `requirements.yml`; install the collections on the agent host instead.
+Collections and roles are automatically installed from `requirements.yml` before playbook execution, on the platform runner and on self-hosted runners alike.
 
 The runner checks these locations in order:
 1. `requirements.yml` (repo root)
 2. `collections/requirements.yml`
 3. `roles/requirements.yml`
 
-**Code Reference**: `backend/cmd/ansible-runner/main.go` - `installGalaxyRequirements()`
+The job output shows the install as it happens. A `galaxy_install` entry announces the requirements file that was found, and a `galaxy_install_complete` entry carries the `ansible-galaxy` output once the install has finished. When the collection install fails, for example because a collection name cannot be resolved or the Galaxy server cannot be reached, a `galaxy_install_failed` entry carries the `ansible-galaxy` output and is marked as failed, and the play still runs. A play that needs the missing collection then fails at the first task that uses it, and a play that does not need it completes normally.
+
+Each job installs into its own staging directory, seeded from a cache that the runner keeps per project, so a later job for the same project finds the collections already present and one project's collections are never served to another. When a job's staging directory was seeded from that cache, the job output carries a `galaxy_cache_seeded` entry ahead of `galaxy_install`, naming whether collections, roles or both were reused. A job that starts from an empty cache has no such entry.
+
+**Code Reference**: `backend/cmd/ansible-runner/galaxy.go` - `installGalaxyRequirements()`
+
+### Self-hosted runners
+
+A self-hosted runner installs requirements from inside your network, so the runner host needs a route to wherever the collections come from. That is `galaxy.ansible.com` for public collections, your Git host for entries of `type: git`, or a private Automation Hub or Galaxy server. To use a private server, add a `[galaxy]` section with a `server_list` to the `ansible.cfg` stored for the project or organization in Stackweaver: the runner writes that file into the job and `ansible-galaxy` reads it during the install. The `ANSIBLE_GALAXY_SERVER_*` environment variables set on the runner host are honoured as well.
+
+The per-project cache lives under the directory named by `GALAXY_CACHE_DIR`, which defaults to `galaxy-cache` under `WORKSPACES_DIR`. Without a volume the cache lasts as long as the runner container. Mount a volume at that path to keep it across restarts. Dedicate the directory to the runner and keep nothing else in it: the runner creates one subdirectory per project, named after the project's ID, and removes a project's subdirectory once it has not been used for `GALAXY_CACHE_TTL_DAYS` days (14 by default). Setting the value to `0` turns the cleanup off.
+
+Collections you have installed on the runner host yourself stay available. When a job installed requirements, the runner places the job's installed collections and the playbook's own `collections/` directory in front of the collections path that is already in effect: the value of `ANSIBLE_COLLECTIONS_PATH` when it is set on the host, otherwise the `collections_path` from the `ansible.cfg` the job uses, otherwise `~/.ansible/collections:/usr/share/ansible/collections`. Roles are resolved the same way through `ANSIBLE_ROLES_PATH` and `roles_path`. A job whose repository has no `requirements.yml` runs with the search paths exactly as the host and `ansible.cfg` define them.
 
 ## Using Collections in Playbooks
 
