@@ -189,11 +189,15 @@ export function DocsLayout({ children, docsBase = '/docs', indexFile = '/docs-in
         
         {/* Left Sidebar - Docs Navigation Tree (desktop only; resizable and collapsible) */}
         <DocsPane config={SIDEBAR_PANE} id="docs-sidebar" label="navigation sidebar" className="hidden lg:flex">
-          <DocsSidebar docsBase={docsBase} indexFile={indexFile} />
+          {(collapseButton) => (
+            <DocsSidebar docsBase={docsBase} indexFile={indexFile} headerAction={collapseButton} />
+          )}
         </DocsPane>
-        
-        {/* Center - Main Content */}
-        <main className="flex-1 min-w-0 px-4 md:px-8 py-4 pt-12 lg:pt-4 max-w-4xl mx-auto">
+
+        {/* Center - Main Content. It takes every pixel the panes leave, so narrowing
+            or collapsing a pane widens the page instead of growing the margins. The
+            ceiling only bites on very wide displays, where it keeps the column centred. */}
+        <main className="docs-main flex-1 min-w-0 px-4 md:px-8 py-4 pt-12 lg:pt-4 max-w-[100rem] mx-auto">
           {/* Breadcrumb Navigation - Only show in subfolders */}
           {breadcrumbs && (
             <div className="mb-6 pb-4 overflow-x-auto">
@@ -230,7 +234,7 @@ export function DocsLayout({ children, docsBase = '/docs', indexFile = '/docs-in
         
         {/* Right Sidebar - Table of Contents (desktop only; resizable and collapsible) */}
         <DocsPane config={TOC_PANE} id="docs-toc" label="table of contents" className="hidden xl:flex">
-          <TableOfContents />
+          {(collapseButton) => <TableOfContents headerAction={collapseButton} />}
         </DocsPane>
       </div>
       

@@ -340,6 +340,14 @@
   @apply text-foreground max-w-4xl;
 }
 
+/* The docs viewer sizes its own centre column (DocsLayout), which grows as the
+   side panes narrow or collapse, so the README-display cap above must not apply
+   inside it. Unlayered on purpose: a `max-w-none` utility would lose to the
+   unlayered rule above. */
+.docs-main .markdown-content {
+  max-width: none;
+}
+
 /* Typographic hierarchy: headings in full foreground, body in softer tone (Auth0/docs-style contrast) */
 .markdown-content h1 {
   @apply text-foreground text-3xl font-bold mt-8 mb-4 pb-2 border-b border-border;

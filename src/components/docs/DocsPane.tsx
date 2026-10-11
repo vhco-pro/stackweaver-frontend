@@ -8,6 +8,7 @@ import {
   useRef,
   useState,
 } from 'react';
+import { flushSync } from 'react-dom';
 import { PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -48,8 +49,17 @@ function useDocsPane(config: PaneConfig) {
     [config],
   );
 
-  const toggleCollapsed = () => {
-    commit({ ...state, collapsed: !state.collapsed });
+  /**
+   * Flip the collapsed state and return the new value. The update is flushed
+   * before returning so the caller can move focus to a button that only exists
+   * (or is only visible) in the new state.
+   */
+  const toggleCollapsed = (): boolean => {
+    const collapsed = !state.collapsed;
+    flushSync(() => {
+      commit({ ...state, collapsed });
+    });
+    return collapsed;
   };
 
   const onPointerDown = (e: PointerEvent<HTMLDivElement>) => {
@@ -108,14 +118,27 @@ interface DocsPaneProps {
   label: string;
   /** Breakpoint visibility, e.g. `hidden lg:flex`. Below it the mobile Sheet takes over. */
   className?: string;
-  children: ReactNode;
+  /**
+   * Renders the pane body. It receives the collapse button so the body can seat
+   * it in its own header row (beside the search box, beside "On this page")
+   * instead of the pane spending a row of its own on one icon.
+   */
+  children: (collapseButton: ReactNode) => ReactNode;
 }
+
+// 36px visual, 44px hit area: the ::before extends the target without making
+// the button taller than the search box and heading it shares a row with.
+const TOGGLE_BUTTON_CLASS =
+  "relative h-9 w-9 shrink-0 rounded-lg text-muted-foreground transition-colors duration-200 hover:bg-muted hover:text-foreground before:absolute before:-inset-1 before:content-['']";
 
 /**
  * A desktop docs pane (sidebar or table of contents) that can be resized by
  * dragging or with the keyboard, and collapsed to a slim rail. The pane keeps
  * its content mounted while collapsed so tree expansion and scroll-spy state
  * survive a collapse/expand round trip.
+ *
+ * The pane only owns its own width. The centre column is `flex-1`, so whatever
+ * a pane gives up by narrowing or collapsing goes straight to the content.
  */
 export function DocsPane({ config, id, label, className, children }: DocsPaneProps) {
   const pane = useDocsPane(config);
@@ -124,6 +147,31 @@ export function DocsPane({ config, id, label, className, children }: DocsPanePro
 
   const CollapseIcon = isLeft ? PanelLeftClose : PanelRightClose;
   const ExpandIcon = isLeft ? PanelLeftOpen : PanelRightOpen;
+
+  // Collapsing hides the button that was just pressed and reveals its
+  // counterpart (the rail's expand button, or the header's collapse button), so
+  // focus is handed across rather than dropped to <body>.
+  const collapseButtonRef = useRef<HTMLButtonElement>(null);
+  const expandButtonRef = useRef<HTMLButtonElement>(null);
+  const toggle = () => {
+    const collapsed = pane.toggleCollapsed();
+    (collapsed ? expandButtonRef : collapseButtonRef).current?.focus();
+  };
+
+  const collapseButton = (
+    <Button
+      ref={collapseButtonRef}
+      variant="ghost"
+      size="icon"
+      onClick={toggle}
+      aria-label={`Collapse ${label}`}
+      aria-expanded
+      aria-controls={contentId}
+      className={TOGGLE_BUTTON_CLASS}
+    >
+      <CollapseIcon className="h-4 w-4" />
+    </Button>
+  );
 
   return (
     <aside
@@ -134,33 +182,33 @@ export function DocsPane({ config, id, label, className, children }: DocsPanePro
       className={cn(
         'relative shrink-0 flex-col sticky top-24 h-[calc(100vh-6rem)] border-border/40 bg-background/50',
         isLeft ? 'border-r' : 'border-l',
-        pane.collapsed && 'w-14',
+        pane.collapsed && 'w-12',
         // Animate collapse/expand, but follow the pointer 1:1 while dragging.
         !pane.dragging && 'transition-[width] duration-300 ease-out',
         className,
       )}
     >
-      <div
-        className={cn(
-          'flex shrink-0 px-1.5 pt-1.5',
-          pane.collapsed ? 'justify-center' : isLeft ? 'justify-end' : 'justify-start',
-        )}
-      >
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={pane.toggleCollapsed}
-          aria-label={`${pane.collapsed ? 'Expand' : 'Collapse'} ${label}`}
-          aria-expanded={!pane.collapsed}
-          aria-controls={contentId}
-          className="h-11 w-11 rounded-lg text-muted-foreground transition-colors duration-200 hover:bg-muted hover:text-foreground"
-        >
-          {pane.collapsed ? <ExpandIcon className="h-4 w-4" /> : <CollapseIcon className="h-4 w-4" />}
-        </Button>
-      </div>
+      {/* The rail. Its top padding matches the header rows, so the expand button
+          lands where the collapse button was and toggling needs no pointer travel. */}
+      {pane.collapsed && (
+        <div className="flex shrink-0 justify-center pt-4">
+          <Button
+            ref={expandButtonRef}
+            variant="ghost"
+            size="icon"
+            onClick={toggle}
+            aria-label={`Expand ${label}`}
+            aria-expanded={false}
+            aria-controls={contentId}
+            className={TOGGLE_BUTTON_CLASS}
+          >
+            <ExpandIcon className="h-4 w-4" />
+          </Button>
+        </div>
+      )}
 
       <div id={contentId} hidden={pane.collapsed} className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden">
-        {children}
+        {children(collapseButton)}
       </div>
 
       {!pane.collapsed && (

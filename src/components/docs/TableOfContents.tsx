@@ -14,9 +14,11 @@ interface Heading {
 interface TableOfContentsProps {
   content?: string;
   className?: string;
+  /** Control seated on the "On this page" row: the desktop pane's collapse button. */
+  headerAction?: React.ReactNode;
 }
 
-export function TableOfContents({ content, className }: TableOfContentsProps) {
+export function TableOfContents({ content, className, headerAction }: TableOfContentsProps) {
   const location = useLocation();
   const [headings, setHeadings] = useState<Heading[]>([]);
   const [activeId, setActiveId] = useState<string>('');
@@ -131,16 +133,22 @@ export function TableOfContents({ content, className }: TableOfContentsProps) {
     }
   };
 
-  if (headings.length === 0) {
+  // With a header action the heading row still renders on a page without
+  // headings: it is the only place the pane's collapse button lives.
+  if (headings.length === 0 && !headerAction) {
     return null;
   }
 
   return (
-    <nav className={cn('p-4', className)}>
-      <h2 className="text-sm font-semibold text-foreground mb-3 px-3 flex items-center gap-2">
-        <Menu className="h-4 w-4 text-muted-foreground" />
-        On this page
-      </h2>
+    <nav className={cn('px-4 pb-4', className)}>
+      {/* Pinned while a long outline scrolls. */}
+      <div className="sticky top-0 z-10 -mx-4 flex items-center gap-2 bg-background px-4 pb-3 pt-4">
+        <h2 className="flex min-h-9 min-w-0 flex-1 items-center gap-2 px-3 text-sm font-semibold text-foreground">
+          <Menu className="h-4 w-4 shrink-0 text-muted-foreground" />
+          <span className="truncate">On this page</span>
+        </h2>
+        {headerAction}
+      </div>
       <ul className="space-y-1 pl-3">
         {headings.map((heading) => {
           const isActive = activeId === heading.id;
