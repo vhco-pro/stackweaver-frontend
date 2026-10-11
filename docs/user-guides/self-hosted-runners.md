@@ -277,7 +277,8 @@ These variables work with both Docker and Kubernetes deployments.
 |----------|-------------|---------|
 | `RUNNER_NAME` | Name shown in the UI (e.g. hostname). | Hostname |
 | `RUNNER_LABELS` | Comma-separated labels for targeting (e.g. `production,gpu`). | (none) |
-| `MAX_CONCURRENT_JOBS` | How many jobs this runner can run at once. | 1 |
+
+Each runner runs one job at a time. To run several jobs in parallel for a pool, start more runners in that pool.
 
 After the runner starts, it registers with the API and appears under **Settings > Runners** with status **Online** once heartbeats are received. You can open a runner from the list to see details, labels, and recent jobs.
 
@@ -388,7 +389,7 @@ To act on several runners at once, tick the checkbox on each runner card, or use
 1. **API keys**: Create API keys with the minimum scopes needed (e.g. only Runner: Register and Runner: Terraform for a Terraform-only runner). Rotate or revoke keys if they may have been exposed.
 2. **Network**: Runners initiate all connections to StackWeaver (outbound only). You do not need to open inbound ports on the runner. Use TLS for the StackWeaver server URL.
 3. **Pools**: Use separate pools for different trust or network boundaries (e.g. DMZ vs. internal), and restrict which workspaces or projects can use each pool.
-4. **Resource limits**: Use Docker (or Kubernetes) resource limits so a single job cannot exhaust the host. Tune `MAX_CONCURRENT_JOBS` based on your host size.
+4. **Resource limits**: Use Docker (or Kubernetes) resource limits so a single job cannot exhaust the host. A runner runs one job at a time, so size the host for one job per runner you start on it.
 
 ---
 
