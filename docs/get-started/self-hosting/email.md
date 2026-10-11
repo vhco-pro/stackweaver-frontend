@@ -36,7 +36,7 @@ Put the SMTP settings in `sso.env` in your Compose directory. Both `zitadel-init
 | `SMTP_TLS` | Whether to use TLS. Defaults to `true`. |
 | `STACKWEAVER_SELF_REGISTRATION` | Whether anyone may create an account (see [Who can sign up](#who-can-sign-up)). Defaults to `false`. |
 
-Restart `zitadel-init` after changing these values (`docker compose up -d zitadel-init`). It configures the provider in Zitadel, activates it and applies the matching login settings, and it stops with an error if `SMTP_HOST` is set without `SMTP_SENDER_ADDRESS` or a value cannot be parsed, so a misconfiguration is visible immediately.
+Run `zitadel-init` again after changing these values (`docker compose run --rm --no-deps zitadel-init`); a one-off run reads `sso.env` afresh and leaves Zitadel and the other services running. It configures the provider in Zitadel, activates it and applies the matching login settings, and it stops with an error if `SMTP_HOST` is set without `SMTP_SENDER_ADDRESS` or a value cannot be parsed, so a misconfiguration is visible immediately.
 
 ## Kubernetes (Helm)
 

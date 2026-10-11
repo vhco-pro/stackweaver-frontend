@@ -26,7 +26,7 @@ The chart deploys the following resources.
 | Component | Kind | Description |
 |---|---|---|
 | API | Deployment | Go REST API (port 8022) |
-| Frontend | Deployment | React SPA served by nginx (port 80) |
+| Frontend | Deployment | React SPA served by nginx (port 8080) |
 | Orchestrator | Deployment | Job scheduler (no external port) |
 | OpenTofu Runner | Deployment | Executes OpenTofu operations |
 | Ansible Runner | Deployment | Executes Ansible playbooks |
@@ -46,7 +46,7 @@ The Ansible and OpenTofu runners execute Infrastructure-as-Code and connect to y
 
 Each runner container runs as a non-root user with a read-only root filesystem, drops all Linux capabilities, forbids privilege escalation, and runs under the default seccomp profile. The Ansible runner needs no capabilities of its own, because privilege escalation for a playbook (Ansible `become`) happens on the target host over SSH rather than inside the runner.
 
-The Ansible runner's per-job working directory - which briefly holds SSH keys, vault passwords, and inventory secrets while a job runs - lives on an ephemeral volume that is isolated from the OpenTofu runner and is removed when the job finishes. It deliberately does not share the Terraform runner's workspace volume, so a compromised run in one runner cannot read the other's staged credentials. Because run output, status, and history are persisted to PostgreSQL and object storage rather than this scratch volume, nothing you see in the UI is lost when a runner pod is rescheduled.
+The Ansible runner's per-job working directory - which briefly holds SSH keys, vault passwords, and inventory secrets while a job runs - lives on an ephemeral volume that is isolated from the OpenTofu runner and is removed when the job finishes. It deliberately does not share the OpenTofu runner's workspace volume, so a compromised run in one runner cannot read the other's staged credentials. Because run output, status, and history are persisted to PostgreSQL and object storage rather than this scratch volume, nothing you see in the UI is lost when a runner pod is rescheduled.
 
 The Ansible runner keeps a per-project Ansible Galaxy collection cache on a dedicated PersistentVolumeClaim (`ansibleRunner.galaxyCache`, enabled by default). The cache is namespaced per project so one tenant's collections are never served to another, and a background janitor evicts any project cache that has been idle longer than `GALAXY_CACHE_TTL_DAYS` (14 days by default; set to `0` to disable) so it cannot grow without bound. The cache is purely a download optimization - set `ansibleRunner.galaxyCache.enabled` to `false` to use an ephemeral cache instead, at the cost of re-downloading collections after a pod restart. For more than one Ansible runner replica, set `ansibleRunner.galaxyCache.accessMode` to `ReadWriteMany`.
 
@@ -288,7 +288,7 @@ Each secret must contain specific keys. If a key is missing, the dependent pods 
 | PostgreSQL | `password` | `secrets.postgresql.keys.password` |
 | Storage | `access-key`, `secret-key` | `secrets.storage.keys.accessKey`, `secrets.storage.keys.secretKey` |
 | Encryption | `encryption-key` | `secrets.encryption.keys.key` |
-| Zitadel (bundled) | `masterkey`, `admin-password`, `admin-username` (derived keys filled by sidecar) | `secrets.zitadel.keys.*` |
+| Zitadel (bundled) | `masterkey`, `admin-password` (derived keys filled by sidecar) | `secrets.zitadel.keys.*` |
 | Zitadel (external) | `client-id`, `client-secret`, `frontend-client-id`, `login-service-user-token` | `secrets.zitadel.keys.*` |
 
 If your existing secret uses different key names, set the corresponding `secrets.<component>.keys.*` values to match.
@@ -518,8 +518,9 @@ helm uninstall stackweaver --namespace stackweaver
 ```
 
 Generated secrets are **not** deleted on uninstall, because the bootstrap Job creates them at runtime and they are never part of the Helm release.
-PersistentVolumeClaims for PostgreSQL, Garage, runner workspaces, and the Ansible Galaxy cache are also not deleted automatically.
+PersistentVolumeClaims for PostgreSQL and Garage are also not deleted automatically, because their StatefulSets create them from volume claim templates.
 Remove them manually if no longer needed.
+The runner workspaces and Ansible Galaxy cache claims are part of the release and are deleted with it, unless you supplied your own through `existingClaim`.
 
 > [!WARNING]
 > Secrets and PVCs are coupled. Deleting a secret without deleting the corresponding PVC (or vice versa) can leave the cluster in an unrecoverable state - for example, deleting the Zitadel secret removes the masterkey needed to decrypt the Zitadel database. Before any destructive operation, back up your secrets:

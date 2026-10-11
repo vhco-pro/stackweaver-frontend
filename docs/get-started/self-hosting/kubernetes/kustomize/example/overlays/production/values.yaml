@@ -237,7 +237,7 @@ ansibleRunner:
   # control sockets) under the read-only root filesystem.
   tmpSizeLimit: 1Gi
   # Per-job scratch (playbook checkout, inventory, staged credentials) runs on an
-  # ephemeral emptyDir isolated from the terraform runner - it holds no run
+  # ephemeral emptyDir isolated from the OpenTofu runner - it holds no run
   # history, so nothing is lost when a pod reschedules. Bound its size here.
   workspacesSizeLimit: 5Gi
   # The Ansible Galaxy cache is a regenerable performance cache. This static-PV

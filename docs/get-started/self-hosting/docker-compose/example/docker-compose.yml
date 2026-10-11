@@ -9,9 +9,8 @@
 
 # Single user-defined bridge network. Services reach each other by Docker DNS
 # service name (postgres, redis, garage, zitadel, api, ...), and only the three
-# host-facing ports are published. This replaces the previous `network_mode: host`,
-# which is Linux-only (Docker Desktop on macOS/Windows behaves differently) and
-# exposed every internal service on the host interface with no port-mapping control.
+# host-facing ports are published, so the stack behaves the same on Linux, macOS
+# and Windows and no internal service is exposed on the host interface.
 networks:
   stackweaver:
     driver: bridge
@@ -21,7 +20,7 @@ volumes:
   garage_data:
   garage_meta:
   runner-workspaces:
-  ansible-workspaces:  # isolated from the terraform runner so neither can read the other's staged credentials
+  ansible-workspaces:  # isolated from the OpenTofu runner so neither can read the other's staged credentials
   zitadel-pat:
 
 services:
@@ -134,7 +133,7 @@ services:
     environment:
       ZITADEL_SERVICE_USER_TOKEN: ${ZITADEL_LOGIN_SERVICE_USER_TOKEN:-}
       ZITADEL_DATABASE_POSTGRES_HOST: postgres
-      # Post-cutover the login UI is the Stackweaver SPA, served from
+      # The login UI is the Stackweaver SPA, served from
       # the frontend container on port 5173. Zitadel's LoginV2.BaseURI
       # points at the SPA's /login route; LoginV2 origin must match the
       # SPA's origin for CORS/CSP to line up.
@@ -152,14 +151,13 @@ services:
     ports:
       - "8080:8080"  # published: the browser hits the OIDC issuer/authorize/discovery endpoints
 
-  # The standalone `login-ui` container (ghcr.io/zitadel/zitadel-login)
-  # was removed in favor of the in-frontend custom login UI bundled
-  # with the Stackweaver SPA. The auth proxy in the API container
-  # (`/auth/*` routes) handles all Zitadel session API calls and OIDC
-  # endpoint forwarding. The `login-ui-service` Zitadel machine user
-  # and its PAT are still provisioned by zitadel-init below - they're
-  # consumed by the auth proxy + TOTP service + Zitadel webhook handler
-  # in the API container under the env var ZITADEL_LOGIN_SERVICE_USER_TOKEN.
+  # No separate login UI container runs: the login pages are part of the
+  # Stackweaver SPA, and the auth proxy in the API container (`/auth/*`
+  # routes) handles all Zitadel session API calls and OIDC endpoint
+  # forwarding. zitadel-init below provisions the `login-ui-service`
+  # Zitadel machine user and its PAT, which the auth proxy, the TOTP
+  # service and the Zitadel webhook handler in the API container consume
+  # through the env var ZITADEL_LOGIN_SERVICE_USER_TOKEN.
 
   # zitadel-init also configures Zitadel's email provider and login policy from the SMTP_* and
   # STACKWEAVER_SELF_REGISTRATION values in sso.env. The API and zitadel-init both run in email
@@ -172,10 +170,8 @@ services:
       - ./.env
       - ./sso.env
     environment:
-      # ZITADEL_ISSUER is the OIDC issuer URL the SPA points at. Post-
-      # cutover this drops the legacy `/ui/v2/login` suffix because the
-      # Stackweaver SPA serves login at `/login/*` instead of the
-      # hosted Zitadel UI's `/ui/v2/login/*`.
+      # ZITADEL_ISSUER is the OIDC issuer URL the SPA points at. It has
+      # no path suffix: the Stackweaver SPA serves login at `/login/*`.
       ZITADEL_ISSUER: ${ZITADEL_ISSUER:-http://localhost:8080}
       ZITADEL_INTERNAL_ADDR: zitadel:8080
       ZITADEL_DOMAIN: ${ZITADEL_EXTERNAL_HOST:-localhost}
