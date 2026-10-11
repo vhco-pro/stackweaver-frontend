@@ -133,18 +133,6 @@ covers:
 - `runner-images/ansible/Dockerfile`:
   - Added creation of `/home/iac/galaxy-cache/{collections,roles}`
 
-### Collection Version Pinning (Model) ✅
-
-**Added support for pinning collection versions in Job Templates:**
-
-- New `GalaxyRequirements` field on `AnsibleJobTemplate` model
-- Format: `{"collections": [{"name": "amazon.aws", "version": ">=6.0.0"}], "roles": [...]}`
-- UI wiring to be added in future iteration
-
-**Code Changes:**
-- `core/models/ansible_playbook.go`:
-  - Added `GalaxyRequirements InventoryVariables` field to `AnsibleJobTemplate`
-
 ### Collections UI ✅
 
 **Added Galaxy Collections page showing pre-installed collections:**
