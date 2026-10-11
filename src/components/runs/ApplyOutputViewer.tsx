@@ -236,7 +236,7 @@ function AppliedResourceCard({ resource }: { resource: AppliedResource }) {
   );
 }
 
-import { parseTerraformErrors } from '@/utils/terraformErrorParser';
+import { parseTerraformErrors, type ParsedError } from '@/utils/terraformErrorParser';
 
 /**
  * Finds a matching planned resource address for an error resource address.
@@ -295,6 +295,70 @@ function findMatchingResourceAddress(
   return undefined;
 }
 
+/**
+ * Lays the run's errors over the statuses parsed from the log and the stored apply state:
+ * resources the stored state or a parsed error reports as failed, and on a failed apply
+ * everything that was mid-apply or, when no error names a resource, everything that had not
+ * completed.
+ *
+ * This is a pure function of its arguments and is called during render. It used to be an
+ * effect that wrote its result back into the status state, which never settled once an error
+ * named no resource: it produced a new map on every pass, and every new map rendered again.
+ * Returns `statuses` itself when nothing differs.
+ */
+function overlayErrorStatuses(
+  statuses: Map<string, ResourceStatus>,
+  run: {
+    errors: ParsedError[];
+    plannedResources: PlannedResource[];
+    storedResources: Array<{ address: string; status: string }> | undefined;
+    isFailed: boolean;
+    isCancelled: boolean;
+  }
+): Map<string, ResourceStatus> {
+  // When the run was cancelled, do NOT overlay failed - logs may contain "context canceled" etc.
+  if (run.isCancelled) return statuses;
+  const overlaid = new Map(statuses);
+  let changed = false;
+  const markFailed = (address: string) => {
+    if (overlaid.get(address) !== 'failed') {
+      overlaid.set(address, 'failed');
+      changed = true;
+    }
+  };
+
+  // If stored state has failed resources, ensure they're marked as failed
+  run.storedResources?.forEach(res => {
+    if (res.status === 'failed') markFailed(res.address);
+  });
+
+  // Handle specific resource errors from parsed errors
+  run.errors.forEach(error => {
+    if (error.resource) {
+      markFailed(findMatchingResourceAddress(error.resource, run.plannedResources) || error.resource);
+    }
+  });
+
+  // If apply has failed overall, mark all applying resources as failed
+  // This handles cases where errors don't have specific resource addresses (e.g., provider errors)
+  // Only mark resources that were actively being applied (not pending ones that never started)
+  if (run.isFailed) {
+    overlaid.forEach((status, address) => {
+      if (status === 'applying') markFailed(address);
+    });
+    // If we have errors but no specific resource matches, mark all planned resources as failed
+    // This handles provider/initialization errors that affect all resources
+    if (run.errors.length > 0 && !run.errors.some(e => e.resource)) {
+      run.plannedResources.forEach(planned => {
+        // Only mark as failed if not already completed (completed resources succeeded before the error)
+        if (overlaid.get(planned.address) !== 'completed') markFailed(planned.address);
+      });
+    }
+  }
+
+  return changed ? overlaid : statuses;
+}
+
 export function ApplyOutputViewer({ logs, showJsonViewer = true, planOutput, isApplying = false, isCancelled = false, isFailed = false, applyState = null, runId, runOutputs, isDestroyRun = false }: ApplyOutputViewerProps) {
   // Load UI state from localStorage on mount (per-run basis)
   // Default to 'terminal' view for apply phase (faster loading than JSON)
@@ -335,17 +399,11 @@ export function ApplyOutputViewer({ logs, showJsonViewer = true, planOutput, isA
     }
   }, [jsonExpanded, rawOutputView, runId]);
 
-  // State for resources and statuses (incremental parsing)
+  // State for resources and statuses (incremental parsing). These accumulate across log
+  // polls behind the parse cursor below, so they are state; what is computed from them
+  // (the error overlay and the summary) is derived during render, further down.
   const [resources, setResources] = useState<AppliedResource[]>([]);
   const [resourceStatuses, setResourceStatuses] = useState<Map<string, 'pending' | 'applying' | 'completed' | 'failed' | 'cancelled'>>(new Map());
-  const [summary, setSummary] = useState<ApplySummary>({
-    add: 0,
-    change: 0,
-    destroy: 0,
-    replace: 0,
-    failed: 0,
-    total: 0,
-  });
 
   // Track last parsed log length for incremental parsing
   const lastParsedLengthRef = useRef<number>(0);
@@ -354,8 +412,9 @@ export function ApplyOutputViewer({ logs, showJsonViewer = true, planOutput, isA
   // Track if we've found the summary line
   const summaryLineRef = useRef<{ added: number; changed: number; destroyed: number } | null>(null);
 
-  // Check if logs contain errors
-  const errorParseResult = parseTerraformErrors(logs || '');
+  // Check if logs contain errors. Memoized: the result feeds the status overlay below, and
+  // re-parsing the whole log on every render is wasted work.
+  const errorParseResult = useMemo(() => parseTerraformErrors(logs || ''), [logs]);
 
   // Extract planned resources from plan output
   const plannedResources = useMemo<PlannedResource[]>(() => {
@@ -711,18 +770,6 @@ export function ApplyOutputViewer({ logs, showJsonViewer = true, planOutput, isA
        
       setResourceStatuses(statusMap);
 
-      // Initialize summary from stored state
-      if (applyState.summary) {
-        setSummary({
-          add: applyState.summary.additions,
-          change: applyState.summary.changes,
-          destroy: applyState.summary.destructions,
-          replace: 0, // Replace count not in summary, will be calculated
-          failed: applyState.summary.failed,
-          total: allResources.length, // Use all resources count, not just stored
-        });
-      }
-
       // Set lastParsedLength to logs length to prevent re-parsing stored state
       lastParsedLengthRef.current = cleanedLogs.length;
     }
@@ -755,17 +802,8 @@ export function ApplyOutputViewer({ logs, showJsonViewer = true, planOutput, isA
       lastParsedLengthRef.current = 0;
       destroyedResourcesRef.current = new Set();
       summaryLineRef.current = null;
-       
+
       setResources([]);
-       
-      setSummary({
-        add: 0,
-        change: 0,
-        destroy: 0,
-        replace: 0,
-        failed: 0,
-        total: 0,
-      });
     }
   }, [plannedResources, isApplying, applyState]);
 
@@ -788,17 +826,8 @@ export function ApplyOutputViewer({ logs, showJsonViewer = true, planOutput, isA
       lastParsedLengthRef.current = 0;
       destroyedResourcesRef.current = new Set();
       summaryLineRef.current = null;
-       
+
       setResources([]);
-       
-      setSummary({
-        add: 0,
-        change: 0,
-        destroy: 0,
-        replace: 0,
-        failed: 0,
-        total: 0,
-      });
       // Re-initialize statuses from planned resources
       const initialStatus = isApplying ? 'applying' : 'pending';
       
@@ -1012,32 +1041,7 @@ export function ApplyOutputViewer({ logs, showJsonViewer = true, planOutput, isA
     });
   }, [cleanedLogs, plannedResources, isApplying]);
 
-  // Step 3: Recalculate summary when resources change
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setSummary(() => {
-      // Only count resources that have completed (status === 'completed')
-      // Summary badges should only show counts after resources complete, not while applying
-      const completedResources = resources.filter(r => r.status === 'completed');
-      
-      const actualReplaces = completedResources.filter(r => r.action === 'replace').length;
-      const actualAdds = completedResources.filter(r => r.action === 'create').length;
-      const actualChanges = completedResources.filter(r => r.action === 'update').length;
-      const actualDestroys = completedResources.filter(r => r.action === 'delete').length;
-      const failedCount = Array.from(resourceStatuses.values()).filter(s => s === 'failed').length;
-      
-      return {
-        add: actualAdds,
-        change: actualChanges,
-        destroy: actualDestroys,
-        replace: actualReplaces,
-        failed: failedCount,
-        total: actualAdds + actualChanges + actualDestroys + actualReplaces,
-      };
-    });
-  }, [resources, resourceStatuses]);
-
-  // Step 4: Handle cancellation
+  // Step 3: Handle cancellation
   // Mark ALL non-completed resources as cancelled (pending, applying, and wrongly-marked failed).
   // When run was cancelled, in-progress resources are cancelled not failed; preserve that after refresh.
   useEffect(() => {
@@ -1064,71 +1068,21 @@ export function ApplyOutputViewer({ logs, showJsonViewer = true, planOutput, isA
     });
   }, [isCancelled, plannedResources]);
 
-  // Step 5: Handle errors
-  // This runs even when stored state is loaded to ensure errors are properly marked
-  // When run was cancelled, do NOT overwrite with failed - logs may contain "context canceled" etc.
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setResourceStatuses(prev => {
-      if (isCancelled) return prev; // Preserve cancelled state; don't mark as failed from parsed errors
-      const newStatuses = new Map(prev);
-      let changed = false;
-      
-      // If stored state has failed resources, ensure they're marked as failed
-      if (applyState?.resources) {
-        applyState.resources.forEach(res => {
-          if (res.status === 'failed' && newStatuses.get(res.address) !== 'failed') {
-            newStatuses.set(res.address, 'failed');
-            changed = true;
-          }
-        });
-      }
-      
-      // Handle specific resource errors from parsed errors
-      if (errorParseResult.errors.length > 0) {
-        errorParseResult.errors.forEach(error => {
-          if (error.resource) {
-            const matchingAddress = findMatchingResourceAddress(error.resource, plannedResources);
-            const targetAddress = matchingAddress || error.resource;
-            if (!newStatuses.has(targetAddress) || newStatuses.get(targetAddress) !== 'failed') {
-              newStatuses.set(targetAddress, 'failed');
-              changed = true;
-            }
-          }
-        });
-      }
-      
-      // If apply has failed overall, mark all applying resources as failed
-      // This handles cases where errors don't have specific resource addresses (e.g., provider errors)
-      // Only mark resources that were actively being applied (not pending ones that never started)
-      if (isFailed) {
-        newStatuses.forEach((status, address) => {
-          if (status === 'applying') {
-            newStatuses.set(address, 'failed');
-            changed = true;
-          }
-        });
-        // If we have errors but no specific resource matches, mark all planned resources as failed
-        // This handles provider/initialization errors that affect all resources
-        if (errorParseResult.errors.length > 0) {
-          const hasResourceErrors = errorParseResult.errors.some(e => e.resource);
-          if (!hasResourceErrors) {
-            // No specific resource errors - likely a provider/initialization error affecting all resources
-            plannedResources.forEach(planned => {
-              const currentStatus = newStatuses.get(planned.address);
-              // Only mark as failed if not already completed (completed resources succeeded before the error)
-              if (currentStatus !== 'completed') {
-                newStatuses.set(planned.address, 'failed');
-                changed = true;
-              }
-            });
-          }
-        }
-      }
-      
-      return changed ? newStatuses : prev;
-    });
-  }, [errorParseResult, plannedResources, isFailed, applyState, isCancelled]);
+  // Step 4: Handle errors
+  // Derived during render, not mirrored into state: the statuses every consumer below reads
+  // are the parsed ones with the run's errors laid over them. Applies when stored state is
+  // loaded too, so errors are properly marked either way.
+  const storedResources = applyState?.resources;
+  const effectiveStatuses = useMemo(
+    () => overlayErrorStatuses(resourceStatuses, {
+      errors: errorParseResult.errors,
+      plannedResources,
+      storedResources,
+      isFailed,
+      isCancelled,
+    }),
+    [resourceStatuses, errorParseResult, plannedResources, storedResources, isFailed, isCancelled]
+  );
 
   // Backfill missing resources that started but didn't complete
   // Also update statuses for existing resources while preserving IDs and other data
@@ -1138,7 +1092,7 @@ export function ApplyOutputViewer({ logs, showJsonViewer = true, planOutput, isA
       const updated = [...prevResources];
       let changed = false;
 
-      resourceStatuses.forEach((status, address) => {
+      effectiveStatuses.forEach((status, address) => {
         const existingResource = updated.find(r => r.address === address);
         if (!existingResource) {
           // Resource doesn't exist yet - create it
@@ -1165,7 +1119,29 @@ export function ApplyOutputViewer({ logs, showJsonViewer = true, planOutput, isA
 
       return changed ? updated : prevResources;
     });
-  }, [resourceStatuses, cleanedLogs]);
+  }, [effectiveStatuses, cleanedLogs]);
+
+  // Summary, derived from the resources and their statuses
+  const summary = useMemo<ApplySummary>(() => {
+    // Only count resources that have completed (status === 'completed')
+    // Summary badges should only show counts after resources complete, not while applying
+    const completedResources = resources.filter(r => r.status === 'completed');
+
+    const actualReplaces = completedResources.filter(r => r.action === 'replace').length;
+    const actualAdds = completedResources.filter(r => r.action === 'create').length;
+    const actualChanges = completedResources.filter(r => r.action === 'update').length;
+    const actualDestroys = completedResources.filter(r => r.action === 'delete').length;
+    const failedCount = Array.from(effectiveStatuses.values()).filter(s => s === 'failed').length;
+
+    return {
+      add: actualAdds,
+      change: actualChanges,
+      destroy: actualDestroys,
+      replace: actualReplaces,
+      failed: failedCount,
+      total: actualAdds + actualChanges + actualDestroys + actualReplaces,
+    };
+  }, [resources, effectiveStatuses]);
 
   const hasChanges = summary.total > 0;
 
@@ -1297,7 +1273,7 @@ export function ApplyOutputViewer({ logs, showJsonViewer = true, planOutput, isA
                 const appliedResource = resources.find(r => r.address === planned.address);
                 // Get status from status map (updated from logs) - this is the source of truth
                 // Status map is updated in real-time as logs are parsed
-                const statusFromMap = resourceStatuses.get(planned.address);
+                const statusFromMap = effectiveStatuses.get(planned.address);
                 // Priority: status map (from logs) > applied resource status > pending
                 const rawStatus = statusFromMap || (appliedResource?.status && appliedResource.status !== 'pending' ? appliedResource.status : 'pending');
                 // Terminal-run override so a resource can't spin/idle forever after the run ends.
