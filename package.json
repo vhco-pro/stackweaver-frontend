@@ -79,9 +79,9 @@
     "vitest": "^5.0.0"
   },
   "overrides": {
-    "@ai-sdk/provider-utils": "4.0.33",
+    "@ai-sdk/provider-utils": "4.0.57",
     "mermaid": {
-      "katex": "^0.18.2"
+      "katex": "^0.19.0"
     }
   }
 }
