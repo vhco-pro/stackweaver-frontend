@@ -288,6 +288,8 @@ POST /api/v2/ansible/inventories/:id/sources
 
 **Source Types**: `aws`, `azure`, `gcp`, `vmware`, `custom`
 
+A source is rejected with `400` when the credential it names does not exist or is of a type that does not match the source type, and the `detail` of the error says which.
+
 #### Azure authentication
 
 Azure sources select an authentication method explicitly through the `auth_method` field of the source `source-config` (one of `managed_identity`, `workload_identity`, `oidc`, or `credential`). When omitted, the source uses OIDC if the organization has an Azure OIDC Configuration, and otherwise the attached credential. For `managed_identity`, an optional `managed_identity_client_id` selects a user-assigned identity.
@@ -701,6 +703,8 @@ POST /api/v2/organizations/:name/ansible/schedules
 
 **Schedule Types**: `job_template`, `inventory_source`, `playbook_sync`
 
+Creating a schedule is rejected with `400` when the cron expression or the timezone does not parse, or when the job template or playbook it names does not exist, and the `detail` of the error says which. Updating a schedule applies the same check to a new cron expression or timezone.
+
 ### Get Schedule
 
 ```
@@ -737,7 +741,7 @@ POST /api/v2/ansible/schedules/:id/actions/disable
 POST /api/v2/ansible/schedules/:id/actions/run-now
 ```
 
-Triggers immediate execution regardless of schedule.
+Triggers immediate execution regardless of schedule. A schedule whose job template is disabled answers `409 Conflict` and launches nothing.
 
 ### Validate Cron Expression
 

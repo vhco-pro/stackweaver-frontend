@@ -6,7 +6,7 @@
 // on the wire rather than the arguments it was called with.
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { organizationsApi, runsApi, workspacesApi, type RunIntent } from './client';
+import { organizationsApi, registryApi, runsApi, workspacesApi, type RunIntent } from './client';
 
 vi.mock('@/lib/zitadel', () => ({ getAccessToken: () => 'test-token' }));
 
@@ -37,10 +37,83 @@ function captureRequest(responseBody: unknown): () => Captured {
   };
 }
 
+// Stub fetch with one canned error response.
+function stubErrorResponse(status: number, body: string, contentType = 'application/json; charset=utf-8'): void {
+  vi.stubGlobal(
+    'fetch',
+    vi.fn().mockResolvedValue(new Response(body, { status, headers: { 'Content-Type': contentType } })),
+  );
+}
+
 const organizationResponse = {
   data: { id: 'acme', type: 'organizations', attributes: { name: 'acme', 'external-id': 'org-1' } },
 };
 const runResponse = { data: { id: 'run-1', type: 'runs', attributes: { status: 'pending' } } };
+
+// The API has one error contract, the JSON:API error document, and the client reads that and
+// nothing else. A flat {"error": "..."} body has no producer on any route this client calls, so
+// it is treated like any other body the client does not understand: the status fallback.
+describe('error messages', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.restoreAllMocks();
+  });
+
+  it('takes the message from errors[0].detail and carries the status', async () => {
+    stubErrorResponse(
+      400,
+      JSON.stringify({
+        errors: [{ status: '400', title: 'Bad Request', detail: 'invalid cron expression: expected exactly 5 fields, found 4: [* * * *]' }],
+      }),
+    );
+
+    const failure: unknown = await organizationsApi.create({ name: 'acme' }).catch((err: unknown) => err);
+
+    expect(failure).toBeInstanceOf(Error);
+    expect((failure as Error).message).toBe('invalid cron expression: expected exactly 5 fields, found 4: [* * * *]');
+    expect((failure as Error & { status?: number }).status).toBe(400);
+  });
+
+  it('does not read a flat error key: the message is the status fallback', async () => {
+    stubErrorResponse(500, JSON.stringify({ error: 'x' }));
+
+    await expect(organizationsApi.create({ name: 'acme' })).rejects.toThrow('HTTP error! status: 500');
+  });
+
+  it('does not read a flat error key on a 401 either', async () => {
+    stubErrorResponse(401, JSON.stringify({ error: 'x' }));
+
+    const failure: unknown = await organizationsApi.create({ name: 'acme' }).catch((err: unknown) => err);
+
+    expect((failure as Error).message).toBe('Unauthorized');
+    expect((failure as Error & { status?: number }).status).toBe(401);
+  });
+
+  it('falls back to the status for a body that is not JSON', async () => {
+    stubErrorResponse(502, '<html>Bad Gateway</html>', 'text/html');
+
+    await expect(organizationsApi.create({ name: 'acme' })).rejects.toThrow('HTTP error! status: 502');
+  });
+
+  it('applies the same rule to the multipart uploads', async () => {
+    const file = new File(['x'], 'module.tar.gz');
+
+    stubErrorResponse(500, JSON.stringify({ error: 'x' }));
+    await expect(registryApi.modules.publishVersion('acme', 'vpc', 'aws', '1.0.0', file)).rejects.toThrow(
+      'HTTP error! status: 500',
+    );
+
+    stubErrorResponse(500, JSON.stringify({ error: 'x' }));
+    await expect(
+      registryApi.providers.publishPlatform('acme', 'private', 'acme', 'widget', '1.0.0', 'linux', 'amd64', file),
+    ).rejects.toThrow('HTTP error! status: 500');
+
+    stubErrorResponse(413, JSON.stringify({ errors: [{ status: '413', title: 'Request Entity Too Large', detail: 'request body too large' }] }));
+    await expect(registryApi.modules.publishVersion('acme', 'vpc', 'aws', '1.0.0', file)).rejects.toThrow(
+      'request body too large',
+    );
+  });
+});
 
 describe('organizationsApi.create', () => {
   beforeEach(() => {
