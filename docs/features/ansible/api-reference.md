@@ -288,7 +288,7 @@ POST /api/v2/ansible/inventories/:id/sources
 
 **Source Types**: `aws`, `azure`, `gcp`, `vmware`, `custom`
 
-A source is rejected with `400` when the credential it names does not exist or is of a type that does not match the source type, and the `detail` of the error says which.
+A source is rejected with `400`, on create and on update, when the credential it names does not exist in the inventory's organization or is of a type that does not match the source type, and the `detail` of the error says which. A sync holds the source to the same two rules, and a source whose credential does not meet them fails without authenticating.
 
 #### Azure authentication
 
@@ -510,6 +510,8 @@ POST /api/v2/organizations/:name/ansible/job-templates
 
 A job template holds a *set* of credentials rather than a single one: at most one per type, plus any number of vault credentials with distinct vault IDs. Sending the `credentials` relationship on create attaches them; sending it on update replaces the set wholesale, and an empty array clears it. Omitting it on update leaves the set untouched. The same set can also be managed one credential at a time through the attach and detach endpoints below.
 
+The playbook, the inventory and every credential a job template names must belong to the template's own organization. Creating or updating a template is rejected with `400` when one of them does not exist in that organization, and the `detail` of the error says which one was not found. Nothing is stored on a rejection.
+
 Launching snapshots the template's set onto the job, so the job records what it actually ran with. Editing a template afterwards never changes an already-launched job, and relaunching reproduces the original run rather than picking up the template's current credentials.
 
 ### Get Job Template
@@ -610,6 +612,8 @@ POST /api/v2/organizations/:name/ansible/jobs
   }
 }
 ```
+
+The optional `credentials` relationship names the credentials the job runs with, in the same form a job template takes. Every one of them must belong to the organization in the URL. A launch that names a credential the organization does not have is rejected with `400` and starts nothing.
 
 ### Get Job
 
@@ -740,7 +744,7 @@ DELETE /api/v2/ansible/schedules/:id
 POST /api/v2/ansible/schedules/:id/actions/enable
 ```
 
-Enabling a schedule recalculates its next run and launches nothing. A schedule whose job template is disabled can be enabled; each time it comes due the launch is refused and the schedule records a failed run.
+Enabling a schedule recalculates its next run and launches nothing. A schedule whose job template is disabled can be enabled; each time it comes due the launch is refused and the schedule records a failed run. A schedule whose target does not exist in the schedule's organization when it comes due starts nothing and records a failed run as well.
 
 ### Disable Schedule
 
@@ -878,7 +882,7 @@ POST   /api/v2/ansible/job-templates/:id/credentials
 DELETE /api/v2/ansible/job-templates/:id/credentials/:credential_id
 ```
 
-Manages the template's credential set. AWX semantics are enforced on attach: at most one credential per type, except vault credentials, which may repeat with distinct vault IDs (409 on conflict).
+Manages the template's credential set. AWX semantics are enforced on attach: at most one credential per type, except vault credentials, which may repeat with distinct vault IDs (409 on conflict). The credential must belong to the template's organization; attaching one that does not exist there is rejected with `400`.
 
 ### Template Access
 
