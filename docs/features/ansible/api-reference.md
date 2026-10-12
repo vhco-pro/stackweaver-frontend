@@ -701,9 +701,9 @@ POST /api/v2/organizations/:name/ansible/schedules
 }
 ```
 
-**Schedule Types**: `job_template`, `inventory_source`, `playbook_sync`
+**Schedule Types**: `job_template`, `inventory_source`, `playbook_sync`, `workflow`
 
-Creating a schedule is rejected with `400` when the cron expression or the timezone does not parse, or when the job template or playbook it names does not exist, and the `detail` of the error says which. Updating a schedule applies the same check to a new cron expression or timezone.
+Creating a schedule is rejected with `400` when the cron expression or the timezone does not parse, or when the job template, inventory source, playbook or workflow it names does not exist in the organization the schedule is created in, and the `detail` of the error says which. Updating a schedule applies the same check to a new cron expression or timezone.
 
 ### Get Schedule
 
@@ -728,6 +728,8 @@ DELETE /api/v2/ansible/schedules/:id
 ```
 POST /api/v2/ansible/schedules/:id/actions/enable
 ```
+
+Enabling a schedule recalculates its next run and launches nothing. A schedule whose job template is disabled can be enabled; each time it comes due the launch is refused and the schedule records a failed run.
 
 ### Disable Schedule
 
