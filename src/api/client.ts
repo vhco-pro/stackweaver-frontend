@@ -427,7 +427,10 @@ export const organizationsApi = {
       .get<{ data: JsonApiResource }>(`/organizations/${encodeURIComponent(name)}`)
       .then(res => organizationFromJsonApi(res.data)),
   // The endpoint accepts a JSON:API document only; a body without `data` is a 400. `description`
-  // is a Stackweaver attribute beside the ones Terraform Enterprise defines.
+  // is a Stackweaver attribute beside the ones Terraform Enterprise defines. The create form has
+  // no cost-estimation control, so the value is sent explicitly rather than left to the server's
+  // default for an absent attribute: a new organization starts with cost estimation off, and the
+  // organization settings page turns it on.
   create: (org: { name: string; description?: string }) =>
     apiClient
       .post<{ data: JsonApiResource }>('/organizations', {
@@ -436,6 +439,7 @@ export const organizationsApi = {
           attributes: {
             name: org.name,
             ...(org.description ? { description: org.description } : {}),
+            'cost-estimation-enabled': false,
           },
         },
       })

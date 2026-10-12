@@ -31,7 +31,7 @@ The **Allow user tokens** policy (`user_tokens_enabled`, default on) controls wh
 
 **Enforce health assessments** (`assessments_enforced`, default off) pulls every eligible workspace of the organization into drift detection, regardless of each workspace's own assessment or drift settings. Workspaces without a drift schedule of their own are checked on a default daily cadence; workspaces that already carry an explicit drift detection schedule keep it. A workspace-level opt-out is ignored while the organization enforces assessments - that is what enforcement means. Each drift check plans the workspace's latest configuration version against its current state, so a workspace that has never had a configuration uploaded is skipped until it has one.
 
-**Cost estimation** (`cost_estimation_enabled`, default on) is stored and round-trips through the provider; the estimation engine itself is under development and tracked separately, so the flag has no run-time effect yet.
+**Cost estimation** (`cost_estimation_enabled`, off unless turned on when the organization is created or in these settings) is stored and round-trips through the provider; the estimation engine itself is under development and tracked separately, so the flag has no run-time effect yet.
 
 ## Pull request behavior
 

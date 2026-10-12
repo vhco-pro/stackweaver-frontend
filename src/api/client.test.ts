@@ -134,17 +134,25 @@ describe('organizationsApi.create', () => {
     expect(request.url).toMatch(/\/organizations$/);
     expect(Object.keys(request.body)).toEqual(['data']);
     expect(request.body).toEqual({
-      data: { type: 'organizations', attributes: { name: 'acme', description: 'Platform team' } },
+      data: {
+        type: 'organizations',
+        attributes: { name: 'acme', description: 'Platform team', 'cost-estimation-enabled': false },
+      },
     });
     expect(org.name).toBe('acme');
   });
 
-  it('omits the description attribute when there is none', async () => {
+  // The create form has no cost-estimation control. The value is sent rather than left to the
+  // server's default for an absent attribute, so what the form creates does not move if that
+  // default does: a new organization starts with cost estimation off.
+  it('omits the description attribute when there is none, and always sends cost estimation off', async () => {
     const sent = captureRequest(organizationResponse);
 
     await organizationsApi.create({ name: 'acme' });
 
-    expect(sent().body).toEqual({ data: { type: 'organizations', attributes: { name: 'acme' } } });
+    expect(sent().body).toEqual({
+      data: { type: 'organizations', attributes: { name: 'acme', 'cost-estimation-enabled': false } },
+    });
   });
 });
 

@@ -895,7 +895,7 @@ DELETE /api/v2/organizations/:name/ansible/notification-attachments/:attachment_
 GET    /api/v2/ansible/job-templates/:id/notifications
 ```
 
-Attachments bind a channel to a job template or workflow with per-trigger flags (`on_started`, `on_success`, `on_failure`).
+Attachments bind a channel to a job template or workflow with per-trigger flags (`on_started`, `on_success`, `on_failure`). Each flag is stored as sent, so an attachment can fire on start only. An omitted `on_success` or `on_failure` is on, and an omitted `on_started` is off.
 
 ---
 
