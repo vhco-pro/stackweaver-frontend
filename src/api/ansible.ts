@@ -987,8 +987,17 @@ export const ansibleJobTemplatesApi = {
   deleteVariable: (templateId: string, variableId: string) =>
     apiClient.delete(`/ansible/job-templates/${templateId}/vars/${variableId}`),
 
-  launch: (id: string, overrides?: { 
-    extra_vars?: Record<string, unknown>; 
+  /**
+   * Launch a job from the template. Each override replaces the template's own value for this one
+   * launch: `extra_vars` is merged over the template's variables, and `limit`, `tags` and
+   * `skip_tags` replace the template's, the empty string included (that is how a launch runs
+   * without a limit the template has). An override left `undefined` keeps the template's value.
+   *
+   * The endpoint reads the overrides from a JSON:API document and refuses them as top-level
+   * keys; with no overrides the request carries no body.
+   */
+  launch: (id: string, overrides?: {
+    extra_vars?: Record<string, unknown>;
     limit?: string;
     tags?: string;
     skip_tags?: string;
@@ -996,6 +1005,18 @@ export const ansibleJobTemplatesApi = {
     apiClient.post<JsonApiResponse<JsonApiResource>>(
       `/ansible/job-templates/${id}/launch`,
       overrides
+        ? {
+            data: {
+              type: 'ansible-jobs',
+              attributes: {
+                'extra-vars': overrides.extra_vars,
+                limit: overrides.limit,
+                tags: overrides.tags,
+                'skip-tags': overrides.skip_tags,
+              },
+            },
+          }
+        : undefined
     ),
 };
 

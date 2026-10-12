@@ -71,7 +71,7 @@ In the Ansible area these are updating a schedule, validating a cron expression,
 
 Elsewhere they are `POST /api/v2/tokens`; creating a VCS connection, the repository, project, branch and file listings of a connection and the two install-URL endpoints; creating a registry module and deleting all modules; creating a state version, listing state versions and removing a resource from state; the list of platform variable names; and everything under `/api/v2/settings`, which covers the profile, two-factor setup, sessions and API keys. `GET /api/v2/activities` returns JSON:API resources with the different pagination block noted below.
 
-The explorer and the OpenAPI document show the exact response of each of these endpoints.
+The explorer and the OpenAPI document show the exact response of each of these endpoints, apart from `/api/v2/tokens` and those under `/api/v2/settings`, which are covered under [What it does not promise](#what-it-does-not-promise).
 
 ## What the schemas are derived from
 
@@ -84,6 +84,7 @@ That matters when you are deciding how much to trust it. A schema here cannot de
 A handful of things are honestly marked rather than quietly glossed:
 
 - **Five resource families are not present in the seeded data** the recordings were made against, so their routes are described from their not-found response rather than a populated one. They are VCS connections, state versions, configuration versions, plans and applies. The route, method and error shape are right; the success payload for those five is not yet described.
+- **The endpoints that manage your own account and credentials are described from their refusal.** Everything under `/api/v2/settings` manages the signed-in person's own account: the profile, the password, two-factor setup, sessions and API keys. `/api/v2/tokens` creates, lists and revokes that person's personal API tokens, and `POST /api/v2/oauth/authorize` is the step of `terraform login` that the browser performs. All of these require an interactive sign-in, and a request authenticated with an API token of any kind, personal tokens included, is answered `403 Forbidden` with a JSON:API error document. The recordings are made with an API token, so that `403` is the response the document records for them. The route, method and error shape are right; the success payloads are not described. Create and revoke API keys and personal tokens in the UI under **Settings**, or run `terraform login` to have the CLI obtain a personal token for you.
 - **The run log endpoints return plain text**, not JSON, and are documented as such.
 - **`GET /.well-known/jwks`** publishes key material that changes with each server process, so its schema is written out rather than recorded.
 - **One endpoint paginates differently.** Every collection returns the Terraform Enterprise `meta.pagination` block except `GET /api/v2/activities`, which reports `{limit, offset, total}` instead. The document records what each endpoint actually returns, and an integration test fails if a second one drifts.

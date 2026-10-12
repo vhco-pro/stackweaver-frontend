@@ -37,6 +37,8 @@ The workflow endpoints are:
 - `POST /api/v2/ansible/workflows/:id/launch` and `GET /api/v2/ansible/workflows/:id/jobs` - launch a workflow and list its runs
 - `PATCH/DELETE /api/v2/ansible/workflow-nodes/:id` and `DELETE /api/v2/ansible/workflow-edges/:id` - update or delete individual nodes and edges
 
+A `PATCH` on a workflow or on a node changes only the attributes its document carries and leaves the others as they are. An attribute sent with an empty string, `false` or `0` is stored as that value, and an empty `extra-vars` clears the variables.
+
 ### Launching from Repository Pushes
 
 Job templates can opt into launching automatically when the playbook's repository receives a push, from both GitHub and Azure DevOps webhooks. See the [changelog](./changelog.md) for this and the other job template controls (multiple credentials, timeouts, concurrency, job slicing, and provisioning callbacks).
