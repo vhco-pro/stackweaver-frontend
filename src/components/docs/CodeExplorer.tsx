@@ -230,7 +230,7 @@ export function CodeExplorer({ path, defaultFile = '', docsBase = '/docs' }: Cod
     queryFn: async (): Promise<string> => {
       const content = fileContent!;
       try {
-        const { codeToHtml } = await import('shiki');
+        const { codeToHtml } = await import('@/lib/highlighter');
         const theme = themeMode === 'dark' ? 'github-dark' : 'github-light';
         const lang = selectedLang === 'text' || !selectedLang ? 'plaintext' : selectedLang;
         return await codeToHtml(content, { lang, theme });

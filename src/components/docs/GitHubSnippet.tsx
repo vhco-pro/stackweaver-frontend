@@ -72,7 +72,7 @@ export function GitHubSnippet({ url, docsBase = '/docs' }: GitHubSnippetProps) {
     queryFn: async (): Promise<string> => {
       const content = snippet!.content;
       try {
-        const { codeToHtml } = await import('shiki');
+        const { codeToHtml } = await import('@/lib/highlighter');
         return await codeToHtml(content, {
           lang: snippet!.lang || 'text',
           theme: themeMode === 'dark' ? 'github-dark' : 'github-light',
