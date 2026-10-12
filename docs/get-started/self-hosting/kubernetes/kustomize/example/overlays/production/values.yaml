@@ -269,7 +269,9 @@ runnerWorkspaces:
   size: 10Gi
   storageClass: ""
   accessMode: ReadWriteMany
-  existingClaim: ""  # if set, skip PVC creation and use this pre-existing claim name
+  # The statically provisioned claim defined in pv-pvc.yaml. Set to "" to let the chart create
+  # a claim from storageClass instead.
+  existingClaim: runner-workspaces-pvc
 # ── Dependencies ──────────────────────────────────────────────────────────────
 #
 # For each dependency, set enabled=true to deploy it in-cluster (bundled),

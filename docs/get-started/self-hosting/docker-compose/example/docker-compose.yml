@@ -1,11 +1,16 @@
 # StackWeaver - Production Docker Compose
 # Uses pre-built container images from GHCR (no source code required).
 #
-# Quick start:
-#   1. cp .env.example .env
-#   2. docker compose up -d
-#   3. Wait for zitadel-init to complete (docker compose logs -f zitadel-init)
-#   4. Open http://localhost:5173
+# Quick start (the same commands as the guide, README.md one level up):
+#   cp .env.example .env
+#   cp sso.env.example sso.env
+#   cp vcs.env.example vcs.env
+#   cp oidc.env.example oidc.env
+#   sed -i.bak "s|^OIDC_SIGNING_KEY=.*|OIDC_SIGNING_KEY=$(openssl genrsa 2048 | openssl base64 -A)|" oidc.env
+#   sed -i.bak "s/^ENCRYPTION_KEY=.*/ENCRYPTION_KEY=$(openssl rand -hex 32)/" .env
+#   rm -f oidc.env.bak .env.bak
+#   docker compose up -d
+# Then follow zitadel-init (docker compose logs -f zitadel-init) and open http://localhost:5173.
 
 # Single user-defined bridge network. Services reach each other by Docker DNS
 # service name (postgres, redis, garage, zitadel, api, ...), and only the three
@@ -122,12 +127,16 @@ services:
     image: ghcr.io/zitadel/zitadel:latest
     container_name: zitadel
     restart: unless-stopped
+    # tlsMode decides the scheme of the issuer Zitadel puts in every token. `disabled` serves
+    # plain HTTP, which is right for http://localhost:8080 and matches ZITADEL_ISSUER, so the API
+    # accepts the tokens. Behind a reverse proxy that terminates TLS, set ZITADEL_TLS_MODE=external
+    # in .env (together with ExternalSecure in zitadel-defaults.yaml and an https ZITADEL_ISSUER).
     command: >
       start-from-init
       --config /etc/zitadel/defaults.yaml
       --steps /etc/zitadel/init-steps.yaml
       --masterkey "${ZITADEL_MASTERKEY:-LfcvxoyK4yAwsyp5WYeA3siK61yl7064}"
-      --tlsMode external
+      --tlsMode ${ZITADEL_TLS_MODE:-disabled}
     env_file:
       - ./.env
     environment:
@@ -207,6 +216,11 @@ services:
       # tie this file to wherever that image happens to put it, and an explicitly-set path to a
       # missing file is fatal by design.
       LOG_LEVEL: ${LOG_LEVEL:-info}
+      # Compose fixes this container's environment when `docker compose up` starts, before
+      # zitadel-init has generated the client IDs and the login service token. The API therefore
+      # reads .env itself when it starts, by which time zitadel-init has finished (see depends_on),
+      # and the values in the file win. That is what makes a single `docker compose up -d` enough.
+      STACKWEAVER_ENV_FILE: /config/stackweaver/.env
       # Database. These must track the postgres service's own POSTGRES_* values - with no config
       # file in play, environment variables are the API's only source for them.
       DATABASE_HOST: postgres
@@ -220,8 +234,9 @@ services:
       ZITADEL_LOGIN_SERVICE_USER_TOKEN: ${ZITADEL_LOGIN_SERVICE_USER_TOKEN:-}
       ZITADEL_INTERNAL_ADDR: zitadel:8080
       # The auth proxy reaches Zitadel as zitadel:8080, a Host no instance domain matches, so it
-      # names the instance with this header. zitadel-init writes ZITADEL_EXTERNAL_HOST to .env
-      # (the ExternalDomain, including localhost); it also makes IdP callbacks use that domain.
+      # names the instance with this header. Compose assembles it here from ZITADEL_EXTERNAL_HOST,
+      # so that key must hold your ExternalDomain in .env before the first start (.env.example
+      # ships localhost); it also makes IdP callbacks use that domain.
       CUSTOM_REQUEST_HEADERS: "x-zitadel-instance-host:${ZITADEL_EXTERNAL_HOST:-}"
       CORS_EXTRA_ORIGINS: ${CORS_EXTRA_ORIGINS:-}
       ZITADEL_WEBHOOK_IDP_SYNC_KEY: ${ZITADEL_WEBHOOK_IDP_SYNC_KEY:-}
@@ -241,10 +256,14 @@ services:
       # GITHUB_APP_ID: ${GITHUB_APP_ID:-}
       # GITHUB_APP_NAME: ${GITHUB_APP_NAME:-}
       # GITHUB_APP_PRIVATE_KEY_PATH: /etc/github-app-private-key.pem
-      # GITHUB_WEBHOOK_SECRET: ${GITHUB_WEBHOOK_SECRET:-}
-    # Uncomment to mount GitHub App private key:
-    # volumes:
-    #   - ./github-app-private-key.pem:/etc/github-app-private-key.pem:ro
+      # The webhook secret is read from vcs.env; do not set it here.
+    volumes:
+      # Read at startup through STACKWEAVER_ENV_FILE (see above). The directory is mounted, not
+      # the file: an editor that saves by replacing .env would leave a single-file mount pointing
+      # at the old copy.
+      - .:/config/stackweaver:ro
+      # Uncomment to mount GitHub App private key:
+      # - ./github-app-private-key.pem:/etc/github-app-private-key.pem:ro
     depends_on:
       postgres:
         condition: service_healthy
@@ -256,56 +275,68 @@ services:
         condition: service_completed_successfully
       garage-init:
         condition: service_completed_successfully
-    healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8022/health"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
     networks: [stackweaver]
     ports:
-      - "8022:8022"  # published: the browser and CLI call the API directly
+      - "8022:8022"  # published for CLI clients and webhooks; the browser reaches the API through the frontend
+
+  # Writes env.js, the frontend's runtime configuration, once zitadel-init has generated the
+  # client ID. The frontend image has no shell, so it cannot do this itself.
+  frontend-config:
+    image: alpine:3.24
+    container_name: frontend-config
+    # Same user as zitadel-init, so env.js belongs to you like .env does.
+    user: "${UID:-1000}:${GID:-1000}"
+    depends_on:
+      zitadel-init:
+        condition: service_completed_successfully
+    restart: "no"
+    network_mode: none
+    environment:
+      VITE_API_URL: ${VITE_API_URL:-http://localhost:5173/api/v2}
+      VITE_ZITADEL_REDIRECT_URI: ${VITE_ZITADEL_REDIRECT_URI:-http://localhost:5173/auth/callback}
+    volumes:
+      - .:/work
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        set -eu
+        client_id="$$(sed -n 's/^ZITADEL_FRONTEND_CLIENT_ID=//p' /work/.env | tail -n 1)"
+        if [ -z "$$client_id" ]; then
+          echo "ZITADEL_FRONTEND_CLIENT_ID is not in .env: zitadel-init has not written it" >&2
+          exit 1
+        fi
+        # Docker leaves a directory here if the frontend was ever started before this file
+        # existed; it has to go before the file can be written.
+        if [ -d /work/env.js ]; then rmdir /work/env.js; fi
+        # Written in place (no rename), so a running frontend's mount keeps pointing at it.
+        cat > /work/env.js << EOF
+        window.__STACKWEAVER__ = {
+          VITE_API_URL: "$$VITE_API_URL",
+          VITE_ZITADEL_CLIENT_ID: "$$client_id",
+          VITE_ZITADEL_REDIRECT_URI: "$$VITE_ZITADEL_REDIRECT_URI",
+        };
+        EOF
+        chmod 644 /work/env.js
+        echo "wrote env.js for client $$client_id"
 
   frontend:
     image: ghcr.io/vhco-pro/stackweaver-frontend:latest
     container_name: frontend
     restart: unless-stopped
-    env_file:
-      - ./.env
-    environment:
-      VITE_API_URL: ${VITE_API_URL:-http://localhost:8022/api/v2}
-      VITE_ZITADEL_CLIENT_ID: ${ZITADEL_FRONTEND_CLIENT_ID:-}
-      VITE_ZITADEL_REDIRECT_URI: ${VITE_ZITADEL_REDIRECT_URI:-http://localhost:5173/auth/callback}
-    entrypoint: ["/bin/sh", "-c"]
-    command:
-      - |
-        # Generate env.js with runtime configuration
-        cat > /usr/share/nginx/html/env.js << EOF
-        window.__STACKWEAVER__ = {
-          VITE_API_URL: "$$VITE_API_URL",
-          VITE_ZITADEL_CLIENT_ID: "$$VITE_ZITADEL_CLIENT_ID",
-          VITE_ZITADEL_REDIRECT_URI: "$$VITE_ZITADEL_REDIRECT_URI",
-        };
-        EOF
-        # Serve the SPA on 5173 so the published port, the healthcheck and
-        # VITE_ZITADEL_REDIRECT_URI all agree. The image ships its SPA config as
-        # nginx.default.conf (see frontend/Dockerfile) - not the stock default.conf.
-        sed -i 's/listen 8080;/listen 5173;/' /etc/nginx/conf.d/nginx.default.conf
-        exec nginx -g 'daemon off;'
+    volumes:
+      # Runtime configuration, written by frontend-config. Short syntax on purpose: it is
+      # resolved when this container starts, after frontend-config has run.
+      - ./env.js:/usr/share/nginx/html/env.js:ro
+      # Serves the API under this origin; see the file for why.
+      - ./frontend-proxy.conf:/etc/nginx/stackweaver.d/api-proxy.conf:ro
     depends_on:
+      frontend-config:
+        condition: service_completed_successfully
       api:
         condition: service_started
-      zitadel:
-        condition: service_started
-      zitadel-init:
-        condition: service_completed_successfully
-    healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:5173/health"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
     networks: [stackweaver]
     ports:
-      - "5173:5173"  # published: this is the app itself
+      - "5173:8080"  # published: this is the app itself (the image listens on 8080)
 
   orchestrator:
     image: ghcr.io/vhco-pro/stackweaver-orchestrator:latest
