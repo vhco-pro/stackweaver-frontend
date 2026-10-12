@@ -82,9 +82,8 @@ class ApiClient {
         // Handle 401 unauthorized - don't auto-redirect, let AuthContext handle it
         if (response.status === 401) {
           const errorData = await response.json().catch(() => ({}));
-          // #757: errors arrive as the JSON:API envelope; the legacy `error` member is kept as
-          // a fallback only for the OAuth endpoints, whose RFC 6749 shape still uses it.
-          const error = new Error(errorData.errors?.[0]?.detail || errorData.error || 'Unauthorized');
+          // Errors arrive as the JSON:API error document, and that is the only shape read here.
+          const error = new Error(errorData.errors?.[0]?.detail || 'Unauthorized');
           (error as Error & { status?: number }).status = 401;
           throw error;
         }
@@ -92,7 +91,7 @@ class ApiClient {
         if (!response.ok) {
           const errorData = await response.json().catch(() => ({}));
           // Handle v2 error format: { errors: [{ detail: "...", ... }] }
-          const errorMessage = errorData.errors?.[0]?.detail || errorData.error || `HTTP error! status: ${response.status}`;
+          const errorMessage = errorData.errors?.[0]?.detail || `HTTP error! status: ${response.status}`;
           const error = new Error(errorMessage);
           (error as Error & { status?: number }).status = response.status;
           throw error;
@@ -3367,7 +3366,7 @@ export const registryApi = {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        const errorMessage = errorData.errors?.[0]?.detail || errorData.error || `HTTP error! status: ${response.status}`;
+        const errorMessage = errorData.errors?.[0]?.detail || `HTTP error! status: ${response.status}`;
         throw new Error(errorMessage);
       }
 
@@ -3447,7 +3446,7 @@ export const registryApi = {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        const errorMessage = errorData.errors?.[0]?.detail || errorData.error || `HTTP error! status: ${response.status}`;
+        const errorMessage = errorData.errors?.[0]?.detail || `HTTP error! status: ${response.status}`;
         throw new Error(errorMessage);
       }
 
