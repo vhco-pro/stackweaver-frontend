@@ -912,6 +912,20 @@ Attachments bind a channel to a job template or workflow with per-trigger flags 
 
 ---
 
+## Workflows
+
+```
+POST /api/v2/organizations/:name/ansible/workflows
+POST /api/v2/ansible/workflows/:id/nodes
+POST /api/v2/ansible/workflows/:id/edges
+```
+
+A workflow is a graph of nodes joined by edges that say which node follows which. A node's `node-type` is one of `job_template`, `workflow`, `inventory_sync` or `approval`, and an edge's `condition` is one of `on_success`, `on_failure` or `always`; any other value is rejected with `400`.
+
+Everything a workflow names must belong to the workflow's own organization. Creating a workflow is rejected with `400` when its project or inventory does not exist in that organization, creating a node is rejected with `400` when its job template, inventory or credential does not, and creating an edge is rejected with `400` unless both of its ends are nodes of the workflow in the URL. The `detail` of the error says which one was not found.
+
+---
+
 ## Workflow Execution
 
 ```
@@ -925,6 +939,8 @@ POST /api/v2/ansible/workflow-node-jobs/:id/deny
 Launching snapshots the workflow graph into a run; the run detail lists per-node status with links to launched jobs. Approval nodes pause the run until approved or denied (an optional timeout auto-denies). Launch, approve, and deny require execute permission on the workflow's project.
 
 The launch body is optional. A request with no body starts the run with the workflow's own variables, and a body of the form `{"extra_vars": {"key": "value"}}` merges those variables over them. A body that cannot be read as that object, such as malformed JSON or an `extra_vars` that is not an object, is answered with `400` and starts no run.
+
+A run holds every node to the organization rule at the moment it starts the node. A node that names a job template, an inventory source, an inventory or a credential outside the workflow's organization fails without starting anything, and the run continues along that node's failure edges. A workflow whose own project or inventory is outside its organization is not launched at all.
 
 ---
 

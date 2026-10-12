@@ -2,7 +2,7 @@
 
 // eslint-disable-next-line no-restricted-imports -- legitimate dependency-based effect
 import { useEffect, useMemo, useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useParams, useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { 
   ansibleJobTemplatesApi,
@@ -208,6 +208,11 @@ export default function JobTemplateDetail() {
   const { orgName, templateId } = useParams<{ orgName: string; templateId: string }>();
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  // The job templates list (JobTemplates.tsx) caches the organization's templates and jobs under
+  // this key and renders from it. Whatever this page changes that the list shows has to reach
+  // that entry, or a client-side return to the list inside the stale window shows the old state.
+  const listQueryKey = ['jobTemplates', orgName];
 
   const [activeTab, setActiveTab] = useState('overview');
   const { canManageJobTemplates } = usePermissions(orgName || '');
@@ -485,6 +490,8 @@ export default function JobTemplateDetail() {
       
       await ansibleJobTemplatesApi.update(template.id, updateData);
       await refetch();
+      // The list shows the name, the description and the enabled badge.
+      void queryClient.invalidateQueries({ queryKey: listQueryKey });
       setEditDialogOpen(false);
       toast.success('Job template updated successfully');
     } catch (err: unknown) {
@@ -503,6 +510,9 @@ export default function JobTemplateDetail() {
     try {
       await ansibleJobTemplatesApi.delete(template.id);
       toast.success('Job template deleted successfully');
+      // Dropped rather than marked out of date: the list this moves to must not show the
+      // deleted template first and lose it a moment later.
+      queryClient.removeQueries({ queryKey: listQueryKey });
       void Promise.resolve(navigate(`/app/${orgName}/ansible/job-templates`));
     } catch (err: unknown) {
       console.error('Failed to delete job template:', err);
@@ -548,6 +558,11 @@ export default function JobTemplateDetail() {
       const job = getAnsibleJobFromJsonApi(res.data);
       toast.success('Job launched successfully');
       setLaunchDialogOpen(false);
+      // The launch added a job: this page lists it under "Recent Jobs" and the list shows it as
+      // the template's last run. Without this, the Back button returns to a page that is up to
+      // thirty seconds behind (#896).
+      void queryClient.invalidateQueries({ queryKey: ['jobTemplateDetail', template.id] });
+      void queryClient.invalidateQueries({ queryKey: listQueryKey });
       // Navigate to the job detail page
       void Promise.resolve(navigate(`/app/${orgName}/ansible/jobs/${job.id}`));
     } catch (err: unknown) {

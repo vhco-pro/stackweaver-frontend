@@ -139,12 +139,27 @@ export default [
   // dev stack and silently renders plain text on every real deployment. A syntax selector rather
   // than `no-restricted-imports`, because that rule does not see dynamic import(), which is how
   // every call site loads the highlighter. Last in the list so no override above switches it off.
+  //
+  // A query that is not read (#896). A `useQuery` whose `data` nobody takes can only do its work
+  // by writing component state from inside `queryFn`, and that state lives in the instance that
+  // ran the fetch: the cache holds nothing useful, so a second mount inside the stale window
+  // fetches nothing and renders empty. The job templates list did exactly that after a launch and
+  // the Back button. The two selectors are the two shapes it took: the call as a bare statement,
+  // and a destructuring that takes `isLoading` or `refetch` and leaves `data`. Return the data
+  // from `queryFn` and render from it; change it through `queryClient.setQueryData` or
+  // `invalidateQueries`.
   {
     files: ['**/*.{ts,tsx}'],
     rules: {
       'no-restricted-syntax': ['error', {
         selector: ':matches(ImportExpression, ImportDeclaration)[source.value=/^shiki(\\/(bundle\\/.+|wasm|engine\\/oniguruma))?$/]',
         message: "Import the highlighter from '@/lib/highlighter'. The 'shiki' entry needs WebAssembly, which the production Content Security Policy blocks, so it only appears to work on the dev stack.",
+      }, {
+        selector: 'ExpressionStatement > CallExpression[callee.name="useQuery"]',
+        message: "This query's result is discarded, so it can only work by setting state inside queryFn, which a cached remount never runs. Return the data from queryFn and render from the query's `data`.",
+      }, {
+        selector: 'VariableDeclarator[init.callee.name="useQuery"] > ObjectPattern:not(:has(> Property[key.name="data"]))',
+        message: "This query's `data` is never read, so it can only work by setting state inside queryFn, which a cached remount never runs. Return the data from queryFn and render from the query's `data`.",
       }],
     },
   },

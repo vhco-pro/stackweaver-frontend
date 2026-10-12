@@ -37,7 +37,9 @@ The workflow endpoints are:
 - `POST /api/v2/ansible/workflows/:id/launch` and `GET /api/v2/ansible/workflows/:id/jobs` - launch a workflow and list its runs
 - `PATCH/DELETE /api/v2/ansible/workflow-nodes/:id` and `DELETE /api/v2/ansible/workflow-edges/:id` - update or delete individual nodes and edges
 
-A `PATCH` on a workflow or on a node changes only the attributes its document carries and leaves the others as they are. An attribute sent with an empty string, `false` or `0` is stored as that value, and an empty `extra-vars` clears the variables.
+A `PATCH` on a workflow or on a node changes only the attributes its document carries and leaves the others as they are. An attribute sent with an empty string, `false` or `0` is stored as that value, and an empty `extra-vars` clears the variables. The name is the exception, because a workflow must have one: an empty name is rejected with `400` when a workflow is created and when a `PATCH` carries it.
+
+On a workflow and on a node, `extra-vars` is a JSON object sent as a string. A value that is not empty and is not a JSON object, such as text that is not JSON or a JSON list, is rejected with `400`, and so is an inventory, job template or credential relationship whose identifier is not a UUID. Nothing is stored when a request is rejected.
 
 ### Launching from Repository Pushes
 

@@ -15,4 +15,6 @@ docker-release-action/
 .playwright-mcp/
 .tmp/
 logger/
+runner-images/ansible/.venv/
+runner-images/ansible/tests/
 docs/internal/
