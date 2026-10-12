@@ -102,6 +102,8 @@ POST /api/v2/organizations/:name/ansible/inventories
 }
 ```
 
+A VCS inventory names its connection in the `vcs_connection` relationship. The connection must belong to the inventory's own organization: creating or updating an inventory is rejected with `400` and the detail `VCS connection not found` when the connection does not exist in that organization, and nothing is stored.
+
 ### Get Inventory
 
 ```
@@ -223,6 +225,8 @@ POST /api/v2/ansible/inventories/:id/groups
   }
 }
 ```
+
+A group can be nested under another by naming it in the `parent` relationship, on create and on update. The parent must be a group of the same inventory: a request that names any other group is rejected with `400` and the detail `parent group not found`, and nothing is stored.
 
 ### Get Group
 
@@ -429,6 +433,8 @@ POST /api/v2/organizations/:name/ansible/playbooks
   }
 }
 ```
+
+The VCS connection a playbook names must belong to the playbook's own organization. Creating or updating a playbook is rejected with `400` and the detail `VCS connection not found` when the connection does not exist in that organization, and nothing is stored.
 
 ### Get Playbook
 
@@ -862,7 +868,7 @@ Returns one sync run including its captured `output`. While the run is still act
 POST /api/v2/ansible/inventories/:id/actions/run-command
 ```
 
-Runs a single module against the inventory through the normal job pipeline. Attributes: `module` (must be in the organization's allowlist), `module-args`, `limit`, `credential-id`, `agent-pool-id` (omit for platform runners), `verbosity`, `forks`, `become-enabled`, `extra-vars`, and `project-id` (defaults to the inventory's project or the organization's default project). Requires the dedicated `ansible:adhoc:execute` permission. Returns the created job.
+Runs a single module against the inventory through the normal job pipeline. Attributes: `module` (must be in the organization's allowlist), `module-args`, `limit`, `credential-id`, `agent-pool-id` (omit for platform runners), `verbosity`, `forks`, `become-enabled`, `extra-vars`, and `project-id` (defaults to the inventory's project or the organization's default project). Requires the dedicated `ansible:adhoc:execute` permission. Returns the created job. The credential, the agent pool and the project the request names must belong to the inventory's organization; one that does not exist there is rejected with `400`, and the detail says which one was not found.
 
 ### List Allowed Modules
 
