@@ -27,12 +27,13 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from 'sonner';
 import { Loader2, GitBranch, Plus, CheckCircle2 } from 'lucide-react';
 import { getVcsProviderIcon, getVcsProviderLabel, getVcsManageUrl } from '@/lib/vcs';
-import { workspacesApi, vcsConnectionsApi, projectsApi, agentPoolsApi, terraformVersionsApi, type VCSConnection, type Repository, type Branch, type Project, type AgentPool, type TerraformVersionResource } from '@/api/client';
+import { workspacesApi, vcsConnectionsApi, projectsApi, agentPoolsApi, terraformVersionsApi } from '@/api/client';
 import { VCSProviderSelector } from '@/components/vcs/VCSProviderSelector';
 import { VCSProjectSelect } from '@/components/vcs/VCSProjectSelect';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
-import { autoFillWorkspaceName } from './CreateWorkspaceDialog.helpers';
+import { autoFillWorkspaceName, resolveBranch, resolveProjectId } from './CreateWorkspaceDialog.helpers';
+import { dedupeVcsConnections } from './EditWorkspaceDialog.helpers';
 
 interface CreateWorkspaceDialogProps {
   open: boolean;
@@ -53,7 +54,9 @@ export function CreateWorkspaceDialog({
   // Form state
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
-  const [selectedProjectId, setSelectedProjectId] = useState<string>(projectId || '');
+  // The project and the branch the user picked, '' until they pick one. What the form shows and
+  // submits is derived below (resolveProjectId, resolveBranch), never stored from a query.
+  const [selectedProjectId, setSelectedProjectId] = useState<string>('');
   const [vcsConnectionId, setVcsConnectionId] = useState<string>('');
   const [selectedVcsProject, setSelectedVcsProject] = useState<string>('');
   const [selectedRepository, setSelectedRepository] = useState<string>('');
@@ -67,19 +70,14 @@ export function CreateWorkspaceDialog({
   const [executionMode, setExecutionMode] = useState('remote');
   const [agentPoolId, setAgentPoolId] = useState('');
 
-  // Data state
-  const [projects, setProjects] = useState<Project[]>([]);
-  const [vcsConnections, setVcsConnections] = useState<VCSConnection[]>([]);
-  const [repositories, setRepositories] = useState<Repository[]>([]);
-  const [branches, setBranches] = useState<Branch[]>([]);
-  const [agentPools, setAgentPools] = useState<AgentPool[]>([]);
-  const [availableTfVersions, setAvailableTfVersions] = useState<TerraformVersionResource[]>([]);
   const [repositorySearch, setRepositorySearch] = useState<string>('');
   const [repositorySelectOpen, setRepositorySelectOpen] = useState(false);
   const repositorySearchInputRef = useRef<HTMLInputElement>(null);
 
-  // Load projects, VCS connections, agent pools, and terraform versions when dialog opens
-  const { isLoading: loadingVCS } = useQuery({
+  // Projects, VCS connections, agent pools and OpenTofu versions, loaded when the dialog opens.
+  // All three queries return what they loaded and the lists are read from the query result: a
+  // query function that stored them in state would leave them empty whenever the cache answers.
+  const { data: dialogData, isLoading: loadingVCS } = useQuery({
     queryKey: ['workspace-dialog-data', orgName],
     queryFn: async () => {
       if (!orgName || orgName.trim() === '') {
@@ -96,50 +94,33 @@ export function CreateWorkspaceDialog({
         agentPoolsApi.list(orgName),
       ]);
 
-      const tfVersions = Array.isArray(tfRes?.data) ? tfRes.data : [];
-      setAvailableTfVersions(tfVersions);
-
-      const projectsList = projectsRes?.data || [];
-      setProjects(projectsList);
-
-      const connections = Array.isArray(vcsRes) ? vcsRes : [];
-      const uniqueConnections = Array.from(
-        new Map(
-          connections.map(conn => [
-            `${conn.provider}-${conn.account_name}-${conn.account_type}`,
-            conn
-          ])
-        ).values()
-      );
-      setVcsConnections(uniqueConnections);
-      setAgentPools(Array.isArray(poolsRes?.data) ? poolsRes.data : []);
-
-      // Set default project
-      if (projectId && !selectedProjectId) {
-        setSelectedProjectId(projectId);
-      } else if (projectsList.length > 0 && !selectedProjectId) {
-        const defaultProject = projectsList.find(p => p.name.toLowerCase() === 'default');
-        setSelectedProjectId(defaultProject ? defaultProject.id : projectsList[0].id);
-      }
-
-      return { tfVersions, projectsList, uniqueConnections };
+      return {
+        tfVersions: Array.isArray(tfRes?.data) ? tfRes.data : [],
+        projects: projectsRes?.data || [],
+        vcsConnections: dedupeVcsConnections(Array.isArray(vcsRes) ? vcsRes : []),
+        agentPools: Array.isArray(poolsRes?.data) ? poolsRes.data : [],
+      };
     },
     enabled: open && !!orgName,
   });
+  const availableTfVersions = dialogData?.tfVersions ?? [];
+  const projects = dialogData?.projects ?? [];
+  const vcsConnections = dialogData?.vcsConnections ?? [];
+  const agentPools = dialogData?.agentPools ?? [];
+  const effectiveProjectId = resolveProjectId(selectedProjectId, projectId, projects);
 
   // Load repositories when VCS connection is selected
-  const { isLoading: loadingRepos } = useQuery({
+  const { data: repositories = [], isLoading: loadingRepos } = useQuery({
     queryKey: ['vcs-repositories', vcsConnectionId, selectedVcsProject],
     queryFn: async () => {
       const repos = await vcsConnectionsApi.listAllRepositories(vcsConnectionId, selectedVcsProject || undefined);
-      setRepositories(repos || []);
-      return repos;
+      return repos || [];
     },
     enabled: !!vcsConnectionId && open,
   });
 
   // Load branches when repository is selected
-  const { isLoading: loadingBranches } = useQuery({
+  const { data: branches = [], isLoading: loadingBranches } = useQuery({
     queryKey: ['vcs-branches', vcsConnectionId, selectedRepository],
     queryFn: async () => {
       const connection = vcsConnections.find(c => c.id === vcsConnectionId);
@@ -149,21 +130,15 @@ export function CreateWorkspaceDialog({
       if (!owner || repo === undefined) return [];
 
       const brs = await vcsConnectionsApi.listBranches(vcsConnectionId, owner, repo);
-      setBranches(brs || []);
-
-      // Set default branch if available
-      const repoData = repositories.find(r => r.full_name === selectedRepository);
-      const defaultBranch = repoData?.default_branch;
-      if (defaultBranch && (brs || []).some(b => b.name === defaultBranch)) {
-        setSelectedBranch(defaultBranch);
-      } else if (brs && brs.length > 0) {
-        setSelectedBranch(brs[0].name);
-      }
-
-      return brs;
+      return brs || [];
     },
     enabled: !!selectedRepository && !!vcsConnectionId && open,
   });
+  const effectiveBranch = resolveBranch(
+    selectedBranch,
+    repositories.find(r => r.full_name === selectedRepository),
+    branches,
+  );
 
   // Auto-fill the workspace name from a repository the user picks, only when the
   // name field is still empty (don't overwrite typed input). Handled at the
@@ -194,13 +169,13 @@ export function CreateWorkspaceDialog({
       return;
     }
 
-    if (!selectedProjectId) {
+    if (!effectiveProjectId) {
       toast.error('Project is required');
       return;
     }
 
     // If VCS connection is selected, repository and branch are required
-    if (vcsConnectionId && (!selectedRepository || !selectedBranch)) {
+    if (vcsConnectionId && (!selectedRepository || !effectiveBranch)) {
       toast.error('Repository and branch are required when VCS connection is selected');
       return;
     }
@@ -211,10 +186,10 @@ export function CreateWorkspaceDialog({
       const workspace = await workspacesApi.create(orgName, {
         name: name.trim(),
         description: description.trim() || undefined,
-        project_id: selectedProjectId,
+        project_id: effectiveProjectId,
         vcs_connection_id: vcsConnectionId || undefined,
         vcs_repository: selectedRepository || undefined,
-        vcs_branch: selectedBranch || undefined,
+        vcs_branch: effectiveBranch || undefined,
         working_directory: workingDirectory.trim() || undefined,
         terraform_version: terraformVersion || undefined,
         auto_queue_runs: vcsConnectionId ? autoQueueRuns : undefined,
@@ -296,7 +271,7 @@ export function CreateWorkspaceDialog({
           <div className="space-y-2">
             <Label htmlFor="project">Project *</Label>
             <Select
-              value={selectedProjectId}
+              value={effectiveProjectId}
               onValueChange={setSelectedProjectId}
               required
             >
@@ -496,7 +471,7 @@ export function CreateWorkspaceDialog({
                 </div>
               ) : (
                 <Select
-                  value={selectedBranch}
+                  value={effectiveBranch}
                   onValueChange={setSelectedBranch}
                   required
                 >
