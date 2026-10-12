@@ -134,4 +134,18 @@ export default [
       'no-restricted-imports': 'off',
     },
   },
+  // One highlighter (#870). The `shiki` package entry, its bundles and its Oniguruma engine
+  // highlight with WebAssembly, which the production CSP forbids: a direct import works on the
+  // dev stack and silently renders plain text on every real deployment. A syntax selector rather
+  // than `no-restricted-imports`, because that rule does not see dynamic import(), which is how
+  // every call site loads the highlighter. Last in the list so no override above switches it off.
+  {
+    files: ['**/*.{ts,tsx}'],
+    rules: {
+      'no-restricted-syntax': ['error', {
+        selector: ':matches(ImportExpression, ImportDeclaration)[source.value=/^shiki(\\/(bundle\\/.+|wasm|engine\\/oniguruma))?$/]',
+        message: "Import the highlighter from '@/lib/highlighter'. The 'shiki' entry needs WebAssembly, which the production Content Security Policy blocks, so it only appears to work on the dev stack.",
+      }],
+    },
+  },
 ]

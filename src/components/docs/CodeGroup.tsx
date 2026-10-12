@@ -99,7 +99,7 @@ export function CodeGroup({ children, languages, defaultTab = 0 }: CodeGroupProp
         const lang = getLanguage(i);
 
         try {
-          const { codeToHtml } = await import('shiki');
+          const { codeToHtml } = await import('@/lib/highlighter');
           const currentMode: 'dark' | 'light' =
             typeof document !== 'undefined' && document.documentElement.classList.contains('dark') ? 'dark' : 'light';
 

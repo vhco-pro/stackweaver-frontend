@@ -65,7 +65,7 @@ function CodeBlock({
 
     const loadHighlightedCode = async () => {
       try {
-        const { codeToHtml } = await import('shiki');
+        const { codeToHtml } = await import('@/lib/highlighter');
 
         const highlighted = await codeToHtml(displayCode, {
           lang,

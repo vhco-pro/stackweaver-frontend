@@ -167,7 +167,7 @@ function HclTypeDisplay({ code }: { code: string }) {
   useEffect(() => {
     void (async () => {
       try {
-        const { codeToHtml } = await import('shiki');
+        const { codeToHtml } = await import('@/lib/highlighter');
         
         // Get current theme mode dynamically
         const currentMode: 'dark' | 'light' =
@@ -185,7 +185,7 @@ function HclTypeDisplay({ code }: { code: string }) {
       } catch {
         // If HCL language is not supported, try terraform
         try {
-          const { codeToHtml } = await import('shiki');
+          const { codeToHtml } = await import('@/lib/highlighter');
           
           // Get current theme mode dynamically
           const currentMode: 'dark' | 'light' =

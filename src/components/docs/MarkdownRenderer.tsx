@@ -683,7 +683,7 @@ export function MarkdownRenderer({
 
       void (async () => {
         try {
-          const { codeToHtml } = await import('shiki');
+          const { codeToHtml, isUnknownLanguageError } = await import('@/lib/highlighter');
           const currentMode: 'dark' | 'light' =
             typeof document !== 'undefined' && document.documentElement.classList.contains('dark') ? 'dark' : 'light';
           const theme = currentMode === 'dark' ? 'github-dark' : 'github-light';
@@ -694,8 +694,7 @@ export function MarkdownRenderer({
             try {
               results[hash] = await codeToHtml(code, { lang: highlightLang, theme });
             } catch (langError: unknown) {
-              const msg = langError instanceof Error ? langError.message : String(langError);
-              if (msg.includes('is not included in this bundle') && highlightLang !== 'plaintext') {
+              if (isUnknownLanguageError(langError) && highlightLang !== 'plaintext') {
                 try {
                   results[hash] = await codeToHtml(code, { lang: 'plaintext', theme });
                 } catch {
