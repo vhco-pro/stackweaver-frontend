@@ -540,12 +540,23 @@ POST /api/v2/ansible/job-templates/:id/launch
 
 ```json
 {
-  "extra-vars": {
-    "app_version": "1.1.0"
-  },
-  "limit": "webservers:&production"
+  "data": {
+    "type": "ansible-jobs",
+    "attributes": {
+      "extra-vars": {
+        "app_version": "1.1.0"
+      },
+      "limit": "webservers:&production",
+      "tags": "deploy",
+      "skip-tags": "test"
+    }
+  }
 }
 ```
+
+The body is optional. A request with no body, or with an empty object, launches the job with the template's own values. Each attribute the document carries replaces the template's value for that one launch and leaves the template unchanged. `extra-vars` is merged over the template's variables key by key, so a key the launch does not mention keeps the template's value. `limit`, `tags` and `skip-tags` replace the template's value outright, and an empty string counts as a value: sending `"limit": ""` runs the job without the limit the template carries, while leaving `limit` out keeps it. When the template is sliced, every slice of the launch carries the same overrides.
+
+A body that is not this document is answered with `400` and launches nothing. That covers malformed JSON, a document whose `data.type` is not `ansible-jobs`, and the override names sent as top-level keys (`extra_vars`, `limit`, `tags`, `skip_tags`) instead of under `data.attributes`.
 
 ---
 
@@ -912,6 +923,8 @@ POST /api/v2/ansible/workflow-node-jobs/:id/deny
 ```
 
 Launching snapshots the workflow graph into a run; the run detail lists per-node status with links to launched jobs. Approval nodes pause the run until approved or denied (an optional timeout auto-denies). Launch, approve, and deny require execute permission on the workflow's project.
+
+The launch body is optional. A request with no body starts the run with the workflow's own variables, and a body of the form `{"extra_vars": {"key": "value"}}` merges those variables over them. A body that cannot be read as that object, such as malformed JSON or an `extra_vars` that is not an object, is answered with `400` and starts no run.
 
 ---
 

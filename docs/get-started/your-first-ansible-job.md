@@ -89,9 +89,9 @@ You can also set optional settings like forks (how many servers to run on simult
 Now let's execute the job:
 
 1. Open your job template
-2. Click "Launch Job"
-3. Review the settings (you can override inventory, credentials, or variables here)
-4. Click "Launch"
+2. Click "Launch"
+3. Review the settings. The dialog opens with the template's limit, tags, skip tags and extra variables filled in, and whatever you change applies to this run only. Emptying a field runs the job without that setting.
+4. Click "Launch Job"
 
 The job will start running and you'll see live output.
 

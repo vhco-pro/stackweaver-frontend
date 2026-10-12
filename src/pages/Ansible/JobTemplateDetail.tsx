@@ -518,22 +518,32 @@ export default function JobTemplateDetail() {
 
     setLaunching(true);
     try {
-      let parsedExtraVars: unknown = undefined;
+      let parsedExtraVars: Record<string, unknown> | undefined = undefined;
       if (launchOverrides.extra_vars.trim()) {
+        let parsed: unknown;
         try {
-          parsedExtraVars = JSON.parse(launchOverrides.extra_vars) as unknown;
+          parsed = JSON.parse(launchOverrides.extra_vars) as unknown;
         } catch {
           toast.error('Invalid JSON in extra variables');
           setLaunching(false);
           return;
         }
+        if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
+          toast.error('Extra variables must be a JSON object');
+          setLaunching(false);
+          return;
+        }
+        parsedExtraVars = parsed as Record<string, unknown>;
       }
 
+      // The dialog opens with the template's limit, tags and skip tags filled in, so the three
+      // fields are sent as they stand: the job runs with what the dialog shows, and a field the
+      // user emptied drops the template's value instead of silently falling back to it.
       const res = await ansibleJobTemplatesApi.launch(template.id, {
-        extra_vars: parsedExtraVars as Record<string, unknown> | undefined,
-        limit: launchOverrides.limit || undefined,
-        tags: launchOverrides.tags || undefined,
-        skip_tags: launchOverrides.skip_tags || undefined,
+        extra_vars: parsedExtraVars,
+        limit: launchOverrides.limit,
+        tags: launchOverrides.tags,
+        skip_tags: launchOverrides.skip_tags,
       });
       const job = getAnsibleJobFromJsonApi(res.data);
       toast.success('Job launched successfully');
