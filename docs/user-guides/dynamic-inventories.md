@@ -189,7 +189,7 @@ The most important distinction between the methods is whether they require your 
 
 ### Cloud Credentials
 
-Alternatively, you can create an Azure, AWS, or GCP credential in Stackweaver's Credentials section and attach it to your inventory source. For Azure this is the Service Principal method (client ID, secret, tenant); it works on a fully private deployment because the runner authenticates outbound to Entra, at the cost of storing a long-lived secret. The credential's secret values are injected as environment variables at sync time.
+Alternatively, you can create an Azure, AWS, or GCP credential in Stackweaver's Credentials section and attach it to your inventory source. For Azure this is the Service Principal method (client ID, secret, tenant); it works on a fully private deployment because the runner authenticates outbound to Entra, at the cost of storing a long-lived secret. The credential's secret values are injected as environment variables at sync time. A GCP credential is a service account key: the runner writes it to a file for the duration of the sync and the `gcp_compute` plugin reads it as Application Default Credentials. A GCP source with no credential attached uses the identity of the machine the runner is on instead, such as GKE Workload Identity.
 
 ### Choosing a method on a private deployment
 
@@ -224,8 +224,8 @@ Every sync run is recorded on the inventory's Syncs tab, whether it was started 
 
 Each dynamic source carries its own sync behavior settings, editable on the source dialog:
 
-- **Update on launch** syncs the source before every job that runs against the inventory. The job is created held and dispatches automatically once the sync finishes, so it always runs against fresh data. The **cache timeout** (seconds) skips that pre-launch sync while the last successful sync is newer than the window, which keeps frequent launches from hammering your cloud APIs.
-- **Overwrite** removes hosts and groups that this source previously discovered but the provider no longer reports. Pruning is strictly scoped to rows owned by the source - manually created entries and rows discovered by other sources of the same inventory are never touched, so several sources (each with its own credential or Azure subscription) can safely feed one inventory.
+- **Update on launch** syncs the source before every job that runs against the inventory. The job is created held and dispatches automatically once the sync finishes, so it runs against fresh data. If that sync fails, the job still dispatches and runs against the hosts the last successful sync recorded; the failure is shown on the source and in the Syncs tab, not on the job. The **cache timeout** (seconds) skips that pre-launch sync while the last successful sync is newer than the window, which keeps frequent launches from hammering your cloud APIs.
+- **Overwrite** removes hosts and groups that this source previously discovered but the provider no longer reports. Pruning is strictly scoped to rows owned by the source - manually created entries and rows discovered by other sources of the same inventory are never touched, so several sources (each with its own credential or Azure subscription) can safely feed one inventory. Overwrite acts only on a sync that succeeded. A sync whose plugin fails (rejected credentials, an unreachable endpoint, a configuration the plugin refuses) is recorded as failed with the plugin's error and changes nothing: every host and group the source owns stays as the last successful sync left it. A sync that reaches the provider and is told there are no hosts is a success, and with overwrite on it removes everything the source owned, so a filter that matches nothing empties the source's part of the inventory.
 - **Overwrite variables** replaces a host's variables wholesale on each sync. When it is off (the default), synced variables are merged into the existing ones - synced values win per key, but variables you added manually survive.
 
 ## Running Ad Hoc Commands
@@ -234,7 +234,7 @@ The Run Command button on the inventory detail page runs a single Ansible module
 
 ## Constructed Inventories
 
-A constructed inventory combines other inventories instead of querying a provider. When you create an inventory with the Constructed type, you pick the input inventories in order and optionally write `ansible.builtin.constructed` rules - `compose` derives new host variables, `groups` assigns membership by Jinja condition, and `keyed_groups` creates a group per value of a host variable. An optional limit pattern keeps only matching hosts. The constructed inventory rebuilds from its inputs before every job launch (bounded by its cache timeout) and on demand with the Rebuild button; each build appears in the Syncs tab with its full plugin output, which is the place to debug rule errors. Input inventories must belong to the same organization, cannot themselves be constructed, and cannot be deleted while a constructed inventory uses them.
+A constructed inventory combines other inventories instead of querying a provider. When you create an inventory with the Constructed type, you pick the input inventories in order and optionally write `ansible.builtin.constructed` rules - `compose` derives new host variables, `groups` assigns membership by Jinja condition, and `keyed_groups` creates a group per value of a host variable. An optional limit pattern keeps only matching hosts. The constructed inventory rebuilds from its inputs before every job launch (bounded by its cache timeout) and on demand with the Rebuild button; each build appears in the Syncs tab with its full plugin output, which is the place to debug rule errors. A build whose rules the plugin rejects, or whose input cannot be read, is recorded as failed and leaves the hosts and groups of the last successful build in place. Input inventories must belong to the same organization, cannot themselves be constructed, and cannot be deleted while a constructed inventory uses them.
 
 ## Deleting an Inventory
 
@@ -304,6 +304,8 @@ For credential-based auth, verify the client secret has not expired and the cred
 
 Check that the `include_vm_resource_groups` setting in your inventory file includes the resource groups where VMs are deployed. Using `'*'` includes all resource groups. Also verify that VMs are in a `running` power state, deallocated VMs may not appear depending on your plugin configuration.
 
+A GCP source lists instances project by project. If its configuration names no project, the sync succeeds, contacts nothing and finds no hosts, so a green sync of such a source says nothing about its credential. Set `projects` in the source's configuration.
+
 ### Sync shows warnings about deprecated options
 
-Some plugin options change between Ansible collection versions. Warnings about deprecated options do not prevent host discovery. Click the amber sync icon in the inventory's tab bar to open the Syncs tab, where you can read and copy the warnings and update your inventory file to use the recommended alternatives.
+Some plugin options change between Ansible collection versions. Warnings about deprecated options do not prevent host discovery. A source configured in the UI can show one too, whatever its settings, because some plugins print a deprecation notice of their own on every run: `amazon.aws.aws_ec2` about its `tags` host variable, and `google.cloud.gcp_compute` about an Ansible function it imports. An AWS or GCP source's sync therefore always carries that warning. Click the amber sync icon in the inventory's tab bar to open the Syncs tab, where you can read and copy the warnings and update your inventory file to use the recommended alternatives.

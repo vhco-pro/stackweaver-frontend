@@ -1,7 +1,7 @@
 // Copyright (c) 2025 VH & Co BV. Licensed under the Business Source License 1.1. See LICENSE for details.
 
 import { useState, useMemo } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link, useParams, useNavigate } from 'react-router-dom';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { usePermissions } from '@/hooks/usePermissions';
@@ -124,41 +124,43 @@ function getStatusStyles(status: string) {
   }
 }
 
+/** What the list query holds: the organization's templates, and its jobs for the "last run". */
+interface JobTemplatesListData {
+  templates: AnsibleJobTemplate[];
+  jobs: AnsibleJob[];
+}
+
+/** What the create dialog's pickers offer. */
+interface JobTemplateFormData {
+  playbooks: AnsiblePlaybook[];
+  inventories: AnsibleInventory[];
+  credentials: AnsibleCredential[];
+  agentPools: AgentPool[];
+}
+
+// Stable fallbacks for the time before a query has data, so that memoised values derived from
+// them do not change identity on every render.
+const NO_TEMPLATES: AnsibleJobTemplate[] = [];
+const NO_JOBS: AnsibleJob[] = [];
+
 export default function JobTemplates() {
   const { orgName } = useParams<{ orgName: string }>();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const { currentOrg } = useOrganization();
   const selectedOrg = orgName || currentOrg?.name || '';
   const { canManageJobTemplates, canExecuteJobs } = usePermissions(selectedOrg);
 
-  const [templates, setTemplates] = useState<AnsibleJobTemplate[]>([]);
-  const [jobs, setJobs] = useState<AnsibleJob[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [tplPage, setTplPage] = useState(1);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [templateToDelete, setTemplateToDelete] = useState<AnsibleJobTemplate | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [launching, setLaunching] = useState<string | null>(null);
-  
-  // Map template IDs to their last job
-  const lastJobByTemplate = useMemo(() => {
-    const map = new Map<string, AnsibleJob>();
-    // Jobs are typically returned sorted by created_at desc, so first match is latest
-    for (const job of jobs) {
-      if (job.job_template_id && !map.has(job.job_template_id)) {
-        map.set(job.job_template_id, job);
-      }
-    }
-    return map;
-  }, [jobs]);
-  
+
   // Create dialog state
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [creating, setCreating] = useState(false);
-  const [playbooks, setPlaybooks] = useState<AnsiblePlaybook[]>([]);
-  const [inventories, setInventories] = useState<AnsibleInventory[]>([]);
-  const [credentials, setCredentials] = useState<AnsibleCredential[]>([]);
-  const [agentPools, setAgentPools] = useState<AgentPool[]>([]);
   const [createForm, setCreateForm] = useState({
     name: '',
     description: '',
@@ -171,39 +173,76 @@ export default function JobTemplates() {
   });
   const [playbookSelection, setPlaybookSelection] = useState<PlaybookSelection>(null);
 
-  // Fetch templates and jobs
-  const { isLoading: loading, isError: loadFailed } = useQuery({
-    queryKey: ['jobTemplates', selectedOrg],
-    queryFn: async () => {
+  // Templates and jobs. The query returns what it fetched and the page renders from the query's
+  // data: a query function that stored the lists in component state and returned nothing left
+  // the cache empty, so a second mount inside the stale window (a launch, then Back) fetched
+  // nothing and listed nothing (#896). The handlers below change the list through the cache for
+  // the same reason.
+  const listQueryKey = ['jobTemplates', selectedOrg];
+  const { data: listData, isLoading: loading, isError: loadFailed } = useQuery({
+    queryKey: listQueryKey,
+    queryFn: async (): Promise<JobTemplatesListData> => {
       const [templatesRes, jobsRes] = await Promise.all([
         fetchAllPages((page, pageSize) => ansibleJobTemplatesApi.listByOrganization(selectedOrg, { page, pageSize })),
         fetchAllPages((page, pageSize) => ansibleJobsApi.listByOrganization(selectedOrg, { page, pageSize })),
       ]);
-      setTemplates(templatesRes.items.map(getAnsibleJobTemplateFromJsonApi));
-      setJobs(jobsRes.items.map(getAnsibleJobFromJsonApi));
-      return null;
+      return {
+        templates: templatesRes.items.map(getAnsibleJobTemplateFromJsonApi),
+        jobs: jobsRes.items.map(getAnsibleJobFromJsonApi),
+      };
     },
     enabled: !!selectedOrg,
   });
+  const templates = listData?.templates ?? NO_TEMPLATES;
+  const jobs = listData?.jobs ?? NO_JOBS;
 
-  // Fetch playbooks, inventories, credentials, and agent pools when create dialog opens
-  useQuery({
-    queryKey: ['jobTemplateFormData', selectedOrg, createDialogOpen],
-    queryFn: async () => {
+  // Map template IDs to their last job
+  const lastJobByTemplate = useMemo(() => {
+    const map = new Map<string, AnsibleJob>();
+    // Jobs are typically returned sorted by created_at desc, so first match is latest
+    for (const job of jobs) {
+      if (job.job_template_id && !map.has(job.job_template_id)) {
+        map.set(job.job_template_id, job);
+      }
+    }
+    return map;
+  }, [jobs]);
+
+  // Playbooks, inventories, credentials and agent pools for the create dialog, fetched when it
+  // first opens. Whether the dialog is open decides when the query runs and is not part of its
+  // key, so reopening the dialog reads the same entry.
+  const formDataQueryKey = ['jobTemplateFormData', selectedOrg];
+  const { data: formData } = useQuery({
+    queryKey: formDataQueryKey,
+    queryFn: async (): Promise<JobTemplateFormData> => {
       const [playbooksRes, inventoriesRes, credentialsRes, agentPoolsRes] = await Promise.all([
         fetchAllPages((page, pageSize) => ansiblePlaybooksApi.listByOrganization(selectedOrg, { page, pageSize })),
         fetchAllPages((page, pageSize) => ansibleInventoriesApi.list(selectedOrg, { page, pageSize })),
         fetchAllPages((page, pageSize) => ansibleCredentialsApi.list(selectedOrg, undefined, { page, pageSize })),
         agentPoolsApi.list(selectedOrg),
       ]);
-      setPlaybooks(playbooksRes.items.map(getAnsiblePlaybookFromJsonApi));
-      setInventories(inventoriesRes.items.map(getAnsibleInventoryFromJsonApi));
-      setCredentials(credentialsRes.items.map(getAnsibleCredentialFromJsonApi));
-      setAgentPools(agentPoolsRes.data || []);
-      return null;
+      return {
+        playbooks: playbooksRes.items.map(getAnsiblePlaybookFromJsonApi),
+        inventories: inventoriesRes.items.map(getAnsibleInventoryFromJsonApi),
+        credentials: credentialsRes.items.map(getAnsibleCredentialFromJsonApi),
+        agentPools: agentPoolsRes.data || [],
+      };
     },
     enabled: createDialogOpen && !!selectedOrg,
   });
+  const playbooks = formData?.playbooks ?? [];
+  const inventories = formData?.inventories ?? [];
+  const credentials = formData?.credentials ?? [];
+  const agentPools = formData?.agentPools ?? [];
+
+  // A launch adds a job, which the list shows as the template's last run and the template's own
+  // page (JobTemplateDetail, keyed ['jobTemplateDetail', templateId, orgName]) lists under
+  // "Recent Jobs". Both are marked out of date; the list refetches at once while it is mounted,
+  // and the returned promise settles when it has.
+  const invalidateAfterLaunch = (templateId: string) => {
+    void queryClient.invalidateQueries({ queryKey: ['jobTemplateDetail', templateId] });
+    return queryClient.invalidateQueries({ queryKey: listQueryKey });
+  };
 
   // Filter templates
   const filteredTemplates = templates.filter((tpl) =>
@@ -249,7 +288,11 @@ export default function JobTemplates() {
         become: createForm.become,
       });
       const newTemplate = getAnsibleJobTemplateFromJsonApi(res.data);
-      setTemplates([...templates, newTemplate]);
+      queryClient.setQueryData<JobTemplatesListData>(listQueryKey, (old) =>
+        old ? { ...old, templates: [...old.templates, newTemplate] } : old);
+      // Saving a repository file registers it as a playbook, so the pickers' options may have
+      // grown and are fetched again.
+      void queryClient.invalidateQueries({ queryKey: formDataQueryKey });
       setCreateDialogOpen(false);
       setCreateForm({
         name: '',
@@ -278,7 +321,9 @@ export default function JobTemplates() {
     setDeleting(true);
     try {
       await ansibleJobTemplatesApi.delete(templateToDelete.id);
-      setTemplates(templates.filter((tpl) => tpl.id !== templateToDelete.id));
+      const deletedId = templateToDelete.id;
+      queryClient.setQueryData<JobTemplatesListData>(listQueryKey, (old) =>
+        old ? { ...old, templates: old.templates.filter((tpl) => tpl.id !== deletedId) } : old);
       setDeleteDialogOpen(false);
       setTemplateToDelete(null);
       toast.success('Job template deleted successfully');
@@ -291,12 +336,14 @@ export default function JobTemplates() {
     }
   };
 
-  // Launch and navigate to job
   const handleToggleEnabled = async (template: AnsibleJobTemplate) => {
     try {
       const res = await ansibleJobTemplatesApi.update(template.id, { enabled: !template.enabled });
       const updated = getAnsibleJobTemplateFromJsonApi(res.data);
-      setTemplates(templates.map((tpl) => (tpl.id === template.id ? updated : tpl)));
+      queryClient.setQueryData<JobTemplatesListData>(listQueryKey, (old) =>
+        old ? { ...old, templates: old.templates.map((tpl) => (tpl.id === template.id ? updated : tpl)) } : old);
+      // The template's own page shows the same switch.
+      void queryClient.invalidateQueries({ queryKey: ['jobTemplateDetail', template.id] });
       toast.success(`Template ${updated.enabled ? 'enabled' : 'disabled'}`);
     } catch (err: unknown) {
       console.error('Failed to toggle template:', err);
@@ -304,12 +351,16 @@ export default function JobTemplates() {
     }
   };
 
+  // Launch and navigate to job
   const handleLaunch = async (template: AnsibleJobTemplate) => {
     setLaunching(template.id);
     try {
       const response = await ansibleJobTemplatesApi.launch(template.id);
       const job = getAnsibleJobFromJsonApi(response.data);
       toast.success('Job launched successfully');
+      // Not awaited: the move to the job page does not wait for the list. The refetch carries
+      // on after this page is gone, so the Back button returns to a list that has the new job.
+      void invalidateAfterLaunch(template.id);
       void Promise.resolve(navigate(`/app/${selectedOrg}/ansible/jobs/${job.id}`));
     } catch (err: unknown) {
       console.error('Failed to launch job:', err);
@@ -326,9 +377,8 @@ export default function JobTemplates() {
     try {
       await ansibleJobTemplatesApi.launch(template.id);
       toast.success('Job launched in background');
-      // Refresh jobs list to show the new job
-      const jobsRes = await fetchAllPages((page, pageSize) => ansibleJobsApi.listByOrganization(selectedOrg, { page, pageSize }));
-      setJobs(jobsRes.items.map(getAnsibleJobFromJsonApi));
+      // Refresh the list to show the new job as the template's last run
+      await invalidateAfterLaunch(template.id);
     } catch (err: unknown) {
       console.error('Failed to launch job:', err);
       const errorMessage = err instanceof Error ? err.message : 'Failed to launch job';

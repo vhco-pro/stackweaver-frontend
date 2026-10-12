@@ -1,7 +1,7 @@
 // Copyright (c) 2025 VH & Co BV. Licensed under the Business Source License 1.1. See LICENSE for details.
 
 import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useParams } from 'react-router-dom';
 import { FileText, Save, Trash2, Loader2, Building2, FolderKanban, Info, Terminal } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -65,25 +65,43 @@ pipelining = True
 ssh_args = -o ControlMaster=auto -o ControlPersist=60s
 `;
 
+/** The organization's Ansible settings as the two inputs on this page show them. */
+interface OrgAnsibleSettings {
+  retentionDays: string;
+  adhocModules: string;
+}
+
 export default function AnsibleConfiguration() {
   const { orgName } = useParams<{ orgName: string }>();
-  const [retentionDays, setRetentionDays] = useState('');
-  const [retentionDirty, setRetentionDirty] = useState(false);
+  const queryClient = useQueryClient();
   const [savingRetention, setSavingRetention] = useState(false);
-  const [adhocModules, setAdhocModules] = useState('');
-  const [adhocDirty, setAdhocDirty] = useState(false);
   const [savingAdhoc, setSavingAdhoc] = useState(false);
 
-  useQuery({
-    queryKey: ['ansibleOrgRetention', orgName],
-    queryFn: async () => {
+  // The query returns the stored values and the inputs read them from its data. A query function
+  // that wrote them into component state and returned nothing left the cache empty, so a second
+  // mount inside the stale window fetched nothing and showed both inputs blank (#896).
+  const orgSettingsQueryKey = ['ansibleOrgRetention', orgName];
+  const { data: orgSettings } = useQuery({
+    queryKey: orgSettingsQueryKey,
+    queryFn: async (): Promise<OrgAnsibleSettings> => {
       const org = await organizationsApi.get(orgName!);
-      setRetentionDays(org.ansible_job_retention_days == null ? '90' : String(org.ansible_job_retention_days));
-      setAdhocModules(org.ansible_adhoc_modules || '');
-      return null;
+      return {
+        retentionDays: org.ansible_job_retention_days == null ? '90' : String(org.ansible_job_retention_days),
+        adhocModules: org.ansible_adhoc_modules || '',
+      };
     },
     enabled: !!orgName,
   });
+
+  // Each input shows the user's unsaved edit while there is one, and the stored value otherwise.
+  // A save writes the stored value into the cache and drops the edit, each field on its own, so
+  // saving one never touches an unsaved edit of the other.
+  const [retentionDraft, setRetentionDraft] = useState<string | null>(null);
+  const retentionDays = retentionDraft ?? orgSettings?.retentionDays ?? '';
+  const retentionDirty = retentionDraft !== null;
+  const [adhocDraft, setAdhocDraft] = useState<string | null>(null);
+  const adhocModules = adhocDraft ?? orgSettings?.adhocModules ?? '';
+  const adhocDirty = adhocDraft !== null;
 
   const handleSaveAdhocModules = async () => {
     if (!orgName) return;
@@ -95,7 +113,9 @@ export default function AnsibleConfiguration() {
           attributes: { 'ansible-adhoc-modules': adhocModules },
         },
       });
-      setAdhocDirty(false);
+      queryClient.setQueryData<OrgAnsibleSettings>(orgSettingsQueryKey, (old) =>
+        old ? { ...old, adhocModules } : old);
+      setAdhocDraft(null);
       toast.success('Ad hoc module allowlist updated');
     } catch (err: unknown) {
       console.error('Failed to update ad hoc modules:', err);
@@ -115,7 +135,10 @@ export default function AnsibleConfiguration() {
           attributes: { 'ansible-job-retention-days': Number(retentionDays) },
         },
       });
-      setRetentionDirty(false);
+      const stored = String(Number(retentionDays));
+      queryClient.setQueryData<OrgAnsibleSettings>(orgSettingsQueryKey, (old) =>
+        old ? { ...old, retentionDays: stored } : old);
+      setRetentionDraft(null);
       toast.success('Job retention updated');
     } catch (err: unknown) {
       console.error('Failed to update retention:', err);
@@ -428,7 +451,7 @@ export default function AnsibleConfiguration() {
                     min="0"
                     className="w-40"
                     value={retentionDays}
-                    onChange={(e) => { setRetentionDays(e.target.value); setRetentionDirty(true); }}
+                    onChange={(e) => { setRetentionDraft(e.target.value); }}
                   />
                 </div>
                 <GradientButton
@@ -469,7 +492,7 @@ export default function AnsibleConfiguration() {
                     id="adhoc-modules"
                     placeholder="command,shell,ping,setup,..."
                     value={adhocModules}
-                    onChange={(e) => { setAdhocModules(e.target.value); setAdhocDirty(true); }}
+                    onChange={(e) => { setAdhocDraft(e.target.value); }}
                   />
                 </div>
                 <GradientButton

@@ -176,9 +176,10 @@ flowchart TD
 <summary><strong>Reconciliation semantics (Legend)</strong></summary>
 
 1. **Source ownership** - dynamic sources stamp the hosts and groups they discover. With *overwrite* on, a source prunes only its own rows when the provider stops reporting them; manual entries and other sources' rows are never touched.
-2. **Variable merging** - by default synced host variables merge into existing ones (your manual keys survive); *overwrite variables* switches to wholesale replacement.
-3. **Constructed inventories** - wholly own their derived hosts and groups: every rebuild replaces the materialized set from the inputs and rules.
-4. **History and live tail** - each run records who triggered it (manual, schedule, launch, workflow, webhook), host/group counts, duration, and the full diagnostics; raise the source's verbosity for more detail.
+2. **A failed run reconciles nothing** - for a dynamic source sync and for a constructed inventory build, the runner tells `ansible-inventory` to exit non-zero when it cannot parse any one of the sources it was given (rejected credentials, an unreachable endpoint, a configuration the plugin refuses, an input it cannot read). Such a run is recorded as failed with the plugin's error in its output, and the rows stay as the last successful run left them. A run that succeeds with no hosts is a different outcome: with *overwrite* on it prunes everything the source owned.
+3. **Variable merging** - by default synced host variables merge into existing ones (your manual keys survive); *overwrite variables* switches to wholesale replacement.
+4. **Constructed inventories** - wholly own their derived hosts and groups: every rebuild replaces the materialized set from the inputs and rules.
+5. **History and live tail** - each run records who triggered it (manual, schedule, launch, workflow, webhook), host/group counts, duration, and the full diagnostics; raise the source's verbosity for more detail.
 
 </details>
 
@@ -212,6 +213,7 @@ flowchart TD
 2. **Single start** - nodes are claimed atomically, so a tick racing an approval click cannot start the same node twice.
 3. **Skipped paths** - when an edge condition is not met, the unreachable subtree is marked skipped rather than left dangling.
 4. **Approvals** - pending approvals surface in the run dialog with Approve/Deny; an optional timeout auto-denies.
+5. **Organization boundary** - a node starts only when everything it names belongs to the workflow's organization. A node that names anything else fails without starting a job or a sync, and the run follows its failure edges.
 
 </details>
 
