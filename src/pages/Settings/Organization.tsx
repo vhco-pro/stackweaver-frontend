@@ -250,7 +250,7 @@ export default function OrganizationSettings() {
             id="cost-estimation"
             label="Cost estimation"
             description="Estimate the cost of planned changes. The estimation engine is under development - this setting is stored for TFE compatibility."
-            checked={org.cost_estimation_enabled ?? true}
+            checked={org.cost_estimation_enabled ?? false}
             disabled={busy}
             onToggle={(value) => { toggleFlag('cost-estimation-enabled', value); }}
           />
