@@ -111,6 +111,55 @@ describe('workspacesApi.get', () => {
   });
 });
 
+// The create and edit workspace dialogs send the "Allow destroy plans" checkbox through these two
+// calls. The attribute is go-tfe's name for it, and false has to reach the wire as false: a
+// client that dropped a falsy value would create a workspace with the setting on.
+describe('workspacesApi.create and update: allow-destroy-plan', () => {
+  beforeEach(() => {
+    vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+  });
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.restoreAllMocks();
+  });
+
+  const workspaceResponse = {
+    data: { id: 'ws-abc', type: 'workspaces', attributes: { name: 'network' } },
+  };
+  const attributesOf = (body: Record<string, unknown>) =>
+    (body.data as { attributes: Record<string, unknown> }).attributes;
+
+  it.each([false, true])('create sends allow-destroy-plan %s', async (value) => {
+    const sent = captureRequest(workspaceResponse);
+
+    await workspacesApi.create('acme', { name: 'network', allow_destroy_plan: value });
+
+    const request = sent();
+    expect(request.method).toBe('POST');
+    expect(request.url).toMatch(/\/organizations\/acme\/workspaces$/);
+    expect(attributesOf(request.body)['allow-destroy-plan']).toBe(value);
+  });
+
+  it.each([false, true])('update sends allow-destroy-plan %s', async (value) => {
+    const sent = captureRequest(workspaceResponse);
+
+    await workspacesApi.update('acme', 'network', { allow_destroy_plan: value });
+
+    const request = sent();
+    expect(request.method).toBe('PATCH');
+    expect(request.url).toMatch(/\/organizations\/acme\/workspaces\/network$/);
+    expect(attributesOf(request.body)).toEqual({ 'allow-destroy-plan': value });
+  });
+
+  it('update leaves the attribute out when it is not given, so the setting is left alone', async () => {
+    const sent = captureRequest(workspaceResponse);
+
+    await workspacesApi.update('acme', 'network', { description: 'core network' });
+
+    expect(attributesOf(sent().body)).toEqual({ description: 'core network' });
+  });
+});
+
 describe('runsApi.create', () => {
   beforeEach(() => {
     vi.spyOn(console, 'warn').mockImplementation(() => undefined);

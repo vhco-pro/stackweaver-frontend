@@ -199,7 +199,7 @@ describe('CreateRunDialog: a workspace that does not allow destroy plans (AC15)'
 
     expect(destroyChoice()).toBeDisabled();
     expect(dialog().getByText(
-      'Destroy plans are not allowed on this workspace. Turn on allow-destroy-plan in the workspace settings to queue one.',
+      'Destroy plans are not allowed on this workspace. Turn on Allow destroy plans under Edit to queue one.',
     )).toBeInTheDocument();
     expect(dialog().queryByText('Remove all managed resources')).toBeNull();
   });

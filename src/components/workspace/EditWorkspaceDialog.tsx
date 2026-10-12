@@ -116,6 +116,8 @@ function EditWorkspaceFormBody({
   const [terraformVersion, setTerraformVersion] = useState(workspace.terraform_version || '');
   const [autoQueueRuns, setAutoQueueRuns] = useState(workspace.auto_queue_runs || false);
   const [autoApply, setAutoApply] = useState(workspace.auto_apply || false);
+  // On unless the workspace says otherwise, the same reading the new-run dialog uses.
+  const [allowDestroyPlan, setAllowDestroyPlan] = useState(workspace.allow_destroy_plan !== false);
   const [executionMode, setExecutionMode] = useState(workspace.execution_mode || 'remote');
   const [agentPoolId, setAgentPoolId] = useState(workspace.agent_pool_id || '');
   const [forceDelete, setForceDelete] = useState(workspace.force_delete || false);
@@ -236,6 +238,7 @@ function EditWorkspaceFormBody({
         terraform_version: terraformVersion || undefined,
         auto_queue_runs: autoQueueRuns,
         auto_apply: autoApply,
+        allow_destroy_plan: allowDestroyPlan,
         execution_mode: executionMode,
         agent_pool_id: executionMode === 'agent' && agentPoolId ? agentPoolId : null,
         force_delete: forceDelete,
@@ -635,6 +638,21 @@ function EditWorkspaceFormBody({
         {/* Destruction and Deletion */}
         <div className="space-y-2 rounded-md border border-destructive/20 bg-destructive/5 p-3">
           <Label className="text-sm font-medium text-destructive">Destruction and Deletion</Label>
+          {/* The label is the control's name on its own; the rest of the sentence is its
+              description, so the row reads like force delete below it while assistive technology
+              and tests reach it as "Allow destroy plans". */}
+          <div className="flex items-center space-x-2">
+            <Checkbox
+              id="edit-allow-destroy-plan"
+              checked={allowDestroyPlan}
+              onCheckedChange={(checked) => setAllowDestroyPlan(checked === true)}
+              aria-describedby="edit-allow-destroy-plan-help"
+            />
+            <p className="text-sm font-medium">
+              <Label htmlFor="edit-allow-destroy-plan" className="cursor-pointer">Allow destroy plans</Label>
+              <span id="edit-allow-destroy-plan-help"> - permits destroy runs to be queued on this workspace</span>
+            </p>
+          </div>
           <div className="flex items-center space-x-2">
             <Checkbox
               id="edit-force-delete"

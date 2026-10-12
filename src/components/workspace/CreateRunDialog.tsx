@@ -158,7 +158,7 @@ export function CreateRunDialog({ open, onOpenChange, workspace, isCreatingRun, 
                   <span className={cn('text-xs font-normal', destroyAllowed && 'opacity-80')}>
                     {destroyAllowed
                       ? 'Remove all managed resources'
-                      : 'Destroy plans are not allowed on this workspace. Turn on allow-destroy-plan in the workspace settings to queue one.'}
+                      : 'Destroy plans are not allowed on this workspace. Turn on Allow destroy plans under Edit to queue one.'}
                   </span>
                 </div>
               </Button>

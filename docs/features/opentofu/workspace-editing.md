@@ -23,6 +23,7 @@ These changes don't impact existing infrastructure state:
 - **OpenTofu Version**: Which OpenTofu version to use for runs
 - **Auto Queue Runs**: Automatically trigger runs when code is pushed to the repository
 - **Auto Apply**: Automatically apply plans that complete successfully
+- **Allow Destroy Plans**: Whether destroy runs can be queued on the workspace. Turning it off disables the Destroy choice in the New run dialog and makes the API refuse a destroy run for the workspace; other runs are not affected
 - **Execution Mode**: Choose between `remote` (platform-managed runners), `local`, or `agent` modes
 - **Run Timeout**: Maximum duration for apply operations (in seconds)
 
