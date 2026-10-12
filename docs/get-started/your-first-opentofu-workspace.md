@@ -70,6 +70,8 @@ Now for the main event - creating your workspace.
 6. Set the working directory (leave blank if your configuration is in the repo root)
 7. Add a description if helpful
 
+The dialog also has an **Allow destroy plans** checkbox, which is checked by default. Leave it checked unless you want the workspace to refuse destroy runs; you can change it later from the workspace's **Edit** dialog.
+
 The workspace will be created and ready to use.
 
 ## Step 5: Configure Variables (If Needed)

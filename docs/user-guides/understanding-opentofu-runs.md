@@ -26,7 +26,7 @@ The **New run** button on a workspace page opens a dialog with three choices. **
 
 A destroy is never queued from a single click. Choosing **Destroy** asks you to type the workspace's name, and the **Queue destroy run** button stays disabled until what you typed matches the name exactly. The dialog also tells you what will happen next: on a workspace without auto-apply the destroy plans first and waits for your confirmation before it removes anything, and on a workspace with auto-apply it removes the resources as soon as its plan finishes, with no further step. **Back** returns to the three choices, and closing the dialog discards what you typed.
 
-A workspace can refuse destroy runs altogether through its `allow-destroy-plan` setting, which is on by default and can be turned off by updating the workspace through the API. While it is off, the **Destroy** choice is disabled and says why, and the API answers a destroy run for that workspace with `422`. Plan & Apply and Plan Only are not affected.
+A workspace can refuse destroy runs altogether through its `allow-destroy-plan` setting, which is on by default and can be turned off with the **Allow destroy plans** checkbox when creating or editing the workspace, or through the API. The **Workspace Settings** panel on the workspace page shows whether it is on. While it is off, the **Destroy** choice is disabled and says why, pointing at the checkbox under **Edit**, and the API answers a destroy run for that workspace with `422`. Plan & Apply and Plan Only are not affected.
 
 ## Reading Plan Output
 

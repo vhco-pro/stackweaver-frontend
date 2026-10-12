@@ -712,6 +712,7 @@ export const workspacesApi = {
     terraform_version?: string;
     auto_queue_runs?: boolean;
     auto_apply?: boolean;
+    allow_destroy_plan?: boolean;
     execution_mode?: string;
     agent_pool_id?: string;
     'run-timeout'?: number; // Custom extension: timeout in seconds
@@ -730,6 +731,7 @@ export const workspacesApi = {
           'terraform-version': data.terraform_version,
           'auto-queue-runs': data.auto_queue_runs,
           'auto-apply': data.auto_apply,
+          'allow-destroy-plan': data.allow_destroy_plan,
           'execution-mode': data.execution_mode,
           'agent-pool-id': data.agent_pool_id || undefined,
           'run-timeout': data['run-timeout'],
@@ -746,6 +748,7 @@ export const workspacesApi = {
     terraform_version?: string;
     auto_queue_runs?: boolean;
     auto_apply?: boolean;
+    allow_destroy_plan?: boolean;
     execution_mode?: string;
     agent_pool_id?: string | null;
     force_delete?: boolean;
@@ -764,6 +767,7 @@ export const workspacesApi = {
           ...(data.working_directory !== undefined && { 'working-directory': data.working_directory }),
           ...(data.auto_queue_runs !== undefined && { 'auto-queue-runs': data.auto_queue_runs }),
           ...(data.auto_apply !== undefined && { 'auto-apply': data.auto_apply }),
+          ...(data.allow_destroy_plan !== undefined && { 'allow-destroy-plan': data.allow_destroy_plan }),
           ...(data.execution_mode !== undefined && { 'execution-mode': data.execution_mode }),
           ...(data.agent_pool_id !== undefined && { 'agent-pool-id': data.agent_pool_id }),
           ...(data.force_delete !== undefined && { 'force-delete': data.force_delete }),

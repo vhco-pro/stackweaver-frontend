@@ -1563,6 +1563,13 @@ export default function WorkspaceDetail() {
                 </div>
               </div>
               <div>
+                <div className="text-muted-foreground mb-1">Destruction and Deletion</div>
+                <div className="space-y-1">
+                  {/* On unless the workspace says otherwise, the reading the new-run and edit dialogs use. */}
+                  <div>Allow destroy plans: {workspace.allow_destroy_plan !== false ? 'On' : 'Off'}</div>
+                </div>
+              </div>
+              <div>
                 <div className="flex items-center justify-between mb-1">
                   <div className="text-muted-foreground">Run Timeout</div>
                   <Button

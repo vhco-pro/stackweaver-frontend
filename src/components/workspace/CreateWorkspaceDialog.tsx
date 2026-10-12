@@ -23,6 +23,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from 'sonner';
 import { Loader2, GitBranch, Plus, CheckCircle2 } from 'lucide-react';
 import { getVcsProviderIcon, getVcsProviderLabel, getVcsManageUrl } from '@/lib/vcs';
@@ -61,6 +62,8 @@ export function CreateWorkspaceDialog({
   const [terraformVersion, setTerraformVersion] = useState('');
   const [autoQueueRuns, setAutoQueueRuns] = useState(false);
   const [autoApply, setAutoApply] = useState(false);
+  // On by default, as in Terraform Enterprise: a new workspace allows destroy plans unless told otherwise.
+  const [allowDestroyPlan, setAllowDestroyPlan] = useState(true);
   const [executionMode, setExecutionMode] = useState('remote');
   const [agentPoolId, setAgentPoolId] = useState('');
 
@@ -216,6 +219,7 @@ export function CreateWorkspaceDialog({
         terraform_version: terraformVersion || undefined,
         auto_queue_runs: vcsConnectionId ? autoQueueRuns : undefined,
         auto_apply: autoApply,
+        allow_destroy_plan: allowDestroyPlan,
         execution_mode: executionMode,
         agent_pool_id: executionMode === 'agent' && agentPoolId ? agentPoolId : undefined,
       });
@@ -233,6 +237,7 @@ export function CreateWorkspaceDialog({
       setTerraformVersion('');
       setAutoQueueRuns(false);
       setAutoApply(false);
+      setAllowDestroyPlan(true);
       setExecutionMode('remote');
 
       // Navigate to workspace detail page
@@ -550,12 +555,10 @@ export function CreateWorkspaceDialog({
           {/* Auto Queue Runs */}
           {vcsConnectionId && (
             <div className="flex items-center space-x-2">
-              <input
-                type="checkbox"
+              <Checkbox
                 id="auto-queue-runs"
                 checked={autoQueueRuns}
-                onChange={(e) => setAutoQueueRuns(e.target.checked)}
-                className="h-4 w-4 rounded-sm border-gray-300"
+                onCheckedChange={(checked) => setAutoQueueRuns(checked === true)}
               />
               <Label htmlFor="auto-queue-runs" className="cursor-pointer">
                 Automatically queue runs on VCS push
@@ -565,16 +568,30 @@ export function CreateWorkspaceDialog({
 
           {/* Auto Apply */}
           <div className="flex items-center space-x-2">
-            <input
-              type="checkbox"
+            <Checkbox
               id="auto-apply"
               checked={autoApply}
-              onChange={(e) => setAutoApply(e.target.checked)}
-              className="h-4 w-4 rounded-sm border-gray-300"
+              onCheckedChange={(checked) => setAutoApply(checked === true)}
             />
             <Label htmlFor="auto-apply" className="cursor-pointer">
               Automatically apply successful plans
             </Label>
+          </div>
+
+          {/* Allow Destroy Plans. The label is the control's name on its own; the rest of the
+              sentence is its description, so the row reads like the edit dialog's force-delete
+              row while assistive technology and tests reach it as "Allow destroy plans". */}
+          <div className="flex items-center space-x-2">
+            <Checkbox
+              id="allow-destroy-plan"
+              checked={allowDestroyPlan}
+              onCheckedChange={(checked) => setAllowDestroyPlan(checked === true)}
+              aria-describedby="allow-destroy-plan-help"
+            />
+            <p className="text-sm font-medium">
+              <Label htmlFor="allow-destroy-plan" className="cursor-pointer">Allow destroy plans</Label>
+              <span id="allow-destroy-plan-help"> - permits destroy runs to be queued on this workspace</span>
+            </p>
           </div>
 
           {/* Execution Mode */}
