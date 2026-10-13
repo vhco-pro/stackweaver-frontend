@@ -25,7 +25,7 @@ sequenceDiagram
     User->>SW: Clicks "Connect GitHub"
     SW->>GH: Redirects to install page
     User->>GH: Installs app on org/repos
-    GH-->>SW: Webhook with installation details
+    GH->>SW: Redirects the user back with the installation ID
     SW->>SW: Stores installation ID, generates tokens
     User->>SW: Selects repositories and branches
 ```
@@ -36,7 +36,7 @@ sequenceDiagram
 1. **App creation** - The platform owner creates a single GitHub App (one-time setup).
 2. **User connects** - A user clicks "Connect GitHub" in organization settings.
 3. **Installation** - The user is redirected to GitHub's App installation page, selects their org/repos, and installs.
-4. **Webhook** - GitHub sends a webhook with installation details; StackWeaver stores the installation ID and generates tokens automatically.
+4. **Return** - GitHub redirects the user back to StackWeaver with the installation ID. StackWeaver stores it for the organization the user started from and generates tokens automatically. The connection is recorded on this return, in the user's signed-in session, and not from a webhook delivery.
 5. **Ready** - The user can now select repositories and branches when creating workspaces.
 
 </details>
@@ -67,7 +67,7 @@ sequenceDiagram
      | Push | Triggers workspace runs on branch pushes and publishes module versions on tag pushes |
      | Pull requests | Triggers speculative plans on PR open/update and posts plan results as commit status checks |
      | Workflow job | Required for GitHub Actions integration and workflow status tracking |
-     | Installation, Installation repositories | Notifies the platform when the app is installed or its repository access changes |
+     | Installation, Installation repositories | Removes the organization's connection when the app is uninstalled. A delivery for a new installation or a change in repository access is acknowledged and changes nothing |
 
    - **Repository permissions**:
 
@@ -212,6 +212,8 @@ If instead you see the base64 key data on the same line as the header, the newli
 
 ### 3. User Flow (Self-Service)
 
+Connecting an organization to GitHub requires being an organization owner in Stackweaver, or having the `manage-vcs-settings` permission in that organization. A member without it is refused when they click "Connect GitHub" and again if they return from GitHub with an installation.
+
 ```mermaid
 sequenceDiagram
     participant User
@@ -222,8 +224,7 @@ sequenceDiagram
     User->>SW: Clicks "Connect GitHub"
     SW->>GH: Redirect to install page
     User->>GH: Selects org/repos, clicks Install
-    GH->>SW: Redirect back to platform
-    GH-->>SW: Webhook with installation details
+    GH->>SW: Redirect back to platform with the installation ID
     SW->>SW: Stores installation ID
     User->>SW: Selects repositories and branches
 ```
@@ -234,8 +235,8 @@ sequenceDiagram
 1. **Navigate** - User goes to Organization Settings > VCS Connections.
 2. **Connect** - User clicks "Connect GitHub" and is redirected to GitHub's App installation page.
 3. **Install** - User selects organization/repositories and clicks "Install".
-4. **Callback** - GitHub redirects back to StackWeaver and sends a webhook with installation details.
-5. **Ready** - StackWeaver stores the installation ID; the user can now select repositories and branches.
+4. **Callback** - GitHub redirects the user back to StackWeaver, to the Setup URL, with the installation ID.
+5. **Ready** - StackWeaver stores the installation ID for the organization the user started from; the user can now select repositories and branches.
 
 </details>
 
@@ -284,6 +285,10 @@ kubectl get secret stackweaver-github-app -n stackweaver \
 4. Make sure `GITHUB_APP_ID` and `GITHUB_APP_NAME` are set in your Helm values.
 
 ### Installation Not Working
+- Check the Setup URL in GitHub App settings: the connection is recorded when GitHub redirects the user back to it, so an installation that never returns to StackWeaver leaves the organization without a connection
+- Start the installation from "Connect GitHub" in StackWeaver. Installing the app directly from GitHub does not connect any organization
+
+### Pushes Do Not Trigger Runs
 - Check webhook URL is correct in GitHub App settings
 - Verify webhook secret matches `GITHUB_WEBHOOK_SECRET`
 - Check webhook delivery logs in GitHub App settings
