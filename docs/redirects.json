@@ -15,6 +15,7 @@
     "features/terraform/vcs-path-filtering": "features/opentofu/vcs-path-filtering",
     "features/terraform/terraform-streaming": "features/opentofu/opentofu-streaming",
     "features/terraform/run-cancellation": "features/opentofu/run-cancellation",
-    "features/terraform/run-timeout": "features/opentofu/run-timeout"
+    "features/terraform/run-timeout": "features/opentofu/run-timeout",
+    "features/ansible/api-reference": "api-reference"
   }
 }

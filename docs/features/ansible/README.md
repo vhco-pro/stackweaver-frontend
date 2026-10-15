@@ -13,7 +13,7 @@ This directory contains the authoritative documentation for StackWeaver's Ansibl
 |----------|-------------|
 | [execution-flows.md](./execution-flows.md) | How execution works: job lifecycle, runner vs agent, syncs, workflows - with diagrams |
 | [roadmap.md](./roadmap.md) | What is available today and the known gaps |
-| [api-reference.md](./api-reference.md) | REST API endpoints documentation |
+| [API Reference](../../api-reference/README.md) | REST API endpoints, rendered in the [API explorer](/docs/api-reference/explorer) |
 | [galaxy-collections.md](./galaxy-collections.md) | Ansible Galaxy collections support |
 | [changelog.md](./changelog.md) | Version history and updates |
 
@@ -21,7 +21,7 @@ This directory contains the authoritative documentation for StackWeaver's Ansibl
 
 - **Getting Started**: Start with this document
 - **What's Next**: Review [roadmap.md](./roadmap.md)
-- **API Details**: Reference [api-reference.md](./api-reference.md)
+- **API Details**: Reference the [API Reference](../../api-reference/README.md) and its [API explorer](/docs/api-reference/explorer)
 
 ## Feature Status Summary
 
