@@ -42,7 +42,7 @@ Welcome to the StackWeaver documentation. This directory contains comprehensive 
 ### Ansible
 
 - **[Ansible Overview](./features/ansible/README.md)**: How Ansible is modeled and executed in StackWeaver
-- **[Ansible API Reference](./features/ansible/api-reference.md)**: Ansible REST API endpoints
+- **[API Reference](./api-reference/README.md)**: The Ansible REST API endpoints are part of the API Reference, rendered in the [API explorer](/docs/api-reference/explorer)
 - **[Galaxy Collections](./features/ansible/galaxy-collections.md)**: Automatic collection installation via requirements files
 - **[Roadmap](./features/ansible/roadmap.md)**: What the Ansible integration provides today and the known gaps
 - **[Changelog](./features/ansible/changelog.md)**: User-visible changes to the Ansible feature set

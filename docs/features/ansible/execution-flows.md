@@ -3,6 +3,8 @@ description: "How Ansible execution works in Stackweaver: job lifecycle and laun
 covers:
   - "backend/cmd/ansible-runner/**"
   - "core/services/ansible/**"
+  - "core/repository/ansible_*"
+  - "core/models/ansible_schedule*"
   - "backend/internal/api/v2/handlers/ansible/**"
   - "backend/internal/api/v2/handlers/runner_agent.go"
   - "backend/internal/api/v2/handlers/vcs_app_installation.go"
@@ -80,6 +82,14 @@ flowchart TD
 
 Job slicing happens at launch: a template with a slice count above one fans out into N jobs, each receiving a deterministic subset of the inventory's hosts (sorted, distributed round-robin). Slices run simultaneously and are grouped under one slice group.
 
+A template launch over the API, `POST /api/v2/ansible/job-templates/:id/launch`, takes an optional document of type `ansible-jobs`. A request with no body, or with an empty object, launches the job with the template's own values. Each attribute the document carries applies to that one launch and leaves the template unchanged. `extra-vars` is merged over the template's variables key by key, so a key the launch does not mention keeps the template's value. `limit`, `tags` and `skip-tags` replace the template's value outright, and an empty string counts as a value: sending `"limit": ""` runs the job without the limit the template carries, while leaving `limit` out keeps it. When the template is sliced, every slice carries the same overrides. A body that is not this document is answered with `400` and launches nothing, which covers malformed JSON, a `data.type` other than `ansible-jobs`, and the override names sent as top-level members (`extra_vars`, `limit`, `tags`, `skip_tags`) instead of under `data.attributes`.
+
+Launching copies the template's credential set onto the job, so the job records what it ran with. Editing the template afterwards does not change a job that was already launched, and `POST /api/v2/ansible/jobs/:id/actions/relaunch` creates a new job with the configuration and the credentials of the original run.
+
+A job launched directly with `POST /api/v2/organizations/:name/ansible/jobs` may name its credentials in a `credentials` relationship, in the same form a job template takes. Each of them must belong to the organization in the URL, and a launch that names a credential the organization does not have is rejected with `400` and starts nothing.
+
+`GET /api/v2/organizations/:name/ansible/jobs/queue` lists the organization's pending and running jobs, oldest first. The slices of one sliced launch are listed together by `GET /api/v2/projects/:id/ansible/jobs` with `filter[slice-group-id]` set to the group's identifier, in slice order and all in one response.
+
 ## Platform Runner vs Self-Hosted Agent
 
 Both paths run the same playbook with the same options - the difference is **how the work and its inputs reach the executor**. The platform runner is push-based and trusted with database access; the agent is pull-based and receives everything as a self-contained bundle, so it works from inside a private network with outbound-only connectivity and no credentials for Stackweaver's infrastructure.
@@ -153,7 +163,7 @@ sequenceDiagram
 
 ## Inventory Sync Flows
 
-Every way an inventory can refresh goes through the same queue and lands in the same sync history (the Syncs tab), each run with its captured output. Long syncs can be tailed live: the runner flushes output to the run's history row every couple of seconds while it executes, and the output dialog polls while a run is active.
+Every way an inventory can refresh goes through the same queue and lands in the same sync history (the Syncs tab), each run with its captured output. Long syncs can be tailed live: the runner flushes output to the run's history row every couple of seconds while it executes, and the output dialog polls while a run is active. Over the API, `GET /api/v2/ansible/inventories/:id/syncs` lists an inventory's runs newest first without their output, and `GET /api/v2/ansible/inventory-syncs/:sync_id` returns one run with its `output`.
 
 ```mermaid
 flowchart TD
@@ -217,6 +227,8 @@ flowchart TD
 
 </details>
 
+Launching a workflow, and approving or denying one of its approval nodes, requires permission to execute jobs in the workflow's project. The body of `POST /api/v2/ansible/workflows/:id/launch` is optional. A request with no body starts the run with the workflow's own variables, and a body of the form `{"extra_vars": {"key": "value"}}` merges those variables over them. A body that cannot be read as that object, such as malformed JSON or an `extra_vars` that is not an object, is answered with `400` and starts no run. A workflow whose own project or inventory lies outside its organization is not launched at all, and the request is answered with `409`.
+
 ## Ad Hoc Commands
 
 Run Command executes a single module against an inventory without a playbook or template. The platform generates a one-task playbook from the module and arguments and pushes it through the normal job pipeline, so ad hoc runs get live output, events, and statistics like any job - on a platform runner or any agent pool.
@@ -232,6 +244,8 @@ flowchart LR
 ```
 
 The allowed modules are an organization setting (Settings → Ansible), defaulting to AWX's list, and the permission is distinct from template execution so you can grant ad hoc access separately.
+
+Over the API the command is `POST /api/v2/ansible/inventories/:id/actions/run-command`. The job runs under the project named by the optional `project-id` attribute. Without it the job runs under the inventory's own project, or under the organization's `default` project when the inventory belongs to none. The credential, the agent pool and the project the request names must belong to the inventory's organization: one that does not exist there is rejected with `400`, and the detail says which one was not found.
 
 ## Webhook Triggers
 
@@ -254,8 +268,12 @@ For *launch on webhook*, pair the template's playbook with the `fresh` source mo
 
 A single 30-second loop in the API drives everything time-based. Knowing what it owns explains most "why did this happen a few seconds later" questions:
 
-1. **Schedules** - due cron schedules launch their job template, inventory source sync, playbook sync, or workflow.
+1. **Schedules** - due cron schedules launch their job template, inventory source sync, or workflow. A due `playbook_sync` schedule records a run and queues no sync.
 2. **Held-job release** - re-evaluates jobs held by the concurrency or dependency gates and dispatches the ones whose conditions cleared.
 3. **Workflow progression** - advances running workflow runs node by node.
 4. **Notification dispatch** - polls for unnotified job and workflow state transitions and delivers webhook, email, and Microsoft Teams notifications (crash-safe: a restart never loses or duplicates a notification).
 5. **Retention cleanup** - once a day, deletes finished jobs older than the organization's retention window (template overrides apply; each template's most recent job is always kept).
+
+A schedule's `schedule-type` is one of `job_template`, `inventory_source`, `playbook_sync` or `workflow`, and the schedule names its target in the matching attribute: `job-template-id`, `inventory-source-id`, `playbook-id` or `workflow-id`. Creating a schedule is rejected with `400` when the cron expression or the timezone does not parse, or when the target does not exist in the organization the schedule is created in, and the `detail` of the error says which. Updating a schedule applies the same check to a new cron expression or timezone. `POST /api/v2/ansible/schedules/validate-cron` checks an expression beforehand: its `timezone` is optional and defaults to `UTC`, its answer gives the expression's next run time, and an expression that cannot be parsed is rejected with `400`. `GET /api/v2/ansible/schedules/cron-presets` returns named expressions to start from, such as `every_hour` for `0 * * * *`, `daily_midnight` for `0 0 * * *` and `weekdays_9am` for `0 9 * * 1-5`.
+
+Enabling a schedule recalculates its next run and launches nothing. A schedule whose job template is disabled can be enabled: each time it comes due the launch is refused and the schedule records a failed run. A schedule whose target does not exist in the schedule's organization when it comes due starts nothing and records a failed run as well. The run-now action executes a schedule immediately, whatever its cron expression says, and answers `409 Conflict` without launching anything when the job template is disabled.

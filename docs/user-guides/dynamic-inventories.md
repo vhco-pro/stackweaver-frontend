@@ -2,6 +2,7 @@
 description: "Guide for configuring dynamic inventory sources for Ansible jobs"
 covers:
   - "core/services/ansible/**"
+  - "backend/internal/api/v2/handlers/ansible/**"
   - "frontend/src/pages/Ansible/**"
 ---
 
@@ -187,9 +188,13 @@ The most important distinction between the methods is whether they require your 
 
 **OIDC Federation** is Stackweaver's own keyless mechanism, and it is the only method that needs a public surface: to verify the runner's Stackweaver-signed token, Microsoft Entra must reach your issuer's `/.well-known/openid-configuration` and JWKS endpoints over the public internet with a publicly trusted TLS certificate. It cannot be satisfied by Azure Private Link. Use it when the runner is not inside Azure at all (for example a multi-cloud or on-premises deployment). If your organization has an Azure OIDC configuration (set up via the Settings page or the `tfe_azure_oidc_configuration` Terraform resource), the runner generates a short-lived JWT at sync time, writes it to a temporary file, and sets `AZURE_FEDERATED_TOKEN_FILE`, `AZURE_CLIENT_ID`, `AZURE_TENANT_ID`, and `AZURE_SUBSCRIPTION_ID`.
 
+A source created over the API names its method in the `auth_method` member of its `config` attribute, as `managed_identity`, `workload_identity`, `oidc` or `credential`. `managed_identity_client_id`, also in `config`, selects a user-assigned identity and is accepted only beside `auth_method: managed_identity`. Any other `auth_method`, or a `managed_identity_client_id` beside another method, is rejected with `400` when the source is created or its `config` is updated. With `managed_identity` the runner sets `AZURE_SUBSCRIPTION_ID` from the source's subscription and, for a user-assigned identity, `AZURE_CLIENT_ID`.
+
 ### Cloud Credentials
 
 Alternatively, you can create an Azure, AWS, or GCP credential in Stackweaver's Credentials section and attach it to your inventory source. For Azure this is the Service Principal method (client ID, secret, tenant); it works on a fully private deployment because the runner authenticates outbound to Entra, at the cost of storing a long-lived secret. The credential's secret values are injected as environment variables at sync time. A GCP credential is a service account key: the runner writes it to a file for the duration of the sync and the `gcp_compute` plugin reads it as Application Default Credentials. A GCP source with no credential attached uses the identity of the machine the runner is on instead, such as GKE Workload Identity.
+
+Over the API a source's `source-type` is one of `aws`, `azure`, `gcp`, `vmware` or `custom`. The credential a source names must belong to the organization of its inventory and must be of the type its source type authenticates with: an AWS credential for an `aws` source, an Azure credential for `azure`, a GCP credential for `gcp` and a VMware credential for `vmware`. A `custom` source accepts no credential. Creating or updating a source with a credential that breaks either rule is rejected with `400`, and the `detail` of the error says which rule it broke. A sync that authenticates with the source's credential applies the same two rules first, so a source whose stored credential does not meet them fails its sync without contacting the provider.
 
 ### Choosing a method on a private deployment
 
@@ -238,7 +243,7 @@ A constructed inventory combines other inventories instead of querying a provide
 
 ## Deleting an Inventory
 
-Deleting an inventory normally removes only the inventory and its hosts and groups. If the inventory is still referenced by job templates, jobs, or sources, the delete is rejected and the dialog explains what depends on it. From there you can choose **Force Delete Everything**, which removes the inventory together with every dependent resource - the job templates built on it (and their schedules, attached credentials and variables, notification attachments, and the workflow steps that run them), the jobs run against it and their event history, and its inventory sources - in a single operation. A constructed inventory that uses this inventory as an input keeps working but loses that input. Force delete cannot be undone and requires organization-level Ansible management permission.
+Deleting an inventory normally removes only the inventory and its hosts and groups. If the inventory is still referenced by job templates, jobs, or sources, the delete is rejected and the dialog explains what depends on it. From there you can choose **Force Delete Everything**, which removes the inventory together with every dependent resource - the job templates built on it (and their schedules, attached credentials and variables, notification attachments, and the workflow steps that run them), the jobs run against it and their event history, and its inventory sources - in a single operation. A constructed inventory that uses this inventory as an input keeps working but loses that input. Force delete cannot be undone and requires organization-level Ansible management permission. Over the API the plain delete is `DELETE /api/v2/ansible/inventories/:id`, which answers `409 Conflict` with a `detail` that says what still references the inventory, and the force delete is the same request with `?force=true`.
 
 ## Viewing Synced Hosts
 

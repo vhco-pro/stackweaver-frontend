@@ -2,6 +2,7 @@
 description: "Guide for registering Ansible playbooks: single registration, bulk import from a repository, and the repository browser in job template forms"
 covers:
   - "backend/internal/api/v2/handlers/ansible/**"
+  - "core/repository/ansible_playbook*"
   - "core/services/vcs/**"
   - "frontend/src/pages/Ansible/**"
   - "frontend/src/components/ansible/**"
@@ -13,7 +14,7 @@ A playbook in Stackweaver is a registered pointer to a playbook file in a connec
 
 ## Registering a single playbook
 
-On the Playbooks page, the "New Playbook" button opens a form where you pick a VCS connection, repository, and branch, then choose the playbook file. The path field lists the playbook candidates found in the repository, using the same rules as the import wizard described below, and the playbook name is generated from the repository, branch, and path unless you type your own. This is the right flow when you want full control over the name, description, and source mode of one playbook.
+On the Playbooks page, the "New Playbook" button opens a form where you pick a VCS connection, repository, and branch, then choose the playbook file. The path field lists the playbook candidates found in the repository, using the same rules as the import wizard described below, and the playbook name is generated from the repository, branch, and path unless you type your own. This is the right flow when you want full control over the name, description, and source mode of one playbook. Over the API, the VCS connection a playbook names must belong to the playbook's own organization: creating or updating a playbook is rejected with `400` and the detail `VCS connection not found` when the connection does not exist in that organization, and nothing is stored.
 
 ## Finding playbooks on the overview page
 
@@ -33,7 +34,7 @@ The playbook field in the job template create and edit forms has two modes. "Reg
 
 ## Deleting a playbook
 
-Deleting a playbook from either the Playbooks list or the playbook detail page removes it once nothing depends on it. If job templates, jobs, or schedules still reference the playbook, the delete is blocked and the dialog explains what is in the way. From there you can force the delete: confirming "Force Delete Everything" removes the playbook together with everything built on it - its job templates (with their jobs, schedules, and notification attachments), jobs that ran against it, schedules that target it directly, and any workflow steps that run those templates. This cascade cannot be undone, so it requires organization-level Ansible management permission. This mirrors the force-delete behavior of inventories.
+Deleting a playbook from either the Playbooks list or the playbook detail page removes it once nothing depends on it. If job templates, jobs, or schedules still reference the playbook, the delete is blocked and the dialog explains what is in the way. From there you can force the delete: confirming "Force Delete Everything" removes the playbook together with everything built on it - its job templates (with their jobs, schedules, and notification attachments), jobs that ran against it, schedules that target it directly, and any workflow steps that run those templates. This cascade cannot be undone, so it requires organization-level Ansible management permission. This mirrors the force-delete behavior of inventories. Over the API the plain delete is `DELETE /api/v2/ansible/playbooks/:id`, which answers `409 Conflict` while job templates or jobs still reference the playbook, and the force delete is the same request with `?force=true`. The force delete runs in one transaction, so it removes everything or nothing.
 
 ## How playbook discovery filters files
 
