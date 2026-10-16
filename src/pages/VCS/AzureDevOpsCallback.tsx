@@ -5,6 +5,7 @@ import { useMountEffect } from '@/hooks/useMountEffect';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import { vcsConnectionsApi } from '@/api/client';
+import { readAzureDevOpsInstallState } from '@/lib/vcs';
 
 export default function AzureDevOpsCallback() {
   const [searchParams] = useSearchParams();
@@ -33,21 +34,15 @@ export default function AzureDevOpsCallback() {
       return;
     }
 
-    // State format: "stackweaverOrgName|adoOrgName|base64(returnPath)|uuid"
-    const stateParts = state.split('|');
-    const orgName = stateParts[0] || '';
-    const escapedReturn = stateParts[2] || '';
-    const returnPath = escapedReturn
-      ? decodeURIComponent(escapedReturn)
-      : orgName
-        ? `/app/${orgName}/settings/vcs-connections`
-        : '/';
-
-    if (!orgName) {
+    // The state is the signed one the server issued at the start. It is passed back unchanged;
+    // the organization and return path are only read out of it to know where to go next.
+    const started = readAzureDevOpsInstallState(state);
+    if (!started) {
       toast.error('Invalid Azure DevOps authorization state');
       void navigate('/', { replace: true });
       return;
     }
+    const returnPath = started.returnPath ?? `/app/${started.orgName}/settings/vcs-connections`;
 
     void vcsConnectionsApi.completeAzureDevOpsInstallation(code, state)
       .then(() => {

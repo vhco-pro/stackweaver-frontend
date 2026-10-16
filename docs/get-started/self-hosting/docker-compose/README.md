@@ -140,7 +140,7 @@ For a full list of every environment variable, see the [Environment Variables Re
 
 ### GitHub App Integration
 
-The GitHub App integration is optional and disabled by default. To enable it, uncomment the GitHub App ID, name, and private key path entries and the key volume mount in `docker-compose.yml` for the `api` and `orchestrator` services, and place your GitHub App private key file in the same directory as `docker-compose.yml`. The webhook secret belongs in `vcs.env`, not in `docker-compose.yml`; the [GitHub App guide](../../../user-guides/vcs/github-app.md) walks through every step.
+The GitHub App integration is optional and disabled by default. To enable it, uncomment the GitHub App ID, name, and private key path entries and the key volume mount in `docker-compose.yml` for the `api` and `orchestrator` services, and place your GitHub App private key file in the same directory as `docker-compose.yml`. The webhook secret and the app's OAuth client ID and secret (`GITHUB_APP_CLIENT_ID`, `GITHUB_APP_CLIENT_SECRET`, which connecting an installation needs) belong in `vcs.env`, not in `docker-compose.yml`; the [GitHub App guide](../../../user-guides/vcs/github-app.md) walks through every step.
 
 See the [VCS guides](../../../user-guides/vcs/) for detailed setup instructions.
 

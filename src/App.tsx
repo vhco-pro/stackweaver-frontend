@@ -68,6 +68,7 @@ import Landing from './pages/Landing';
 import Privacy from './pages/Privacy';
 import Terms from './pages/Terms';
 import GitHubInstalled from './pages/VCS/GitHubInstalled';
+import GitHubAuthorized from './pages/VCS/GitHubAuthorized';
 import AzureDevOpsCallback from './pages/VCS/AzureDevOpsCallback';
 // Ansible pages
 import { Inventories as AnsibleInventories, InventoryDetail as AnsibleInventoryDetail, Credentials as AnsibleCredentials, Jobs as AnsibleJobs, JobDetail as AnsibleJobDetail, Playbooks as AnsiblePlaybooks, PlaybookDetail as AnsiblePlaybookDetail, JobTemplates as AnsibleJobTemplates, JobTemplateDetail as AnsibleJobTemplateDetail, Schedules as AnsibleSchedules, Collections as AnsibleCollections, Workflows as AnsibleWorkflows } from './pages/Ansible';
@@ -86,6 +87,7 @@ function AppContent() {
               <Route path="/privacy" element={<Privacy />} />
               <Route path="/terms" element={<Terms />} />
               <Route path="/vcs/github/installed" element={<GitHubInstalled />} />
+              <Route path="/vcs/github/authorized" element={<GitHubAuthorized />} />
               <Route path="/vcs/azure-devops/callback" element={<AzureDevOpsCallback />} />
             <Route path="/login/*" element={<LoginRouter />} />
             <Route path="/auth/*" element={<Auth />} />

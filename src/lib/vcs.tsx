@@ -175,6 +175,87 @@ export function getVcsPullRequestUrl(provider: VcsProvider, repo: string, prNumb
   }
 }
 
+/** What the page a provider returns to reads from the state the server issued at the start. */
+export interface InstallState {
+  orgName: string;
+  /** In-app path to return to, or null when the start named none. */
+  returnPath: string | null;
+}
+
+/**
+ * Reads the organization and return path out of the `state` the server issued when a GitHub App
+ * installation was started. Its payload is `orgName|returnPath|userID|nonce`. Returns null for
+ * anything that is not such a state, as for an installation started on github.com, which GitHub
+ * returns without one.
+ */
+export function readGitHubInstallState(state: string | null | undefined): InstallState | null {
+  const fields = readStateFields(state, 4);
+  return fields ? installState(fields, 1) : null;
+}
+
+/** What the App's callback page reads from the state a GitHub App authorization comes back with. */
+export interface GitHubAuthorizeState extends InstallState {
+  installationId: string;
+}
+
+/**
+ * Reads the organization, return path and installation out of the `state` the server issued
+ * when it sent the browser to GitHub to authorize the App. Its payload is
+ * `orgName|returnPath|userID|installationID|nonce`.
+ */
+export function readGitHubAuthorizeState(state: string | null | undefined): GitHubAuthorizeState | null {
+  const fields = readStateFields(state, 5);
+  if (!fields || !/^[1-9][0-9]*$/.test(fields[3] ?? '')) return null;
+  return { ...installState(fields, 1), installationId: fields[3] ?? '' };
+}
+
+/**
+ * Reads the organization and return path out of the `state` the server issued when an Azure
+ * DevOps authorization was started. Its payload is `orgName|adoOrg|returnPath|nonce`.
+ */
+export function readAzureDevOpsInstallState(state: string | null | undefined): InstallState | null {
+  const fields = readStateFields(state, 4);
+  return fields ? installState(fields, 2) : null;
+}
+
+/**
+ * Reads the payload of a state the server issued for a VCS installation: a signed envelope,
+ * `<base64url payload>.<expiry>.<sig>`, whose payload has `count` `|`-separated fields, the first
+ * the organization. Only the server can verify the state, so this only reads it; the state itself
+ * is passed back unchanged. Returns null for anything else.
+ */
+function readStateFields(state: string | null | undefined, count: number): string[] | null {
+  if (!state) return null;
+  const encoded = state.split('.')[0] ?? '';
+  let payload: string;
+  try {
+    const base64 = encoded.replace(/-/g, '+').replace(/_/g, '/');
+    const binary = atob(base64 + '='.repeat((4 - (base64.length % 4)) % 4));
+    payload = new TextDecoder().decode(Uint8Array.from(binary, (ch) => ch.charCodeAt(0)));
+  } catch {
+    return null;
+  }
+  const parts = payload.split('|');
+  return parts.length === count && parts[0] ? parts : null;
+}
+
+/** The organization and the in-app return path at `returnIndex` of a state's fields. */
+function installState(fields: string[], returnIndex: number): InstallState {
+  const decoded = decodeQueryValue(fields[returnIndex] ?? '');
+  // Only an in-app path: never another origin.
+  const returnPath = decoded.startsWith('/') && !decoded.startsWith('//') ? decoded : null;
+  return { orgName: fields[0] ?? '', returnPath };
+}
+
+/** Decodes a value the server escaped as a query value, where '+' stands for a space; '' if malformed. */
+function decodeQueryValue(value: string): string {
+  try {
+    return decodeURIComponent(value.replace(/\+/g, ' '));
+  } catch {
+    return '';
+  }
+}
+
 /** GitHub App installation management URL (GitHub only - other providers do not have this concept). */
 export function getVcsManageUrl(provider: VcsProvider, installationId: string, accountName: string, accountType: string): string | null {
   if (provider !== 'github' || !installationId) return null;

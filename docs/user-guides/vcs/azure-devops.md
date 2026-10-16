@@ -141,7 +141,7 @@ kubectl logs deployment/stackweaver-api --namespace stackweaver | grep -i "azure
 
 ## Step 6: Create a VCS Connection in Stackweaver
 
-Connecting an organization to Azure DevOps requires being an organization owner in Stackweaver, or having the `manage-vcs-settings` permission in that organization.
+Connecting an organization to Azure DevOps requires being an organization owner in Stackweaver, or having the `manage-vcs-settings` permission in that organization. Starting the connection with an organization API token requires a token with write scope on that organization.
 
 1. Open Stackweaver in your browser.
 2. Navigate to your organization's **Settings** → **VCS Connections**.
