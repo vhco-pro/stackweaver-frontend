@@ -1779,10 +1779,20 @@ export const vcsConnectionsApi = {
     apiClient.get<{ data: { install_url: string } }>(
       `/organizations/${encodeURIComponent(organizationName)}/vcs-connections/github/install?redirect=${encodeURIComponent(redirectUrl)}&return=${encodeURIComponent(window.location.pathname + window.location.search)}`
     ).then(res => res.data),
-  createConnectionFromInstallation: (organizationName: string, installationId: string) =>
+  // The second step of connecting a GitHub App installation: `state` is the one GitHub's Setup
+  // URL returned with the installation, passed through unchanged. Answers with GitHub's page for
+  // authorizing the App.
+  authorizeGitHubInstallation: (organizationName: string, installationId: string, state: string) =>
+    apiClient.get<{ data: { auth_url: string } }>(
+      `/organizations/${encodeURIComponent(organizationName)}/vcs-connections/github/installations/${encodeURIComponent(installationId)}/authorize?state=${encodeURIComponent(state)}`
+    ).then(res => res.data),
+  // The last step: `code` and `state` are the ones GitHub returned to the App's callback page,
+  // passed through unchanged; the code goes in the body, out of access logs. The server connects
+  // the installation only when the person who authorized the App can access it at GitHub.
+  createConnectionFromInstallation: (organizationName: string, installationId: string, code: string, state: string) =>
     apiClient.post<{ data: JsonApiResource }>(
-      `/organizations/${encodeURIComponent(organizationName)}/vcs-connections/github/installations/${installationId}`,
-      {}
+      `/organizations/${encodeURIComponent(organizationName)}/vcs-connections/github/installations/${encodeURIComponent(installationId)}?state=${encodeURIComponent(state)}`,
+      { code }
     ).then(res => res.data),
   get: (id: string) =>
     apiClient.get<{ data: VCSConnection }>(`/vcs-connections/${id}`).then(res => res.data),
@@ -1793,7 +1803,6 @@ export const vcsConnectionsApi = {
     token_expires_at?: string;
     account_name: string;
     account_type: 'organization' | 'user';
-    installation_id?: string;
   }) =>
     apiClient.post<{ data: VCSConnection }>(`/organizations/${encodeURIComponent(organizationName)}/vcs-connections`, data).then(res => res.data),
   delete: (id: string) =>

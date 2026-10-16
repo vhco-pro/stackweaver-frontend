@@ -10,6 +10,14 @@ import LoginLayout from './LoginLayout';
 import { GradientButton } from '@/components/ui/gradient-button';
 import { toFriendlyError } from '@/lib/auth-errors';
 
+/**
+ * Set a first password, for a user who has no way to sign in yet. Reached
+ * from /login/authenticator/set, which Verify sends such a user to after
+ * their email verification. The request carries no current password and no
+ * code: the auth proxy accepts it only for a user with no authentication
+ * method, on the proof of the email verification this browser completed in
+ * the last few minutes, and refuses it otherwise.
+ */
 export default function RegisterPassword() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -32,7 +40,13 @@ export default function RegisterPassword() {
       await changePassword(userId, { newPassword: { password, changeRequired: false } });
       void navigate(`/login/loginname?authRequest=${authRequestId}`);
     } catch (err: unknown) {
-      setError(toFriendlyError(err, 'Failed to set password'));
+      // The proxy refuses a set without proof with its "code is invalid"
+      // answer; here that means the verification is missing or has expired.
+      if (err instanceof Error && err.message.includes('Code is invalid')) {
+        setError('Your email verification has expired. Verify your email again to set a password.');
+      } else {
+        setError(toFriendlyError(err, 'Failed to set password'));
+      }
     } finally {
       setLoading(false);
     }

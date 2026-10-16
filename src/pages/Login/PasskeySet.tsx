@@ -1,7 +1,8 @@
 // Copyright (c) 2025 VH & Co BV. Licensed under the Business Source License 1.1. See LICENSE for details.
 
 import { useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { Button } from '@/components/ui/button';
 import { GradientButton } from '@/components/ui/gradient-button';
 import { Loader2, Fingerprint } from 'lucide-react';
 import { config } from '@/config';
@@ -40,8 +41,10 @@ function bufToB64u(buf: ArrayBuffer): string {
 }
 
 export default function PasskeySet() {
+  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const userId = searchParams.get('userId') ?? '';
+  const authRequestId = searchParams.get('authRequest') ?? '';
 
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -130,6 +133,10 @@ export default function PasskeySet() {
         <div className="text-center space-y-4">
           <Fingerprint className="h-16 w-16 text-green-500 mx-auto" />
           <p className="text-sm text-muted-foreground">Your passkey has been registered. You can use it to sign in.</p>
+          {/* The way on, as on VerifySuccess, to where RegisterPassword sends a user who set a first password. */}
+          <Button className="w-full" onClick={() => { void navigate(`/login/loginname?authRequest=${authRequestId}`); }}>
+            Continue to sign in
+          </Button>
         </div>
       </LoginLayout>
     );

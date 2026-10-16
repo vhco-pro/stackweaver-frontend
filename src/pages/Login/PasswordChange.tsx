@@ -64,13 +64,8 @@ export default function PasswordChange() {
         setLoading(true);
         setError('');
         try {
-            // Round 23 Finding 2 made the proxy canonicalize unknown-
-            // user 4xx into "Code is invalid". Behavior on a real user
-            // with wrong currentPassword is the same shape - Zitadel
-            // returns the same status, distinguishable only by what
-            // we know on the client (the user IS valid here, since
-            // we just authenticated them). So a 4xx on this submit
-            // means: wrong current password.
+            // A current password the proxy does not accept gets one fixed
+            // answer for every user id; the catch below recognises it.
             await changePassword(userId, {
                 currentPassword,
                 newPassword: { password: newPassword, changeRequired: false },
@@ -93,13 +88,14 @@ export default function PasswordChange() {
             // user can re-enter the auth flow with their new password.
             void navigate('/login/loginname');
         } catch (err: unknown) {
-            const message = toFriendlyError(err, 'Failed to change password');
-            // Zitadel surfaces "password is invalid" on a wrong
-            // currentPassword - friendly-map for the user.
-            if (/password.*invalid|invalid.*password/i.test(message)) {
+            // The proxy answers a rejected current password with exactly
+            // {"code":3,"message":"Password is invalid","details":[]}, so
+            // the raw answer is recognised before toFriendlyError rewrites
+            // it into a generic message.
+            if (isRejectedCurrentPassword(err)) {
                 setError('Current password is incorrect');
             } else {
-                setError(message);
+                setError(toFriendlyError(err, 'Failed to change password'));
             }
         } finally {
             setLoading(false);
@@ -157,3 +153,13 @@ export default function PasswordChange() {
 
 // Pure validator + types live in `passwordChange.helpers.ts` so
 // vitest can pin them without a React/DOM env. Imported above.
+
+// isRejectedCurrentPassword recognises the auth proxy's one answer to a
+// current password it did not accept: HTTP 400, gRPC code 3 and the message
+// "Password is invalid" (authFetch puts the status in `code` and the body's
+// code in `grpcCode`).
+function isRejectedCurrentPassword(err: unknown): boolean {
+    if (!(err instanceof Error)) return false;
+    const { code, grpcCode } = err as Error & { code?: number; grpcCode?: number };
+    return code === 400 && grpcCode === 3 && err.message === 'Password is invalid';
+}

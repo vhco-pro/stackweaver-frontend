@@ -24,8 +24,9 @@ const AUTH_BASE = config.apiUrl.replace(/\/api\/v2\/?$/, '/auth');
  *      code, then navigate to /login/verify/success (one-shot page
  *      with a "Continue to sign in" CTA back to /login/loginname).
  *
- *   2. Invitation (`invite=true`) - same shape as registration but
- *      the headings copy talks about "Accept invitation" rather than
+ *   2. Invitation (`invite=true`) - the code is an invite code, checked
+ *      at POST /auth/users/{id}/invite-code/verify (which also marks the
+ *      email verified), and the copy says "Accept invitation" rather than
  *      "Verify email". Post-verify navigation is identical.
  *
  *   3. Forced verification mid-login (`forced=true`, AC-53 D7 row,
@@ -37,6 +38,10 @@ const AUTH_BASE = config.apiUrl.replace(/\/api\/v2\/?$/, '/auth');
  *      callback URL instead of bouncing back to /login/loginname,
  *      which would force a re-password and re-trigger the same
  *      forced-flow check (infinite loop).
+ *
+ * When the verified user has no authentication method yet, the auth
+ * proxy answers with `authenticatorSetupRequired` and the user goes on to
+ * /login/authenticator/set to choose one.
  */
 export default function Verify() {
   const navigate = useNavigate();
@@ -64,7 +69,9 @@ export default function Verify() {
     setLoading(true);
     setError('');
     try {
-      const response = await fetch(`${AUTH_BASE}/users/${userId}/email`, {
+      // An invite code is checked at its own endpoint: the email one does not accept it.
+      const endpoint = isInvite ? 'invite-code/verify' : 'email';
+      const response = await fetch(`${AUTH_BASE}/users/${userId}/${endpoint}`, {
         method: 'POST',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
@@ -75,6 +82,7 @@ export default function Verify() {
         const errData = await response.json().catch(() => ({})) as { message?: string };
         throw new Error(errData.message ?? 'Verification failed');
       }
+      const verified = await response.json().catch(() => ({})) as { authenticatorSetupRequired?: boolean };
 
       // Mid-login forced-flow: re-finalize the auth request with the
       // session we were already in. Zitadel now issues tokens because
@@ -86,6 +94,15 @@ export default function Verify() {
           sessionToken,
         });
         window.location.href = finalize.callbackUrl;
+        return;
+      }
+
+      // A user with no way to sign in yet (an invited user, or one created
+      // without a password) sets one up next. The auth proxy says so, and
+      // has recorded this verification as the proof for the first password.
+      if (verified.authenticatorSetupRequired) {
+        const next = new URLSearchParams({ userId, authRequest: authRequestId });
+        void navigate(`/login/authenticator/set?${next.toString()}`);
         return;
       }
 

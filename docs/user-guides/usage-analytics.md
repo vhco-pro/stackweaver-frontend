@@ -46,4 +46,4 @@ Cards state plainly when a period contains nothing to show, and that is differen
 
 ## Who can see it
 
-You can only open the page for an organization you belong to. This is enforced by the API for both browser sessions and API tokens, so the page cannot be used to read another tenant's delivery metrics by editing the URL.
+The page reports on every workspace and project in the organization, so it is open to members of the owners team, to teams with the "view all workspaces" or "view all projects" organization permission, and to the organization's API token, the same audience Terraform Enterprise gives its Explorer. Any other member sees an error explaining which permission the page needs. This is enforced by the API for both browser sessions and API tokens, so the page cannot be used to read another tenant's delivery metrics by editing the URL.

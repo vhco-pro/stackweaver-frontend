@@ -48,8 +48,8 @@ Before creating a workspace, you'll need to connect StackWeaver to your GitHub a
 
 1. Go to your organization's VCS settings
 2. Click "Connect GitHub"
-3. Authorize StackWeaver to access your repositories
-4. Select the repositories you want to use (or allow access to all)
+3. Install the StackWeaver GitHub App and select the repositories you want to use (or allow access to all)
+4. Authorize the app when GitHub asks, which lets StackWeaver confirm your GitHub account can access the installation
 
 > [!TIP]
 > You can always change repository access later in your organization settings.

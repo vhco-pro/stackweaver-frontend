@@ -1,9 +1,9 @@
 // Copyright (c) 2025 VH & Co BV. Licensed under the Business Source License 1.1. See LICENSE for details.
 
-// eslint-disable-next-line no-restricted-imports -- legitimate dependency-based effect
-import { useEffect, useState, useRef } from 'react';
+import { useState } from 'react';
+import { useMountEffect } from '@/hooks/useMountEffect';
 import { useQuery } from '@tanstack/react-query';
-import { useParams, useSearchParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { GitBranch, Plus, Trash2, CheckCircle2 } from 'lucide-react';
 import { getVcsProviderIcon, getVcsProviderLabel } from '@/lib/vcs';
 import { Button } from '@/components/ui/button';
@@ -38,6 +38,7 @@ import { dangerOutline } from '@/lib/surfaces';
 export default function VCSConnections() {
   const { orgName } = useParams<{ orgName: string }>();
   const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [connectionToDelete, setConnectionToDelete] = useState<VCSConnection | null>(null);
   const [deleting, setDeleting] = useState(false);
@@ -55,30 +56,13 @@ export default function VCSConnections() {
     enabled: !!orgName,
   });
 
-  const installationHandledRef = useRef(false);
-
-  // Handle GitHub App redirect with installation_id
-  useEffect(() => {
-    const installationId = searchParams.get('installation_id');
-    if (!installationId || !orgName || installationHandledRef.current) return;
-
-    installationHandledRef.current = true;
-    // Create connection from installation and refresh
-    void vcsConnectionsApi.createConnectionFromInstallation(orgName, installationId)
-      .then(() => {
-        // Clean query params
-        const newSearchParams = new URLSearchParams(searchParams);
-        newSearchParams.delete('installation_id');
-        window.history.replaceState({}, '', `${window.location.pathname}${newSearchParams.toString() ? '?' + newSearchParams.toString() : ''}`);
-        // Refresh list
-        void refetchConnections();
-        toast.success('GitHub connection established successfully');
-      })
-      .catch((err) => {
-        console.error('Failed to create VCS connection from installation:', err);
-        toast.error('Failed to create VCS connection');
-      });
-  }, [searchParams, orgName, refetchConnections]);
+  // GitHub returns an installation to the App's Setup URL page, which carries it on to the App's
+  // authorization. An installation id that arrives here instead is forwarded there unchanged.
+  useMountEffect(() => {
+    if (searchParams.get('installation_id')) {
+      void navigate(`/vcs/github/installed?${searchParams.toString()}`, { replace: true });
+    }
+  });
 
   const handleConnectGitHub = async () => {
     if (!orgName) {

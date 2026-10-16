@@ -61,7 +61,7 @@ Two endpoints back the page, both cross-organization and neither taking an organ
 
 `GET /api/v2/dashboard/operations` returns the in-flight executions, bounded, each carrying its organization, name, status and start time, with a `truncated` flag so the UI can say when there is more.
 
-Within an organization, every count is organization-wide, including runs and jobs: one organization means one population, what the team has rather than what you personally started, so "active operations" and the workspace count describe the same people. The "this month" counts run from the first instant of the current month in UTC.
+Within an organization, every count covers what you can read there, including runs and jobs: the workspaces, projects and Ansible resources your teams have access to, which for the owners team or a team that may view all workspaces and projects is the whole organization. One organization means one population, what your teams can see rather than what you personally started, so "active operations" and the workspace count describe the same set and agree with the workspace and project listings. The "this month" counts run from the first instant of the current month in UTC.
 
 ## Implementation
 

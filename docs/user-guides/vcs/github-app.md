@@ -26,6 +26,9 @@ sequenceDiagram
     SW->>GH: Redirects to install page
     User->>GH: Installs app on org/repos
     GH->>SW: Redirects the user back with the installation ID
+    SW->>GH: Sends the user on to authorize the app
+    GH->>SW: Redirects the user back with an authorization code
+    SW->>GH: Checks the user can access the installation
     SW->>SW: Stores installation ID, generates tokens
     User->>SW: Selects repositories and branches
 ```
@@ -36,8 +39,9 @@ sequenceDiagram
 1. **App creation** - The platform owner creates a single GitHub App (one-time setup).
 2. **User connects** - A user clicks "Connect GitHub" in organization settings.
 3. **Installation** - The user is redirected to GitHub's App installation page, selects their org/repos, and installs.
-4. **Return** - GitHub redirects the user back to StackWeaver with the installation ID. StackWeaver stores it for the organization the user started from and generates tokens automatically. The connection is recorded on this return, in the user's signed-in session, and not from a webhook delivery.
-5. **Ready** - The user can now select repositories and branches when creating workspaces.
+4. **Return** - GitHub redirects the user back to StackWeaver with the installation ID.
+5. **Authorization** - StackWeaver sends the user on to GitHub to authorize the app. GitHub shows its authorization page the first time only; a user who has authorized the app before is sent straight back. StackWeaver asks GitHub which installations of the app that user can access, and records the installation for the organization the user started from only when it is one of them. The connection is recorded in the user's signed-in session, and not from a webhook delivery.
+6. **Ready** - The user can now select repositories and branches when creating workspaces.
 
 </details>
 
@@ -49,6 +53,8 @@ sequenceDiagram
 2. Fill in the form:
    - **GitHub App name**: `Stackweaver-instance-$` (or your choice)
    - **Homepage URL**: `http://localhost:5173` (your frontend URL)
+   - **Callback URL**: set this to `https://your-domain.com/vcs/github/authorized` (for local Docker Compose development, `http://localhost:5173/vcs/github/authorized`). GitHub returns the user here after they authorize the app, which is how StackWeaver confirms they can access the installation they connect.
+   - **Request user authorization (OAuth) during installation**: leave this unchecked. It replaces the Setup URL below, which StackWeaver needs.
    - **Setup URL**: set this to your **frontend URL**: `https://your-domain.com/vcs/github/installed`
      - For local Docker Compose development, set this to `http://localhost:5173/vcs/github/installed`.
      - If you need one GitHub App to work across both environments, you will need separate GitHub App registrations (one per environment), or use a tool like ngrok to expose your local frontend.
@@ -93,6 +99,9 @@ sequenceDiagram
    - Click "Generate a private key"
    - **Download the .pem file** - you'll only see it once!
    - Save it securely
+6. **Copy the Client ID and generate a client secret**: on the same settings page, copy the **Client ID**, then under "Client secrets" click "Generate a new client secret" and copy it - GitHub shows it only once. Connecting an installation needs both.
+
+If your GitHub App was created without a Callback URL or a client secret, add them as described in steps 2 and 6 and set `GITHUB_APP_CLIENT_ID` and `GITHUB_APP_CLIENT_SECRET` (below) before your users connect further installations. Connections that already exist keep working without them.
 
 ### 1b. Make the GitHub App Public (required for self‑service installs)
 
@@ -121,10 +130,12 @@ GITHUB_APP_ID=<your-app-id>
 GITHUB_APP_NAME=<your-app-slug>
 ```
 
-Put the webhook secret in `vcs.env`, which the `api` service loads directly:
+Put the webhook secret and the app's OAuth client in `vcs.env`, which the `api` service loads directly:
 
 ```bash
 GITHUB_WEBHOOK_SECRET=<your-webhook-secret>
+GITHUB_APP_CLIENT_ID=<your-client-id>
+GITHUB_APP_CLIENT_SECRET=<your-client-secret>
 ```
 
 Keep it out of `docker-compose.yml`: an uncommented `GITHUB_WEBHOOK_SECRET` entry under `environment:` takes precedence over `vcs.env`, and would blank the secret unless the same value is also in `.env`. Compose also expands `$VAR` sequences inside `vcs.env` values, so write every `$` in the secret as `$$` (a secret of `s3cr3t$Alt!x` becomes `GITHUB_WEBHOOK_SECRET=s3cr3t$$Alt!x`). You can confirm the value the container receives with `docker compose config | grep GITHUB_WEBHOOK_SECRET`.
@@ -141,7 +152,8 @@ The Helm chart stores the private key and webhook secret in a Kubernetes Secret 
 kubectl create secret generic stackweaver-github-app \
   --namespace stackweaver \
   --from-file=private-key=./github-app-private-key.pem \
-  --from-literal=webhook-secret='<your-webhook-secret>'
+  --from-literal=webhook-secret='<your-webhook-secret>' \
+  --from-literal=client-secret='<your-client-secret>'
 ```
 
 **Step 2: Set values in your `values.yaml`:**
@@ -153,11 +165,13 @@ secrets:
     keys:
       privateKey: private-key       # must match the key name used in kubectl create secret
       webhookSecret: webhook-secret  # must match the key name used in kubectl create secret
+      clientSecret: client-secret    # must match the key name used in kubectl create secret
 
 api:
   githubApp:
     id: "<your-app-id>"
     name: "<your-app-slug>"
+    clientId: "<your-client-id>"
 
 orchestrator:
   githubApp:
@@ -168,7 +182,7 @@ orchestrator:
 The chart then automatically:
 - Mounts the secret as a read-only volume at `/etc/github-app/` in both the `api` and `orchestrator` pods.
 - Sets `GITHUB_APP_PRIVATE_KEY_PATH=/etc/github-app/private-key.pem` in each pod.
-- Injects `GITHUB_APP_ID`, `GITHUB_APP_NAME`, and `GITHUB_WEBHOOK_SECRET` as environment variables.
+- Injects `GITHUB_APP_ID`, `GITHUB_APP_NAME`, and `GITHUB_WEBHOOK_SECRET` as environment variables, and on the `api` pod also `GITHUB_APP_CLIENT_ID` and `GITHUB_APP_CLIENT_SECRET`.
 
 No other configuration is required. If `secrets.githubApp.secretName` is empty, GitHub App support is disabled entirely and none of the above env vars are injected.
 
@@ -209,10 +223,12 @@ If instead you see the base64 key data on the same line as the header, the newli
 | `GITHUB_APP_NAME` | The slug from the GitHub App URL (e.g. `my-stackweaver-app`) |
 | `GITHUB_APP_PRIVATE_KEY_PATH` | Path to the `.pem` file inside the container (set automatically by the Helm chart) |
 | `GITHUB_WEBHOOK_SECRET` | Webhook secret used to verify incoming webhook signatures |
+| `GITHUB_APP_CLIENT_ID` | The app's OAuth client ID, shown on the app settings page; needed to connect an installation |
+| `GITHUB_APP_CLIENT_SECRET` | A client secret generated on the app settings page; needed to connect an installation |
 
 ### 3. User Flow (Self-Service)
 
-Connecting an organization to GitHub requires being an organization owner in Stackweaver, or having the `manage-vcs-settings` permission in that organization. A member without it is refused when they click "Connect GitHub" and again if they return from GitHub with an installation.
+Connecting an organization to GitHub requires being an organization owner in Stackweaver, or having the `manage-vcs-settings` permission in that organization. A member without it is refused when they click "Connect GitHub" and again if they return from GitHub with an installation. The installation is recorded only when the person who clicked "Connect GitHub" returns from GitHub within 15 minutes, signed in to Stackweaver as themselves, and only when the GitHub account they authorize the app with can access the installation. It is recorded for the organization they started from. Starting the connection with an organization API token requires a token with write scope on that organization.
 
 ```mermaid
 sequenceDiagram
@@ -225,7 +241,10 @@ sequenceDiagram
     SW->>GH: Redirect to install page
     User->>GH: Selects org/repos, clicks Install
     GH->>SW: Redirect back to platform with the installation ID
-    SW->>SW: Stores installation ID
+    SW->>GH: Redirect to authorize the app
+    User->>GH: Authorizes the app (first time only)
+    GH->>SW: Redirect back with an authorization code
+    SW->>SW: Confirms the user can access the installation, stores the installation ID
     User->>SW: Selects repositories and branches
 ```
 
@@ -235,8 +254,9 @@ sequenceDiagram
 1. **Navigate** - User goes to Organization Settings > VCS Connections.
 2. **Connect** - User clicks "Connect GitHub" and is redirected to GitHub's App installation page.
 3. **Install** - User selects organization/repositories and clicks "Install".
-4. **Callback** - GitHub redirects the user back to StackWeaver, to the Setup URL, with the installation ID.
-5. **Ready** - StackWeaver stores the installation ID for the organization the user started from; the user can now select repositories and branches.
+4. **Setup URL** - GitHub redirects the user back to StackWeaver, to the Setup URL, with the installation ID.
+5. **Authorize** - StackWeaver sends the user on to GitHub to authorize the app. GitHub shows its authorization page the first time; afterwards it returns the user straight away, to the Callback URL.
+6. **Ready** - StackWeaver confirms with GitHub that the user can access the installation and stores the installation ID for the organization the user started from; the user can now select repositories and branches.
 
 </details>
 
@@ -287,6 +307,10 @@ kubectl get secret stackweaver-github-app -n stackweaver \
 ### Installation Not Working
 - Check the Setup URL in GitHub App settings: the connection is recorded when GitHub redirects the user back to it, so an installation that never returns to StackWeaver leaves the organization without a connection
 - Start the installation from "Connect GitHub" in StackWeaver. Installing the app directly from GitHub does not connect any organization
+- Finish the installation on GitHub within 15 minutes of clicking "Connect GitHub", and return to StackWeaver signed in as the person who clicked it. Otherwise StackWeaver refuses the installation and asks you to connect again
+- "GitHub App user authorization is not configured": set `GITHUB_APP_CLIENT_ID` and `GITHUB_APP_CLIENT_SECRET` from the app's settings page, and register `https://your-domain.com/vcs/github/authorized` as a Callback URL of the app
+- GitHub shows "The redirect_uri is not associated with this application": the Callback URL registered for the app does not match your frontend URL (`STACKWEAVER_APP_URL`) followed by `/vcs/github/authorized`
+- "The GitHub account you authorized cannot access this installation": the account you authorized the app with has no access to the account or organization the app was installed on. Authorize with an account that is an owner or member there, or install the app on an account you can access
 
 ### Pushes Do Not Trigger Runs
 - Check webhook URL is correct in GitHub App settings
