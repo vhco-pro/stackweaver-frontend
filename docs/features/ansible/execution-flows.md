@@ -76,7 +76,7 @@ flowchart TD
 2. **Variable merge** - platform variables, then variable sets, then template variables, then launch-time overrides; later layers win.
 3. **Dependency gate** - inventory sources with *update on launch* whose cache window lapsed are synced first; constructed inventories rebuild from their inputs. The job stays held until no dependency sync is running (a sync stuck longer than 30 minutes stops blocking).
 4. **Concurrency gate** - without *allow simultaneous*, one run per template at a time; the check-then-create runs under a per-template database lock so concurrent launches cannot both pass. Sliced jobs skip this gate by design.
-5. **Release** - the scheduler tick re-evaluates held jobs every 30 seconds and dispatches the ones whose gates cleared.
+5. **Release** - the scheduler tick re-evaluates held jobs every 30 seconds and dispatches the ones whose gates cleared. A dependency sync that failed (or stopped blocking after 30 minutes) does not fail the job: it runs on the source's last successful hosts, and before it is dispatched the API records the source on the job (`inventory-sync-warnings`) and writes the notice as the job's first output event, which both runner paths continue after. See `JobService.releaseJob` in `core/services/ansible/job.go` and `core/services/ansible/inventory_sync_notice.go`.
 
 </details>
 
@@ -188,7 +188,7 @@ flowchart TD
 1. **Source ownership** - dynamic sources stamp the hosts and groups they discover. With *overwrite* on, a source prunes only its own rows when the provider stops reporting them; manual entries and other sources' rows are never touched.
 2. **A failed run reconciles nothing** - for a dynamic source sync and for a constructed inventory build, the runner tells `ansible-inventory` to exit non-zero when it cannot parse any one of the sources it was given (rejected credentials, an unreachable endpoint, a configuration the plugin refuses, an input it cannot read). Such a run is recorded as failed with the plugin's error in its output, and the rows stay as the last successful run left them. A run that succeeds with no hosts is a different outcome: with *overwrite* on it prunes everything the source owned.
 3. **Variable merging** - by default synced host variables merge into existing ones (your manual keys survive); *overwrite variables* switches to wholesale replacement.
-4. **Constructed inventories** - wholly own their derived hosts and groups: every rebuild replaces the materialized set from the inputs and rules.
+4. **Constructed inventories** - are derived-only: their hosts and groups come from the build alone, and every successful rebuild replaces the materialized set from the inputs and rules. The API refuses to add a host, a group or an inventory source to a constructed inventory, to add a host to one of its groups, or to move one of its groups under another, so every row a rebuild removes is one it derived. A host or group can still be deleted, and the next rebuild derives it again if the inputs and rules still produce it.
 5. **History and live tail** - each run records who triggered it (manual, schedule, launch, workflow, webhook), host/group counts, duration, and the full diagnostics; raise the source's verbosity for more detail.
 
 </details>

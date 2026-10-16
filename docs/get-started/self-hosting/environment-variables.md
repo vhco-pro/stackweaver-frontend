@@ -5,6 +5,7 @@ covers:
   - "backend/cmd/runner/**"
   - "backend/cmd/orchestrator/**"
   - "backend/cmd/ansible-runner/**"
+  - "core/security/runenv/**"
   - "scripts/zitadel-init/**"
   - "deploy/sso.env.example"
   - "deploy/vcs.env.example"
@@ -226,6 +227,7 @@ The runner picks jobs from the Redis queue and executes OpenTofu plan/apply/dest
 | `OIDC_ISSUER_URL` | OIDC issuer URL for workload identity | Falls back to `API_URL` |
 | `TOFU_RELEASES_URL` | Base URL for OpenTofu release artifacts | `https://github.com/opentofu/opentofu/releases/download` |
 | `TOFU_VERSION_INDEX_URL` | URL of the OpenTofu version index | `https://get.opentofu.org/tofu/api.json` |
+| `STACKWEAVER_RUN_ENV_PASSTHROUGH` | Comma-separated names of further runner variables to hand to runs. See [Runner variables that reach runs](#runner-variables-that-reach-runs). Applies in both modes. | (none) |
 
 ### Using an internal OpenTofu mirror
 
@@ -282,6 +284,7 @@ The Ansible runner processes Ansible playbook jobs from the Redis queue.
 | `ANSIBLE_HOST_KEY_CHECKING` | Enable SSH host-key verification for playbook runs. Left at the default, the runner disables strict checking (managed hosts are ephemeral). Set it to `true` to enforce verification and honor a project or organization `ansible.cfg` `known_hosts`. | `false` |
 | `OIDC_ISSUER_URL` | OIDC issuer URL for workload identity | Falls back to `API_URL` |
 | `GALAXY_CACHE_TTL_DAYS` | Days an unused per-project Galaxy cache is kept before the runner removes it. `0` disables the cleanup. Applies in both modes. | `14` |
+| `STACKWEAVER_RUN_ENV_PASSTHROUGH` | Comma-separated names of further runner variables to hand to jobs and inventory syncs. See [Runner variables that reach runs](#runner-variables-that-reach-runs). Applies in both modes. | (none) |
 
 In agent mode (`RUNNER_MODE=agent`) the runner talks only to the Stackweaver API, so the Redis, database and storage variables above are not read. It is configured with the variables below instead.
 
@@ -294,6 +297,16 @@ In agent mode (`RUNNER_MODE=agent`) the runner talks only to the Stackweaver API
 | `RUNNER_LABELS` | Comma-separated labels | (none) |
 | `POLL_INTERVAL` | How often the runner polls for work, as a duration such as `10s` | `10s` |
 | `GALAXY_CACHE_DIR` | Directory that holds the per-project Galaxy caches for collections and roles installed from `requirements.yml`. Mount a volume here to keep the cache across restarts. Use a directory dedicated to the runner: it manages the per-project subdirectories in it and removes the ones that go unused. | `$WORKSPACES_DIR/galaxy-cache` |
+
+### Runner variables that reach runs
+
+A runner's own environment holds the platform's secrets (the database password, the Redis and storage credentials, the encryption key, the workload identity signing key) or, for an agent, its runner token. The processes a runner starts for a run execute code the run's author controls: OpenTofu providers, the `external` data source and `local-exec` provisioners, playbooks, inventory plugins and scripts, and Galaxy installs. Both runners, in both modes, therefore build the environment of those processes from an allowlist, and every other runner variable stays behind, including any variable added to a deployment later.
+
+A run is handed the variables the run itself defines (workspace and variable-set environment variables, job credentials, and the workload identity variables the platform mints for it) and, from the runner's own environment, only the following. Every run gets `PATH`, `HOME`, `USER`, `LOGNAME`, `TMPDIR`, `TZ`, `LANG`, `LANGUAGE` and every `LC_*` locale variable. It gets the proxy settings `HTTP_PROXY`, `HTTPS_PROXY`, `NO_PROXY` and `ALL_PROXY`, in upper and lower case, and the CA bundle settings `SSL_CERT_FILE`, `SSL_CERT_DIR`, `REQUESTS_CA_BUNDLE` and `CURL_CA_BUNDLE`. It gets the pod-level cloud identity variables that Kubernetes and the cloud webhooks set: `AWS_ROLE_ARN`, `AWS_WEB_IDENTITY_TOKEN_FILE`, `AWS_ROLE_SESSION_NAME`, `AWS_REGION`, `AWS_DEFAULT_REGION`, `AWS_STS_REGIONAL_ENDPOINTS`, `AWS_CONTAINER_CREDENTIALS_FULL_URI` and `AWS_CONTAINER_AUTHORIZATION_TOKEN_FILE` for IRSA and EKS Pod Identity, `AZURE_CLIENT_ID`, `AZURE_TENANT_ID`, `AZURE_FEDERATED_TOKEN_FILE` and `AZURE_AUTHORITY_HOST` for AKS workload identity, and `KUBERNETES_SERVICE_HOST` and `KUBERNETES_SERVICE_PORT`. An identity granted to the runner pod is therefore available to every run on it, which is what makes that a supported way to give runs cloud access.
+
+OpenTofu runs also get `TF_CLI_CONFIG_FILE`, `TF_PLUGIN_CACHE_DIR`, `TF_PLUGIN_CACHE_MAY_BREAK_DEPENDENCY_LOCK_FILE`, `TF_IN_AUTOMATION`, `TF_REGISTRY_DISCOVERY_RETRY`, `TF_REGISTRY_CLIENT_TIMEOUT`, `TF_PROVIDER_DOWNLOAD_RETRY` and every `TF_TOKEN_<host>` registry credential. Ansible jobs, inventory syncs and Galaxy installs also get `ANSIBLE_HOME`, `ANSIBLE_REMOTE_TMP`, `ANSIBLE_LOCAL_TEMP`, `ANSIBLE_COLLECTIONS_PATH`, `ANSIBLE_ROLES_PATH`, `VIRTUAL_ENV`, `AZURE_TENANT` and `AZURE_SUBSCRIPTION_ID`. Any other `ANSIBLE_*` variable set on the runner is not passed on.
+
+To hand runs a further variable you set on the runner, such as a proxy credential or a cloud setting not listed above, list its name in `STACKWEAVER_RUN_ENV_PASSTHROUGH`, separated by commas: for example `STACKWEAVER_RUN_ENV_PASSTHROUGH=AWS_PROFILE,AWS_CONFIG_FILE`. Names are matched exactly and patterns are not accepted. With the Helm chart, set `runner.runEnvPassthrough` and `ansibleRunner.runEnvPassthrough` to a list of names and put the variables themselves in `runner.env` and `ansibleRunner.env`. On Docker Compose and on a self-hosted agent, set the variable on the runner container next to the variables it names. Never list a platform secret: whatever you name here is readable by every run on that runner.
 
 ---
 

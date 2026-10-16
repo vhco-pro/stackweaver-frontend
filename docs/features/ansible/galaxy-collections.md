@@ -59,7 +59,7 @@ An ad hoc command has no repository to declare requirements in and takes its con
 
 ### Self-hosted runners
 
-A self-hosted runner installs requirements from inside your network, so the runner host needs a route to wherever the collections come from. That is `galaxy.ansible.com` for public collections, your Git host for entries of `type: git`, or a private Automation Hub or Galaxy server. To use a private server, add a `[galaxy]` section with a `server_list` to the `ansible.cfg` stored for the project or organization in Stackweaver: the runner writes that file into the job and `ansible-galaxy` reads it during the install. The `ANSIBLE_GALAXY_SERVER_*` environment variables set on the runner host are honoured as well.
+A self-hosted runner installs requirements from inside your network, so the runner host needs a route to wherever the collections come from. That is `galaxy.ansible.com` for public collections, your Git host for entries of `type: git`, or a private Automation Hub or Galaxy server. To use a private server, add a `[galaxy]` section with a `server_list` to the `ansible.cfg` stored for the project or organization in Stackweaver: the runner writes that file into the job and `ansible-galaxy` reads it during the install. `ANSIBLE_GALAXY_SERVER_*` environment variables set on the runner reach `ansible-galaxy` only when you name each one in `STACKWEAVER_RUN_ENV_PASSTHROUGH`, because a runner hands its jobs only an allowlist of its own environment (see [Runner variables that reach runs](../../get-started/self-hosting/environment-variables.md#runner-variables-that-reach-runs)).
 
 The per-project cache lives under the directory named by `GALAXY_CACHE_DIR`, which defaults to `galaxy-cache` under `WORKSPACES_DIR`. Without a volume the cache lasts as long as the runner container. Mount a volume at that path to keep it across restarts. Dedicate the directory to the runner and keep nothing else in it: the runner creates one subdirectory per project, named after the project's ID, and removes a project's subdirectory once it has not been used for `GALAXY_CACHE_TTL_DAYS` days (14 by default). Setting the value to `0` turns the cleanup off.
 
@@ -103,6 +103,8 @@ roles:
   - name: geerlingguy.docker
   - name: geerlingguy.nginx
 ```
+
+An entry's `version` is how you pin a collection or a role. Job templates carry no collection list or version pin of their own: a job installs what its repository's `requirements.yml` declares, so pinning a version for a template means pinning it in the `requirements.yml` of the repository the template's playbook comes from.
 
 **How It Works**:
 1. When a job starts, the runner clones the playbook repository
@@ -167,7 +169,6 @@ collections:
 
 ### 🔄 Planned
 - [ ] Show installed collections in UI
-- [ ] Collection version pinning per playbook/template
 - [ ] Organization-level collection management
 
 ### 💡 Future

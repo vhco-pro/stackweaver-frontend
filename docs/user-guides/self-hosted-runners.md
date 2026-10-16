@@ -277,6 +277,9 @@ These variables work with both Docker and Kubernetes deployments.
 |----------|-------------|---------|
 | `RUNNER_NAME` | Name shown in the UI (e.g. hostname). | Hostname |
 | `RUNNER_LABELS` | Comma-separated labels for targeting (e.g. `production,gpu`). | (none) |
+| `STACKWEAVER_RUN_ENV_PASSTHROUGH` | Comma-separated names of further variables set on the runner to hand to the jobs it runs (e.g. `AWS_PROFILE,AWS_CONFIG_FILE`). | (none) |
+
+The jobs a runner executes do not inherit its whole environment, which holds its API key. They receive their own variables from Stackweaver plus a fixed allowlist of the runner's (path, locale, proxy and CA settings, pod-level cloud identity variables such as IRSA's `AWS_ROLE_ARN` and `AWS_WEB_IDENTITY_TOKEN_FILE` or AKS workload identity's `AZURE_FEDERATED_TOKEN_FILE`, and a few OpenTofu and Ansible settings), listed in [Runner variables that reach runs](../get-started/self-hosting/environment-variables.md#runner-variables-that-reach-runs). If your jobs rely on another variable you set on the runner host or container, such as cloud credentials or `AWS_PROFILE`, name it in `STACKWEAVER_RUN_ENV_PASSTHROUGH`.
 
 Each runner runs one job at a time. To run several jobs in parallel for a pool, start more runners in that pool.
 

@@ -138,6 +138,10 @@ The API reads `.env` when it starts and gives it precedence over the environment
 
 For a full list of every environment variable, see the [Environment Variables Reference](../environment-variables.md).
 
+### Variables That Reach Runs
+
+The `runner` and `ansible-runner` services receive the database, Redis and storage credentials, the encryption key, the signing key and the VCS secrets from these files, and none of that is passed to the runs they execute. OpenTofu, `ansible-playbook`, `ansible-inventory` and `ansible-galaxy` start with the run's own variables plus a fixed allowlist of the runner's environment (path, locale, proxy and CA settings, cloud identity variables and a few OpenTofu and Ansible settings), listed in [Runner variables that reach runs](../environment-variables.md#runner-variables-that-reach-runs). A variable you add to a runner service's `environment:` for your runs, such as a proxy credential, reaches them only when you also name it in `STACKWEAVER_RUN_ENV_PASSTHROUGH` on the same service, for example `STACKWEAVER_RUN_ENV_PASSTHROUGH=PROXY_USER,PROXY_PASSWORD`.
+
 ### GitHub App Integration
 
 The GitHub App integration is optional and disabled by default. To enable it, uncomment the GitHub App ID, name, and private key path entries and the key volume mount in `docker-compose.yml` for the `api` and `orchestrator` services, and place your GitHub App private key file in the same directory as `docker-compose.yml`. The webhook secret and the app's OAuth client ID and secret (`GITHUB_APP_CLIENT_ID`, `GITHUB_APP_CLIENT_SECRET`, which connecting an installation needs) belong in `vcs.env`, not in `docker-compose.yml`; the [GitHub App guide](../../../user-guides/vcs/github-app.md) walks through every step.
