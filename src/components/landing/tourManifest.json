@@ -1,0 +1,48 @@
+{
+  "note": "Written by e2e/scripts/capture-landing-tour.ts (make landing-captures). Do not edit by hand: a changed hash without a recapture hides a stale screenshot.",
+  "organization": "acme",
+  "screens": [
+    {
+      "id": "dashboard",
+      "path": "/dashboard",
+      "page": "pages/Dashboard/index.tsx",
+      "sha256": "7b8a62d6464671800607961712dc713e9337b1ed6c6f19e6f3789a8695402a57"
+    },
+    {
+      "id": "workspaces",
+      "path": "/app/acme/workspaces",
+      "page": "pages/Workspaces.tsx",
+      "sha256": "16db9e5bff38bf67c6fd8eb4ccfe9e646c554832e2af4e7d6d5c9b2fe20e156b"
+    },
+    {
+      "id": "workspace",
+      "path": "/app/acme/workspaces/prod-cluster",
+      "page": "pages/WorkspaceDetail.tsx",
+      "sha256": "569885b49092a619bddf24f0a1676f37c94055d5859a5f02c1dad2432ef42a6d"
+    },
+    {
+      "id": "runs",
+      "path": "/app/acme/workspaces/prod-cluster",
+      "page": "pages/WorkspaceDetail.tsx",
+      "sha256": "569885b49092a619bddf24f0a1676f37c94055d5859a5f02c1dad2432ef42a6d"
+    },
+    {
+      "id": "run",
+      "path": "/app/acme/workspaces/payments-prod/runs/run-X2fd1GEYiPzofcwJ",
+      "page": "pages/RunDetail.tsx",
+      "sha256": "da47170e68bfa8313b8557d29714cff5ef687ce7fae6580720bc80f79dba0fc1"
+    },
+    {
+      "id": "job",
+      "path": "/app/acme/ansible/jobs/883ad998-48eb-45b1-8018-66c6d11b3c09",
+      "page": "pages/Ansible/JobDetail.tsx",
+      "sha256": "cb2104c3502a34799c75ff5d1b997b9bd35d56458824b962bcd94ad816652b5f"
+    },
+    {
+      "id": "runners",
+      "path": "/app/acme/settings/runners",
+      "page": "pages/Settings/Runners.tsx",
+      "sha256": "1fd24970b2fecbbf0b011b9736cccd5c9a5e48e14ccd5adaebb7f417593df779"
+    }
+  ]
+}

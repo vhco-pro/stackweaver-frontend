@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useMountEffect } from '@/hooks/useMountEffect';
 import { useNavigate, Link } from 'react-router-dom';
+import { motion, type MotionValue } from 'motion/react';
 import { ArrowRight, Sun, Moon, Laptop, Menu } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { GradientButton } from '@/components/ui/gradient-button';
@@ -24,9 +25,14 @@ import {
 interface PublicNavProps {
   /** Active link to highlight. Options: 'home', 'docs' */
   activeLink?: 'home' | 'docs';
+  /**
+   * Drives the logo's opacity from outside. The landing page keeps the logo hidden until its
+   * hero logo has travelled up to this spot.
+   */
+  logoOpacity?: MotionValue<number>;
 }
 
-export function PublicNav({ activeLink = 'home' }: PublicNavProps) {
+export function PublicNav({ activeLink = 'home', logoOpacity }: PublicNavProps) {
   const { session } = useAuth();
   const { theme, setTheme } = useTheme();
   const navigate = useNavigate();
@@ -74,13 +80,18 @@ export function PublicNav({ activeLink = 'home' }: PublicNavProps) {
           onClick={handleLogoClick}
           className="flex items-center gap-3 hover:opacity-80 transition-opacity"
         >
-          <img
-            src="/logo.png"
-            alt="Stackweaver"
-            className={`h-8 w-8 md:h-10 md:w-10 transition-opacity duration-500 ${
-              isScrolled ? 'opacity-100' : 'opacity-80'
-            }`}
-          />
+          {logoOpacity ? (
+            <motion.img data-nav-logo src="/logo.png" alt="Stackweaver" className="h-8 w-8 md:h-10 md:w-10" style={{ opacity: logoOpacity }} />
+          ) : (
+            <img
+              data-nav-logo
+              src="/logo.png"
+              alt="Stackweaver"
+              className={`h-8 w-8 md:h-10 md:w-10 transition-opacity duration-500 ${
+                isScrolled ? 'opacity-100' : 'opacity-80'
+              }`}
+            />
+          )}
           <span
             className={`text-xl font-bold bg-gradient-to-r from-blue-500 via-blue-600 to-purple-500 dark:from-blue-500 dark:via-blue-600 dark:to-purple-500 bg-clip-text text-transparent transition-opacity duration-500 ${
               isScrolled ? 'opacity-100' : 'opacity-70'
@@ -101,6 +112,14 @@ export function PublicNav({ activeLink = 'home' }: PublicNavProps) {
                 }`}
               >
                 Overview
+              </a>
+              <a
+                href="#compat"
+                className={`text-sm transition-all duration-300 hover:text-blue-500 dark:hover:text-blue-300 ${
+                  isScrolled ? 'text-slate-800 dark:text-white' : 'text-slate-800/70 dark:text-white/70'
+                }`}
+              >
+                Compatibility
               </a>
               <a
                 href="#install"
@@ -156,6 +175,14 @@ export function PublicNav({ activeLink = 'home' }: PublicNavProps) {
                 }`}
               >
                 Overview
+              </a>
+              <a
+                href="/#compat"
+                className={`text-sm transition-all duration-300 hover:text-blue-500 dark:hover:text-blue-300 ${
+                  isScrolled ? 'text-slate-800 dark:text-white' : 'text-slate-800/70 dark:text-white/70'
+                }`}
+              >
+                Compatibility
               </a>
               <a
                 href="/#install"
@@ -283,6 +310,13 @@ export function PublicNav({ activeLink = 'home' }: PublicNavProps) {
                     Overview
                   </a>
                   <a
+                    href="#compat"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="flex items-center px-3 py-3 text-sm font-medium text-slate-700 dark:text-gray-200 hover:bg-slate-100 dark:hover:bg-white/10 rounded-lg transition-colors"
+                  >
+                    Compatibility
+                  </a>
+                  <a
                     href="#install"
                     onClick={() => setMobileMenuOpen(false)}
                     className="flex items-center px-3 py-3 text-sm font-medium text-slate-700 dark:text-gray-200 hover:bg-slate-100 dark:hover:bg-white/10 rounded-lg transition-colors"
@@ -326,6 +360,13 @@ export function PublicNav({ activeLink = 'home' }: PublicNavProps) {
                     className="flex items-center px-3 py-3 text-sm font-medium text-slate-700 dark:text-gray-200 hover:bg-slate-100 dark:hover:bg-white/10 rounded-lg transition-colors"
                   >
                     Overview
+                  </a>
+                  <a
+                    href="/#compat"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="flex items-center px-3 py-3 text-sm font-medium text-slate-700 dark:text-gray-200 hover:bg-slate-100 dark:hover:bg-white/10 rounded-lg transition-colors"
+                  >
+                    Compatibility
                   </a>
                   <a
                     href="/#install"

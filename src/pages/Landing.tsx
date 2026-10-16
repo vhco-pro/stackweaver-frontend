@@ -2,177 +2,41 @@
 
 // eslint-disable-next-line no-restricted-imports -- legitimate dependency-based effect
 import { useEffect, useRef, useState, useMemo } from 'react';
-import { useMountEffect } from '@/hooks/useMountEffect';
 import { useNavigate } from 'react-router-dom';
-import { ArrowRight, Zap, Shield, Cloud, Layers3, GitBranch, Cpu, KeyRound, ShieldCheck, Wrench, Database, Globe, PlugZap, Container, Copy, Check, ExternalLink } from 'lucide-react';
+import { useMountEffect } from '@/hooks/useMountEffect';
+import { ArrowRight, Zap, Server, Cloud, Layers3, GitBranch, Cpu, KeyRound, ShieldCheck, Wrench, Database, Globe, PlugZap, Container, Copy, Check, ExternalLink } from 'lucide-react';
 import { getVcsProviderIcon } from '@/lib/vcs';
 import { Button } from '@/components/ui/button';
 import { GradientButton } from '@/components/ui/gradient-button';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import { CookieConsent } from '@/components/gdpr/CookieConsent';
-import { ProductOverview } from '@/components/landing/ProductOverview';
-import { PublicNav } from '@/components/navigation/PublicNav';
+import { Stage } from '@/components/landing/Stage';
+import { Compatibility } from '@/components/landing/Compatibility';
+import { LicenseSecurity } from '@/components/landing/LicenseSecurity';
 import { Footer } from '@/components/layout/Footer';
 
-// Animate UI imports
-import { Slide } from '@/components/animate-ui/primitives/effects/slide';
-import { SplittingText } from '@/components/animate-ui/primitives/texts/splitting';
-import { TypingText, TypingTextCursor } from '@/components/animate-ui/primitives/texts/typing';
-// import { Ripple } from '@/components/animate-ui/primitives/buttons/ripple';
-import { Shine } from '@/components/animate-ui/primitives/effects/shine';
-
-
-interface RoadmapSection {
-  version: string;
-  date: string;
-  title: string;
-  description: string;
-  features: string[];
-  badge?: string;
-}
-
-const roadmapSections: RoadmapSection[] = [
-  {
-    version: 'v0.0',
-    date: 'Current',
-    title: 'Core Platform',
-    description: 'TFE-compatible APIs, VCS integration, and Ansible foundation',
-    features: [
-      'Organizations, Projects, Workspaces with TFE-compatible JSON:API',
-      'Runs API (plan, apply, cancel) with logs and state management',
-      'Variables, Variable Sets, and Working Directory support',
-      'JWT auth (Zitadel) + TFE token compatibility',
-      'GitHub App webhooks for push/PR-triggered runs',
-      'Ansible: Playbooks, Inventories, Credentials, Job Templates',
-    ],
-  },
-  {
-    version: 'v0.1',
-    date: 'Q1 2025',
-    title: 'Execution Engine',
-    description: 'Remote execution with Kubernetes runners',
-    features: [
-      'Kubernetes agent pools with RBAC scoping',
-      'Real-time log streaming for OpenTofu and Ansible',
-      'Ansible job execution with queue-based scheduling',
-      'GitLab and Bitbucket VCS provider support',
-    ],
-  },
-  {
-    version: 'v0.2',
-    date: 'Q2 2025',
-    title: 'Enterprise & Governance',
-    description: 'Compliance, policy, and enterprise readiness',
-    features: [
-      'OPA/Sentinel-style policy-as-code gates',
-      'Drift detection, cost estimation, approvals',
-      'SAML/OIDC SSO, SCIM, advanced audit trails',
-      'Multi-region runners and HA services',
-    ],
-  },
-];
-
-interface SectionPosition {
-  top: number;
-  center: number;
-  bottom: number;
-}
 
 export default function Landing() {
   const { session } = useAuth();
   const { resolvedTheme } = useTheme();
   const navigate = useNavigate();
-  const [, setScrollY] = useState(0);
-  const [scrollProgress, setScrollProgress] = useState(0);
-  const [centeredSection, setCenteredSection] = useState<number | null>(null);
-  // const [sectionPositions, setSectionPositions] = useState<SectionPosition[]>([]);
-  const heroRef = useRef<HTMLDivElement>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
-  const ctaRef = useRef<HTMLElement>(null);
-  const sectionRefs = useRef<(HTMLDivElement | null)[]>([]);
 
-  // Use ref to store positions to avoid infinite loop
-  const sectionPositionsRef = useRef<SectionPosition[]>([]);
+  // A link such as /#overview arrives before this page has rendered, so the browser finds
+  // nothing to scroll to. Honour the fragment once the sections exist.
+  useMountEffect(() => {
+    const id = window.location.hash.slice(1);
+    if (id) document.getElementById(id)?.scrollIntoView();
+  });
 
   const handleGetStarted = (e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();
     if (session) {
       void Promise.resolve(navigate('/dashboard'));
     } else {
-      void Promise.resolve(navigate('/auth/login'));
+      document.getElementById('install')?.scrollIntoView({ behavior: 'smooth' });
     }
   };
-  
-  useMountEffect(() => {
-    const updatePositions = () => {
-      // positions: SectionPosition[] = []; // Unused - keeping for future use
-      /*
-      sectionRefs.current.forEach((ref) => {
-        if (ref) {
-          const rect = ref.getBoundingClientRect();
-          const scrollTop = window.scrollY;
-          positions.push({
-            top: rect.top + scrollTop,
-            center: rect.top + scrollTop + rect.height / 2,
-            bottom: rect.bottom + scrollTop,
-          });
-        }
-      });
-      sectionPositionsRef.current = positions;
-      setSectionPositions(positions);
-      */
-    };
-
-    const handleScroll = () => {
-      const currentScrollY = window.scrollY;
-      setScrollY(currentScrollY);
-
-      if (!containerRef.current) return;
-
-      const container = containerRef.current;
-      const scrollTop = currentScrollY;
-      const containerTop = container.offsetTop;
-      const containerHeight = container.offsetHeight;
-      const windowHeight = window.innerHeight;
-      const viewportCenter = scrollTop + windowHeight / 2;
-
-      // Calculate scroll progress (0 to 1)
-      const progress = Math.max(
-        0,
-        Math.min(1, (scrollTop - containerTop + windowHeight) / containerHeight)
-      );
-      setScrollProgress(progress);
-
-      // Find which section is centered in viewport (use ref to avoid stale closure)
-      const positions = sectionPositionsRef.current;
-      let closestSection: number | null = null;
-      let closestDistance = Infinity;
-
-      positions.forEach((pos, index) => {
-        const distance = Math.abs(pos.center - viewportCenter);
-        if (distance < closestDistance && viewportCenter >= pos.top && viewportCenter <= pos.bottom) {
-          closestDistance = distance;
-          closestSection = index;
-        }
-      });
-
-      setCenteredSection(closestSection);
-      updatePositions();
-    };
-
-    // Initial position update
-    updatePositions();
-    handleScroll();
-
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    window.addEventListener('resize', updatePositions, { passive: true });
-
-    return () => {
-      window.removeEventListener('scroll', handleScroll);
-      window.removeEventListener('resize', updatePositions);
-    };
-  });
 
   return (
     <div className="min-h-screen bg-transparent text-slate-950 dark:text-white transition-colors duration-500">
@@ -199,87 +63,19 @@ export default function Landing() {
         }} 
       />
 
-      {/* Sticky Navigation */}
-      <PublicNav activeLink="home" />
+      {/* The hero and the product tour, one pinned scroll sequence. It renders the navigation too. */}
+      <Stage
+        background={
+          <>
+            {/* Animated "aurora" background (stacked layers + canvas) - DARK MODE ONLY */}
+            <div className="aurora-bg z-0 hidden dark:block dark:opacity-100" />
+            <div className="aurora-bg alt z-0 hidden dark:block dark:opacity-100" />
+            <AuroraCanvas className="absolute inset-0 z-0 pointer-events-none hidden dark:block" theme={resolvedTheme} />
+          </>
+        }
+      />
 
-      {/* Hero Section */}
-      <section
-        ref={heroRef}
-        className="relative min-h-screen flex items-center justify-center overflow-hidden"
-      >
-        {/* Animated "aurora" background (stacked layers + canvas) - DARK MODE ONLY */}
-        <div className="aurora-bg z-0 hidden dark:block dark:opacity-100" />
-        <div className="aurora-bg alt z-0 hidden dark:block dark:opacity-100" />
-        <AuroraCanvas className="absolute inset-0 z-0 pointer-events-none hidden dark:block" theme={resolvedTheme} />
-
-        <div className="relative z-10 max-w-6xl mx-auto px-6 text-center pt-16">
-          {/* Logo in Hero */}
-          <Slide direction="up" delay={200} inView inViewOnce className="mb-8 flex justify-center">
-            <img
-              src="/logo.png"
-              alt="Stackweaver"
-              className="h-32 w-32 md:h-48 md:w-48 lg:h-64 lg:w-64 drop-shadow-2xl"
-            />
-          </Slide>
-          
-          <div className="text-4xl sm:text-6xl md:text-8xl font-bold mb-6 bg-gradient-to-r from-blue-500 via-blue-600 to-purple-500 dark:from-white dark:via-blue-100 dark:to-blue-300 bg-clip-text text-transparent min-h-[1.2em]">
-             <SplittingText text="Stackweaver" type="chars" delay={400} inView inViewOnce />
-          </div>
-          
-          <div className="text-xl md:text-2xl text-slate-800 dark:text-gray-300 mb-12 max-w-3xl mx-auto flex flex-col items-center">
-            <TypingText
-              inView
-              inViewOnce
-              delay={800}
-              duration={17}
-              text="The DevOps automation platform for managing infrastructure and configuration at scale."
-            >
-              <TypingTextCursor />
-            </TypingText>
-            <div className="mt-4 flex gap-2 text-sm md:text-base text-slate-600 dark:text-gray-400">
-               <span>Everything you need to ship</span>
-               <Shine><span className="font-bold text-blue-600 dark:text-blue-400">10x faster</span></Shine>
-            </div>
-          </div>
-
-          {/* <div className="flex flex-col sm:flex-row gap-4 justify-center items-center w-full max-w-max mx-auto animate-in fade-in slide-in-from-bottom-8 duration-1000 delay-600">
-            <GradientButton
-              size="lg"
-              onClick={handleGetStarted}
-              className="w-auto px-8 py-3"
-            >
-              <span className="flex items-center gap-2">
-                <span>{session ? 'Go to Dashboard' : 'Get Started'}</span>
-                <ArrowRight className="h-5 w-5 shrink-0" />
-              </span>
-            </GradientButton>
-
-            <Ripple asChild>
-              <Button
-                asChild
-                variant="outline"
-                size="lg"
-                className="bg-white dark:bg-white/10 backdrop-blur-md border-slate-300 dark:border-white/20 hover:bg-slate-50 dark:hover:bg-white/20 text-slate-900 dark:text-white whitespace-nowrap"
-              >
-                <a href="https://github.com/michielvha/stackweaver" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2">
-                  {getVcsProviderIcon('github', 'h-5 w-5 shrink-0')}
-                  <span>Star on GitHub</span>
-                </a>
-              </Button>
-            </Ripple>
-          </div> */}
-        </div>
-
-        {/* Scroll indicator */}
-        <div className="absolute bottom-8 inset-x-0 flex flex-col items-center animate-bounce gap-2">
-          <div className="w-6 h-10 border-2 border-slate-400 dark:border-white/30 rounded-full flex items-start justify-center p-2">
-            <div className="w-1 h-3 bg-slate-400 dark:bg-white/50 rounded-full animate-pulse" />
-          </div>
-        </div>
-      </section>
-
-      {/* Product Overview Section */}
-      <ProductOverview />
+      <Compatibility />
 
       {/* Install Section */}
       <InstallSection />
@@ -294,14 +90,14 @@ export default function Landing() {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {[
               { icon: Layers3, title: 'TFE-Compatible Core', description: 'Organizations, Projects, Workspaces, Runs, Variables, State Versions, Tokens, JSON:API v2 and TFE token auth' },
-              { icon: PlugZap, title: 'Provider Compatibility', description: 'terraform-provider-tfe parity for seamless CLI/automation adoption' },
+              { icon: PlugZap, title: 'Provider Compatibility', description: 'terraform-provider-tfe parity, so existing automation against the TFE API keeps working' },
               { icon: Database, title: 'State & Secrets', description: 'Encrypted state storage (S3-compatible), variable sets, sensitive vars, workspace-scoped secrets' },
               { icon: Wrench, title: 'Ansible (AWX Parity)', description: 'Projects, inventories, credentials, job templates and schedules' },
               { icon: GitBranch, title: 'VCS-Driven Workflows', description: 'GitHub App and Azure DevOps integration, repo/branch selection, webhooks for push/PR events, auto-queue and speculative plans' },
               { icon: Cpu, title: 'Remote Execution Engine', description: 'Self-hosted runners with agent pools, Redis-queued plans/applies, streamed logs and artifact storage, org-scoped runner assignment' },
               { icon: KeyRound, title: 'Identity & SSO', description: 'OIDC workload identity for AWS, GCP and Azure; no static credentials in runners. SSO via Azure AD, Okta, Cognito or any OIDC provider with optional team sync' },
-              { icon: ShieldCheck, title: 'Policy & Governance', description: 'OPA/Sentinel-style policy-as-code gates, approvals, drift detection, audit trails, team/org policies' },
-              { icon: Globe, title: 'Multi-Cloud & Hybrid', description: 'AWS/GCP/Azure support, on‑prem friendly with outbound agent pools' },
+              { icon: ShieldCheck, title: 'Run Tasks & Governance', description: 'Hook security scanners, cost checks and custom gates into runs at stage boundaries, advisory or mandatory. Manual apply confirmation, audit trails, team and org permissions' },
+              { icon: Globe, title: 'Multi-Cloud & Hybrid', description: 'AWS/GCP/Azure support, on-prem friendly with outbound agent pools' },
 
             ].map((feature, index) => (
               <div
@@ -323,115 +119,26 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* Roadmap Section with Full-Width Boxes - HIDDEN */}
-      {/* eslint-disable-next-line no-constant-binary-expression */}
-      {false && (
-      <section id="roadmap" className="pt-24 pb-12 px-6 relative">
-        <div className="max-w-7xl mx-auto">
-          <h2 className="text-4xl md:text-5xl font-bold text-center mb-20 bg-gradient-to-r from-blue-600 to-cyan-500 dark:from-blue-300 dark:to-cyan-300 bg-clip-text text-transparent">
-            The Roadmap
-          </h2>
-
-          <div className="relative" ref={containerRef}>
-            {/* Vertical connecting line segments - only visible in gaps between boxes */}
-            {/* Vertical connecting line segments - only visible in gaps between boxes - REMOVED for safety/refactor */}
-            {null}
-
-            {/* Roadmap sections - full width boxes with spacing */}
-            <div className="space-y-12 relative" style={{ zIndex: 10 }}>
-              {roadmapSections.map((section, index) => {
-                const isCentered = centeredSection === index;
-                
-                return (
-                  <div
-                    key={index}
-                    ref={(el) => { sectionRefs.current[index] = el; }}
-                    className="relative transition-all duration-500"
-                  >
-                    {/* Connection point on the line */}
-                    <div
-                      className={`absolute left-1/2 transform -translate-x-1/2 top-8 w-4 h-4 rounded-full bg-gradient-to-br from-blue-400/80 to-cyan-400/80 border-4 border-slate-950 z-20 transition-all duration-500 ${
-                        scrollProgress > index / roadmapSections.length || isCentered
-                          ? 'scale-150 shadow-lg shadow-blue-400/40'
-                          : 'scale-100'
-                      }`}
-                    />
-
-                    {/* Full-width content card */}
-                    <div
-                      className={`ml-0 p-8 md:p-12 rounded-2xl backdrop-blur-md border transition-all duration-500 relative ${
-                        isCentered
-                          ? 'bg-white/80 dark:bg-white/15 border-blue-200 dark:border-white/40 shadow-2xl shadow-blue-400/20'
-                          : 'bg-white/60 dark:bg-white/5 border-blue-200 dark:border-white/10 hover:bg-white/80 dark:hover:bg-white/10 hover:border-blue-300 dark:hover:border-white/20'
-                      }`}
-                      style={{ zIndex: 10 }}
-                    >
-                      <div className="max-w-4xl mx-auto">
-                        {/* Badge */}
-                        {section.badge && (
-                          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-100 dark:bg-white/10 border border-blue-200 dark:border-white/20 mb-4 text-xs font-medium text-blue-700 dark:text-white">
-                            {section.badge}
-                          </div>
-                        )}
-
-                        {/* Version tags */}
-                        <div className="flex flex-wrap gap-2 mb-4">
-                          <span className="px-3 py-1 rounded-lg bg-blue-400/15 border border-blue-400/25 text-sm font-medium">
-                            {section.version}
-                          </span>
-                          <span className="px-3 py-1 rounded-lg bg-cyan-400/15 border border-cyan-400/25 text-sm font-medium">
-                            {section.date}
-                          </span>
-                        </div>
-
-                        {/* Title */}
-                        <h3 className="text-3xl md:text-4xl font-bold mb-2 bg-gradient-to-r from-blue-600 to-cyan-500 dark:from-blue-300 dark:to-cyan-300 bg-clip-text text-transparent">
-                          {section.title}
-                        </h3>
-
-                        {/* Subtitle */}
-                        <p className="text-xl text-slate-700 dark:text-gray-300 mb-6">{section.description}</p>
-
-                        {/* Features list */}
-                        <ul className="space-y-3">
-                          {section.features.map((feature, featureIndex) => (
-                            <li
-                              key={featureIndex}
-                              className="text-slate-700 dark:text-gray-400 flex items-start gap-3"
-                            >
-                              <div className="w-1.5 h-1.5 rounded-full bg-blue-500 dark:bg-blue-400/60 mt-2 shrink-0" />
-                              <span>{feature}</span>
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        </div>
-      </section>)}
+      <LicenseSecurity />
 
       {/* CTA Section */}
-      <section ref={ctaRef} className="pt-12 pb-24 px-6 relative">
+      <section className="pt-12 pb-24 px-4 md:px-6 relative">
         <div className="max-w-5xl mx-auto text-center">
-          <div className="p-16 md:p-20 rounded-3xl bg-gradient-to-br from-white/60 via-blue-50/50 to-white/60 dark:from-slate-950/80 dark:via-blue-950/70 dark:to-slate-950/80 backdrop-blur-xl border border-white/20 dark:border-blue-900/30 shadow-2xl shadow-blue-900/10 dark:shadow-blue-950/50">
+          <div className="p-8 sm:p-16 md:p-20 rounded-3xl bg-gradient-to-br from-white/60 via-blue-50/50 to-white/60 dark:from-slate-950/80 dark:via-blue-950/70 dark:to-slate-950/80 backdrop-blur-xl border border-white/20 dark:border-blue-900/30 shadow-2xl shadow-blue-900/10 dark:shadow-blue-950/50">
             {/* Badge */}
             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/40 dark:bg-white/10 backdrop-blur-md border border-white/20 mb-6">
               <Zap className="w-4 h-4 text-blue-600 dark:text-yellow-400" />
-              <span className="text-sm font-medium text-slate-700 dark:text-gray-300">Start Your Journey</span>
+              <span className="text-sm font-medium text-slate-700 dark:text-gray-300">Self-hosted in minutes</span>
             </div>
             
-            <h2 className="text-5xl md:text-6xl lg:text-7xl font-bold mb-6 bg-gradient-to-r from-blue-500 via-blue-600 to-purple-500 dark:from-white dark:via-blue-100 dark:to-blue-300 bg-clip-text text-transparent">
+            <h2 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold mb-6 pb-2 bg-gradient-to-r from-blue-500 via-blue-600 to-purple-500 dark:from-white dark:via-blue-100 dark:to-blue-300 bg-clip-text text-transparent">
               Ready to Get Started?
             </h2>
             <p className="text-xl md:text-2xl text-slate-800 dark:text-gray-300 mb-4 max-w-2xl mx-auto">
-              Start managing your infrastructure with confidence and fine-grained control.
+              Install it, point a workspace at it, and run your first plan.
             </p>
             <p className="text-lg text-slate-800 dark:text-gray-400 mb-10 max-w-xl mx-auto">
-              Join the future of DevOps automation with Stackweaver. Enterprise-ready, built to scale.
+              OpenTofu and Ansible, one login, your own runners.
             </p>
             
             <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
@@ -451,7 +158,7 @@ export default function Landing() {
                 size="lg"
                 className="bg-white/50 dark:bg-white/10 backdrop-blur-md border-slate-200 dark:border-white/20 hover:bg-white/80 dark:hover:bg-white/20 text-slate-900 dark:text-white text-lg px-8 py-6 h-auto whitespace-nowrap"
               >
-                <a href="https://github.com/michielvha/stackweaver" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2">
+                <a href="https://github.com/vhco-pro" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2">
                   {getVcsProviderIcon('github', 'h-5 w-5 shrink-0')}
                   <span>Star on GitHub</span>
                 </a>
@@ -461,16 +168,16 @@ export default function Landing() {
             {/* Trust indicators */}
             <div className="mt-12 pt-8 border-t border-slate-200 dark:border-white/10 flex flex-wrap justify-center items-center gap-6 text-sm text-slate-800 dark:text-gray-400">
               <div className="flex items-center gap-2">
-                <Shield className="w-4 h-4 text-green-600 dark:text-green-400" />
-                <span>Secure & Reliable</span>
+                <Server className="w-4 h-4 text-green-600 dark:text-green-400" />
+                <span>Runs on your infrastructure</span>
               </div>
               <div className="flex items-center gap-2">
-                <Cloud className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-                <span>Cloud Native</span>
+                <ShieldCheck className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                <span>Signed releases</span>
               </div>
               <div className="flex items-center gap-2">
-                <Zap className="w-4 h-4 text-yellow-500 dark:text-yellow-400" />
-                <span>Lightning Fast</span>
+                <PlugZap className="w-4 h-4 text-yellow-500 dark:text-yellow-400" />
+                <span>TFE API compatible</span>
               </div>
             </div>
           </div>

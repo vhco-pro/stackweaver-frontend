@@ -66,6 +66,7 @@ import Auth from './pages/Auth';
 import LoginRouter from './pages/Login/LoginRouter';
 import Landing from './pages/Landing';
 import Privacy from './pages/Privacy';
+import Terms from './pages/Terms';
 import GitHubInstalled from './pages/VCS/GitHubInstalled';
 import AzureDevOpsCallback from './pages/VCS/AzureDevOpsCallback';
 // Ansible pages
@@ -83,6 +84,7 @@ function AppContent() {
         <Routes>
               <Route path="/landing" element={<Landing />} />
               <Route path="/privacy" element={<Privacy />} />
+              <Route path="/terms" element={<Terms />} />
               <Route path="/vcs/github/installed" element={<GitHubInstalled />} />
               <Route path="/vcs/azure-devops/callback" element={<AzureDevOpsCallback />} />
             <Route path="/login/*" element={<LoginRouter />} />
