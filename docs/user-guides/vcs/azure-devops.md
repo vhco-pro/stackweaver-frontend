@@ -225,9 +225,10 @@ The token is refreshed automatically before each clone operation if needed.
 
 When Azure DevOps sends a webhook event, Stackweaver:
 
-1. Parses the event into a normalized format (same structure used for GitHub webhooks).
-2. Finds matching workspaces by repository path and branch.
-3. Queues plan-and-apply runs for push events, or plan-only runs for pull request events.
+1. Parses the event into a normalized format (same structure used for GitHub webhooks), including the Azure DevOps organization the repository belongs to.
+2. Finds the workspaces, Ansible playbooks and Ansible inventories that track the event's repository and branch through a connection to that same Azure DevOps organization. A resource connected to a different Azure DevOps organization is never triggered, even when its project and repository names are the same.
+3. Queues plan-and-apply runs for push events, or plan-only runs for pull request events, and syncs the matched playbooks and inventories on a push.
+4. Records the event in the webhook event log of the organization connected to that Azure DevOps organization.
 
 ## Client Secret Rotation
 

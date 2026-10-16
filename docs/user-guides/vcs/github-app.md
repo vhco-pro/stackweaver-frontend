@@ -70,7 +70,7 @@ sequenceDiagram
 
      | Event | Why |
      |---|---|
-     | Push | Triggers workspace runs on branch pushes and publishes module versions on tag pushes |
+     | Push | Triggers workspace runs and syncs Ansible playbooks and inventories on branch pushes, and publishes module versions on tag pushes. Only resources connected through the installation that sent the push are affected |
      | Pull requests | Triggers speculative plans on PR open/update and posts plan results as commit status checks |
      | Workflow job | Required for GitHub Actions integration and workflow status tracking |
      | Installation, Installation repositories | Removes the organization's connection when the app is uninstalled. A delivery for a new installation or a change in repository access is acknowledged and changes nothing |
