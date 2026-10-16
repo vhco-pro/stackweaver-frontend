@@ -7,7 +7,7 @@ import { ArrowLeft, Shield, FileText, Download, Trash2, Eye, Lock } from 'lucide
 
 // The date the policy text last changed. Written down, not computed: a policy that shows
 // today's date on every visit claims a revision that never happened.
-const LAST_UPDATED = 'October 11, 2026';
+const LAST_UPDATED = 'October 12, 2026';
 
 export default function Privacy() {
   return (
@@ -217,6 +217,13 @@ export default function Privacy() {
               <p><strong className="text-slate-900 dark:text-white">Email:</strong> contact@vhco.pro</p>
               <p><strong className="text-slate-900 dark:text-white">Data Protection Officer:</strong> contact@vhco.pro</p>
             </div>
+            <p className="mt-4 text-slate-700 dark:text-gray-300">
+              Using Stackweaver is also covered by our{' '}
+              <Link to="/terms" className="text-blue-600 dark:text-blue-400 underline underline-offset-4 hover:text-blue-700 dark:hover:text-blue-300">
+                Terms of Service
+              </Link>
+              .
+            </p>
           </section>
         </div>
       </div>

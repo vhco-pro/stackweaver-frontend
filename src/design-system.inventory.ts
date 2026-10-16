@@ -64,6 +64,7 @@ export const SWEPT_PAGES: string[] = [
 export const EXEMPT_PAGES: Array<{ prefix: string; reason: string }> = [
   { prefix: 'pages/Landing.tsx', reason: 'the public landing page; its design is a separate spec (landing-page-upgrade-plan.md)' },
   { prefix: 'pages/Privacy.tsx', reason: 'a public page with its own title block, covered by its own criterion' },
+  { prefix: 'pages/Terms.tsx', reason: 'a public page with its own title block, built like the privacy page (landing-page-upgrade-plan.md)' },
   { prefix: 'pages/Login/', reason: 'the login flow; its title block comes from LoginLayout and it uses the brand ramp' },
   { prefix: 'pages/Auth/', reason: 'the sign-in entry and OIDC callback; no application title block' },
   { prefix: 'pages/Auth.tsx', reason: 'the sign-in entry; no application title block' },

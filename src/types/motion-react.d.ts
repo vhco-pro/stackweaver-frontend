@@ -34,7 +34,14 @@ declare module 'motion/react' {
     onDrag?: (event: MouseEvent | TouchEvent | PointerEvent, info: DragInfo) => void;
     onDragStart?: (event: MouseEvent | TouchEvent | PointerEvent, info: DragInfo) => void;
     onDragEnd?: (event: MouseEvent | TouchEvent | PointerEvent, info: DragInfo) => void;
-    style?: React.CSSProperties & {
+    // CSSProperties declares x, y and scale itself (as plain values), which would otherwise
+    // intersect the MotionValue away from the transform shorthands below.
+    style?: Omit<React.CSSProperties, 'opacity' | 'visibility' | 'pointerEvents' | 'clipPath' | 'x' | 'y' | 'scale'> & {
+      // Properties a scroll-linked MotionValue may drive directly.
+      opacity?: number | string | MotionValue<number>;
+      visibility?: React.CSSProperties['visibility'] | MotionValue<string>;
+      pointerEvents?: React.CSSProperties['pointerEvents'] | MotionValue<string>;
+      clipPath?: string | MotionValue<string>;
       rotateX?: number | string | MotionValue<number>;
       rotateY?: number | string | MotionValue<number>;
       rotateZ?: number | string | MotionValue<number>;
@@ -113,6 +120,24 @@ declare module 'motion/react' {
   export function useTransform<T, O>(value: MotionValue<T>, input: [T, T], output: [O, O]): MotionValue<O>;
   export function useTransform<T, O>(value: MotionValue<T>, input: T[], output: O[]): MotionValue<O>;
   export function useInView(ref: React.RefObject<Element>, options?: UseInViewOptions): boolean;
+
+  export interface UseScrollOptions {
+    /** The element whose passage through the viewport is tracked. */
+    target?: React.RefObject<Element | null>;
+    container?: React.RefObject<Element | null>;
+    /** Intersections of target and container that mark progress 0 and 1, e.g. ['start start', 'end end']. */
+    offset?: string[];
+    axis?: 'x' | 'y';
+  }
+  export function useScroll(options?: UseScrollOptions): {
+    scrollX: MotionValue<number>;
+    scrollY: MotionValue<number>;
+    scrollXProgress: MotionValue<number>;
+    scrollYProgress: MotionValue<number>;
+  };
+  export function useMotionValueEvent<T>(value: MotionValue<T>, event: 'change', callback: (latest: T) => void): void;
+  /** True when the visitor asked the system for reduced motion; null before that is known. */
+  export function useReducedMotion(): boolean | null;
   export function isMotionComponent(component: unknown): boolean;
   
   export const motion: {
