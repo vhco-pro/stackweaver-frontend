@@ -56,6 +56,7 @@ import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { dangerOutline } from '@/lib/surfaces';
 import { HostStatusCount } from '@/components/ansible/HostStatus';
+import { InventorySyncWarningsAlert } from '@/components/ansible/InventorySyncWarningsAlert';
 import { ANSIBLE_HOST_STATUSES, type HostStatus } from '@/components/ansible/hostStatus';
 
 // Date formatting helpers
@@ -782,6 +783,9 @@ export default function JobDetail() {
           </Button>
         </div>
       )}
+
+      {/* Ran on inventory its update-on-launch syncs did not refresh */}
+      <InventorySyncWarningsAlert warnings={job.inventory_sync_warnings ?? []} />
 
       {/* Warnings Banner (collapsible) */}
       {parsedWarnings.length > 0 && (

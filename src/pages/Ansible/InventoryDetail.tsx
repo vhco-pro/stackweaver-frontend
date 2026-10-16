@@ -1066,6 +1066,11 @@ export default function InventoryDetail() {
     ((inventory.type === 'vcs' || inventory.type === 'constructed') && inventory.last_sync_status === 'successful' && !!inventory.last_sync_log) ||
     (inventory.type === 'dynamic' && sources.some(s => s.status === 'successful' && !!s.last_sync_log));
 
+  // A VCS inventory's groups come from its file and a constructed inventory's from its build,
+  // which replaces them all on every run, so neither offers adding a group by hand (the API
+  // refuses it on a constructed inventory). Deleting one stays open.
+  const canAddGroups = inventory.type !== 'vcs' && inventory.type !== 'constructed';
+
   return (
     <Page>
       <PageHeader
@@ -1478,7 +1483,7 @@ export default function InventoryDetail() {
                   Add Host
                 </GradientButton>
               )}
-              {activeTab === 'groups' && inventory.type !== 'vcs' && (
+              {activeTab === 'groups' && canAddGroups && (
                 <GradientButton ramp="app" emphasis="secondary" className="w-auto" size="sm" onClick={() => setAddGroupDialogOpen(true)}>
                   <Plus className="h-4 w-4 mr-2" />
                   Add Group
@@ -1786,6 +1791,8 @@ export default function InventoryDetail() {
                     ? 'Configure a cloud source and sync to discover hosts automatically.'
                     : inventory.type === 'vcs'
                     ? 'Hosts will appear here after the inventory file is synced from the repository.'
+                    : inventory.type === 'constructed'
+                    ? 'Hosts will appear here after the inventory is built from its inputs and rules.'
                     : 'Add hosts to this inventory to manage them with Ansible.'}
                 </p>
                 {inventory.type === 'dynamic' ? (
@@ -1959,7 +1966,7 @@ export default function InventoryDetail() {
         {/* Groups Tab */}
         <TabsContent value="groups" className="space-y-4">
           {/* Add Group dialog - opened from the toolbar action in the bar above */}
-          {inventory.type !== 'vcs' && (
+          {canAddGroups && (
               <Dialog open={addGroupDialogOpen} onOpenChange={setAddGroupDialogOpen}>
                 <DialogContent>
                   <DialogHeader>
@@ -2007,11 +2014,13 @@ export default function InventoryDetail() {
                 <FolderTree className="h-12 w-12 text-green-500 mb-4" />
                 <h3 className="text-lg font-medium mb-2">No groups</h3>
                 <p className="text-muted-foreground text-sm mb-4 text-center">
-                  {inventory.type === 'vcs' 
+                  {inventory.type === 'vcs'
                     ? 'Groups will appear here after the inventory file is synced from the repository.'
+                    : inventory.type === 'constructed'
+                    ? 'Groups will appear here after the inventory is built from its inputs and rules.'
                     : 'Create groups to organize hosts for targeted playbook runs.'}
                 </p>
-                {inventory.type !== 'vcs' && (
+                {canAddGroups && (
                   <GradientButton ramp="app" emphasis="secondary" className="w-auto" onClick={() => setAddGroupDialogOpen(true)}>
                     <Plus className="h-4 w-4 mr-2" />
                     Add Group

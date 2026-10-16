@@ -75,6 +75,13 @@ export function getAnsibleJobFromJsonApi(resource: JsonApiResource): AnsibleJob 
     slice_group_id: getAttribute<string>(resource, 'slice-group-id'),
     slice_number: getAttribute<number>(resource, 'slice-number'),
     slice_count: getAttribute<number>(resource, 'slice-count'),
+    inventory_sync_warnings: (getAttribute<any[]>(resource, 'inventory-sync-warnings') || []).map((w: any) => ({
+      source_id: w['source-id'] ?? '',
+      source_name: w['source-name'] ?? '',
+      failed_at: w['failed-at'] ?? '',
+      error: w.error ?? '',
+      last_successful_sync_at: w['last-successful-sync-at'] ?? null,
+    })),
   };
 }
 

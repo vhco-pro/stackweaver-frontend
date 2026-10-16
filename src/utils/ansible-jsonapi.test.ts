@@ -78,6 +78,30 @@ describe('getAnsibleJobFromJsonApi', () => {
     expect(job.verbosity).toBe(0);
     expect(job.forks).toBe(5);
     expect(job.become).toBe(false);
+    expect(job.inventory_sync_warnings).toEqual([]);
+  });
+
+  it('maps inventory sync warnings from kebab-case members', () => {
+    const resource = makeResource('ansible-jobs', {
+      'inventory-sync-warnings': [
+        {
+          'source-id': 'src-1',
+          'source-name': 'aws-prod',
+          'failed-at': '2026-10-16T09:59:00Z',
+          error: 'credentials expired',
+          'last-successful-sync-at': null,
+        },
+      ],
+    });
+    expect(getAnsibleJobFromJsonApi(resource).inventory_sync_warnings).toEqual([
+      {
+        source_id: 'src-1',
+        source_name: 'aws-prod',
+        failed_at: '2026-10-16T09:59:00Z',
+        error: 'credentials expired',
+        last_successful_sync_at: null,
+      },
+    ]);
   });
 });
 

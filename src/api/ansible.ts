@@ -247,6 +247,21 @@ export interface AnsibleJob {
   slice_group_id?: string;
   slice_number?: number;
   slice_count?: number;
+  /** Update-on-launch sources whose sync did not refresh the inventory before the job ran. */
+  inventory_sync_warnings?: AnsibleJobInventorySyncWarning[];
+}
+
+/**
+ * One inventory source whose sync failed (or never finished) before the job was released. The
+ * job ran against the hosts of the source's last successful sync.
+ */
+export interface AnsibleJobInventorySyncWarning {
+  source_id: string;
+  source_name: string;
+  failed_at: string;
+  error: string;
+  /** Null when the source has never synced successfully. */
+  last_successful_sync_at: string | null;
 }
 
 export interface CreateJobInput {
