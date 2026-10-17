@@ -54,11 +54,13 @@ function parseWorkspacesFromMessage(message?: string): { summary: string; worksp
     const workspaceList = match[2];
     if (workspaceList) {
       const workspaces = workspaceList.split(',').map(s => s.trim()).filter(Boolean);
-      // Check if message has PR prefix
+      // Check if message has PR prefix. Any other prefix (a push reports the playbooks and
+      // inventories it synced before the workspaces, "1 playbook(s) and 0 inventory(ies)
+      // synced; 2 workspace(s) triggered: a, b") is kept in the summary.
       const prMatch = message.match(/^PR #(\d+):/);
-      const summary = prMatch 
+      const summary = prMatch
         ? `PR #${prMatch[1]}: ${count} workspace(s)`
-        : `${count} workspace(s) triggered`;
+        : `${message.slice(0, match.index)}${count} workspace(s) triggered`;
       return { summary, workspaces };
     }
     return { summary: message, workspaces: [] };

@@ -155,17 +155,17 @@ The connection now appears in your VCS Connections list. You can use it when cre
 
 ## Step 7: Webhooks for Automatic Runs
 
-Stackweaver automatically registers a Service Hook subscription in Azure DevOps when you link a workspace to a repository (Step 8). The subscription is scoped to that specific repository; Stackweaver does not register broad organization-wide hooks. No subscriptions are created when you first connect the VCS account; they are created on demand as workspaces are linked.
+Stackweaver automatically registers Service Hook subscriptions in Azure DevOps when you link a workspace, an Ansible playbook or an Ansible inventory to a repository (Step 8), and again whenever you save one. The subscriptions are scoped to that specific repository; Stackweaver does not register broad organization-wide hooks. No subscriptions are created when you first connect the VCS account; they are created on demand as resources are linked.
 
 Three subscriptions are created per linked repository:
 
-- **Code pushed**: triggers plan-and-apply runs on matching workspaces.
+- **Code pushed**: triggers plan-and-apply runs on matching workspaces, and syncs the playbooks and inventories that track the repository and branch. A repository that only Ansible resources use syncs the same way; no workspace is needed.
 - **Pull request created**: triggers speculative (plan-only) runs.
 - **Pull request updated**: re-runs the plan when new commits are pushed to an open PR.
 
-The subscriptions are registered using the `STACKWEAVER_WEBHOOK_BASE_URL` value set in Step 4. The registration is idempotent: re-saving a workspace does not create duplicate subscriptions.
+The subscriptions are registered using the `STACKWEAVER_WEBHOOK_BASE_URL` value set in Step 4. Saving again does not create duplicate subscriptions: it replaces the existing ones for that repository, so they carry the current webhook secret.
 
-Incoming service-hook deliveries are authenticated: you must set `AZURE_DEVOPS_WEBHOOK_SECRET` (see [environment variables](../../get-started/self-hosting/environment-variables.md)). Stackweaver configures each auto-registered subscription with this value as its Basic-auth password and rejects any delivery that does not present it, so an unset secret means Azure DevOps webhooks will not trigger runs.
+Incoming service-hook deliveries are authenticated: you must set `AZURE_DEVOPS_WEBHOOK_SECRET` (see [environment variables](../../get-started/self-hosting/environment-variables.md)). Stackweaver configures each auto-registered subscription with this value as its Basic-auth password and rejects any delivery that does not present it. While the secret is unset, Stackweaver registers no subscriptions and logs why. After setting or changing the secret, save one workspace, playbook or inventory per repository so its subscriptions are replaced with the current value; until then their deliveries are rejected with 401.
 
 ### Local Development
 
@@ -188,8 +188,9 @@ If `STACKWEAVER_WEBHOOK_BASE_URL` is not set or the automatic registration fails
    ```
    https://your-stackweaver-domain:8022/api/v2/vcs-connections/azure-devops/webhook
    ```
-5. Set **Resource details to send** to **All**, leave the message fields as **None**, and click **Finish**.
-6. Repeat steps 2–5 for **Pull request created** and **Pull request updated** triggers.
+5. Set **Basic authentication username** to `stackweaver` and **Basic authentication password** to the value of `AZURE_DEVOPS_WEBHOOK_SECRET`.
+6. Set **Resource details to send** to **All**, leave the message fields as **None**, and click **Finish**.
+7. Repeat steps 2-6 for **Pull request created** and **Pull request updated** triggers.
 
 ## Step 8: Create a Workspace with an Azure DevOps Repository
 
@@ -279,7 +280,7 @@ An Azure DevOps organization administrator may have disabled third-party applica
 
 ### Webhook subscriptions were not auto-registered
 
-Check the API logs after you save (or re-save) a workspace linked to an Azure DevOps repository:
+Check the API logs after you save (or re-save) a workspace, playbook or inventory linked to an Azure DevOps repository:
 
 ```bash
 docker compose logs api | grep -i "webhook"
@@ -289,6 +290,7 @@ docker compose logs api | grep -i "webhook"
 Common causes:
 
 - `STACKWEAVER_WEBHOOK_BASE_URL` is not set or is empty, so subscriptions are skipped silently. Set it (Step 4), recreate the services (Step 5), and re-save the workspace.
+- `AZURE_DEVOPS_WEBHOOK_SECRET` is not set. The log says so, and no subscription is registered. Set it, recreate the services, and re-save.
 - The authorizing user does not have permission to create Service Hook subscriptions. The user needs at least **Project Administrator** rights on the project.
 - The Azure DevOps organization has disabled Service Hook creation via API. An administrator can check this under **Organization settings** → **Extensions** and re-enable it, or you can create subscriptions manually (see Step 7).
 
@@ -296,13 +298,14 @@ Common causes:
 
 1. Verify that Service Hook subscriptions exist in your Azure DevOps project under **Project settings** → **Service hooks**.
 2. Confirm the webhook URL in the subscription points to the correct Stackweaver API address and port (default 8022).
-3. Confirm the webhook can reach Stackweaver. Azure DevOps cannot reach `localhost`, so use a publicly accessible URL.
-4. Check the API logs for processing errors:
+3. If the API log shows the deliveries answered with 401, the subscription does not carry the current `AZURE_DEVOPS_WEBHOOK_SECRET` (it was created before the secret was set, or before it changed). Re-save a workspace, playbook or inventory on that repository to replace the subscriptions.
+4. Confirm the webhook can reach Stackweaver. Azure DevOps cannot reach `localhost`, so use a publicly accessible URL.
+5. Check the API logs for processing errors:
    ```bash
    docker compose logs api | grep -i "webhook"
    # Kubernetes: kubectl logs deployment/stackweaver-api --namespace stackweaver | grep -i "webhook"
    ```
-5. Use the **Test** button in the Service Hook subscription to send a test payload and inspect the response.
+6. Use the **Test** button in the Service Hook subscription to send a test payload and inspect the response.
 
 ### Token refresh fails
 
