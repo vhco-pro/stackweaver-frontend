@@ -317,7 +317,8 @@ export default function PlaybookDetail() {
           repository: editForm.vcs_repository,
           branch: editForm.vcs_branch,
         });
-        return (res.data || []).map((entry) => entry.path);
+        // Each file resource's id is its path.
+        return (res.data || []).map((file) => file.id);
       } catch (err) {
         // Silent - fall back to manual input
         console.error('Failed to load playbook files:', err);

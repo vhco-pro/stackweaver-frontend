@@ -20,6 +20,7 @@ import type {
   AnsibleInventorySource,
   AnsibleSchedule,
   AnsibleWorkflow,
+  PlaybookFileEntry,
   InventoryType,
   CredentialType,
   InventorySourceType,
@@ -110,6 +111,20 @@ export function getAnsiblePlaybookFromJsonApi(resource: JsonApiResource): Ansibl
     cached_size_bytes: getAttribute<number>(resource, 'cached-size-bytes'),
     created_at: getAttribute<string>(resource, 'created-at', '') || '',
     updated_at: getAttribute<string>(resource, 'updated-at', '') || '',
+  };
+}
+
+/**
+ * Transform an `ansible-playbook-files` resource (a playbook candidate file in a
+ * repository, its id the file path) to a flat PlaybookFileEntry. A registered
+ * file relates to its playbook, which names the playbook by id only.
+ */
+export function getPlaybookFileFromJsonApi(resource: JsonApiResource): PlaybookFileEntry {
+  return {
+    path: resource.id,
+    name: getAttribute<string>(resource, 'name', '') || '',
+    registered: getAttribute<boolean>(resource, 'registered', false) || false,
+    playbook_id: getRelationship(resource, 'playbook')?.id,
   };
 }
 
@@ -306,7 +321,7 @@ export function getAnsibleScheduleFromJsonApi(resource: JsonApiResource): Ansibl
     job_template_id: getRelationship(resource, 'job-template')?.id,
     inventory_source_id: getRelationship(resource, 'inventory-source')?.id,
     playbook_id: getRelationship(resource, 'playbook')?.id,
-    cron_expression: getAttribute<string>(resource, 'cron-expression', '') || '',
+    cron: getAttribute<string>(resource, 'cron-expression', '') || '',
     timezone: getAttribute<string>(resource, 'timezone', 'UTC') || 'UTC',
     start_date_time: getAttribute<string>(resource, 'start-date-time'),
     end_date_time: getAttribute<string>(resource, 'end-date-time'),

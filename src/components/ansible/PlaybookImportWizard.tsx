@@ -2,7 +2,8 @@
 
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
-import { ansiblePlaybooksApi, type BulkImportResult } from '@/api/ansible';
+import { ansiblePlaybooksApi, type AnsiblePlaybook, type BulkImportMeta } from '@/api/ansible';
+import { getAnsiblePlaybookFromJsonApi } from '@/utils/ansible-jsonapi';
 import { Button } from '@/components/ui/button';
 import { GradientButton } from '@/components/ui/gradient-button';
 import { Input } from '@/components/ui/input';
@@ -27,12 +28,15 @@ import {
 import { Loader2, FolderGit2, CheckCircle2, XCircle, SkipForward } from 'lucide-react';
 import { toast } from 'sonner';
 import { VcsRepoBranchPicker } from '@/components/vcs/VcsRepoBranchPicker';
+import { registeredPlaybookLabel } from './playbook-selection';
 import { useVcsRepoBrowser } from './useVcsRepoBrowser';
 
 interface PlaybookImportWizardProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   organizationName: string;
+  /** The organization's registered playbooks, which name the playbook a registered file points at. */
+  playbooks: AnsiblePlaybook[];
   /** Called after a successful import so the parent can refresh its playbook list. */
   onImported: () => void;
 }
@@ -40,15 +44,15 @@ interface PlaybookImportWizardProps {
 /**
  * Bulk-import wizard: walk the platform's standard VCS connection → repository
  * → branch flow, then check off the discovered playbook files to register them
- * all in one call. Already-registered files are shown disabled with their
- * playbook name.
+ * all in one call. Already-registered files are shown disabled. The summary
+ * lists the playbooks that exist afterwards and each file that failed.
  */
-export function PlaybookImportWizard({ open, onOpenChange, organizationName, onImported }: PlaybookImportWizardProps) {
+export function PlaybookImportWizard({ open, onOpenChange, organizationName, playbooks, onImported }: PlaybookImportWizardProps) {
   const [scopePath, setScopePath] = useState('');
   const [sourceMode, setSourceMode] = useState('cached');
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [importing, setImporting] = useState(false);
-  const [result, setResult] = useState<BulkImportResult | null>(null);
+  const [result, setResult] = useState<{ playbooks: AnsiblePlaybook[]; meta: BulkImportMeta } | null>(null);
 
   const browser = useVcsRepoBrowser(organizationName, open);
 
@@ -98,14 +102,17 @@ export function PlaybookImportWizard({ open, onOpenChange, organizationName, onI
         source_mode: sourceMode,
         playbooks: Array.from(selected).sort().map((path) => ({ path })),
       });
-      setResult(res.data);
-      if (res.data.created > 0) {
+      // data holds the playbooks that exist afterwards (created and already
+      // registered alike); meta carries the tallies and the failed files.
+      const { meta } = res;
+      setResult({ playbooks: (res.data || []).map(getAnsiblePlaybookFromJsonApi), meta });
+      if (meta.created > 0) {
         onImported();
       }
-      if (res.data.failed > 0) {
-        toast.error(`${res.data.failed} playbook${res.data.failed > 1 ? 's' : ''} failed to import`);
+      if (meta.failed > 0) {
+        toast.error(`${meta.failed} playbook${meta.failed > 1 ? 's' : ''} failed to import`);
       } else {
-        toast.success(`Imported ${res.data.created} playbook${res.data.created === 1 ? '' : 's'}`);
+        toast.success(`Imported ${meta.created} playbook${meta.created === 1 ? '' : 's'}`);
       }
     } catch (err: unknown) {
       console.error('Bulk import failed:', err);
@@ -145,25 +152,25 @@ export function PlaybookImportWizard({ open, onOpenChange, organizationName, onI
         {result ? (
           <div className="min-h-0 flex-1 space-y-3 overflow-y-auto py-2">
             <div className="flex gap-2">
-              <Badge variant="secondary"><CheckCircle2 className="h-3 w-3 mr-1" />{result.created} created</Badge>
-              <Badge variant="outline"><SkipForward className="h-3 w-3 mr-1" />{result.skipped} skipped</Badge>
-              {result.failed > 0 && (
-                <Badge variant="destructive"><XCircle className="h-3 w-3 mr-1" />{result.failed} failed</Badge>
+              <Badge variant="secondary"><CheckCircle2 className="h-3 w-3 mr-1" />{result.meta.created} created</Badge>
+              <Badge variant="outline"><SkipForward className="h-3 w-3 mr-1" />{result.meta.skipped} skipped</Badge>
+              {result.meta.failed > 0 && (
+                <Badge variant="destructive"><XCircle className="h-3 w-3 mr-1" />{result.meta.failed} failed</Badge>
               )}
             </div>
             <div className="space-y-1">
-              {result.results.map((r) => (
-                <div key={r.path} className="flex items-center justify-between gap-3 text-sm border rounded-md px-3 py-2">
-                  <span className="font-mono truncate">{r.path}</span>
-                  {r.status === 'created' && (
-                    <Badge variant="secondary" className="min-w-0 max-w-[50%]" title={`created as “${r.name}”`}>
-                      <span className="truncate">created as “{r.name}”</span>
-                    </Badge>
-                  )}
-                  {r.status === 'skipped' && <Badge variant="outline">already registered</Badge>}
-                  {r.status === 'failed' && (
-                    <span className="text-destructive text-xs truncate max-w-[16rem]" title={r.error}>{r.error}</span>
-                  )}
+              {result.playbooks.map((pb) => (
+                <div key={pb.id} className="flex items-center justify-between gap-3 text-sm border rounded-md px-3 py-2">
+                  <span className="font-mono truncate">{pb.playbook_path}</span>
+                  <Badge variant="secondary" className="min-w-0 max-w-[50%]" title={`registered as “${pb.name}”`}>
+                    <span className="truncate">registered as “{pb.name}”</span>
+                  </Badge>
+                </div>
+              ))}
+              {result.meta['failed-rows'].map((row) => (
+                <div key={row.path} className="flex items-center justify-between gap-3 text-sm border rounded-md px-3 py-2">
+                  <span className="font-mono truncate">{row.path}</span>
+                  <span className="text-destructive text-xs truncate max-w-[16rem]" title={row.error}>{row.error}</span>
                 </div>
               ))}
             </div>
@@ -234,8 +241,8 @@ export function PlaybookImportWizard({ open, onOpenChange, organizationName, onI
                             />
                             <span className="font-mono truncate flex-1">{f.path}</span>
                             {f.registered && (
-                              <Badge variant="outline" className="min-w-0 max-w-[50%]" title={`registered as “${f.playbook_name}”`}>
-                                <span className="truncate">registered as “{f.playbook_name}”</span>
+                              <Badge variant="outline" className="min-w-0 max-w-[50%]" title={registeredPlaybookLabel(playbooks, f.playbook_id)}>
+                                <span className="truncate">{registeredPlaybookLabel(playbooks, f.playbook_id)}</span>
                               </Badge>
                             )}
                           </label>

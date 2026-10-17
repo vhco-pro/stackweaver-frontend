@@ -50,9 +50,8 @@ export function VCSProviderSelector({
   const handleConnectGitHub = async () => {
     try {
       const redirectUrl = window.location.href;
-      const response = await vcsConnectionsApi.initiateInstallationWithRedirect(orgName, redirectUrl);
-      const installUrl = response?.install_url;
-      
+      const installUrl = await vcsConnectionsApi.initiateInstallationWithRedirect(orgName, redirectUrl);
+
       if (installUrl) {
         window.location.href = installUrl;
       } else {
@@ -73,8 +72,7 @@ export function VCSProviderSelector({
     setAdoConnecting(true);
     try {
       const returnPath = window.location.pathname + window.location.search;
-      const response = await vcsConnectionsApi.initiateAzureDevOpsInstallation(orgName, adoOrg.trim(), returnPath);
-      const authUrl = response?.auth_url;
+      const authUrl = await vcsConnectionsApi.initiateAzureDevOpsInstallation(orgName, adoOrg.trim(), returnPath);
       if (authUrl) {
         window.location.href = authUrl;
       } else {

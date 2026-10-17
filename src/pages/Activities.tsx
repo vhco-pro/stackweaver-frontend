@@ -14,34 +14,31 @@ export default function Activities() {
   const [activities, setActivities] = useState<ActivityData[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
-  const [hasMore, setHasMore] = useState(true);
-  const [offset, setOffset] = useState(0);
-  const limit = 50;
+  // The page the server names as next, or null once it says there is none.
+  const [nextPage, setNextPage] = useState<number | null>(null);
+  const pageSize = 50;
 
   const fetchActivities = async (reset = false) => {
+    const page = reset ? 1 : nextPage;
+    if (page === null) return;
     if (reset) {
       setLoading(true);
-      setOffset(0);
     } else {
       setLoadingMore(true);
     }
 
     try {
-      const response = await activitiesApi.list({
-        limit,
-        offset: reset ? 0 : offset,
-      });
+      const response = await activitiesApi.list({ page, pageSize });
 
       const newActivities = response.data || [];
-      
+
       if (reset) {
         setActivities(newActivities);
       } else {
         setActivities(prev => [...prev, ...newActivities]);
       }
 
-      setHasMore(newActivities.length === limit);
-      setOffset(reset ? limit : offset + newActivities.length);
+      setNextPage(response.meta?.pagination?.['next-page'] ?? null);
     } catch (err: unknown) {
       console.error('Failed to fetch activities:', err);
     } finally {
@@ -139,7 +136,7 @@ export default function Activities() {
                 </div>
               ))}
             </div>
-            {hasMore && (
+            {nextPage !== null && (
               <div className="p-4 border-t border-gray-200 dark:border-white/10">
                 <Button
                   variant="outline"

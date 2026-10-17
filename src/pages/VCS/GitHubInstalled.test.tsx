@@ -61,9 +61,9 @@ describe('GitHubInstalled', () => {
   });
 
   it('sends the browser to GitHub to authorize the App, passing the state through unchanged', async () => {
-    vi.mocked(vcsConnectionsApi.authorizeGitHubInstallation).mockResolvedValue({
-      auth_url: 'https://github.com/login/oauth/authorize?client_id=Iv1.x&state=next',
-    });
+    vi.mocked(vcsConnectionsApi.authorizeGitHubInstallation).mockResolvedValue(
+      'https://github.com/login/oauth/authorize?client_id=Iv1.x&state=next',
+    );
     const state = issuedState('acme', '/app/acme/settings/vcs-connections');
 
     renderAt(`?installation_id=4242&setup_action=install&state=${encodeURIComponent(state)}`);

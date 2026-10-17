@@ -8,44 +8,58 @@
 // Revoking asks for confirmation in the in-app dialog, not the browser's native
 // `confirm`: the session is revoked only once the dialog's confirm button is clicked,
 // and never when the dialog is cancelled.
+//
+// The fetch stub answers the settings routes with JSON:API documents (a `sessions` collection,
+// 204 to the revoke), so the page reads them through the real API client.
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
-import { settingsApi } from '@/api/client';
+import { stubJsonApiFetch, requestsTo, type SentRequest } from '@/test/jsonapi-fetch';
 import Sessions from './Sessions';
 
-vi.mock('@/api/client', () => ({
-  settingsApi: {
-    listSessions: vi.fn(),
-    revokeSession: vi.fn(),
-  },
-}));
+vi.mock('@/lib/zitadel', () => ({ getAccessToken: () => 'test-token' }));
 
 vi.mock('@/contexts/AuthContext', () => ({
   useAuth: () => ({}),
 }));
 
-const mockSession = {
-  id: 's1',
-  user_id: 'u1',
-  user_agent: 'Firefox on Linux',
-  creation_date: '2026-06-01T10:00:00Z',
-  expiration_date: '2026-06-08T10:00:00Z',
-  factors: ['password'],
-  is_current: true,
+const sessionsDocument = {
+  data: [
+    {
+      id: 's1',
+      type: 'sessions',
+      attributes: {
+        'user-agent': 'Firefox on Linux',
+        'ip-address': '10.0.0.1',
+        'creation-date': '2026-06-01T10:00:00Z',
+        'expiration-date': '2026-06-08T10:00:00Z',
+        factors: ['password'],
+        'is-current': true,
+      },
+    },
+  ],
+  meta: {
+    pagination: { 'current-page': 1, 'page-size': 1, 'prev-page': null, 'next-page': null, 'total-pages': 1, 'total-count': 1 },
+  },
 };
+
+const LIST = 'GET /settings/sessions';
+const REVOKE = 'DELETE /settings/sessions/s1';
 
 describe('Sessions', () => {
   // A native confirm that would say yes: if the page still called it, the session would be
   // revoked without the in-app dialog and the assertions below would catch it.
   const nativeConfirm = vi.fn(() => true);
+  let sent: () => SentRequest[];
 
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.mocked(settingsApi.listSessions).mockResolvedValue({ sessions: [mockSession] });
-    vi.mocked(settingsApi.revokeSession).mockResolvedValue({ message: 'ok' });
+    sent = stubJsonApiFetch({
+      [LIST]: { body: sessionsDocument },
+      [REVOKE]: { status: 204 },
+    });
     vi.stubGlobal('confirm', nativeConfirm);
   });
 
@@ -58,7 +72,7 @@ describe('Sessions', () => {
 
     expect(await screen.findByText('Firefox on Linux')).toBeInTheDocument();
     expect(screen.queryByText('Loading sessions...')).not.toBeInTheDocument();
-    expect(settingsApi.listSessions).toHaveBeenCalledTimes(1);
+    expect(requestsTo(sent(), LIST)).toHaveLength(1);
   });
 
   it('revokes a session only after the in-app dialog is confirmed, then reloads the list', async () => {
@@ -77,17 +91,16 @@ describe('Sessions', () => {
       )
     ).toBeInTheDocument();
     expect(nativeConfirm).not.toHaveBeenCalled();
-    expect(settingsApi.revokeSession).not.toHaveBeenCalled();
+    expect(requestsTo(sent(), REVOKE)).toHaveLength(0);
 
     await user.click(within(dialog).getByRole('button', { name: 'Revoke' }));
 
     await waitFor(() => {
-      expect(settingsApi.revokeSession).toHaveBeenCalledWith('s1');
+      expect(requestsTo(sent(), REVOKE)).toHaveLength(1);
     });
-    expect(settingsApi.revokeSession).toHaveBeenCalledTimes(1);
     // reload after revoke: listSessions called on mount + after revoke
     await waitFor(() => {
-      expect(settingsApi.listSessions).toHaveBeenCalledTimes(2);
+      expect(requestsTo(sent(), LIST)).toHaveLength(2);
     });
     await waitFor(() => {
       expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
@@ -108,9 +121,9 @@ describe('Sessions', () => {
       expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
     });
     expect(nativeConfirm).not.toHaveBeenCalled();
-    expect(settingsApi.revokeSession).not.toHaveBeenCalled();
+    expect(requestsTo(sent(), REVOKE)).toHaveLength(0);
     // Nothing was revoked, so the list is not reloaded either.
-    expect(settingsApi.listSessions).toHaveBeenCalledTimes(1);
+    expect(requestsTo(sent(), LIST)).toHaveLength(1);
     expect(screen.getByText('Firefox on Linux')).toBeInTheDocument();
   });
 });

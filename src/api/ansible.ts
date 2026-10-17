@@ -413,8 +413,9 @@ export const ansibleInventoriesApi = {
       `/ansible/inventories/${id}/actions/sync`
     ),
 
+  // The INI export is plain text by design, not a document.
   exportINI: (id: string) =>
-    apiClient.get<{ data: string }>(`/ansible/inventories/${id}/ini`).then(res => res.data),
+    apiClient.getText(`/ansible/inventories/${id}/ini`),
 
   exportJSON: (id: string) =>
     apiClient.get<{ data: Record<string, unknown> }>(`/ansible/inventories/${id}/json`).then(res => res.data),
@@ -693,9 +694,10 @@ export const ansiblePlaybooksApi = {
       `/ansible/playbooks/${id}/actions/sync`
     ),
 
-  // Lists playbook candidate files in a connected repository, annotated with
-  // already-registered playbooks (powers the bulk-import wizard and the job
-  // template repository browser).
+  // Lists playbook candidate files in a connected repository as
+  // `ansible-playbook-files` resources (id = the file path), a registered one
+  // relating to its playbook (powers the bulk-import wizard and the job
+  // template repository browser). Parse with getPlaybookFileFromJsonApi.
   listVcsFiles: (organizationName: string, params: {
     vcs_connection_id: string;
     repository: string;
@@ -708,62 +710,81 @@ export const ansiblePlaybooksApi = {
     });
     if (params.branch) query.set('branch', params.branch);
     if (params.path) query.set('path', params.path);
-    return apiClient.get<{ data: PlaybookFileEntry[] }>(
+    return apiClient.get<JsonApiListResponse<JsonApiResource>>(
       `/organizations/${organizationName}/ansible/vcs-playbook-files?${query.toString()}`
     );
   },
 
-  bulkImport: (organizationName: string, payload: {
-    project_id?: string;
-    vcs_connection_id: string;
-    repository: string;
-    branch?: string;
-    source_mode?: string;
+  // Registers many files of one repository and branch. `data` holds the
+  // playbooks that exist afterwards (created and already registered alike);
+  // `meta` carries the tallies and the files that failed.
+  bulkImport: (organizationName: string, payload: PlaybookImportSource & {
     playbooks: { path: string; name?: string }[];
   }) =>
-    apiClient.post<{ data: BulkImportResult }>(
+    apiClient.post<{ data: JsonApiResource[]; meta: BulkImportMeta }>(
       `/organizations/${organizationName}/ansible/playbooks/actions/bulk-import`,
-      payload
+      {
+        data: {
+          type: 'ansible-playbooks',
+          attributes: { ...playbookImportAttributes(payload), playbooks: payload.playbooks },
+        },
+      }
     ),
 
   // Returns the playbook registered for (project, connection, repository,
   // branch, path), creating it when absent.
-  findOrCreate: (organizationName: string, payload: {
-    project_id?: string;
-    vcs_connection_id: string;
-    repository: string;
-    branch?: string;
+  findOrCreate: (organizationName: string, payload: PlaybookImportSource & {
     path: string;
     name?: string;
-    source_mode?: string;
   }) =>
     apiClient.post<JsonApiResponse<JsonApiResource> & { meta?: { created?: boolean } }>(
       `/organizations/${organizationName}/ansible/playbooks/actions/find-or-create`,
-      payload
+      {
+        data: {
+          type: 'ansible-playbooks',
+          attributes: { ...playbookImportAttributes(payload), path: payload.path, name: payload.name },
+        },
+      }
     ),
 };
 
-// PlaybookFileEntry is one playbook candidate file from repository discovery.
+// PlaybookImportSource names the repository and branch the two playbook import
+// actions register files from.
+export interface PlaybookImportSource {
+  project_id?: string;
+  vcs_connection_id: string;
+  repository: string;
+  branch?: string;
+  source_mode?: string;
+}
+
+// The import document's attributes shared by bulk import and find-or-create.
+function playbookImportAttributes(source: PlaybookImportSource) {
+  return {
+    'project-id': source.project_id,
+    'vcs-connection-id': source.vcs_connection_id,
+    repository: source.repository,
+    branch: source.branch,
+    'source-mode': source.source_mode,
+  };
+}
+
+// PlaybookFileEntry is one playbook candidate file from repository discovery,
+// parsed from an `ansible-playbook-files` resource. A registered file carries
+// the id of its playbook; the resource does not carry the playbook's name.
 export interface PlaybookFileEntry {
   path: string;
   name: string;
   registered: boolean;
   playbook_id?: string;
-  playbook_name?: string;
 }
 
-// BulkImportResult summarizes a bulk-import action.
-export interface BulkImportResult {
-  results: {
-    path: string;
-    status: 'created' | 'skipped' | 'failed';
-    playbook_id?: string;
-    name?: string;
-    error?: string;
-  }[];
+// BulkImportMeta is the outcome of a bulk import beside the playbooks it answers with.
+export interface BulkImportMeta {
   created: number;
   skipped: number;
   failed: number;
+  'failed-rows': { path: string; error: string }[];
 }
 
 // Job Template API
@@ -832,9 +853,11 @@ export const ansibleJobTemplatesApi = {
   listCredentials: (id: string) =>
     apiClient.get<{ data: JsonApiResource[] }>(`/ansible/job-templates/${id}/credentials`),
 
+  // The body is a resource identifier naming the credential to attach; the
+  // answer is that credential.
   attachCredential: (id: string, credentialId: string) =>
     apiClient.post<{ data: JsonApiResource }>(`/ansible/job-templates/${id}/credentials`, {
-      credential_id: credentialId,
+      data: { type: 'ansible-credentials', id: credentialId },
     }),
 
   detachCredential: (id: string, credentialId: string) =>
@@ -1152,10 +1175,9 @@ export const ansibleJobsApi = {
     );
   },
 
+  // The job output is plain text by design, as the run logs are.
   getOutput: (id: string) =>
-    apiClient.get<{ data: string }>(
-      `/ansible/jobs/${id}/output`
-    ).then(res => res.data),
+    apiClient.getText(`/ansible/jobs/${id}/output`),
 };
 
 // ============================================================================
@@ -1236,7 +1258,8 @@ export interface AnsibleSchedule {
   job_template_id?: string;
   inventory_source_id?: string;
   playbook_id?: string;
-  cron_expression: string;
+  /** The schedule's cron expression (the `cron-expression` attribute). */
+  cron: string;
   timezone: string;
   start_date_time?: string;
   end_date_time?: string;
@@ -1259,12 +1282,16 @@ export interface CreateScheduleInput {
   inventory_source_id?: string;
   playbook_id?: string;
   workflow_id?: string;
-  cron_expression: string;
+  cron: string;
   timezone?: string;
   start_date_time?: string;
   end_date_time?: string;
   config?: Record<string, unknown>;
 }
+
+// UpdateScheduleInput is what a schedule PATCH can change; an omitted field is
+// left as it is. The window (start and end date) is set at create only.
+export type UpdateScheduleInput = Partial<Pick<CreateScheduleInput, 'name' | 'description' | 'cron' | 'timezone' | 'config'>>;
 
 // Inventory Source API
 export const ansibleInventorySourcesApi = {
@@ -1438,7 +1465,7 @@ export const ansibleSchedulesApi = {
             'inventory-source-id': data.inventory_source_id || null,
             'playbook-id': data.playbook_id || null,
             'workflow-id': data.workflow_id || null,
-            'cron-expression': data.cron_expression,
+            'cron-expression': data.cron,
             timezone: data.timezone || 'UTC',
             'start-date-time': data.start_date_time || null,
             'end-date-time': data.end_date_time || null,
@@ -1448,7 +1475,8 @@ export const ansibleSchedulesApi = {
       }
     ),
 
-  update: (id: string, data: Partial<CreateScheduleInput>) =>
+  // An attribute left undefined is dropped from the body, so the server leaves it as it is.
+  update: (id: string, data: UpdateScheduleInput) =>
     apiClient.patch<JsonApiResponse<JsonApiResource>>(
       `/ansible/schedules/${id}`,
       {
@@ -1457,10 +1485,8 @@ export const ansibleSchedulesApi = {
           attributes: {
             name: data.name,
             description: data.description,
-            'cron-expression': data.cron_expression,
+            'cron-expression': data.cron,
             timezone: data.timezone,
-            'start-date-time': data.start_date_time,
-            'end-date-time': data.end_date_time,
             config: data.config,
           },
         },
@@ -1470,6 +1496,7 @@ export const ansibleSchedulesApi = {
   delete: (id: string) =>
     apiClient.delete(`/ansible/schedules/${id}`),
 
+  // The three actions take no body and answer the schedule as it is afterwards.
   enable: (id: string) =>
     apiClient.post<JsonApiResponse<JsonApiResource>>(
       `/ansible/schedules/${id}/actions/enable`
@@ -1611,6 +1638,13 @@ export interface CreateWorkflowEdgeInput {
   condition: WorkflowEdgeCondition;
 }
 
+// NotificationTriggers are the job events a notification attachment fires on.
+export interface NotificationTriggers {
+  started?: boolean;
+  success?: boolean;
+  failure?: boolean;
+}
+
 export const ansibleNotificationsApi = {
   list: (orgName: string) =>
     apiClient.get<{ data: JsonApiResource[] }>(`/organizations/${orgName}/ansible/notification-templates`),
@@ -1618,11 +1652,22 @@ export const ansibleNotificationsApi = {
   create: (orgName: string, data: {
     name: string;
     description?: string;
-    type: 'webhook' | 'email' | 'teams';
+    notification_type: 'webhook' | 'email' | 'teams';
     config: Record<string, unknown>;
     secret?: string;
   }) =>
-    apiClient.post<{ data: JsonApiResource }>(`/organizations/${orgName}/ansible/notification-templates`, data),
+    apiClient.post<{ data: JsonApiResource }>(`/organizations/${orgName}/ansible/notification-templates`, {
+      data: {
+        type: 'ansible-notification-templates',
+        attributes: {
+          name: data.name,
+          description: data.description,
+          'notification-type': data.notification_type,
+          config: data.config,
+          secret: data.secret,
+        },
+      },
+    }),
 
   delete: (id: string) =>
     apiClient.delete(`/ansible/notification-templates/${id}`),
@@ -1630,15 +1675,35 @@ export const ansibleNotificationsApi = {
   test: (id: string) =>
     apiClient.post(`/ansible/notification-templates/${id}/test`, {}),
 
+  // Attaches a channel to exactly one job template or workflow. A trigger left
+  // undefined takes the server's default: started off, success and failure on.
   attach: (orgName: string, data: {
     notification_template_id: string;
     job_template_id?: string;
     workflow_id?: string;
-    on_started?: boolean;
-    on_success?: boolean;
-    on_failure?: boolean;
+    triggers?: NotificationTriggers;
   }) =>
-    apiClient.post<{ data: JsonApiResource }>(`/organizations/${orgName}/ansible/notification-attachments`, data),
+    apiClient.post<{ data: JsonApiResource }>(`/organizations/${orgName}/ansible/notification-attachments`, {
+      data: {
+        type: 'ansible-notification-attachments',
+        attributes: {
+          'on-started': data.triggers?.started,
+          'on-success': data.triggers?.success,
+          'on-failure': data.triggers?.failure,
+        },
+        relationships: {
+          'notification-template': {
+            data: { type: 'ansible-notification-templates', id: data.notification_template_id },
+          },
+          ...(data.job_template_id ? {
+            'job-template': { data: { type: 'ansible-job-templates', id: data.job_template_id } },
+          } : {}),
+          ...(data.workflow_id ? {
+            workflow: { data: { type: 'ansible-workflows', id: data.workflow_id } },
+          } : {}),
+        },
+      },
+    }),
 
   detach: (orgName: string, attachmentId: string) =>
     apiClient.delete(`/organizations/${orgName}/ansible/notification-attachments/${attachmentId}`),
@@ -1649,10 +1714,14 @@ export const ansibleNotificationsApi = {
 
 export const ansibleWorkflowsApi = {
   // Execution
+  // The body is optional: without variables none is sent (an empty object is
+  // refused), with them it is an ansible-workflow-jobs document.
   launch: (id: string, extraVars?: Record<string, unknown>) =>
     apiClient.post<JsonApiResponse<JsonApiResource>>(
       `/ansible/workflows/${id}/launch`,
-      extraVars ? { extra_vars: extraVars } : {}
+      extraVars
+        ? { data: { type: 'ansible-workflow-jobs', attributes: { 'extra-vars': extraVars } } }
+        : undefined
     ),
 
   listJobs: (id: string) =>

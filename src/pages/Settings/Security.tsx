@@ -86,8 +86,7 @@ export default function SecuritySettings() {
   const loadMFADevices = async () => {
     try {
       setLoadingMfaDevices(true);
-      const response = await twoFactorApi.listDevices();
-      setMfaDevices(response.devices);
+      setMfaDevices(await twoFactorApi.listDevices());
     } catch (err) {
       console.error('Failed to load MFA devices:', err);
       // Don't show error, just leave devices empty
@@ -127,8 +126,7 @@ export default function SecuritySettings() {
     try {
       setLoadingSessions(true);
       setSessionsError(null);
-      const response = await settingsApi.listSessions();
-      setSessions(response.sessions || []);
+      setSessions(await settingsApi.listSessions());
     } catch (err) {
       console.error('Failed to load sessions:', err);
       setSessionsError(err instanceof Error ? err.message : 'Failed to load sessions');
