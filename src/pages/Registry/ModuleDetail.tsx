@@ -414,7 +414,6 @@ export default function ModuleDetail() {
         {/* Module Header: the chips, description and metadata line ride in the subtitle */}
         <PageHeader
           className="mb-6"
-          icon={Package}
           title={moduleName}
           subtitle={
             <>

@@ -13,7 +13,6 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import {
   ArrowLeft,
-  FolderOpen,
   Download,
   Maximize2,
   ChevronDown,
@@ -344,7 +343,6 @@ export default function StateVersionDetail() {
 
       <PageHeader
         backTo={{ to: `/app/${orgName}/workspaces/${workspaceName}?tab=states`, label: 'Back to states' }}
-        icon={FolderOpen}
         title={workspaceName}
         subtitle={
           <div className="flex items-center gap-2 text-sm">

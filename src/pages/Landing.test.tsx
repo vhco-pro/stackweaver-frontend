@@ -89,38 +89,47 @@ describe('Landing: copy', () => {
 });
 
 describe('Landing: Compatibility section', () => {
-  it('says what stays, what changes and that runs execute on OpenTofu', () => {
+  it('presents the provider, what it covers, and that runs execute on OpenTofu', () => {
     const { container } = renderPage();
     const section = container.querySelector('#compat') as HTMLElement;
     expect(section).not.toBeNull();
     const s = within(section);
-    expect(s.getAllByText('Stays')).toHaveLength(2);
-    expect(s.getAllByText('Changes')).toHaveLength(2);
-    expect(section.textContent).toMatch(/the CLI you already use, terraform or tofu/);
+    expect(s.getByRole('heading', { level: 2 })).toHaveTextContent('Manage Stackweaver as code.');
+    expect(s.getByRole('heading', { name: 'Both tools, one configuration' })).toBeInTheDocument();
+    expect(s.getByRole('heading', { name: 'The CLI you already use' })).toBeInTheDocument();
+    expect(s.getByRole('heading', { name: 'A standard API underneath' })).toBeInTheDocument();
+    expect(section.textContent).toMatch(/playbooks, inventories, credentials and job templates/);
     expect(section.textContent).toMatch(/Runs execute on OpenTofu/);
-    expect(section.textContent).toMatch(/TFE_HOSTNAME/);
     expect(section.textContent).toMatch(/terraform login stackweaver\.example\.com/);
   });
 
-  it('links to the migration guide in the docs and to the native provider', () => {
+  it('frames Terraform Enterprise as a compatible API, never as a rival', () => {
+    const { container } = renderPage();
+    const text = (container.querySelector('#compat') as HTMLElement).textContent ?? '';
+    expect(text).toMatch(/implements the Terraform Enterprise API/);
+    expect(text).not.toMatch(/no TFE provider|unlike|instead of|replace|migrat|switch from|better than/i);
+  });
+
+  it('links to the provider guide, the Registry and the provider source', () => {
     const { container } = renderPage();
     const section = within(container.querySelector('#compat') as HTMLElement);
-    expect(section.getByRole('link', { name: /Migration guide/ })).toHaveAttribute(
-      'href',
-      '/docs/user-guides/migrating-from-terraform-cloud'
-    );
-    expect(section.getByRole('link', { name: 'terraform-provider-stackweaver' })).toHaveAttribute(
+    expect(section.getByRole('link', { name: /Provider guide/ })).toHaveAttribute('href', '/docs/user-guides/terraform-provider');
+    const registry = 'https://registry.terraform.io/providers/vhco-pro/stackweaver/latest/docs';
+    expect(section.getByRole('link', { name: /Terraform Registry/ })).toHaveAttribute('href', registry);
+    expect(section.getByRole('link', { name: 'vhco-pro/stackweaver' })).toHaveAttribute('href', registry);
+    expect(section.getByRole('link', { name: 'GitHub' })).toHaveAttribute(
       'href',
       'https://github.com/vhco-pro/terraform-provider-stackweaver'
     );
   });
 
-  it('switches the code card between its four tabs', () => {
+  it('opens the code card on the provider, with four tabs', () => {
     const { container } = renderPage();
     const section = within(container.querySelector('#compat') as HTMLElement);
     const tabs = section.getAllByRole('tab');
-    expect(tabs.map((t) => t.textContent)).toEqual(['cloud', 'provider', 'discovery', 'login']);
+    expect(tabs.map((t) => t.textContent)).toEqual(['provider', 'ansible', 'cloud', 'login']);
     expect(tabs[0]).toHaveAttribute('aria-selected', 'true');
+    expect(section.getByRole('tabpanel')).toHaveTextContent('source = "vhco-pro/stackweaver"');
   });
 });
 

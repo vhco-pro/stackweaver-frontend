@@ -49,7 +49,6 @@ import {
   Copy,
   Check,
   LayoutGrid,
-  Play,
 } from 'lucide-react';
 import { RunView } from './run-viewer/RunView';
 import { toast } from 'sonner';
@@ -660,7 +659,6 @@ export default function JobDetail() {
     <Page className="space-y-4">
       <PageHeader
         backTo={{ to: `/app/${orgName}/ansible/jobs`, label: 'Back to jobs' }}
-        icon={Play}
         title={job.name || `Job ${job.id.slice(0, 8)}`}
         subtitle={
           <div className="flex flex-wrap items-center gap-3">

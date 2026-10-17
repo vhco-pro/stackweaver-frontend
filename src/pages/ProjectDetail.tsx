@@ -135,7 +135,6 @@ export default function ProjectDetail() {
       </div>
 
       <PageHeader
-        icon={FolderKanban}
         title={project.name}
         subtitle={
           (project.description || orgName) && (

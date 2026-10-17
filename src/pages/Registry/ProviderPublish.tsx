@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useParams } from 'react-router-dom';
-import { Upload, Package } from 'lucide-react';
+import { Upload } from 'lucide-react';
 import { GradientButton } from '@/components/ui/gradient-button';
 import { Page } from '@/components/layout/Page';
 import { PageHeader } from '@/components/layout/PageHeader';
@@ -108,7 +108,6 @@ export default function ProviderPublish() {
     <Page className="p-8">
       <PageHeader
         backTo={{ to: `/app/${orgName}/registry/providers`, label: 'Back to providers' }}
-        icon={Package}
         title={provider.name}
         subtitle={
           <div className="flex flex-wrap items-center gap-2">

@@ -2,29 +2,101 @@
 
 import { useState, type KeyboardEvent, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight, Check, Copy } from 'lucide-react';
+import { ArrowRight, Check, Copy, ExternalLink, Layers, Plug, Terminal, type LucideIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-const K = ({ children }: { children: ReactNode }) => <span className="text-sky-300">{children}</span>;
-const S = ({ children }: { children: ReactNode }) => <span className="text-green-300">{children}</span>;
-const C = ({ children }: { children: ReactNode }) => <span className="text-slate-500">{children}</span>;
-const Mono = ({ children }: { children: ReactNode }) => <code className="font-mono text-slate-950 dark:text-white">{children}</code>;
+const REGISTRY_URL = 'https://registry.terraform.io/providers/vhco-pro/stackweaver/latest/docs';
+const SOURCE_URL = 'https://github.com/vhco-pro/terraform-provider-stackweaver';
+
+/** Block keywords coloured at the start of a line. */
+const KEYWORDS = new Set(['terraform', 'required_providers', 'provider', 'resource', 'cloud', 'workspaces']);
+
+/** Colours one HCL or shell snippet from its plain text: comments, strings and block keywords. */
+function highlight(plain: string): ReactNode {
+  return plain.split('\n').map((line, i) => {
+    const nl = i > 0 ? '\n' : '';
+    if (line.trimStart().startsWith('#')) {
+      return (
+        <span key={i}>
+          {nl}
+          <span className="text-slate-500">{line}</span>
+        </span>
+      );
+    }
+    const indent = line.match(/^\s*/)?.[0] ?? '';
+    const word = line.slice(indent.length).match(/^[a-z_]+/)?.[0];
+    const isKeyword = word !== undefined && KEYWORDS.has(word) && /^[a-z_]+\s*("|\{)/.test(line.slice(indent.length));
+    const rest = isKeyword ? line.slice(indent.length + word.length) : line.slice(indent.length);
+    const parts = rest.split(/("[^"]*")/);
+    return (
+      <span key={i}>
+        {nl}
+        {indent}
+        {isKeyword && <span className="text-sky-300">{word}</span>}
+        {parts.map((part, j) =>
+          part.startsWith('"') ? (
+            <span key={j} className="text-green-300">
+              {part}
+            </span>
+          ) : (
+            part
+          )
+        )}
+      </span>
+    );
+  });
+}
 
 interface ConnectTab {
   id: string;
-  /** What the copy button puts on the clipboard. */
+  /** The snippet as it is shown and as the copy button puts it on the clipboard. */
   plain: string;
-  code: ReactNode;
 }
 
-// Four ways an existing setup points at Stackweaver. The wire-contract names (the `cloud` block,
-// `tfe_workspace`, TFE_HOSTNAME, TFE_TOKEN) are the reader's own and stay as they are.
+// The provider first, then the setups a reader may already have. The `cloud` block is the
+// reader's own wire contract and keeps its name.
 const TABS: ConnectTab[] = [
+  {
+    id: 'provider',
+    plain: `terraform {
+  required_providers {
+    stackweaver = {
+      source = "vhco-pro/stackweaver"
+    }
+  }
+}
+
+provider "stackweaver" {
+  hostname     = "stackweaver.example.com"
+  organization = "platform"
+}
+
+resource "stackweaver_workspace" "network" {
+  name         = "prod-network"
+  organization = "platform"
+}`,
+  },
+  {
+    id: 'ansible',
+    plain: `# the Ansible side, in the same configuration
+resource "stackweaver_ansible_inventory" "prod" {
+  organization = "platform"
+  name         = "production"
+  type         = "static"
+}
+
+resource "stackweaver_ansible_job_template" "patch" {
+  organization = "platform"
+  name         = "patch-fleet"
+  playbook_id  = stackweaver_ansible_playbook.site.id
+  inventory_id = stackweaver_ansible_inventory.prod.id
+}`,
+  },
   {
     id: 'cloud',
     plain: `terraform {
   cloud {
-    # only this line changes
+    # point the cloud block at your host
     hostname     = "stackweaver.example.com"
     organization = "platform"
 
@@ -33,66 +105,6 @@ const TABS: ConnectTab[] = [
     }
   }
 }`,
-    code: (
-      <>
-        <K>terraform</K> {'{'}
-        {'\n  '}
-        <K>cloud</K> {'{'}
-        {'\n    '}
-        <C># only this line changes</C>
-        {'\n    hostname     = '}
-        <S>"stackweaver.example.com"</S>
-        {'\n    organization = '}
-        <S>"platform"</S>
-        {'\n\n    '}
-        <K>workspaces</K> {'{'}
-        {'\n      name = '}
-        <S>"prod-network"</S>
-        {'\n    }\n  }\n}'}
-      </>
-    ),
-  },
-  {
-    id: 'provider',
-    plain: `# the provider reads both from the environment
-export TFE_HOSTNAME=stackweaver.example.com
-export TFE_TOKEN=<your Stackweaver API token>
-
-provider "tfe" {}
-
-resource "tfe_workspace" "network" {
-  name         = "prod-network"
-  organization = "platform"
-}`,
-    code: (
-      <>
-        <C># the provider reads both from the environment</C>
-        {'\nexport TFE_HOSTNAME='}
-        <S>stackweaver.example.com</S>
-        {'\nexport TFE_TOKEN='}
-        <S>{'<your Stackweaver API token>'}</S>
-        {'\n\n'}
-        <K>provider</K> <S>"tfe"</S> {'{}'}
-        {'\n\n'}
-        <K>resource</K> <S>"tfe_workspace"</S> <S>"network"</S> {'{'}
-        {'\n  name         = '}
-        <S>"prod-network"</S>
-        {'\n  organization = '}
-        <S>"platform"</S>
-        {'\n}'}
-      </>
-    ),
-  },
-  {
-    id: 'discovery',
-    plain: `# the service discovery document the terraform and tofu CLIs read
-curl https://stackweaver.example.com/.well-known/terraform.json`,
-    code: (
-      <>
-        <C># the service discovery document the terraform and tofu CLIs read</C>
-        {'\ncurl https://stackweaver.example.com/.well-known/terraform.json'}
-      </>
-    ),
   },
   {
     id: 'login',
@@ -101,48 +113,44 @@ terraform login stackweaver.example.com
 
 # or
 tofu login stackweaver.example.com`,
-    code: (
+  },
+];
+
+interface Point {
+  icon: LucideIcon;
+  title: string;
+  text: ReactNode;
+}
+
+const Mono = ({ children }: { children: ReactNode }) => <code className="font-mono text-slate-950 dark:text-white">{children}</code>;
+
+const POINTS: Point[] = [
+  {
+    icon: Layers,
+    title: 'Both tools, one configuration',
+    text: 'A workspace and the job template that patches its hosts sit side by side, reviewed in one pull request and applied in one plan.',
+  },
+  {
+    icon: Terminal,
+    title: 'The CLI you already use',
+    text: (
       <>
-        <C># sign in from the CLI you already use</C>
-        {'\nterraform login '}
-        <S>stackweaver.example.com</S>
-        {'\n\n'}
-        <C># or</C>
-        {'\ntofu login '}
-        <S>stackweaver.example.com</S>
+        <Mono>terraform</Mono> or <Mono>tofu</Mono>, signed in with <Mono>login</Mono> against your host. Runs execute on
+        OpenTofu; Stackweaver itself does not ship or run the Terraform binary.
+      </>
+    ),
+  },
+  {
+    icon: Plug,
+    title: 'A standard API underneath',
+    text: (
+      <>
+        Stackweaver implements the Terraform Enterprise API, so a <Mono>cloud</Mono> block and existing workspace configurations
+        work against it too.
       </>
     ),
   },
 ];
-
-const ROWS: { kind: 'Stays' | 'Changes'; text: ReactNode }[] = [
-  {
-    kind: 'Stays',
-    text: (
-      <>
-        Your modules, your state, your HCL and the CLI you already use, <Mono>terraform</Mono> or <Mono>tofu</Mono>.
-      </>
-    ),
-  },
-  {
-    kind: 'Stays',
-    text: (
-      <>
-        The <Mono>hashicorp/tfe</Mono> provider, through <Mono>TFE_HOSTNAME</Mono> and <Mono>TFE_TOKEN</Mono>.
-      </>
-    ),
-  },
-  { kind: 'Changes', text: 'The host you talk to, and the token you talk to it with.' },
-  {
-    kind: 'Changes',
-    text: 'Runs execute on OpenTofu. Your own terraform CLI connects as before; Stackweaver itself does not ship or run the Terraform binary.',
-  },
-];
-
-const pill = {
-  Stays: 'bg-green-500/10 border-green-500/30 text-green-700 dark:text-green-400',
-  Changes: 'bg-blue-500/10 border-blue-500/30 text-blue-700 dark:text-blue-300',
-};
 
 export function Compatibility() {
   const [active, setActive] = useState(0);
@@ -167,27 +175,41 @@ export function Compatibility() {
       <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-16 items-center">
         <div className="min-w-0">
           <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-5 pb-1 bg-gradient-to-r from-blue-500 via-blue-600 to-purple-500 dark:from-white dark:to-blue-200 bg-clip-text text-transparent">
-            Keep your workflow. Change the hostname.
+            Manage Stackweaver as code.
           </h2>
-          <p className="text-slate-800 dark:text-gray-400 text-lg leading-relaxed mb-6">
-            Stackweaver speaks the Terraform Enterprise API and runs your configurations with OpenTofu. Moving a workspace over from Terraform Cloud or Enterprise is mostly repointing, not rewriting.
+          <p className="text-slate-800 dark:text-gray-400 text-lg leading-relaxed mb-8">
+            The Stackweaver Terraform provider describes the platform itself: organizations, projects, workspaces, variables,
+            teams and runners, and the Ansible side with its playbooks, inventories, credentials and job templates.
           </p>
-          <ul className="space-y-3 text-sm">
-            {ROWS.map((row, i) => (
-              <li key={i} className="flex gap-4">
-                <span className={cn('w-20 shrink-0 inline-flex justify-center px-2 py-1 rounded-full border text-xs font-medium h-fit', pill[row.kind])}>
-                  {row.kind}
+          <ul className="space-y-5">
+            {POINTS.map((point) => (
+              <li key={point.title} className="flex gap-4">
+                <span className="w-10 h-10 shrink-0 rounded-lg bg-gradient-to-br from-blue-500/20 to-cyan-500/20 dark:from-blue-500/20 dark:to-indigo-500/20 flex items-center justify-center">
+                  <point.icon className="h-5 w-5 text-blue-600 dark:text-blue-400" />
                 </span>
-                <span className="text-slate-800 dark:text-gray-300">{row.text}</span>
+                <div className="min-w-0">
+                  <h3 className="font-semibold text-slate-950 dark:text-white">{point.title}</h3>
+                  <p className="text-sm leading-relaxed text-slate-800 dark:text-gray-400">{point.text}</p>
+                </div>
               </li>
             ))}
           </ul>
-          <Link
-            to="/docs/user-guides/migrating-from-terraform-cloud"
-            className="mt-7 inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-blue-100 dark:bg-blue-500/20 border border-blue-200 dark:border-blue-400/30 text-sm font-medium text-blue-700 dark:text-blue-300 hover:bg-blue-200 dark:hover:bg-blue-500/30 transition-all"
-          >
-            <ArrowRight className="h-3.5 w-3.5" /> Migration guide and verified resource table
-          </Link>
+          <div className="mt-8 flex flex-wrap items-center gap-3">
+            <Link
+              to="/docs/user-guides/terraform-provider"
+              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-blue-100 dark:bg-blue-500/20 border border-blue-200 dark:border-blue-400/30 text-sm font-medium text-blue-700 dark:text-blue-300 hover:bg-blue-200 dark:hover:bg-blue-500/30 transition-all"
+            >
+              <ArrowRight className="h-3.5 w-3.5" /> Provider guide
+            </Link>
+            <a
+              href={REGISTRY_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg border border-slate-300 dark:border-white/15 text-sm font-medium text-slate-800 dark:text-gray-200 hover:bg-slate-100 dark:hover:bg-white/5 transition-all"
+            >
+              <ExternalLink className="h-3.5 w-3.5" /> Terraform Registry
+            </a>
+          </div>
         </div>
 
         <div className="min-w-0 rounded-2xl backdrop-blur-md border bg-blue-50/80 dark:bg-transparent border-blue-400/40 shadow-lg shadow-blue-500/10 p-4 md:p-6">
@@ -198,7 +220,7 @@ export function Compatibility() {
                 <div className="w-3 h-3 rounded-full bg-yellow-500" />
                 <div className="w-3 h-3 rounded-full bg-green-500" />
               </div>
-              <div className="flex gap-1 overflow-x-auto" role="tablist" aria-label="Ways to connect" onKeyDown={onKeyDown}>
+              <div className="flex gap-1 overflow-x-auto" role="tablist" aria-label="Provider examples" onKeyDown={onKeyDown}>
                 {TABS.map((tab, i) => (
                   <button
                     key={tab.id}
@@ -245,21 +267,20 @@ export function Compatibility() {
                 hidden={i !== active}
                 className="p-4 text-sm text-gray-300 overflow-x-auto whitespace-pre"
               >
-                <code>{tab.code}</code>
+                <code>{highlight(tab.plain)}</code>
               </pre>
             ))}
           </div>
           <p className="mt-4 text-sm text-slate-800 dark:text-gray-400">
-            Prefer a native provider?{' '}
-            <a
-              className="text-blue-700 dark:text-blue-300 underline underline-offset-4"
-              href="https://github.com/vhco-pro/terraform-provider-stackweaver"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              terraform-provider-stackweaver
+            Published as{' '}
+            <a className="text-blue-700 dark:text-blue-300 underline underline-offset-4" href={REGISTRY_URL} target="_blank" rel="noopener noreferrer">
+              vhco-pro/stackweaver
             </a>{' '}
-            manages Stackweaver itself as code.
+            under <span className="whitespace-nowrap">MPL-2.0</span>, with its source on{' '}
+            <a className="text-blue-700 dark:text-blue-300 underline underline-offset-4" href={SOURCE_URL} target="_blank" rel="noopener noreferrer">
+              GitHub
+            </a>
+            .
           </p>
         </div>
       </div>

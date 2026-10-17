@@ -131,7 +131,6 @@ function TourHeading({ className }: { className?: string }) {
       >
         <RotatingText transition={{ type: 'spring', damping: 25, stiffness: 300 }} />
       </RotatingTextContainer>
-      <span>.</span>
     </h2>
   );
 }

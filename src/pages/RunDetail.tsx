@@ -21,14 +21,13 @@ import { GradientButton } from '@/components/ui/gradient-button';
 import { Page } from '@/components/layout/Page';
 import { PageHeader } from '@/components/layout/PageHeader';
 import {
-  FolderOpen,
   X,
   Copy,
   Check,
   Loader2,
   XCircle,
   CheckCircle2,
-  Server
+  Server,
 } from 'lucide-react';
 import { StatusBadge } from '@/components/runs/StatusBadge';
 import { computeDisplayStatus } from '@/utils/runStatus';
@@ -465,7 +464,6 @@ export default function RunDetail() {
 
       <PageHeader
         backTo={org && wsName ? { to: `/app/${org}/workspaces/${wsName}`, label: 'Back to workspace' } : undefined}
-        icon={FolderOpen}
         title={
           run.operation === 'plan-and-apply' ? 'Plan and Apply' :
             run.operation === 'plan-only' ? 'Plan Only' :

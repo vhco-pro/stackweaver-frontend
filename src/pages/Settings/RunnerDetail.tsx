@@ -180,7 +180,6 @@ export default function RunnerDetail() {
     <Page ramp="runners" className="space-y-8">
       {/* Header */}
       <PageHeader
-        icon={Server}
         title={runner.name}
         subtitle={
           <div className="space-y-2">

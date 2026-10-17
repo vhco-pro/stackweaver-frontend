@@ -969,7 +969,6 @@ export default function WorkspaceDetail() {
 
       {/* Header */}
       <PageHeader
-        icon={FolderOpen}
         title={workspace.name}
         subtitle={
           <>
