@@ -87,6 +87,13 @@ describe('PageHeader', () => {
     expect(screen.getByRole('link', { name: 'Back to Settings' })).toHaveAttribute('href', '/app/demo/settings');
   });
 
+  it('gives a detail page, which passes no icon, a plain title', () => {
+    renderInPage(<PageHeader title="prod-network" backTo={{ to: '/app/demo/workspaces', label: 'Back to workspaces' }} />);
+    const heading = screen.getByRole('heading', { level: 1 });
+    expect(heading).toHaveTextContent('prod-network');
+    expect(heading.querySelector('svg')).toBeNull();
+  });
+
   it('renders the stats row and secondary actions when given', () => {
     renderInPage(
       <PageHeader icon={Server} title="Runners" stats={<span>3 total</span>} actions={<button type="button">Edit</button>} action={action} />

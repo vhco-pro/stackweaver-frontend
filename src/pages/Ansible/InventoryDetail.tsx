@@ -1075,7 +1075,6 @@ export default function InventoryDetail() {
     <Page>
       <PageHeader
         backTo={{ to: `/app/${orgName}/ansible/inventories`, label: 'Back to inventories' }}
-        icon={Server}
         title={inventory.name}
         subtitle={
           isEditingDescription ? (

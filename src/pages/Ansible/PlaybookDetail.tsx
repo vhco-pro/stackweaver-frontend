@@ -532,7 +532,6 @@ export default function PlaybookDetail() {
   return (
     <Page className="container py-6 max-w-6xl">
       <PageHeader
-        icon={FileText}
         title={playbook.name}
         subtitle={
           (playbook.vcs_connection_id || playbook.description) && (

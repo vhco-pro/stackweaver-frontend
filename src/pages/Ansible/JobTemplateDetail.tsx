@@ -605,7 +605,6 @@ export default function JobTemplateDetail() {
   return (
     <Page className="container py-6 max-w-6xl">
       <PageHeader
-        icon={Layers}
         title={template.name}
         subtitle={template.description}
         backTo={{ to: `/app/${orgName}/ansible/job-templates`, label: 'Back to job templates' }}

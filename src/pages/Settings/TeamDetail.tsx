@@ -30,7 +30,6 @@ export default function TeamDetail() {
   return (
     <Page ramp="account" className="space-y-8">
       <PageHeader
-        icon={Users}
         title={team?.name ?? 'Team'}
         subtitle="Token and notification settings for this team"
         backTo={{ to: orgName ? `/app/${orgName}/settings/users` : '/settings', label: 'Back to Users & Teams' }}

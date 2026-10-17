@@ -24,8 +24,11 @@ import { cn } from '@/lib/utils';
 export type PageListState = 'ready' | 'empty' | 'loading' | 'error';
 
 interface PageHeaderProps {
-  /** The page's sidebar icon, its Settings hub card icon, or its section's icon for a detail page. */
-  icon: ComponentType<{ className?: string }>;
+  /**
+   * The page's sidebar icon, or its Settings hub card icon for a Settings page. A detail page,
+   * one record such as a run, a job or a workspace, passes none and has a plain title.
+   */
+  icon?: ComponentType<{ className?: string }>;
   title: ReactNode;
   /** One line under the title. Detail pages pass their metadata line here. */
   subtitle?: ReactNode;
@@ -89,7 +92,7 @@ export function PageHeader({
               ramp.title
             )}
           >
-            <Icon className={cn('h-7 w-7 shrink-0', ramp.icon)} />
+            {Icon && <Icon className={cn('h-7 w-7 shrink-0', ramp.icon)} />}
             <span className="min-w-0 break-words">{title}</span>
           </h1>
           {subtitle && <div className="text-muted-foreground">{subtitle}</div>}
