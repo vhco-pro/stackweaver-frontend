@@ -15,7 +15,7 @@ permissions: {}
 jobs:
   analyze:
     if: ${{ github.event.repository.visibility == 'public' }}
-    uses: vhco-pro/.github/.github/workflows/reusable-codeql-js.yml@de04290ceb4232e4ec50b4873712d76b1bf48aa6 # v1.0.0
+    uses: vhco-pro/.github/.github/workflows/reusable-codeql-js.yml@f7397eb203bc6b49331c48f2be89d1df20f051f7 # v1.1.2
     permissions:
       security-events: write
       contents: read
