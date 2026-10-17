@@ -72,9 +72,8 @@ export default function VCSConnections() {
 
     try {
       const redirectUrl = `${window.location.origin}/app/${orgName}/settings/vcs-connections`;
-      const response = await vcsConnectionsApi.initiateInstallationWithRedirect(orgName, redirectUrl);
-      const installUrl = response?.install_url;
-      
+      const installUrl = await vcsConnectionsApi.initiateInstallationWithRedirect(orgName, redirectUrl);
+
       if (installUrl) {
         window.location.href = installUrl;
       } else {
@@ -121,8 +120,7 @@ export default function VCSConnections() {
     setAdoConnecting(true);
     try {
       const returnPath = `/app/${orgName}/settings/vcs-connections`;
-      const response = await vcsConnectionsApi.initiateAzureDevOpsInstallation(orgName, adoOrg.trim(), returnPath);
-      const authUrl = response?.auth_url;
+      const authUrl = await vcsConnectionsApi.initiateAzureDevOpsInstallation(orgName, adoOrg.trim(), returnPath);
       if (authUrl) {
         window.location.href = authUrl;
       } else {

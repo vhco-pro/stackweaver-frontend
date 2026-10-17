@@ -6,7 +6,21 @@
 // on the wire rather than the arguments it was called with.
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { organizationsApi, registryApi, runsApi, workspacesApi, type RunIntent } from './client';
+import {
+  stateVersionsApi,
+  accountApi,
+  activitiesApi,
+  organizationsApi,
+  registryApi,
+  runsApi,
+  settingsApi,
+  tokensApi,
+  twoFactorApi,
+  variablesApi,
+  vcsConnectionsApi,
+  workspacesApi,
+  type RunIntent,
+} from './client';
 
 vi.mock('@/lib/zitadel', () => ({ getAccessToken: () => 'test-token' }));
 
@@ -330,5 +344,528 @@ describe('runsApi.create', () => {
         },
       },
     });
+  });
+});
+
+// The platform endpoints #858 converted (Phase 3): the writes send documents, the VCS listings
+// answer resources, the URL-issuing install steps and the platform variables answer meta-only
+// documents, and the registry delete-all answers 204.
+interface Sent {
+  url: string;
+  method: string;
+  body: unknown;
+}
+
+// Stub fetch with a canned response per call, in order, and return what the client sent.
+function stubResponses(...responses: { status?: number; body?: unknown }[]): () => Sent[] {
+  const fetchMock = vi.fn();
+  for (const r of responses) {
+    fetchMock.mockResolvedValueOnce(
+      new Response(r.body === undefined ? null : JSON.stringify(r.body), {
+        status: r.status ?? 200,
+        headers: { 'Content-Type': 'application/json; charset=utf-8' },
+      }),
+    );
+  }
+  vi.stubGlobal('fetch', fetchMock);
+  return () =>
+    (fetchMock.mock.calls as [string, RequestInit][]).map(([url, init]) => ({
+      url,
+      method: init.method ?? 'GET',
+      body: typeof init.body === 'string' ? (JSON.parse(init.body) as unknown) : undefined,
+    }));
+}
+
+function providerBlock(current: number, size: number, next: number | null) {
+  return {
+    pagination: {
+      'current-page': current,
+      'page-size': size,
+      'prev-page': current > 1 ? current - 1 : null,
+      'next-page': next,
+      'total-pages': null,
+      'total-count': null,
+    },
+  };
+}
+
+function repositoryResource(id: number) {
+  return {
+    id: String(id),
+    type: 'vcs-repositories',
+    attributes: {
+      name: `repo-${id}`,
+      'full-name': `acme/repo-${id}`,
+      description: 'd',
+      private: true,
+      'default-branch': 'main',
+      url: `https://github.com/acme/repo-${id}`,
+      'clone-url': `https://github.com/acme/repo-${id}.git`,
+      'ssh-url': `git@github.com:acme/repo-${id}.git`,
+    },
+  };
+}
+
+describe('platform documents (Phase 3)', () => {
+  beforeEach(() => {
+    vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+  });
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.restoreAllMocks();
+  });
+
+  it('tokensApi.create sends a tokens document and reads the token once', async () => {
+    const sent = stubResponses({
+      status: 201,
+      body: {
+        data: {
+          id: 'at-1',
+          type: 'tokens',
+          attributes: { token: 'tfe-abc', description: 'ci', expires_at: '2027-01-01T00:00:00Z', created_at: '2026-10-17T00:00:00Z' },
+        },
+      },
+    });
+
+    const created = await tokensApi.create({ description: 'ci', expires_at: '2027-01-01T00:00:00Z' });
+
+    const [request] = sent();
+    expect(request.method).toBe('POST');
+    expect(request.url).toMatch(/\/tokens$/);
+    expect(request.body).toEqual({
+      data: { type: 'tokens', attributes: { description: 'ci', expires_at: '2027-01-01T00:00:00Z' } },
+    });
+    expect(created.token).toBe('tfe-abc');
+  });
+
+  it('vcsConnectionsApi.create sends a vcs-connections document with snake_case attributes', async () => {
+    const sent = stubResponses({ status: 201, body: { data: { id: 'vc-1', type: 'vcs-connections', attributes: {} } } });
+
+    await vcsConnectionsApi.create('acme', {
+      provider: 'gitlab',
+      access_token: 'glpat-x',
+      account_name: 'acme',
+      account_type: 'organization',
+    });
+
+    const [request] = sent();
+    expect(request.url).toMatch(/\/organizations\/acme\/vcs-connections$/);
+    expect(request.body).toEqual({
+      data: {
+        type: 'vcs-connections',
+        attributes: { provider: 'gitlab', access_token: 'glpat-x', account_name: 'acme', account_type: 'organization' },
+      },
+    });
+  });
+
+  it('createConnectionFromInstallation sends the code in a vcs-connections document, the state in the query', async () => {
+    const sent = stubResponses({ status: 201, body: { data: { id: 'vc-1', type: 'vcs-connections', attributes: {} } } });
+
+    await vcsConnectionsApi.createConnectionFromInstallation('acme', '4242', 'gh-code', 's.t');
+
+    const [request] = sent();
+    expect(request.url).toMatch(/\/organizations\/acme\/vcs-connections\/github\/installations\/4242\?state=s\.t$/);
+    expect(request.body).toEqual({ data: { type: 'vcs-connections', attributes: { code: 'gh-code' } } });
+  });
+
+  it('the install and authorize steps read the URL from meta', async () => {
+    stubResponses(
+      { body: { meta: { 'install-url': 'https://github.com/apps/sw/installations/new?state=a' } } },
+      { body: { meta: { 'auth-url': 'https://github.com/login/oauth/authorize?state=b' } } },
+      { body: { meta: { 'auth-url': 'https://app.vssps.visualstudio.com/oauth2/authorize?state=c' } } },
+    );
+
+    await expect(vcsConnectionsApi.initiateInstallationWithRedirect('acme', 'https://sw.example/back')).resolves.toBe(
+      'https://github.com/apps/sw/installations/new?state=a',
+    );
+    await expect(vcsConnectionsApi.authorizeGitHubInstallation('acme', '4242', 's')).resolves.toBe(
+      'https://github.com/login/oauth/authorize?state=b',
+    );
+    await expect(vcsConnectionsApi.initiateAzureDevOpsInstallation('acme', 'contoso', '/back')).resolves.toBe(
+      'https://app.vssps.visualstudio.com/oauth2/authorize?state=c',
+    );
+  });
+
+  it('listAllRepositories follows next-page and maps vcs-repositories back onto Repository', async () => {
+    const sent = stubResponses(
+      { body: { data: Array.from({ length: 100 }, (_, i) => repositoryResource(i + 1)), meta: providerBlock(1, 100, 2) } },
+      { body: { data: [repositoryResource(101)], meta: providerBlock(2, 100, null) } },
+    );
+
+    const repos = await vcsConnectionsApi.listAllRepositories('vc-1', 'Platform');
+
+    const requests = sent();
+    expect(requests.map(r => new URL(r.url, 'http://x').searchParams.get('page[number]'))).toEqual(['1', '2']);
+    expect(new URL(requests[0].url, 'http://x').searchParams.get('page[size]')).toBe('100');
+    expect(new URL(requests[0].url, 'http://x').searchParams.get('project')).toBe('Platform');
+    expect(repos).toHaveLength(101);
+    expect(repos[100]).toEqual({
+      id: 101,
+      name: 'repo-101',
+      full_name: 'acme/repo-101',
+      description: 'd',
+      private: true,
+      default_branch: 'main',
+      url: 'https://github.com/acme/repo-101',
+      clone_url: 'https://github.com/acme/repo-101.git',
+      ssh_url: 'git@github.com:acme/repo-101.git',
+    });
+  });
+
+  it('listBranches and listProjects map vcs-branches and vcs-projects', async () => {
+    stubResponses(
+      {
+        body: {
+          data: [{ id: 'main', type: 'vcs-branches', attributes: { protected: true, 'commit-sha': 'abc', 'commit-url': 'https://c/abc' } }],
+          meta: providerBlock(1, 30, null),
+        },
+      },
+      { body: { data: [{ id: 'p-1', type: 'vcs-projects', attributes: { name: 'Platform' } }], meta: providerBlock(1, 30, null) } },
+    );
+
+    await expect(vcsConnectionsApi.listBranches('vc-1', 'acme', 'infra')).resolves.toEqual([
+      { name: 'main', protected: true, commit: { sha: 'abc', url: 'https://c/abc' } },
+    ]);
+    await expect(vcsConnectionsApi.listProjects('vc-1')).resolves.toEqual([{ id: 'p-1', name: 'Platform' }]);
+  });
+
+  it('getFileContent reads one vcs-files resource and listInventoryFiles reads the paths', async () => {
+    stubResponses(
+      { body: { data: { id: 'inventory/hosts.yml', type: 'vcs-files', attributes: { content: 'all: {}', ref: 'main' } } } },
+      {
+        body: {
+          data: [
+            { id: 'inventory/hosts.yml', type: 'vcs-files' },
+            { id: 'inventory/prod.ini', type: 'vcs-files' },
+          ],
+          meta: providerBlock(1, 2, null),
+        },
+      },
+    );
+
+    await expect(vcsConnectionsApi.getFileContent('vc-1', 'acme', 'infra', 'inventory/hosts.yml', 'main')).resolves.toEqual({
+      path: 'inventory/hosts.yml',
+      content: 'all: {}',
+      ref: 'main',
+    });
+    await expect(vcsConnectionsApi.listInventoryFiles('vc-1', 'acme', 'infra', 'main')).resolves.toEqual([
+      'inventory/hosts.yml',
+      'inventory/prod.ini',
+    ]);
+  });
+
+  it('registryApi.modules.create sends a registry-modules document', async () => {
+    const sent = stubResponses({ status: 201, body: { data: { id: 'm-1', type: 'registry-modules', attributes: { name: 'vpc' } } } });
+
+    await registryApi.modules.create('acme', {
+      name: 'vpc',
+      provider: 'aws',
+      vcs_connection_id: 'vc-1',
+      vcs_repository: 'acme/terraform-aws-vpc',
+      auto_publish_tags: true,
+    });
+
+    const [request] = sent();
+    expect(request.body).toEqual({
+      data: {
+        type: 'registry-modules',
+        attributes: {
+          name: 'vpc',
+          provider: 'aws',
+          vcs_connection_id: 'vc-1',
+          vcs_repository: 'acme/terraform-aws-vpc',
+          auto_publish_tags: true,
+        },
+      },
+    });
+  });
+
+  it('registryApi.modules.deleteAll accepts a 204 with no body', async () => {
+    const sent = stubResponses({ status: 204 });
+
+    await expect(registryApi.modules.deleteAll('acme')).resolves.toBeUndefined();
+    expect(sent()[0].method).toBe('DELETE');
+  });
+
+  it('getPlatformVariableKeys reads meta', async () => {
+    stubResponses({ body: { meta: { 'platform-variable-keys': ['STACKWEAVER_ORG', 'STACKWEAVER_WORKSPACE'] } } });
+
+    await expect(variablesApi.getPlatformVariableKeys('ws-1')).resolves.toEqual(['STACKWEAVER_ORG', 'STACKWEAVER_WORKSPACE']);
+  });
+
+  it('activitiesApi.list pages by page[number] and page[size] and returns the block', async () => {
+    const sent = stubResponses({
+      body: {
+        data: [],
+        meta: { pagination: { 'current-page': 2, 'page-size': 50, 'prev-page': 1, 'next-page': 3, 'total-pages': 4, 'total-count': 170 } },
+      },
+    });
+
+    const res = await activitiesApi.list({ page: 2, pageSize: 50 });
+
+    const params = new URL(sent()[0].url, 'http://x').searchParams;
+    expect(params.get('page[number]')).toBe('2');
+    expect(params.get('page[size]')).toBe('50');
+    expect(params.has('limit')).toBe(false);
+    expect(params.has('offset')).toBe(false);
+    expect(res.meta?.pagination?.['next-page']).toBe(3);
+    expect(res.meta?.pagination?.['total-count']).toBe(170);
+  });
+});
+
+describe('account and settings documents (Phase 4)', () => {
+  beforeEach(() => {
+    vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+  });
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.restoreAllMocks();
+  });
+
+  const userResource = {
+    id: 'user-1',
+    type: 'users',
+    attributes: {
+      username: 'ada',
+      email: 'ada@example.com',
+      name: 'Ada Lovelace',
+      bio: '',
+      company: 'Analytical Engines',
+      location: 'London',
+      'avatar-url': 'https://example.com/ada.png',
+      'is-service-account': false,
+      'v2-only': true,
+      'created-at': '2026-06-01T10:00:00Z',
+      'updated-at': '2026-06-02T10:00:00Z',
+    },
+  };
+
+  it('accountApi.details reads the users resource onto the profile', async () => {
+    const sent = stubResponses({ body: { data: userResource } });
+
+    const profile = await accountApi.details();
+
+    expect(sent()[0].url).toMatch(/\/account\/details$/);
+    expect(profile).toEqual({
+      id: 'user-1',
+      email: 'ada@example.com',
+      name: 'Ada Lovelace',
+      username: 'ada',
+      bio: '',
+      company: 'Analytical Engines',
+      location: 'London',
+      avatar: 'https://example.com/ada.png',
+      created_at: '2026-06-01T10:00:00Z',
+      updated_at: '2026-06-02T10:00:00Z',
+    });
+  });
+
+  it('accountApi.update sends a users document with only the attributes given', async () => {
+    const sent = stubResponses({ body: { data: userResource } });
+
+    const profile = await accountApi.update({ company: '', location: 'London' });
+
+    const [request] = sent();
+    expect(request.method).toBe('PATCH');
+    expect(request.url).toMatch(/\/account\/update$/);
+    expect(request.body).toEqual({ data: { type: 'users', attributes: { company: '', location: 'London' } } });
+    expect(profile.username).toBe('ada');
+  });
+
+  it('settingsApi.changePassword sends a users document and takes the 204', async () => {
+    const sent = stubResponses({ status: 204 });
+
+    await expect(settingsApi.changePassword('old-pw', 'new-pw')).resolves.toBeUndefined();
+
+    const [request] = sent();
+    expect(request.url).toMatch(/\/settings\/password$/);
+    expect(request.body).toEqual({
+      data: { type: 'users', attributes: { 'current-password': 'old-pw', 'new-password': 'new-pw' } },
+    });
+  });
+
+  it('twoFactorApi reads the two-factor resource, the enrolment from meta and sends the code in a document', async () => {
+    const sent = stubResponses(
+      { body: { data: { id: 'user-1', type: 'two-factor', attributes: { enabled: false } } } },
+      { body: { meta: { secret: 'JBSWY3DP', url: 'otpauth://totp/sw:ada?secret=JBSWY3DP' } } },
+      { body: { data: { id: 'user-1', type: 'two-factor', attributes: { enabled: true } } } },
+      { status: 204 },
+    );
+
+    await expect(twoFactorApi.getStatus()).resolves.toEqual({ enabled: false });
+    await expect(twoFactorApi.start()).resolves.toEqual({ secret: 'JBSWY3DP', url: 'otpauth://totp/sw:ada?secret=JBSWY3DP' });
+    await expect(twoFactorApi.verify('123456')).resolves.toEqual({ enabled: true });
+    await expect(twoFactorApi.remove()).resolves.toBeUndefined();
+
+    const requests = sent();
+    expect(requests[1].method).toBe('POST');
+    expect(requests[1].url).toMatch(/\/settings\/2fa\/start$/);
+    expect(requests[2].url).toMatch(/\/settings\/2fa\/verify$/);
+    expect(requests[2].body).toEqual({ data: { type: 'two-factor', attributes: { code: '123456' } } });
+    expect(requests[3].method).toBe('DELETE');
+  });
+
+  it('twoFactorApi.listDevices maps mfa-devices resources onto the devices', async () => {
+    stubResponses({
+      body: {
+        data: [{ id: 'dev-1', type: 'mfa-devices', attributes: { 'device-type': 'TOTP', name: 'Authenticator', state: 'AUTH_FACTOR_STATE_READY' } }],
+      },
+    });
+
+    await expect(twoFactorApi.listDevices()).resolves.toEqual([
+      { id: 'dev-1', type: 'TOTP', name: 'Authenticator', state: 'AUTH_FACTOR_STATE_READY' },
+    ]);
+  });
+
+  it('settingsApi.listSessions maps sessions resources onto the sessions', async () => {
+    stubResponses({
+      body: {
+        data: [
+          {
+            id: 's1',
+            type: 'sessions',
+            attributes: {
+              'user-agent': 'Firefox on Linux',
+              'ip-address': '10.0.0.1',
+              'creation-date': '2026-06-01T10:00:00Z',
+              'expiration-date': '2026-06-08T10:00:00Z',
+              factors: ['password'],
+              'is-current': true,
+            },
+          },
+        ],
+      },
+    });
+
+    await expect(settingsApi.listSessions()).resolves.toEqual([
+      {
+        id: 's1',
+        user_agent: 'Firefox on Linux',
+        ip_address: '10.0.0.1',
+        creation_date: '2026-06-01T10:00:00Z',
+        expiration_date: '2026-06-08T10:00:00Z',
+        factors: ['password'],
+        is_current: true,
+      },
+    ]);
+  });
+
+  it('settingsApi.listApiKeys reads the scope from the relationships', async () => {
+    stubResponses({
+      body: {
+        data: [
+          {
+            id: 'key-1',
+            type: 'api-keys',
+            attributes: {
+              name: 'ci',
+              'key-prefix': 'sw_abc',
+              scopes: ['org:read'],
+              'expires-at': null,
+              'last-used-at': '2026-06-03T10:00:00Z',
+              'created-at': '2026-06-01T10:00:00Z',
+            },
+            relationships: { organization: { data: { id: 'org-uuid', type: 'organizations' } } },
+          },
+        ],
+      },
+    });
+
+    await expect(settingsApi.listApiKeys()).resolves.toEqual([
+      {
+        id: 'key-1',
+        name: 'ci',
+        key_prefix: 'sw_abc',
+        scopes: ['org:read'],
+        organization_id: 'org-uuid',
+        project_id: undefined,
+        expires_at: undefined,
+        last_used_at: '2026-06-03T10:00:00Z',
+        created_at: '2026-06-01T10:00:00Z',
+      },
+    ]);
+  });
+
+  it('settingsApi.createApiKey sends an api-keys document and reads the key once', async () => {
+    const sent = stubResponses({
+      status: 201,
+      body: {
+        data: {
+          id: 'key-2',
+          type: 'api-keys',
+          attributes: {
+            name: 'deploy',
+            key: 'sw_plaintext',
+            'key-prefix': 'sw_pla',
+            scopes: ['org:write'],
+            'expires-at': '2027-01-01T00:00:00Z',
+            'last-used-at': null,
+            'created-at': '2026-10-17T00:00:00Z',
+          },
+        },
+      },
+    });
+
+    const created = await settingsApi.createApiKey({ name: 'deploy', scopes: ['org:write'], expires_at: '2027-01-01T00:00:00Z' });
+
+    const [request] = sent();
+    expect(request.method).toBe('POST');
+    expect(request.url).toMatch(/\/settings\/api-keys$/);
+    expect(request.body).toEqual({
+      data: { type: 'api-keys', attributes: { name: 'deploy', scopes: ['org:write'], 'expires-at': '2027-01-01T00:00:00Z' } },
+    });
+    expect(created.id).toBe('key-2');
+    expect(created.key).toBe('sw_plaintext');
+    expect(created.expires_at).toBe('2027-01-01T00:00:00Z');
+  });
+
+  it('the deletes take the 204', async () => {
+    const sent = stubResponses({ status: 204 }, { status: 204 });
+
+    await expect(settingsApi.deleteApiKey('key-1')).resolves.toBeUndefined();
+    await expect(settingsApi.revokeSession('s1')).resolves.toBeUndefined();
+
+    const requests = sent();
+    expect(requests.map((r) => r.method)).toEqual(['DELETE', 'DELETE']);
+    expect(requests[0].url).toMatch(/\/settings\/api-keys\/key-1$/);
+    expect(requests[1].url).toMatch(/\/settings\/sessions\/s1$/);
+  });
+});
+
+describe('state versions (Phase 5)', () => {
+  const resource = {
+    id: 'sv-1',
+    type: 'state-versions',
+    attributes: {
+      'state-version': 3,
+      serial: 2,
+      lineage: 'l-1',
+      'vcs-commit-sha': 'abc1234def',
+      committer: 'ada@example.com',
+      'created-at': '2026-10-16T12:00:00Z',
+      status: 'finalized',
+      'hosted-state-download-url': 'http://api/api/v2/state-versions/sv-1/download',
+    },
+    relationships: {
+      workspace: { data: { id: 'ws-1', type: 'workspaces' } },
+      run: { data: { id: 'run-1', type: 'runs' } },
+      outputs: { data: [] },
+    },
+  };
+
+  it('maps the state-versions projection onto the model the pages read', async () => {
+    stubResponses({ body: { data: [resource], meta: { pagination: {} } } });
+    const [v] = await stateVersionsApi.list('ws-1');
+    expect(v).toEqual({
+      id: 'sv-1', workspace_id: 'ws-1', run_id: 'run-1', version: 3, serial: 2, lineage: 'l-1',
+      commit_hash: 'abc1234def', committer: 'ada@example.com', created_at: '2026-10-16T12:00:00Z',
+    });
+  });
+
+  it('removes a resource with a state-versions document and reads the version it wrote', async () => {
+    const sent = stubResponses({ status: 201, body: { data: resource } });
+    const v = await stateVersionsApi.removeResource('ws-1', 'null_resource.a');
+    expect(sent()[0].body).toEqual({ data: { type: 'state-versions', attributes: { address: 'null_resource.a' } } });
+    expect(v.id).toBe('sv-1');
   });
 });

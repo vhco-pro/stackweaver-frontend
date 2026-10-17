@@ -1,6 +1,7 @@
 // Copyright (c) 2025 VH & Co BV. Licensed under the Business Source License 1.1. See LICENSE for details.
 
-import { type JsonApiResource, type JsonApiResponse, type JsonApiResourceIdentifier, getRelationship, getRelationships } from '@/utils/jsonapi';
+import { type JsonApiResource, type JsonApiResponse, type JsonApiListResponse, type JsonApiResourceIdentifier, getRelationship, getRelationships } from '@/utils/jsonapi';
+import { fetchAllPages } from '@/lib/pagination';
 
 // Note: This file contains intentional uses of 'any' when accessing JsonApiResource.attributes
 // which is intentionally typed as Record<string, any> for JSON:API flexibility.
@@ -40,7 +41,10 @@ class ApiClient {
 
   private async request<T>(
     endpoint: string,
-    options: RequestInit = {}
+    options: RequestInit = {},
+    // 'text' reads a plain-text success body (the endpoints that are text by design, such as
+    // the Ansible job output); errors are still the JSON:API error document either way.
+    responseType: 'json' | 'text' = 'json'
   ): Promise<T> {
     const url = `${this.baseURL}${endpoint}`;
     
@@ -102,6 +106,10 @@ class ApiClient {
           return {} as T;
         }
 
+        if (responseType === 'text') {
+          return (await response.text()) as T;
+        }
+
         // Handle empty responses
         const contentType = response.headers.get('content-type');
         if (contentType && contentType.includes('application/json')) {
@@ -147,6 +155,11 @@ class ApiClient {
 
   async get<T>(endpoint: string): Promise<T> {
     return this.request<T>(endpoint, { method: 'GET' });
+  }
+
+  /** GET an endpoint whose success body is plain text rather than a JSON:API document. */
+  async getText(endpoint: string): Promise<string> {
+    return this.request<string>(endpoint, { method: 'GET', headers: { Accept: 'text/plain' } }, 'text');
   }
 
   async post<T>(endpoint: string, data?: unknown): Promise<T> {
@@ -1503,6 +1516,37 @@ export interface VCSProject {
   name: string;
 }
 
+// The VCS listings answer resources (#858): `vcs-repositories` keyed by the provider's repository
+// id, `vcs-branches` keyed by the branch name, `vcs-projects` and `vcs-files` keyed by the path.
+// These map them back onto the shapes the pickers already use.
+function repositoryFromResource(r: JsonApiResource): Repository {
+  const a = r.attributes;
+  return {
+    id: Number(r.id),
+    name: a['name'] ?? '',
+    full_name: a['full-name'] ?? '',
+    description: a['description'] ?? '',
+    private: Boolean(a['private']),
+    default_branch: a['default-branch'] ?? '',
+    url: a['url'] ?? '',
+    clone_url: a['clone-url'] ?? '',
+    ssh_url: a['ssh-url'] ?? '',
+  };
+}
+
+function branchFromResource(r: JsonApiResource): Branch {
+  const a = r.attributes;
+  return {
+    name: r.id,
+    commit: { sha: a['commit-sha'] ?? '', url: a['commit-url'] ?? '' },
+    protected: Boolean(a['protected']),
+  };
+}
+
+function projectFromResource(r: JsonApiResource): VCSProject {
+  return { id: r.id, name: r.attributes['name'] ?? '' };
+}
+
 // Azure OIDC Configurations (TFE-compatible)
 // Manages keyless authentication from Terraform runs to Azure via OIDC workload identity.
 export interface AzureOIDCConfiguration {
@@ -1773,26 +1817,29 @@ export const vcsConnectionsApi = {
         };
       });
     }),
+  // The install and authorize steps answer a meta-only document: the URL is computed per request
+  // and has no identity of its own. Each call resolves to the URL the browser should go to.
   initiateInstallation: (organizationName: string) =>
-    apiClient.get<{ data: { install_url: string } }>(`/organizations/${encodeURIComponent(organizationName)}/vcs-connections/github/install`).then(res => res.data),
+    apiClient.get<{ meta: { 'install-url': string } }>(`/organizations/${encodeURIComponent(organizationName)}/vcs-connections/github/install`).then(res => res.meta['install-url']),
   initiateInstallationWithRedirect: (organizationName: string, redirectUrl: string) =>
-    apiClient.get<{ data: { install_url: string } }>(
+    apiClient.get<{ meta: { 'install-url': string } }>(
       `/organizations/${encodeURIComponent(organizationName)}/vcs-connections/github/install?redirect=${encodeURIComponent(redirectUrl)}&return=${encodeURIComponent(window.location.pathname + window.location.search)}`
-    ).then(res => res.data),
+    ).then(res => res.meta['install-url']),
   // The second step of connecting a GitHub App installation: `state` is the one GitHub's Setup
-  // URL returned with the installation, passed through unchanged. Answers with GitHub's page for
+  // URL returned with the installation, passed through unchanged. Resolves to GitHub's page for
   // authorizing the App.
   authorizeGitHubInstallation: (organizationName: string, installationId: string, state: string) =>
-    apiClient.get<{ data: { auth_url: string } }>(
+    apiClient.get<{ meta: { 'auth-url': string } }>(
       `/organizations/${encodeURIComponent(organizationName)}/vcs-connections/github/installations/${encodeURIComponent(installationId)}/authorize?state=${encodeURIComponent(state)}`
-    ).then(res => res.data),
+    ).then(res => res.meta['auth-url']),
   // The last step: `code` and `state` are the ones GitHub returned to the App's callback page,
-  // passed through unchanged; the code goes in the body, out of access logs. The server connects
-  // the installation only when the person who authorized the App can access it at GitHub.
+  // passed through unchanged; the code goes in a `vcs-connections` document, out of access logs.
+  // The server connects the installation only when the person who authorized the App can access
+  // it at GitHub.
   createConnectionFromInstallation: (organizationName: string, installationId: string, code: string, state: string) =>
     apiClient.post<{ data: JsonApiResource }>(
       `/organizations/${encodeURIComponent(organizationName)}/vcs-connections/github/installations/${encodeURIComponent(installationId)}?state=${encodeURIComponent(state)}`,
-      { code }
+      { data: { type: 'vcs-connections', attributes: { code } } }
     ).then(res => res.data),
   get: (id: string) =>
     apiClient.get<{ data: VCSConnection }>(`/vcs-connections/${id}`).then(res => res.data),
@@ -1804,46 +1851,49 @@ export const vcsConnectionsApi = {
     account_name: string;
     account_type: 'organization' | 'user';
   }) =>
-    apiClient.post<{ data: VCSConnection }>(`/organizations/${encodeURIComponent(organizationName)}/vcs-connections`, data).then(res => res.data),
+    apiClient.post<{ data: VCSConnection }>(
+      `/organizations/${encodeURIComponent(organizationName)}/vcs-connections`,
+      { data: { type: 'vcs-connections', attributes: data } }
+    ).then(res => res.data),
   delete: (id: string) =>
     apiClient.delete(`/vcs-connections/${id}`),
-  listRepositories: (id: string, page?: number, perPage?: number, project?: string) => {
+  listRepositories: (id: string, page?: number, perPage?: number, project?: string) =>
+    vcsConnectionsApi.listRepositoryPage(id, page, perPage, project).then(res => (res.data ?? []).map(repositoryFromResource)),
+  // One page of `vcs-repositories` as the server answers it. The provider reports no total, so
+  // the block states `next-page` (set when the page came back full) and null totals.
+  listRepositoryPage: (id: string, page?: number, perPage?: number, project?: string) => {
     const params = new URLSearchParams();
-    if (page) params.append('page', page.toString());
-    if (perPage) params.append('per_page', perPage.toString());
+    if (page) params.append('page[number]', page.toString());
+    if (perPage) params.append('page[size]', perPage.toString());
     if (project) params.append('project', project);
     const query = params.toString() ? `?${params.toString()}` : '';
-    return apiClient.get<{ data: Repository[]; meta: { pagination: { page: number; per_page: number } } }>(`/vcs-connections/${id}/repositories${query}`).then(res => res.data);
+    return apiClient.get<JsonApiListResponse>(`/vcs-connections/${id}/repositories${query}`);
   },
   listAllRepositories: async (id: string, project?: string): Promise<Repository[]> => {
-    const perPage = 100;
-    let page = 1;
-    const allRepos: Repository[] = [];
-    while (true) {
-      const res = await vcsConnectionsApi.listRepositories(id, page, perPage, project);
-      const repos = res || [];
-      allRepos.push(...repos);
-      if (repos.length < perPage) break;
-      page++;
-    }
-    return allRepos;
+    const { items } = await fetchAllPages((page, pageSize) => vcsConnectionsApi.listRepositoryPage(id, page, pageSize, project));
+    return items.map(repositoryFromResource);
   },
   // Lists projects for a VCS connection. Only Azure DevOps has a project layer;
   // other providers return 501, so callers should guard by provider.
   listProjects: (id: string) =>
-    apiClient.get<{ data: VCSProject[]; meta: { pagination: { page: number; per_page: number } } }>(`/vcs-connections/${id}/projects`).then(res => res.data),
+    apiClient.get<JsonApiListResponse>(`/vcs-connections/${id}/projects`).then(res => (res.data ?? []).map(projectFromResource)),
   listBranches: (id: string, owner: string, repo: string, page?: number, perPage?: number) => {
     const params = new URLSearchParams();
-    if (page) params.append('page', page.toString());
-    if (perPage) params.append('per_page', perPage.toString());
+    if (page) params.append('page[number]', page.toString());
+    if (perPage) params.append('page[size]', perPage.toString());
     const query = params.toString() ? `?${params.toString()}` : '';
-    return apiClient.get<{ data: Branch[]; meta: { pagination: { page: number; per_page: number } } }>(`/vcs-connections/${id}/repositories/${owner}/${repo}/branches${query}`).then(res => res.data);
+    return apiClient.get<JsonApiListResponse>(`/vcs-connections/${id}/repositories/${owner}/${repo}/branches${query}`).then(res => (res.data ?? []).map(branchFromResource));
   },
   getFileContent: (id: string, owner: string, repo: string, path: string, ref?: string) => {
     const params = new URLSearchParams();
     if (ref) params.append('ref', ref);
     const query = params.toString() ? `?${params.toString()}` : '';
-    return apiClient.get<{ data: { content: string; path: string; ref: string } }>(`/vcs-connections/${id}/repositories/${owner}/${repo}/contents/${path}${query}`).then(res => res.data);
+    // One `vcs-files` resource, keyed by the path, carrying the content and the ref it was read at.
+    return apiClient.get<JsonApiResponse>(`/vcs-connections/${id}/repositories/${owner}/${repo}/contents/${path}${query}`).then(res => ({
+      path: res.data.id,
+      content: (res.data.attributes['content'] as string | undefined) ?? '',
+      ref: (res.data.attributes['ref'] as string | undefined) ?? '',
+    }));
   },
   // Lists inventory candidate files (the server drops playbooks, roles, vars and
   // tooling files); `path` optionally scopes the listing to a repo directory.
@@ -1852,13 +1902,14 @@ export const vcsConnectionsApi = {
     if (ref) params.append('ref', ref);
     if (path) params.append('path', path);
     const query = params.toString() ? `?${params.toString()}` : '';
-    return apiClient.get<{ data: string[] }>(`/vcs-connections/${id}/repositories/${owner}/${repo}/inventory-files${query}`).then(res => res.data);
+    // `vcs-files` resources keyed by the path; the listing does not page.
+    return apiClient.get<JsonApiListResponse>(`/vcs-connections/${id}/repositories/${owner}/${repo}/inventory-files${query}`).then(res => (res.data ?? []).map(f => f.id));
   },
   // Azure DevOps OAuth2 flow
   initiateAzureDevOpsInstallation: (organizationName: string, adoOrg: string, returnPath: string) =>
-    apiClient.get<{ data: { auth_url: string } }>(
+    apiClient.get<{ meta: { 'auth-url': string } }>(
       `/organizations/${encodeURIComponent(organizationName)}/vcs-connections/azure-devops/install?ado_org=${encodeURIComponent(adoOrg)}&return=${encodeURIComponent(returnPath)}`
-    ).then(res => res.data),
+    ).then(res => res.meta['auth-url']),
   completeAzureDevOpsInstallation: (code: string, state: string) =>
     apiClient.post<{ data: JsonApiResource }>(
       `/vcs-connections/azure-devops/callback?code=${encodeURIComponent(code)}&state=${encodeURIComponent(state)}`,
@@ -2134,24 +2185,57 @@ export interface StateVersionResource {
   instanceCount: number;
 }
 
+// A state version is the state-versions resource every state-version endpoint answers with: TFE's
+// attributes (state-version is the version number, vcs-commit-sha the commit) plus the committer,
+// and the workspace and run as relationships. It is mapped onto the StateVersion model the pages read.
+interface StateVersionDocument {
+  id: string;
+  type: string;
+  attributes: {
+    'state-version': number;
+    serial?: number | null;
+    lineage?: string;
+    'vcs-commit-sha'?: string;
+    committer?: string;
+    'created-at': string;
+  };
+  relationships?: {
+    workspace?: { data?: { id: string } | null };
+    run?: { data?: { id: string } | null };
+  };
+}
+
+function stateVersionFromResource(res: StateVersionDocument): StateVersion {
+  const a = res.attributes;
+  return {
+    id: res.id,
+    workspace_id: res.relationships?.workspace?.data?.id ?? '',
+    run_id: res.relationships?.run?.data?.id ?? undefined,
+    version: a['state-version'],
+    serial: a.serial ?? undefined,
+    lineage: a.lineage,
+    commit_hash: a['vcs-commit-sha'] || undefined,
+    committer: a.committer,
+    created_at: a['created-at'],
+  };
+}
+
 export const stateVersionsApi = {
   list: (workspaceId: string) =>
-    apiClient.get<{ data: StateVersion[] }>(`/workspaces/${workspaceId}/state-versions`).then(res => res.data || []),
+    apiClient.get<{ data: StateVersionDocument[] }>(`/workspaces/${workspaceId}/state-versions`)
+      .then(res => (res.data || []).map(stateVersionFromResource)),
   get: (id: string) =>
-    apiClient.get<{ data: { id: string; type: string; attributes: StateVersion } }>(`/state-versions/${id}`).then(res => {
-      // Handle JSON:API format - extract attributes and merge with id
-      const data = res.data;
-      return { ...data.attributes, id: data.id };
-    }),
-  create: (workspaceId: string, data: { state_data: Record<string, unknown> }) =>
-    apiClient.post<{ data: StateVersion }>(`/workspaces/${workspaceId}/state-versions`, data).then(res => res.data),
+    apiClient.get<{ data: StateVersionDocument }>(`/state-versions/${id}`).then(res => stateVersionFromResource(res.data)),
+  // Removing a resource writes a new state version, which the server answers with.
   removeResource: (workspaceId: string, address: string) =>
-    apiClient.post<{ data: { message: string } }>(`/workspaces/${workspaceId}/state-versions/remove-resource`, { address }).then(res => res.data),
+    apiClient.post<{ data: StateVersionDocument }>(`/workspaces/${workspaceId}/state-versions/remove-resource`, {
+      data: { type: 'state-versions', attributes: { address } },
+    }).then(res => stateVersionFromResource(res.data)),
   delete: (id: string) =>
     apiClient.delete<void>(`/state-versions/${id}`),
   // Raw Terraform state JSON for a version, via the TFE hosted-state-download-url target
-  // (object storage). Used by the state viewer/diff/download - the inline state_data blob
-  // is being removed from API responses (State Storage Rework).
+  // (object storage). Used by the state viewer/diff/download; the state-versions resource
+  // carries no inline copy of the state.
   getRawState: (id: string) =>
     apiClient.get<Record<string, unknown>>(`/state-versions/${id}/download`),
   // Current (latest) state version outputs, from the materialized table.
@@ -2317,8 +2401,9 @@ export const variablesApi = {
     apiClient.delete(`/workspaces/${workspaceId}/vars/${variableId}`),
   // Get platform variable keys (StackWeaver-specific endpoint for frontend warnings)
   // GET /api/v2/workspaces/:id/platform-variables
+  // Answers a meta-only document: the fixed names are not addressable resources.
   getPlatformVariableKeys: (workspaceId: string) =>
-    apiClient.get<{ data: string[] }>(`/workspaces/${workspaceId}/platform-variables`).then(res => res.data || []),
+    apiClient.get<{ meta?: { 'platform-variable-keys'?: string[] } }>(`/workspaces/${workspaceId}/platform-variables`).then(res => res.meta?.['platform-variable-keys'] ?? []),
 };
 
 export const variableSetsApi = {
@@ -2729,20 +2814,60 @@ export const variableSetsApi = {
     apiClient.delete(`/varsets/${variableSetId}/relationships/vars/${variableId}`),
 };
 
-export const twoFactorApi = {
-  getStatus: () => apiClient.get<{ enabled: boolean }>('/settings/2fa/status'),
-  start: () => apiClient.post<{ secret: string; url: string }>('/settings/2fa/start'),
-  verify: (code: string) => apiClient.post<{ message: string }>('/settings/2fa/verify', { code }),
-  remove: () => apiClient.delete<{ message: string }>('/settings/2fa'),
-  listDevices: () => apiClient.get<{ devices: MFADevice[] }>('/settings/mfa-devices'),
-};
-
 export interface MFADevice {
   type: 'TOTP' | 'U2F' | 'OTP_SMS' | 'OTP_EMAIL' | 'PASSKEY';
   name: string;
   id?: string;
   state: string;
 }
+
+export interface TwoFactorStatus {
+  enabled: boolean;
+}
+
+interface TwoFactorResource {
+  id: string;
+  type: string;
+  attributes: { enabled: boolean };
+}
+
+interface MFADeviceResource {
+  id: string;
+  type: string;
+  attributes: { 'device-type': MFADevice['type']; name: string; state: string };
+}
+
+// The settings surface answers JSON:API documents: the two-factor status is one `two-factor`
+// resource, the enrolment in progress is `meta` alone (it has no identity yet), the devices are
+// `mfa-devices` resources, and the disable answers 204.
+export const twoFactorApi = {
+  getStatus: async (): Promise<TwoFactorStatus> => {
+    const response = await apiClient.get<{ data: TwoFactorResource }>('/settings/2fa/status');
+    return { enabled: response.data.attributes.enabled };
+  },
+  start: async (): Promise<{ secret: string; url: string }> => {
+    const response = await apiClient.post<{ meta: { secret: string; url: string } }>('/settings/2fa/start');
+    return { secret: response.meta.secret, url: response.meta.url };
+  },
+  verify: async (code: string): Promise<TwoFactorStatus> => {
+    const response = await apiClient.post<{ data: TwoFactorResource }>('/settings/2fa/verify', {
+      data: { type: 'two-factor', attributes: { code } },
+    });
+    return { enabled: response.data.attributes.enabled };
+  },
+  remove: async (): Promise<void> => {
+    await apiClient.delete<void>('/settings/2fa');
+  },
+  listDevices: async (): Promise<MFADevice[]> => {
+    const response = await apiClient.get<{ data: MFADeviceResource[] }>('/settings/mfa-devices');
+    return (response.data || []).map((d) => ({
+      id: d.id || undefined,
+      type: d.attributes['device-type'],
+      name: d.attributes.name,
+      state: d.attributes.state,
+    }));
+  },
+};
 
 export interface OrganizationMembership {
   id: string;
@@ -2793,9 +2918,57 @@ export interface UserProfile {
   updated_at: string;
 }
 
+/** The editable profile attributes; an omitted one is left as it is, and "" clears it. */
+export type UserProfileUpdate = Partial<Pick<UserProfile, 'username' | 'email' | 'name' | 'bio' | 'company' | 'location'>>;
+
+interface UserResource {
+  id: string;
+  type: string;
+  attributes: {
+    username: string;
+    email: string;
+    name?: string;
+    bio?: string;
+    company?: string;
+    location?: string;
+    'avatar-url'?: string;
+    'created-at'?: string;
+    'updated-at'?: string;
+  };
+}
+
+function userProfileFromResource(user: UserResource): UserProfile {
+  const a = user.attributes;
+  return {
+    id: user.id,
+    email: a.email ?? '',
+    name: a.name ?? '',
+    username: a.username ?? '',
+    bio: a.bio ?? '',
+    company: a.company ?? '',
+    location: a.location ?? '',
+    avatar: a['avatar-url'] || undefined,
+    created_at: a['created-at'] ?? '',
+    updated_at: a['updated-at'] ?? '',
+  };
+}
+
+// The signed-in person's profile is the `users` resource of the account surface.
+export const accountApi = {
+  details: async (): Promise<UserProfile> => {
+    const response = await apiClient.get<{ data: UserResource }>('/account/details');
+    return userProfileFromResource(response.data);
+  },
+  update: async (attributes: UserProfileUpdate): Promise<UserProfile> => {
+    const response = await apiClient.patch<{ data: UserResource }>('/account/update', {
+      data: { type: 'users', attributes },
+    });
+    return userProfileFromResource(response.data);
+  },
+};
+
 export interface Session {
   id: string;
-  user_id: string;
   user_agent: string;
   ip_address?: string;
   creation_date: string;
@@ -2828,24 +3001,95 @@ export interface CreateApiKeyResponse {
   created_at: string;
 }
 
+interface SessionResource {
+  id: string;
+  type: string;
+  attributes: {
+    'user-agent': string;
+    'ip-address'?: string;
+    'creation-date': string;
+    'expiration-date': string;
+    factors: string[] | null;
+    'is-current': boolean;
+  };
+}
+
+interface ApiKeyResource {
+  id: string;
+  type: string;
+  attributes: {
+    name: string;
+    key?: string;
+    'key-prefix': string;
+    scopes: string[] | null;
+    'expires-at': string | null;
+    'last-used-at': string | null;
+    'created-at': string;
+  };
+  relationships?: {
+    organization?: { data: JsonApiResourceIdentifier | null };
+    project?: { data: JsonApiResourceIdentifier | null };
+  };
+}
+
+function apiKeyFromResource(key: ApiKeyResource): ApiKey {
+  const a = key.attributes;
+  return {
+    id: key.id,
+    name: a.name,
+    key_prefix: a['key-prefix'],
+    scopes: a.scopes ?? undefined,
+    organization_id: key.relationships?.organization?.data?.id,
+    project_id: key.relationships?.project?.data?.id,
+    expires_at: a['expires-at'] ?? undefined,
+    last_used_at: a['last-used-at'] ?? undefined,
+    created_at: a['created-at'],
+  };
+}
+
+// The account settings answer JSON:API documents, take documents on every write, and answer
+// 204 to a delete; the API key create carries the plaintext key as an attribute, once.
 export const settingsApi = {
-  changePassword: (currentPassword: string, newPassword: string) =>
-    apiClient.post<{ message: string }>('/settings/password', {
-      current_password: currentPassword,
-      new_password: newPassword,
-    }),
-  getProfile: () => apiClient.get<UserProfile>('/settings/profile'),
-  updateProfile: (data: Partial<UserProfile>) =>
-    apiClient.patch<{ message: string; profile: UserProfile }>('/settings/profile', data),
-  listSessions: () => apiClient.get<{ sessions: Session[] }>('/settings/sessions'),
-  revokeSession: (sessionId: string) =>
-    apiClient.delete<{ message: string }>(`/settings/sessions/${sessionId}`),
+  changePassword: async (currentPassword: string, newPassword: string): Promise<void> => {
+    await apiClient.post<void>('/settings/password', {
+      data: {
+        type: 'users',
+        attributes: { 'current-password': currentPassword, 'new-password': newPassword },
+      },
+    });
+  },
+  listSessions: async (): Promise<Session[]> => {
+    const response = await apiClient.get<{ data: SessionResource[] }>('/settings/sessions');
+    return (response.data || []).map((s) => ({
+      id: s.id,
+      user_agent: s.attributes['user-agent'],
+      ip_address: s.attributes['ip-address'] || undefined,
+      creation_date: s.attributes['creation-date'],
+      expiration_date: s.attributes['expiration-date'],
+      factors: s.attributes.factors ?? [],
+      is_current: s.attributes['is-current'],
+    }));
+  },
+  revokeSession: async (sessionId: string): Promise<void> => {
+    await apiClient.delete<void>(`/settings/sessions/${sessionId}`);
+  },
   // API Keys
-  listApiKeys: () => apiClient.get<{ api_keys: ApiKey[] }>('/settings/api-keys'),
-  createApiKey: (data: { name: string; scopes?: string[]; expires_at?: string }) =>
-    apiClient.post<CreateApiKeyResponse>('/settings/api-keys', data),
-  deleteApiKey: (id: string) =>
-    apiClient.delete<{ message: string }>(`/settings/api-keys/${id}`),
+  listApiKeys: async (): Promise<ApiKey[]> => {
+    const response = await apiClient.get<{ data: ApiKeyResource[] }>('/settings/api-keys');
+    return (response.data || []).map(apiKeyFromResource);
+  },
+  createApiKey: async (data: { name: string; scopes?: string[]; expires_at?: string }): Promise<CreateApiKeyResponse> => {
+    const attributes: Record<string, unknown> = { name: data.name };
+    if (data.scopes) attributes.scopes = data.scopes;
+    if (data.expires_at) attributes['expires-at'] = data.expires_at;
+    const response = await apiClient.post<{ data: ApiKeyResource }>('/settings/api-keys', {
+      data: { type: 'api-keys', attributes },
+    });
+    return { ...apiKeyFromResource(response.data), key: response.data.attributes.key ?? '' };
+  },
+  deleteApiKey: async (id: string): Promise<void> => {
+    await apiClient.delete<void>(`/settings/api-keys/${id}`);
+  },
 };
 
 // Personal (user-bound) tokens - the `terraform login` / personal access
@@ -2892,7 +3136,8 @@ export const tokensApi = {
     }));
   },
   create: async (data: { description: string; expires_at?: string }): Promise<CreateUserTokenResponse> => {
-    const response = await apiClient.post<{ data: UserTokenResource }>('/tokens', data);
+    // A `tokens` document; the attributes keep the snake_case the resource answers with.
+    const response = await apiClient.post<{ data: UserTokenResource }>('/tokens', { data: { type: 'tokens', attributes: data } });
     return {
       id: response.data.id,
       token: response.data.attributes.token ?? '',
@@ -2922,9 +3167,11 @@ export interface Activity {
 }
 
 export const activitiesApi = {
+  // Pages by page[number] and page[size] as every collection does, and answers the standard
+  // pagination block with a real total-count and next-page.
   list: (params?: {
-    limit?: number;
-    offset?: number;
+    page?: number;
+    pageSize?: number;
     user_id?: string;
     organization_id?: string;
     workspace_id?: string;
@@ -2932,8 +3179,8 @@ export const activitiesApi = {
     resource_type?: string;
   }) => {
     const queryParams = new URLSearchParams();
-    if (params?.limit) queryParams.append('limit', params.limit.toString());
-    if (params?.offset) queryParams.append('offset', params.offset.toString());
+    if (params?.page) queryParams.append('page[number]', params.page.toString());
+    if (params?.pageSize) queryParams.append('page[size]', params.pageSize.toString());
     if (params?.user_id) queryParams.append('user_id', params.user_id);
     if (params?.organization_id) queryParams.append('organization_id', params.organization_id);
     if (params?.workspace_id) queryParams.append('workspace_id', params.workspace_id);
@@ -2941,7 +3188,7 @@ export const activitiesApi = {
     if (params?.resource_type) queryParams.append('resource_type', params.resource_type);
     
     const query = queryParams.toString();
-    return apiClient.get<{ data: Activity[]; meta: { pagination: { total: number; limit: number; offset: number } } }>(
+    return apiClient.get<{ data: Activity[]; meta?: JsonApiListResponse['meta'] }>(
       `/activities${query ? `?${query}` : ''}`
     );
   },
@@ -3347,7 +3594,7 @@ export const registryApi = {
     }) =>
       apiClient.post<{ data: { id: string; type: string; attributes: Omit<Module, 'id'> } }>(
         `/organizations/${encodeURIComponent(organizationName)}/registry/modules`,
-        data
+        { data: { type: 'registry-modules', attributes: data } }
       ).then(res => ({
         id: res.data.id,
         ...res.data.attributes,
@@ -3357,8 +3604,9 @@ export const registryApi = {
       apiClient.delete(`/organizations/${encodeURIComponent(organizationName)}/registry/modules/${moduleName}/${provider}`),
     deleteVersion: (organizationName: string, moduleName: string, provider: string, version: string) =>
       apiClient.delete(`/organizations/${encodeURIComponent(organizationName)}/registry/modules/${moduleName}/${provider}/versions/${version}`),
-    deleteAll: (organizationName: string) =>
-      apiClient.delete(`/organizations/${encodeURIComponent(organizationName)}/registry/modules`),
+    // Answers 204 with no body; resolves once every module of the organization is gone.
+    deleteAll: (organizationName: string): Promise<void> =>
+      apiClient.delete(`/organizations/${encodeURIComponent(organizationName)}/registry/modules`).then(() => undefined),
     publishVersion: async (organizationName: string, moduleName: string, provider: string, version: string, file: File) => {
       const formData = new FormData();
       formData.append('version', version);

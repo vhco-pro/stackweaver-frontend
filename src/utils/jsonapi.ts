@@ -38,14 +38,17 @@ export interface JsonApiResponse<T extends JsonApiResource | JsonApiResource[] =
      * hyphenated members optional - which is how the backend divergence reached the frontend:
      * five endpoints answered in the first shape, the rest in the second, and the type said
      * both were normal. `prev-page` and `next-page` are null at the first and last page.
+     * `total-pages` and `total-count` are null on a provider pass-through listing (the VCS
+     * repositories, projects, branches and files), whose provider reports no total; page such a
+     * listing by `next-page`, as `fetchAllPages` does.
      */
     pagination?: {
       'current-page': number;
       'page-size': number;
       'prev-page': number | null;
       'next-page': number | null;
-      'total-pages': number;
-      'total-count': number;
+      'total-pages': number | null;
+      'total-count': number | null;
     };
   };
   included?: JsonApiResource[];

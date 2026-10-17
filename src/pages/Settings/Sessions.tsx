@@ -28,8 +28,7 @@ export default function SessionsSettings() {
     try {
       setLoading(true);
       setError(null);
-      const response = await settingsApi.listSessions();
-      setSessions(response.sessions || []);
+      setSessions(await settingsApi.listSessions());
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load sessions');
     } finally {

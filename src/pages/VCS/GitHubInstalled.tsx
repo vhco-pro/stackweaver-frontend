@@ -46,8 +46,8 @@ export default function GitHubInstalled() {
     const returnPath = started.returnPath ?? `/app/${orgName}/workspaces`;
 
     void vcsConnectionsApi.authorizeGitHubInstallation(orgName, installationId, state)
-      .then((res) => {
-        window.location.assign(res.auth_url);
+      .then((authUrl) => {
+        window.location.assign(authUrl);
       })
       .catch((err: unknown) => {
         console.error('Authorizing the GitHub installation failed:', err);

@@ -1,6 +1,16 @@
 // Copyright (c) 2025 VH & Co BV. Licensed under the Business Source License 1.1. See LICENSE for details.
 
-import { ansiblePlaybooksApi } from '@/api/ansible';
+import { ansiblePlaybooksApi, type AnsiblePlaybook } from '@/api/ansible';
+
+/**
+ * Labels a repository file that is already registered. The file names its playbook through a
+ * relationship rather than by name, so the name comes from the organization's playbooks the
+ * caller already holds; a playbook outside that list is simply "already registered".
+ */
+export function registeredPlaybookLabel(playbooks: AnsiblePlaybook[], playbookId?: string): string {
+  const name = playbooks.find((pb) => pb.id === playbookId)?.name;
+  return name ? `registered as “${name}”` : 'already registered';
+}
 
 /**
  * What the user picked in the playbook field: an already-registered playbook,

@@ -10,7 +10,7 @@ import { PageHeader } from '@/components/layout/PageHeader';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
-import { settingsApi } from '@/api/client';
+import { accountApi, type UserProfileUpdate } from '@/api/client';
 
 export default function ProfileSettings() {
   const [formData, setFormData] = useState({
@@ -30,7 +30,7 @@ export default function ProfileSettings() {
     try {
       setLoading(true);
       setError(null);
-      const profile = await settingsApi.getProfile();
+      const profile = await accountApi.details();
       // Set form data - use empty string if value is null/undefined to allow clearing
       setFormData({
         name: profile.name ?? '',
@@ -64,9 +64,8 @@ export default function ProfileSettings() {
       setError(null);
       setSuccess(false);
       
-      // Build update payload - send all fields (including empty strings to clear them)
-      // The backend uses pointer types, so empty strings will clear the fields
-      const updatePayload: Record<string, string> = {
+      // Send every field: an empty string clears it, an omitted one would be left as it is
+      const updatePayload: UserProfileUpdate = {
         name: formData.name,
         email: formData.email,
         username: formData.username,
@@ -75,7 +74,7 @@ export default function ProfileSettings() {
         location: formData.location,
       };
       
-      await settingsApi.updateProfile(updatePayload);
+      await accountApi.update(updatePayload);
       setSuccess(true);
       // Reload profile to get updated data
       await loadProfile();

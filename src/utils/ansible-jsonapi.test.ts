@@ -13,6 +13,7 @@ import {
   getAnsibleInventorySourceFromJsonApi,
   getAnsibleScheduleFromJsonApi,
   getAnsibleWorkflowFromJsonApi,
+  getPlaybookFileFromJsonApi,
 } from './ansible-jsonapi';
 import type { JsonApiResource } from './jsonapi';
 
@@ -124,6 +125,27 @@ describe('getAnsiblePlaybookFromJsonApi', () => {
     expect(pb.playbook_path).toBe('playbooks/site.yml');
     expect(pb.project_id).toBe('proj-1');
     expect(pb.vcs_repository).toBe('org/repo');
+  });
+});
+
+describe('getPlaybookFileFromJsonApi', () => {
+  it('reads the path from the id and the playbook from the relationship', () => {
+    const file = getPlaybookFileFromJsonApi({
+      id: 'playbooks/site.yml',
+      type: 'ansible-playbook-files',
+      attributes: { name: 'site.yml', registered: true },
+      relationships: { playbook: { data: { id: 'pb-1', type: 'ansible-playbooks' } } },
+    });
+    expect(file).toEqual({ path: 'playbooks/site.yml', name: 'site.yml', registered: true, playbook_id: 'pb-1' });
+  });
+
+  it('leaves an unregistered file without a playbook', () => {
+    const file = getPlaybookFileFromJsonApi({
+      id: 'deploy.yml',
+      type: 'ansible-playbook-files',
+      attributes: { name: 'deploy.yml', registered: false },
+    });
+    expect(file).toEqual({ path: 'deploy.yml', name: 'deploy.yml', registered: false, playbook_id: undefined });
   });
 });
 
@@ -318,7 +340,7 @@ describe('getAnsibleScheduleFromJsonApi', () => {
     const sched = getAnsibleScheduleFromJsonApi(resource);
     expect(sched.name).toBe('Nightly Deploy');
     expect(sched.type).toBe('job_template');
-    expect(sched.cron_expression).toBe('0 2 * * *');
+    expect(sched.cron).toBe('0 2 * * *');
     expect(sched.timezone).toBe('America/New_York');
     expect(sched.run_count).toBe(15);
     expect(sched.job_template_id).toBe('tpl-1');

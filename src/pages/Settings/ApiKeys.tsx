@@ -48,10 +48,7 @@ export default function ApiKeysSettings() {
 
   const { data: apiKeys = [], isLoading: loading, isError: loadFailed, refetch: refetchApiKeys } = useQuery({
     queryKey: ['apiKeys'],
-    queryFn: async () => {
-      const response = await settingsApi.listApiKeys();
-      return response.api_keys || [];
-    },
+    queryFn: () => settingsApi.listApiKeys(),
   });
 
   const { data: organizations = [] } = useQuery({

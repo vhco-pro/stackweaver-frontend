@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { ansibleNotificationsApi } from '@/api/ansible';
+import { ansibleNotificationsApi, type NotificationTriggers } from '@/api/ansible';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { GradientButton } from '@/components/ui/gradient-button';
@@ -54,7 +54,7 @@ interface TemplateNotificationsCardProps {
 export function TemplateNotificationsCard({ templateId, orgName, canManage }: TemplateNotificationsCardProps) {
   const queryClient = useQueryClient();
   const [selectedChannel, setSelectedChannel] = useState('');
-  const [triggers, setTriggers] = useState({ on_started: false, on_success: true, on_failure: true });
+  const [triggers, setTriggers] = useState<Required<NotificationTriggers>>({ started: false, success: true, failure: true });
   const [busy, setBusy] = useState(false);
   const [showCreate, setShowCreate] = useState(false);
   const emptyChannel = { name: '', type: 'webhook' as 'webhook' | 'email' | 'teams', url: '', secret: '', username: '', from: '', to: '', port: '' };
@@ -102,7 +102,7 @@ export function TemplateNotificationsCard({ templateId, orgName, canManage }: Te
       await ansibleNotificationsApi.attach(orgName, {
         notification_template_id: selectedChannel,
         job_template_id: templateId,
-        ...triggers,
+        triggers,
       });
       setSelectedChannel('');
       refresh();
@@ -149,7 +149,7 @@ export function TemplateNotificationsCard({ templateId, orgName, canManage }: Te
         : { url: newChannel.url };
       const res = await ansibleNotificationsApi.create(orgName, {
         name: newChannel.name,
-        type: newChannel.type,
+        notification_type: newChannel.type,
         config,
         secret: newChannel.secret || undefined,
       });
@@ -243,15 +243,15 @@ export function TemplateNotificationsCard({ templateId, orgName, canManage }: Te
             </div>
             <div className="flex items-center gap-4 text-sm">
               <label className="flex items-center gap-1.5 cursor-pointer">
-                <Checkbox checked={triggers.on_started} onCheckedChange={(v) => { setTriggers({ ...triggers, on_started: Boolean(v) }); }} />
+                <Checkbox checked={triggers.started} onCheckedChange={(v) => { setTriggers({ ...triggers, started: Boolean(v) }); }} />
                 started
               </label>
               <label className="flex items-center gap-1.5 cursor-pointer">
-                <Checkbox checked={triggers.on_success} onCheckedChange={(v) => { setTriggers({ ...triggers, on_success: Boolean(v) }); }} />
+                <Checkbox checked={triggers.success} onCheckedChange={(v) => { setTriggers({ ...triggers, success: Boolean(v) }); }} />
                 success
               </label>
               <label className="flex items-center gap-1.5 cursor-pointer">
-                <Checkbox checked={triggers.on_failure} onCheckedChange={(v) => { setTriggers({ ...triggers, on_failure: Boolean(v) }); }} />
+                <Checkbox checked={triggers.failure} onCheckedChange={(v) => { setTriggers({ ...triggers, failure: Boolean(v) }); }} />
                 failure
               </label>
               {selectedChannel && (

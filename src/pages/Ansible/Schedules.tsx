@@ -184,7 +184,7 @@ export default function Schedules() {
     name: '',
     description: '',
     type: 'job_template',
-    cron_expression: '0 2 * * *',
+    cron: '0 2 * * *',
     timezone: 'UTC',
   });
   
@@ -202,7 +202,7 @@ export default function Schedules() {
       toast.error('Schedule name is required');
       return;
     }
-    if (!scheduleForm.cron_expression.trim()) {
+    if (!scheduleForm.cron.trim()) {
       toast.error('Cron expression is required');
       return;
     }
@@ -225,7 +225,7 @@ export default function Schedules() {
         name: '',
         description: '',
         type: 'job_template',
-        cron_expression: '0 2 * * *',
+        cron: '0 2 * * *',
         timezone: 'UTC',
       });
       toast.success('Schedule created successfully');
@@ -336,7 +336,7 @@ export default function Schedules() {
       return (
         schedule.name.toLowerCase().includes(query) ||
         schedule.description?.toLowerCase().includes(query) ||
-        schedule.cron_expression.includes(query)
+        schedule.cron.includes(query)
       );
     }
     return true;
@@ -492,13 +492,13 @@ export default function Schedules() {
                 <Input
                   id="schedule-cron"
                   placeholder="0 2 * * *"
-                  value={scheduleForm.cron_expression}
-                  onChange={(e) => setScheduleForm({ ...scheduleForm, cron_expression: e.target.value })}
+                  value={scheduleForm.cron}
+                  onChange={(e) => setScheduleForm({ ...scheduleForm, cron: e.target.value })}
                   className="flex-1"
                 />
                 <Select 
                   value="" 
-                  onValueChange={(value) => setScheduleForm({ ...scheduleForm, cron_expression: value })}
+                  onValueChange={(value) => setScheduleForm({ ...scheduleForm, cron: value })}
                 >
                   <SelectTrigger className="w-[180px]">
                     <SelectValue placeholder="Presets" />
@@ -674,7 +674,7 @@ export default function Schedules() {
                   <TableCell>{getTypeBadge(schedule.type)}</TableCell>
                   <TableCell>
                     <code className="text-sm bg-muted px-1 py-0.5 rounded-sm">
-                      {schedule.cron_expression}
+                      {schedule.cron}
                     </code>
                     <div className="text-xs text-muted-foreground">{schedule.timezone}</div>
                   </TableCell>

@@ -15,7 +15,7 @@ import {
 import { Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { VcsRepoBranchPicker } from '@/components/vcs/VcsRepoBranchPicker';
-import type { PlaybookSelection } from './playbook-selection';
+import { registeredPlaybookLabel, type PlaybookSelection } from './playbook-selection';
 import { useVcsRepoBrowser } from './useVcsRepoBrowser';
 
 interface PlaybookSourcePickerProps {
@@ -54,6 +54,9 @@ export function PlaybookSourcePicker({ organizationName, playbooks, value, onCha
   );
 
   const registeredValue = value?.kind === 'registered' ? value.playbookId : '';
+  // A registered file names its playbook by id only; the name comes from the
+  // registered playbooks this field already lists, when it is among them.
+  const registeredLabel = (playbookId?: string) => registeredPlaybookLabel(playbooks, playbookId);
   const pickedEntry = browser.files.find((f) => f.path === pickedPath);
   const filteredFiles = browser.files.filter((f) =>
     f.path.toLowerCase().includes(fileSearch.toLowerCase())
@@ -171,7 +174,7 @@ export function PlaybookSourcePicker({ organizationName, playbooks, value, onCha
                             {f.path}
                             {f.registered && (
                               <Badge variant="outline" className="text-xs">
-                                registered as “{f.playbook_name}”
+                                {registeredLabel(f.playbook_id)}
                               </Badge>
                             )}
                           </span>
@@ -195,7 +198,7 @@ export function PlaybookSourcePicker({ organizationName, playbooks, value, onCha
               {value?.kind === 'registered' && pickedEntry?.registered && (
                 <div className="text-xs text-muted-foreground">
                   <Badge variant="outline" className="mr-1">existing</Badge>
-                  “{pickedPath}” is already registered as “{pickedEntry.playbook_name}” - the existing playbook will be used.
+                  “{pickedPath}” is {registeredLabel(pickedEntry.playbook_id)} - the existing playbook will be used.
                 </div>
               )}
             </div>

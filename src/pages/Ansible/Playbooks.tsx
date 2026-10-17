@@ -251,7 +251,8 @@ export default function Playbooks() {
           repository: createForm.vcs_repository,
           branch: createForm.vcs_branch,
         });
-        return (res.data || []).map((entry) => entry.path);
+        // Each file resource's id is its path.
+        return (res.data || []).map((file) => file.id);
       } catch (err) {
         console.error('Failed to load playbook files:', err);
         return [];
@@ -1191,6 +1192,7 @@ export default function Playbooks() {
         open={importDialogOpen}
         onOpenChange={setImportDialogOpen}
         organizationName={selectedOrg}
+        playbooks={playbooks}
         onImported={() => { void queryClient.invalidateQueries({ queryKey: playbooksQueryKey }); }}
       />
     </Page>

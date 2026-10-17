@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { ansiblePlaybooksApi } from '@/api/ansible';
 import { vcsConnectionsApi, type VCSConnection } from '@/api/client';
+import { getPlaybookFileFromJsonApi } from '@/utils/ansible-jsonapi';
 
 /** Deduplicate VCS connections by provider + account (one entry per real account). */
 export function dedupeVcsConnections(connections: VCSConnection[]): VCSConnection[] {
@@ -67,7 +68,7 @@ export function useVcsRepoBrowser(
         repository,
         branch,
       });
-      return res.data || [];
+      return (res.data || []).map(getPlaybookFileFromJsonApi);
     },
     enabled: enabled && !!connectionId && repository.includes('/') && !!branch,
   });
