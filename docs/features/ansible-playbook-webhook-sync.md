@@ -33,7 +33,7 @@ sequenceDiagram
 
 1. **Connect** - Link your playbook to a Git repository and specify the branch and file path.
 2. **Push** - When you push changes to the repository, StackWeaver detects the push via webhook.
-3. **Filter** - Sync only triggers when the specific playbook file (or related files) change.
+3. **Filter** - Sync only triggers when a file in the playbook's directory changes.
 4. **Update** - StackWeaver downloads the latest version and updates the playbook automatically.
 
 </details>
@@ -43,22 +43,25 @@ sequenceDiagram
 To enable automatic playbook synchronization:
 
 1. **Create or Edit Playbook**: When creating a playbook, or when editing an existing one
-2. **Select VCS Connection**: Choose a configured GitHub App connection
+2. **Select VCS Connection**: Choose a configured GitHub App or Azure DevOps connection
 3. **Specify Repository**: Enter the repository name (e.g., `myorg/ansible-playbooks`)
 4. **Set Branch**: Choose which Git branch to sync from (default: `main`)
 5. **Configure Playbook Path**: Specify the path to your playbook file within the repository (e.g., `playbooks/deploy.yml`)
 
-Once configured, StackWeaver automatically syncs the playbook whenever changes are pushed to that branch.
+Once configured, StackWeaver automatically syncs the playbook whenever changes are pushed to that branch. A playbook is linked to its repository and branch on its own: a push syncs it whether or not an OpenTofu workspace uses the same repository. VCS inventories sync on a push the same way.
 
 ## Path-Based Filtering
 
-StackWeaver intelligently filters sync operations based on which files changed:
+StackWeaver syncs a playbook only when a push changes something it uses:
 
-- **Playbook File Changes**: Sync triggers when the playbook file itself is modified
-- **Related File Changes**: Sync also triggers for common Ansible files like `requirements.yml` or related playbooks
-- **Unrelated Changes Ignored**: Changes to other files in the repository don't trigger unnecessary syncs
+- **Playbook directory changes**: a push that adds, modifies or removes a file in the playbook's directory (the directory of its playbook path), including the playbook file itself, syncs it. Keep a playbook's `requirements.yml` and variable files in that directory so that changing them syncs it too.
+- **Inventory file changes**: a VCS inventory syncs when its inventory file changes.
+- **No path set**: a playbook or inventory without a path syncs on every push to its branch.
+- **Unrelated changes ignored**: changes to other files in the repository don't trigger a sync.
 
-This prevents unnecessary syncs while ensuring your playbooks update when they need to.
+An Azure DevOps push delivery does not always list the files it changed. When it does not, every playbook and inventory on the pushed branch syncs.
+
+A push that syncs a playbook also launches that playbook's job templates that are enabled for webhook launches.
 
 ## Manual Sync
 
