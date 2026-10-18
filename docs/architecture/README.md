@@ -140,7 +140,7 @@ flowchart TB
 - `repository/` - Data access layer (CRUD per model)
 - `queue/` - Redis job queue (LPush/BRPop pattern)
 - `storage/` - S3-compatible object storage interface
-- `vcs/` - VCS interfaces + github/ + gitlab/
+- `vcs/github/` - the Git clone client used by the Ansible runner
 - `plugins/` - Plugin interfaces + opentofu/
 - `crypto/` - Encryption utilities
 - `id/` - ID generation
