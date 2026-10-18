@@ -171,8 +171,8 @@ export default function Webhooks() {
         </CardHeader>
         <CardContent>
           <p className="text-sm text-muted-foreground">
-            Webhooks allow GitHub to notify Stackweaver when code is pushed to repositories. 
-            When a push event is received, Stackweaver automatically syncs affected playbooks and triggers runs for connected workspaces.
+            Webhooks let GitHub and Azure DevOps notify Stackweaver when code is pushed to repositories.
+            When a push event is received, Stackweaver syncs the affected playbooks and inventories and triggers runs for connected workspaces.
           </p>
         </CardContent>
       </Card>
@@ -289,7 +289,10 @@ export default function Webhooks() {
                 <Shield className="h-4 w-4 text-muted-foreground" />
                 Authentication
               </div>
-              <p className="text-sm font-mono text-muted-foreground">HMAC-SHA1 (auto-registered)</p>
+              <p className="text-sm font-mono text-muted-foreground">Basic auth (auto-registered)</p>
+              <p className="text-xs text-muted-foreground">
+                Password: the server&apos;s <code className="font-mono">AZURE_DEVOPS_WEBHOOK_SECRET</code>
+              </p>
             </div>
             <div className="p-4 rounded-lg bg-muted/30 border border-border/50 space-y-2">
               <div className="flex items-center gap-2 text-sm font-medium">
