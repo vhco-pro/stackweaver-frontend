@@ -69,7 +69,7 @@
     "eslint-plugin-react-refresh": "^0.5.0",
     "fallow": "3.33.1",
     "globals": "^17.0.0",
-    "happy-dom": "^20.10.2",
+    "happy-dom": "^21.0.0",
     "sharp": "^0.35.0",
     "svgo": "^4.1.0",
     "tailwindcss": "^4.3.3",
