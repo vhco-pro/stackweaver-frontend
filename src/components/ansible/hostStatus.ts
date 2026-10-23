@@ -24,9 +24,6 @@ import { AlertCircle, Ban, CheckCircle, CircleDot, EyeOff, RefreshCw, Zap, type 
 /** Per-host outcome of one task, plus the two recap-only counters. */
 export type HostStatus = 'ok' | 'changed' | 'failed' | 'unreachable' | 'skipped' | 'rescued' | 'ignored';
 
-/** The five a task result can actually be; rescued/ignored only appear in the recap. */
-export const HOST_RESULT_STATUSES = ['ok', 'changed', 'failed', 'unreachable', 'skipped'] as const;
-
 /** Every status, in the order the summary rows read them out. */
 export const ANSIBLE_HOST_STATUSES: readonly HostStatus[] = [
   'ok',
@@ -130,21 +127,6 @@ export const HOST_STATUS_META: Record<HostStatus, HostStatusMeta> = {
     cell: 'bg-slate-500/10 text-slate-600 border-slate-500/25 dark:bg-slate-400/15 dark:text-slate-300 dark:border-slate-400/30',
     dot: 'bg-slate-500 dark:bg-slate-400',
   },
-};
-
-/**
- * How bad a status is when collapsing many into one (a host's worst result, a
- * task's aggregate). Deriving a *single* result's status is a different
- * question - see the run viewer's `deriveStatus`, where `unreachable` wins.
- */
-export const HOST_STATUS_SEVERITY: Record<HostStatus, number> = {
-  failed: 6,
-  unreachable: 5,
-  rescued: 4,
-  changed: 3,
-  ok: 2,
-  skipped: 1,
-  ignored: 0,
 };
 
 /**

@@ -14,7 +14,6 @@
 // Re-exported here because every run-viewer module already imports from this
 // file, and a status is a status.
 export { HOST_STATUS_META as STATUS_META, DID_NOT_RUN_GLYPH } from '@/components/ansible/hostStatus';
-export type { HostStatusMeta as StatusMeta } from '@/components/ansible/hostStatus';
 
 /** `+12.3s` - an offset from the start of the run, as used by the stream and drawer. */
 export function formatOffset(atMs: number, startMs: number): string {

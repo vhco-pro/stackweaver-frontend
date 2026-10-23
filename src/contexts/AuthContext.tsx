@@ -6,7 +6,7 @@ import { useMountEffect } from '@/hooks/useMountEffect';
 import { needsEmailVerification, verifyEmailRequiredPath } from '@/lib/emailVerification';
 
 // Zitadel user session type
-export type Session = {
+type Session = {
   id: string;
   user: {
     id: string;
