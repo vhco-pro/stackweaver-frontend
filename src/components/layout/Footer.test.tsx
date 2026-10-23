@@ -46,7 +46,9 @@ describe('Footer', () => {
 
   it('points every GitHub link at the public organization', () => {
     const { container } = renderFooter();
-    const github = [...container.querySelectorAll('a')].map((a) => a.getAttribute('href') ?? '').filter((h) => h.includes('github.com'));
+    const github = [...container.querySelectorAll('a')]
+      .map((a) => a.getAttribute('href') ?? '')
+      .filter((h) => URL.canParse(h) && ['github.com', 'www.github.com'].includes(new URL(h).hostname));
     expect(github.length).toBeGreaterThan(0);
     for (const href of github) expect(href).toMatch(/^https:\/\/github\.com\/vhco-pro(\/|$)/);
   });
