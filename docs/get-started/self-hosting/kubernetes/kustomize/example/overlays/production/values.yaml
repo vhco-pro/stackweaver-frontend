@@ -358,7 +358,7 @@ zitadel:
       cpu: "2"
       memory: 1Gi
   config:
-    accessTokenLifetime: 12h
+    accessTokenLifetime: 1h
     idTokenLifetime: 12h
     refreshTokenIdleExpiration: 720h # 30 days
     refreshTokenExpiration: 2160h # 90 days

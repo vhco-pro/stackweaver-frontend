@@ -41,7 +41,7 @@ DefaultInstance:
   # Note: Token format (JWT vs opaque) is typically controlled at the application level
   # but these settings apply to all OIDC applications in the instance
   OIDCSettings:
-    AccessTokenLifetime: 12h
+    AccessTokenLifetime: 1h
     IdTokenLifetime: 12h
     # 720h are 30 days
     RefreshTokenIdleExpiration: 720h

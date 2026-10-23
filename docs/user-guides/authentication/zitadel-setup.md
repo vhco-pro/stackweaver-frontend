@@ -348,11 +348,17 @@ The `DefaultInstance.Features.LoginV2.BaseURI` in the mounted `zitadel-defaults.
 
 ---
 
+## Token Lifetimes and Sessions
+
+Access tokens are valid for one hour. The web application renews them in the background with a refresh token, so people stay signed in while they work. Each renewal also checks that the person's Zitadel session still exists: when a session ends, whether the person revokes it under Settings > Sessions, an administrator ends it in Zitadel, or Zitadel signals a back-channel logout, that browser is signed out at its next renewal, within the hour.
+
+With the bundled Zitadel, the lifetime comes from the chart value `zitadel.config.accessTokenLifetime` (default `1h`) in Kubernetes and from `ZITADEL_ACCESS_TOKEN_LIFETIME` (default `1h`) in Docker Compose. Stackweaver applies it on every install and upgrade, so changing the value also updates an existing installation. A shorter lifetime ends a revoked session sooner; a longer one renews less often. If you run your own Zitadel instead of the bundled one, set the access-token lifetime in that instance's OIDC settings yourself; one hour is recommended.
+
 ## Production Considerations
 
 - Use HTTPS in production (set `ingress.tls.enabled: true` in Helm values).
 - Store secrets in a secrets manager or use the `secrets.<component>.secretName` values to bring your own pre-created Kubernetes Secrets.
-- Configure appropriate token lifetimes in chart values (`zitadel.config.accessTokenLifetime`, etc.).
+- Review the token lifetimes in chart values (`zitadel.config.accessTokenLifetime`, etc.); see Token Lifetimes and Sessions above.
 - Back up the Zitadel PostgreSQL database regularly.
 
 ## Additional Resources
