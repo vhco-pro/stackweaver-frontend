@@ -1423,8 +1423,6 @@ export const ansibleAdHocApi = {
 // Inventory Sync History (sync runs with captured output)
 // ============================================================================
 
-export type InventorySyncRunStatus = 'pending' | 'running' | 'successful' | 'failed';
-
 export const ansibleInventorySyncsApi = {
   // page[size], not limit: the handler used to read limit/offset while reporting a correct
   // total, and this was the only caller keeping that mismatch harmless by never paging (#761).
@@ -1567,37 +1565,6 @@ export interface AnsibleWorkflow {
   survey_spec?: Record<string, unknown>;
   created_at: string;
   updated_at: string;
-}
-
-export interface AnsibleWorkflowNode {
-  id: string;
-  workflow_id: string;
-  job_template_id?: string;
-  job_template_name?: string; // included for display
-  inventory_id?: string;
-  credential_id?: string;
-  node_type: WorkflowNodeType;
-  identifier: string;
-  position_x: number;
-  position_y: number;
-  extra_vars?: Record<string, unknown>;
-  limit?: string;
-  tags?: string;
-  skip_tags?: string;
-  verbosity: number;
-  all_parents_must_converge: boolean;
-  approval_timeout?: number;
-  approval_message?: string;
-  created_at: string;
-}
-
-export interface AnsibleWorkflowEdge {
-  id: string;
-  workflow_id: string;
-  source_node_id: string;
-  target_node_id: string;
-  condition: WorkflowEdgeCondition;
-  created_at: string;
 }
 
 export interface CreateWorkflowInput {
@@ -1954,21 +1921,3 @@ export const ansibleConfigApi = {
       `/organizations/${orgName}/ansible-config/effective${projectId ? `?project_id=${projectId}` : ''}`
     ),
 };
-
-// Unified Ansible API export
-export const ansibleApi = {
-  inventories: ansibleInventoriesApi,
-  hosts: ansibleHostsApi,
-  groups: ansibleGroupsApi,
-  credentials: ansibleCredentialsApi,
-  playbooks: ansiblePlaybooksApi,
-  jobTemplates: ansibleJobTemplatesApi,
-  jobs: ansibleJobsApi,
-  inventorySources: ansibleInventorySourcesApi,
-  schedules: ansibleSchedulesApi,
-  collections: ansibleCollectionsApi,
-  workflows: ansibleWorkflowsApi,
-  config: ansibleConfigApi,
-};
-
-export default ansibleApi;

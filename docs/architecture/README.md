@@ -138,10 +138,10 @@ flowchart TB
 `core/` - shared module used by all binaries:
 - `models/` - GORM database models (OpenTofu, Ansible, Registry)
 - `repository/` - Data access layer (CRUD per model)
-- `queue/` - Redis job queue (LPush/BRPop pattern)
+- `queue/` - Redis job queue (LPUSH to enqueue; runners claim with BLMOVE onto a processing list and acknowledge when done)
 - `storage/` - S3-compatible object storage interface
 - `vcs/github/` - the Git clone client used by the Ansible runner
-- `plugins/` - Plugin interfaces + opentofu/
+- `plugins/` - the OpenTofu runner plugin (`opentofu/`) and the result types it returns
 - `crypto/` - Encryption utilities
 - `id/` - ID generation
 - `services/` - Shared services (oidc, vcs, logbuffer, logparser, state, variable, ansible)
@@ -572,7 +572,7 @@ flowchart TB
 ### Queue (Redis)
 
 - **Purpose**: Job queue for Terraform runs and Ansible jobs
-- **Implementation**: Redis-based queue with LPush/BRPop pattern
+- **Implementation**: Redis lists; jobs are pushed with LPUSH and claimed with BLMOVE onto a per-consumer processing list, so a runner that crashes mid-job leaves the job recoverable
 - **Features**: 
   - Log buffering for live output streaming
   - Job queuing for runners

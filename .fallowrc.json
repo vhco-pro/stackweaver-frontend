@@ -7,6 +7,21 @@
 
   "ignoreExportsUsedInFile": true,
 
+  "ignoreDependencies": ["svgo"],
+
+  "ignoreExports": [
+    {
+      "file": "src/api/auth-client.ts",
+      "exports": ["tokenExchange", "endSession", "getAuthRequest", "getPasswordExpirySettings", "getLockoutSettings", "getSecuritySettings"]
+    },
+    {
+      "file": "src/api/client.ts",
+      "exports": ["teamProjectAccessApi", "teamWorkspaceAccessApi", "TeamProjectAccess", "TeamWorkspaceAccess"]
+    },
+    { "file": "src/lib/surfaces.ts", "exports": ["glassDivider"] },
+    { "file": "src/components/animate-ui/components/buttons/copy.tsx", "exports": ["buttonVariants"] }
+  ],
+
   "rules": {
     "unused-files": "warn",
     "unused-exports": "warn",
@@ -24,6 +39,14 @@
   "overrides": [
     {
       "files": ["src/components/ui/**"],
+      "rules": {
+        "unused-exports": "off",
+        "unused-files": "off",
+        "unused-types": "off"
+      }
+    },
+    {
+      "files": ["src/components/animate-ui/**"],
       "rules": {
         "unused-exports": "off",
         "unused-files": "off",
