@@ -1,6 +1,6 @@
 // Copyright (c) 2025 VH & Co BV. Licensed under the Business Source License 1.1. See LICENSE for details.
 
-import { createContext, useContext, useState, useCallback, type ReactNode } from 'react';
+import { createContext, useContext, useState, useCallback, useRef, type ReactNode } from 'react';
 import { getAccessToken, getUserInfo, getLogoutUrl, clearTokens, clearTokensIfClientChanged, isTokenExpired, refreshAccessToken } from '@/lib/zitadel';
 import { useMountEffect } from '@/hooks/useMountEffect';
 import { needsEmailVerification, verifyEmailRequiredPath } from '@/lib/emailVerification';
@@ -53,9 +53,24 @@ function safeErrorSummary(err: unknown): string {
   return typeof err;
 }
 
+// How long to wait before trying a failed renewal again.
+const RENEWAL_RETRY_MS = 30 * 1000;
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  // The pending retry after a failed renewal; one at a time.
+  const renewalRetry = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // A renewal that failed (rate limited, a 5xx, a lost connection) leaves the session alone and
+  // is tried again shortly; only a refused renewal signs the browser out.
+  const scheduleRenewalRetry = (): void => {
+    if (renewalRetry.current !== null) return;
+    renewalRetry.current = setTimeout(() => {
+      renewalRetry.current = null;
+      void checkSession();
+    }, RENEWAL_RETRY_MS);
+  };
 
   const checkSession = async (): Promise<void> => {
     try {
@@ -68,16 +83,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Check if token is expired and try to refresh
       if (accessToken && isTokenExpired()) {
         console.log('Token expired, attempting refresh...');
-        const newTokens = await refreshAccessToken();
-        if (newTokens) {
-          accessToken = newTokens.access_token;
+        const refreshed = await refreshAccessToken();
+        if (refreshed.status === 'renewed') {
+          accessToken = refreshed.tokens.access_token;
           console.log('Token refreshed successfully');
-        } else {
-          console.warn('Token refresh failed, clearing session');
+        } else if (refreshed.status === 'refused') {
+          console.warn('Token refresh refused, clearing session');
           clearTokens();
           setSession(null);
           setLoading(false);
           return Promise.resolve();
+        } else {
+          console.warn('Token refresh failed, keeping the session and retrying');
+          scheduleRenewalRetry();
         }
       }
       
@@ -144,8 +162,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           if (isTokenError) {
             // Try to refresh token before giving up
             console.log('Token validation failed, attempting refresh...');
-            const newTokens = await refreshAccessToken();
-            if (newTokens) {
+            const refreshed = await refreshAccessToken();
+            if (refreshed.status === 'renewed') {
+              const newTokens = refreshed.tokens;
               // Retry with new token
               try {
                 const userInfo = await getUserInfo(newTokens.access_token);
@@ -173,11 +192,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 clearTokens();
                 setSession(null);
               }
-            } else {
-              // Refresh failed, clear tokens
+            } else if (refreshed.status === 'refused') {
+              // Refresh refused, clear tokens
               console.error('auth: token validation and refresh failed', safeErrorSummary(error));
               clearTokens();
               setSession(null);
+            } else {
+              // The renewal itself failed; keep the tokens and try again shortly.
+              console.warn('auth: token refresh failed, keeping the session and retrying', safeErrorSummary(error));
+              scheduleRenewalRetry();
             }
           } else {
             // For network or other errors, try to keep existing session if we have one
@@ -246,7 +269,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       void checkSession();
     }, 5 * 60 * 1000);
 
-    return () => clearInterval(refreshInterval);
+    return () => {
+      clearInterval(refreshInterval);
+      if (renewalRetry.current !== null) clearTimeout(renewalRetry.current);
+    };
   });
 
   const refreshSession = useCallback(async (): Promise<void> => {

@@ -67,3 +67,44 @@ describe('AuthProvider', () => {
     expect(assign).not.toHaveBeenCalled();
   });
 });
+
+// refreshAccessToken reports renewed, refused or failed (it used to return tokens or null, and any
+// null signed the browser out). Only a refusal ends the session; a failed renewal keeps it and is
+// tried again 30 seconds later.
+describe('AuthProvider token renewal', () => {
+  const verified = { sub: 'u3', email: 'ada@example.com', email_verified: true };
+  beforeEach(() => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    zitadel.getAccessToken.mockReturnValue('access-token');
+    zitadel.isTokenExpired.mockReturnValue(true);
+    zitadel.getUserInfo.mockResolvedValue(verified);
+  });
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.clearAllMocks();
+  });
+
+  it('keeps the session when a renewal fails and tries again 30 seconds later', async () => {
+    zitadel.refreshAccessToken
+      .mockResolvedValueOnce({ status: 'failed' })
+      .mockResolvedValueOnce({ status: 'renewed', tokens: { access_token: 'renewed-token', id_token: 'id' } });
+    render(<AuthProvider><Probe /></AuthProvider>);
+
+    expect(await screen.findByText('signed in as ada@example.com')).toBeInTheDocument();
+    expect(zitadel.refreshAccessToken).toHaveBeenCalledTimes(1);
+
+    await vi.advanceTimersByTimeAsync(30_000);
+
+    await waitFor(() => { expect(zitadel.refreshAccessToken).toHaveBeenCalledTimes(2); });
+    expect(zitadel.clearTokens).not.toHaveBeenCalled();
+    expect(screen.getByText('signed in as ada@example.com')).toBeInTheDocument();
+  });
+
+  it('signs out when the renewal is refused', async () => {
+    zitadel.refreshAccessToken.mockResolvedValue({ status: 'refused' });
+    render(<AuthProvider><Probe /></AuthProvider>);
+
+    expect(await screen.findByText('no session')).toBeInTheDocument();
+    expect(zitadel.clearTokens).toHaveBeenCalled();
+  });
+});

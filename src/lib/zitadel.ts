@@ -355,12 +355,42 @@ export function isTokenExpired(): boolean {
   return Date.now() > (parseInt(expiresAt, 10) - fiveMinutes);
 }
 
-// Refresh the access token using the refresh token
-export async function refreshAccessToken(): Promise<{ access_token: string; id_token: string; refresh_token?: string; expires_in?: number } | null> {
+export type RefreshedTokens = { access_token: string; id_token: string; refresh_token?: string; expires_in?: number };
+
+// What a refresh came to. Only `refused` means the session is over: the server answered
+// definitively about this token or request. `failed` is a blip (a timeout, rate limiting, a 5xx,
+// a lost connection) and leaves the stored tokens in place for the next attempt.
+export type RefreshResult =
+  | { status: 'renewed'; tokens: RefreshedTokens }
+  | { status: 'refused' }
+  | { status: 'failed' };
+
+// A 4xx other than 408 (timeout) and 429 (rate limited) is a definite answer about this refresh
+// token or request: a dead or rotated token, an ended session, a rejected client.
+function isRefusal(status: number): boolean {
+  return status >= 400 && status < 500 && status !== 408 && status !== 429;
+}
+
+// The refresh in flight in this tab, if any. Zitadel rotates the refresh token on every use and
+// refuses the old one, so a second refresh posting the same token would be refused and sign the
+// tab out; callers that start while one is running share its result instead.
+let refreshInFlight: Promise<RefreshResult> | null = null;
+
+// Refresh the access token using the refresh token. One refresh runs at a time per tab.
+export function refreshAccessToken(): Promise<RefreshResult> {
+  if (!refreshInFlight) {
+    refreshInFlight = requestRefresh().finally(() => {
+      refreshInFlight = null;
+    });
+  }
+  return refreshInFlight;
+}
+
+async function requestRefresh(): Promise<RefreshResult> {
   const refreshToken = getRefreshToken();
   if (!refreshToken) {
     console.warn('No refresh token available');
-    return null;
+    return { status: 'refused' };
   }
 
   try {
@@ -384,20 +414,20 @@ export async function refreshAccessToken(): Promise<{ access_token: string; id_t
       // value or other request-shaped data we don't want in the
       // console. The status alone is enough to diagnose.
       console.error(`zitadel: token refresh failed (status=${response.status})`);
-      return null;
+      return isRefusal(response.status) ? { status: 'refused' } : { status: 'failed' };
     }
 
-    const tokens = await response.json() as { access_token: string; id_token: string; refresh_token?: string; expires_in?: number; token_type?: string };
+    const tokens = await response.json() as RefreshedTokens & { token_type?: string };
     // Store the new tokens
     storeTokens(tokens);
-    return tokens;
+    return { status: 'renewed', tokens };
   } catch (error) {
     // Round 25 Wave 7 (item 7 / R24-5): never log the full Error
     // object - type tag + status (when present) is enough.
     const status = (error as { status?: number }).status;
     const tag = error instanceof Error ? error.name : typeof error;
     console.error(`zitadel: token refresh error (${tag}${typeof status === 'number' ? `, status=${status}` : ''})`);
-    return null;
+    return { status: 'failed' };
   }
 }
 

@@ -330,7 +330,7 @@ The following are the most relevant variables used in the StackWeaver deployment
 The zitadel-init container sets up the Zitadel organisation, OIDC apps, and service users.
 In Docker Compose it writes the generated credentials to `.env` in your Compose directory.
 In Kubernetes it runs as a sidecar in the Zitadel pod and patches the K8s Secret directly.
-In Kubernetes, the `STACKWEAVER_NOTIFICATION_MODE`, `SMTP_*` and `STACKWEAVER_SELF_REGISTRATION` variables are set on the post-install/post-upgrade reconcile Job (`ZITADEL_INIT_MODE=reconcile`), not on the sidecar.
+In Kubernetes, the `STACKWEAVER_NOTIFICATION_MODE`, `SMTP_*`, `STACKWEAVER_SELF_REGISTRATION` and `ZITADEL_ACCESS_TOKEN_LIFETIME` variables are set on the post-install/post-upgrade reconcile Job (`ZITADEL_INIT_MODE=reconcile`), not on the sidecar.
 
 | Variable | Description | Default |
 |---|---|---|
@@ -351,8 +351,9 @@ In Kubernetes, the `STACKWEAVER_NOTIFICATION_MODE`, `SMTP_*` and `STACKWEAVER_SE
 | `SMTP_SENDER_NAME` | From display name | `Stackweaver` |
 | `SMTP_TLS` | Use TLS for the SMTP connection | `true` |
 | `STACKWEAVER_SELF_REGISTRATION` | Allow anyone to create an account; takes effect only with SMTP | `false` |
+| `ZITADEL_ACCESS_TOKEN_LIFETIME` | Lifetime of the access tokens Zitadel issues, as a duration (`1h`, `30m`); applied to the instance on every run, so changing it also updates an existing installation. In Kubernetes it comes from `zitadel.config.accessTokenLifetime` | `1h` |
 | `AZURE_AD_ALLOW_MULTI_TENANT` | Allow configuring Azure AD without `AZURE_AD_TENANT_ID`, letting any Microsoft account sign in and create an account | `false` |
-| `ZITADEL_INIT_MODE` | `reconcile` applies only the email provider and login policy and exits (the Helm chart's post-install/post-upgrade Job) | (empty: full setup) |
+| `ZITADEL_INIT_MODE` | `reconcile` applies only the email provider, the login policy and the access-token lifetime, and exits (the Helm chart's post-install/post-upgrade Job) | (empty: full setup) |
 
 ### Kubernetes-only variables
 
