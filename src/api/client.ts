@@ -2908,6 +2908,8 @@ export interface Team {
 export interface UserProfile {
   id: string;
   email: string;
+  /** An address the identity provider holds but has not verified yet; the account keeps `email`. */
+  unconfirmed_email?: string;
   name: string;
   username: string;
   bio: string;
@@ -2927,6 +2929,7 @@ interface UserResource {
   attributes: {
     username: string;
     email: string;
+    'unconfirmed-email'?: string;
     name?: string;
     bio?: string;
     company?: string;
@@ -2942,6 +2945,7 @@ function userProfileFromResource(user: UserResource): UserProfile {
   return {
     id: user.id,
     email: a.email ?? '',
+    unconfirmed_email: a['unconfirmed-email'] || undefined,
     name: a.name ?? '',
     username: a.username ?? '',
     bio: a.bio ?? '',
