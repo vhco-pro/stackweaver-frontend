@@ -43,7 +43,7 @@ The same applies to a `remote` backend block, and to the `hashicorp/tfe` provide
 
 Stackweaver API tokens and Terraform Cloud tokens are the same kind of credential on the wire: Stackweaver mints its keys with a `tfe-` prefix, and the API treats that prefix as authoritative for programmatic access. A token you create in Stackweaver's UI can be pasted into `~/.terraform.d/credentials.tfrc.json`, exported as `TFE_TOKEN`, or used with `curl` against the API, without conversion.
 
-One difference worth planning for: **Stackweaver API tokens are organization-scoped**. A Terraform Cloud user token spans every organization you belong to, whereas a Stackweaver token is bound to one. If your automation touches several organizations, it needs one token per organization rather than one token overall.
+One difference worth planning for: **Stackweaver has two kinds of API token**. A personal user token, minted under Settings > API Tokens or by `terraform login`, acts as you in every organization you belong to, like a Terraform Cloud user token, unless an organization switches off its **Allow user tokens** policy (see the organization settings guide). An organization API key, created under the organization's Settings > API Keys, is bound to one organization and can carry narrower scopes, so automation that should reach only one organization uses an organization key, and automation that spans several either uses a personal token or one organization key per organization.
 
 ## Migrating state
 
