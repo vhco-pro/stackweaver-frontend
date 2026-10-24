@@ -73,7 +73,7 @@ admin@zitadel.<ingress.hosts.auth>
 # example: admin@zitadel.sw-auth.example.com
 ```
 
-The email address (`admin@ZITADEL.localhost`, configured via `zitadel.init.adminUsername`) also works as a login identifier.
+The email address, configured via `zitadel.init.adminUsername` (`admin@stackweaver.local` by default), also works as a login identifier. With an empty `platform.admins`, this account is also the installation's [platform administrator](../platform-administration.md).
 
 The password is auto-generated on first install. Retrieve it with:
 
@@ -246,6 +246,8 @@ The Docker Compose stack uses static credentials defined in `zitadel-init-steps.
 | Username | `admin@ZITADEL.localhost` |
 | Password | `Password1!` |
 | Console URL | `http://localhost:8080/ui/console` |
+
+This account is also the installation's [platform administrator](../platform-administration.md) unless `STACKWEAVER_PLATFORM_ADMINS` in `sso.env` names other people.
 
 ### What `zitadel-init` Does
 

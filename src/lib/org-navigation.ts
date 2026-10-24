@@ -30,7 +30,6 @@ export const ORG_SECTIONS = [
   'settings/oidc',
   'settings/runners',
   'settings/run-tasks',
-  'settings/terraform-versions',
   'settings/users',
   'settings/variable-sets',
   'settings/vcs-connections',

@@ -51,6 +51,7 @@ The guides below cover specific Ansible tasks. For the full Ansible feature set 
   - **[AWS Cognito](./sso/aws-cognito.md)** - Configure AWS Cognito as an SSO provider
   - **[Generic OIDC Provider](./sso/generic-oidc.md)** - Configure any OIDC-compliant provider
   - **[SSO Team Mapping](./sso/team-mapping.md)** - Automatically assign users to teams based on IdP group claims
+- **[Platform Administration](./platform-administration.md)** - Manage the installation itself: the OpenTofu versions catalogue, the platform administrators, and the list of every organization, with the role's limits, platform admin tokens, and login recovery
 
 ## Cloud Integration
 

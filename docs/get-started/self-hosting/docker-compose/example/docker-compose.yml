@@ -233,6 +233,9 @@ services:
       ZITADEL_API_CLIENT_SECRET: ${ZITADEL_API_CLIENT_SECRET:-}
       ZITADEL_LOGIN_SERVICE_USER_TOKEN: ${ZITADEL_LOGIN_SERVICE_USER_TOKEN:-}
       ZITADEL_INTERNAL_ADDR: zitadel:8080
+      # The bootstrap admin's email, the same literal zitadel-init receives: the API declares it
+      # the first platform administrator unless STACKWEAVER_PLATFORM_ADMINS is set in sso.env.
+      ZITADEL_ADMIN_USERNAME: admin@ZITADEL.localhost
       # The auth proxy reaches Zitadel as zitadel:8080, a Host no instance domain matches, so it
       # names the instance with this header. Compose assembles it here from ZITADEL_EXTERNAL_HOST,
       # so that key must hold your ExternalDomain in .env before the first start (.env.example

@@ -497,6 +497,27 @@ The zitadel-init sidecar picks up these values, registers the identity provider 
 
 Sign-up verification, password reset and email login codes are sent by Zitadel through an SMTP provider you configure with the `smtp.*` values, with the password in a Secret named by `smtp.secretName`. A post-install/post-upgrade Job applies them, together with `signup.selfRegistration`, to the bundled Zitadel; an unusable value fails the `helm` command while Zitadel keeps serving sign-ins. Without SMTP, StackWeaver switches those flows off. See [Email (SMTP) and sign-up](../email.md) for the values, DNS records, and who may create an account.
 
+## Platform Administration
+
+A platform administrator manages the installation itself: the OpenTofu versions catalogue, the list of platform administrators, and a read-only list of every organization. The role gives no access inside an organization the person is not a member of. [Platform administration](../../../user-guides/platform-administration.md) describes the role in full.
+
+The chart declares platform administrators with `platform.admins`, a list of email addresses the API matches case-insensitively against the verified email of each person who signs in. With the bundled Zitadel and an empty list, the one declared administrator is the bootstrap admin, `zitadel.init.adminUsername` (`admin@stackweaver.local` by default), so a fresh install has a platform administrator as soon as that account signs in. Declare only addresses you control at every identity provider this installation signs people in with, and declare them before anyone else could register them.
+
+```yaml
+platform:
+  admins:
+    - alice@example.com
+    - bob@example.com
+  organizationCreation: everyone   # or platform-admins
+```
+
+A declared administrator cannot be removed from inside StackWeaver. To remove one, take the address off `platform.admins` and run `helm upgrade`; the address loses the role when the new API pods start.
+
+`platform.organizationCreation` decides who may create organizations. The default, `everyone`, lets every signed-in user create one; `platform-admins` limits creation to platform administrators. Any other value stops the API at startup.
+
+> [!WARNING]
+> With an external Zitadel (`zitadel.bundled: false`) the chart knows no bootstrap admin, so `platform.admins` is the only source of platform administrators. Set it, or nobody can reach the platform pages: the API logs a warning at startup that no platform administrators are declared.
+
 ## Upgrading
 
 ```bash
@@ -505,6 +526,9 @@ helm upgrade stackweaver oci://ghcr.io/vhco-pro/charts/stackweaver \
   --namespace stackweaver \
   --values my-values.yaml
 ```
+
+> [!IMPORTANT]
+> Sign in once as the bootstrap administrator after this upgrade, or set `platform.admins` to the people who manage the installation; from this version the OpenTofu versions catalogue and the other install-wide pages are reserved for platform administrators.
 
 Generated secrets are preserved across upgrades: the bootstrap Job runs again as a `pre-upgrade` hook, sees that each secret already exists, and skips it.
 Pods are automatically restarted when ConfigMaps change (via checksum annotations).

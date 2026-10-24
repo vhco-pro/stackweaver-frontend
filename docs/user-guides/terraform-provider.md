@@ -52,6 +52,8 @@ The provider authenticates with a StackWeaver API token. Create one in the UI un
 
 For anything beyond local experimentation, keep the token out of your configuration and supply it through the `TFE_TOKEN` environment variable rather than the `token` argument. The host can be set the same way through `TFE_HOSTNAME`. These variable names are deliberately the ones `terraform-provider-tfe` uses, so existing pipelines and credential blocks keep working unchanged.
 
+Install-wide resources need a platform admin token. The OpenTofu versions catalogue, which `tfe_terraform_version` manages, belongs to the installation rather than to an organization, and its API answers only a token that carries the platform admin scope. A [platform administrator](./platform-administration.md) mints one under **Settings > API Tokens** by ticking **Platform admin** in the create dialog; the checkbox appears only to platform administrators, and `terraform login` always mints a plain token. Inside organizations a platform admin token acts exactly as a plain token of the same person, so one token can manage `tfe_terraform_version` and that person's organization resources in the same configuration. The token stops working for the install-wide resources as soon as its owner stops being a platform administrator.
+
 > [!NOTE]
 > A token used by the provider can create and destroy real workspaces, teams, and variables. Treat it like any other privileged credential: store it in a secret manager, scope the account appropriately, and rotate it on the same schedule as your other platform credentials.
 

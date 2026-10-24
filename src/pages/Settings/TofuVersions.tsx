@@ -1,8 +1,7 @@
 // Copyright (c) 2025 VH & Co BV. Licensed under the Business Source License 1.1. See LICENSE for details.
 
 import { useState } from 'react';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { useParams } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import { Plus, Search, Loader2, Trash2, Tag } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { GradientButton } from '@/components/ui/gradient-button';
@@ -11,11 +10,9 @@ import { Page, PageDialogContent } from '@/components/layout/Page';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { PageEmptyState } from '@/components/layout/PageEmptyState';
 import { Input } from '@/components/ui/input';
-import {
-  adminTerraformVersionsApi,
-  organizationsApi,
-  type TerraformVersionResource,
-} from '@/api/client';
+import { adminTerraformVersionsApi, type TerraformVersionResource } from '@/api/client';
+import { PlatformNotFound } from '@/components/platform/PlatformNotFound';
+import { isNotFound, retryUnlessNotFound } from '@/components/platform/notFound';
 import { toast } from 'sonner';
 import {
   Dialog,
@@ -24,25 +21,18 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { cn } from '@/lib/utils';
 import { dangerGhostIcon } from '@/lib/surfaces';
+import { compareVersionsDesc } from '@/lib/semver';
 
+// The install-wide OpenTofu versions, a platform settings page. An organization's default
+// version is an organization setting and lives on Settings -> Organization.
 export default function TofuVersions() {
-  const { orgName } = useParams<{ orgName: string }>();
-  const queryClient = useQueryClient();
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [newVersion, setNewVersion] = useState('');
   const [newURL, setNewURL] = useState('');
   const [adding, setAdding] = useState(false);
-  const [savingDefault, setSavingDefault] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [searchQuery, setSearchQuery] = useState('');
   // The version the confirmation dialog is about. Nothing is deleted until it is confirmed.
@@ -50,25 +40,8 @@ export default function TofuVersions() {
   const [pendingDelete, setPendingDelete] = useState<TerraformVersionResource | null>(null);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
 
-  // Semver sort: properly compares version strings like 1.13.0 > 1.9.8 > 1.5.0
-  const semverCompare = (a: string, b: string): number => {
-    const pa = a.replace(/^v/, '').split(/[-.]/).map(p => (/^\d+$/.test(p) ? parseInt(p, 10) : p));
-    const pb = b.replace(/^v/, '').split(/[-.]/).map(p => (/^\d+$/.test(p) ? parseInt(p, 10) : p));
-    for (let i = 0; i < Math.max(pa.length, pb.length); i++) {
-      const va = pa[i] ?? (typeof pb[i] === 'string' ? '' : -1);
-      const vb = pb[i] ?? (typeof pa[i] === 'string' ? '' : -1);
-      if (typeof va === 'number' && typeof vb === 'number') {
-        if (va !== vb) return vb - va; // descending
-      } else {
-        const cmp = String(vb).localeCompare(String(va));
-        if (cmp !== 0) return cmp;
-      }
-    }
-    return 0;
-  };
-
   // Fetch paginated versions for the table
-  const { data: versionsData, isLoading: loading, isError: loadFailed, refetch: refetchVersions } = useQuery({
+  const { data: versionsData, isLoading: loading, isError: loadFailed, error: loadError, refetch: refetchVersions } = useQuery({
     queryKey: ['tofuVersions', currentPage, searchQuery],
     queryFn: async () => {
       const res = await adminTerraformVersionsApi.list({
@@ -76,43 +49,22 @@ export default function TofuVersions() {
         pageSize: 20,
         search: searchQuery || undefined,
       });
-      const sorted = [...(res.data || [])].sort((a, b) => semverCompare(a.attributes.version, b.attributes.version));
+      const sorted = [...(res.data || [])].sort((a, b) => compareVersionsDesc(a.attributes.version, b.attributes.version));
       return {
         versions: sorted,
         totalPages: res.meta?.pagination?.['total-pages'] || 1,
         totalCount: res.meta?.pagination?.['total-count'] || 0,
       };
     },
+    retry: retryUnlessNotFound,
   });
 
   const versions = versionsData?.versions ?? [];
   const totalPages = versionsData?.totalPages ?? 1;
   const totalCount = versionsData?.totalCount ?? 0;
 
-  // Fetch ALL enabled versions for the org default dropdown (not just current page)
-  const { data: allEnabledVersions = [], refetch: refetchEnabledVersions } = useQuery({
-    queryKey: ['allEnabledTofuVersions'],
-    queryFn: async () => {
-      const res = await adminTerraformVersionsApi.list({ pageSize: 100 });
-      return (res.data || [])
-        .filter(v => v.attributes.enabled && !v.attributes.deprecated)
-        .sort((a, b) => semverCompare(a.attributes.version, b.attributes.version));
-    },
-  });
-
-  // Load the org default OpenTofu version
-  const { data: orgDefaultVersion = '' } = useQuery({
-    queryKey: ['orgDefaultTofuVersion', orgName],
-    queryFn: async () => {
-      const org = await organizationsApi.get(orgName!);
-      return org.default_terraform_version || '';
-    },
-    enabled: !!orgName,
-  });
-
   const refreshAll = () => {
     void refetchVersions();
-    void refetchEnabledVersions();
   };
 
   const handleToggleEnabled = async (version: TerraformVersionResource) => {
@@ -160,27 +112,6 @@ export default function TofuVersions() {
     }
   };
 
-  const handleSetOrgDefault = async (version: string) => {
-    if (!orgName) return;
-    setSavingDefault(true);
-    try {
-      await organizationsApi.update(orgName, {
-        data: {
-          type: 'organizations',
-          attributes: { 'default-terraform-version': version },
-        },
-      });
-      queryClient.setQueryData(['orgDefaultTofuVersion', orgName], version);
-      toast.success(version ? `Organization default set to OpenTofu ${version}` : 'Organization default version cleared');
-    } catch {
-      toast.error('Failed to update organization default');
-    } finally {
-      setSavingDefault(false);
-    }
-  };
-
-  // Use allEnabledVersions for the dropdown (all versions, not just current page)
-
   // Defined once and handed to both the header and the empty-state card: the header does not
   // render it while there is nothing to list, so the action never appears twice.
   const addVersionAction = (
@@ -202,50 +133,27 @@ export default function TofuVersions() {
           ? 'empty'
           : 'ready';
 
+  // The admin route answers 404 to anyone who is not a platform administrator: show the
+  // not-found state and nothing of the page.
+  if (isNotFound(loadError)) {
+    return (
+      <Page ramp="tofuVersions" className="space-y-8">
+        <PageHeader icon={Tag} title="OpenTofu Versions" backTo={{ to: '/settings', label: 'Back to Settings' }} />
+        <PlatformNotFound />
+      </Page>
+    );
+  }
+
   return (
     <Page ramp="tofuVersions" className="space-y-8">
       <PageHeader
         icon={Tag}
         title="OpenTofu Versions"
-        subtitle="Manage the available OpenTofu versions for workspaces in this organization."
-        backTo={{ to: `/app/${orgName || ''}/settings`, label: 'Back to Settings' }}
+        subtitle="Manage the OpenTofu versions available to every workspace on this installation."
+        backTo={{ to: '/settings', label: 'Back to Settings' }}
         action={addVersionAction}
         listState={listState}
       />
-
-      {/* Org default version selector */}
-      <div className="rounded-lg border bg-card p-4">
-        <div className="flex items-center justify-between">
-          <div>
-            <h3 className="font-semibold">Organization Default Version</h3>
-            <p className="text-sm text-muted-foreground">
-              Used when a workspace does not specify an OpenTofu version.
-            </p>
-          </div>
-          <div className="flex items-center gap-2">
-            <Select
-              value={orgDefaultVersion || 'none'}
-              onValueChange={(val) => { void handleSetOrgDefault(val === 'none' ? '' : val); }}
-              disabled={savingDefault}
-            >
-              <SelectTrigger className="w-48">
-                <SelectValue placeholder="Select version..." />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="none">
-                  <span className="text-muted-foreground">Not set</span>
-                </SelectItem>
-                {allEnabledVersions.map((v) => (
-                  <SelectItem key={v.id} value={v.attributes.version}>
-                    {v.attributes.version}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            {savingDefault && <Loader2 className="h-4 w-4 animate-spin" />}
-          </div>
-        </div>
-      </div>
 
       {/* Search */}
       <div className="relative max-w-sm">
@@ -307,11 +215,6 @@ export default function TofuVersions() {
                         {v.attributes.official && (
                           <span className="rounded-full bg-blue-500/10 px-2 py-0.5 text-xs font-medium text-blue-600 dark:text-blue-400">
                             Official
-                          </span>
-                        )}
-                        {v.attributes.version === orgDefaultVersion && (
-                          <span className="rounded-full bg-green-500/10 px-2 py-0.5 text-xs font-medium text-green-600 dark:text-green-400">
-                            Org Default
                           </span>
                         )}
                       </div>

@@ -2918,6 +2918,12 @@ export interface UserProfile {
   avatar?: string;
   created_at: string;
   updated_at: string;
+  /** TFE's `is-site-admin`: the person is a platform administrator of this installation. */
+  is_site_admin: boolean;
+  /** The administrator is declared by the deployment (`STACKWEAVER_PLATFORM_ADMINS`) and cannot be removed in the UI. */
+  platform_admin_declared: boolean;
+  /** TFE's `permissions.can-create-organizations`: whether the Organizations page offers creation. */
+  can_create_organizations: boolean;
 }
 
 /** The editable profile attributes; an omitted one is left as it is, and "" clears it. */
@@ -2937,6 +2943,9 @@ interface UserResource {
     'avatar-url'?: string;
     'created-at'?: string;
     'updated-at'?: string;
+    'is-site-admin'?: boolean;
+    'platform-admin-declared'?: boolean;
+    permissions?: { 'can-create-organizations'?: boolean };
   };
 }
 
@@ -2954,6 +2963,10 @@ function userProfileFromResource(user: UserResource): UserProfile {
     avatar: a['avatar-url'] || undefined,
     created_at: a['created-at'] ?? '',
     updated_at: a['updated-at'] ?? '',
+    is_site_admin: a['is-site-admin'] === true,
+    platform_admin_declared: a['platform-admin-declared'] === true,
+    // An API that does not send the permission predates the setting, so creation stays open.
+    can_create_organizations: a.permissions?.['can-create-organizations'] ?? true,
   };
 }
 
@@ -2968,6 +2981,144 @@ export const accountApi = {
       data: { type: 'users', attributes },
     });
     return userProfileFromResource(response.data);
+  },
+};
+
+// ---- Platform administration (install-wide, platform administrators only) ----
+//
+// Every /admin route answers 404 to a caller who is not a platform administrator, TFE's own
+// "not an administrator" answer, so a page reads a 404 as "not for you" rather than as missing.
+
+/** TFE pagination meta, as `/admin/users` and `/admin/organizations` answer it. */
+export interface AdminPagination {
+  'current-page': number;
+  'page-size': number;
+  'prev-page'?: number | null;
+  'next-page'?: number | null;
+  'total-pages': number;
+  'total-count': number;
+}
+
+/** One user of the admin users lookup (TFE `users` resource of `/admin/users`). */
+export interface AdminUser {
+  id: string;
+  username: string;
+  email: string;
+  name: string;
+  avatar_url?: string;
+  is_admin: boolean;
+  /** Declared by the deployment (`STACKWEAVER_PLATFORM_ADMINS`); revoking it answers 422. */
+  platform_admin_declared: boolean;
+}
+
+interface AdminUserResource {
+  id: string;
+  type: string;
+  attributes: {
+    username?: string;
+    email?: string;
+    name?: string;
+    'avatar-url'?: string;
+    'is-admin'?: boolean;
+    'platform-admin-declared'?: boolean;
+  };
+}
+
+function adminUserFromResource(user: AdminUserResource): AdminUser {
+  const a = user.attributes ?? {};
+  return {
+    id: user.id,
+    username: a.username ?? '',
+    email: a.email ?? '',
+    name: a.name ?? '',
+    avatar_url: a['avatar-url'] || undefined,
+    is_admin: a['is-admin'] === true,
+    platform_admin_declared: a['platform-admin-declared'] === true,
+  };
+}
+
+/**
+ * The admin users route is a lookup, not a directory: it answers only `filter[admin]=true`
+ * (every administrator) or `q` set to one full email address (that user or nobody). Any other
+ * call is a 400, so the client offers exactly those two reads.
+ */
+export const adminUsersApi = {
+  lookupAdmins: async (params?: { page?: number; pageSize?: number }): Promise<{ data: AdminUser[]; pagination?: AdminPagination }> => {
+    const query = new URLSearchParams({ 'filter[admin]': 'true' });
+    if (params?.page) query.set('page[number]', String(params.page));
+    query.set('page[size]', String(Math.min(params?.pageSize ?? 100, 100)));
+    const res = await apiClient.get<{ data: AdminUserResource[]; meta?: { pagination?: AdminPagination } }>(`/admin/users?${query.toString()}`);
+    return { data: (res.data ?? []).map(adminUserFromResource), pagination: res.meta?.pagination };
+  },
+  /** The one account with this email address, matched exactly and case-insensitively, or null. */
+  lookupByEmail: async (email: string): Promise<AdminUser | null> => {
+    const query = new URLSearchParams({ q: email });
+    const res = await apiClient.get<{ data: AdminUserResource[] }>(`/admin/users?${query.toString()}`);
+    const first = (res.data ?? [])[0];
+    return first ? adminUserFromResource(first) : null;
+  },
+  grantAdmin: async (id: string): Promise<AdminUser> => {
+    const res = await apiClient.post<{ data: AdminUserResource }>(`/admin/users/${encodeURIComponent(id)}/actions/grant_admin`);
+    return adminUserFromResource(res.data);
+  },
+  revokeAdmin: async (id: string): Promise<AdminUser> => {
+    const res = await apiClient.post<{ data: AdminUserResource }>(`/admin/users/${encodeURIComponent(id)}/actions/revoke_admin`);
+    return adminUserFromResource(res.data);
+  },
+};
+
+/** One organization of the install-wide, read-only organizations listing. */
+export interface AdminOrganization {
+  /** TFE semantics: the id is the name. */
+  name: string;
+  external_id?: string;
+  notification_email?: string;
+  created_at: string;
+  member_count: number;
+  workspace_count: number;
+}
+
+function adminOrganizationFromResource(item: JsonApiResource): AdminOrganization {
+  const a = item.attributes ?? {};
+  return {
+    name: (a['name'] ?? item.id) as string,
+    external_id: (a['external-id'] ?? undefined) as string | undefined,
+    notification_email: (a['notification-email'] || undefined) as string | undefined,
+    created_at: (a['created-at'] ?? '') as string,
+    member_count: Number(a['member-count'] ?? 0),
+    workspace_count: Number(a['workspace-count'] ?? 0),
+  };
+}
+
+export const adminOrganizationsApi = {
+  list: async (params?: { search?: string; page?: number; pageSize?: number }): Promise<{ data: AdminOrganization[]; pagination?: AdminPagination }> => {
+    const query = new URLSearchParams();
+    if (params?.search) query.set('q', params.search);
+    if (params?.page) query.set('page[number]', String(params.page));
+    if (params?.pageSize) query.set('page[size]', String(params.pageSize));
+    const qs = query.toString();
+    const res = await apiClient.get<{ data: JsonApiResource[]; meta?: { pagination?: AdminPagination } }>(`/admin/organizations${qs ? '?' + qs : ''}`);
+    return { data: (res.data ?? []).map(adminOrganizationFromResource), pagination: res.meta?.pagination };
+  },
+  get: async (name: string): Promise<AdminOrganization> => {
+    const res = await apiClient.get<{ data: JsonApiResource }>(`/admin/organizations/${encodeURIComponent(name)}`);
+    return adminOrganizationFromResource(res.data);
+  },
+};
+
+/** Who may create organizations on this installation (`STACKWEAVER_ORGANIZATION_CREATION`). */
+export type OrganizationCreationPolicy = 'everyone' | 'platform-admins';
+
+export interface PlatformSettings {
+  organization_creation: OrganizationCreationPolicy;
+}
+
+/** The deployment's install-wide settings: read-only, readable by every signed-in identity. */
+export const platformSettingsApi = {
+  get: async (): Promise<PlatformSettings> => {
+    const res = await apiClient.get<{ data: { attributes?: { 'organization-creation'?: string } } }>('/platform/settings');
+    const value = res.data?.attributes?.['organization-creation'];
+    return { organization_creation: value === 'platform-admins' ? 'platform-admins' : 'everyone' };
   },
 };
 
@@ -3106,6 +3257,8 @@ export interface UserToken {
   last_used_at?: string;
   expires_at?: string;
   created_at: string;
+  /** The token carries the `platform:admin` scope and may call the install-wide admin API. */
+  platform_admin: boolean;
 }
 
 export interface CreateUserTokenResponse {
@@ -3114,6 +3267,7 @@ export interface CreateUserTokenResponse {
   description: string;
   expires_at?: string;
   created_at: string;
+  platform_admin: boolean;
 }
 
 interface UserTokenResource {
@@ -3125,6 +3279,7 @@ interface UserTokenResource {
     last_used_at?: string;
     expires_at?: string;
     created_at: string;
+    platform_admin?: boolean;
   };
 }
 
@@ -3137,9 +3292,12 @@ export const tokensApi = {
       last_used_at: t.attributes.last_used_at,
       expires_at: t.attributes.expires_at,
       created_at: t.attributes.created_at,
+      platform_admin: t.attributes.platform_admin === true,
     }));
   },
-  create: async (data: { description: string; expires_at?: string }): Promise<CreateUserTokenResponse> => {
+  // `platform_admin: true` asks for a `platform:admin` token; the API refuses it (403) to anyone
+  // who is not a platform administrator.
+  create: async (data: { description: string; expires_at?: string; platform_admin?: boolean }): Promise<CreateUserTokenResponse> => {
     // A `tokens` document; the attributes keep the snake_case the resource answers with.
     const response = await apiClient.post<{ data: UserTokenResource }>('/tokens', { data: { type: 'tokens', attributes: data } });
     return {
@@ -3148,6 +3306,7 @@ export const tokensApi = {
       description: response.data.attributes.description,
       expires_at: response.data.attributes.expires_at,
       created_at: response.data.attributes.created_at,
+      platform_admin: response.data.attributes.platform_admin === true,
     };
   },
   delete: (id: string) => apiClient.delete<void>(`/tokens/${id}`),

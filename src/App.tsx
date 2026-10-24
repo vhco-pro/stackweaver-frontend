@@ -1,6 +1,6 @@
 // Copyright (c) 2025 VH & Co BV. Licensed under the Business Source License 1.1. See LICENSE for details.
 
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { config } from '@/config';
 import { Toaster } from '@/components/ui/toaster';
@@ -51,6 +51,8 @@ import VariableSets from './pages/Settings/VariableSets';
 import AgentPools from './pages/Settings/AgentPools';
 import OIDCConfigurations from './pages/Settings/OIDCConfigurations';
 import TofuVersions from './pages/Settings/TofuVersions';
+import PlatformAdministrators from './pages/Settings/PlatformAdministrators';
+import PlatformOrganizations from './pages/Settings/PlatformOrganizations';
 import Runners from './pages/Settings/Runners';
 import ChangeRequests from './pages/Settings/ChangeRequests';
 import RunTasks from './pages/Settings/RunTasks';
@@ -302,6 +304,38 @@ function AppContent() {
                   <ProtectedRoute>
                     <Layout>
                       <PersonalAccessTokens />
+                    </Layout>
+                  </ProtectedRoute>
+                }
+              />
+              {/* Install-wide platform pages: the admin routes answer 404 to anyone who is not a
+                  platform administrator, and each page shows its not-found state then. */}
+              <Route
+                path="/settings/platform/administrators"
+                element={
+                  <ProtectedRoute>
+                    <Layout>
+                      <PlatformAdministrators />
+                    </Layout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/settings/platform/terraform-versions"
+                element={
+                  <ProtectedRoute>
+                    <Layout>
+                      <TofuVersions />
+                    </Layout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/settings/platform/organizations"
+                element={
+                  <ProtectedRoute>
+                    <Layout>
+                      <PlatformOrganizations />
                     </Layout>
                   </ProtectedRoute>
                 }
@@ -606,17 +640,11 @@ function AppContent() {
                 </ProtectedRoute>
               }
             />
+            {/* The versions are install-wide, so the page lives under the platform settings; the old
+                organization path stays as a redirect so bookmarks keep working. */}
             <Route
               path="/app/:orgName/settings/terraform-versions"
-              element={
-                <ProtectedRoute>
-                  <OrganizationGuard>
-                    <Layout>
-                      <TofuVersions />
-                    </Layout>
-                  </OrganizationGuard>
-                </ProtectedRoute>
-              }
+              element={<Navigate to="/settings/platform/terraform-versions" replace />}
             />
             <Route
               path="/app/:orgName/settings/teams/:teamId"

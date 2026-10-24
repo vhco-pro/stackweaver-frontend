@@ -1,10 +1,13 @@
 ---
-description: "Guide to organization-level settings and policies: admin contact, token access, force-delete policy, health assessments, and pull request status behavior"
+description: "Guide to organization-level settings and policies: admin contact, who may create organizations, token access, the default OpenTofu version, force-delete policy, health assessments, and pull request status behavior"
 covers:
   - "frontend/src/pages/Settings/Organization.tsx"
   - "backend/internal/api/v2/handlers/organizations*"
   - "backend/internal/api/middleware/org_wall*"
   - "core/models/organization*"
+  - "backend/internal/services/platformadmin/settings.go"
+  - "backend/internal/api/v2/handlers/platform_settings.go"
+  - "frontend/src/pages/Organizations.tsx"
 ---
 
 # Organization Settings
@@ -19,6 +22,8 @@ The admin email is the organization's contact address, stored for TFE compatibil
 
 Creating an organization requires a user token - a personal API token or a `terraform login` session. Organization tokens are deliberately rejected on the create endpoint, matching the Terraform Cloud model where an automation token scoped to one organization cannot mint new organizations for its owner. The user who creates an organization is automatically added to it as a member and placed in its `owners` team, and the organization is bootstrapped with `owners` and `viewers` teams and a `default` project.
 
+Who may create organizations is a deployment setting, `STACKWEAVER_ORGANIZATION_CREATION` in `sso.env` on Docker Compose or `platform.organizationCreation` on Kubernetes. The default, `everyone`, lets every signed-in user create organizations. With `platform-admins`, only a [platform administrator](./platform-administration.md) may create one: the create endpoint answers 403 to everyone else, and the Organizations page hides **Create Organization** and says "Organizations on this installation are created by a platform administrator. Ask yours to create one and add you to it." The person who creates an organization still becomes its owner, whatever the setting. Any client can read the value from `GET /api/v2/platform/settings` (attribute `organization-creation`), and `GET /api/v2/account/details` reports whether the signed-in user may create organizations in `permissions.can-create-organizations`.
+
 Note that organization names are permanently reserved once used. Deleting an organization does not free its name, because workload-identity token subjects embed the organization name and a re-registered name could otherwise be trusted by the original tenant's cloud federation. Terraform Enterprise would allow the reuse; here a create with a previously-used name returns a 422, and so does renaming an organization onto a name another organization used before, so pick a new name. Renaming keeps the old name reserved for your organization, so you can rename back to it later but nobody else can take it.
 
 ## Token access
@@ -26,6 +31,8 @@ Note that organization names are permanently reserved once used. Deleting an org
 The **Allow user tokens** policy (`user_tokens_enabled`, default on) controls whether personal, user-bound API tokens may access the organization's API at all. When you switch it off, non-owner members' personal tokens and their `terraform login` sessions receive a 403 against every route of this organization, and automation should authenticate with the organization token instead (minted under **Settings → Organization Token**). Organization owners' user tokens keep working even when the policy is off - a deliberate divergence from Terraform Enterprise that prevents an organization from locking itself out before it has minted an organization token. Browser sessions are never affected by this policy.
 
 ## Workspace policies
+
+**Default OpenTofu version** (`default-terraform-version`, not set by default) is the OpenTofu version a workspace runs when it does not specify one of its own. You set it in the **Workspace Policies** card on the organization's general settings page, choosing from the enabled, non-deprecated versions of the installation's OpenTofu versions catalogue, or **Not set** to clear it. The catalogue itself is install-wide and is managed by a [platform administrator](./platform-administration.md).
 
 **Allow force-deleting workspaces** (`allow_force_delete_workspaces`, default off) governs who may delete a workspace that still has resources under management. With the policy off, a force deletion of such a workspace requires organization-owner permissions; workspace admins can still delete workspaces whose infrastructure has been destroyed. With the policy on, workspace admins may force-delete regardless of remaining resources.
 

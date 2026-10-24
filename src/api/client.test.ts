@@ -15,6 +15,9 @@ import {
   runsApi,
   settingsApi,
   tokensApi,
+  adminUsersApi,
+  adminOrganizationsApi,
+  platformSettingsApi,
   twoFactorApi,
   variablesApi,
   vcsConnectionsApi,
@@ -438,6 +441,82 @@ describe('platform documents (Phase 3)', () => {
     expect(created.token).toBe('tfe-abc');
   });
 
+  it('tokensApi.create sends platform_admin and reads it back', async () => {
+    const sent = stubResponses({
+      status: 201,
+      body: {
+        data: {
+          id: 'at-2',
+          type: 'tokens',
+          attributes: { token: 'tfe-def', description: 'admin', created_at: '2026-10-24T00:00:00Z', platform_admin: true },
+        },
+      },
+    });
+
+    const created = await tokensApi.create({ description: 'admin', platform_admin: true });
+
+    expect(sent()[0].body).toEqual({ data: { type: 'tokens', attributes: { description: 'admin', platform_admin: true } } });
+    expect(created.platform_admin).toBe(true);
+  });
+
+  it('adminUsersApi asks only the two lookups the route answers and posts the actions with no body', async () => {
+    const admin = {
+      id: 'user-1',
+      type: 'users',
+      attributes: { username: 'ada', email: 'ada@example.com', name: 'Ada', 'is-admin': true, 'platform-admin-declared': true },
+    };
+    const sent = stubResponses(
+      { body: { data: [admin], meta: { pagination: { 'current-page': 1, 'page-size': 100, 'total-pages': 1, 'total-count': 1 } } } },
+      { body: { data: [] } },
+      { body: { data: { ...admin, attributes: { ...admin.attributes, 'platform-admin-declared': false } } } },
+      { body: { data: admin } },
+    );
+
+    const admins = await adminUsersApi.lookupAdmins();
+    const nobody = await adminUsersApi.lookupByEmail('Nobody@Example.com');
+    const granted = await adminUsersApi.grantAdmin('user-1');
+    await adminUsersApi.revokeAdmin('user-1');
+
+    const [list, lookup, grant, revoke] = sent();
+    expect(list.url).toContain('/admin/users?filter%5Badmin%5D=true&page%5Bsize%5D=100');
+    expect(admins.data[0]).toMatchObject({ id: 'user-1', email: 'ada@example.com', platform_admin_declared: true });
+    expect(lookup.url).toContain('/admin/users?q=Nobody%40Example.com');
+    expect(nobody).toBeNull();
+    expect(grant.method).toBe('POST');
+    expect(grant.url).toMatch(/\/admin\/users\/user-1\/actions\/grant_admin$/);
+    expect(grant.body).toBeUndefined();
+    expect(granted.is_admin).toBe(true);
+    expect(revoke.url).toMatch(/\/admin\/users\/user-1\/actions\/revoke_admin$/);
+  });
+
+  it('adminOrganizationsApi and platformSettingsApi read their resources', async () => {
+    const sent = stubResponses(
+      {
+        body: {
+          data: [{ id: 'demo', type: 'organizations', attributes: { name: 'demo', 'notification-email': 'ops@example.com', 'member-count': 4, 'workspace-count': 6, 'created-at': '2026-06-01T00:00:00Z' } }],
+          meta: { pagination: { 'current-page': 2, 'page-size': 20, 'total-pages': 3, 'total-count': 41 } },
+        },
+      },
+      { body: { data: { type: 'platform-settings', id: 'platform', attributes: { 'organization-creation': 'platform-admins' } } } },
+    );
+
+    const orgs = await adminOrganizationsApi.list({ search: 'de', page: 2, pageSize: 20 });
+    const settings = await platformSettingsApi.get();
+
+    const [list] = sent();
+    expect(list.url).toContain('/admin/organizations?q=de&page%5Bnumber%5D=2&page%5Bsize%5D=20');
+    expect(orgs.data[0]).toEqual({
+      name: 'demo',
+      external_id: undefined,
+      notification_email: 'ops@example.com',
+      created_at: '2026-06-01T00:00:00Z',
+      member_count: 4,
+      workspace_count: 6,
+    });
+    expect(orgs.pagination?.['total-count']).toBe(41);
+    expect(settings).toEqual({ organization_creation: 'platform-admins' });
+  });
+
   it('vcsConnectionsApi.create sends a vcs-connections document with snake_case attributes', async () => {
     const sent = stubResponses({ status: 201, body: { data: { id: 'vc-1', type: 'vcs-connections', attributes: {} } } });
 
@@ -657,7 +736,34 @@ describe('account and settings documents (Phase 4)', () => {
       avatar: 'https://example.com/ada.png',
       created_at: '2026-06-01T10:00:00Z',
       updated_at: '2026-06-02T10:00:00Z',
+      // The resource carries no platform attributes, so the profile reads an ordinary user
+      // who may create organizations.
+      is_site_admin: false,
+      platform_admin_declared: false,
+      can_create_organizations: true,
     });
+  });
+
+  it('accountApi.details reads the platform administrator attributes and permissions', async () => {
+    stubResponses({
+      body: {
+        data: {
+          ...userResource,
+          attributes: {
+            ...userResource.attributes,
+            'is-site-admin': true,
+            'platform-admin-declared': true,
+            permissions: { 'can-create-organizations': false },
+          },
+        },
+      },
+    });
+
+    const profile = await accountApi.details();
+
+    expect(profile.is_site_admin).toBe(true);
+    expect(profile.platform_admin_declared).toBe(true);
+    expect(profile.can_create_organizations).toBe(false);
   });
 
   it('accountApi.update sends a users document with only the attributes given', async () => {

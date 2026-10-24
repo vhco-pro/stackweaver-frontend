@@ -11,9 +11,11 @@ import { PageHeader } from '@/components/layout/PageHeader';
 import { PageEmptyState } from '@/components/layout/PageEmptyState';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Checkbox } from '@/components/ui/checkbox';
 import { cn } from '@/lib/utils';
 import { dangerGhostIcon } from '@/lib/surfaces';
 import { tokensApi, type CreateUserTokenResponse } from '@/api/client';
+import { usePlatformAdmin } from '@/hooks/usePlatformAdmin';
 import { toast } from 'sonner';
 
 // Personal (user-bound) access tokens. These act as the user across every
@@ -24,6 +26,9 @@ export default function PersonalAccessTokens() {
   const [showTokenForm, setShowTokenForm] = useState(false);
   const [newTokenName, setNewTokenName] = useState('');
   const [newTokenExpiry, setNewTokenExpiry] = useState('');
+  // Only a platform administrator is offered a `platform:admin` token; the API refuses anyone else.
+  const [newTokenPlatformAdmin, setNewTokenPlatformAdmin] = useState(false);
+  const { isSiteAdmin } = usePlatformAdmin();
   const [creatingToken, setCreatingToken] = useState(false);
   const [deletingToken, setDeletingToken] = useState<string | null>(null);
   // The token waiting on the revoke confirmation dialog.
@@ -55,9 +60,12 @@ export default function PersonalAccessTokens() {
 
     try {
       setCreatingToken(true);
-      const data: { description: string; expires_at?: string } = {
+      const data: { description: string; expires_at?: string; platform_admin?: boolean } = {
         description: newTokenName.trim(),
       };
+      if (isSiteAdmin && newTokenPlatformAdmin) {
+        data.platform_admin = true;
+      }
       if (newTokenExpiry) {
         const selectedDate = new Date(newTokenExpiry);
         selectedDate.setHours(23, 59, 59, 999);
@@ -70,6 +78,7 @@ export default function PersonalAccessTokens() {
 
       setNewTokenName('');
       setNewTokenExpiry('');
+      setNewTokenPlatformAdmin(false);
       setShowTokenForm(false);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Failed to create token');
@@ -151,6 +160,8 @@ export default function PersonalAccessTokens() {
             Personal tokens act as your user across every organization you belong to and carry no
             scopes. Use them for the CLI and <code className="px-1 py-0.5 rounded-sm bg-muted">terraform login</code>.
             For organization-scoped, permission-limited keys, use an organization's API Keys settings.
+            A platform admin token, which only platform administrators can create, may also call the
+            install-wide admin API.
           </p>
         }
         backTo={{ to: '/settings', label: 'Back to Settings' }}
@@ -235,6 +246,20 @@ export default function PersonalAccessTokens() {
                 disabled={creatingToken}
               />
             </div>
+            {isSiteAdmin && (
+              <div className="flex items-start gap-3">
+                <Checkbox
+                  id="token-platform-admin"
+                  checked={newTokenPlatformAdmin}
+                  onCheckedChange={(checked) => { setNewTokenPlatformAdmin(checked === true); }}
+                  disabled={creatingToken}
+                  className="mt-0.5"
+                />
+                <Label htmlFor="token-platform-admin" className="font-normal leading-snug">
+                  Platform admin: this token may call the install-wide admin API
+                </Label>
+              </div>
+            )}
             <div className="flex justify-end gap-3">
               <Button
                 type="button"
@@ -243,6 +268,7 @@ export default function PersonalAccessTokens() {
                   setShowTokenForm(false);
                   setNewTokenName('');
                   setNewTokenExpiry('');
+                  setNewTokenPlatformAdmin(false);
                 }}
                 disabled={creatingToken}
               >
@@ -293,6 +319,11 @@ export default function PersonalAccessTokens() {
                     <div>
                       <div className="flex items-center gap-2">
                         <h3 className="font-semibold">{token.description}</h3>
+                        {token.platform_admin && (
+                          <span className="text-xs px-2 py-0.5 rounded-full bg-pink-500/10 text-pink-700 dark:text-pink-300 border border-pink-500/30">
+                            Platform admin
+                          </span>
+                        )}
                         {isExpired && (
                           <span className="text-xs px-2 py-0.5 rounded-full bg-red-500/20 text-red-400 border border-red-500/30">
                             Expired

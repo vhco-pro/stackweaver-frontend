@@ -74,7 +74,7 @@ Deliberately absent is any row claiming a resource is *unsupported*. That is a j
 
 <!-- BEGIN GENERATED: tfe-compat-table -->
 
-Verified by driving the stock `hashicorp/tfe` provider against a running Stackweaver: **58 verified**, 5 did not pass, 0 untested, 63 fixtures total.
+Verified by driving the stock `hashicorp/tfe` provider against a running Stackweaver: **59 verified**, 5 did not pass, 0 untested, 64 fixtures total.
 
 Evidence from a run on **2026-09-12T07:05:09Z** using hashicorp/tfe ~> 0.77. A row says what that run showed; it does not say whether Stackweaver implements the resource.
 
@@ -120,6 +120,7 @@ Evidence from a run on **2026-09-12T07:05:09Z** using hashicorp/tfe ~> 0.77. A r
 | `tfe_organization_run_task` | ✅ verified | lifecycle passed against a running Stackweaver |
 | `tfe_organization_run_task_global_settings` | ✅ verified | lifecycle passed against a running Stackweaver |
 | `tfe_organization_token` | ✅ verified | lifecycle passed against a running Stackweaver |
+| `tfe_platform_admin_terraform_version` | ✅ verified | lifecycle passed against a running Stackweaver |
 | `tfe_project` | ✅ verified | lifecycle passed against a running Stackweaver |
 | `tfe_project_notification_configuration` | ✅ verified | lifecycle passed against a running Stackweaver |
 | `tfe_project_settings` | ✅ verified | lifecycle passed against a running Stackweaver |
