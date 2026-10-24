@@ -10,7 +10,6 @@ import type { JsonApiResource, JsonApiResponse, JsonApiListResponse } from '@/ut
 export type CredentialType = 
   | 'ssh' 
   | 'machine-ssh' 
-  | 'vcs' 
   | 'vault' 
   | 'aws' 
   | 'azure' 
