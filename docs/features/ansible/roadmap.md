@@ -42,7 +42,7 @@ Azure dynamic inventory sources can authenticate with OIDC workload identity, re
 
 ### Credentials
 
-A credential's `credential-type` is one of `ssh`, `machine-ssh`, `scm`, `vault`, `aws`, `azure`, `gcp` or `vmware`, and any other value is rejected with `400`. Secret values are never returned: a credential reports `has-ssh-private-key`, `has-password`, `has-vault-password` and `has-become-password` in their place. Deleting a credential is rejected with `409 Conflict` while a job that ran with it still exists. Job templates, inventory sources and workflow nodes do not hold a credential back: deleting it removes it from them.
+A credential's `credential-type` is one of `ssh`, `machine-ssh`, `vault`, `aws`, `azure`, `gcp` or `vmware`, and any other value is rejected with `400`. Repository access is not a credential: playbooks, inventories and workspaces reach their repositories through a VCS connection. Secret values are never returned: a credential reports `has-ssh-private-key`, `has-password`, `has-vault-password` and `has-become-password` in their place. Deleting a credential is rejected with `409 Conflict` while a job that ran with it still exists. Job templates, inventory sources and workflow nodes do not hold a credential back: deleting it removes it from them.
 
 ### Workflows
 

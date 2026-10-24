@@ -62,7 +62,6 @@ import {
   Cloud,
   Server,
   Lock,
-  GitBranch,
   Eye,
   EyeOff,
   KeyRound,
@@ -72,7 +71,6 @@ import { toast } from 'sonner';
 const CREDENTIAL_TYPES: { value: CredentialType; label: string; description: string }[] = [
   { value: 'ssh', label: 'SSH', description: 'SSH private key authentication' },
   { value: 'machine-ssh', label: 'Machine SSH', description: 'Username/password for SSH' },
-  { value: 'vcs', label: 'VCS', description: 'Source control credentials' },
   { value: 'vault', label: 'Ansible Vault', description: 'Vault password for encrypted files' },
   { value: 'aws', label: 'AWS', description: 'Amazon Web Services credentials' },
   { value: 'azure', label: 'Azure', description: 'Microsoft Azure credentials' },
@@ -269,8 +267,6 @@ export default function Credentials() {
       case 'ssh':
       case 'machine-ssh':
         return <Key className="h-4 w-4" />;
-      case 'vcs':
-        return <GitBranch className="h-4 w-4" />;
       case 'vault':
         return <Lock className="h-4 w-4" />;
       case 'aws':
@@ -289,8 +285,6 @@ export default function Credentials() {
       case 'ssh':
       case 'machine-ssh':
         return 'bg-green-500/10 text-green-600 border-green-500/20';
-      case 'vcs':
-        return 'bg-purple-500/10 text-purple-600 border-purple-500/20';
       case 'vault':
         return 'bg-amber-500/10 text-amber-600 border-amber-500/20';
       case 'aws':
@@ -386,51 +380,6 @@ export default function Credentials() {
                   {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
               </div>
-            </div>
-          </>
-        );
-      case 'vcs':
-        return (
-          <>
-            <div className="space-y-2">
-              <Label htmlFor="username">Username</Label>
-              <Input
-                id="username"
-                placeholder="git"
-                value={formData.username || ''}
-                onChange={(e) => setFormData({ ...formData, username: e.target.value })}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="password">Password/Token</Label>
-              <div className="relative">
-                <Input
-                  id="password"
-                  type={showPassword ? 'text' : 'password'}
-                  placeholder="Personal access token"
-                  value={formData.password || ''}
-                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                  className="pr-10"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  aria-label={showPassword ? 'Hide password or token' : 'Show password or token'}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                >
-                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                </button>
-              </div>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="ssh_private_key">SSH Private Key (alternative)</Label>
-              <Textarea
-                id="ssh_private_key"
-                placeholder="-----BEGIN OPENSSH PRIVATE KEY-----"
-                rows={4}
-                value={formData.ssh_private_key || ''}
-                onChange={(e) => setFormData({ ...formData, ssh_private_key: e.target.value })}
-              />
             </div>
           </>
         );
