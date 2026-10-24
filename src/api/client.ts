@@ -1844,7 +1844,7 @@ export const vcsConnectionsApi = {
   get: (id: string) =>
     apiClient.get<{ data: VCSConnection }>(`/vcs-connections/${id}`).then(res => res.data),
   create: (organizationName: string, data: {
-    provider: 'github' | 'gitlab' | 'bitbucket' | 'azure_devops';
+    provider: 'github' | 'azure_devops';
     access_token: string;
     refresh_token?: string;
     token_expires_at?: string;
