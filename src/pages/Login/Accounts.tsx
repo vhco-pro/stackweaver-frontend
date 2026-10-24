@@ -4,10 +4,9 @@ import { useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Loader2, Plus, User } from 'lucide-react';
-import { searchSessions, createSession, finalizeAuthRequest } from '@/api/auth-client';
+import { searchSessions } from '@/api/auth-client';
 import { useMountEffect } from '@/hooks/useMountEffect';
 import LoginLayout from './LoginLayout';
-import { toFriendlyError } from '@/lib/auth-errors';
 
 interface SessionInfo {
   id: string;
@@ -26,8 +25,6 @@ export default function Accounts() {
 
   const [sessions, setSessions] = useState<SessionInfo[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selecting, setSelecting] = useState('');
-  const [error, setError] = useState('');
 
   useMountEffect(() => {
     let cancelled = false;
@@ -56,32 +53,12 @@ export default function Accounts() {
     return () => { cancelled = true; };
   });
 
-  const handleSelectSession = async (session: SessionInfo) => {
-    setSelecting(session.id);
-    setError('');
-    try {
-      // Create a new session for this user and finalize
-      const sessionResp = await createSession({
-        checks: { user: { loginName: session.loginName } },
-      });
-
-      if (authRequestId) {
-        const finalizeResp = await finalizeAuthRequest({
-          authRequestId,
-          sessionId: sessionResp.sessionId,
-          sessionToken: sessionResp.sessionToken,
-        });
-        window.location.assign(finalizeResp.callbackUrl);
-      } else {
-        void navigate('/dashboard');
-      }
-    } catch (err: unknown) {
-      setError(toFriendlyError(err, 'Failed to select account'));
-      // Fall back to password page for this user
-      void navigate(`/login/password?authRequest=${authRequestId}&loginName=${session.loginName}`);
-    } finally {
-      setSelecting('');
-    }
+  const handleSelectSession = (session: SessionInfo) => {
+    // Picking an account re-authenticates it on the password page: the sign-in is finished only
+    // on a session that verifies a credential, never on the listed session's prior state. The
+    // password page carries the login name so the user does not retype it.
+    const params = new URLSearchParams({ authRequest: authRequestId, loginName: session.loginName });
+    void navigate(`/login/password?${params.toString()}`);
   };
 
   return (
@@ -93,21 +70,14 @@ export default function Accounts() {
           </div>
         )}
 
-        {error && <p className="text-sm text-destructive text-center">{error}</p>}
-
         {sessions.map((session) => (
           <Button
             key={session.id}
             variant="outline"
             className="w-full justify-start gap-3"
-            disabled={!!selecting}
-            onClick={() => { void handleSelectSession(session); }}
+            onClick={() => { handleSelectSession(session); }}
           >
-            {selecting === session.id ? (
-              <Loader2 className="h-5 w-5 animate-spin" />
-            ) : (
-              <User className="h-5 w-5 text-muted-foreground" />
-            )}
+            <User className="h-5 w-5 text-muted-foreground" />
             <div className="text-left">
               <div className="text-sm font-medium">{session.displayName || session.loginName}</div>
               {session.displayName && <div className="text-xs text-muted-foreground">{session.loginName}</div>}

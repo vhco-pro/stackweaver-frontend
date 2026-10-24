@@ -1,22 +1,22 @@
 // Copyright (c) 2025 VH & Co BV. Licensed under the Business Source License 1.1. See LICENSE for details.
 
-// Characterization net for Accounts' `immutability` warning fix (the redirect used
-// `window.location.href = ...` assignment, replaced with `window.location.assign(...)`).
-// Pins: sessions load on mount and selecting one creates + finalizes the auth request
-// and navigates to the returned callback URL via assign().
+// Pins: sessions load on mount; picking one routes to the password page for that login name to
+// re-authenticate.
+//
+// Picking used to create a fresh session holding only a user check and finalize that, minting a
+// token with no credential verified. The picker now re-authenticates on the password page, and
+// the proxy refuses any finalize whose session verified no credential.
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import type { ReactNode } from 'react';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { MemoryRouter } from 'react-router-dom';
-import { searchSessions, createSession, finalizeAuthRequest } from '@/api/auth-client';
+import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
+import { searchSessions } from '@/api/auth-client';
 import Accounts from './Accounts';
 
 vi.mock('@/api/auth-client', () => ({
   searchSessions: vi.fn(),
-  createSession: vi.fn(),
-  finalizeAuthRequest: vi.fn(),
 }));
 
 // LoginLayout pulls in ThemeContext; render its children directly to keep the test
@@ -30,8 +30,6 @@ describe('Accounts', () => {
     vi.mocked(searchSessions).mockResolvedValue({
       sessions: [{ id: 's1', factors: { user: { loginName: 'ada@example.com', displayName: 'Ada' } } }],
     });
-    vi.mocked(createSession).mockResolvedValue({ sessionId: 'sess1', sessionToken: 'tok1' });
-    vi.mocked(finalizeAuthRequest).mockResolvedValue({ callbackUrl: 'https://app.example.com/cb' });
   });
 
   it('lists active sessions on mount', async () => {
@@ -45,24 +43,24 @@ describe('Accounts', () => {
     expect(searchSessions).toHaveBeenCalledTimes(1);
   });
 
-  it('selecting a session finalizes and redirects via window.location.assign', async () => {
-    const assignSpy = vi.spyOn(window.location, 'assign').mockImplementation(() => {});
+  it('picking a session routes to the password page to re-authenticate', async () => {
     const user = userEvent.setup();
     render(
       <MemoryRouter initialEntries={['/login/accounts?authRequest=req123']}>
-        <Accounts />
+        <Routes>
+          <Route path="/login/accounts" element={<Accounts />} />
+          <Route path="/login/password" element={<PasswordProbe />} />
+        </Routes>
       </MemoryRouter>,
     );
 
     await user.click(await screen.findByText('Ada'));
 
-    expect(createSession).toHaveBeenCalledWith({ checks: { user: { loginName: 'ada@example.com' } } });
-    expect(finalizeAuthRequest).toHaveBeenCalledWith({
-      authRequestId: 'req123',
-      sessionId: 'sess1',
-      sessionToken: 'tok1',
-    });
-    expect(assignSpy).toHaveBeenCalledWith('https://app.example.com/cb');
-    assignSpy.mockRestore();
+    expect(await screen.findByTestId('password-page')).toHaveTextContent('authRequest=req123&loginName=ada%40example.com');
   });
 });
+
+function PasswordProbe() {
+  const location = useLocation();
+  return <div data-testid="password-page">{location.search}</div>;
+}

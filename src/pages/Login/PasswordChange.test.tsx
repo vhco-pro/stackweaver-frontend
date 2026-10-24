@@ -10,11 +10,12 @@ import type { ReactNode } from 'react';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
-import { changePassword } from '@/api/auth-client';
+import { changePassword, updateSession, finalizeAuthRequest } from '@/api/auth-client';
 import PasswordChange from './PasswordChange';
 
 vi.mock('@/api/auth-client', () => ({
   changePassword: vi.fn(),
+  updateSession: vi.fn(),
   finalizeAuthRequest: vi.fn(),
 }));
 
@@ -62,5 +63,18 @@ describe('PasswordChange', () => {
     await submit();
 
     expect(await screen.findByTestId('pw-change-error')).toHaveTextContent('Password must contain upper case');
+  });
+
+  it('re-verifies the new password on the session before finalizing', async () => {
+    vi.mocked(changePassword).mockResolvedValue({});
+    vi.mocked(updateSession).mockResolvedValue({ sessionId: 's1', sessionToken: 'fresh-token' });
+    vi.mocked(finalizeAuthRequest).mockResolvedValue({ callbackUrl: 'https://app.example.com/cb' });
+    const assignStub = vi.fn();
+    Object.defineProperty(window, 'location', { value: { href: '', assign: assignStub }, writable: true });
+
+    await submit();
+
+    expect(updateSession).toHaveBeenCalledWith('s1', { checks: { password: { password: 'NewPassword1!x' } } });
+    expect(finalizeAuthRequest).toHaveBeenCalledWith({ authRequestId: 'r1', sessionId: 's1', sessionToken: 'fresh-token' });
   });
 });

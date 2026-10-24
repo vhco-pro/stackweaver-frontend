@@ -5,7 +5,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Loader2 } from 'lucide-react';
-import { changePassword, finalizeAuthRequest } from '@/api/auth-client';
+import { changePassword, updateSession, finalizeAuthRequest } from '@/api/auth-client';
 import LoginLayout from './LoginLayout';
 import { GradientButton } from '@/components/ui/gradient-button';
 import { validatePasswordChangeInput } from './passwordChange.helpers';
@@ -35,7 +35,7 @@ import { toFriendlyError } from '@/lib/auth-errors';
  *
  * On success, re-finalize the auth request with the still-valid
  * session - the password change does NOT invalidate the session's
- * password factor, so the existing sessionId/sessionToken can
+ * Changing the password clears the session's verified password factor, so this page re-verifies
  * proceed to issue tokens.
  *
  * Per docs/internal/plans/features/custom-login-ui-plan.md:
@@ -71,14 +71,18 @@ export default function PasswordChange() {
                 newPassword: { password: newPassword, changeRequired: false },
             });
 
-            // Password change does not invalidate the session's
-            // password factor - re-finalize with the same session
-            // and redirect to wherever the OIDC RP wanted us.
+            // Changing the password clears the session's verified password factor at Zitadel, so
+            // the sign-in cannot be finalized until the new password is verified on the session.
+            // Re-verify it and finalize with the freshly rotated token, which is also the token
+            // finalize requires.
             if (authRequestId && sessionId) {
+                const reverified = await updateSession(sessionId, {
+                    checks: { password: { password: newPassword } },
+                });
                 const finalize = await finalizeAuthRequest({
                     authRequestId,
                     sessionId,
-                    sessionToken,
+                    sessionToken: reverified.sessionToken ?? sessionToken,
                 });
                 window.location.href = finalize.callbackUrl;
                 return;
