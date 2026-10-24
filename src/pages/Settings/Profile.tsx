@@ -25,6 +25,7 @@ export default function ProfileSettings() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+  const [pendingEmail, setPendingEmail] = useState<string | null>(null);
 
   const loadProfile = async () => {
     try {
@@ -74,7 +75,8 @@ export default function ProfileSettings() {
         location: formData.location,
       };
       
-      await accountApi.update(updatePayload);
+      const updated = await accountApi.update(updatePayload);
+      setPendingEmail(updated.unconfirmed_email ?? null);
       setSuccess(true);
       // Reload profile to get updated data
       await loadProfile();
@@ -102,7 +104,9 @@ export default function ProfileSettings() {
 
       {success && (
         <div className="rounded-lg bg-green-500/10 border border-green-500/20 p-4 text-green-400">
-          Profile updated successfully!
+          {pendingEmail
+            ? `Profile updated. Confirm ${pendingEmail} from the message the identity provider sent; your account keeps its current address until then.`
+            : 'Profile updated successfully!'}
         </div>
       )}
 
