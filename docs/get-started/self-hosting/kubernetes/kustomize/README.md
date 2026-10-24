@@ -35,6 +35,8 @@ Open `overlays/production/values.yaml` and replace the example host names and TL
 - `ingress.provider`: the ingress controller type (`nginx-inc`, `community-nginx`, `traefik`, or `none`). See [Ingress Controller Provider](../README.md#ingress-controller-provider) for details.
 - `ingress.tls.secretName` and `ingress.tls.authSecretName`: the names of the Kubernetes TLS secrets for each domain.
 
+Set `platform.admins` to the email addresses of the people who manage the installation. Left empty, the bundled Zitadel's bootstrap admin (`zitadel.init.adminUsername`) is the one platform administrator; with an external Zitadel the list must be set. See [Platform Administration](../README.md#platform-administration) for the role and the `platform.organizationCreation` setting.
+
 For persistent storage, `overlays/production/pv-pvc.yaml` contains an Azure Blob CSI example.
 If your cluster uses a different storage provider (AWS EFS, an NFS server, or a dynamic provisioner), replace the `csi` block with the appropriate driver configuration.
 The PVC name `runner-workspaces-pvc` must match the value you set for `runnerWorkspaces.existingClaim` in `values.yaml`.

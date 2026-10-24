@@ -41,6 +41,8 @@ export const SWEPT_PAGES: string[] = [
   'pages/Settings/Organization.tsx',
   'pages/Settings/OrganizationTokenSettings.tsx',
   'pages/Settings/PersonalAccessTokens.tsx',
+  'pages/Settings/PlatformAdministrators.tsx',
+  'pages/Settings/PlatformOrganizations.tsx',
   'pages/Settings/Preferences.tsx',
   'pages/Settings/Profile.tsx',
   'pages/Settings/RunTasks.tsx',

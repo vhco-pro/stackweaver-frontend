@@ -2,10 +2,11 @@
 
 import { Link, useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { User, Bell, Shield, Key, Globe, ArrowRight, GitBranch, Layers, Monitor, KeyRound, KeySquare, Webhook, Users, Cpu, Server, FileText, Tag, Cloud, ClipboardList, Zap, Building2, Settings as SettingsIcon, type LucideIcon } from 'lucide-react';
+import { User, Bell, Shield, Key, Globe, ArrowRight, GitBranch, Layers, Monitor, KeyRound, KeySquare, Webhook, Users, Cpu, Server, FileText, Tag, Cloud, ClipboardList, Zap, Building2, ShieldCheck, Settings as SettingsIcon, type LucideIcon } from 'lucide-react';
 import { Page } from '@/components/layout/Page';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { usePermissions } from '@/hooks/usePermissions';
+import { usePlatformAdmin } from '@/hooks/usePlatformAdmin';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -60,6 +61,33 @@ const userSettingsSections: SettingsSection[] = [
     icon: Globe,
     gradient: 'from-indigo-500 to-violet-500',
     path: '/settings/preferences',
+  },
+];
+
+// Install-wide settings, shown on /settings beneath the user settings to a platform
+// administrator only. The routes answer 404 to anyone else, so hiding the cards is a courtesy,
+// not the gate.
+const platformSettingsSections: SettingsSection[] = [
+  {
+    title: 'Platform Administrators',
+    description: 'Grant and remove platform administrators for this installation',
+    icon: ShieldCheck,
+    gradient: 'from-pink-500 to-rose-500',
+    path: '/settings/platform/administrators',
+  },
+  {
+    title: 'OpenTofu Versions',
+    description: 'Manage the OpenTofu versions available to every workspace',
+    icon: Tag,
+    gradient: 'from-purple-500 to-violet-500',
+    path: '/settings/platform/terraform-versions',
+  },
+  {
+    title: 'Organizations',
+    description: 'Every organization on this installation, read-only',
+    icon: Building2,
+    gradient: 'from-rose-500 to-pink-500',
+    path: '/settings/platform/organizations',
   },
 ];
 
@@ -129,13 +157,6 @@ const orgSettingsSections: SettingsSection[] = [
     path: '/app/:orgName/settings/authentication-token', // Will be replaced with actual orgName
   },
   {
-    title: 'OpenTofu Versions',
-    description: 'Manage available OpenTofu versions for workspace runs',
-    icon: Tag,
-    gradient: 'from-purple-500 to-violet-500',
-    path: '/app/:orgName/settings/terraform-versions',
-  },
-  {
     title: 'Agent Pools',
     description: 'Manage agent pools for self-hosted runners (TFE-compatible)',
     icon: Cpu,
@@ -172,6 +193,51 @@ const orgSettingsSections: SettingsSection[] = [
   },
 ];
 
+/** One grid of Settings hub cards. */
+function SettingsCardGrid({ sections }: { sections: SettingsSection[] }) {
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 3xl:grid-cols-5 gap-6">
+      {sections.map((section: SettingsSection) => {
+        const Icon = section.icon;
+        return (
+          <Link
+            key={section.title}
+            to={section.path}
+            className={cn(
+              'group relative overflow-hidden rounded-2xl text-left',
+              'bg-gradient-to-br from-white/90 via-white/75 to-white/60 dark:from-black/10 dark:via-black/5 dark:to-transparent',
+              'backdrop-blur-md border border-gray-300/80 dark:border-white/10',
+              'p-6 shadow-lg shadow-purple-500/10',
+              'transition-all duration-300',
+              'hover:shadow-xl hover:shadow-purple-500/20 hover:scale-[1.02]',
+              'hover:border-purple-500/30',
+              'focus:outline-hidden focus:ring-2 focus:ring-purple-500/50'
+            )}
+          >
+            <div className={cn(
+              'flex h-12 w-12 items-center justify-center rounded-xl mb-4',
+              `bg-gradient-to-br ${section.gradient}`,
+              'shadow-lg group-hover:scale-110 transition-transform duration-300'
+            )}>
+              <Icon className="h-6 w-6 text-white" />
+            </div>
+            <h3 className="text-lg font-semibold mb-2 group-hover:text-primary transition-colors duration-200">
+              {section.title}
+            </h3>
+            <p className="text-sm text-muted-foreground">
+              {section.description}
+            </p>
+            <div className="mt-4 flex items-center text-xs text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+              <span>Configure</span>
+              <ArrowRight className="ml-2 h-3 w-3" />
+            </div>
+          </Link>
+        );
+      })}
+    </div>
+  );
+}
+
 export default function Settings() {
   const { orgName } = useParams<{ orgName?: string }>();
   const { session } = useAuth();
@@ -184,6 +250,11 @@ export default function Settings() {
   // fetches the whole permission map in one call, and the probes predate it.
   const { canManageWorkspaces } = usePermissions(orgName);
 
+  // The platform section reads the account resource, the one place that says whether the
+  // signed-in person is a platform administrator.
+  const { isSiteAdmin } = usePlatformAdmin();
+  const showPlatformSettings = !isOrgSettings && isSiteAdmin;
+
   // Check permissions via React Query
   const { data: hasManageMembershipAccess = null } = useQuery<boolean | null>({
     queryKey: ['perm-membership', orgName, session?.user?.email],
@@ -195,21 +266,6 @@ export default function Settings() {
       } catch (err: unknown) {
         const s = (err as Error & { status?: number })?.status;
         return s === 403 ? false : null;
-      }
-    },
-    enabled: isOrgSettings && !!orgName && !!session?.user?.email,
-    retry: false,
-  });
-
-  const { data: hasAdminAccess = null } = useQuery<boolean | null>({
-    queryKey: ['perm-admin', orgName, session?.user?.email],
-    queryFn: async () => {
-      try {
-        const { adminTerraformVersionsApi } = await import('@/api/client');
-        await adminTerraformVersionsApi.list({ pageSize: 1 });
-        return true;
-      } catch {
-        return false;
       }
     },
     enabled: isOrgSettings && !!orgName && !!session?.user?.email,
@@ -237,7 +293,6 @@ export default function Settings() {
     ? orgSettingsSections
         .filter((section: SettingsSection) => {
           if (section.title === 'Users & Teams') return hasManageMembershipAccess !== false;
-          if (section.title === 'OpenTofu Versions') return hasAdminAccess !== false;
           if (section.title === 'Agent Pools') return hasManageAgentPoolsAccess !== false;
           if (section.title === 'Runners') return hasManageAgentPoolsAccess !== false;
           if (section.title === 'Change Requests') return canManageWorkspaces;
@@ -262,46 +317,19 @@ export default function Settings() {
         }
       />
 
-      {/* Settings Sections Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 3xl:grid-cols-5 gap-6">
-        {settingsSections.map((section: SettingsSection) => {
-          const Icon = section.icon;
-          return (
-            <Link
-              key={section.title}
-              to={section.path}
-              className={cn(
-                'group relative overflow-hidden rounded-2xl text-left',
-                'bg-gradient-to-br from-white/90 via-white/75 to-white/60 dark:from-black/10 dark:via-black/5 dark:to-transparent',
-                'backdrop-blur-md border border-gray-300/80 dark:border-white/10',
-                'p-6 shadow-lg shadow-purple-500/10',
-                'transition-all duration-300',
-                'hover:shadow-xl hover:shadow-purple-500/20 hover:scale-[1.02]',
-                'hover:border-purple-500/30',
-                'focus:outline-hidden focus:ring-2 focus:ring-purple-500/50'
-              )}
-            >
-              <div className={cn(
-                'flex h-12 w-12 items-center justify-center rounded-xl mb-4',
-                `bg-gradient-to-br ${section.gradient}`,
-                'shadow-lg group-hover:scale-110 transition-transform duration-300'
-              )}>
-                <Icon className="h-6 w-6 text-white" />
-              </div>
-              <h3 className="text-lg font-semibold mb-2 group-hover:text-primary transition-colors duration-200">
-                {section.title}
-              </h3>
-              <p className="text-sm text-muted-foreground">
-                {section.description}
-              </p>
-              <div className="mt-4 flex items-center text-xs text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                <span>Configure</span>
-                <ArrowRight className="ml-2 h-3 w-3" />
-              </div>
-            </Link>
-          );
-        })}
-      </div>
+      <SettingsCardGrid sections={settingsSections} />
+
+      {showPlatformSettings && (
+        <section aria-labelledby="platform-settings-heading" className="space-y-4">
+          <div>
+            <h2 id="platform-settings-heading" className="text-xl font-semibold">Platform</h2>
+            <p className="text-sm text-muted-foreground">
+              Install-wide settings that apply to every organization on this installation.
+            </p>
+          </div>
+          <SettingsCardGrid sections={platformSettingsSections} />
+        </section>
+      )}
     </Page>
   );
 }

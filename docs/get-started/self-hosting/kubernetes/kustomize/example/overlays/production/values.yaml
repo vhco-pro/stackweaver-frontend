@@ -418,6 +418,20 @@ sso:
   keys:
     azureAdClientSecret: azure-ad-client-secret
     oidcProviderClientSecret: oidc-idp-client-secret
+# ── Platform administration ───────────────────────────────────────────────────
+#
+# A platform administrator manages the installation itself: the OpenTofu
+# versions catalogue, the platform administrators, and the list of every
+# organization. It has no access inside an organization it is not a member of.
+platform:
+  # Email addresses of the deployment-declared platform administrators. Empty
+  # means the bundled Zitadel's zitadel.init.adminUsername; with an external
+  # Zitadel (zitadel.bundled: false) set this, or nobody is a platform
+  # administrator. Declare only addresses you control at every identity
+  # provider this installation signs people in with.
+  admins: []
+  # Who may create organizations: everyone or platform-admins
+  organizationCreation: everyone
 # ── Custom CA Certificates ─────────────────────────────────────────────────
 #
 # Mount a custom CA certificate bundle into all Go service containers.

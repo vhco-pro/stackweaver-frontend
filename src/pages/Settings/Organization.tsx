@@ -25,7 +25,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { organizationsApi, type Organization } from '@/api/client';
+import { organizationsApi, terraformVersionsApi, type Organization } from '@/api/client';
+import { compareVersionsDesc } from '@/lib/semver';
 import { toast } from 'sonner';
 
 // Settings → Organization: the org-level TFE-compatible settings (tfe_organization). Every toggle
@@ -64,6 +65,9 @@ function PolicyRow({
   );
 }
 
+// The Select's value for "no default"; Radix Select does not allow an empty-string item value.
+const NO_DEFAULT_VERSION = 'none';
+
 export default function OrganizationSettings() {
   const { orgName } = useParams<{ orgName: string }>();
   const queryClient = useQueryClient();
@@ -79,6 +83,19 @@ export default function OrganizationSettings() {
     queryKey: ['orgSettings', orgName],
     queryFn: async (): Promise<Organization> => organizationsApi.get(orgName!),
     enabled: !!orgName,
+  });
+
+  // The versions a workspace may run: the open list (enabled versions), without the deprecated
+  // ones, newest first. Any member may read it, so an owner needs no platform access to choose.
+  const { data: tofuVersions = [] } = useQuery({
+    queryKey: ['enabledTofuVersions'],
+    queryFn: async () => {
+      const res = await terraformVersionsApi.listEnabled();
+      return (res.data ?? [])
+        .filter((v) => v.attributes.enabled && !v.attributes.deprecated)
+        .map((v) => v.attributes.version)
+        .sort(compareVersionsDesc);
+    },
   });
 
   // Sync the editable general fields from server data when it changes (adjust-state-during-render).
@@ -130,6 +147,22 @@ export default function OrganizationSettings() {
     })();
   };
 
+  // Set or clear (an empty string) the version a workspace runs when it names none.
+  const setDefaultVersion = (version: string) => {
+    if (!orgName) return;
+    setSavingFlag('default-terraform-version');
+    void (async () => {
+      try {
+        await patchOrg({ 'default-terraform-version': version });
+        toast.success(version ? `Default OpenTofu version set to ${version}` : 'Default OpenTofu version cleared');
+      } catch (err: unknown) {
+        toast.error(err instanceof Error ? err.message : 'Failed to update the default OpenTofu version');
+      } finally {
+        setSavingFlag(null);
+      }
+    })();
+  };
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
@@ -148,6 +181,11 @@ export default function OrganizationSettings() {
   }
 
   const busy = savingFlag !== null;
+  const defaultVersion = org.default_terraform_version ?? '';
+  // A default that has since been disabled or deprecated stays selectable, so the control shows
+  // what is stored rather than a blank.
+  const versionOptions =
+    defaultVersion && !tofuVersions.includes(defaultVersion) ? [defaultVersion, ...tofuVersions] : tofuVersions;
 
   return (
     <Page ramp="app">
@@ -230,6 +268,34 @@ export default function OrganizationSettings() {
           </CardDescription>
         </CardHeader>
         <CardContent className="divide-y">
+          <div className="flex flex-wrap items-start justify-between gap-6 py-3">
+            <div className="space-y-1">
+              <Label htmlFor="default-terraform-version" className="font-medium">Default OpenTofu version</Label>
+              <p className="text-sm text-muted-foreground">
+                Used when a workspace does not specify an OpenTofu version. Choose "Not set" to clear it.
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              {savingFlag === 'default-terraform-version' && (
+                <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+              )}
+              <Select
+                value={defaultVersion || NO_DEFAULT_VERSION}
+                onValueChange={(value) => { setDefaultVersion(value === NO_DEFAULT_VERSION ? '' : value); }}
+                disabled={busy}
+              >
+                <SelectTrigger id="default-terraform-version" className="w-48" aria-label="Default OpenTofu version">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={NO_DEFAULT_VERSION}>Not set</SelectItem>
+                  {versionOptions.map((version) => (
+                    <SelectItem key={version} value={version}>{version}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
           <PolicyRow
             id="allow-force-delete"
             label="Allow force-deleting workspaces"

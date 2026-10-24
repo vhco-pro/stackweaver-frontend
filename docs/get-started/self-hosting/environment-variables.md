@@ -137,6 +137,16 @@ State files and VCS tokens stored as plaintext remain readable: decryption toler
 | `ENABLE_OIDC_TEAM_SYNC` | Sync team memberships from OIDC claims | `false` |
 | `OIDC_REMOVE_FROM_NON_SSO_TEAMS` | Remove users from teams not managed by SSO | `false` |
 
+### Platform administration
+
+A platform administrator manages the installation itself: the OpenTofu versions catalogue, the list of platform administrators, and a read-only list of every organization. See [Platform administration](../../user-guides/platform-administration.md) for what the role can and cannot do. On Docker Compose these variables go in `sso.env`; on Kubernetes they come from the chart's `platform.*` values.
+
+| Variable | Description | Default |
+|---|---|---|
+| `STACKWEAVER_PLATFORM_ADMINS` | Comma-separated email addresses of the platform administrators the deployment declares. An address is matched case-insensitively against the email the identity provider reports as verified when that person signs in. A declared administrator cannot be removed through the API or the UI; removing an address from the list takes effect when the API restarts. When the list is empty, the API logs a warning at startup and nobody can reach the platform pages until the list is set. Declare only addresses you control at every identity provider this installation signs people in with, and declare them before anyone else could register them. In Kubernetes it comes from `platform.admins` | `ZITADEL_ADMIN_USERNAME` |
+| `ZITADEL_ADMIN_USERNAME` | The bootstrap admin's email address, the same value `zitadel-init` creates the first Zitadel user with. The API reads it only as the seed of the declared list when `STACKWEAVER_PLATFORM_ADMINS` is unset. The Compose files set it on the `api` service; the Helm chart sets it from `zitadel.init.adminUsername` when `zitadel.bundled` is `true` and leaves it unset for an external Zitadel | `admin@ZITADEL.localhost` (Compose) |
+| `STACKWEAVER_ORGANIZATION_CREATION` | Who may create organizations: `everyone`, or `platform-admins` to limit creation to platform administrators. Any other value stops the API at startup. In Kubernetes it comes from `platform.organizationCreation` | `everyone` |
+
 ### Miscellaneous
 
 | Variable | Description | Default |
@@ -404,11 +414,11 @@ When running with Docker Compose, environment variables are split across several
 | File | Purpose | Created by |
 |---|---|---|
 | `.env` | Core settings (encryption key, database, frontend URLs) plus the Zitadel credentials and client IDs | You, from `.env.example`; `zitadel-init` fills in the `ZITADEL_*` keys |
-| `sso.env` | SSO / external IdP and identity mail (SMTP) credentials | Manual (see `sso.env.example`) |
+| `sso.env` | Identity and access configuration: SSO / external IdP credentials, identity mail (SMTP), platform administrators and the organization-creation setting | Manual (see `sso.env.example`) |
 | `vcs.env` | VCS provider OAuth credentials (GitHub, Azure DevOps) | Manual (see `vcs.env.example`) |
 | `oidc.env` | OIDC workload identity signing key and issuer URL | Manual (see `oidc.env.example`) |
 
 > [!WARNING]
 > The `zitadel-init` container sets the `ZITADEL_*` keys in `.env` on every run and leaves every other
 > entry as it is. Do not edit the `ZITADEL_*` values by hand, because the next run replaces them.
-> Put SSO, VCS and workload identity settings in `sso.env`, `vcs.env`, and `oidc.env`.
+> Put identity and access settings (SSO, SMTP, platform administration) in `sso.env`, VCS settings in `vcs.env`, and workload identity settings in `oidc.env`.

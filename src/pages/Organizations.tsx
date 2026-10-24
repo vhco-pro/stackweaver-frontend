@@ -5,6 +5,7 @@ import { useMountEffect } from '@/hooks/useMountEffect';
 import { Link, useNavigate } from 'react-router-dom';
 import { organizationsApi, type Organization } from '@/api/client';
 import { useOrganization } from '@/contexts/OrganizationContext';
+import { usePlatformAdmin } from '@/hooks/usePlatformAdmin';
 import { Button } from '@/components/ui/button';
 import { GradientButton } from '@/components/ui/gradient-button';
 import { Page } from '@/components/layout/Page';
@@ -38,6 +39,9 @@ export default function Organizations() {
   const [formData, setFormData] = useState({ name: '', description: '' });
   const navigate = useNavigate();
   const { refreshOrganizations, switchOrganization } = useOrganization();
+  // Whether this person may create organizations: TFE's `permissions.can-create-organizations`
+  // on the account resource, which reflects the deployment's organization-creation setting.
+  const { canCreateOrganizations, loading: permissionLoading } = usePlatformAdmin();
 
   const fetchOrganizations = () => {
     void organizationsApi.list()
@@ -148,18 +152,21 @@ export default function Organizations() {
       Create Organization
     </GradientButton>
   );
-  const listState = loading ? 'loading' : organizations.length === 0 ? 'empty' : 'ready';
+  // Until the account resource answers, whether to offer creation is unknown, so the page
+  // stays in its loading state rather than showing the button or the substitute sentence.
+  const pageLoading = loading || permissionLoading;
+  const listState = pageLoading ? 'loading' : organizations.length === 0 ? 'empty' : 'ready';
   const header = (
     <PageHeader
       icon={Building2}
       title="Organizations"
       subtitle="Manage and organize your infrastructure organizations"
-      action={createOrganizationAction}
+      action={pageLoading || canCreateOrganizations ? createOrganizationAction : undefined}
       listState={listState}
     />
   );
 
-  if (loading) {
+  if (pageLoading) {
     return (
       <Page className="space-y-8">
         {header}
@@ -238,8 +245,12 @@ export default function Organizations() {
         <PageEmptyState
           icon={Building2}
           title="No Organizations Found"
-          description="Get started by creating your first organization."
-          action={createOrganizationAction}
+          description={
+            canCreateOrganizations
+              ? 'Get started by creating your first organization.'
+              : 'Organizations on this installation are created by a platform administrator. Ask yours to create one and add you to it.'
+          }
+          action={canCreateOrganizations ? createOrganizationAction : undefined}
         />
       )}
 

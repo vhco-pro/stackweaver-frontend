@@ -177,7 +177,7 @@ flowchart TB
 - **Organizations**: Top-level organizational units
 - **Projects**: Projects within organizations
 - **Teams**: Team-based access control (TFE-compatible)
-- **Users**: Local user accounts (mapped from Zitadel)
+- **Users**: Local user accounts (mapped from Zitadel), each carrying the platform administrator flag and whether the deployment declared it
 - **Terraform Resources**:
   - **Workspaces**: Terraform workspaces
   - **Runs**: Terraform execution runs (plan, apply, destroy)
@@ -205,7 +205,7 @@ flowchart TB
   - **API Keys**: API authentication tokens
   - **TFE Tokens**: Terraform Enterprise-compatible API tokens
   - **Azure OIDC Configurations**: Workload identity federation
-  - **OpenTofu Versions**: OpenTofu version catalog
+  - **OpenTofu Versions**: The install-wide OpenTofu version catalog, managed by platform administrators and shared by every organization
   - **Runners**: Runner agent registration and status
   - **GPG Keys**: Provider signing keys
 - **Audit Logs**: Activity audit trail
@@ -431,6 +431,7 @@ sequenceDiagram
   - Users belong to teams, inheriting team permissions
   - Default teams: "owners" (full access) and "viewers" (read-only)
 - **Resource-Level Permissions**: Users can only access resources they have permission for
+- **Platform Administrators**: A flag on the user, set from the deployment's declared list at sign-in or granted by another platform administrator, that reaches only the install-wide routes (the OpenTofu versions catalogue, the administrators list, the organization list) and gives no access inside an organization
 - **Auto-User Provisioning**: Users are automatically created on first login from Zitadel
 
 ### Network Security

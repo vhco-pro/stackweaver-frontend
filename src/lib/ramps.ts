@@ -108,6 +108,13 @@ export const RAMPS = {
     title: 'from-blue-600 via-cyan-600 to-blue-600 dark:from-blue-400 dark:via-cyan-400 dark:to-blue-400',
     icon: 'text-blue-600 dark:text-blue-400',
   },
+  // Install-wide pages, which act on every organization: a hue no organization or personal
+  // Settings page starts on, so a platform page never reads as one of those.
+  platform: {
+    ring: [pink, rose, pink],
+    title: 'from-pink-600 via-rose-600 to-pink-600 dark:from-pink-400 dark:via-rose-400 dark:to-pink-400',
+    icon: 'text-pink-600 dark:text-pink-400',
+  },
   integrations: {
     ring: [blue, indigo, purple],
     title: 'from-blue-600 via-indigo-600 to-purple-600 dark:from-blue-400 dark:via-indigo-400 dark:to-purple-400',
@@ -133,6 +140,8 @@ export const SETTINGS_PAGE_RAMPS: Record<string, RampName> = {
   'Settings/Organization.tsx': 'app',
   'Settings/OrganizationTokenSettings.tsx': 'apiKeys',
   'Settings/PersonalAccessTokens.tsx': 'personalTokens',
+  'Settings/PlatformAdministrators.tsx': 'platform',
+  'Settings/PlatformOrganizations.tsx': 'platform',
   'Settings/Preferences.tsx': 'preferences',
   'Settings/Profile.tsx': 'account',
   'Settings/RunTasks.tsx': 'runTasks',
