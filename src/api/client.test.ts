@@ -442,8 +442,8 @@ describe('platform documents (Phase 3)', () => {
     const sent = stubResponses({ status: 201, body: { data: { id: 'vc-1', type: 'vcs-connections', attributes: {} } } });
 
     await vcsConnectionsApi.create('acme', {
-      provider: 'gitlab',
-      access_token: 'glpat-x',
+      provider: 'azure_devops',
+      access_token: 'ado-x',
       account_name: 'acme',
       account_type: 'organization',
     });
@@ -453,7 +453,7 @@ describe('platform documents (Phase 3)', () => {
     expect(request.body).toEqual({
       data: {
         type: 'vcs-connections',
-        attributes: { provider: 'gitlab', access_token: 'glpat-x', account_name: 'acme', account_type: 'organization' },
+        attributes: { provider: 'azure_devops', access_token: 'ado-x', account_name: 'acme', account_type: 'organization' },
       },
     });
   });
