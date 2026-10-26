@@ -1,100 +1,110 @@
 ---
-description: "Step-by-step guide for configuring AWS Cognito as an SSO provider"
+description: "Understand the Cognito scope compatibility limit before attempting generic OIDC sign-in."
 covers:
   - "scripts/zitadel-init/**"
   - "deploy/sso.env.example"
   - "deploy/helm/**"
 ---
 
-# AWS Cognito SSO Setup
+# AWS Cognito SSO
 
-This guide walks you through configuring AWS Cognito as an external identity provider for StackWeaver using the Generic OIDC integration.
+> [!IMPORTANT]
+> The generic initializer requests `openid`, `profile`, `email` and `groups`. Cognito's
+> standard scopes do not include the bare `groups` name; custom scopes use a resource-server
+> prefix. Check your app client's actual authorization response for `invalid_scope` before
+> relying on this configuration. A token's `cognito:groups` claim is not an OAuth scope.
 
-## Step 1: Create a User Pool
+Keep the user-pool, confidential-client and deployment configuration below together. If you
+already have a working deployment, preserve its settings and validate any change against
+that deployment. The scope distinction alone does not establish the result of a live login.
 
-If you do not already have a Cognito User Pool, create one:
+## Prepare a user-pool client
 
-1. Sign in to the [AWS Management Console](https://console.aws.amazon.com).
-2. Navigate to **Amazon Cognito** > **User pools**.
-3. Click **Create user pool**.
-4. Choose your sign-in options (email, username, etc.) and configure security settings as needed.
-5. Under **App integration**, configure the hosted UI domain if you have not already.
-6. Complete the wizard and note the **User Pool ID** and **AWS Region**.
+1. In [Amazon Cognito](https://console.aws.amazon.com/cognito/), select or create a user pool.
+2. Configure a managed-login domain, either Cognito-provided or custom.
+3. Create a confidential app client with a generated secret and Authorization Code grant.
+4. Register the public Zitadel callback:
 
-## Step 2: Create an App Client
+   ```text
+   https://auth.example.com/idps/callback
+   ```
 
-1. In your User Pool, go to **App integration** > **App clients and analytics**.
-2. Click **Create app client**.
-3. Configure the app client:
-   - **App type**: Select **Confidential client**.
-   - **App client name**: `StackWeaver`
-   - **Generate a client secret**: Enabled.
-   - **Allowed callback URLs**: Add your Zitadel callback URL:
-     ```
-     https://zitadel.example.com/idps/callback
-     ```
-     Replace `zitadel.example.com` with your actual Zitadel domain. For a localhost-only setup, use `http://localhost:8080/idps/callback`. See the [Custom Domain guide](../authentication/zitadel-custom-domain.md) for how the callback URL is constructed.
-   - **Allowed sign-out URLs**: Add your StackWeaver frontend URL (optional).
-   - **OAuth 2.0 grant types**: Ensure **Authorization code grant** is selected.
-   - **OpenID Connect scopes**: Select `openid`, `profile`, and `email`.
-4. Click **Create app client**.
+   For a local HTTP installation, use `http://localhost:8080/idps/callback`.
+5. Allow the standard `openid`, `profile` and `email` scopes. Also verify how the client handles the
+   initializer's requested `groups` scope.
+6. Record the client ID, secret value, region and user-pool ID. The issuer is the user-pool
+   URL, not the managed-login domain:
 
-## Step 3: Note Your Application Details
+   ```text
+   https://cognito-idp.us-east-1.amazonaws.com/us-east-1_AbCdEfGhI
+   ```
 
-After creating the app client, note the following:
+## Group claims and scopes are different
 
-| Field | Where to find it | Example |
-|-------|-------------------|---------|
-| Client ID | App client settings | `1a2b3c4d5e6f7g8h9i0j` |
-| Client Secret | App client settings (click Show) | (copy the secret value) |
-| User Pool ID | User pool overview | `us-east-1_AbCdEfGhI` |
-| AWS Region | User pool overview | `us-east-1` |
+Cognito user-pool groups can appear as `cognito:groups` in tokens. That is a token claim,
+not an OAuth scope named `groups`. Stackweaver recognizes the claim name when it reaches
+the group-capture path, but that does not prove that this client can complete the whole
+sign-in flow. Do not add a fictional scope or assume group delivery through userinfo.
 
-Your OIDC Issuer URL follows the pattern:
-```
-https://cognito-idp.{region}.amazonaws.com/{user-pool-id}
-```
+## Optional Cognito groups
 
-For example: `https://cognito-idp.us-east-1.amazonaws.com/us-east-1_AbCdEfGhI`
+1. In the user pool, open **Groups** and create the group identifiers you want to map.
+2. Add a test user to the intended groups.
+3. Inspect the upstream token's `cognito:groups` claim, then the Stackweaver token's
+   `sso_groups` and actual team membership. Claim presence is not the whole access check.
 
-## Step 4: Configure Group Claims (Optional)
+The webhook can read supported groups from raw provider information or upstream ID/access
+tokens. Do not require the same group claim to be duplicated in userinfo.
 
-Cognito supports groups natively. To forward group memberships to StackWeaver:
+## Provider behavior
 
-1. In your User Pool, go to **Groups**.
-2. Create groups that correspond to your StackWeaver teams (e.g., `engineering`, `platform-team`).
-3. Add users to the appropriate groups.
+| Setting | Behavior |
+|---|---|
+| New accounts. | SSO can create accounts with provider email treated as verified, including when public sign-up is disabled. |
+| Profile. | The integration enables provider profile updates. |
+| Existing email. | The application refuses a first SSO registration whose email already belongs to an account and asks for password sign-in first. |
+| Organization access. | Requires invitation or a verified team mapping; account creation alone does not grant it. |
+| Generic provider slot. | One environment/Helm-configured generic provider, alongside Entra's separate dedicated integration. |
+| Identity/profile mapping. | Uses userinfo. Group extraction separately checks raw information and upstream tokens. |
 
-Cognito automatically includes group memberships in the `cognito:groups` claim of the ID token. No additional configuration is required. StackWeaver's group capture action handles both the standard `groups` claim and the Cognito-specific `cognito:groups` claim.
+## Deployment inputs
 
-## Step 5: Configure StackWeaver
+Use these Compose or Helm inputs after checking the client's scopes and callback.
+Keep a working administrator sign-in available while testing the identity flow.
 
-Choose the instructions for your deployment method.
+## Configure the deployment
+
+Use one deployment path. These settings configure the installed identity service; there is
+no Stackweaver provider resource or management YAML for registering this external IdP.
+Never put persistent settings in generated `.env`.
 
 ### Docker Compose
 
-Add the following variables to **`sso.env`** in your Compose directory (the directory that holds `docker-compose.yml`; `zitadel-init` never overwrites this file):
+Save this in `sso.env`, beside `docker-compose.yml`. Replace the example credentials and
+keep the file out of version control.
 
-```bash
-# AWS Cognito SSO Configuration
-OIDC_IDP_NAME=AWS Cognito
+```dotenv
+OIDC_IDP_NAME="AWS Cognito"
 OIDC_IDP_ISSUER=https://cognito-idp.us-east-1.amazonaws.com/us-east-1_AbCdEfGhI
-OIDC_IDP_CLIENT_ID=1a2b3c4d5e6f7g8h9i0j
-OIDC_IDP_CLIENT_SECRET=your-client-secret-value
+OIDC_IDP_CLIENT_ID=replace-with-client-id
+OIDC_IDP_CLIENT_SECRET=replace-with-client-secret
 ```
 
-Replace the example values with your actual Cognito app client details.
-
-Then restart the `zitadel-init` service:
+Apply the initializer input, then recreate consumers of its generated credentials:
 
 ```bash
-# Run in your Compose directory
-docker compose up -d zitadel-init
+docker compose run --rm zitadel-init
+docker compose up -d
 ```
+
+Inspect the one-off initializer command's output before continuing. Its `--rm` container
+is removed on exit; `docker compose logs zitadel-init` does not retain that output.
 
 ### Kubernetes / Helm
 
-Create a Kubernetes Secret with the client secret:
+Create the client-secret Secret in the release namespace. This command is for a new Secret;
+update an existing Secret through your usual secret-management process. Replace the sample
+secret locally and avoid exposing it in shell history.
 
 ```bash
 kubectl create secret generic stackweaver-sso \
@@ -102,7 +112,7 @@ kubectl create secret generic stackweaver-sso \
   --from-literal=oidc-idp-client-secret="your-client-secret-value"
 ```
 
-Add the Cognito configuration to your Helm values file:
+Merge this into `my-values.yaml`, preserving your other release settings:
 
 ```yaml
 sso:
@@ -113,95 +123,35 @@ sso:
     clientId: "1a2b3c4d5e6f7g8h9i0j"
 ```
 
-Then upgrade the release:
+Apply it to the existing release:
+
+Set `STACKWEAVER_CHART_VERSION` locally to the installed chart version shown by
+`helm list --namespace stackweaver`. Preserve your release values; changing identity or VCS
+settings is not an instruction to upgrade the platform.
 
 ```bash
 helm upgrade stackweaver oci://ghcr.io/vhco-pro/charts/stackweaver \
+  --version "${STACKWEAVER_CHART_VERSION:?Set the installed chart version}" \
   --namespace stackweaver \
   --values my-values.yaml
+kubectl logs deployment/stackweaver-zitadel -c zitadel-init --namespace stackweaver
 ```
 
-### Verify the configuration
+These recipes require the bundled Stackweaver initializer. An externally managed Zitadel
+installation needs its own IdP and Actions configuration; this guide does not supply that
+manual procedure. See [Zitadel setup](../authentication/zitadel-setup.md) for deployment boundaries.
 
-The `zitadel-init` service will detect the OIDC environment variables and:
+## Verify before enabling users
 
-1. Register the OIDC provider in Zitadel with the name "AWS Cognito".
-2. Add the provider to the login policy so a "Sign in with AWS Cognito" button appears.
-3. Create Zitadel Actions to capture and forward group claims (including `cognito:groups`) through the JWT.
+Inspect the actual authorization request, requested scopes and provider response. Stop on
+an unsupported-scope error. A created provider or visible sign-in button is not a successful
+end-to-end test. After compatibility is resolved, verify sign-in, user profile/email and
+organization membership separately, following the [generic guide](./generic-oidc.md).
 
-Check the logs to verify:
+For a redirect mismatch, compare the browser request with the registered Zitadel callback
+and use the [custom-domain guide](../authentication/zitadel-custom-domain.md). For group
+mapping, test a nonprivileged account and read [team mapping](./team-mapping.md), including
+its empty-group and cross-provider limits.
 
-**Docker Compose:**
-```bash
-docker compose logs zitadel-init
-```
-
-**Kubernetes:**
-```bash
-kubectl logs -f deployment/stackweaver-zitadel -c zitadel-init --namespace stackweaver
-```
-
-## Step 6: Test the Integration
-
-1. Open StackWeaver in your browser.
-2. On the login page, you should see a "Sign in with AWS Cognito" button.
-3. Click it to be redirected to the Cognito hosted UI.
-4. Sign in with your Cognito credentials.
-5. On first login, Zitadel auto-provisions the user and redirects you back to StackWeaver.
-
-After the first login, the user is provisioned but does not have access to any organization. An admin must invite the user, or you can configure [team mapping](./team-mapping.md) for automatic access.
-
-## Provider Behavior
-
-| Setting | Value | Description |
-|---------|-------|-------------|
-| Auto-creation | Enabled | New users are automatically created in Zitadel on first login, with their email marked as verified, even when public sign-up is off |
-| Auto-update | Enabled | User profile is synced on each login |
-| Account linking | Not automatic | A first sign-in whose email already belongs to an existing account is refused, and the person is asked to sign in with their password first |
-| Token mapping | Userinfo endpoint | Claims are read from the OIDC userinfo endpoint |
-| Scopes | `openid`, `profile`, `email` | Standard OIDC scopes |
-
-## Cognito-Specific Notes
-
-### Group Claim Format
-
-Cognito sends group memberships as `cognito:groups` rather than the standard `groups` claim. StackWeaver's Zitadel Actions are configured to handle both formats automatically. The captured groups appear as `sso_groups` in the StackWeaver JWT regardless of the original claim name.
-
-### Hosted UI Domain
-
-Cognito requires a configured domain for the hosted UI. If you have not set one up:
-
-1. Go to **App integration** > **Domain name**.
-2. Choose either a Cognito-provided domain (e.g., `your-domain.auth.us-east-1.amazoncognito.com`) or a custom domain.
-3. The domain is used for the hosted login page that Zitadel redirects to.
-
-### Token Endpoint Authentication
-
-The app client must be configured as a **Confidential client** with a client secret. Public clients (without a secret) are not supported for this integration.
-
-## Troubleshooting
-
-### Login button does not appear
-
-Verify that `OIDC_IDP_CLIENT_ID` is set and non-empty in `sso.env`. Re-run `zitadel-init` and check the logs.
-
-### "Invalid redirect URI" error
-
-Ensure the callback URL in your Cognito app client matches the callback URL that Zitadel uses:
-```
-https://{your-zitadel-domain}/idps/callback
-```
-
-The callback URL is constructed from the request's domain context, not directly from configuration. See the [Custom Domain guide](../authentication/zitadel-custom-domain.md) for details.
-
-### User authenticated but no organization access
-
-This is expected. SSO users are provisioned without organization membership. Either invite the user to an organization or configure [team mapping](./team-mapping.md).
-
-### Groups not appearing in StackWeaver
-
-1. Verify the user is assigned to at least one Cognito group.
-2. Check that the app client has `openid` in its scopes.
-3. Cognito groups are sent automatically in the `cognito:groups` claim; no additional claim configuration is needed.
-
-> **Note:** StackWeaver uses the Generic OIDC integration for AWS Cognito. Only one Generic OIDC provider can be configured at a time through environment variables. Azure AD uses a separate dedicated integration and can be configured alongside Cognito.
+See AWS's [app-client settings](https://docs.aws.amazon.com/cognito/latest/developerguide/user-pool-settings-client-apps.html)
+and [scope definitions](https://docs.aws.amazon.com/cognito/latest/developerguide/cognito-user-pools-define-resource-servers.html).

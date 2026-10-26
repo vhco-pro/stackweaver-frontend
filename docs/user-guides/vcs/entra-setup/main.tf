@@ -13,7 +13,8 @@
 #   terraform init
 #   terraform apply -var='redirect_uris=["https://your-stackweaver-domain/vcs/azure-devops/callback"]'
 #
-# After apply, copy the outputs into deploy/vcs.env and run: make fresh-backend
+# After apply, copy outputs into vcs.env and recreate api, orchestrator and ansible-runner.
+# Variables and outputs are defined in their adjacent files.
 
 terraform {
   required_providers {
@@ -31,27 +32,6 @@ provider "azuread" {
 data "azuread_client_config" "current" {}
 
 # ---------------------------------------------------------------------------
-# Variables
-# ---------------------------------------------------------------------------
-
-variable "redirect_uris" {
-  description = "Frontend OAuth2 callback URLs. For local dev use [\"http://localhost:5173/vcs/azure-devops/callback\"]. For production replace with your Stackweaver frontend domain."
-  type        = list(string)
-}
-
-variable "display_name" {
-  description = "Display name for the app registration in Entra ID."
-  type        = string
-  default     = "Stackweaver"
-}
-
-variable "secret_end_date" {
-  description = "Expiry for the client secret (ISO 8601). Rotate the secret before this date."
-  type        = string
-  default     = "2027-01-01T00:00:00Z"
-}
-
-# ---------------------------------------------------------------------------
 # Azure DevOps service principal
 #
 # Provisions the Azure DevOps enterprise application into this tenant.
@@ -61,7 +41,7 @@ variable "secret_end_date" {
 
 resource "azuread_service_principal" "azure_devops" {
   client_id    = "499b84ac-1321-427f-aa17-267ca6975798" # Azure DevOps (global Microsoft app)
-  use_existing = true                                     # Use existing SP if already provisioned
+  use_existing = true                                   # Use existing SP if already provisioned
 }
 
 # Resolve delegated permission scope GUIDs from the Azure DevOps service principal.
@@ -130,24 +110,4 @@ resource "azuread_application_password" "stackweaver" {
   application_id = azuread_application.stackweaver.id
   display_name   = "${var.display_name} client secret"
   end_date       = var.secret_end_date
-}
-
-# ---------------------------------------------------------------------------
-# Outputs - copy these into deploy/vcs.env
-# ---------------------------------------------------------------------------
-
-output "AZURE_DEVOPS_CLIENT_ID" {
-  description = "Set as AZURE_DEVOPS_CLIENT_ID in deploy/vcs.env"
-  value       = azuread_application.stackweaver.client_id
-}
-
-output "AZURE_DEVOPS_CLIENT_SECRET" {
-  description = "Set as AZURE_DEVOPS_CLIENT_SECRET in deploy/vcs.env"
-  value       = azuread_application_password.stackweaver.value
-  sensitive   = true
-}
-
-output "AZURE_DEVOPS_TENANT_ID" {
-  description = "Set as AZURE_DEVOPS_TENANT_ID in deploy/vcs.env only for single-tenant mode. Leave unset (or set to 'common') for multi-tenant."
-  value       = data.azuread_client_config.current.tenant_id
 }

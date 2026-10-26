@@ -1,214 +1,146 @@
 ---
-description: "Guide for reading plan and apply outputs, interpreting resource changes, and tracking run history"
+description: "Choose a run type, review planned changes and verify apply results before acting."
 covers:
   - "core/plugins/opentofu/**"
   - "frontend/src/pages/RunDetail.tsx"
   - "frontend/src/pages/WorkspaceDetail.tsx"
   - "frontend/src/components/workspace/CreateRunDialog.tsx"
+capabilities: [
+  {
+    "id": "opentofu-runs",
+    "name": "Plans, applies and run history",
+    "summary": "Preview infrastructure changes, confirm an apply and inspect the recorded result.",
+    "area": "opentofu",
+    "availability": "available",
+    "limitations": "Auto-apply removes the confirmation step, including for destroy runs. Plan-only runs cannot be applied.",
+    "evidence": [
+      "backend/internal/api/v2/handlers/terraform/runs.go",
+      "core/plugins/opentofu/plugin.go",
+      "frontend/src/components/workspace/CreateRunDialog.tsx"
+    ]
+  }
+]
 ---
 
-# Understanding OpenTofu Runs
+# Read OpenTofu runs
 
-Learn how to read plan and apply outputs, interpret resource changes, and make sense of your OpenTofu run history.
+A run records an OpenTofu execution against a workspace. Review its configuration and plan
+before approving changes, then check the apply result and state. Plan and apply are phases
+of a run, not interchangeable signs that the work is finished.
 
-## What Are Runs?
+## Choose the run type
 
-A run is StackWeaver's term for executing OpenTofu. There are two main types:
+Open the workspace and select **New run**. Choosing Plan & Apply or Plan Only queues it;
+Destroy opens a separate confirmation first.
 
-- **Plans**: Show what OpenTofu would change (no actual changes made)
-- **Applies**: Actually make the changes OpenTofu planned
+![The workspace run-type chooser before queuing any execution.](./images/workspace-new-run.png)
 
-Runs can also be plan-only, apply-only, or refresh-only depending on what you're trying to do.
+| Choice | What happens |
+|---|---|
+| Plan & Apply. | Create a plan, then wait for apply confirmation unless auto-apply is enabled. |
+| Plan Only. | Create a plan that cannot subsequently be applied. |
+| Destroy. | Plan removal of all managed resources, subject to the workspace's destroy permission and confirmation. |
 
-## Starting a Run
+> [!WARNING]
+> Auto-apply also applies to destroy runs. Once the destroy plan finishes, resources can
+> be removed without a second approval. The dialog requires the exact workspace name
+> before it will queue a destroy; check the workspace and auto-apply setting first.
 
-The **New run** button on a workspace page opens a dialog with three choices. **Plan & Apply** plans the changes and then waits for you to confirm the apply, unless the workspace has auto-apply turned on, in which case it applies as soon as the plan finishes. **Plan Only** previews the changes and can never be applied. **Destroy** removes every resource the workspace manages.
+**Allow destroy plans** controls whether the workspace accepts destroy runs. When disabled,
+the UI explains the refusal and the API rejects a destroy request with `422`. It does not
+block normal plan or apply runs.
 
-A destroy is never queued from a single click. Choosing **Destroy** asks you to type the workspace's name, and the **Queue destroy run** button stays disabled until what you typed matches the name exactly. The dialog also tells you what will happen next: on a workspace without auto-apply the destroy plans first and waits for your confirmation before it removes anything, and on a workspace with auto-apply it removes the resources as soon as its plan finishes, with no further step. **Back** returns to the three choices, and closing the dialog discards what you typed.
+Plan-only is an apply restriction, not a sandbox for untrusted configuration. Provider
+reads, external programs and other planning-time behavior still run with the available
+network access and credentials.
 
-A workspace can refuse destroy runs altogether through its `allow-destroy-plan` setting, which is on by default and can be turned off with the **Allow destroy plans** checkbox when creating or editing the workspace, or through the API. The **Workspace Settings** panel on the workspace page shows whether it is on. While it is off, the **Destroy** choice is disabled and says why, pointing at the checkbox under **Edit**, and the API answers a destroy run for that workspace with `422`. Plan & Apply and Plan Only are not affected.
+## Review the plan
 
-## Reading Plan Output
+1. Check the workspace, configuration version/commit, trigger and time. Do not approve
+   a plan from an unintended branch or stale configuration.
+2. Read the add/change/destroy totals. Investigate unexpected deletions and replacements.
+3. Expand affected resources to inspect the attribute changes and warnings.
+4. If structured output is incomplete, open **View Raw Output** and inspect the terminal
+   or JSON representation.
+5. Approve only after the plan and any required external checks are acceptable.
 
-When you queue a plan, OpenTofu analyzes your configuration and current state to determine what needs to change.
+OpenTofu's diff notation distinguishes changes from actions already performed:
 
-### The Plan Summary
-
-At the top of every plan, you'll see a summary:
-
-- **Resources to add**: New resources that will be created
-- **Resources to change**: Existing resources that will be modified
-- **Resources to destroy**: Resources that will be deleted
-
-### Resource Change Cards
-
-Each resource appears as a card showing:
-
-- **Resource type and name**: Like `aws_instance.web_server`
-- **Actions**: + for create, ~ for modify, - for destroy
-- **Change summary**: What's changing (shown as a diff)
-
-Expand any resource card to see:
-- Full attribute diff
-- Before and after values
-- Any warnings or notes
-
-### Understanding the Diff
-
-OpenTofu shows changes using standard diff notation:
-
-```
+```text
 ~ resource "aws_instance" "example" {
     ~ instance_type = "t2.micro" -> "t2.small"
-      # (other attributes unchanged)
   }
 ```
 
-The `~` means this attribute is being modified. You'll see the old value (`t2.micro`) and new value (`t2.small`).
+This plan proposes changing `instance_type`; it does not prove that the change was applied.
+A replacement can include both a create and a destroy action.
 
-### Plan-Only Runs
-
-Sometimes you just want to see what would change without applying:
-
-- **Speculative plans**: Run on pull requests to preview changes
-- **Planning without applying**: Review changes before committing
-
-> [!TIP]
-> Plan-only runs are safe - they never modify your infrastructure.
-
-### Run Task Stages
-
-If the workspace has run tasks attached (external checks such as security scanners or cost gates), the run pauses at their configured stage boundaries and the run page shows each stage with its per-task results. An advisory task's failure is informational and the run continues; a mandatory task's failure holds the run until someone with apply permissions overrides it from the run page. See the [Run Tasks guide](run-tasks.md) for setting them up.
-
-## Understanding Apply Output
-
-Applies actually make the changes. The output is similar to plans but shows real-time progress.
-
-### Real-Time Updates
-
-During an apply:
-
-1. Resources update in real-time as they're created/modified/destroyed
-2. Status indicators show progress (queued → running → complete)
-3. You can watch the live terminal output
-
-### Apply Phases
-
-Applies happen in phases:
+## Follow checks and the apply
 
 ```mermaid
 flowchart LR
-    A["Initialization"] --> B["Planning"]
-    B --> C["Applying"]
-    C --> D["Completion"]
+    A["Initialize"] --> B["Plan"]
+    B --> C["Review and checks"]
+    C --> D["Apply"]
+    D --> E["Verify result and state"]
 ```
 
 <details>
-<summary><strong>Flow Steps (Legend)</strong></summary>
+<summary>What the phases mean</summary>
 
-1. **Initialization** - OpenTofu sets up and loads modules.
-2. **Planning** - OpenTofu creates the execution plan (same as plan-only).
-3. **Applying** - Changes are made to actual resources.
-4. **Completion** - State is saved and outputs are available.
+- Initialization prepares the configuration, modules and providers.
+- Planning computes the proposed changes. Plan-only runs finish without an apply.
+- Review includes required run-task stages and manual approval where configured.
+- Applying changes real resources; the output records progress and failures.
+- Verification checks the terminal result, outputs and recorded state version.
 
 </details>
 
-### Resource Status During Apply
+[Run tasks](./run-tasks.md) can pause at configured stage boundaries. Advisory failures are
+informational; mandatory failures hold the run unless an authorized user overrides them.
+Read the finding before choosing an override.
 
-As resources are applied, you'll see:
+During apply, follow resource progress and expand failures. Afterward, confirm the final
+status and review the saved outputs and state version. A failed apply may have changed
+some resources already; do not assume it rolled everything back.
 
-- **Pending**: Waiting to be processed
-- **Creating/Updating/Destroying**: Currently being modified
-- **Complete**: Successfully finished
-- **Failed**: Something went wrong
+## Inspect a run through the API
 
-Click any resource to see detailed apply logs.
+For automation, use read requests with a token allowed to access that workspace. Set
+`STACKWEAVER_URL`, `STACKWEAVER_TOKEN` and the actual `RUN_ID` locally:
 
-## Reading Raw Output
+```bash
+curl --fail-with-body --silent --show-error \
+  "$STACKWEAVER_URL/api/v2/runs/$RUN_ID" \
+  --header "Authorization: Bearer $STACKWEAVER_TOKEN"
+```
 
-Sometimes you need the full OpenTofu output. Switch to the "Raw Output" tab to see:
+Inspect `data.attributes.status` and the related workspace/plan information. Retrieve saved
+outputs separately:
 
-- **Plan output**: Full JSON or terminal output
-- **Terminal view**: Exactly what you'd see running OpenTofu locally
-- **JSON view**: Structured output for automation
+```bash
+curl --fail-with-body --silent --show-error \
+  "$STACKWEAVER_URL/api/v2/runs/$RUN_ID/outputs" \
+  --header "Authorization: Bearer $STACKWEAVER_TOKEN"
+```
 
-> [!NOTE]
-> The raw output is especially useful for debugging or when you need details not shown in the UI cards.
+The [API viewer](/docs/api-reference/explorer) documents creation, actions and output
+schemas. Terraform/OpenTofu CLI remote execution can also queue plans through the
+workspace's configured backend; see [your first workspace](../get-started/your-first-opentofu-workspace.md).
+The management provider configures workspace behavior, not an equivalent YAML run record.
+Do not invent a repository YAML definition for reviewing a run.
 
-## Run History
+## Investigate a failure
 
-Every run is saved so you can:
+| Where it stopped | Start here |
+|---|---|
+| Queued. | Runner availability, routing and workspace lock. |
+| Initialization or plan. | Raw output, selected configuration, provider/version and credentials. |
+| Waiting for confirmation/checks. | Plan review, run-task findings and the required permission. |
+| Apply. | First meaningful provider/resource error and any partial changes. |
+| Result differs from an earlier run. | Compare commits, inputs, provider lock files, state versions and output. |
 
-- **Review past plans**: See what was planned before an apply
-- **Track changes over time**: Understand how your infrastructure evolved
-- **Debug issues**: Compare failed runs to successful ones
-- **Audit changes**: Know who made what changes and when
-
-### Run Metadata
-
-Each run shows:
-
-- **Who triggered it**: User name or system (for PR plans)
-- **When it ran**: Timestamp
-- **Why it ran**: Source (manual, PR, scheduled, etc.)
-- **Configuration version**: Git commit and branch
-- **Duration**: How long the run took
-
-## Common Scenarios
-
-### Reviewing a Pull Request Plan
-
-When you open a PR, StackWeaver automatically runs a speculative plan:
-
-1. Check the plan summary - are the changes what you expected?
-2. Review resource cards - any surprises?
-3. Look for warnings - issues that won't fail but might cause problems
-4. Share the plan link in PR comments for team review
-
-### Understanding a Failed Run
-
-If a run fails:
-
-1. Check the error message at the top
-2. Look for failed resources in red
-3. Expand failed resources to see detailed error messages
-4. Review the raw terminal output for full stack traces
-
-Common failure reasons:
-- **Invalid configuration**: Syntax errors or wrong resource types
-- **Provider errors**: API issues or authentication problems
-- **State conflicts**: Resources changed outside OpenTofu
-- **Dependency issues**: Resources depending on non-existent resources
-
-### Reviewing Past Runs
-
-To understand what changed between runs, review the run history for the workspace. Each run includes its configuration version (Git commit), resource diffs, and metadata showing what triggered it.
-
-## Tips for Effective Run Review
-
-**Before applying:**
-
-- Always review the plan summary first
-- Expand and check resources marked for destruction
-- Look for unexpected changes (might indicate drift or config issues)
-- Check warnings even if they won't block the run
-
-**After applying:**
-
-- Verify the apply completed successfully
-- Check any resources that show warnings
-- Review the state version that was created
-- Note any outputs that were generated
-
-**For debugging:**
-
-- Use raw output when UI cards don't show enough detail
-- Check the terminal output for full error messages
-- Compare to previous successful runs
-- Look at the configuration version (Git commit) to see what changed
-
-## Next Steps
-
-- Learn about [managing workspace variables](./managing-workspace-variables.md)
-- Explore [VCS path filtering](../features/opentofu/vcs-path-filtering.md) for automatic PR plans
-- Read about [workspace editing](../features/opentofu/workspace-editing.md) to modify workspace settings
+Use the workspace's run history to open a known successful run and compare the same fields.
+Keep run IDs and redacted error text for support. See [troubleshooting](./troubleshooting-common-issues.md),
+[variables](./managing-workspace-variables.md) and [VCS path filtering](../features/opentofu/vcs-path-filtering.md)
+for the next diagnostic step.

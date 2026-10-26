@@ -6,21 +6,31 @@ covers:
   - "backend/internal/services/auth/**"
 ---
 
-# Migrating from Terraform Cloud or Enterprise
+# Migrate from Terraform Cloud or Enterprise
 
-Stackweaver speaks the Terraform Enterprise API, so most of a migration is repointing the CLI rather than rewriting configuration. This guide covers what changes, what does not, and how to tell in advance whether the resources you use are supported.
+Move a workspace's configuration, inputs and state to a Stackweaver host, then review a plan before allowing changes. TFE API compatibility helps reuse tooling, but changing a hostname alone does not copy workspaces, credentials or state.
 
-The short version: your `terraform` or `tofu` binary, your modules and your state all stay as they are. What changes is the hostname you talk to and the token you talk to it with.
+## Plan the cutover
 
-## Pointing the CLI at Stackweaver
+| Move or recreate | Keep separately |
+|---|---|
+| Create the destination organization, project and workspace. | Keep the old workspace readable for its run and audit history. |
+| Reconnect VCS and recreate variables, variable sets and other settings. | Sensitive source values cannot be read back for export. Recover them from their original secret source. |
+| Transfer state using a method supported by your CLI/backend combination. | Keep a protected state backup and record which backend is authoritative. |
+| Recreate API credentials on Stackweaver. | Source-platform tokens do not become Stackweaver tokens. |
 
-Terraform discovers a backend's capabilities from a well-known document, and Stackweaver serves the same one Terraform Enterprise does. You can see exactly what your host advertises:
+Use [the provider guide](./terraform-provider.md) for destination resource configuration and the evidence table below to assess your TFE resources. A state transfer does not transfer variables or VCS settings.
 
+## Connect your CLI
+
+Replace the host and organization below with your installation. Discovery is available at:
+
+```bash
+curl --fail-with-body --silent --show-error \
+  https://your-stackweaver-host/.well-known/terraform.json
 ```
-curl https://your-stackweaver-host/.well-known/terraform.json
-```
 
-Change the hostname in your `cloud` block and nothing else:
+For a destination workspace, the `cloud` block in your root configuration is:
 
 ```hcl
 terraform {
@@ -35,42 +45,73 @@ terraform {
 }
 ```
 
-The same applies to a `remote` backend block, and to the `hashicorp/tfe` provider, which reads `TFE_HOSTNAME` and `TFE_TOKEN` natively.
+This selects a backend; it does not perform the transfer. A `remote` backend also accepts the Stackweaver hostname. The `hashicorp/tfe` provider uses `TFE_HOSTNAME` and `TFE_TOKEN`; configure it separately from backend login.
 
-## Tokens
+```bash
+terraform login your-stackweaver-host
+```
 
-`terraform login your-stackweaver-host` works the way it does against Terraform Cloud, and stores its credential in the same place.
+Use a Stackweaver `tfe-` API credential authorized for the destination organization:
 
-Stackweaver API tokens and Terraform Cloud tokens are the same kind of credential on the wire: Stackweaver mints its keys with a `tfe-` prefix, and the API treats that prefix as authoritative for programmatic access. A token you create in Stackweaver's UI can be pasted into `~/.terraform.d/credentials.tfrc.json`, exported as `TFE_TOKEN`, or used with `curl` against the API, without conversion.
+- A **personal user token**, created under **Settings > API Tokens** or by `terraform login`,
+  acts as your user across organizations you belong to. Each organization can disable
+  this access with its **Allow user tokens** policy.
+- An **organization API key**, created under the organization's **Settings > API Keys**,
+  is bound to one organization and can have narrower scopes. Use one key per organization
+  when automation should stay within that boundary.
 
-One difference worth planning for: **Stackweaver has two kinds of API token**. A personal user token, minted under Settings > API Tokens or by `terraform login`, acts as you in every organization you belong to, like a Terraform Cloud user token, unless an organization switches off its **Allow user tokens** policy (see the organization settings guide). An organization API key, created under the organization's Settings > API Keys, is bound to one organization and can carry narrower scopes, so automation that should reach only one organization uses an organization key, and automation that spans several either uses a personal token or one organization key per organization.
+Organization creation requires a user credential and must also be allowed by the deployment's
+organization-creation policy. See [Using the API](../architecture/using-the-api.md) for token
+restrictions. A Zitadel access token is not an API credential.
 
-## Migrating state
+## Transfer and verify state
 
-State lives in Stackweaver's own object storage, and there is no special import path - the ordinary Terraform state commands do the work.
+1. Stop automatic triggers and concurrent applies on the source and destination while transferring ownership. Record which workspace currently owns the infrastructure.
+2. With the CLI still connected to the **source**, take a backup:
 
-For each workspace, point the `cloud` block at Stackweaver, then run `terraform init` and let Terraform migrate the state when it offers to. Take a `terraform state pull` from the old backend first: it costs nothing and it is the only copy you control if something goes wrong mid-migration.
+   ```bash
+   terraform state pull > source-workspace.tfstate
+   ```
 
-Run `terraform plan` before `terraform apply` on the other side. A clean plan is the signal that the state arrived intact; a plan proposing to recreate resources is the signal to stop and look at why.
+   Treat the file as secret material, keep it outside version control, and confirm it is a readable state snapshot before changing backend settings.
+3. Prepare the destination workspace, variables, credentials and execution settings. Use the bounded empty-destination transfer below if its prerequisites apply. Review each initialization prompt; do not assume `terraform init` offers an automatic transfer between two hosted workspaces.
+4. Confirm the destination state contains the expected resource addresses and lineage. Review a destination plan against the intended configuration before any apply. Unexpected creates, destroys or replacements are a reason to stop and compare state, inputs and provider versions.
+5. Enable destination triggers only after the review, and leave the source unable to apply. Keep the backup and source history for your retention period.
 
-## What to expect at cutover
+A clean plan is useful evidence, but it does not by itself prove that every source setting or state object migrated. Check outputs, provider identities and workspace inputs too. If transfer is uncertain, keep both sides paused and reconcile against the saved backup before retrying.
 
-- **Runs and their history do not migrate.** Workspaces arrive with their state and their variables, not with their past runs. Keep the old organization readable for as long as you need the audit trail.
-- **VCS connections are re-established, not moved.** Stackweaver's VCS integration is its own OAuth app, so repositories are reconnected once per organization.
-- **Variable sets and workspace variables carry over as configuration**, but sensitive values do not: Stackweaver cannot read them from Terraform Cloud, and neither can you. Plan to re-enter every sensitive variable.
-- **The API is JSON:API**, as Terraform Enterprise's is, so tooling written against `go-tfe` works unmodified. Stackweaver also publishes a full [OpenAPI description](/docs/api-reference) of every endpoint it serves, which you can read in the browser or generate a client from.
+### Manual transfer to an empty destination
+
+Use this path only when the destination workspace has no managed resources or state to preserve, both sides are paused, and your Terraform CLI supports the configured backend and state format. Use the same CLI version as the source initially and a credential with destination state-write permission. Rehearse against a disposable workspace first.
+
+In a **separate clean checkout** of the same root module and dependency lock file, configure the destination hostname/organization/workspace as above. Do not copy the source checkout's `.terraform` directory. Initialize that destination checkout:
+
+```bash
+terraform init
+```
+
+Confirm the selected hostname and workspace are the empty destination. Stop if they are wrong or initialization asks you to overwrite an existing state. Place the protected source backup outside this checkout, then run from the initialized destination checkout:
+
+```bash
+terraform state push /secure-backups/source-workspace.tfstate
+terraform state pull > /secure-backups/destination-workspace.tfstate
+terraform state list
+terraform plan
+```
+
+Replace `/secure-backups` with an existing protected directory. Confirm the destination readback's lineage, resource addresses and outputs against the source backup, then review the plan. Keep sensitive readback files out of version control. A version, lineage or serial refusal is a stop condition: do not bypass it with `-force` or `-ignore-remote-version`. Preserve the destination snapshot and investigate the mismatch before retrying.
+
+[Terraform state push](https://developer.hashicorp.com/terraform/cli/commands/state/push) writes to the currently configured backend and includes overwrite safeguards. It is a manual state operation, not a transfer of settings or history. For another CLI or a destination with existing state, choose its documented migration procedure instead of applying this example unchanged. See [remote backend configuration](https://developer.hashicorp.com/terraform/language/backend/remote) for backend constraints.
 
 ## Which resources are verified
 
-The table below is **generated from a test harness**, not written by hand. The harness drives the stock `hashicorp/tfe` provider against a running Stackweaver and asserts a full lifecycle for each resource: apply, confirm no drift, destroy, then confirm the resource is really gone.
+The following table is generated from a lifecycle-test snapshot. It is not a live guarantee for your installed version.
 
-Read the states precisely, because they say different things:
-
-- **verified** - the lifecycle passed. This resource works.
-- **did not pass** - a fixture exists and the run did not complete. That may mean Stackweaver does not implement the resource, or that the fixture itself is wrong. The table does not guess which.
-- **untested** - no fixture exercises this resource. It may work perfectly; nothing here demonstrates that either way.
-
-Deliberately absent is any row claiming a resource is *unsupported*. That is a judgment, and this table only reports evidence.
+| Result | Meaning |
+|---|---|
+| Verified. | That recorded fixture completed apply, no-drift and destroy checks. |
+| Did not pass. | The fixture did not complete. The result alone does not identify an implementation defect or an unsupported resource. |
+| Untested. | No fixture supplied evidence for that resource. |
 
 <!-- BEGIN GENERATED: tfe-compat-table -->
 
@@ -147,6 +188,4 @@ Evidence from a run on **2026-09-12T07:05:09Z** using hashicorp/tfe ~> 0.77. A r
 
 <!-- END GENERATED: tfe-compat-table -->
 
-## Getting help
-
-If a resource you depend on is untested or did not pass, that is worth raising - the compatibility surface is actively worked on, and a resource with a real user behind it is prioritised differently from one without.
+Check the timestamp and provider version above against your migration target. For endpoint details use the [API explorer](/docs/api-reference/explorer); for practical request setup use [Using the API](../architecture/using-the-api.md).

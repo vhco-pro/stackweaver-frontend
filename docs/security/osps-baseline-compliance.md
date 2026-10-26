@@ -1,250 +1,255 @@
 ---
-description: "OSPS Baseline (Level 1 + Level 3) compliance statement for Stackweaver, mapped control-by-control to public evidence with copy-paste verification commands. Aimed at any independent security auditor performing a supply-chain review of the public satellite repositories, without privileged access. Also explains the current OpenSSF Scorecard scores and the project's argued deviations."
+description: "Review Stackweaver's OSPS control evidence, audit access requirements and known gaps without confusing source observations with conformance."
 covers:
   - ".github/workflows/**"
   - "deploy/helm/**"
   - "licenses/**"
 ---
 
-<!--
-Copyright (c) 2025 VH & Co BV. Licensed under the Business Source License 1.1. See LICENSE for details.
--->
+<!-- Copyright (c) 2025 VH & Co BV. Licensed under the Business Source License 1.1. See LICENSE for details. -->
 
-# OSPS Baseline Compliance
+# OSPS security evidence
 
-This page is Stackweaver's compliance statement against the **[OpenSSF Open Source Project Security (OSPS) Baseline](https://baseline.openssf.org/)**, checklist version `2026.02.19`, at **Level 1 and Level 3**. It is written so that any independent auditor can confirm each claim against the live GitHub APIs, with no privileged access and no project-specific key material.
+Use this page to plan a security review: find the public evidence, identify checks that
+need maintainer access and understand the gaps in Stackweaver's OSPS mapping. It is an
+evidence guide, not a certification or a statement that every control is satisfied.
 
-The OSPS Baseline is a general, vendor-neutral catalogue of security controls for open source projects, it is not specific to any one auditor or customer. Every control below is quoted (paraphrased) from that catalogue, followed by how Stackweaver satisfies it and a command you can run yourself to verify.
+The mapping below retains the 24 Level 1 and 21 Level 3 control IDs from the project's
+**2026.02.19** assessment scope. It does not cover Level 2 or establish full Level 3
+conformance. For a new assessment, use the version marked current by
+[OpenSSF](https://baseline.openssf.org/) and assess the required scope explicitly; do not
+silently apply these historical IDs to another version.
 
-**Coverage at a glance.** This document maps **every** control in the checklist: all **24 Level 1** controls and all **21 Level 3** controls, with no item left unaddressed. Where a control is not a plain ✅, the reason is stated inline and expanded under [§ Argued deviations](#argued-deviations).
+```mermaid
+flowchart LR
+  A[Choose baseline version and project scope] --> B[Inspect public source and artifacts]
+  B --> C[Request private and settings evidence]
+  C --> D[Assess controls and record gaps]
+```
 
-> **Companion pages.** Two sibling documents go deeper on the two areas auditors probe most:
-> [Verifying a Release](./verifying-releases.md) (cryptographic verification of every published artefact) and
-> [Sync Architecture](./sync-architecture.md) (the trust boundary between the private monorepo and the public satellites). This page references both rather than repeating them.
+## Choose the evidence you need
 
----
+- **Deploying a release:** [verify its signature and attestations](./verifying-releases.md)
+  against the digest you will deploy.
+- **Assessing publication:** inspect [the sync trust boundary](./sync-architecture.md),
+  App roles and repository requirements.
+- **Assessing OSPS controls:** use the mapping below, then collect the evidence for the
+  selected baseline version, source repositories and released artifacts.
 
-## How to read this document
-
-| Symbol | Meaning |
-|:------:|---------|
-| ✅ | Met. Verifiable from the live public APIs. |
-| ⚠️ | Met via a **documented, argued deviation**. OSPS explicitly permits this when the deviation is recorded and compensated; the rationale and compensating control are given in [§ Argued deviations](#argued-deviations). |
-| 🟡 | Partial: a residual gap with a known, bounded plan. Disclosed honestly rather than hidden. |
-
-Each control is evaluated against the **eight in-scope public satellites** collectively (`stackweaver-api`, `stackweaver-orchestrator`, `stackweaver-ansible-runner`, `stackweaver-opentofu-runner`, `stackweaver-frontend`, `stackweaver-helm`, `stackweaver-zitadel-init`, `stackweaver-secrets-init`). A status reflects the **worst** satellite, so a ✅ means every in-scope satellite meets it.
-
----
+Keep the baseline version, repository/workflow revision, artifact digest and check date with
+your assessment. A workflow requesting an attestation is not proof that it was published;
+an administrative API response is not necessarily available to a public reader.
 
 ## Scope and repository topology
 
-Stackweaver is developed in a single **private monorepo** (`michielvha/stackweaver`) and published as **eight independent satellite repositories** under the [`vhco-pro`](https://github.com/vhco-pro) GitHub organisation. The satellites are what users build, deploy, and audit; the monorepo is an internal development and review gate that is not itself an audit target. Code crosses the boundary through a hardened, two-App, PR-based sync pipeline described in [Sync Architecture](./sync-architecture.md).
+The product is developed in a private monorepo and published through eight public satellites.
+The shared `core/` module is private. The upstream repository and shared dependencies remain
+part of a product-wide review even when they are not publicly accessible. See the
+[repository map](../architecture/repositories.md) for the full source/distribution layout.
 
-| Satellite | Visibility | Contents | Licence |
-|-----------|:----------:|----------|:-------:|
-| [`stackweaver-api`](https://github.com/vhco-pro/stackweaver-api) | public | REST API server | BSL 1.1 |
-| [`stackweaver-orchestrator`](https://github.com/vhco-pro/stackweaver-orchestrator) | public | Job scheduler | BSL 1.1 |
-| [`stackweaver-ansible-runner`](https://github.com/vhco-pro/stackweaver-ansible-runner) | public | Ansible execution runner | Apache-2.0 |
-| [`stackweaver-frontend`](https://github.com/vhco-pro/stackweaver-frontend) | public | React SPA + public docs | BSL 1.1 |
-| [`stackweaver-helm`](https://github.com/vhco-pro/stackweaver-helm) | public | Helm chart | Apache-2.0 |
-| [`stackweaver-zitadel-init`](https://github.com/vhco-pro/stackweaver-zitadel-init) | public | Identity-provider bootstrap | BSL 1.1 |
-| [`stackweaver-secrets-init`](https://github.com/vhco-pro/stackweaver-secrets-init) | public | Secret bootstrap for the chart | BSL 1.1 |
-| [`stackweaver-opentofu-runner`](https://github.com/vhco-pro/stackweaver-opentofu-runner) | public | OpenTofu execution runner | Apache-2.0 |
+| Satellite | Purpose | Source licence | OpenSSF Scorecard |
+|---|---|---|---|
+| [stackweaver-api](https://github.com/vhco-pro/stackweaver-api) | API | BSL 1.1 | [![OpenSSF Scorecard for stackweaver-api](https://api.scorecard.dev/projects/github.com/vhco-pro/stackweaver-api/badge)](https://scorecard.dev/viewer/?uri=github.com/vhco-pro/stackweaver-api) |
+| [stackweaver-frontend](https://github.com/vhco-pro/stackweaver-frontend) | Frontend and public docs | BSL 1.1 | [![OpenSSF Scorecard for stackweaver-frontend](https://api.scorecard.dev/projects/github.com/vhco-pro/stackweaver-frontend/badge)](https://scorecard.dev/viewer/?uri=github.com/vhco-pro/stackweaver-frontend) |
+| [stackweaver-orchestrator](https://github.com/vhco-pro/stackweaver-orchestrator) | Job scheduling | BSL 1.1 | [![OpenSSF Scorecard for stackweaver-orchestrator](https://api.scorecard.dev/projects/github.com/vhco-pro/stackweaver-orchestrator/badge)](https://scorecard.dev/viewer/?uri=github.com/vhco-pro/stackweaver-orchestrator) |
+| [stackweaver-ansible-runner](https://github.com/vhco-pro/stackweaver-ansible-runner) | Ansible execution | Apache-2.0 | [![OpenSSF Scorecard for stackweaver-ansible-runner](https://api.scorecard.dev/projects/github.com/vhco-pro/stackweaver-ansible-runner/badge)](https://scorecard.dev/viewer/?uri=github.com/vhco-pro/stackweaver-ansible-runner) |
+| [stackweaver-opentofu-runner](https://github.com/vhco-pro/stackweaver-opentofu-runner) | OpenTofu execution | Apache-2.0 | [![OpenSSF Scorecard for stackweaver-opentofu-runner](https://api.scorecard.dev/projects/github.com/vhco-pro/stackweaver-opentofu-runner/badge)](https://scorecard.dev/viewer/?uri=github.com/vhco-pro/stackweaver-opentofu-runner) |
+| [stackweaver-helm](https://github.com/vhco-pro/stackweaver-helm) | Helm chart | Apache-2.0 | [![OpenSSF Scorecard for stackweaver-helm](https://api.scorecard.dev/projects/github.com/vhco-pro/stackweaver-helm/badge)](https://scorecard.dev/viewer/?uri=github.com/vhco-pro/stackweaver-helm) |
+| [stackweaver-zitadel-init](https://github.com/vhco-pro/stackweaver-zitadel-init) | Identity bootstrap | BSL 1.1 | [![OpenSSF Scorecard for stackweaver-zitadel-init](https://api.scorecard.dev/projects/github.com/vhco-pro/stackweaver-zitadel-init/badge)](https://scorecard.dev/viewer/?uri=github.com/vhco-pro/stackweaver-zitadel-init) |
+| [stackweaver-secrets-init](https://github.com/vhco-pro/stackweaver-secrets-init) | Secret bootstrap | BSL 1.1 | [![OpenSSF Scorecard for stackweaver-secrets-init](https://api.scorecard.dev/projects/github.com/vhco-pro/stackweaver-secrets-init/badge)](https://scorecard.dev/viewer/?uri=github.com/vhco-pro/stackweaver-secrets-init) |
 
-The two-track licensing (original product under BSL 1.1 with an Apache-2.0 change date; ecosystem tooling under Apache-2.0 from day one) is the project's deliberate model. GitHub's licence classifier reports `NOASSERTION` for the BSL satellites because BSL 1.1 is not an OSI-approved SPDX identifier; this is expected and does not indicate a missing licence file.
+Read the actual `LICENSE` and its terms. GitHub can classify BSL repositories as
+`NOASSERTION`; that does not mean the licence file is absent. BSL's future change licence
+does not remove its current restrictions.
 
----
+## How to read the control mapping
 
-## Current OpenSSF Scorecard scores
+The labels describe **evidence access or an identified limitation**, not a pass score:
 
-Every satellite runs OpenSSF Scorecard on a schedule and exposes a **live badge**. The badges below always reflect the most recent run; no score is hard-coded in this page, so whatever a badge shows is the current truth. Click any badge for the full per-check breakdown in the Scorecard viewer.
+| Label | Meaning |
+|---|---|
+| Public | A reader can inspect the linked documentation or public repository data. |
+| Source | Inspect the relevant workflows/code and their execution conditions. |
+| Artifact | Verify the exact released digest and its contents or signed statements. |
+| Maintainer | Request private evidence or use an account with appropriate settings access. |
+| Gap | A documented limitation prevents treating the stated requirement as satisfied. |
 
-| Satellite | OpenSSF Scorecard (live) |
-|-----------|--------------------------|
-| stackweaver-api | [![Scorecard](https://api.scorecard.dev/projects/github.com/vhco-pro/stackweaver-api/badge)](https://scorecard.dev/viewer/?uri=github.com/vhco-pro/stackweaver-api) |
-| stackweaver-orchestrator | [![Scorecard](https://api.scorecard.dev/projects/github.com/vhco-pro/stackweaver-orchestrator/badge)](https://scorecard.dev/viewer/?uri=github.com/vhco-pro/stackweaver-orchestrator) |
-| stackweaver-ansible-runner | [![Scorecard](https://api.scorecard.dev/projects/github.com/vhco-pro/stackweaver-ansible-runner/badge)](https://scorecard.dev/viewer/?uri=github.com/vhco-pro/stackweaver-ansible-runner) |
-| stackweaver-frontend | [![Scorecard](https://api.scorecard.dev/projects/github.com/vhco-pro/stackweaver-frontend/badge)](https://scorecard.dev/viewer/?uri=github.com/vhco-pro/stackweaver-frontend) |
-| stackweaver-helm | [![Scorecard](https://api.scorecard.dev/projects/github.com/vhco-pro/stackweaver-helm/badge)](https://scorecard.dev/viewer/?uri=github.com/vhco-pro/stackweaver-helm) |
-| stackweaver-zitadel-init | [![Scorecard](https://api.scorecard.dev/projects/github.com/vhco-pro/stackweaver-zitadel-init/badge)](https://scorecard.dev/viewer/?uri=github.com/vhco-pro/stackweaver-zitadel-init) |
-| stackweaver-secrets-init | [![Scorecard](https://api.scorecard.dev/projects/github.com/vhco-pro/stackweaver-secrets-init/badge)](https://scorecard.dev/viewer/?uri=github.com/vhco-pro/stackweaver-secrets-init) |
-
-For scripted checks, the same data is available as JSON:
-
-```bash
-# Live aggregate score for any in-scope satellite
-curl -s https://api.scorecard.dev/projects/github.com/vhco-pro/stackweaver-api \
-  | jq '.score'
-```
-
-A handful of individual Scorecard checks sit below 10 for **structural** reasons that are inherent to a secure automated-publication model rather than gaps in the controls. These are disclosed in full in [§ OpenSSF Scorecard - structural ceilings](#openssf-scorecard---structural-ceilings) so that a low sub-score is not mistaken for an unaddressed weakness.
-
----
+The source/protection checks were reviewed on 26 October 2026. The [API and Helm verification examples](./verifying-releases.md#verification-examples) identify
+the exact tested versions, digests and expected workflow identities. Their signatures,
+provenance, SPDX SBOM and OpenVEX checks succeeded.
+Those samples do not certify all components or all releases. Each row still needs an
+assessment against the baseline's full requirement and the project's actual scope.
 
 ## OSPS Baseline - Level 1
 
-### Access Control
+### Access control
 
-| ID | Requirement (paraphrased) | Status | Evidence & verification |
-|----|---------------------------|:------:|-------------------------|
-| AC-01.01 | MFA required to modify the authoritative repository | ✅ | Org-wide two-factor **enforcement** is enabled and every member is enrolled. `gh api orgs/vhco-pro --jq .two_factor_requirement_enabled` → `true` |
-| AC-02.01 | New collaborators default to least privilege | ✅ | Org base permission is `none`. `gh api orgs/vhco-pro --jq .default_repository_permission` → `none` |
-| AC-03.01 | Direct commits to the primary branch are prevented | ✅ | Every in-scope satellite requires a pull request to land on `main`. `gh api repos/vhco-pro/stackweaver-api/branches/main/protection --jq '.required_pull_request_reviews.required_approving_review_count'` → `>= 1` |
-| AC-03.02 | Deletion of the primary branch is prevented | ✅ | `gh api repos/vhco-pro/stackweaver-api/branches/main/protection --jq '.allow_deletions.enabled'` → `false` |
+| Control | Review question | Evidence | Where to check |
+|---|---|---|---|
+| AC-01.01 | MFA required to modify the authoritative repository | Maintainer | Request MFA enforcement and enrolment evidence for every authoritative repository, including the private upstream; organisation metadata alone does not cover a personal repository. |
+| AC-02.01 | New collaborators default to least privilege | Maintainer | Inspect organisation defaults and actual collaborator grants. Request a dated access-policy export. |
+| AC-03.01 | Direct commits to the primary branch are prevented | Maintainer | Checked satellites require one approving review. Assess repository rules, bypass actors and the authoritative upstream separately. |
+| AC-03.02 | Deletion of the primary branch requires explicit confirmation | Maintainer | Branch deletion is disabled in the checked satellite protections. Inspect the current protection and rulesets. |
 
-### Build & Release Protection
+### Build and release protection
 
-| ID | Requirement | Status | Evidence & verification |
-|----|-------------|:------:|-------------------------|
-| BR-01.01 | Untrusted CI metadata is sanitised before use | ✅ | Release workflows trigger on tag push (internal, not attacker-controlled). The one `pull_request_target` workflow (`auto-approve-sync.yml`) never checks out or executes PR code and reads only event metadata - see [Sync Architecture § Why `pull_request_target` is safe here](./sync-architecture.md#why-pull_request_target-is-safe-here). |
-| BR-01.03 | Untrusted code snapshots cannot access privileged CI credentials | ✅ | No satellite workflow exposes secrets to fork PRs; the OpenSSF Scorecard `Dangerous-Workflow` check scores **10** on all in-scope satellites. |
-| BR-03.01 | Official project channels use encrypted transport | ✅ | All channels are HTTPS (GitHub, GHCR, `stackweaver.sh` docs). |
-| BR-03.02 | The official distribution channel is authenticated against adversary-in-the-middle attacks | ✅ | TLS plus Sigstore keyless signing binds every artefact to its producing workflow - see [Verifying a Release](./verifying-releases.md). |
-| BR-07.01 | Unencrypted secrets are kept out of version control | ✅ | Secret scanning **and** push protection are enabled on every in-scope satellite. `gh api repos/vhco-pro/stackweaver-api --jq '.security_and_analysis.secret_scanning_push_protection.status'` → `enabled` |
+| Control | Review question | Evidence | Where to check |
+|---|---|---|---|
+| BR-01.01 | Untrusted CI metadata is sanitised before use | Source | Inspect input handling in each privileged workflow. The sync workflow-file warning does not stop later approval steps; see [Sync architecture](./sync-architecture.md#what-the-approval-workflow-checks). |
+| BR-01.03 | Untrusted code snapshots cannot access privileged CI credentials | Source | The checked auto-approval workflow does not execute PR source. Review other workflows and their credential boundaries separately. |
+| BR-03.01 | Official project channels use encrypted transport | Public | Check the official GitHub, registry and documentation URLs for HTTPS. |
+| BR-03.02 | The official distribution channel is authenticated against adversary-in-the-middle attacks | Artifact | Use TLS and verify the expected artifact digest, signer and issuer using [release verification](./verifying-releases.md). |
+| BR-07.01 | Unencrypted secrets are kept out of version control | Maintainer | Secret scanning and push protection are enabled in all eight checked satellite metadata responses. Assess upstream scanning and exceptions separately. |
 
 ### Documentation
 
-| ID | Requirement | Status | Evidence & verification |
-|----|-------------|:------:|-------------------------|
-| DO-01.01 | Documentation includes user guides for basic functionality | ✅ | Published at `stackweaver.sh/docs`; the frontend satellite carries the docs source under `docs/`. |
-| DO-02.01 | Documentation includes a defect-reporting guide | ✅ | Org-wide issue templates and a routing `config.yml` are provided via [`vhco-pro/.github`](https://github.com/vhco-pro/.github/tree/main/.github/ISSUE_TEMPLATE), inherited by every satellite. |
+| Control | Review question | Evidence | Where to check |
+|---|---|---|---|
+| DO-01.01 | Documentation includes user guides for basic functionality | Public | Review the [user guides](../user-guides/README.md) against the functionality you intend to use. |
+| DO-02.01 | Documentation includes a defect-reporting guide | Public | Inspect the [organisation issue templates](https://github.com/vhco-pro/.github/tree/main/.github/ISSUE_TEMPLATE) and defect-routing instructions. |
 
 ### Governance
 
-| ID | Requirement | Status | Evidence & verification |
-|----|-------------|:------:|-------------------------|
-| GV-02.01 | A mechanism exists for public discussion | ✅ | GitHub Discussions are enabled on every satellite. `gh api repos/vhco-pro/stackweaver-api --jq .has_discussions` → `true` |
-| GV-03.01 | The contribution process is documented | ✅ | [`vhco-pro/.github/CONTRIBUTING.md`](https://github.com/vhco-pro/.github/blob/main/CONTRIBUTING.md), inherited org-wide. |
+| Control | Review question | Evidence | Where to check |
+|---|---|---|---|
+| GV-02.01 | A mechanism exists for public discussion | Public | All eight checked satellites expose Discussions. Evaluate the discussion mechanism for the project scope. |
+| GV-03.01 | The contribution process is documented | Public | Read the [contribution guide](https://github.com/vhco-pro/.github/blob/main/CONTRIBUTING.md). |
 
 ### Licensing
 
-| ID | Requirement | Status | Evidence & verification |
-|----|-------------|:------:|-------------------------|
-| LE-02.01 | The source-code licence meets the OSI/FSF definition | ⚠️ | Apache-2.0 satellites pass cleanly. The BSL 1.1 satellites are an argued deviation: BSL converts to Apache-2.0 at a fixed change date and its Additional Use Grant permits all use except offering the product as a competing hosted service - see [§ Argued deviations](#argued-deviations). |
-| LE-02.02 | The released-asset licence meets the OSI/FSF definition | ⚠️ | Same as LE-02.01; the licence (and a `NOTICE` for Apache satellites) ships inside each container image and chart package. |
-| LE-03.01 | The licence is maintained in a `LICENSE` file in the repository | ✅ | Every satellite carries a `LICENSE` file. `gh api repos/vhco-pro/stackweaver-helm --jq .license.spdx_id` → `Apache-2.0` (BSL satellites report `NOASSERTION`, as noted above). |
-| LE-03.02 | The licence is included in the released asset bundle | ✅ | Each container image embeds `LICENSE` (and `NOTICE` where applicable); the Helm chart package includes its licence. |
+| Control | Review question | Evidence | Where to check |
+|---|---|---|---|
+| LE-02.01 | The source-code licence meets the OSI/FSF definition | Gap | BSL 1.1 source is not OSI-approved open source. A future Apache change date does not satisfy the current licence requirement. |
+| LE-02.02 | The released-asset licence meets the OSI/FSF definition | Gap | Assess each released asset and its bundled licences. BSL use restrictions remain relevant until the applicable change date. |
+| LE-03.01 | The licence is maintained in a `LICENSE` file in the repository | Public | Inspect each repository LICENSE. GitHub classifier NOASSERTION is not a substitute for reading the licence text. |
+| LE-03.02 | The licence is included in the released asset bundle | Artifact | Inspect the selected image or chart for its LICENSE and any required NOTICE; a source file does not prove inclusion in an asset. |
 
-### Quality Assurance
+### Quality assurance
 
-| ID | Requirement | Status | Evidence & verification |
-|----|-------------|:------:|-------------------------|
-| QA-01.01 | The source repository is publicly readable at a static URL | ⚠️ | All eight satellites are public. The only deviation is the closed `core/` module, covered by an NDA-gated auditor-access procedure - see [§ Argued deviations](#argued-deviations). |
-| QA-01.02 | There is a public record of every change (who and when) | ✅ | Full git history on each satellite. The link to the human reviewer lives upstream in the monorepo and is cryptographically bound to each satellite commit by SLSA provenance referencing the monorepo commit SHA - see [Verifying a Release](./verifying-releases.md). |
-| QA-02.01 | The repository contains a list of direct dependencies | ✅ | `go.mod`, `package.json` + lockfile, `pyproject.toml` + `uv.lock`, and `Chart.yaml` are present in the relevant satellites. |
-| QA-04.01 | A multi-repository project documents its list of codebases | ✅ | This page (§ Scope and repository topology) and the [`vhco-pro` org profile](https://github.com/vhco-pro) enumerate all eight satellites and the closed `core/` module. |
-| QA-05.01 | No generated executable artefacts are stored in version control | ✅ | Build outputs and `node_modules` are gitignored and excluded from sync; the OpenSSF `Binary-Artifacts` check scores **10** on all in-scope satellites. |
-| QA-05.02 | No unreviewable binary artefacts are stored in version control | ✅ | Confirmed by the same `Binary-Artifacts` check (score **10**). |
+| Control | Review question | Evidence | Where to check |
+|---|---|---|---|
+| QA-01.01 | The source repository is publicly readable at a static URL | Gap | The eight satellites are public; the shared core module is private. NDA access is a separate audit option, not public source availability. |
+| QA-01.02 | There is a public record of every change (who and when) | Public | Satellite Git history and sync PRs are public. The private upstream review record needs separate evidence; provenance alone does not expose it. |
+| QA-02.01 | The repository contains a list of direct dependencies | Public | Inspect the relevant dependency manifests and lockfiles, including dependencies resolved from the private core module. |
+| QA-04.01 | A multi-repository project documents its list of codebases | Public | Use the [repository map](../architecture/repositories.md) to identify the product codebases and distribution boundaries. |
+| QA-05.01 | No generated executable artefacts are stored in version control | Source | Inspect versioned files and build-output exclusions. A Scorecard result is a signal to investigate, not a complete source inventory. |
+| QA-05.02 | No unreviewable binary artefacts are stored in version control | Source | Review any committed binary assets and their purpose; distinguish documentation images from executable build artifacts. |
 
-### Vulnerability Management
+### Vulnerability contacts
 
-| ID | Requirement | Status | Evidence & verification |
-|----|-------------|:------:|-------------------------|
-| VM-02.01 | Documentation contains security contacts | ✅ | [`vhco-pro/.github/SECURITY.md`](https://github.com/vhco-pro/.github/blob/main/SECURITY.md) (inherited org-wide) plus Private Vulnerability Reporting on every satellite. `gh api repos/vhco-pro/stackweaver-api/private-vulnerability-reporting --jq .enabled` → `true` |
-
----
+| Control | Review question | Evidence | Where to check |
+|---|---|---|---|
+| VM-02.01 | Documentation contains security contacts | Public | Use the contact and reporting route in the [security policy](https://github.com/vhco-pro/.github/blob/main/SECURITY.md). |
 
 ## OSPS Baseline - Level 3
 
-### Access Control & Build
+### Access control and build
 
-| ID | Requirement | Status | Evidence & verification |
-|----|-------------|:------:|-------------------------|
-| AC-04.02 | CI jobs run with the minimum privileges necessary | ✅ | Workflows declare `permissions: {}` at the top level and raise scopes per job. The OpenSSF `Token-Permissions` check scores **10** on all in-scope satellites. |
-| BR-01.04 | Trusted-collaborator CI input is sanitised before use | ✅ | The sync pipeline's auto-approval workflow uses only event metadata and refuses any PR touching `.github/workflows/**` - see [Sync Architecture § The four hard gates](./sync-architecture.md#the-four-hard-gates). |
-| BR-02.02 | Release assets are clearly associated with the release identifier | ✅ | Every container image is tagged with both `vX.Y.Z` and `sha-<commit>`; release assets (`provenance.intoto.jsonl`, `sbom.spdx.intoto.jsonl`, `checksums.txt`) are attached to the matching GitHub Release. |
-| BR-07.02 | A policy exists for managing secrets and credentials | ✅ | Public summary in [`vhco-pro/.github/SECURITY.md`](https://github.com/vhco-pro/.github/blob/main/SECURITY.md); custody, rotation cadence, and compromise response are maintained internally. |
+| Control | Review question | Evidence | Where to check |
+|---|---|---|---|
+| AC-04.02 | CI jobs run with the minimum privileges necessary | Source | Compare workflow job scopes and App permissions with each operation. Top-level permissions alone do not establish least privilege. |
+| BR-01.04 | Trusted-collaborator CI input is sanitised before use | Source | Inspect trusted-input sanitisation across sync and release workflows; metadata-only handling does not establish every input is safe. |
+| BR-02.02 | Release assets are clearly associated with the release identifier | Artifact | Match the selected release, image/chart digest and actual asset list. The OpenTofu runner release checked in this review has no attached files. |
+| BR-07.02 | A policy exists for managing secrets and credentials | Maintainer | Request credential storage, access and rotation policy plus implementation evidence. The public policy is not the complete internal procedure. |
 
 ### Documentation (release-time)
 
-| ID | Requirement | Status | Evidence & verification |
-|----|-------------|:------:|-------------------------|
-| DO-03.01 | Documentation explains how to verify release integrity and authenticity | ✅ | [Verifying a Release](./verifying-releases.md) - `cosign verify` + `gh attestation verify`, live-verified end-to-end on every in-scope satellite. |
-| DO-03.02 | Documentation explains how to verify the identity of the release author | ✅ | Same page: identity is the workflow OIDC subject in the Fulcio certificate and Rekor entry shown by each verification command. |
-| DO-04.01 | A statement of support scope and duration accompanies each release | ✅ | Supported-versions table in [`vhco-pro/.github/SECURITY.md`](https://github.com/vhco-pro/.github/blob/main/SECURITY.md). |
-| DO-05.01 | A statement describes when releases stop receiving security updates | ✅ | End-of-life policy section of the same SECURITY.md. |
+| Control | Review question | Evidence | Where to check |
+|---|---|---|---|
+| DO-03.01 | Documentation explains how to verify release integrity and authenticity | Public | Follow [Verify a release](./verifying-releases.md) for signer, digest, provenance and failure handling. |
+| DO-03.02 | Documentation explains how to verify the identity of the release author | Public | The same guide pins the expected signing workflow identity and issuer; verify the selected artifact. |
+| DO-04.01 | A statement of support scope and duration accompanies each release | Gap | The public security policy labels the supported-version policy as a working policy. Confirm the release-specific support commitment with maintainers. |
+| DO-05.01 | A statement describes when releases stop receiving security updates | Public | Read the end-of-life section of the [security policy](https://github.com/vhco-pro/.github/blob/main/SECURITY.md#end-of-life) and confirm its applicability to the selected release. |
 
-### Governance & Quality Assurance
+### Governance and quality assurance
 
-| ID | Requirement | Status | Evidence & verification |
-|----|-------------|:------:|-------------------------|
-| GV-04.01 | Collaborators are reviewed before being granted escalated permissions | ✅ | Documented in the org access policy; base permission is `none` and escalation is review-gated. |
-| QA-02.02 | Compiled released assets are delivered with a software bill of materials | ✅ | Every release attaches an SPDX SBOM attestation. `gh attestation verify -R vhco-pro/stackweaver-api --predicate-type https://spdx.dev/Document oci://ghcr.io/vhco-pro/stackweaver-api:<tag>` |
-| QA-04.02 | Subprojects enforce security requirements at least as strict as the primary | ✅ | All satellites share the same upstream gate (lint, tests, govulncheck, Trivy, CodeQL) and the same reusable Scorecard/CodeQL workflows - see [Sync Architecture](./sync-architecture.md). |
-| QA-06.02 | Documentation clearly describes how tests are run | ✅ | Each satellite README documents `go test ./...` / `npm test` as applicable; the monorepo `Makefile` is the canonical entrypoint. |
-| QA-06.03 | A policy requires major changes to add or update automated tests | ✅ | Stated in [`vhco-pro/.github/CONTRIBUTING.md`](https://github.com/vhco-pro/.github/blob/main/CONTRIBUTING.md). |
-| QA-07.01 | Primary-branch commits require at least one non-author human approval | ⚠️ | Authoritative human review happens upstream in the monorepo; satellite commits are a deterministic, signed re-publication bound to the reviewed monorepo commit by SLSA provenance. Satellites additionally require an approving review on every PR. See [§ Argued deviations](#argued-deviations). |
+| Control | Review question | Evidence | Where to check |
+|---|---|---|---|
+| GV-04.01 | Collaborators are reviewed before being granted escalated permissions | Maintainer | Request the access-escalation policy and review records. A low default permission is not evidence of review for every grant. |
+| QA-02.02 | Compiled released assets are delivered with a software bill of materials | Artifact | Verify an SPDX SBOM for the chosen digest. Successful API/chart sample checks do not prove coverage for every compiled artifact. |
+| QA-04.02 | Subprojects enforce security requirements at least as strict as the primary | Maintainer | Compare each component policy and enforcement. Helm has no required branch status check and the OpenTofu runner keeps stale reviews in the checked settings. |
+| QA-06.02 | Documentation clearly describes how tests are run | Public | Inspect build/test instructions for the relevant component; the private monorepo Makefile is not sufficient public instruction on its own. |
+| QA-06.03 | A policy requires major changes to add or update automated tests | Public | Inspect the [contribution policy](https://github.com/vhco-pro/.github/blob/main/CONTRIBUTING.md) and accompanying test-review evidence. |
+| QA-07.01 | Primary-branch commits require at least one non-author human approval | Gap | A GitHub App approval is not the required non-author human approval. Assess authoritative review enforcement and records separately. |
 
-### Security Architecture
+### Security architecture
 
-| ID | Requirement | Status | Evidence & verification |
-|----|-------------|:------:|-------------------------|
-| SA-03.02 | A threat model and attack-surface analysis is performed | ✅ | A STRIDE threat model covers each component and the satellite-sync trust boundary; the public portion is documented in [Sync Architecture § Threat model](./sync-architecture.md#threat-model). |
+| Control | Review question | Evidence | Where to check |
+|---|---|---|---|
+| SA-03.02 | A threat model and attack-surface analysis is performed | Maintainer | Use the public [sync trust boundary](./sync-architecture.md) as one input; request the product-wide threat model and evidence it covers critical paths. |
 
-### Vulnerability Management
+### Vulnerability management
 
-| ID | Requirement | Status | Evidence & verification |
-|----|-------------|:------:|-------------------------|
-| VM-04.02 | A VEX document accompanies releases for non-affecting vulnerabilities | ✅ | Every release publishes a signed OpenVEX document as a keyless cosign/Sigstore attestation (predicate type `https://openvex.dev/ns/v0.2.0`) alongside the image, verifiable with `gh attestation verify`. Non-affecting findings are recorded in `security/vex/*.openvex.json` and attested at release time. |
-| VM-05.01 | A policy defines remediation thresholds for SCA findings | ✅ | Remediation SLOs (Critical / High / Medium / Low) are defined and wired into the release gate. |
-| VM-05.02 | A policy requires SCA violations to be addressed prior to release | ✅ | `govulncheck` and Trivy run as blocking upstream checks; a release cannot ship with an outstanding blocking finding. |
-| VM-05.03 | Changes are automatically evaluated against a malicious-dependency / known-vulnerability policy and blocked on violation | ✅ | `govulncheck` + Trivy + Dependency-Review run on every change; the OpenSSF `Vulnerabilities` and `Dependency-Update-Tool` checks score **10**. |
-| VM-06.01 | A policy defines remediation thresholds for SAST findings | ✅ | Defined in the vulnerability-management policy; CodeQL findings are tracked to closure. |
-| VM-06.02 | Changes are automatically evaluated against a SAST policy and blocked on violation | ✅ | CodeQL runs on every sync PR and is a required status check before merge; the OpenSSF `SAST` check scores **10** on the Go satellites. |
-
----
+| Control | Review question | Evidence | Where to check |
+|---|---|---|---|
+| VM-04.02 | A VEX document accompanies releases for non-affecting vulnerabilities | Artifact | Verify OpenVEX for the selected digest and review its statements. An attestation proves a signed statement, not the absence of vulnerabilities. |
+| VM-05.01 | A policy defines remediation thresholds for SCA findings | Maintainer | Request the documented SCA and licence-remediation thresholds; do not infer them from installed scanner names. |
+| VM-05.02 | A policy requires SCA violations to be addressed prior to release | Maintainer | Review the pre-release SCA policy, exceptions and actual blocking configuration. |
+| VM-05.03 | Changes are automatically evaluated against a malicious-dependency / known-vulnerability policy and blocked on violation | Source | Inspect dependency-review and scanner triggers, blocking exit codes and justified suppressions for the relevant change path. |
+| VM-06.01 | A policy defines remediation thresholds for SAST findings | Maintainer | Request the documented SAST-remediation thresholds and triage/closure evidence. |
+| VM-06.02 | Changes are automatically evaluated against a SAST policy and blocked on violation | Source | Inspect required CodeQL checks and release policy for the selected component; Helm has no required branch status check in the checked snapshot. |
 
 ## Argued deviations
 
-OSPS Baseline explicitly permits a control to be satisfied by a documented, compensated deviation. Stackweaver relies on two, both disclosed here in full.
+A documented rationale helps an auditor understand a gap; it does not automatically satisfy
+an unmet requirement. Keep the requirement, evidence, limitation and assessment decision
+separate.
 
-### 1. The `core/` shared module is not public (LE-02.01, QA-01.01, QA-04.02)
+**Licensing and private source.** Apache-2.0 and BSL components need separate licence
+assessments. The private core module prevents a public reader from reviewing all product
+source. The [security policy](https://github.com/vhco-pro/.github/blob/main/SECURITY.md#audit-access-to-closed-components)
+offers an audit-access route under NDA; that is a restricted-access review, not public
+source availability.
 
-The shared Go module `core/` is kept private until Stackweaver is an established commercial entity, on the grounds that a permissive source licence alone is not considered sufficient protection against AI-assisted re-implementation. **Compensating control:** an auditor is granted read-only access to a `core/` mirror under a one-off NDA, together with a reproducible-build recipe, so the closed module can be reviewed without being published. This converts the affected controls from open findings into argued deviations. The process is referenced from the public [`SECURITY.md`](https://github.com/vhco-pro/.github/blob/main/SECURITY.md).
+**Automated publication and human review.** The reviewer App's approval is automated. It
+does not satisfy a requirement for a non-author human approval. Upstream human review and
+its enforcement need their own evidence. A satellite signature or provenance statement does
+not establish that review by itself.
 
-### 2. Satellite commits are an automated re-publication, not human-authored (QA-07.01, Scorecard `Code-Review`)
+**Workflow and protection differences.** The sync workflow-file check is warning-only.
+Helm has no required branch status check in the checked snapshot, and the OpenTofu runner
+does not dismiss stale reviews. Account for these differences rather than treating the
+strictest satellite as representative of the whole product.
 
-The monorepo→satellite sync is automated and bot-authored by design, because PR-review automation on the *publication* step has repeatedly been a supply-chain breach vector. Authoritative human review happens **upstream** on the private monorepo, and each satellite commit is cryptographically bound to its reviewed monorepo origin by a Sigstore-signed commit plus SLSA Build L3 provenance. On the satellite side, every sync still flows through a pull request that is gated by four hard security checks, approved, and merged under branch protection that requires a review, dismisses stale reviews, enforces admins, and blocks force-pushes and deletions - the complete model is in [Sync Architecture](./sync-architecture.md).
+## Current OpenSSF Scorecard scores
 
-Because the approving reviewer on the satellite is a GitHub App (`stackweaver-pr-reviewer[bot]`) and the authoritative human review is on the *private* upstream that an external tool cannot see, the OpenSSF Scorecard `Code-Review` check scores 0 on the satellites even though every change is in fact reviewed. This is a structural property of the model, not an unreviewed-change finding.
+Use the live badges above to open the full report and inspect each component's latest available assessment, its
+scan date and the individual checks. Reports and badges can lag or be unavailable. A high
+aggregate score does not establish OSPS conformance; a low score needs its actual finding
+reviewed, not dismissed as an unavoidable structural ceiling.
 
----
-
-## OpenSSF Scorecard - structural ceilings
-
-A few Scorecard checks cannot reach 10 under a secure automated-publication model. They are disclosed here so that a low sub-score (visible by expanding any badge above) is read correctly: it reflects a heuristic that assumes a human-PR workflow, not an unaddressed control.
-
-| Check | Why it is capped | Is it a real gap? |
-|-------|------------------|-------------------|
-| `Code-Review` | Scorecard does not credit approvals authored by a GitHub App, and the authoritative human review is on the private upstream it cannot see. | No - see argued deviation 2. Every change is reviewed upstream and bound by provenance. |
-| `Branch-Protection` | The highest tiers require ≥ 2 reviewers, which is incompatible with the single automated reviewer identity. Force-push and deletion are already blocked, admins enforced, stale reviews dismissed, and PRs + status checks required. | Partly improvable (up-to-date-branches, last-push-approval, CODEOWNERS are candidate levers under evaluation); the ≥ 2-reviewer tier is structurally out of reach. |
-| `Packaging` | Scorecard cannot introspect a reusable-workflow caller, so it does not detect the container-publish step that lives in the shared workflow. | No - packages are published and signed; this is a known Scorecard static-analysis limitation, reported upstream. |
-| `CII-Best-Practices` | Requires self-registration of each satellite at bestpractices.dev. | No - an administrative task in progress; `stackweaver-api` is already registered. |
-| `Contributors` | Counts distinct contributing organisations; the project currently has one. | No - rises naturally as external contributions arrive. |
-
-Pushing the aggregate higher would require re-introducing a human reviewer into every automated publication step, which the threat model in [Sync Architecture](./sync-architecture.md) deliberately rejects.
-
----
-
-## One-shot independent verification
-
-The following block requires no privileged access. A clean run against any in-scope satellite confirms the controls above are live in production.
+For a scripted lookup, install `curl` and `jq`, then inspect the scan metadata alongside
+the score:
 
 ```bash
-SAT=stackweaver-api   # try any of: api, orchestrator, ansible-runner, opentofu-runner, frontend, helm, zitadel-init, secrets-init
-
-# Live Scorecard score
-curl -s "https://api.scorecard.dev/projects/github.com/vhco-pro/$SAT" | jq '.score'
-
-# Repository posture: discussions, secret scanning, push protection, PVR
-gh api repos/vhco-pro/$SAT --jq '{discussions: .has_discussions, secret_scanning: .security_and_analysis.secret_scanning.status, push_protection: .security_and_analysis.secret_scanning_push_protection.status}'
-gh api repos/vhco-pro/$SAT/private-vulnerability-reporting --jq '{pvr_enabled: .enabled}'
-
-# Branch protection on main
-gh api repos/vhco-pro/$SAT/branches/main/protection --jq '{reviews_required: .required_pull_request_reviews.required_approving_review_count, dismiss_stale: .required_pull_request_reviews.dismiss_stale_reviews, force_push: .allow_force_pushes.enabled, deletions: .allow_deletions.enabled, enforce_admins: .enforce_admins.enabled}'
-
-# Org base permission (least privilege)
-gh api orgs/vhco-pro --jq '{default_repository_permission, two_factor_requirement_enabled}'
+REPO=stackweaver-api
+curl --fail --silent --show-error \
+  "https://api.scorecard.dev/projects/github.com/vhco-pro/${REPO}" \
+  | jq '{date, score, checks}'
 ```
 
-For artefact-level verification (signatures, SLSA provenance, SBOM) and the full sync-pipeline threat model, follow [Verifying a Release](./verifying-releases.md) and [Sync Architecture](./sync-architecture.md). If any documented check fails against an artefact from an official location, treat it as untrusted and report it via a [Private Vulnerability Report](https://github.com/vhco-pro/.github/security/policy) or to `contact@vhco.pro`.
+Automated reviews, the number of required reviewers, reusable release actions, Best
+Practices registration and contributor diversity can affect individual results. Read the
+current explanation and evidence in that report; do not assume a fixed score for every
+satellite or infer that a finding is harmless from the publication model.
+
+## Collect maintainer evidence
+
+Use [the sync inspection procedure](./sync-architecture.md#inspect-maintainer-evidence) for
+protection and ruleset exports. It identifies the required access and handles unavailable
+settings without interpreting an access error as proof of a security failure.
+
+Request these additional inputs for a complete assessment:
+
+1. Authoritative-repository access, MFA, collaborator and escalation policies, with evidence
+   of their enforcement.
+2. Human review requirements and records for the upstream source changes being assessed.
+3. Secret custody/rotation and vulnerability-remediation policies, including scanner
+   thresholds, justified suppressions and release-blocking behavior.
+4. A release-specific support commitment. The public policy's supported-version section is
+   labelled a working policy; do not turn that into a guaranteed support window here.
+5. Private-source audit access and the product-wide threat model where they are in scope.
+
+Record gaps and unavailable evidence explicitly. For suspected vulnerabilities, follow the
+[private reporting policy](https://github.com/vhco-pro/.github/blob/main/SECURITY.md) rather
+than publishing sensitive findings or credentials in an issue.

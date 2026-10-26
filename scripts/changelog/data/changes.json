@@ -1,0 +1,423 @@
+[
+  {
+    "id": "inventory-refresh-warning",
+    "title": "Jobs warn when inventory refresh did not succeed",
+    "area": "Ansible",
+    "kind": "Added",
+    "reviewed": true,
+    "audience": "Anyone launching jobs against inventory with update-on-launch sources.",
+    "before": "A job could continue after a failed pre-launch inventory refresh without clearly telling you that its hosts came from an earlier sync.",
+    "after": "The job still runs against the last successfully synced hosts, with a warning above its tabs and at the start of its output. A refresh still running after 30 minutes also stops holding the job and produces a warning. If the source has never synced successfully, the job runs without hosts from that source.",
+    "action": "Check the warning before relying on the result. Correct the source error and sync again if the job needs current inventory. A warning does not mean that the job itself failed.",
+    "details": [
+      "Each warning identifies the source and reason, with the last successful sync time when one exists. A timeout warning means the sync has not finished; it does not mean the sync completed with an error.",
+      "The warning is available with platform and self-hosted runners, including ad hoc commands and launches from schedules and workflows.",
+      "API clients receive inventory-sync-warnings on the job. Existing template notifications include warnings and extra.inventory_sync_warnings; no additional notification trigger is required."
+    ],
+    "guides": [
+      {
+        "title": "Inventory refresh failure behavior",
+        "path": "/docs/user-guides/dynamic-inventories#when-an-update-on-launch-sync-fails"
+      }
+    ],
+    "sourceCommits": [
+      "391ff24328adc20b9c5aa842a09ab29bfba6aa2e"
+    ],
+    "requiredComponents": [
+      "api",
+      "frontend"
+    ],
+    "availability": [
+      "api@0.17.22",
+      "frontend@0.70.3"
+    ]
+  },
+  {
+    "id": "failed-inventory-sync",
+    "title": "Failed inventory syncs preserve the last successful inventory",
+    "area": "Ansible",
+    "kind": "Fixed",
+    "reviewed": true,
+    "audience": "Operators of dynamic inventory sources, especially sources with overwrite enabled.",
+    "before": "An authentication, connectivity or configuration failure could be recorded as a successful sync with no hosts. With overwrite enabled, that result could remove every host and group owned by the source.",
+    "after": "These failures are recorded as failed syncs. The output includes the plugin error, and the last successful hosts and groups remain available.",
+    "action": "If a sync fails, fix the reported error and retry it. A successful sync that genuinely finds no hosts can still remove source-owned rows when overwrite is enabled.",
+    "details": [
+      "The preservation rule also applies to a constructed inventory build that cannot parse an input or its rules. It keeps the last successful hosts, groups and memberships.",
+      "A failed refresh and a successful empty result are different outcomes. Overwrite continues to prune rows after a successful sync; it is not disabled by this fix."
+    ],
+    "guides": [
+      {
+        "title": "Dynamic inventories and sync behavior",
+        "path": "/docs/user-guides/dynamic-inventories"
+      }
+    ],
+    "sourceCommits": [
+      "b605e5b66387c0ede5fa189d196088ce772cae5b",
+      "978e921cec6593401c8f7feb9d4500f78d035900"
+    ],
+    "requiredComponents": [
+      "api",
+      "ansible-runner"
+    ],
+    "availability": [
+      "api@0.17.22",
+      "ansible-runner@0.6.113"
+    ]
+  },
+  {
+    "id": "constructed-derived-only",
+    "title": "Constructed inventories accept derived hosts and groups only",
+    "area": "Ansible",
+    "kind": "Changed",
+    "reviewed": true,
+    "audience": "Anyone who added hosts or groups by hand, through the API or through Terraform to a constructed inventory.",
+    "before": "Hand-created rows could coexist with derived inventory even though a rebuild replaces the materialized set. Earlier rebuilds could also leave stale hosts and empty groups behind.",
+    "after": "Hosts and groups come from the inputs and rules. Writes that create a host, group or source, add group membership, or move a group under another are refused with 409 Conflict. The next successful rebuild removes stale rows, including manually added rows that are not derived.",
+    "action": "Before upgrading, move any manually added host or group you still need into an input inventory, or derive it with a rule. Terraform host and group resources targeting a constructed inventory receive the same refusal.",
+    "details": [
+      "Reading inventory, disabling a host, and deleting hosts, groups or memberships remain available. Other inventory types are unaffected.",
+      "A parsing failure preserves the last successful build. Removal of stale rows happens after a successful rebuild.",
+      "Recording sync status no longer writes removed inventory rows back or overwrites unrelated inventory edits made while the sync runs."
+    ],
+    "guides": [
+      {
+        "title": "Constructed inventory setup and constraints",
+        "path": "/docs/user-guides/dynamic-inventories#constructed-inventories"
+      }
+    ],
+    "sourceCommits": [
+      "75d24fe5ae06b8a5c73fb8c63c42565bad622ac2",
+      "ed0977d194226dee1fe2b3e5287ad5d836234d11"
+    ],
+    "requiredComponents": [
+      "api",
+      "frontend",
+      "ansible-runner"
+    ],
+    "availability": [
+      "api@0.17.22",
+      "frontend@0.70.3",
+      "ansible-runner@0.6.113"
+    ]
+  },
+  {
+    "id": "generated-api-reference",
+    "title": "Explore the API through one generated reference",
+    "area": "API and integrations",
+    "kind": "Changed",
+    "reviewed": true,
+    "audience": "People integrating Stackweaver with automation and API clients.",
+    "before": "Separate endpoint catalogues could disagree about available operations and request fields.",
+    "after": "The API explorer presents the generated operation descriptions, parameters and response examples in one place.",
+    "action": "Use the API explorer to inspect operations. Follow Using the API for authentication context, pagination and retrieving a deployment-specific description.",
+    "details": [
+      "The narrative integration guide links to the operation reference rather than maintaining another endpoint catalogue."
+    ],
+    "guides": [
+      {
+        "title": "Using the API",
+        "path": "/docs/architecture/using-the-api"
+      }
+    ],
+    "sourceCommits": [
+      "9beb8ae76a1dfaad311935b7d316db0f0f06f77a"
+    ],
+    "requiredComponents": [
+      "frontend"
+    ],
+    "availability": [
+      "frontend@0.70.3"
+    ]
+  },
+  {
+    "id": "generated-docs-homepages",
+    "title": "Browse documentation through generated folder overviews",
+    "area": "Documentation",
+    "kind": "Added",
+    "reviewed": true,
+    "audience": "Readers of Stackweaver documentation.",
+    "before": "Documentation discovery and change guidance were spread across individual articles.",
+    "after": "Browse documentation through generated folder overviews.",
+    "action": "No configuration change is required. Use the documentation navigation to find the relevant guide.",
+    "details": [
+      "Existing article links remain available."
+    ],
+    "guides": [
+      {
+        "title": "Using the API",
+        "path": "/docs/architecture/using-the-api"
+      }
+    ],
+    "sourceCommits": [],
+    "requiredComponents": [
+      "frontend"
+    ],
+    "availability": [],
+    "draftCommits": []
+  },
+  {
+    "id": "docs-quality-changelog",
+    "title": "Read product changes and upgrade actions in one changelog",
+    "area": "Documentation",
+    "kind": "Added",
+    "reviewed": true,
+    "audience": "Readers of Stackweaver documentation.",
+    "before": "Documentation discovery and change guidance were spread across individual articles.",
+    "after": "Read product changes and upgrade actions in one changelog.",
+    "action": "No configuration change is required. Use the documentation navigation to find the relevant guide.",
+    "details": [
+      "Existing article links remain available."
+    ],
+    "guides": [
+      {
+        "title": "Using the API",
+        "path": "/docs/architecture/using-the-api"
+      }
+    ],
+    "sourceCommits": [],
+    "requiredComponents": [
+      "frontend"
+    ],
+    "availability": []
+  },
+  {
+    "id": "public-docs-quality-workflow",
+    "title": "Clearer guides with maintained visuals and generated references",
+    "area": "Documentation",
+    "kind": "Changed",
+    "reviewed": true,
+    "audience": "Readers and operators using the public Stackweaver documentation.",
+    "before": "Public guides mixed task instructions with implementation history and repeated reference lists, while screenshots had no shared freshness check.",
+    "after": "Reviewed guides provide visible configuration examples, maintained product screenshots and focused diagrams. A generated capability catalogue and central changelog keep repeated facts in their source pipelines.",
+    "action": "Use the current task guides and canonical references. No deployment configuration change is required for this documentation update.",
+    "details": [
+      "The original Ansible changelog remains available while its migration is reviewed.",
+      "Documentation images use the active light or dark theme when expanded, and optional background uses the shared disclosure styling.",
+      "Security guides distinguish verified release evidence from compliance claims, and linked live Scorecard badges remain available in both themes."
+    ],
+    "guides": [
+      {
+        "title": "Task guides",
+        "path": "/docs/user-guides"
+      },
+      {
+        "title": "Generated feature catalogue",
+        "path": "/docs/features"
+      }
+    ],
+    "sourceCommits": [],
+    "requiredComponents": [
+      "frontend"
+    ],
+    "availability": []
+  },
+  {
+    "id": "browser-sessions-bff",
+    "title": "Browser sign-in uses a server-side session",
+    "area": "Authentication",
+    "kind": "Changed",
+    "reviewed": true,
+    "audience": "Browser users and operators upgrading Stackweaver.",
+    "before": "Browser authentication depended on OAuth tokens held by the SPA.",
+    "after": "The API signs in as a confidential Zitadel client and gives the browser an opaque HttpOnly session cookie. The SPA holds no OAuth token.",
+    "action": "Create the confidential BFF application and provide its credentials before an external-Zitadel upgrade. Preserve HTTPS, the app URL and cookie/CSRF headers. Sign in again after upgrading; replace Zitadel bearer tokens in scripts with tfe- API tokens.",
+    "details": [
+      "Default session limits are one hour idle, twelve hours absolute and a five-minute identity liveness check. Unknown identity liveness retries after 30 seconds; idle and absolute expiry remain effective.",
+      "Required sign-in factors must be verified before completing login. Existing browser sessions do not resynchronize SSO groups; changes apply at the next sign-in.",
+      "Bundled initializers reconcile a one-hour Zitadel access-token lifetime for other applications. Configure a different lifetime explicitly when required; that lifetime does not control BFF browser-session duration.",
+      "Earlier browser-refresh implementations in this source range are superseded by the session model. API tokens, Terraform CLI and runner credentials retain their distinct programmatic authentication paths."
+    ],
+    "guides": [
+      {
+        "title": "Browser sessions and confidential-client setup",
+        "path": "/docs/user-guides/authentication/zitadel-setup"
+      }
+    ],
+    "sourceCommits": [
+      "07c49bcd38bfcc87f06d9f694a77763ee50f5fb0",
+      "4c4cdd89b5e5fc224ad7a7302674486eb9ff7e7e",
+      "73619e01700c6a5a61c116a9fc776aa025d8b849",
+      "9d34155aa0334fe3e3d8608f8de0de8be4a68980",
+      "1dfcd8315043a3e80210a86909d872673fcbae34",
+      "e36648aa46b5215702a54fb810c99e827f60db1a",
+      "93d133c5eaf5c63582c6e49c4aaa84d888d74e6c"
+    ],
+    "requiredComponents": [
+      "api",
+      "frontend",
+      "zitadel-init",
+      "helm"
+    ],
+    "availability": []
+  },
+  {
+    "id": "saved-plan-storage",
+    "title": "Encrypt saved plans when encryption at rest is configured",
+    "area": "OpenTofu",
+    "kind": "Changed",
+    "reviewed": true,
+    "audience": "Operators of the platform queue-mode OpenTofu runner.",
+    "before": "Saved plan files could be stored without application-level encryption between plan and apply.",
+    "after": "The platform runner seals saved plans using the configured encryption service and reads legacy plaintext plans.",
+    "action": "Keep the same encryption key across participating platform runners and coordinate runner upgrades before applying newly encrypted outstanding plans.",
+    "details": [
+      "An older runner cannot consume newly encrypted plan files. With no encryption service configured, plan storage remains plaintext.",
+      "This change concerns the platform queue-mode runner; it does not change the self-hosted agent execution path."
+    ],
+    "guides": [
+      {
+        "title": "Run lifecycle and execution paths",
+        "path": "/docs/user-guides/understanding-opentofu-runs"
+      }
+    ],
+    "sourceCommits": [
+      "c16722589c617a0facf6a058e7f05bd00992cfd1"
+    ],
+    "requiredComponents": [
+      "opentofu-runner"
+    ],
+    "availability": []
+  },
+  {
+    "id": "platform-admin-access",
+    "title": "Separate install-wide administration from organization ownership",
+    "area": "Administration",
+    "kind": "Changed",
+    "reviewed": true,
+    "audience": "Installation administrators and automation managing the OpenTofu version catalogue.",
+    "before": "Install-wide operations did not have the current explicit platform-administrator boundary.",
+    "after": "Platform administrators manage installation-wide resources without receiving organization membership. Organization owners do not receive platform privileges.",
+    "action": "Declare installation administrators, especially with external Zitadel. Mint a personal token explicitly carrying platform:admin for install-wide provider automation; plain CLI, organization and team tokens do not grant it.",
+    "details": [
+      "The bundled bootstrap administrator is the fallback when the declared administrator list is empty. External identity installations must declare their administrators.",
+      "Organization default OpenTofu versions are configured in organization settings. Organization creation remains open to signed-in users unless the installation restricts it to platform administrators."
+    ],
+    "guides": [
+      {
+        "title": "Platform administration",
+        "path": "/docs/user-guides/platform-administration"
+      }
+    ],
+    "sourceCommits": [
+      "779de383f65152271f0a704253e04968b40b0597"
+    ],
+    "requiredComponents": [
+      "api",
+      "frontend",
+      "zitadel-init",
+      "helm"
+    ],
+    "availability": []
+  },
+  {
+    "id": "runner-registration-boundaries",
+    "title": "Require explicit registration scopes and confirmed runner bindings",
+    "area": "Runners",
+    "kind": "Changed",
+    "reviewed": true,
+    "audience": "Operators registering self-hosted runners or reading agent-pool queue depth.",
+    "before": "General-purpose registration credentials and failed binding lookups could be treated too broadly.",
+    "after": "Registration requires an explicit runner registration scope. Failed or mismatched binding checks refuse the request.",
+    "action": "Use an explicitly scoped runner-registration credential or a pool-bound agent token. Replace unscoped or wildcard general-purpose registration keys.",
+    "details": [
+      "Registration requires org:<organization-id>:runner:register. A mismatched pool or organization is refused; an unreadable pool binding is a server error rather than unrestricted access.",
+      "An intentionally unbound but correctly scoped registration credential can still name a pool in its organization."
+    ],
+    "guides": [
+      {
+        "title": "Self-hosted runner credentials",
+        "path": "/docs/user-guides/self-hosted-runners"
+      }
+    ],
+    "sourceCommits": [
+      "8287646615ea3013612c9fac7de7b89fbd65b4e1",
+      "0c60921195b1d7b1ca231e15646a9bac37b07568"
+    ],
+    "requiredComponents": [
+      "api"
+    ],
+    "availability": []
+  },
+  {
+    "id": "verified-profile-email",
+    "title": "Keep the verified email while a new address awaits verification",
+    "area": "Accounts",
+    "kind": "Changed",
+    "reviewed": true,
+    "audience": "People changing their account email address.",
+    "before": "A profile edit could replace the stored email before the new address was verified.",
+    "after": "The account retains its verified address while the proposed address is reported as unconfirmed-email. Verified sign-in synchronizes the new address.",
+    "action": "Complete verification through the configured identity service and sign in with the verified account. A deployment without the profile service refuses a changed email.",
+    "details": [
+      "Resubmitting the same address, ignoring case, does not trigger another verification request."
+    ],
+    "guides": [
+      {
+        "title": "Identity and browser sign-in",
+        "path": "/docs/user-guides/authentication/zitadel-setup"
+      }
+    ],
+    "sourceCommits": [
+      "0bad4a20d42d8d33ed45a4fa9aab7c24bd4e559e"
+    ],
+    "requiredComponents": [
+      "api",
+      "frontend"
+    ],
+    "availability": []
+  },
+  {
+    "id": "supported-vcs-connections",
+    "title": "Reject unsupported VCS providers when creating connections",
+    "area": "VCS",
+    "kind": "Changed",
+    "reviewed": true,
+    "audience": "People or automation creating VCS connections.",
+    "before": "Placeholder provider connections could be accepted and then fail when used.",
+    "after": "Connection creation accepts the implemented github and azure_devops providers and rejects unsupported values immediately.",
+    "action": "Use GitHub or Azure DevOps for a new connection. Review existing placeholder connections; this change does not migrate or delete them.",
+    "details": [],
+    "guides": [
+      {
+        "title": "VCS integrations",
+        "path": "/docs/user-guides/vcs"
+      }
+    ],
+    "sourceCommits": [
+      "129581f6dbe4df71200af8f67d7bc017d35e89ad"
+    ],
+    "requiredComponents": [
+      "api"
+    ],
+    "availability": []
+  },
+  {
+    "id": "ansible-vcs-credential-boundary",
+    "title": "Configure Ansible repository access through VCS connections",
+    "area": "Ansible",
+    "kind": "Changed",
+    "reviewed": true,
+    "audience": "People configuring repository access for Ansible automation.",
+    "before": "The API and UI exposed SCM/VCS credential options that execution did not consume.",
+    "after": "The unsupported scm API credential type and the unused vcs UI option are removed from creation.",
+    "action": "Configure repository access through a VCS connection instead of creating an Ansible SCM credential.",
+    "details": [
+      "Existing stored credential rows are not migrated or deleted by this change. Supported machine, vault and cloud credentials retain their own execution roles."
+    ],
+    "guides": [
+      {
+        "title": "Ansible credential boundaries",
+        "path": "/docs/features/ansible/roadmap"
+      }
+    ],
+    "sourceCommits": [
+      "08481d5b9c802207744591d0f0b7ff287d85b1ef"
+    ],
+    "requiredComponents": [
+      "api",
+      "frontend"
+    ],
+    "availability": []
+  }
+]

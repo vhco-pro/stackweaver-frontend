@@ -142,14 +142,15 @@ const TourBadge = () => (
 );
 
 /** One segment of the progress bar. The gradient spans the whole bar, each segment shows its slice. */
-function ProgressSegment({ index, position }: { index: number; position: MotionValue<number> }) {
+function ProgressSegment({ index, position, active, onSelect }: { index: number; position: MotionValue<number>; active: number; onSelect: (index: number) => void }) {
   const clipPath = useTransform(position, (p) => {
     const step = Math.floor(p);
     const filled = index < step ? 100 : index === step ? Math.round((p - step) * 100) : 0;
     return `inset(0 ${100 - filled}% 0 0 round 9999px)`;
   });
   return (
-    <div className="relative flex-1 h-1 rounded-full bg-slate-200 dark:bg-white/10 overflow-hidden">
+    <button type="button" data-tour-progress={TOUR_SCREENS[index].id} aria-label={`Show ${TOUR_SCREENS[index].label}`} aria-current={index === active ? 'step' : undefined} onClick={() => { onSelect(index); }} className="relative flex-1 h-11 rounded-md cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500">
+      <span className="absolute inset-x-0 top-5 h-1 rounded-full bg-slate-200 dark:bg-white/10 overflow-hidden">
       <motion.div
         className="absolute inset-0"
         style={{
@@ -159,7 +160,8 @@ function ProgressSegment({ index, position }: { index: number; position: MotionV
           backgroundPosition: `${(index / (N - 1)) * 100}% 0`,
         }}
       />
-    </div>
+      </span>
+    </button>
   );
 }
 
@@ -167,7 +169,7 @@ function ProgressSegment({ index, position }: { index: number; position: MotionV
  * The caption card. All seven captions sit in one grid cell, so the card is as tall as the
  * longest of them and the screen beside or below it never moves when the caption changes.
  */
-function TourCaption({ active, position, className }: { active: number; position: MotionValue<number>; className?: string }) {
+function TourCaption({ active, position, onSelect, className }: { active: number; position: MotionValue<number>; onSelect: (index: number) => void; className?: string }) {
   return (
     <div data-tour-caption className={cn(glassCard, 'p-5', className)}>
       <div className="grid">
@@ -196,9 +198,9 @@ function TourCaption({ active, position, className }: { active: number; position
           {active + 1} / {N}
         </div>
       </div>
-      <div className="mt-4 flex gap-1.5 [@media(max-height:640px)]:max-lg:mt-3" aria-hidden="true">
+      <div className="mt-1 flex gap-1.5">
         {TOUR_SCREENS.map((screen, i) => (
-          <ProgressSegment key={screen.id} index={i} position={position} />
+          <ProgressSegment key={screen.id} index={i} position={position} active={active} onSelect={onSelect} />
         ))}
       </div>
     </div>
@@ -526,7 +528,7 @@ export function Stage({ background }: StageProps) {
               <TourHeading className="text-2xl sm:text-3xl xl:text-4xl" />
               {tablet ? (
                 <>
-                  <TourCaption active={active} position={position} />
+                  <TourCaption active={active} position={position} onSelect={(i) => { setPicked(true); select(i); }} />
                   <TourPills active={active} onSelect={(i) => { setPicked(true); select(i); }} />
                 </>
               ) : (
@@ -595,7 +597,7 @@ export function Stage({ background }: StageProps) {
                 <TourBadge />
               </div>
               <TourHeading className="text-xl lg:text-3xl xl:text-4xl [@media(max-height:640px)]:max-lg:hidden" />
-              <TourCaption active={active} position={position} className="max-lg:p-3.5" />
+              <TourCaption active={active} position={position} onSelect={jumpToStep} className="max-lg:p-3.5" />
               <TourPills active={active} onSelect={jumpToStep} className="max-lg:hidden" />
               <TourActions className="max-lg:hidden" />
             </motion.div>

@@ -1,12 +1,14 @@
 // Copyright (c) 2025 VH & Co BV. Licensed under the Business Source License 1.1. See LICENSE for details.
 
-import { useState, useRef, useMemo, type ReactNode, type KeyboardEvent } from 'react';
+import { Children, isValidElement, useState, useRef, useMemo, type ReactNode, type KeyboardEvent } from 'react';
 import { useMountEffect } from '@/hooks/useMountEffect';
 import { useNavigate } from 'react-router-dom';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeRaw from 'rehype-raw';
 import { cn } from '@/lib/utils';
+import { glassSurface } from '@/lib/surfaces';
+import './disclosures.css';
 import { Copy, Check, ChevronRight } from 'lucide-react';
 import { JsonSyntaxHighlighter } from '@/components/code/JsonSyntaxHighlighter';
 import { CalloutBox, type CalloutType } from '@/components/docs/CalloutBox';
@@ -15,7 +17,7 @@ import { MermaidDiagram } from '@/components/docs/MermaidDiagram';
 import { FileTreeViewer } from '@/components/docs/FileTreeViewer';
 import { CodeExplorer } from '@/components/docs/CodeExplorer';
 import { GitHubSnippet } from '@/components/docs/GitHubSnippet';
-import { Dialog, DialogContent } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { useTheme } from '@/contexts/ThemeContext';
 
 // Types for ReactMarkdown components
@@ -93,6 +95,8 @@ interface DocImageProps {
  * e.g. /docs/features/screenshot.png -> /docs/features/screenshot-dark.png
  */
 function darkVariant(src: string): string {
+  // External image services own their URLs; filename variants apply to local assets.
+  if (/^(?:https?:)?\/\//i.test(src)) return src;
   const dot = src.lastIndexOf('.');
   if (dot === -1) return src + '-dark';
   return src.slice(0, dot) + '-dark' + src.slice(dot);
@@ -143,7 +147,7 @@ function DocImage({ src, alt, title, currentDir, docsBase, onLightbox }: DocImag
   const activeSrc = isDark && !darkFailed ? darkVariant(resolvedSrc) : resolvedSrc;
 
   const handleClick = () => {
-    if (resolvedSrc) onLightbox(resolvedSrc, alt ?? '');
+    if (activeSrc) onLightbox(activeSrc, alt ?? '');
   };
 
   const handleKeyDown = (e: KeyboardEvent<HTMLImageElement>) => {
@@ -811,22 +815,27 @@ export function MarkdownRenderer({
         return <blockquote className="border-l-4 border-primary pl-4 italic my-4 text-muted-foreground" {...props} />;
       },
       // GitHub-style <details>/<summary> collapsible sections (raw HTML via rehype-raw)
-      details: ({ className: detailsClassName, ...props }: MarkdownBlockProps) => (
-        <details
-          className={cn('group my-4 rounded-md border border-border bg-muted/30 [&>:not(summary)]:px-4 [&>:not(summary)]:pb-4 [&>:not(summary)]:pt-1 [&>:not(summary)]:pl-6', detailsClassName)}
-          {...props}
-        />
-      ),
+      details: ({ className: detailsClassName, children, ...props }: MarkdownBlockProps) => {
+        const blocks = Children.toArray(children);
+        const summaryIndex = blocks.findIndex(child => isValidElement<{ node?: { tagName?: string } }>(child) &&
+          (child.type === 'summary' || child.props.node?.tagName === 'summary'));
+        return <details className={cn(glassSurface, 'docs-disclosure my-5 overflow-clip rounded-xl', detailsClassName)} {...props}>
+          {summaryIndex >= 0 ? blocks[summaryIndex] : null}
+          <div className="docs-disclosure-body min-w-0">{blocks.filter((_, index) => index !== summaryIndex)}</div>
+        </details>;
+      },
       summary: ({ className: summaryClassName, children, ...props }: MarkdownBlockProps) => (
         <summary
           className={cn(
-            'flex cursor-pointer list-none items-center gap-2 py-2 pr-2 font-medium [&::-webkit-details-marker]:hidden',
+            'flex min-h-16 cursor-pointer list-none items-center gap-3 p-4 font-medium [&::-webkit-details-marker]:hidden',
             summaryClassName
           )}
           {...props}
         >
-          <ChevronRight className="h-4 w-4 shrink-0 transition-transform group-open:rotate-90" />
-          {children}
+          <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-purple-500/20 bg-purple-500/5 text-purple-600 dark:text-purple-300">
+            <ChevronRight aria-hidden="true" className="docs-disclosure-chevron h-4 w-4" />
+          </span>
+          <span className="min-w-0">{children}</span>
         </summary>
       ),
       codegroup: ({ ...props }: MarkdownBlockProps) => {
@@ -1407,7 +1416,8 @@ export function MarkdownRenderer({
       </ReactMarkdown>
 
       <Dialog open={lightboxSrc !== null} onOpenChange={() => { setLightboxSrc(null); }}>
-        <DialogContent className="max-w-[90vw] max-h-[90vh] p-2 flex items-center justify-center bg-background/95 backdrop-blur-xs">
+        <DialogContent aria-describedby={undefined} className="max-w-[90vw] max-h-[90vh] p-2 flex items-center justify-center bg-background/95 backdrop-blur-xs">
+          <DialogTitle className="sr-only">{lightboxAlt || 'Documentation image'}</DialogTitle>
           {lightboxSrc && (
             <img
               src={lightboxSrc}

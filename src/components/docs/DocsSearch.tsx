@@ -18,6 +18,8 @@ const RECENT_STORAGE_KEY = 'docs-recent-visited';
 interface DocsSearchProps {
   docsBase?: string;
   searchIndexFile?: string;
+  shortcut?: boolean;
+  prominent?: boolean;
 }
 
 interface SectionHeading {
@@ -114,7 +116,11 @@ function findMatchingSection(
   return null;
 }
 
-export function DocsSearch({ docsBase = '/docs', searchIndexFile = '/docs-search-index.json' }: DocsSearchProps) {
+export function DocsSearch({ docsBase = '/docs', searchIndexFile = '/docs-search-index.json', ...props }: DocsSearchProps) {
+  return <SearchSession key={`${docsBase}:${searchIndexFile}`} docsBase={docsBase} searchIndexFile={searchIndexFile} {...props} />;
+}
+
+function SearchSession({ docsBase = '/docs', searchIndexFile = '/docs-search-index.json', shortcut = true, prominent = false }: DocsSearchProps) {
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
@@ -182,8 +188,9 @@ export function DocsSearch({ docsBase = '/docs', searchIndexFile = '/docs-search
   // Global Cmd/Ctrl+K listener
   useMountEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+      if (shortcut && (e.metaKey || e.ctrlKey) && e.key === 'k') {
         e.preventDefault();
+        void loadIndex();
         setOpen(prev => !prev);
       }
     };
@@ -205,7 +212,7 @@ export function DocsSearch({ docsBase = '/docs', searchIndexFile = '/docs-search
     }
   }, [loadIndex]);
 
-  const storageKeySuffix = docsBase === '/internal-docs' ? 'internal' : 'public';
+  const storageKeySuffix = `${docsBase}:${searchIndexFile}`;
 
   // Navigate to result, optionally with a section anchor
   const navigateToResult = useCallback((result: SearchResult | RecentDoc, anchor?: string) => {
@@ -281,7 +288,7 @@ export function DocsSearch({ docsBase = '/docs', searchIndexFile = '/docs-search
       <button
         type="button"
         onClick={() => { handleOpenChange(true); }}
-        className="@container flex items-center w-full gap-2 rounded-lg border border-border/60 bg-muted/30 px-3 py-2 text-sm text-muted-foreground hover:bg-muted/60 hover:border-border transition-colors"
+        className={`@container flex min-h-11 items-center w-full gap-2 rounded-lg border border-border/60 bg-muted/30 px-3 text-sm text-muted-foreground hover:bg-muted/60 hover:border-border transition-colors ${prominent ? 'py-5' : 'py-2'}`}
       >
         <Search className="h-4 w-4 shrink-0" />
         <span className="min-w-0 flex-1 truncate text-left">Search docs…</span>

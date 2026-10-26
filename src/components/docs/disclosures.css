@@ -1,0 +1,43 @@
+/* Copyright (c) 2026 VH & Co BV. Licensed under the Business Source License 1.1. See LICENSE for details. */
+/* Quiet glass builds on glassSurface; these rules only style disclosure structure/state. */
+.docs-disclosure {
+  transition: border-color 180ms, box-shadow 180ms;
+}
+.docs-disclosure:hover,
+.docs-disclosure[open] {
+  border-color: #8b5cf677;
+}
+.docs-disclosure[open] {
+  box-shadow: 0 0 0 1px #8b5cf60d, 0 10px 26px -18px #7c3aed77;
+}
+.docs-disclosure > summary {
+  background: linear-gradient(110deg, #8b5cf60a, #3b82f603);
+}
+.docs-disclosure[open] > summary {
+  background: linear-gradient(110deg, #8b5cf612, #3b82f606);
+  border-bottom: 1px solid #8b5cf618;
+}
+.docs-disclosure > summary:focus-visible {
+  outline: 3px solid #8b5cf6;
+  outline-offset: -4px;
+  border-radius: 12px;
+}
+.docs-disclosure > summary .docs-disclosure-chevron {
+  transition: transform 180ms;
+}
+/* A parent opening must not rotate the chevron of a still-closed nested section. */
+.docs-disclosure[open] > summary .docs-disclosure-chevron {
+  transform: rotate(90deg);
+}
+.docs-disclosure > .docs-disclosure-body {
+  min-width: 0;
+  padding: 16px 18px 18px 56px;
+}
+.docs-disclosure-body > :last-child { margin-bottom: 0; }
+@media (max-width: 640px) {
+  .docs-disclosure > .docs-disclosure-body { padding-left: 18px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .docs-disclosure,
+  .docs-disclosure > summary .docs-disclosure-chevron { transition: none; }
+}

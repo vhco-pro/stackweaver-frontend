@@ -1,0 +1,3 @@
+realm_id              = "my-realm"
+zitadel_callback_url  = "https://auth.example.com/idps/callback"
+other_optional_scopes = ["address", "phone", "offline_access", "microprofile-jwt"]

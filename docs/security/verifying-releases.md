@@ -1,247 +1,255 @@
 ---
-description: "How to cryptographically verify a Stackweaver release - container image signatures, SLSA build provenance, and SBOM attestations. Uses Sigstore keyless signing; no long-lived signing keys are involved."
+description: "Verify container images, Helm charts and sync commits with the expected Sigstore workflow identity, immutable digest and attestation type."
 covers:
   - ".github/workflows/**"
   - "deploy/helm/**"
 ---
 
-<!--
-Copyright (c) 2025 VH & Co BV. Licensed under the Business Source License 1.1. See LICENSE for details.
--->
+<!-- Copyright (c) 2025 VH & Co BV. Licensed under the Business Source License 1.1. See LICENSE for details. -->
 
-# Verifying a Stackweaver Release
+# Verify a Stackweaver release
 
-Stackweaver follows a **Sigstore-only signing policy**: there are no long-lived PGP or cosign keys to download, and no public-key fingerprint to compare against. Every signed artefact is bound to the GitHub Actions workflow that produced it via a short-lived Fulcio certificate and recorded in the Rekor public transparency log. Verification therefore proves both "this artefact really came out of the Stackweaver release pipeline" and "the transparency log agrees", in a single command, with no project-specific key material.
+Before deploying, verify the artifact's signature and build provenance against the workflow
+that you expect to publish it. Keep the verified digest in your deployment configuration
+and audit record.
 
-This page only documents what has been **verified to actually work today** against the live releases on the `vhco-pro` organisation. All eight satellites are public and fully verifiable, including the runner satellite [`stackweaver-opentofu-runner`](https://github.com/vhco-pro/stackweaver-opentofu-runner), whose releases carry the same Sigstore signature plus GitHub-native SLSA provenance and SBOM attestations as the rest of the fleet. The retired private `stackweaver-runner` repository is not part of the release surface.
+Stackweaver uses Sigstore keyless signing. Verification checks a short-lived signing
+certificate and transparency evidence; you do not need a project GPG key or `cosign.pub`.
+A valid signature identifies a signer. It does not establish that the software is free of
+vulnerabilities or that every upstream change received human review.
 
-If any documented verification fails against an artefact you obtained from an official location (`ghcr.io/vhco-pro/*` or a `vhco-pro/stackweaver-*` GitHub Release page), treat the artefact as untrusted and report it via a [Private Vulnerability Report](https://github.com/vhco-pro/.github/security/policy) or to `contact@vhco.pro`.
+```mermaid
+flowchart LR
+  A[Choose artifact and version] --> B[Verify signer and issuer]
+  B --> C[Record immutable digest]
+  C --> D[Verify provenance and other attestations]
+  D --> E[Deploy the verified digest]
+```
 
-For background on how code actually reaches the satellite repositories (the trust boundary between the private monorepo and the public satellites that produce these artefacts), see [Sync Architecture](./sync-architecture.md).
+## Before you start
 
-## What's Verifiable Today
+Install [cosign](https://docs.sigstore.dev/cosign/system_config/installation/) and the
+[GitHub CLI](https://cli.github.com/). For sync-commit verification, also install
+[gitsign](https://github.com/sigstore/gitsign#installation) and Git.
 
-| Artefact | Mechanism | Status |
-|----------|-----------|--------|
-| Container image signature (`cosign verify`) | Sigstore keyless, signed by satellite `release.yml` workflow | ✅ **Live today** on all docker satellites |
-| Sync-commit identity (`gitsign verify`) | Sigstore keyless, signed by monorepo `sync-<component>.yml` workflow | ✅ **Live today** on sync commits (not on chart-releaser auto-bumps) |
-| SLSA Build L3 provenance (`gh attestation verify`) | `actions/attest-build-provenance` from satellite `release.yml`, gated on `visibility == 'public'` | ✅ **Live today** on all docker satellites |
-| SBOM attestation (SPDX) | `actions/attest-sbom` from satellite `release.yml`, gated on `visibility == 'public'` | ✅ **Live today** on all docker satellites |
-| OpenVEX attestation (`gh attestation verify`) | `actions/attest` from satellite `release.yml` over `security/vex/*.openvex.json`, gated on `visibility == 'public'` | ✅ **Live today** on all docker satellites |
-| Helm chart `cosign verify` (Sigstore keyless) | `stackweaver-helm/.github/workflows/release.yml` runs `cosign sign` against the OCI chart ref after `helm push` | ✅ **Live today** for chart versions ≥ `0.6.8` |
-| Helm chart SLSA L3 + SBOM (SPDX) + OpenVEX (`gh attestation verify`) | `actions/attest-build-provenance` / `actions/attest-sbom` / `actions/attest` from `stackweaver-helm/.github/workflows/release.yml`, gated on `visibility == 'public'` | ✅ **Live today** for chart versions ≥ `0.7.8` (the helm satellite is public) |
+Authenticate `gh` for GitHub API access. Registry access is separate: public source does
+not imply a public container package. If GHCR denies access, authenticate with an account
+that can read that package. See [GHCR access](../get-started/self-hosting/kubernetes/kubernetes-pull-secret-ghcr.md).
+The chart is publicly pullable. Check access for the exact image you intend to verify.
 
-## Tools
+These commands use the satellite repository's full `owner/repository` name. Replace the
+version and component with the release you intend to deploy; do not deploy a sample just
+to match the guide.
 
-Install once and reuse for every release. No project-specific configuration is required.
+## 1. Verify a container signature
 
-| Tool | Used for | Install |
-|------|---------|--------|
-| `cosign` | Container-image signature verification | `go install github.com/sigstore/cosign/v2/cmd/cosign@latest` or see <https://docs.sigstore.dev/cosign/system_config/installation/> |
-| `gh` (GitHub CLI) | SLSA + SBOM attestation verification | <https://cli.github.com/> |
-| `gitsign` | Sync-commit identity verification | `go install github.com/sigstore/gitsign@latest` or see <https://github.com/sigstore/gitsign#installation> |
-
-Verified working with `cosign v2`, `gh 2.87+`, `gitsign v0.13+`.
-
-## Verifying a Container Image (Live Today)
-
-Replace `<component>` with one of `api`, `orchestrator`, `opentofu-runner`, `ansible-runner`, `frontend`, `zitadel-init` and `<tag>` with the release tag.
+Choose a component: `api`, `frontend`, `orchestrator`, `opentofu-runner`, `ansible-runner`,
+`zitadel-init` or `secrets-init`. Set its exact release tag:
 
 ```bash
-IMAGE=ghcr.io/vhco-pro/stackweaver-<component>:<tag>
+COMPONENT=api
+VERSION=0.17.36
+REPO="vhco-pro/stackweaver-${COMPONENT}"
+IMAGE="ghcr.io/${REPO}"
+IDENTITY="https://github.com/${REPO}/.github/workflows/release.yml@refs/tags/${VERSION}"
 
 cosign verify \
-  --certificate-identity-regexp "^https://github\.com/vhco-pro/stackweaver-<component>/\.github/workflows/release\.yml@refs/tags/.+$" \
-  --certificate-oidc-issuer "https://token.actions.githubusercontent.com" \
-  "$IMAGE"
+  --certificate-identity "$IDENTITY" \
+  --certificate-oidc-issuer https://token.actions.githubusercontent.com \
+  "${IMAGE}:${VERSION}"
 ```
 
-The command succeeds only if (a) the image bears a cosign signature, (b) the signing certificate was issued by Fulcio to a GitHub Actions workflow whose path matches the regular expression above, and (c) the signature is present in the Rekor transparency log. A successful run prints a JSON payload containing the image digest and the OCI reference - keep both for your audit trail.
+Expect exit code zero, successful certificate/signature checks and a JSON payload containing
+`critical.image.docker-manifest-digest`. Record that digest. The identity pins the release
+workflow and tag; do not widen it to any workflow in the organisation to make a failure pass.
 
-For production deployments you may want to pin to one exact tag rather than allowing any tag. Replace the trailing `.+$` in the regex with the literal tag, for example `v1\.4\.2$`.
-
-> **Note on GHCR access.** The Helm chart (`ghcr.io/vhco-pro/charts/stackweaver`) and the `stackweaver-ansible-runner` and `stackweaver-secrets-init` images are public packages, so `cosign verify` works against them without authentication. The `stackweaver-api`, `stackweaver-frontend`, `stackweaver-orchestrator`, `stackweaver-opentofu-runner`, and `stackweaver-zitadel-init` images are private packages: run `docker login ghcr.io` with an account that has been granted access (see [Creating a Kubernetes Pull Secret for GHCR](../get-started/self-hosting/kubernetes/kubernetes-pull-secret-ghcr.md) for how to get one) before verifying them. The satellite source repositories are public either way.
-
-### A real, working example
-
-The following command produces a successful verification at the time of writing:
+Set `DIGEST` to that returned value, including its `sha256:` prefix, then verify the same
+identity against the immutable reference:
 
 ```bash
+DIGEST='sha256:REPLACE_WITH_THE_VERIFIED_DIGEST'
+REF="${IMAGE}@${DIGEST}"
+
 cosign verify \
-  --certificate-identity-regexp "^https://github\.com/vhco-pro/stackweaver-api/\.github/workflows/release\.yml@refs/tags/.+$" \
-  --certificate-oidc-issuer "https://token.actions.githubusercontent.com" \
-  ghcr.io/vhco-pro/stackweaver-api:0.6.8
+  --certificate-identity "$IDENTITY" \
+  --certificate-oidc-issuer https://token.actions.githubusercontent.com \
+  "$REF"
 ```
 
-## Verifying SLSA Build Provenance (Live Today)
+Use this digest for the remaining checks and deployment. If the tag changes between the
+two checks, stop and reconcile the references rather than deploying the replacement.
 
-Every release from the docker satellites publishes a [SLSA Build L3 provenance attestation](https://slsa.dev/spec/v1.0/levels#build-l3) binding the released container digest to the upstream monorepo commit SHA and the workflow run that built it. The `attest-build-provenance` step is gated on `github.event.repository.visibility == 'public'`, which holds for every satellite, including the OpenTofu runner: `gh attestation verify oci://ghcr.io/vhco-pro/stackweaver-opentofu-runner:<tag> --repo vhco-pro/stackweaver-opentofu-runner` succeeds against its published releases.
+## 2. Verify build provenance
 
-The earliest tags of each satellite carry no attestations. For the API satellite, provenance is present from `0.6.11` onward - older tags such as `0.6.8` return `404`, so always verify against a recent tag.
-
-Replace `<component>` with one of `api`, `orchestrator`, `opentofu-runner`, `ansible-runner`, `frontend`, `zitadel-init` and `<tag>` with the release tag:
+With `REPO`, `REF` and `IDENTITY` from the signature check:
 
 ```bash
-gh attestation verify \
-  -R vhco-pro/stackweaver-<component> \
-  "oci://ghcr.io/vhco-pro/stackweaver-<component>:<tag>"
+gh attestation verify "oci://${REF}" \
+  --repo "$REPO" \
+  --cert-identity "$IDENTITY" \
+  --predicate-type https://slsa.dev/provenance/v1 \
+  --format json
 ```
 
-Note the `-R owner/repo` form - `--repo stackweaver-<component>` (just the name) is **not** accepted by `gh attestation verify`. You can also omit `-R` and pass `--owner vhco-pro` to verify against any repository in the organisation.
+Expect exit code zero and verified provenance for that subject digest. Inspect the source
+repository/commit, workflow ref and build-run URL in the result. Keep them with the digest.
+The release workflows use GitHub attestations; workflow configuration alone does not prove
+that a particular artifact has an attestation.
 
-A successful verification proves four things in one shot: the image digest exists, an attestation was published for that exact digest, the attestation was issued by a workflow in the named repository, and the issuer's certificate (again from Sigstore Fulcio) is logged in Rekor.
+The API provenance identifies the satellite source commit. Do not treat it as proof of a
+private monorepo commit, upstream human approval or SLSA Build Level 3 conformance. Those
+need additional source/review and builder evidence. See [Sync architecture](./sync-architecture.md).
 
-### A real, working example
+## 3. Verify the SBOM and vulnerability statements
 
-The following command produces a successful verification at the time of writing:
+Run these checks against the same `REF`. Each predicate is a different signed statement:
 
 ```bash
-gh attestation verify \
-  -R vhco-pro/stackweaver-api \
-  "oci://ghcr.io/vhco-pro/stackweaver-api:0.6.32"
+# SPDX 2.3 software bill of materials
+gh attestation verify "oci://${REF}" \
+  --repo "$REPO" \
+  --cert-identity "$IDENTITY" \
+  --predicate-type https://spdx.dev/Document/v2.3
+
+# OpenVEX vulnerability statements
+gh attestation verify "oci://${REF}" \
+  --repo "$REPO" \
+  --cert-identity "$IDENTITY" \
+  --predicate-type https://openvex.dev/ns/v0.2.0
 ```
 
-## Verifying the SBOM (Live Today)
+Expect both commands to exit zero. An SBOM lists components; OpenVEX records the publisher's
+vulnerability applicability statements. Neither replaces your vulnerability policy or
+proves that the artifact has no vulnerabilities.
 
-The SBOM is published as a Sigstore-signed attestation in SPDX format, **not** as a GitHub Release asset. The verification command is identical to the SLSA one, with one additional flag selecting the predicate type:
+Some releases also attach `provenance.intoto.jsonl`, `sbom.spdx.intoto.jsonl` and
+`checksums.txt` to their GitHub Release. Check the actual asset list. A checksum checks bytes,
+not signer identity; a downloaded attestation still needs verification. Do not assume that
+every release has those files or that the SBOM is a raw, unsigned Release attachment.
+
+## Verify the Helm chart
+
+The chart's registry path is `ghcr.io/vhco-pro/charts/stackweaver`. Its signer is the Helm
+satellite's release workflow. Select the chart version independently of container versions:
 
 ```bash
-gh attestation verify \
-  -R vhco-pro/stackweaver-<component> \
-  --predicate-type https://spdx.dev/Document \
-  "oci://ghcr.io/vhco-pro/stackweaver-<component>:<tag>"
-```
+VERSION=0.14.0
+REPO=vhco-pro/stackweaver-helm
+IMAGE=ghcr.io/vhco-pro/charts/stackweaver
+IDENTITY="https://github.com/${REPO}/.github/workflows/release.yml@refs/tags/${VERSION}"
 
-This is subject to the same `visibility == 'public'` gate as the SLSA attestation, so it is live on every docker satellite.
-
-## Verifying the OpenVEX Document (Live Today)
-
-Every release also publishes a signed [OpenVEX](https://openvex.dev/) document as a Sigstore-keyless attestation, binding the released image digest to the project's machine-readable statements about which known vulnerabilities do (or do not) affect it. Verify it by selecting the OpenVEX predicate type:
-
-```bash
-gh attestation verify \
-  -R vhco-pro/stackweaver-<component> \
-  --predicate-type https://openvex.dev/ns/v0.2.0 \
-  "oci://ghcr.io/vhco-pro/stackweaver-<component>:<tag>"
-```
-
-For example:
-
-```bash
-gh attestation verify \
-  --owner vhco-pro \
-  --predicate-type https://openvex.dev/ns/v0.2.0 \
-  "oci://ghcr.io/vhco-pro/stackweaver-frontend:0.12.2"
-```
-
-Like the SLSA and SBOM attestations, the OpenVEX attestation is gated on `visibility == 'public'`, so it is live on every docker satellite.
-
-## Verifying the Helm Chart
-
-The Helm chart is published as an OCI artefact at:
-
-```
-ghcr.io/vhco-pro/charts/stackweaver:<chart-version>
-```
-
-(Note the path: `charts/stackweaver`, **not** `stackweaver-helm/charts/stackweaver`.)
-
-The chart is pullable without authentication. Every chart version from **`0.6.8`** onward is Sigstore-signed with `cosign sign`. From chart version **`0.7.8`** the SBOM, SLSA L3 provenance, and OpenVEX are published as **GitHub-native attestations** (`actions/attest-*`), verified with `gh attestation verify`. Chart versions `0.6.8` to `0.7.0` instead carry a cosign-attested SPDX SBOM (`cosign verify-attestation`); versions `0.7.1` to `0.7.7` did not publish successfully and should not be used. Earlier chart versions are unsigned and can only be integrity-checked by digest comparison against the matching [GitHub Release](https://github.com/vhco-pro/stackweaver-helm/releases).
-
-> **Why two attestation methods?** cosign v3 makes the Sigstore bundle format mandatory for keyless signing, and `cosign attest` of the chart's SPDX/OpenVEX predicates fails under it (`invalid attestation: decoding json`). Charts from `0.7.8` therefore use the same GitHub-native attestation path as the docker satellites. The chart *signature* is verified with `cosign verify` for every signed version.
-
-### Verify the chart signature
-
-```bash
 cosign verify \
-  --certificate-identity-regexp "^https://github\.com/vhco-pro/stackweaver-helm/\.github/workflows/release\.yml@refs/tags/.+$" \
-  --certificate-oidc-issuer "https://token.actions.githubusercontent.com" \
-  ghcr.io/vhco-pro/charts/stackweaver:<chart-version>
+  --certificate-identity "$IDENTITY" \
+  --certificate-oidc-issuer https://token.actions.githubusercontent.com \
+  "${IMAGE}:${VERSION}"
 ```
 
-A successful run prints the three Sigstore claims (cosign claims valid, Rekor entry exists, certificate chains to Fulcio) followed by the signed payload as JSON.
+Record the returned digest, set `DIGEST` and `REF` as in step 1, and run steps 2 and 3 with
+these Helm variables. Verify the images selected by your chart values separately: a chart
+signature does not verify the containers that it deploys.
 
-### Verify the chart attestations (SLSA provenance, SBOM, OpenVEX)
+## Verify older releases
 
-For chart versions **≥ `0.7.8`** the chart's SLSA L3 provenance, SPDX SBOM, and OpenVEX are GitHub-native attestations bound to the chart digest, verified with `gh attestation verify`:
+Older releases can use a different attestation format or lack attestations. Select the
+release's actual workflow and available evidence before choosing a command. A recent sample
+does not establish a minimum supported version or guarantee every later publication.
+
+For charts carrying the legacy cosign SPDX attestation, use the same expected identity
+and issuer as the signature check, with the legacy attestation verifier:
 
 ```bash
-# SLSA Build L3 provenance (default predicate)
-gh attestation verify \
-  -R vhco-pro/stackweaver-helm \
-  "oci://ghcr.io/vhco-pro/charts/stackweaver:<chart-version>"
-
-# SPDX SBOM
-gh attestation verify \
-  -R vhco-pro/stackweaver-helm \
-  --predicate-type https://spdx.dev/Document \
-  "oci://ghcr.io/vhco-pro/charts/stackweaver:<chart-version>"
-
-# OpenVEX
-gh attestation verify \
-  -R vhco-pro/stackweaver-helm \
-  --predicate-type https://openvex.dev/ns/v0.2.0 \
-  "oci://ghcr.io/vhco-pro/charts/stackweaver:<chart-version>"
+cosign verify-attestation \
+  --certificate-identity "$IDENTITY" \
+  --certificate-oidc-issuer https://token.actions.githubusercontent.com \
+  --type https://spdx.dev/Document/v2.3 \
+  "$REF"
 ```
 
-This is the same `gh attestation verify` form (and the same predicate types) used for the docker satellite images, so one command shape works fleet-wide.
+This is an alternative for the legacy format, not a fallback that makes a failed current
+GitHub-attestation check acceptable. Check the selected release's workflow and requirements;
+missing evidence does not become verified by comparing a tag or checksum.
 
-> **Older charts (`0.6.8` to `0.7.0`).** These carry the SBOM as a *cosign* attestation instead. Verify those with `cosign verify-attestation --type "https://spdx.dev/Document/v2.3" …` and the same certificate-identity regexp as the signature command above. Charts from `0.7.8` onward do **not** have this cosign attestation - use `gh attestation verify` instead.
 
-## Verifying Sync-Commit Identity
+## Verify a sync commit
 
-Satellites are deterministic re-publications of the private monorepo, pushed by the `stackweaver-release-bot` GitHub App. The bot's sync commit is signed with `gitsign`, so its author identity is bound to the same Sigstore OIDC chain as the container signatures.
+A sync PR's signed head and the resulting squash commit are different Git objects. Verify
+the PR head to check the sync workflow's Sigstore identity. A GitHub `Verified` badge on the
+squash commit does not verify that original identity.
 
-There is one important subtlety: the certificate identity on a sync commit points at the **monorepo workflow that produced the sync**, not at the satellite. The signing identity is therefore `https://github.com/michielvha/stackweaver/.github/workflows/sync-<component>.yml@<ref>`, **not** `https://github.com/vhco-pro/...`. The signature is still cryptographically valid and the Rekor entry is still public; this just reflects the fact that the sync is driven by a workflow that lives in the upstream monorepo.
-
-A second subtlety matters for *where* to find the signed commit. Sync changes land on a satellite through a pull request that is **squash-merged**. Squash-merging discards the bot's original commit and writes a brand-new commit onto `main` that is signed by GitHub's own web-flow GPG key (`committer = GitHub`) with the bot preserved only as the *author*. That squashed `main` commit is therefore **not** gitsign-signed - running `gitsign verify` against it fails with `unsupported signature type: not a PEM block`. The gitsign-signed commit still exists; it lives on the pull-request head ref (`refs/pull/<n>/head`). Verify that commit instead:
+For the API satellite, choose a merged release-bot sync PR and verify its head in a separate
+clone. This downloads source but does not execute it:
 
 ```bash
-git clone https://github.com/vhco-pro/stackweaver-<component>
-cd stackweaver-<component>
+REPO=vhco-pro/stackweaver-api
+gh pr list --repo "$REPO" --state merged \
+  --author app/stackweaver-release-bot --limit 5 \
+  --json number,headRefName,headRefOid,mergeCommit,url
 
-# Sync PRs are squash-merged, so the commit on `main` is a GitHub-signed
-# squash commit (committer "GitHub"). The bot's gitsign-signed commit lives
-# on the pull-request head ref. Pick a merged sync PR and fetch its head.
-PR=$(gh pr list -R vhco-pro/stackweaver-<component> --state merged \
-       --author app/stackweaver-release-bot --json number --jq '.[0].number')
-git fetch origin "refs/pull/$PR/head:sync-head"
+# Replace this example with the merged sync PR you intend to inspect.
+PR=249
+
+git clone "https://github.com/${REPO}.git" stackweaver-api-verification
+cd stackweaver-api-verification
+git fetch origin "refs/pull/${PR}/head"
 
 gitsign verify \
-  --certificate-identity-regexp "^https://github\.com/michielvha/stackweaver/\.github/workflows/sync-<component>\.yml@.+$" \
-  --certificate-oidc-issuer "https://token.actions.githubusercontent.com" \
-  sync-head
+  --certificate-identity https://github.com/michielvha/stackweaver/.github/workflows/sync-api.yml@refs/heads/main \
+  --certificate-oidc-issuer https://token.actions.githubusercontent.com \
+  FETCH_HEAD
 ```
 
-A successful run prints the Rekor log index, the Fulcio certificate ID, the signing workflow URL, and the four lines:
+Expect exit code zero and valid Git signature, certificate claims and transparency evidence.
+Confirm that the selected PR is the sync you intend to inspect; the latest merged PR is not
+necessarily the source of your selected image. Set `PR` explicitly after inspecting its source
+and merge relationship. For another satellite, replace `REPO`, the clone directory and the
+identity's workflow filename using this mapping. The monorepo identity prefix and
+`@refs/heads/main` suffix stay the same:
 
+| Component | Sync workflow filename |
+|---|---|
+| API | `sync-api.yml` |
+| Frontend | `sync-frontend.yml` |
+| Orchestrator | `sync-orchestrator.yml` |
+| Ansible runner | `sync-ansible-runner.yml` |
+| OpenTofu runner | `sync-runner.yml` |
+| Zitadel init | `sync-zitadel-init.yml` |
+| Secrets init | `sync-secrets-init.yml` |
+| Helm | `sync-helm.yml` |
+
+The signer lives in the private monorepo. Its certificate can be verified publicly, but it
+does not expose the private source or review record. See [the trust boundary](./sync-architecture.md#trust-boundaries).
+Other commits, including GitHub squash commits and maintainer commits, can use another
+signature mechanism; do not disable identity checking to accept them as sync signatures.
+
+## Verification examples
+
+On 26 October 2026, the signature, provenance, SPDX 2.3 SBOM and OpenVEX checks succeeded
+for these two artifacts with their exact tag-specific satellite `release.yml` identities:
+
+- API `0.17.36`.
+- Helm chart `0.14.0`.
+
+The verified references were:
+
+```text
+ghcr.io/vhco-pro/stackweaver-api@sha256:6f1b111ba6ad0a5bd0a23460641bbea9ca29d8f80d53562825948a458fd86be9
+ghcr.io/vhco-pro/charts/stackweaver@sha256:4830965417cc53198af2e5cf064d37bd65b59c0f3f475e1c021ea7807d7573cb
 ```
-Validated Git signature: true
-Validated Rekor entry: true
-Validated Certificate claims: true
-```
 
-### Known caveats
+These are reproducible examples, not a fleet-wide result or a requirement to deploy those
+versions. Verify the digest and policy for your selected release.
 
-**Verify the PR head, not `main`.** Because sync PRs are squash-merged, the commit you see on `main` is GitHub's web-flow GPG signature, which the GitHub UI shows as a green `Verified` badge attributed to GitHub. That is GitHub's signature on the squash commit, not the bot's gitsign signature. The bot's gitsign-signed commit is the pull-request head ref fetched above; pointing `gitsign verify` at a `main` commit returns `not a PEM block` and is expected.
+## When a check fails
 
-**GitHub UI badge.** When you view the gitsign-signed PR head commit directly, the GitHub web UI shows it with a yellow `Unverified` (`bad_cert`) badge because GitHub's verified-CA list does not yet include Sigstore Fulcio. The `gitsign verify` command above, together with the Rekor entry it prints, is the authoritative check. This is a documented Sigstore-GitHub interop gap, not a Stackweaver-specific problem.
+| Result | Next action |
+|---|---|
+| GHCR denies access | Confirm the package path, registry login and read permissions. |
+| No matching attestation | Check the exact digest, release workflow and predicate type. Older or incomplete publications can lack evidence. |
+| Unexpected signer, issuer or digest | Stop deployment and investigate the mismatch. Keep the failing reference and output. |
+| Certificate or transparency verification fails | Check tool support, trust configuration and service access; keep the artifact unverified until resolved. |
+| `gitsign` rejects a squash commit | Fetch and verify the intended sync PR head instead. |
 
-**Monorepo source visibility.** The cert subject points at a workflow that lives in `michielvha/stackweaver`, which is intentionally private (see the OSPS audit's `D-CORE` decision and the `core/` audit-access procedure). Until the monorepo is opened, external consumers verifying a sync commit can prove the signature came from the Stackweaver sync pipeline but cannot independently inspect what that pipeline does. The Stackweaver threat model and the rationale for keeping the monorepo private are published at <https://github.com/vhco-pro/.github/blob/main/SECURITY.md>.
-
-**Non-sync commits.** Commits made by other identities - for example chart-releaser's `github-actions[bot]` README updates on `stackweaver-helm`, or direct maintainer commits - are not gitsign-signed and will fail verification. Always pick a merged sync pull request authored by `stackweaver-release-bot[bot]` and verify its head ref as shown above.
-
-## What's Deliberately Not Here
-
-You may have seen verification guides that recommend importing a project GPG key, comparing checksums against a SHA256SUMS file, or downloading a long-lived `cosign.pub`. None of those steps apply to Stackweaver:
-
-- We do not publish standalone binaries - distribution is container-only (plus the Helm chart) - so there is no archive to checksum-sign, and the monorepo's `.goreleaser.yml` does not run in CI.
-- We do not publish a project GPG key. The OSPS audit decision **D-SIG-NOKEY** explicitly rules out long-lived signing keys, on the grounds that key custody and rotation are the most common failure modes in supply-chain attacks and Sigstore eliminates the key-custody problem entirely.
-- We do not publish a long-lived cosign public key. The signing identity for every release is the GitHub Actions workflow that produced it, observable in the Fulcio certificate subject and the Rekor log entry shown by every `cosign verify` / `gh attestation verify` run.
-- We do not publish the SBOM as a GitHub Release asset. The SBOM is a Sigstore-signed OCI attestation (`--predicate-type https://spdx.dev/Document`); if you need the raw SPDX document, extract it from the attestation rather than expecting it on the Releases page.
-
-## Reporting a Verification Failure
-
-If `cosign verify`, `gh attestation verify`, or `gitsign verify` fail on an artefact that you obtained from an official location, file a [Private Vulnerability Report](https://github.com/vhco-pro/.github/security/policy) on the affected satellite immediately, or email `contact@vhco.pro` with the artefact reference, the failing command output, and the Rekor log index if one was returned. Do not open a public issue.
-
-The full project security policy lives at [github.com/vhco-pro/.github/blob/main/SECURITY.md](https://github.com/vhco-pro/.github/blob/main/SECURITY.md).
+For a suspected authenticity problem, use the affected repository's **Security > Report a
+vulnerability** option or email [contact@vhco.pro](mailto:contact@vhco.pro). Include the
+artifact digest, expected version/identity and redacted command output. Do not post secrets
+or vulnerability details in a public issue. See the [security policy](https://github.com/vhco-pro/.github/blob/main/SECURITY.md).

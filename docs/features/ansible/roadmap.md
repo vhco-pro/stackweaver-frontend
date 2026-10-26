@@ -1,5 +1,5 @@
 ---
-description: "Ansible capability status: what the Ansible integration provides today and the gaps that are not yet available"
+description: "Reference job-event queries, credential boundaries, workflow configuration, notifications and current Ansible limits."
 covers:
   - "core/services/ansible/**"
   - "core/repository/ansible_*"
@@ -10,88 +10,284 @@ covers:
   - "backend/internal/api/v2/routes/ansible_routes.go"
   - "backend/internal/services/rbac/**"
   - "frontend/src/pages/Ansible/**"
+capabilities: [
+  {
+    "id": "ansible-credentials",
+    "name": "Credentials and multiple vaults",
+    "summary": "Store built-in credential types and attach multiple credentials, including distinct vault IDs, to templates.",
+    "area": "ansible",
+    "availability": "available",
+    "limitations": "One credential per type, except vault credentials with distinct vault IDs. Custom credential types are not supported.",
+    "evidence": [
+      "core/services/ansible/credential.go",
+      "core/repository/ansible_playbook.go",
+      "backend/cmd/ansible-runner/main.go",
+      "backend/cmd/ansible-runner/agent_mode.go"
+    ]
+  },
+  {
+    "id": "ansible-notifications",
+    "name": "Job and workflow notifications",
+    "summary": "Send start, success and failure notifications over webhook, email or Microsoft Teams.",
+    "area": "ansible",
+    "availability": "available",
+    "limitations": "Private webhook and Teams destinations require an operator opt-in. There is no Slack channel type.",
+    "evidence": [
+      "core/services/ansible/notifications.go",
+      "core/services/ansible/notifications_test.go",
+      "backend/internal/api/v2/handlers/ansible/notification_attachment_flags_test.go"
+    ]
+  }
+]
 ---
 
-# Ansible Roadmap
+# Ansible integration reference
 
-This page summarises what the Ansible integration provides today and lists the gaps that are not yet available. It does not commit to dates.
+Use this page for job events, credentials, workflow configuration and notification
+behavior. Browse the [generated Ansible catalogue](./README.md) for supported capabilities
+and their task guides. Unsupported behavior is listed [below](#not-yet-available); this
+reference does not promise future delivery dates.
 
-## Available Today
+## Read job output and events
 
-### Live Output and the Run Viewer
+The job page offers a host-by-task matrix, timeline and chronological stream over the same
+recorded events. Status filters, host/task search and a shared detail drawer let you move
+from a failed host to its task result. Output that cannot be structured remains in the stream.
+The page polls during execution; it is not a WebSocket feed.
 
-Jobs run with the `ansible.posix.jsonl` callback, so events are recorded line by line as tasks execute, and the job page polls for new events while a job runs. The job page opens on a Run tab with three views over the same events: a host-by-task matrix, a task timeline, and a chronological stream. One filter state (status tiles plus a search box covering hosts, task names, and module results) and one detail drawer apply to all three views. Events that cannot be structured appear verbatim in the stream, so the page never shows less than a plain terminal view.
+For programmatic reads, set the API origin, token and job ID. This example reads one page
+of failed results for a host:
 
-`GET /api/v2/ansible/jobs/:id/events` returns a job's events in counter order. A per-host task result carries the module's whole return value under `event-data.hosts.<host>`. `page[number]` and `page[size]` page the stream, and `meta.pagination.total-count` counts the events that match the filters in use, so a client walking the pages of a filtered query gets the filtered count. `after` returns only the events whose counter is greater than the one given, at most 2,000 in one response and without a pagination block. It is what a client polling a running job uses, and a burst larger than the cap is picked up by the next call. `filter[host]` keeps the events of one inventory host, `filter[task]` the events of one task matched on its exact name, and `filter[counter]` the single event with that counter. `filter[status]` keeps the per-host results with one outcome, which is `ok`, `changed`, `failed`, `unreachable` or `skipped`, and any other value is rejected with `400`. The filters combine with one another, with `after` and with paging.
+```bash
+curl --fail-with-body --get \
+  --header "Authorization: Bearer $STACKWEAVER_TOKEN" \
+  --data-urlencode 'filter[host]=web-01' \
+  --data-urlencode 'filter[status]=failed' \
+  --data-urlencode 'page[number]=1' --data-urlencode 'page[size]=100' \
+  "$STACKWEAVER_API_URL/api/v2/ansible/jobs/$JOB_ID/events"
+```
 
-`fields[events]=summary` returns a reduced form of each event for very large runs, and any other value is rejected with `400`. A summary event has empty `stdout` and `stderr`, is marked `"summary": true`, and reduces `event-data` to the callback's `_event` and `_timestamp`, the `task` and `play` identity (`id`, `name`, `path`, `duration`), the recap `stats` when present, and for each host `action`, `changed`, `failed`, `skipped`, `unreachable`, `rc`, `attempts`, `skip_reason` and a `msg` cut to 200 characters. Gathered facts, module arguments, loop results and diffs are left out, and `filter[counter]` fetches the full event. The web UI uses this form above 5,000 events and fetches a full event when you open it.
+| Read option | Behavior |
+|---|---|
+| Paging | Events are ordered by counter. `meta.pagination.total-count` counts the filtered results. |
+| `after` | Return counters greater than this value, up to 2,000 events, without a pagination block. Continue from the last received counter. |
+| `filter[host]`, `filter[task]` | Match the inventory host or exact task name. |
+| `filter[counter]` | Fetch one event, including full detail when you have its counter. |
+| `filter[status]` | One of `ok`, `changed`, `failed`, `unreachable`, `skipped`. Other values return `400`. |
+| `fields[events]=summary` | Reduced payload for large runs; other field selections return `400`. |
 
-`GET /api/v2/ansible/jobs/:id/output` returns the concatenated standard output of the job's first 10,000 events. Read the events endpoint, which pages, for a longer run.
+Filters combine with one another, `after` and paging. A per-host result carries its module
+return under `event-data.hosts.<host>`. The output endpoint concatenates only the first
+10,000 events; use the paged events endpoint for longer jobs.
 
-### Galaxy Collections
+### Large-run summary payloads
 
-The runner image ships with commonly used collections pre-installed (for example `community.general` and `ansible.posix`). Before a job runs, the runner looks for a `requirements.yml` in the playbook directory, in `collections/`, or in `roles/`, installs the collections it lists with `ansible-galaxy collection install`, and caches them per project under `$WORKSPACES_DIR/galaxy-cache/<project-id>` so later runs are faster.
+The UI uses summaries above 5,000 events and fetches a full event when opened. A summary
+has empty `stdout` and `stderr` and is marked `summary: true`.
 
-### Inventories and Groups
+It retains callback identity/timestamp, task/play identity and duration, recap statistics,
+and per-host action/outcome flags, return code, attempts, skip reason and a message capped
+at 200 characters. Gathered facts, module arguments, loop results and diffs are omitted.
+Use the event counter to retrieve the full event when those details matter.
 
-An inventory kept in a Git repository names its VCS connection in the `vcs_connection` relationship. The connection must belong to the inventory's own organization: creating or updating an inventory is rejected with `400` and the detail `VCS connection not found` when the connection does not exist in that organization, and nothing is stored. A group can be nested under another by naming it in the `parent` relationship, on create and on update. The parent must be a group of the same inventory: a request that names any other group is rejected with `400` and the detail `parent group not found`, and nothing is stored.
+## Credentials and inventory boundaries
 
-### Dynamic Inventories
+Credential types are `ssh`, `machine-ssh`, `vault`, `aws`, `azure`, `gcp` and `vmware`.
+Unknown types and the unsupported `scm` type are rejected. Configure repository access through a VCS connection, not an Ansible SCM credential. Responses expose presence flags for SSH keys, passwords,
+vault passwords and become passwords, not the secret values themselves.
 
-Azure dynamic inventory sources can authenticate with OIDC workload identity, reusing the organization's Azure OIDC configuration, and fall back to a stored credential. Custom inventory sources can be backed by a Git repository, and sources can sync on a schedule. See [Dynamic Inventories](../../user-guides/dynamic-inventories.md).
+| Operation | Constraint |
+|---|---|
+| Template credential set | One credential per type, except multiple vault credentials with distinct vault IDs. |
+| Create a template with `credentials` | Attach the supplied set. |
+| Update with `credentials` | Replace the set; an empty array clears it and omission preserves it. |
+| Attach one credential | Use the template credentials relationship endpoint. A type/vault-ID conflict returns `409`. |
+| Delete a credential | Existing jobs that used it block deletion with `409`. Otherwise it is removed from templates, inventory sources and workflow nodes that referenced it. |
+| Delete a job template | Its jobs and targeting schedules are also deleted. |
 
-### Credentials
+> [!WARNING]
+> Credential deletion can detach it from future automation even when no old job blocks it.
+> Template deletion removes execution history. Review dependents before either action.
 
-A credential's `credential-type` is one of `ssh`, `machine-ssh`, `vault`, `aws`, `azure`, `gcp` or `vmware`, and any other value is rejected with `400`. Repository access is not a credential: playbooks, inventories and workspaces reach their repositories through a VCS connection. Secret values are never returned: a credential reports `has-ssh-private-key`, `has-password`, `has-vault-password` and `has-become-password` in their place. Deleting a credential is rejected with `409 Conflict` while a job that ran with it still exists. Job templates, inventory sources and workflow nodes do not hold a credential back: deleting it removes it from them.
+A template's playbook, inventory and credentials must belong to its organization. Likewise,
+a VCS inventory's connection belongs to that inventory's organization, and a nested group's
+parent belongs to the same inventory. Invalid references return `400` and store nothing.
+Hosts, groups and sources inherit access from the enclosing inventory: reads require read
+access, and mutation or source sync requires write access. Unprojected inventories use the
+organization's Ansible permissions.
 
-### Workflows
+The template's **Access** view summarizes team access from its organization/project rules.
+Use [Execution flows](./execution-flows.md#configure-and-launch-a-template) for Terraform
+settings and launch examples, and [Dynamic inventories](../../user-guides/dynamic-inventories.md)
+for source authentication and reconciliation.
 
-Workflows chain job templates, inventory syncs, and approval gates. The execution engine follows `on_success`, `on_failure`, and `always` edges, supports any-parent and all-parents convergence, merges workflow extra vars into node launches (node overrides win), and can run on a schedule. Approval nodes can be approved or denied, with an optional deny on timeout. Workflow runs show per-node status with links to each job's output.
+## Workflows
 
-The workflow endpoints are:
+Configure the graph through the API, then launch and inspect runs through the UI or API.
+The engine follows success/failure/always edges, supports any-parent/all-parents convergence
+and can pause for approval. Node overrides win when merged with workflow variables.
 
-- `GET/POST /api/v2/organizations/:name/ansible/workflows` - list and create workflows
-- `GET/PATCH/DELETE /api/v2/ansible/workflows/:id` - read, update, and delete a workflow
-- `GET/POST /api/v2/ansible/workflows/:id/nodes` and `/edges` - manage nodes and edges
-- `POST /api/v2/ansible/workflows/:id/launch` and `GET /api/v2/ansible/workflows/:id/jobs` - launch a workflow and list its runs
-- `PATCH/DELETE /api/v2/ansible/workflow-nodes/:id` and `DELETE /api/v2/ansible/workflow-edges/:id` - update or delete individual nodes and edges
+| Configuration | Accepted values and rules |
+|---|---|
+| Node type | `job_template`, `workflow`, `inventory_sync`, `approval`. Nested workflow execution is unsupported even though the type can be stored. |
+| Edge condition | `on_success`, `on_failure`, `always`. |
+| Configuration `extra-vars` | A JSON object encoded as a string. Nonempty invalid JSON and arrays are rejected. Launch-time overrides instead use an object in the launch document. |
+| Workflow/node PATCH | Supplied fields change; explicit empty string, `false` or `0` are stored. Empty `extra-vars` clears variables. |
+| Name | Required; an empty name is rejected. |
+| Relationships | UUIDs in the same organization. Invalid IDs, missing/foreign references or edges outside the selected graph are refused without storing a change. |
 
-A `PATCH` on a workflow or on a node changes only the attributes its document carries and leaves the others as they are. An attribute sent with an empty string, `false` or `0` is stored as that value, and an empty `extra-vars` clears the variables. The name is the exception, because a workflow must have one: an empty name is rejected with `400` when a workflow is created and when a `PATCH` carries it.
+The workflow's project/inventory, node job template/inventory/credential and both edge
+endpoints must satisfy those boundaries. Approval nodes support approve/deny and an optional
+timeout that denies. Graph edits after launch do not rewrite the running graph snapshot.
 
-On a workflow and on a node, `extra-vars` is a JSON object sent as a string. A value that is not empty and is not a JSON object, such as text that is not JSON or a JSON list, is rejected with `400`, and so is an inventory, job template or credential relationship whose identifier is not a UUID. Nothing is stored when a request is rejected.
+| Task | API operation |
+|---|---|
+| List/create workflows | `GET/POST /organizations/{name}/ansible/workflows` |
+| Read/update/delete workflow | `GET/PATCH/DELETE /ansible/workflows/{id}` |
+| Manage nodes and edges | Workflow `nodes` and `edges` endpoints; node PATCH/DELETE and edge DELETE endpoints. |
+| Launch/list workflow runs | Workflow `launch` and `jobs` endpoints. |
 
-A node's `node-type` is one of `job_template`, `workflow`, `inventory_sync` or `approval`, and an edge's `condition` is one of `on_success`, `on_failure` or `always`. Any other value is rejected with `400`. Everything a workflow names must belong to the workflow's own organization: creating a workflow is rejected with `400` when its project or inventory does not exist in that organization, creating a node is rejected with `400` when its job template, inventory or credential does not, and creating an edge is rejected with `400` unless both of its ends are nodes of the workflow in the URL. The `detail` of the error says which one was not found.
+Paths are relative to `/api/v2`. See the [API explorer](/docs/api-reference/explorer) for
+operation schemas and [workflow launch example](./execution-flows.md#follow-a-workflow)
+for the body shape, permissions and completion checks. There is no workflow YAML import
+or drag-and-drop graph editor in this interface.
 
-### Job Templates
+## Notifications
 
-A job template holds a set of credentials rather than a single one: at most one per type, plus any number of vault credentials with distinct vault IDs. Sending the `credentials` relationship when a template is created attaches them. Sending it on an update replaces the set wholesale, an empty array clears it, and leaving it out keeps the set as it is. The same set can be managed one credential at a time with `GET` and `POST` on `/api/v2/ansible/job-templates/:id/credentials` and `DELETE` on `/api/v2/ansible/job-templates/:id/credentials/:credential_id`, where attaching a credential that breaks the rule is rejected with `409 Conflict`. The playbook, the inventory and every credential a job template names must belong to the template's own organization. Creating or updating a template, or attaching a credential, is rejected with `400` when one of them does not exist in that organization, the `detail` of the error says which one was not found, and nothing is stored. Deleting a job template also deletes the jobs launched from it and the schedules that target it.
+Notification templates send webhook, SMTP email or Microsoft Teams messages. Attach one
+to a job template or workflow and choose whether it fires at start, success or failure.
 
-### Launching from Repository Pushes
+| Channel | Non-secret `config` fields |
+|---|---|
+| `webhook` | `url`, `method`, `headers`, `username`, `skip_tls_verify` |
+| `email` | `host`, `port`, `username`, `from`, `to`, `use_tls` |
+| `teams` | `url` |
 
-Job templates can opt into launching automatically when the playbook's repository receives a push, from both GitHub and Azure DevOps webhooks. See the [changelog](./changelog.md) for this and the other job template controls (multiple credentials, timeouts, concurrency, job slicing, and provisioning callbacks).
+Use `secret` for the webhook basic-auth password or SMTP password. It is encrypted at rest
+and not returned as a readable value; responses report whether one exists. Unsupported
+channel types are rejected.
 
-### Notifications
+### Manage notifications with Terraform
 
-Notification templates deliver job events over webhook, email (SMTP), or Microsoft Teams. Each template attachment chooses whether it fires when a job starts, succeeds, or fails.
+Configure the native [Stackweaver provider](../../user-guides/terraform-provider.md) for
+the organization, then add a channel and attachment to your management configuration:
 
-A notification template is created and updated with an `ansible-notification-templates` document whose `notification-type` is `webhook`, `email` or `teams`; any other value is rejected with `400`. Its `config` depends on the type: a webhook takes `url`, `method`, `headers`, `username` and `skip_tls_verify`, an email channel takes `host`, `port`, `username`, `from`, `to` and `use_tls`, and a Teams channel takes `url`. The optional `secret`, which is the basic-auth password of a webhook or the SMTP password, is stored encrypted and is never returned: a template reports only whether it has one. `POST /api/v2/ansible/notification-templates/:id/test` delivers a test message over the channel. Webhook and Teams deliveries, test messages included, go only to public addresses: a URL that names or resolves to a loopback, private or link-local address (such as the cloud metadata endpoint), or that redirects to one, is refused when the delivery connects, and `skip_tls_verify` relaxes only the certificate check. An installation whose receivers are on an internal network sets `STACKWEAVER_ANSIBLE_NOTIFICATIONS_ALLOW_PRIVATE` on the API, as described in [Environment Variables](../../get-started/self-hosting/environment-variables.md). An attachment binds a template to one job template or one workflow: it is created with an `ansible-notification-attachments` document whose `notification-template` relationship names the template and whose `job-template` or `workflow` relationship names what it is attached to. Its `on-started`, `on-success` and `on-failure` attributes are stored as sent, so an attachment can fire on start only, and a flag that is left out defaults to on for `on-success` and `on-failure` and to off for `on-started`.
+```hcl
+variable "job_template_id" { type = string }
 
-A job that ran on inventory its update-on-launch syncs did not refresh carries a warning in every notification it sends, the started, success and failure messages alike: the sentences in `warnings` and the structured entries in `extra.inventory_sync_warnings`. An email subject then ends in "(with warnings)", and a Teams card lists the warnings and is amber for a run that succeeded. See [Dynamic Inventories](../../user-guides/dynamic-inventories.md#when-an-update-on-launch-sync-fails).
+resource "stackweaver_ansible_notification_template" "operations" {
+  name = "Operations webhook"
+  type = "webhook"
+  config = jsonencode({
+    url    = "https://hooks.example.com/ansible"
+    method = "POST"
+  })
+}
 
-### Access Control and Activity
+resource "stackweaver_ansible_notification_attachment" "operations" {
+  notification_template_id = stackweaver_ansible_notification_template.operations.id
+  job_template_id          = var.job_template_id
+  on_started               = true
+  on_success               = true
+  on_failure               = true
+}
+```
 
-Ansible resources follow the platform's team-based access control, and the job template page shows which teams can view, edit, and execute it. Jobs can run on self-hosted runners through agent pools. Organization activity, including Ansible jobs, appears in [Usage & Analytics](../../user-guides/usage-analytics.md).
+The channel's organization comes from provider configuration. For a workflow, set
+`workflow_id` instead of `job_template_id`; choose exactly one target. Review a plan and
+apply it to an authorized test target, then verify delivery. Protect Terraform state if
+you set the resource's sensitive `secret` field. Do not create duplicate channels when
+adopting resources already managed through another interface.
 
-Hosts, groups and inventory sources take their access from the inventory they belong to. Reading one requires read permission on that inventory, and creating, updating or deleting one, or starting a source sync, requires write permission on it. For an inventory that belongs to no project, those are the organization's Ansible read and manage permissions. `GET /api/v2/ansible/job-templates/:id/access` returns the team summary shown on the job template page, derived from each team's organization and project access.
+### Create and attach a webhook notification
 
-## Not Yet Available
+Use an authorized token and an HTTPS receiver you control. Save this as `notification.json`,
+replacing the endpoint and name:
 
-These gaps are known and are not supported today:
+```json
+{
+  "data": {
+    "type": "ansible-notification-templates",
+    "attributes": {
+      "name": "Operations webhook",
+      "notification-type": "webhook",
+      "config": {"url": "https://hooks.example.com/ansible", "method": "POST"}
+    }
+  }
+}
+```
 
-- **Visual workflow builder**: workflow nodes and edges are managed through the API; the Workflows page creates, lists, and launches workflows, but there is no drag-and-drop graph editor.
-- **Nested workflows**: a workflow node that runs another workflow fails when the workflow reaches it.
-- **Survey prompts at launch**: a workflow can store a survey definition, but launches do not prompt for survey answers. Pass values as extra vars instead.
-- **Fact caching**: `use_fact_cache` and stored host facts are not supported.
-- **Slack notifications**: there is no Slack channel type.
-- **Custom credential types**: credentials use the built-in types only.
-- **Push-based output**: the job page polls for new events; there is no WebSocket stream.
+```bash
+curl --fail-with-body --request POST \
+  --header "Authorization: Bearer $STACKWEAVER_TOKEN" \
+  --header 'Content-Type: application/vnd.api+json' \
+  --data-binary @notification.json \
+  "$STACKWEAVER_API_URL/api/v2/organizations/$ORG/ansible/notification-templates"
+```
+
+Set `NOTIFICATION_ID` to the returned template ID. The test action sends a **real message**;
+use a receiver you control and confirm delivery before attaching production automation:
+
+```bash
+curl --fail-with-body --request POST \
+  --header "Authorization: Bearer $STACKWEAVER_TOKEN" \
+  "$STACKWEAVER_API_URL/api/v2/ansible/notification-templates/$NOTIFICATION_ID/test"
+```
+
+Save `attachment.json` with actual template IDs from the same organization:
+
+```json
+{
+  "data": {
+    "type": "ansible-notification-attachments",
+    "attributes": {"on-started": true, "on-success": true, "on-failure": true},
+    "relationships": {
+      "notification-template": {"data": {"type": "ansible-notification-templates", "id": "replace-with-notification-id"}},
+      "job-template": {"data": {"type": "ansible-job-templates", "id": "replace-with-job-template-id"}}
+    }
+  }
+}
+```
+
+```bash
+curl --fail-with-body --request POST \
+  --header "Authorization: Bearer $STACKWEAVER_TOKEN" \
+  --header 'Content-Type: application/vnd.api+json' \
+  --data-binary @attachment.json \
+  "$STACKWEAVER_API_URL/api/v2/organizations/$ORG/ansible/notification-attachments"
+```
+
+Attach to exactly one job template or workflow. The flags are independent; omitted flags
+default to success/failure on and started off. Read back the attachment, run a controlled
+test and inspect the receiver. A channel definition alone is not an active attachment.
+The native Terraform resources above and these API operations configure the same channel
+and attachment types. Deployment YAML configures service policy,
+not these organization-scoped notification resources.
+
+### Delivery boundaries and inventory warnings
+
+Webhook and Teams receivers must resolve to public addresses, including after redirects.
+Private or link-local targets are refused when connecting. `skip_tls_verify` affects TLS
+certificate verification, not destination restrictions. For a deliberate internal receiver,
+use the operator opt-in described in [Environment variables](../../get-started/self-hosting/environment-variables.md).
+
+A job using inventory that failed to refresh includes warnings in every message, including
+started and successful notifications. The payload carries human-readable `warnings` and
+structured `extra.inventory_sync_warnings`. Email subjects add **(with warnings)** and
+successful Teams notifications use amber. Read those warnings before treating success as
+proof of fresh inventory. See [inventory sync failures](../../user-guides/dynamic-inventories.md#when-an-update-on-launch-sync-fails).
+
+## Not yet available
+
+- **Nested workflows:** a workflow node that invokes another workflow fails when reached.
+- **Launch-time survey prompts:** a stored survey definition is not an interactive launch form;
+  pass explicit extra variables instead.
+- **Fact caching:** `use_fact_cache` and stored host facts are unsupported.
+- **Slack notifications:** no Slack channel type.
+- **Custom credential types:** use the built-in types above.
+- **Visual workflow graph editor:** create graph nodes and edges through the API.
+- **Push-based job output:** the job page polls recorded events.
+
+For repository dependencies, use [Galaxy collections](./galaxy-collections.md). For webhook
+launching and runner selection, use [Execution flows](./execution-flows.md). Organization
+activity is covered by [Usage and analytics](../../user-guides/usage-analytics.md).

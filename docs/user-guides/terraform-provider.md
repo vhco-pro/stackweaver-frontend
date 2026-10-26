@@ -1,88 +1,98 @@
 ---
-description: "Guide to managing StackWeaver itself as code with the official Terraform provider, including installation, authentication, and migrating from terraform-provider-tfe"
+description: "Configure the native Terraform provider, authenticate and safely assess an existing TFE configuration."
 covers:
   - "backend/internal/api/v2/routes/**"
 ---
 
-# Managing StackWeaver with Terraform
+# Manage Stackweaver with Terraform or OpenTofu
 
-StackWeaver publishes an official Terraform provider, so the platform itself can be managed as code. Instead of clicking through the UI to create organizations, projects, workspaces, teams, variables, agent pools, and Ansible job templates, you can declare them in Terraform configuration and apply them like any other infrastructure.
+Use `vhco-pro/stackweaver` to manage platform resources as code. This configures
+Stackweaver itself; the workspace's OpenTofu run manages your infrastructure separately.
+Use the [generated feature catalogue](../features/README.md) for product capabilities and
+the [provider reference](https://registry.terraform.io/providers/vhco-pro/stackweaver/latest/docs)
+for the resources and arguments supported by the version you install.
 
-The provider is published on the public Terraform Registry as [`vhco-pro/stackweaver`](https://registry.terraform.io/providers/vhco-pro/stackweaver/latest). The full reference documentation, with an argument reference and example for every resource and data source, lives on the Registry, and the source is on GitHub at [vhco-pro/terraform-provider-stackweaver](https://github.com/vhco-pro/terraform-provider-stackweaver). This guide covers how to get started and how the provider relates to the Terraform Cloud and Enterprise provider you may already be using.
+## 1. Choose the host and credentials
 
-## What You Can Manage
+Create an API token under **Settings > API Tokens** with the permissions needed for the
+target organization. Supply it through your shell or CI secret store as `TFE_TOKEN`.
+Do not commit a token or put it in command history. `TFE_HOSTNAME` can supply the host;
+this example pins it explicitly to avoid connecting to the wrong service.
 
-The provider covers the platform surface you see in the UI. On the Terraform side that means organizations and their default settings, projects, workspaces and workspace settings, variables and variable sets, run triggers, team access and team tokens, agent pools and agent tokens, run tasks, notification configurations, OIDC configurations for cloud workload identity, and the private module and provider registry.
+Personal tokens inherit the user's access; scoped team/organization tokens have their own
+boundaries. A token that can read a resource may still be unable to create or delete it.
+The Terraform/OpenTofu CLI credential store is another supported credential source;
+`terraform login stackweaver.example.com` signs in for that hostname.
 
-Because StackWeaver is a multi-IaC platform, the provider also covers the Ansible surface, which has no Terraform Cloud equivalent: playbooks, inventories, inventory sources, hosts and groups, credentials, job templates and their variables, schedules, notification templates, and ad-hoc jobs. This means an entire StackWeaver installation, both its Terraform and its Ansible configuration, can be described in one Terraform workspace.
+## 2. Declare a small configuration
 
-Alongside those resources there are data sources for reading existing state, including workspaces, projects, teams, variables, runners, VCS repositories and branches, and the Ansible collection and inventory-sync surfaces. See the [Registry documentation](https://registry.terraform.io/providers/vhco-pro/stackweaver/latest/docs) for the complete, versioned list.
-
-## Installing the Provider
-
-Declare the provider in your `required_providers` block and configure it with your StackWeaver host, an API token, and optionally a default organization.
+Save as `main.tf`. Replace the host and organization with an existing organization where
+you can manage projects. Select and pin a provider version compatible with your installed
+Stackweaver release, and keep the dependency lock file in version control.
 
 ```hcl
 terraform {
   required_providers {
     stackweaver = {
-      source  = "vhco-pro/stackweaver"
-      version = "~> 0.1"
+      source = "vhco-pro/stackweaver"
     }
   }
 }
 
 provider "stackweaver" {
-  hostname     = "stackweaver.example.com" # your self-hosted host
-  token        = var.stackweaver_token
+  hostname     = "stackweaver.example.com"
   organization = "my-org"
 }
 
 resource "stackweaver_project" "platform" {
-  organization = "my-org"
   name         = "platform"
+  organization = "my-org"
 }
 ```
 
-If you are self-hosting, set `hostname` to the host that serves your StackWeaver UI and API. The provider defaults to the hosted platform at `app.stackweaver.io` when `hostname` is not set, which is almost certainly not what you want on a self-hosted installation.
+The provider's default host is `app.stackweaver.io`. Self-hosted installations should
+explicitly choose their host. A provider configuration does not deploy the Stackweaver
+server; use the [self-hosting guides](../get-started/self-hosting/README.md) for that.
+There is no equivalent management YAML or Stackweaver CLI for this example.
 
-## Authenticating
+## 3. Preview, apply and verify
 
-The provider authenticates with a StackWeaver API token. Create one in the UI under **Settings > API Tokens**, or run `terraform login` against your StackWeaver host to have the CLI generate and store one for you. Personal tokens act as your user across every organization you belong to, so the provider can manage anything your account has permission to manage.
+```bash
+terraform init
+terraform plan
+terraform apply
+terraform state show stackweaver_project.platform
+```
 
-For anything beyond local experimentation, keep the token out of your configuration and supply it through the `TFE_TOKEN` environment variable rather than the `token` argument. The host can be set the same way through `TFE_HOSTNAME`. These variable names are deliberately the ones `terraform-provider-tfe` uses, so existing pipelines and credential blocks keep working unchanged.
+Open **Projects** in the same organization and confirm the project exists. Stop if the plan
+proposes unexpected deletion or replacement. These commands can create or destroy real
+platform resources. With OpenTofu, use `tofu` for the same CLI sequence.
+
+## Install-wide automation
 
 Install-wide resources need a platform admin token. The OpenTofu versions catalogue, which `tfe_terraform_version` manages, belongs to the installation rather than to an organization, and its API answers only a token that carries the platform admin scope. A [platform administrator](./platform-administration.md) mints one under **Settings > API Tokens** by ticking **Platform admin** in the create dialog; the checkbox appears only to platform administrators, and `terraform login` always mints a plain token. Inside organizations a platform admin token acts exactly as a plain token of the same person, so one token can manage `tfe_terraform_version` and that person's organization resources in the same configuration. The token stops working for the install-wide resources as soon as its owner stops being a platform administrator.
 
-> [!NOTE]
-> A token used by the provider can create and destroy real workspaces, teams, and variables. Treat it like any other privileged credential: store it in a secret manager, scope the account appropriately, and rotate it on the same schedule as your other platform credentials.
+## Existing TFE configurations
 
-## Relationship to terraform-provider-tfe
+The native provider exposes its supported TFE-compatible resources under `tfe_*` aliases
+as well as `stackweaver_*` names. Native-only resources use `stackweaver_*`. This does not
+promise support for every upstream TFE feature. Check the installed provider schema and the
+[compatibility evidence](./migrating-from-terraform-cloud.md) for the operations you need.
 
-The StackWeaver provider is a standalone provider derived from HashiCorp's [`terraform-provider-tfe`](https://github.com/hashicorp/terraform-provider-tfe) and, like its upstream, is licensed under MPL-2.0. It is not an official HashiCorp product and is not affiliated with or endorsed by HashiCorp.
-
-Every resource that has a Terraform Cloud or Enterprise equivalent is registered under both a native `stackweaver_*` name and a `tfe_*` alias. StackWeaver-native resources, such as the entire Ansible surface, are available under `stackweaver_*` only. This is why StackWeaver's API is kept compatible with the TFE API: the upstream provider works against StackWeaver too, and this provider is the same surface plus everything TFE does not have.
-
-## Using hashicorp/tfe Against StackWeaver
-
-Because StackWeaver implements the TFE API, you can point HashiCorp's own provider at a StackWeaver host without changing anything else. This is useful when you want to try StackWeaver against an existing configuration before committing to a provider swap, or when a policy in your organization restricts you to providers published by HashiCorp.
-
-Set the provider's `hostname` to your StackWeaver host and authenticate with a StackWeaver API token exactly as you would with the native provider.
+To keep using HashiCorp's provider against Stackweaver, choose its source and your
+Stackweaver hostname explicitly:
 
 ```hcl
 terraform {
   required_providers {
     tfe = {
-      source  = "hashicorp/tfe"
-      version = "~> 0.77"
+      source = "hashicorp/tfe"
     }
   }
 }
 
 provider "tfe" {
-  hostname     = "stackweaver.example.com" # your StackWeaver host, not app.terraform.io
-  token        = var.stackweaver_token
-  organization = "my-org"
+  hostname = "stackweaver.example.com"
 }
 
 resource "tfe_workspace" "app" {
@@ -91,30 +101,54 @@ resource "tfe_workspace" "app" {
 }
 ```
 
-The same environment variables apply, so `TFE_HOSTNAME` and `TFE_TOKEN` configure the host and token without putting either in your configuration. If you omit `hostname`, the provider talks to Terraform Cloud at `app.terraform.io` instead, which is the most common mistake when setting this up.
+`TFE_TOKEN` supplies credentials. Without the hostname, the upstream provider targets its
+own default service. Unsupported operations do not become supported merely by changing
+the provider source.
 
-The limitation of this approach is coverage rather than correctness. The upstream provider only knows about resources that exist in Terraform Cloud, so nothing StackWeaver adds beyond the TFE surface, most notably every Ansible resource, is reachable this way. A small number of TFE resources also depend on features StackWeaver does not implement, such as Sentinel policy sets, and those will fail at apply time rather than at plan time. If you hit one, the native provider is the better answer, since it registers the same `tfe_*` names and simply has more behind them.
+## Change provider source without changing the platform
 
-## Migrating from terraform-provider-tfe
+A source change and a move from Terraform Cloud are different operations. Follow
+[the migration guide](./migrating-from-terraform-cloud.md) to transfer platform objects and
+state; do not point existing management state at another host and apply it blindly.
 
-If you already manage Terraform Cloud or Enterprise with `terraform-provider-tfe`, the migration is a source swap rather than a rewrite. Point the `tfe` provider's `source` at `vhco-pro/stackweaver` and your existing `resource "tfe_*"` blocks continue to work against the alias, with no changes to resource names or state addresses.
+For an existing state **already managing the same Stackweaver installation**, assess a
+source change separately:
 
-```hcl
-terraform {
-  required_providers {
-    tfe = {
-      source  = "vhco-pro/stackweaver"
-      version = "~> 0.1"
-    }
-  }
-}
-```
+1. Pause concurrent operations, save configuration/lock files and take a protected state
+   backup. State can contain secrets.
+2. Check that every managed resource type is supported by the target provider version.
+3. Change only the required provider source while retaining the local name `tfe` and the
+   existing `tfe_*` resource addresses:
 
-Once you are running against StackWeaver, you can rename resources to their native `stackweaver_*` names at your own pace using `moved {}` blocks, or `terraform state mv` if you are on an older Terraform version. The aliases are maintained rather than deprecated, so there is no deadline on finishing that rename, and you can adopt `stackweaver_*` for new resources while leaving existing ones on the alias.
+   ```hcl
+   terraform {
+     required_providers {
+       tfe = {
+         source = "vhco-pro/stackweaver"
+       }
+     }
+   }
+   ```
 
-## Related Documentation
+4. If state still references the upstream provider, review the affected addresses and use
+   Terraform's provider-address migration, keeping state locking enabled:
 
-- [Understanding OpenTofu Runs](./understanding-opentofu-runs.md): how to read the plan and apply output of the runs your configuration creates
-- [Managing Workspace Variables](./managing-workspace-variables.md): the variable and variable-set model the provider's variable resources map onto
-- [Self-Hosted Runners](./self-hosted-runners.md): agent pools and runners, which the provider can also create and manage
-- [Your First OpenTofu Workspace](../get-started/your-first-opentofu-workspace.md): the UI walkthrough of the same objects, if you are new to the platform
+   ```bash
+   terraform state replace-provider \
+     registry.terraform.io/hashicorp/tfe \
+     registry.terraform.io/vhco-pro/stackweaver
+   terraform init
+   terraform plan
+   ```
+
+5. Stop on schema errors or unexpected changes; restore/reconcile from your protected
+   backup through your normal state-recovery procedure.
+
+This is not a verified cross-version migration recipe. Test it on a copy first. Renaming
+`tfe_*` resource **types** to `stackweaver_*` is a separate state migration; do not assume
+that `moved` blocks or `state mv` support cross-type conversion. Keeping supported aliases
+avoids that unnecessary change.
+
+See Terraform's [replace-provider reference](https://developer.hashicorp.com/terraform/cli/commands/state/replace-provider).
+The native provider derives from `terraform-provider-tfe` under MPL-2.0; it is not an
+official HashiCorp product.

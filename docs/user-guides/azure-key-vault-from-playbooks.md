@@ -1,50 +1,237 @@
 ---
-description: "Guide for reading Azure Key Vault secrets from Ansible playbooks using workload identity (federated OIDC) - no static credentials on runners"
+title: "Read Azure Key Vault secrets"
+description: "Read a Key Vault secret from an Ansible job using an existing Azure identity, without exposing the value in job output."
 covers:
   - "backend/cmd/ansible-runner/**"
   - "backend/internal/api/v2/handlers/**"
   - "core/services/oidc/**"
+  - "core/services/ansible/run_env.go"
+  - "frontend/src/pages/Settings/OIDCConfigurations.tsx"
+  - "runner-images/ansible/**"
+capabilities: [
+  {
+    "id": "ansible-azure-identity",
+    "name": "Azure identity for playbooks",
+    "summary": "Read Azure resources using an attached credential, organization federation or the runner environment.",
+    "area": "ansible",
+    "availability": "available",
+    "limitations": "An attached Azure credential takes precedence over organization OIDC. Azure role assignments are still required.",
+    "evidence": [
+      "backend/cmd/ansible-runner/main.go",
+      "backend/cmd/ansible-runner/agent_mode.go",
+      "backend/internal/api/v2/handlers/runner_agent.go"
+    ]
+  }
+]
 ---
 
-# Reading Azure Key Vault Secrets from Playbooks
+# Read Azure Key Vault secrets from a playbook
 
-Playbooks frequently need secrets at run time - certificates, connection strings, API keys - and the right place for those is Azure Key Vault, not extra-vars. Stackweaver injects Azure workload-identity environment variables into every playbook run, so the `azure.azcollection` modules can authenticate to Azure with a short-lived federated token instead of a stored client secret.
+Read a secret during an Ansible job, verify it without printing its value, and make it
+available to later tasks. This example runs on the runner with `hosts: localhost`; your
+managed hosts do not need Azure credentials for the lookup.
 
-## How authentication reaches your playbook
+## Before you begin
 
-There are three ways a playbook run can obtain an Azure identity, and Stackweaver picks the first one that applies.
+You need an existing vault, an enabled secret and an Azure identity allowed to read it.
+The runner must reach the vault and Azure sign-in endpoints, including any private-endpoint
+DNS and network configuration your vault requires. Its execution environment needs
+`azure.azcollection` and the collection's Python dependencies.
 
-When the job template has an **Azure credential** attached, its service-principal details are exported as both naming schemes the Azure tooling uses: `AZURE_CLIENT_ID`, `AZURE_TENANT_ID`, and `AZURE_CLIENT_SECRET` for the azure-identity SDK, plus `AZURE_TENANT` and `AZURE_SECRET` for the `azure.azcollection` modules.
+| Maintain this | In this place |
+|---|---|
+| Secret retrieval and use | Your repository's Ansible playbook YAML. |
+| Collection version | Your repository's `requirements.yml`; Python dependencies belong in the runner image. |
+| Stackweaver's organization identity | The UI or the Terraform/OpenTofu provider example below. |
+| Azure trust and vault access | Your Azure identity and role configuration. Saving an identity in Stackweaver does not grant vault access. |
 
-When the organization has an **Azure OIDC configuration** (the same one used for OpenTofu runs and dynamic inventory syncs) and no Azure credential is attached, Stackweaver mints a short-lived federated token for the job and injects `AZURE_CLIENT_ID`, `AZURE_TENANT_ID`, `AZURE_TENANT`, `AZURE_SUBSCRIPTION_ID`, `AZURE_FEDERATED_TOKEN`, and `AZURE_FEDERATED_TOKEN_FILE`, along with the `ARM_*` equivalents. The token's subject is `organization:<org>:project:<project>:job:<job-name>:run`, which you register as a federated credential on your Entra App Registration. This works on both platform runners and self-hosted runners.
+The [Galaxy collections guide](../features/ansible/galaxy-collections.md) explains repository
+dependency installation and runner image requirements.
 
-When the runner itself runs on **AKS with Entra Workload ID**, the webhook-injected pod environment (`AZURE_CLIENT_ID`, `AZURE_TENANT_ID`, `AZURE_FEDERATED_TOKEN_FILE`) is inherited by every playbook process, and the Azure collection reads `AZURE_TENANT_ID` natively (since `azure.azcollection` 3.20.0 it falls back to that name when the legacy `AZURE_TENANT` is unset). The runner also aliases `AZURE_TENANT_ID` to the legacy `AZURE_TENANT` name at startup, so playbooks whose own Galaxy requirements pin an older collection keep working. Nothing needs to be configured in Stackweaver at all.
+<a id="how-authentication-reaches-your-playbook"></a>
 
-## Azure setup
+## 1. Choose the runner's Azure identity
 
-Grant the identity (managed identity or App Registration) the `Key Vault Secrets User` role on the vault, or a `get`/`list` secrets access policy on vaults that still use access policies. For the Stackweaver-federated variant, add a federated credential on the App Registration with your Stackweaver issuer URL, audience `api://AzureADTokenExchange`, and the job subject shown above.
+Stackweaver supplies credentials to the playbook's environment. An attached Azure credential
+takes precedence over organization federation; the runner's AKS identity is another option
+when neither supplies the job identity.
 
-## Using it in a playbook
+| Method | Configure this |
+|---|---|
+| Attached service principal | Attach an Azure credential to the job template. Use the identity's vault permissions, not the permissions of the person launching the job. |
+| Organization federation | Save the organization's Azure application identifiers and configure the application's trust for Stackweaver's issuer, audience and job subject. Both platform and self-hosted runners receive a job token. |
+| AKS Entra Workload ID | Configure the runner pod's workload identity and projected token. The playbook uses that pod identity, not a Stackweaver job federation subject. |
 
-With the environment in place, `azure.azcollection.azure_rm_keyvaultsecret_info` authenticates automatically with `auth_source: auto` (the default). A task that reads a secret and uses it later in the play looks like this - see the module documentation for all options:
+If you already have a working attached credential or AKS identity, continue to
+[grant vault access](#azure-setup). Otherwise, configure organization federation through
+one of the following paths.
 
-```yaml
-- name: Read a secret from Key Vault
-  azure.azcollection.azure_rm_keyvaultsecret_info:
-    vault_uri: "https://my-vault.vault.azure.net"
-    name: database-password
-  register: kv
-  delegate_to: localhost
-  no_log: true
+### Configure organization federation in the UI
 
-- name: Use the secret
-  ansible.builtin.set_fact:
-    db_password: "{{ kv.secrets[0].secret }}"
-  no_log: true
+You need organization permission to manage OIDC settings. Open your organization's
+**Settings > OIDC Configurations**, choose **Add OIDC**, and select **Azure OIDC**.
+Enter the application's **Client ID**, Azure **Subscription ID** and **Tenant ID**, then
+choose **Create**. Confirm the saved Azure entry has the intended identifiers.
+
+![Azure OIDC form with the Client ID, Subscription ID and Tenant ID fields](./images/key-vault-azure-identity.png)
+
+*Example Azure identifiers. Use your own application's values.*
+
+### Configure the same identity with Terraform or OpenTofu
+
+With the [Stackweaver provider configured](./terraform-provider.md), add this resource to
+`oidc.tf`. Replace `example-platform` and the three example Azure identifiers. Use the
+existing identity configuration if one is already managed; do not create a second copy in
+the UI and your provider configuration.
+
+```hcl
+resource "stackweaver_azure_oidc_configuration" "ansible" {
+  organization    = "example-platform"
+  client_id       = "11111111-1111-4111-8111-111111111111"
+  subscription_id = "22222222-2222-4222-8222-222222222222"
+  tenant_id       = "33333333-3333-4333-8333-333333333333"
+}
 ```
 
-Add `azure.azcollection` to the job template's Galaxy requirements if your runner image does not already bundle it, and keep `no_log: true` on tasks that touch secret values so they never appear in job output.
+Review the plan, apply it, and confirm the saved configuration has those identifiers. This
+resource configures Stackweaver's side of federation. It does not create the Azure application,
+its federated credential or its Key Vault role assignment.
+
+### For API integrations
+
+Use the provider for maintained configuration. For an API integration, send a `POST` request
+to the path below, replacing `<org>` with your organization name. Authenticate with a
+Stackweaver API token allowed to manage its OIDC settings; see
+[Using the API](../architecture/using-the-api.md).
+
+```text
+/api/v2/organizations/<org>/oidc-configurations
+```
+
+Use this body, replacing the Azure identifiers:
+
+```json
+{
+  "data": {
+    "type": "azure-oidc-configurations",
+    "attributes": {
+      "client-id": "11111111-1111-4111-8111-111111111111",
+      "subscription-id": "22222222-2222-4222-8222-222222222222",
+      "tenant-id": "33333333-3333-4333-8333-333333333333"
+    }
+  }
+}
+```
+
+A successful create returns HTTP `201` with the saved resource in `data`. Check its ID and
+attributes. This configures the same organization identity; it is not an API for retrieving
+vault secrets. Use the [API explorer](/docs/api-reference/explorer) for operation schemas.
+
+### Complete the Azure trust
+
+The application's federated credential must trust your Stackweaver issuer and audience
+`api://AzureADTokenExchange`. The subject has this format:
+
+```text
+organization:<org>:project:<project>:job:<job-name>:run
+```
+
+Match the organization, project and job names in the job's token. This is the job subject,
+not an OpenTofu workspace or inventory-source subject. Follow
+[OIDC configuration](./oidc-configuration.md) for issuer and Azure trust setup. Stackweaver
+supplies the token environment; do not paste token values into YAML.
+
+<a id="azure-setup"></a>
+<a id="1-allow-the-identity-to-read-secrets"></a>
+
+## 2. Allow that identity to read the secret
+
+On a vault using Azure RBAC, grant the chosen identity **Key Vault Secrets User** at the
+appropriate scope. A management-plane role such as **Key Vault Contributor** does not let
+it read secret values. For an access-policy vault, allow secret `get` for this named-secret
+example; listing secrets also needs `list`. See
+[Azure's Key Vault access guide](https://learn.microsoft.com/en-us/azure/key-vault/general/rbac-guide).
+
+<a id="2-declare-the-collection"></a>
+
+## 3. Declare the collection
+
+If the repository installs its collection dependencies, add this to `requirements.yml`:
+
+```yaml
+collections:
+  - name: azure.azcollection
+    version: ">=3.17.0"
+```
+
+OIDC token and token-file support require `azure.azcollection` 3.17.0 or later. Use a
+reviewed version compatible with your runner image's Python dependencies; installing the
+collection does not install those dependencies. The
+[module authentication reference](https://docs.ansible.com/projects/ansible/latest/collections/azure/azcollection/azure_rm_keyvaultsecret_info_module.html#parameters)
+lists the supported environment variables. Collection dependencies belong in the repository,
+not a collection list on the job template.
+
+<a id="using-it-in-a-playbook"></a>
+<a id="3-read-and-verify-the-secret"></a>
+
+## 4. Read and verify the secret
+
+Save this as `playbooks/read-key-vault.yml` in your repository.
+[Register the playbook](./managing-ansible-playbooks.md) and select it on a job template
+using the identity above. Replace the vault URI and secret name with your own.
+
+```yaml
+- name: Read a Key Vault secret
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  tasks:
+    - name: Retrieve the database password
+      azure.azcollection.azure_rm_keyvaultsecret_info:
+        auth_source: env
+        vault_uri: "https://my-vault.vault.azure.net"
+        name: database-password
+        version: current
+      register: kv
+      no_log: true
+
+    - name: Confirm a non-empty secret was returned
+      ansible.builtin.assert:
+        that:
+          - kv.secrets | length > 0
+          - kv.secrets[0].secret is defined
+          - kv.secrets[0].secret | length > 0
+      no_log: true
+
+    - name: Make the password available to later tasks
+      ansible.builtin.set_fact:
+        db_password: "{{ kv.secrets[0].secret }}"
+      no_log: true
+```
+
+`auth_source: env` uses the runner's supplied identity environment instead of falling back
+to a local Azure CLI login or credentials file. `version: current` reads the current secret
+version; choose a specific version if the play must use a fixed value.
+
+Launch the job. The three tasks should succeed, with their results hidden by `no_log`.
+The assertion confirms a non-empty value without displaying it. Use `db_password` in a later
+task in this play and keep `no_log: true` on tasks that read or use the secret. Do not print
+`kv` or `db_password` to check authentication. A secret read by this play is not automatically
+stored as a Stackweaver credential.
+
+## If the lookup fails
+
+| Symptom | Check |
+|---|---|
+| Module not found or a Python import error | Check the installed collection and its Python dependencies in the runner's execution environment. |
+| Authentication fails | Check the effective identity and collection version. For federation, compare issuer, audience and job subject with the Azure trust. For AKS, check the pod identity and projected token. |
+| Access denied | Check the effective identity's secret data-plane permission, secret enabled state and vault firewall rules. A management role alone is insufficient. |
+| Connection timeout or DNS failure | Check connectivity and private-endpoint DNS from the runner, where the module executes. |
+| The assertion fails | Check the vault URI, secret name and whether the current version contains a non-empty value. Keep secret output hidden while investigating. |
 
 ## Timeouts and long plays
 
-Federated tokens are short-lived. The collection re-reads `AZURE_FEDERATED_TOKEN_FILE` at authentication time, so prefer reading secrets early in the play, and set a job timeout on the template that fits within your token lifetime when running very long plays.
+Stackweaver's job federation token expires one hour after it is issued. Read secrets early;
+increasing the job timeout does not extend that token's lifetime. Do not assume a later
+lookup in a long-running play will receive a renewed job token. AKS pod identity follows
+its own token lifecycle.

@@ -1,70 +1,53 @@
 ---
+nav_order: 20
 description: "Index page for all user guides"
-covers: []
+covers:
+  - "frontend/src/pages/Docs/**"
+  - "frontend/src/components/docs/**"
 ---
 
-# User Guides
+# User guides
 
-Practical, step-by-step guides for using StackWeaver. These guides walk you through common tasks and workflows.
+Choose a task below. If you are new to Stackweaver, start with [your first OpenTofu workspace](../get-started/your-first-opentofu-workspace.md) or [your first Ansible job](../get-started/your-first-ansible-job.md).
 
-## Authentication
+## Operate OpenTofu workspaces
 
-- **[Authentication Overview](./authentication/README.md)** - Zitadel setup, custom domain, and SSO federation
-  - **[Zitadel Setup](./authentication/zitadel-setup.md)** - How Zitadel is initialised in Docker Compose and Kubernetes deployments
-  - **[Custom Domain](./authentication/zitadel-custom-domain.md)** - Run StackWeaver on a custom domain with internal service communication on localhost
+| I want to... | Guide |
+|---|---|
+| Understand a plan, approval or failed apply. | [Read OpenTofu runs](./understanding-opentofu-runs.md). |
+| Supply inputs or share values across workspaces. | [Manage workspace variables](./managing-workspace-variables.md). |
+| Track work that needs fixing. | [File and archive change requests](./change-requests.md). |
+| Add an external check to a run. | [Set up run tasks](./run-tasks.md). |
+| Control organization-wide policies. | [Configure organization settings](./organization-settings.md). |
+| Move an existing workspace. | [Migrate from Terraform Cloud or Enterprise](./migrating-from-terraform-cloud.md). |
 
-## VCS Integration
+## Run Ansible automation
 
-- **[VCS Overview](./vcs/README.md)** - Connect a version control system to trigger OpenTofu runs from code pushes
-  - **[GitHub App](./vcs/github-app.md)** - Create and configure a GitHub App for self-service VCS connections
-  - **[Azure DevOps](./vcs/azure-devops.md)** - Connect Azure DevOps repositories using Microsoft Entra ID OAuth2
+| I want to... | Guide |
+|---|---|
+| Register or bulk-import repository files. | [Manage Ansible playbooks](./managing-ansible-playbooks.md). |
+| Discover hosts from a cloud or repository. | [Configure dynamic inventories](./dynamic-inventories.md). |
+| Read secrets without a stored Azure credential. | [Read Azure Key Vault from playbooks](./azure-key-vault-from-playbooks.md). |
 
-## OpenTofu Workflows
+For supported capabilities and their limits, use the [generated feature catalogue](../features/README.md) and its [Ansible view](../features/ansible/README.md).
 
-- **[Organization Settings](./organization-settings.md)** - Organization-wide policies and what they do at run time: token access, force-delete policy, health assessments, and pull request status behavior
-- **[Understanding OpenTofu Runs](./understanding-opentofu-runs.md)** - Learn how to read plan and apply outputs, understand resource changes, and track run history
-- **[Managing Workspace Variables](./managing-workspace-variables.md)** - Set up and organize variables across workspaces and projects
-- **[Change Requests](./change-requests.md)** - File action items against workspaces so teams know what needs fixing, and archive them once the work is done
+## Connect systems and manage access
 
-## Platform as Code
+| I want to... | Guide |
+|---|---|
+| Manage install-wide access and catalogues. | [Platform administration](./platform-administration.md). |
+| Manage Stackweaver resources as code. | [Use the Terraform provider](./terraform-provider.md). |
+| Make a direct API request. | [Use the API](../architecture/using-the-api.md). |
+| Run inside my own network. | [Set up self-hosted runners](./self-hosted-runners.md). |
+| Authenticate runs to a cloud or Vault. | [Configure workload identity](./oidc-configuration.md). |
+| Connect a repository. | [Choose a VCS integration](./vcs/README.md), then configure [GitHub App](./vcs/github-app.md) or [Azure DevOps](./vcs/azure-devops.md). |
+| Set up sign-in for a self-hosted installation. | [Initialize Zitadel](./authentication/zitadel-setup.md) and [configure its domain](./authentication/zitadel-custom-domain.md). |
+| Use an external identity provider. | [Set up SSO](./sso/README.md) with [Entra ID](./sso/azure-ad.md), [Okta](./sso/okta.md), [Cognito](./sso/aws-cognito.md) or [generic OIDC](./sso/generic-oidc.md), then [map groups to teams](./sso/team-mapping.md). |
 
-- **[Managing StackWeaver with Terraform](./terraform-provider.md)** - Use the official [`vhco-pro/stackweaver`](https://registry.terraform.io/providers/vhco-pro/stackweaver/latest) Terraform provider to manage organizations, workspaces, teams, variables, agent pools, and the Ansible surface as code, and to migrate from `terraform-provider-tfe`
+[Authentication overview](./authentication/README.md) explains the difference between browser sign-in, API tokens and workload identity.
 
-## Ansible Workflows
+## Find and diagnose work
 
-The guides below cover specific Ansible tasks. For the full Ansible feature set (job templates, inventories, credentials, and how jobs run), see the [Ansible Documentation](../features/ansible/README.md).
+[Read the dashboard](./reading-the-dashboard.md) for cross-organization attention items. Use [Usage and analytics](./usage-analytics.md) for delivery health and [Troubleshooting](./troubleshooting-common-issues.md) when a task fails.
 
-- **[Dynamic Inventories](./dynamic-inventories.md)** - Configure dynamic inventory sources for Ansible jobs
-- **[Managing Ansible Playbooks](./managing-ansible-playbooks.md)** - Register playbooks one at a time, bulk-import them from a repository, or pick them straight from a repository in job template forms
-- **[Azure Key Vault from Playbooks](./azure-key-vault-from-playbooks.md)** - Read Key Vault secrets in playbooks via workload identity, with no static credentials on runners
-
-## Monitoring and Reporting
-
-- **[Reading the Dashboard](./reading-the-dashboard.md)** - Get the most out of the landing page: what needs your attention, what is running right now, whether delivery is healthy, and how the focus organization works
-- **[Usage & Analytics](./usage-analytics.md)** - Read an organization's delivery health: success rates, run and job durations, busiest workspaces and templates, recent failures, and audit activity
-
-## Organization and Access
-
-- **[Single Sign-On (SSO)](./sso/README.md)** - Federated authentication with external identity providers
-  - **[Azure AD / Entra ID](./sso/azure-ad.md)** - Configure Microsoft Entra ID as an SSO provider
-  - **[Okta](./sso/okta.md)** - Configure Okta as an SSO provider
-  - **[AWS Cognito](./sso/aws-cognito.md)** - Configure AWS Cognito as an SSO provider
-  - **[Generic OIDC Provider](./sso/generic-oidc.md)** - Configure any OIDC-compliant provider
-  - **[SSO Team Mapping](./sso/team-mapping.md)** - Automatically assign users to teams based on IdP group claims
-- **[Platform Administration](./platform-administration.md)** - Manage the installation itself: the OpenTofu versions catalogue, the platform administrators, and the list of every organization, with the role's limits, platform admin tokens, and login recovery
-
-## Cloud Integration
-
-- **[OIDC Configuration](./oidc-configuration.md)** - Configure keyless authentication from OpenTofu and Ansible runs to Azure, AWS, and GCP using OpenID Connect workload identity
-
-## Infrastructure
-
-- **[Self-Hosted Runners](./self-hosted-runners.md)** - Run OpenTofu and Ansible workloads on your own infrastructure using agent pools and self-hosted runners
-
-## Migrating
-
-- **[Migrating from Terraform Cloud or Enterprise](./migrating-from-terraform-cloud.md)** - Repoint the CLI at a Stackweaver host, move state, and check which `terraform-provider-tfe` resources have been verified to work
-
-## Troubleshooting
-
-- **[Troubleshooting Common Issues](./troubleshooting-common-issues.md)** - Solutions for frequent problems and questions
+Browse the [documentation homepage](/docs) or use the folder sidebar. Press **Ctrl+K** on Windows/Linux or **Cmd+K** on macOS to search titles and content. On a phone, open **Navigation** to browse folders.

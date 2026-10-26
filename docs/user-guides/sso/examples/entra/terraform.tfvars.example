@@ -1,0 +1,2 @@
+zitadel_callback_url = "https://auth.example.com/idps/callback"
+secret_expiry        = "2027-01-22T00:00:00Z"

@@ -1,0 +1,93 @@
+[
+  {
+    "id": "ansible-runner@0.6.113",
+    "component": "ansible-runner",
+    "repository": "vhco-pro/stackweaver-ansible-runner",
+    "tag": "0.6.113",
+    "tagCommit": "42df302b744a99bdca30fc2114a6271dbc7258c8",
+    "publishedAt": "2026-10-18T21:23:28Z",
+    "url": "https://github.com/vhco-pro/stackweaver-ansible-runner/releases/tag/0.6.113",
+    "sourceCommit": "66730960cb815947a4fe7b00568859d505aaf6a6",
+    "sync": {
+      "url": "https://github.com/vhco-pro/stackweaver-ansible-runner/pull/163",
+      "mergeCommit": "42df302b744a99bdca30fc2114a6271dbc7258c8"
+    },
+    "workflow": {
+      "url": "https://github.com/vhco-pro/stackweaver-ansible-runner/actions/runs/39167201605",
+      "conclusion": "success",
+      "headSha": "42df302b744a99bdca30fc2114a6271dbc7258c8"
+    },
+    "artifact": {
+      "name": "ghcr.io/vhco-pro/stackweaver-ansible-runner",
+      "digest": "sha256:4b703e980381efeba7c0676ccf59ce11d2e95626fd7c4db2d8922b1f043595ec",
+      "provenanceUrl": "https://github.com/vhco-pro/stackweaver-ansible-runner/releases/download/0.6.113/provenance.intoto.jsonl"
+    },
+    "includedCommits": [
+      "75d24fe5ae06b8a5c73fb8c63c42565bad622ac2",
+      "978e921cec6593401c8f7feb9d4500f78d035900",
+      "b605e5b66387c0ede5fa189d196088ce772cae5b",
+      "ed0977d194226dee1fe2b3e5287ad5d836234d11"
+    ]
+  },
+  {
+    "id": "api@0.17.22",
+    "component": "api",
+    "repository": "vhco-pro/stackweaver-api",
+    "tag": "0.17.22",
+    "tagCommit": "fa00315056f903b640a346487547ae50d373fcca",
+    "publishedAt": "2026-10-18T21:21:21Z",
+    "url": "https://github.com/vhco-pro/stackweaver-api/releases/tag/0.17.22",
+    "sourceCommit": "66730960cb815947a4fe7b00568859d505aaf6a6",
+    "sync": {
+      "url": "https://github.com/vhco-pro/stackweaver-api/pull/233",
+      "mergeCommit": "fa00315056f903b640a346487547ae50d373fcca"
+    },
+    "workflow": {
+      "url": "https://github.com/vhco-pro/stackweaver-api/actions/runs/39167220440",
+      "conclusion": "success",
+      "headSha": "fa00315056f903b640a346487547ae50d373fcca"
+    },
+    "artifact": {
+      "name": "ghcr.io/vhco-pro/stackweaver-api",
+      "digest": "sha256:80b6dab5cef339be1f8ba7ccafd237600da831508586a1f57945e20745be8929",
+      "provenanceUrl": "https://github.com/vhco-pro/stackweaver-api/releases/download/0.17.22/provenance.intoto.jsonl"
+    },
+    "includedCommits": [
+      "391ff24328adc20b9c5aa842a09ab29bfba6aa2e",
+      "75d24fe5ae06b8a5c73fb8c63c42565bad622ac2",
+      "978e921cec6593401c8f7feb9d4500f78d035900",
+      "b605e5b66387c0ede5fa189d196088ce772cae5b",
+      "ed0977d194226dee1fe2b3e5287ad5d836234d11"
+    ]
+  },
+  {
+    "id": "frontend@0.70.3",
+    "component": "frontend",
+    "repository": "vhco-pro/stackweaver-frontend",
+    "tag": "0.70.3",
+    "tagCommit": "56de1c7de16bc33bc2685e1cbca36295d124c0a9",
+    "publishedAt": "2026-10-18T21:19:54Z",
+    "url": "https://github.com/vhco-pro/stackweaver-frontend/releases/tag/0.70.3",
+    "sourceCommit": "6fa997f9bb727b8b191c0e7676d81966f722f9da",
+    "sync": {
+      "url": "https://github.com/vhco-pro/stackweaver-frontend/pull/254",
+      "mergeCommit": "56de1c7de16bc33bc2685e1cbca36295d124c0a9"
+    },
+    "workflow": {
+      "url": "https://github.com/vhco-pro/stackweaver-frontend/actions/runs/39167102751",
+      "conclusion": "success",
+      "headSha": "56de1c7de16bc33bc2685e1cbca36295d124c0a9"
+    },
+    "artifact": {
+      "name": "ghcr.io/vhco-pro/stackweaver-frontend",
+      "digest": "sha256:d4a459bca3e097efcfb20e0d2f5547c650fef736ce28a7be386ee830fa13ea05",
+      "provenanceUrl": "https://github.com/vhco-pro/stackweaver-frontend/releases/download/0.70.3/provenance.intoto.jsonl"
+    },
+    "includedCommits": [
+      "391ff24328adc20b9c5aa842a09ab29bfba6aa2e",
+      "75d24fe5ae06b8a5c73fb8c63c42565bad622ac2",
+      "9beb8ae76a1dfaad311935b7d316db0f0f06f77a",
+      "ed0977d194226dee1fe2b3e5287ad5d836234d11"
+    ]
+  }
+]

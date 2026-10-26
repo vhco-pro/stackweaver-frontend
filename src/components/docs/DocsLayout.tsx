@@ -1,11 +1,12 @@
 // Copyright (c) 2025 VH & Co BV. Licensed under the Business Source License 1.1. See LICENSE for details.
 
-import { type ReactNode, useState, useEffect, useLayoutEffect } from 'react';
+import { type ReactNode, useState, useLayoutEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Menu, List } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { PublicNav } from '@/components/navigation/PublicNav';
 import { Footer } from '@/components/layout/Footer';
+import { resolveCollection, useDocsIndex, type DocsCollection } from './docsCollection';
 import { DocsSidebar } from './DocsSidebar';
 import { TableOfContents } from './TableOfContents';
 import { DocNavigation } from './DocNavigation';
@@ -20,46 +21,19 @@ import {
 
 interface DocsLayoutProps {
   children: ReactNode;
+  collection?: DocsCollection;
+  homepage?: boolean;
   docsBase?: string;
   indexFile?: string;
 }
 
-interface DocsIndex {
-  tree: DocTreeNode[];
-  flat: Record<string, DocTreeNode>;
-  generated: string;
-}
-
-interface DocTreeNode {
-  type: 'directory' | 'file';
-  name: string;
-  path: string;
-  title?: string;
-  description?: string;
-  children?: DocTreeNode[];
-}
-
-export function DocsLayout({ children, docsBase = '/docs', indexFile = '/docs-index.json' }: DocsLayoutProps) {
+export function DocsLayout({ children, docsBase: legacyBase, indexFile: legacyIndex, collection: explicitCollection, homepage = false }: DocsLayoutProps) {
+  const collection = resolveCollection({ collection: explicitCollection, docsBase: legacyBase, indexFile: legacyIndex });
+  const { docsBase } = collection;
   const location = useLocation();
-  const [index, setIndex] = useState<DocsIndex | null>(null);
+  const { data: index } = useDocsIndex(collection);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [mobileTocOpen, setMobileTocOpen] = useState(false);
-
-  // Load docs index for breadcrumb titles
-  useEffect(() => {
-    async function loadIndex() {
-      try {
-        const response = await fetch(indexFile);
-        if (!response.ok) throw new Error('Failed to load docs index');
-        const data = await response.json() as DocsIndex;
-        setIndex(data);
-      } catch (error) {
-        console.error('Failed to load docs index:', error);
-      }
-    }
-
-    void loadIndex();
-  }, [indexFile]);
 
   // Scroll to top when navigating to a new doc (sidebar, breadcrumbs, prev/next, in-content links).
   // useLayoutEffect runs synchronously before paint to avoid scroll flicker.
@@ -110,7 +84,7 @@ export function DocsLayout({ children, docsBase = '/docs', indexFile = '/docs-in
 
       // Check if this is a directory (has README) or a file
       const readmeNode = index?.flat[`${currentPath}/README.md`];
-      const fileNode = index?.flat[`${currentPath}.md`];
+      const fileNode = index?.flat[currentPath] ?? index?.flat[`${currentPath}.md`];
       const isDirectory = !!readmeNode;
       const isFile = !!fileNode && !isDirectory;
       
@@ -153,7 +127,7 @@ export function DocsLayout({ children, docsBase = '/docs', indexFile = '/docs-in
           <Menu className="h-4 w-4" />
           <span className="text-sm">Navigation</span>
         </Button>
-        <Button
+        {!homepage && <Button
           variant="ghost"
           size="sm"
           onClick={() => setMobileTocOpen(true)}
@@ -161,7 +135,7 @@ export function DocsLayout({ children, docsBase = '/docs', indexFile = '/docs-in
         >
           <List className="h-4 w-4" />
           <span className="text-sm">On this page</span>
-        </Button>
+        </Button>}
       </div>
 
       {/* Mobile Sidebar Sheet */}
@@ -171,7 +145,7 @@ export function DocsLayout({ children, docsBase = '/docs', indexFile = '/docs-in
             <SheetTitle className="text-sm font-semibold">Documentation</SheetTitle>
           </SheetHeader>
           <div className="overflow-y-auto h-[calc(100vh-4rem)]">
-            <DocsSidebar docsBase={docsBase} indexFile={indexFile} onNavigate={() => setMobileSidebarOpen(false)} />
+            <DocsSidebar key={`${collection.id}:${collection.indexFile}`} collection={collection} showSearch={!homepage} onNavigate={() => setMobileSidebarOpen(false)} />
           </div>
         </SheetContent>
       </Sheet>
@@ -194,7 +168,7 @@ export function DocsLayout({ children, docsBase = '/docs', indexFile = '/docs-in
         {/* Left Sidebar - Docs Navigation Tree (desktop only; resizable and collapsible) */}
         <DocsPane config={SIDEBAR_PANE} id="docs-sidebar" label="navigation sidebar" className="hidden lg:flex">
           {(collapseButton) => (
-            <DocsSidebar docsBase={docsBase} indexFile={indexFile} headerAction={collapseButton} />
+            <DocsSidebar key={`${collection.id}:${collection.indexFile}`} collection={collection} showSearch={!homepage} headerAction={collapseButton} />
           )}
         </DocsPane>
 
@@ -233,13 +207,13 @@ export function DocsLayout({ children, docsBase = '/docs', indexFile = '/docs-in
           </div>
           
           {/* Previous/Next Navigation */}
-          <DocNavigation index={index} docsBase={docsBase} />
+          {!homepage && <DocNavigation index={index ?? null} docsBase={docsBase} />}
         </main>
         
         {/* Right Sidebar - Table of Contents (desktop only; resizable and collapsible) */}
-        <DocsPane config={TOC_PANE} id="docs-toc" label="table of contents" className="hidden xl:flex">
+        {!homepage && <DocsPane config={TOC_PANE} id="docs-toc" label="table of contents" className="hidden xl:flex">
           {(collapseButton) => <TableOfContents headerAction={collapseButton} />}
-        </DocsPane>
+        </DocsPane>}
       </div>
       
       <Footer />

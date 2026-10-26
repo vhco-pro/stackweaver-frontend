@@ -16,6 +16,8 @@
 
 const fs = require('fs');
 const path = require('path');
+const capabilityGenerator = fs.existsSync(path.join(__dirname, 'capabilities/config.json'))
+  ? require('./capabilities/index.js') : null;
 
 // Try to load gray-matter, fallback to basic parsing if not available
 let matter;
@@ -32,7 +34,7 @@ try {
       const body = match[2];
       const data = {};
       // Basic YAML parsing for known frontmatter fields
-      const fields = ['title', 'description', 'status', 'status_description', 'author', 'priority', 'created', 'updated', 'issue', 'goal'];
+      const fields = ['title', 'description', 'status', 'status_description', 'author', 'priority', 'created', 'updated', 'issue', 'goal', 'nav_order'];
       for (const field of fields) {
         const re = new RegExp(`^${field}:\\s*(.+)$`, 'm');
         const fm = frontmatter.match(re);
@@ -138,9 +140,7 @@ const IMAGE_EXTENSIONS = /\.(png|jpe?g|gif|svg|webp|avif)$/i;
 // publish the raw source next to its own output. Only two .json files exist under docs/, and
 // they need opposite treatment, so naming the published one is the honest way to say which.
 //
-// docs/api-reference/README.md tells readers this file sits "alongside this page", which was
-// false for as long as the walk collected .md and images only: the URL fell through to the
-// SPA and served index.html with a 200.
+// The API explorer and docs/architecture/using-the-api.md share this stable asset URL.
 const PUBLISHED_ASSETS = new Set(['api-reference/openapi.json']);
 
 /** Map file extension -> fenced code block language identifier */
@@ -154,6 +154,7 @@ const EXT_TO_LANG = {
   '.json': 'json',
   '.jsonc': 'jsonc',
   '.toml': 'toml',
+  '.conf': 'nginx',
   '.go': 'go',
   '.ts': 'typescript',
   '.tsx': 'typescript',
@@ -247,8 +248,8 @@ function shouldIgnoreFile(filePath) {
 /**
  * Check if a directory path matches any ignore pattern
  */
-function shouldIgnoreDir(dirPath) {
-  const relativePath = path.relative(DOCS_ROOT, dirPath);
+function shouldIgnoreDir(dirPath, root = DOCS_ROOT) {
+  const relativePath = path.relative(root, dirPath);
 
   // Check if directory matches ignore patterns
   for (const pattern of DIR_IGNORE_PATTERNS) {
@@ -277,8 +278,8 @@ function shouldIgnoreDir(dirPath) {
 
 /**
  * Recursively scan docs directory and build file tree.
- * Returns { mdFiles, imageFiles } - the second array is the copied-but-not-indexed lane,
- * carrying images and the PUBLISHED_ASSETS data files.
+ * Returns Markdown, internal-only HTML, and copied image/data lanes.
+ * HTML is indexed but served from source by the development frontend, never copied.
  *
  * @param {string} dirPath - Directory to scan
  * @param {string} [root] - Root to compute relative paths from (defaults to DOCS_ROOT)
@@ -286,11 +287,12 @@ function shouldIgnoreDir(dirPath) {
  */
 function scanDocsDir(dirPath, root = DOCS_ROOT, noFilter = false) {
   const mdFiles = [];
+  const htmlFiles = [];
   const imageFiles = [];
 
   // Skip if directory should be ignored (unless filtering is disabled)
-  if (!noFilter && shouldIgnoreDir(dirPath)) {
-    return { mdFiles, imageFiles };
+  if (!noFilter && shouldIgnoreDir(dirPath, root)) {
+    return { mdFiles, htmlFiles, imageFiles };
   }
 
   const entries = fs.readdirSync(dirPath, { withFileTypes: true });
@@ -303,12 +305,15 @@ function scanDocsDir(dirPath, root = DOCS_ROOT, noFilter = false) {
       // Recursively scan subdirectories
       const sub = scanDocsDir(fullPath, root, noFilter);
       mdFiles.push(...sub.mdFiles);
+      htmlFiles.push(...sub.htmlFiles);
       imageFiles.push(...sub.imageFiles);
     } else if (entry.isFile()) {
       if (entry.name.endsWith('.md')) {
         if (noFilter || !shouldIgnoreFile(relativePath)) {
           mdFiles.push({ relativePath, fullPath });
         }
+      } else if (noFilter && /\.html$/i.test(entry.name)) {
+        htmlFiles.push({ relativePath, fullPath });
       } else if (IMAGE_EXTENSIONS.test(entry.name)) {
         imageFiles.push({ relativePath, fullPath });
       } else if (PUBLISHED_ASSETS.has(relativePath.split(path.sep).join('/'))) {
@@ -317,21 +322,31 @@ function scanDocsDir(dirPath, root = DOCS_ROOT, noFilter = false) {
     }
   }
 
-  return { mdFiles, imageFiles };
+  return { mdFiles, htmlFiles, imageFiles };
 }
 
 /**
- * Extract metadata from markdown file
+ * Extract Markdown frontmatter or a saved HTML document title.
  */
 function extractMetadata(filePath) {
   try {
     const content = fs.readFileSync(filePath, 'utf-8');
+    if (/\.html$/i.test(filePath)) {
+      return {
+        title: content.match(/<title\b[^>]*>([^<]*)<\/title>/i)?.[1].replace(/\s+/g, ' ').trim() || path.basename(filePath, path.extname(filePath)),
+        description: '',
+      };
+    }
     const parsed = matter(content);
 
+    const rawOrder = parsed.data.nav_order;
+    const order = (typeof rawOrder === 'number' || (typeof rawOrder === 'string' && rawOrder.trim() !== ''))
+      ? Number(rawOrder) : NaN;
     return {
       title: parsed.data.title || path.basename(filePath, '.md').replace(/-/g, ' ').replace(/_/g, ' '),
       description: parsed.data.description || '',
       ...parsed.data,
+      nav_order: Number.isFinite(order) ? order : undefined,
     };
   } catch (error) {
     console.warn(`Warning: Could not parse frontmatter for ${filePath}:`, error.message);
@@ -365,6 +380,7 @@ function buildTree(files) {
         description: metadata.description,
         type: 'file',
         ...(metadata.status ? { status: metadata.status } : {}),
+        ...(metadata.nav_order !== undefined ? { nav_order: metadata.nav_order } : {}),
       };
       continue;
     }
@@ -386,6 +402,7 @@ function buildTree(files) {
       description: metadata.description,
       type: 'file',
       ...(metadata.status ? { status: metadata.status } : {}),
+      ...(metadata.nav_order !== undefined ? { nav_order: metadata.nav_order } : {}),
     };
   }
 
@@ -405,11 +422,13 @@ function buildTree(files) {
         let dirNode = currentLevel.find(node => node.type === 'directory' && node.name === dirName);
 
         if (!dirNode) {
+          const overview = flat[`${dirPath}/README.md`] ?? flat[`${dirPath}/readme.md`];
           dirNode = {
             type: 'directory',
             name: dirName,
             path: dirPath,
             children: [],
+            ...(overview?.nav_order !== undefined ? { nav_order: overview.nav_order } : {}),
           };
           currentLevel.push(dirNode);
         }
@@ -434,16 +453,19 @@ function buildTree(files) {
         title: metadata.title,
         description: metadata.description,
         ...(metadata.status ? { status: metadata.status } : {}),
+        ...(metadata.nav_order !== undefined ? { nav_order: metadata.nav_order } : {}),
       });
     }
   }
 
-  // Sort: directories first, then files, both alphabetically
+  // Directories first; source priorities precede alphabetical fallback within each group.
   function sortTree(nodes) {
     nodes.sort((a, b) => {
       if (a.type !== b.type) {
         return a.type === 'directory' ? -1 : 1;
       }
+      const orderDifference = (a.nav_order ?? Infinity) - (b.nav_order ?? Infinity);
+      if (orderDifference) return orderDifference;
       return a.name.localeCompare(b.name);
     });
 
@@ -526,7 +548,9 @@ async function copyFiles(files, outputDir = PUBLIC_DOCS) {
     if (file.relativePath.endsWith('.md')) {
       // Process file inclusions (<<< directives); keep frontmatter for MarkdownRenderer to parse
       const content = fs.readFileSync(file.fullPath, 'utf-8');
-      const processed = processFileInclusions(content, file.fullPath);
+      const published = capabilityGenerator && outputDir === PUBLIC_DOCS
+        ? capabilityGenerator.stripMetadata(content) : content;
+      const processed = processFileInclusions(published, file.fullPath);
       fs.writeFileSync(destPath, processed.trimStart(), 'utf-8');
     } else if (IMAGE_EXTENSIONS.test(file.relativePath)) {
       imageCount++;
@@ -1011,8 +1035,8 @@ async function processCodeSnippets(mdFiles, outputDir = PUBLIC_DOCS) {
 
 /**
  * Generate the markdown for the ## Contents section of a directory.
- * Subdirectories (with README.md) are listed first, then files.
- * Files without a description field are omitted.
+ * Subdirectories with a README or saved HTML are listed first, then files.
+ * Markdown without a description field is omitted; HTML uses its document title.
  *
  * @param {string} dirPath - Absolute path to the directory
  * @returns {string|null} Markdown string starting with "## Contents\n", or null on error
@@ -1035,30 +1059,32 @@ function generateContentsTable(dirPath) {
 
   for (const subdir of subdirs) {
     const readmePath = path.join(dirPath, subdir, 'README.md');
-    if (!fs.existsSync(readmePath)) continue;
-    const meta = extractMetadata(readmePath);
+    const hasReadme = fs.existsSync(readmePath);
+    if (!hasReadme && !scanDocsDir(path.join(dirPath, subdir), path.join(dirPath, subdir), true).htmlFiles.length) continue;
+    const meta = hasReadme ? extractMetadata(readmePath) : { description: 'Saved HTML pages.' };
     rows.push(`| [${subdir}/](./${subdir}/) | ${meta.description || ''} |`);
   }
 
-  // .md files directly in this directory - exclude README.md and _ prefix
+  // Documents directly in this directory, excluding README.md and _ prefix.
   const files = entries
-    .filter(e => e.isFile() && e.name.endsWith('.md') && e.name.toLowerCase() !== 'readme.md' && !e.name.startsWith('_'))
+    .filter(e => e.isFile() && /\.(md|html)$/i.test(e.name) && e.name.toLowerCase() !== 'readme.md' && !e.name.startsWith('_'))
     .map(e => e.name)
     .sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase()));
 
   for (const filename of files) {
     const filePath = path.join(dirPath, filename);
-    let parsed;
+    const isHtml = /\.html$/i.test(filename);
+    let meta;
     try {
-      parsed = matter(fs.readFileSync(filePath, 'utf-8'));
+      meta = isHtml ? extractMetadata(filePath) : matter(fs.readFileSync(filePath, 'utf-8')).data;
     } catch {
       continue;
     }
-    const description = parsed.data.description;
-    if (!description) continue;
-    // Use explicit title as link text when present, filename otherwise
-    const linkText = parsed.data.title || filename;
-    rows.push(`| [${linkText}](./${filename}) | ${description} |`);
+    const description = meta.description;
+    if (!description && !isHtml) continue;
+    // Use explicit title as link text when present, filename otherwise.
+    const linkText = meta.title || filename;
+    rows.push(`| [${linkText}](./${filename}) | ${description || ''} |`);
   }
 
   if (rows.length === 0) {
@@ -1239,7 +1265,9 @@ function buildSearchIndex(mdFiles, outputFile) {
 
   for (const file of mdFiles) {
     const content = fs.readFileSync(file.fullPath, 'utf-8');
-    const parsed = matter(content);
+    // HTML contributes its title only, keeping scripts/styles out of search results.
+    const parsed = /\.html$/i.test(file.fullPath)
+      ? { data: extractMetadata(file.fullPath), content: '' } : matter(content);
     const plainBody = stripMarkdown(parsed.content).slice(0, 10000);
     const headings = extractHeadings(parsed.content);
     const sectionHeadings = extractStructuredHeadings(parsed.content);
@@ -1276,11 +1304,12 @@ async function buildInternalDocs() {
   console.log('');
 
   console.log('🔍 Scanning docs/internal directory...');
-  const { mdFiles, imageFiles } = scanDocsDir(INTERNAL_DOCS_ROOT, INTERNAL_DOCS_ROOT, true);
-  console.log(`   Found ${mdFiles.length} documentation files and ${imageFiles.length} images\n`);
+  const { mdFiles, htmlFiles, imageFiles } = scanDocsDir(INTERNAL_DOCS_ROOT, INTERNAL_DOCS_ROOT, true);
+  const pages = [...mdFiles, ...htmlFiles];
+  console.log(`   Found ${mdFiles.length} Markdown, ${htmlFiles.length} HTML files and ${imageFiles.length} images\n`);
 
   console.log('🌳 Building navigation tree...');
-  const { tree, flat } = buildTree(mdFiles);
+  const { tree, flat } = buildTree(pages);
 
   console.log('📋 Copying files to public directory...');
   await copyFiles([...mdFiles, ...imageFiles], INTERNAL_PUBLIC_DOCS);
@@ -1297,7 +1326,7 @@ async function buildInternalDocs() {
   console.log(`✅ Internal index written to ${path.relative(process.cwd(), INTERNAL_INDEX_FILE)}\n`);
 
   console.log('🔎 Building internal search index...');
-  buildSearchIndex(mdFiles, INTERNAL_SEARCH_INDEX_FILE);
+  buildSearchIndex(pages, INTERNAL_SEARCH_INDEX_FILE);
 }
 
 /**
@@ -1357,8 +1386,15 @@ function buildCoverageIndex() {
   console.log(`✅ Coverage index written to ${path.relative(process.cwd(), COVERAGE_INDEX_FILE)} (${totalGlobs} globs → ${totalDocs} docs)\n`);
 }
 
-async function main() {
+async function main({ publicOnly = false } = {}) {
   console.log('📚 Building documentation index...\n');
+
+  // Assemble reviewed release guidance before scanning so navigation, search and copying
+  // consume the same generated article. This stage needs neither Git history nor network.
+  if (fs.existsSync(path.join(__dirname, 'changelog/data/config.json'))) {
+    require('./changelog/index.js').build(path.join(__dirname, '..'));
+  }
+  if (capabilityGenerator) capabilityGenerator.build(path.join(__dirname, '..'));
 
   // Say so loudly when an optimiser is missing. The silent try/catch around these requires
   // hid a resolution bug for the whole life of the feature: nothing was ever optimised, and
@@ -1422,7 +1458,15 @@ async function main() {
   buildSearchIndex(mdFiles, SEARCH_INDEX_FILE);
 
   // Build internal docs
-  await buildInternalDocs();
+  if (publicOnly) {
+    // Remove generated dev output as well as skipping its source. A dirty local build
+    // must not copy internal reviews into the public production image.
+    for (const file of [INTERNAL_PUBLIC_DOCS, INTERNAL_INDEX_FILE, INTERNAL_SEARCH_INDEX_FILE]) {
+      fs.rmSync(file, { recursive: true, force: true });
+    }
+  } else {
+    await buildInternalDocs();
+  }
 
   // Build coverage index (all docs - user-facing + internal)
   console.log('🗺  Building docs coverage index...');
@@ -1431,12 +1475,12 @@ async function main() {
   console.log('✨ Documentation build complete!');
 }
 
+module.exports = { buildTree, main, scanDocsDir, optimiseImage, processFileInclusions, PUBLISHED_ASSETS };
+
 // Run if executed directly
 if (require.main === module) {
-  main().catch(err => {
+  main({ publicOnly: process.argv.includes('--public-only') }).catch(err => {
     console.error('❌ Error building documentation index:', err);
     process.exit(1);
   });
 }
-
-module.exports = { main, scanDocsDir, optimiseImage, processFileInclusions, PUBLISHED_ASSETS };

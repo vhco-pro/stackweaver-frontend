@@ -1,88 +1,82 @@
 ---
-description: "Platform features overview summarizing OpenTofu, Ansible, VCS, and organization capabilities"
-covers: []
+nav_order: 30
+description: "Find Stackweaver capabilities and their task guides across OpenTofu, Ansible and the platform."
+covers:
+  - "scripts/capabilities/**"
 ---
 
-# Platform Features
+# Platform features
 
-StackWeaver is a unified orchestration platform for managing OpenTofu and Ansible workflows. It combines the capabilities of Terraform Cloud and Ansible AWX into a single solution, and stays API-compatible with Terraform Cloud/Enterprise tooling. It's available for self hosting or as a managed service.
+Stackweaver runs OpenTofu infrastructure changes and Ansible automation. Explore an area
+below to find what you can do, the constraints that matter and the guide to use it.
 
-## What StackWeaver Does
+For a first run, start with [an OpenTofu workspace](../get-started/your-first-opentofu-workspace.md)
+or [an Ansible job](../get-started/your-first-ansible-job.md). This catalogue covers documented
+capabilities and is not a complete compatibility matrix. Check the guide for setup and access requirements.
 
-StackWeaver provides a web-based dashboard, API and customizable runners for managing infrastructure as code and automation workflows. The platform manages the complete lifecycle of OpenTofu workspaces, handles Ansible automation with playbook and inventory management, and provides a unified interface where you can monitor both types of operations side by side.
+<!-- capabilities:start -->
 
-Version control integration through GitHub App webhooks enables automated runs and playbook synchronization, while organization and team-based RBAC ensures fine-grained access control over all resources.
+<details>
+<summary>OpenTofu (9)</summary>
 
-## Core Platform Capabilities
+[Browse OpenTofu](/docs/features/opentofu)
 
-### Organization & Access Management
+| Capability | What you can do |
+|---|---|
+| [External run checks](/docs/user-guides/run-tasks) | Call external services at run-stage boundaries and enforce advisory or mandatory results. **Limits:** An unreachable or errored mandatory check fails the gate. A reported failure can wait for an authorized override. |
+| [Plans, applies and run history](/docs/user-guides/understanding-opentofu-runs) | Preview infrastructure changes, confirm an apply and inspect the recorded result. **Limits:** Auto-apply removes the confirmation step, including for destroy runs. Plan-only runs cannot be applied. |
+| [Repository path filters](/docs/features/opentofu/vcs-path-filtering) | Trigger workspace runs only when monitored files change, using directories or glob patterns. **Limits:** Turning file triggers off ignores path filters; branch and automatic-queue gates still apply. |
+| [Run cancellation](/docs/features/opentofu/run-cancellation) | Cancel queued or executing work from the run page or API. **Limits:** Cancellation does not roll back infrastructure changes already made. |
+| [Run output](/docs/features/opentofu/opentofu-streaming) | Follow plan and apply output while a run executes and read its stored logs afterwards. |
+| [Run timeouts](/docs/features/opentofu/run-timeout) | Set a workspace timeout to limit long-running apply operations. **Limits:** Initial platform plans have a separate deadline. Agent commands and platform provider-error retries can continue after the run is marked failed. |
+| [Variables and shared sets](/docs/user-guides/managing-workspace-variables) | Pass Terraform and environment variables to runs and share sets across projects or workspaces. **Limits:** Sensitive values are protected in storage, but code running in a job can expose values it receives. |
+| [Workspace change requests](/docs/user-guides/change-requests) | Record work for workspace owners and archive each request when it is done. **Limits:** Filing needs organization workspace-management permission; archiving needs workspace write access. UI views load one page; use API pagination for larger backlogs. |
+| [Workspace settings](/docs/features/opentofu/workspace-editing) | Change a workspace name, working directory, OpenTofu version and execution settings without recreating it. **Limits:** Changing repository or branch points existing state at different configuration. Review state-affecting changes carefully. |
 
-StackWeaver uses an organization and team-based model for access control. Organizations serve as top-level containers for all resources including workspaces, playbooks, and projects. Within organizations, teams group users together with configurable permissions, allowing you to control who can create, read, update, or delete specific resources.
+</details>
 
-Projects provide logical grouping of related resources, making it easier to organize your infrastructure by environment, service, or team. This structure supports complex access patterns while keeping permissions manageable.
+<details>
+<summary>Ansible (15)</summary>
 
-### Version Control Integration
+[Browse Ansible](/docs/features/ansible)
 
-Connect repositories through GitHub App integration for secure, webhook-based automation. The platform automatically triggers runs and syncs Ansible playbooks whenever repository changes are pushed.
+| Capability | What you can do |
+|---|---|
+| [Ad hoc commands](/docs/user-guides/dynamic-inventories) | Run an allowed module against selected inventory hosts without registering a playbook. **Limits:** Modules are restricted by an allowlist. Ad hoc jobs do not install repository Galaxy requirements. |
+| [Azure identity for playbooks](/docs/user-guides/azure-key-vault-from-playbooks) | Read Azure resources using an attached credential, organization federation or the runner environment. **Limits:** An attached Azure credential takes precedence over organization OIDC. Azure role assignments are still required. |
+| [Cloud and Git inventories](/docs/user-guides/dynamic-inventories) | Refresh hosts from cloud inventory plugins or a Git repository, with sync history and per-source merge controls. **Limits:** Inventory syncs execute on platform infrastructure, not self-hosted agent pools. Azure sources can use federated identity. |
+| [Constructed inventories](/docs/user-guides/dynamic-inventories) | Combine existing inventories and derive groups, variables and a host subset for a job. **Limits:** Hosts and groups are derived from input inventories, not edited directly. |
+| [Credentials and multiple vaults](/docs/features/ansible/roadmap) | Store built-in credential types and attach multiple credentials, including distinct vault IDs, to templates. **Limits:** One credential per type, except vault credentials with distinct vault IDs. Custom credential types are not supported. |
+| [Galaxy collections and roles](/docs/features/ansible/galaxy-collections) | Install repository requirements before jobs, with per-project caching on platform and self-hosted runners. **Limits:** An installation failure is reported but the play still runs. Private servers require runner network access and configuration. |
+| [Job and workflow notifications](/docs/features/ansible/roadmap) | Send start, success and failure notifications over webhook, email or Microsoft Teams. **Limits:** Private webhook and Teams destinations require an operator opt-in. There is no Slack channel type. |
+| [Job templates and execution](/docs/features/ansible/execution-flows) | Reuse launch settings, apply timeout and concurrency controls, split hosts into slices, and inspect task output in matrix, timeline or stream views. **Limits:** Job output is polled while the job runs. A disabled template refuses every launch path. |
+| [Playbook registration and sync](/docs/user-guides/managing-ansible-playbooks) | Register a playbook or bulk-import a repository, then choose a cached snapshot or fresh checkout for execution. **Limits:** Cached mode can still clone on a snapshot miss or an older agent. Fresh mode fetches branch HEAD at execution, not a pinned webhook commit. |
+| [Provisioning callbacks](/docs/features/ansible/execution-flows) | Let a provisioned host request a template launch limited to that host. **Limits:** The template must allow callbacks and the requesting host must already be in its inventory. |
+| [Repository-triggered jobs](/docs/features/ansible/execution-flows) | Launch an opted-in job template from a GitHub or Azure DevOps push. **Limits:** Fresh mode fetches branch HEAD at job execution; it does not pin the webhook commit. Cached mode can race snapshot synchronization. |
+| [Scheduled automation](/docs/features/ansible/execution-flows) | Schedule job templates, inventory-source syncs and workflows. **Limits:** Use a dedicated inventory-source schedule. The source form's Sync Schedule field does not activate recurring syncs. Playbook-sync scheduling is not supported. |
+| [Self-hosted Ansible execution](/docs/features/ansible/execution-flows) | Run jobs and ad hoc commands on agents that can reach your private hosts. **Limits:** Choose the pool on the job template or ad hoc launch. Inventory syncs still execute on platform infrastructure. |
+| [Static inventories](/docs/get-started/your-first-ansible-job) | Define hosts and groups directly and use the inventory when launching a playbook. |
+| [Workflows and approvals](/docs/features/ansible/execution-flows) | Chain jobs, inventory syncs and approval gates with success/failure branches and convergence rules. **Limits:** Configure graph nodes and edges through the API. Nested workflows and launch-time survey prompts are not supported. |
 
-Path-based filtering ensures that workspaces only trigger when files in their configured paths actually change, preventing unnecessary runs in monorepo setups. Both workspace and playbook configurations can be tied to specific Git branches, supporting environment-specific workflows.
+</details>
 
-### State & Execution Management
+<details>
+<summary>Platform (5)</summary>
 
-State is stored securely with versioning in S3-compatible storage. State locking prevents concurrent applies that could corrupt your infrastructure state. Plan, apply, and destroy operations execute with full output streaming, while Ansible job runs provide real-time output and event tracking for complete visibility into automation workflows.
+| Capability | What you can do |
+|---|---|
+| [Cross-organization dashboard](/docs/user-guides/reading-the-dashboard) | Find waiting approvals, failed work and running operations across organizations you can access. **Limits:** Runner and change-request rows require their respective organization management permissions. |
+| [GitHub and Azure DevOps connections](/docs/user-guides/vcs) | Connect repositories for code-driven infrastructure and Ansible workflows. |
+| [OIDC workload identity](/docs/user-guides/oidc-configuration) | Authenticate OpenTofu runs to Azure, AWS, GCP or Vault with short-lived workload tokens. **Limits:** Operators must configure signing keys and each target cloud must trust the intended run subject. |
+| [Organization policies](/docs/user-guides/organization-settings) | Configure token access, workspace policies and pull-request behavior for an organization. |
+| [REST API and OpenAPI explorer](/docs/architecture/using-the-api) | Automate platform operations and browse request and response schemas in the API explorer. **Limits:** Terraform-compatible operations and Stackweaver-specific endpoints have different coverage. Check the schema for the operation you use. |
 
-## OpenTofu Features
+</details>
 
-### Workspace Management
+<!-- capabilities:end -->
 
-Create, configure, and edit workspaces throughout their lifecycle without needing to delete and recreate them. Specify OpenTofu versions per workspace to control which version executes your infrastructure code. Configure working directories within repositories for multi-environment setups, supporting monorepo patterns where different workspaces manage different paths.
+## Operating Stackweaver
 
-Choose execution modes based on your needs: remote execution with platform-managed runners, local execution, or agent-based execution for specialized scenarios.
-
-### Run Management
-
-StackWeaver provides comprehensive run management capabilities:
-
-| Feature | Description |
-|---------|-------------|
-| **[Output Streaming](./opentofu/opentofu-streaming.md)** | Live, real-time streaming of plan and apply output with resource status updates as they happen |
-| **[Run Timeout](./opentofu/run-timeout.md)** | Configurable timeouts automatically cancel long-running applies to prevent stuck jobs |
-| **[Run Cancellation](./opentofu/run-cancellation.md)** | Manually cancel runs in progress, whether queued, planning, or applying |
-| Run History | Complete audit trail of all plan and apply operations for compliance and debugging |
-
-### Advanced Features
-
-Modify workspace settings after creation with [workspace editing](./opentofu/workspace-editing.md), eliminating the need to delete and recreate workspaces when configuration changes. [VCS path filtering](./opentofu/vcs-path-filtering.md) implements GitOps-style filtering that only triggers workspaces when relevant files change, perfect for monorepo architectures.
-
-Variable management includes workspace variables, variable sets for sharing across multiple workspaces, and encrypted storage for sensitive values. Full JSON:API compatibility with Terraform Enterprise and Cloud provider ensures existing tooling and workflows continue to work.
-
-## Ansible Features
-
-### Playbook & Inventory Management
-
-Store, version, and manage Ansible playbooks within the platform. [Automatic playbook synchronization](./ansible-playbook-webhook-sync.md) keeps your playbooks up to date with your Git repositories whenever you push changes.
-
-Three inventory types are supported: static inventories defined within StackWeaver, dynamic inventories that query external systems, and VCS-synced inventories that pull from Git repositories. Credential management provides secure storage and automatic injection of API keys, passwords, and SSH keys into job executions.
-
-### Job Execution
-
-Create reusable job templates that combine playbooks, inventories, and credentials into standardized automation workflows. Execute Ansible jobs with real-time output streaming using JSONL-based event streaming for immediate visibility into task progress and results.
-
-Every job execution is preserved in history with detailed task outputs, making it easy to debug failures and understand what happened in past runs. Schedule recurring jobs for regular maintenance tasks and automated workflows.
-
-### Galaxy Integration
-
-Ansible Galaxy collections are automatically installed when specified in requirements files. The platform handles version tracking and dependency resolution, ensuring your jobs have access to the collections they need.
-
-## Additional Features
-
-The unified dashboard provides an overview of all OpenTofu and Ansible operations across your organizations, giving you a single place to monitor infrastructure changes and automation workflows. An activity timeline tracks recent actions and changes across the platform, helping you understand what's happening in your infrastructure.
-
-An API-first design means everything is accessible via REST API with JSON:API format, enabling automation, integration with other tools, and programmatic management. The platform can also be managed declaratively with the [official Terraform provider](../user-guides/terraform-provider.md), which covers both the OpenTofu and the Ansible surface. Real-time updates use Server-Sent Events (SSE) for live log streaming and status updates, so you always see current information without refreshing.
-
-## Related Documentation
-
-- [User Guides](../user-guides/README.md) - Step-by-step guides for using features
-- [OpenTofu Workspace Editing](./opentofu/workspace-editing.md) - Complete OpenTofu workspace documentation
-- [Ansible Documentation](./ansible/README.md) - Complete Ansible integration documentation
-- [API Reference](../api-reference/README.md) - The OpenAPI description of the REST API, rendered at [`/docs/api-reference/explorer`](/docs/api-reference/explorer)
+Read the [architecture overview](../architecture/README.md) for service boundaries and
+[self-hosting guides](../get-started/self-hosting/README.md) for deployment. The
+[Stackweaver changelog](../changelog.md) explains released changes and any action to take.

@@ -21,7 +21,7 @@ import { glassSurface } from '@/lib/surfaces';
  * retry instead of an empty pane that reads as "this API has no endpoints".
  */
 
-/** The published document. Same bytes as GET /openapi/stable.json - see docs/api-reference/README.md. */
+/** The published document. Same bytes as GET /openapi/stable.json - see docs/architecture/using-the-api.md. */
 const DOCUMENT_URL = '/docs/api-reference/openapi.json';
 
 /**
@@ -157,7 +157,7 @@ export default function ApiReferenceExplorer() {
     <div className="flex h-screen flex-col bg-white dark:bg-[#020617]">
       <div className="flex shrink-0 items-center gap-3 border-b border-gray-200 px-4 py-2.5 dark:border-white/10">
         <Link
-          to="/docs/api-reference"
+          to="/docs/architecture/using-the-api"
           className="inline-flex items-center gap-1.5 rounded-lg px-2 py-1 text-sm text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-900 focus-visible:ring-2 focus-visible:ring-violet-500 focus-visible:outline-none dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-white"
         >
           <ArrowLeft className="h-4 w-4" aria-hidden="true" />

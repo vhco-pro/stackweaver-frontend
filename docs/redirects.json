@@ -16,6 +16,8 @@
     "features/terraform/terraform-streaming": "features/opentofu/opentofu-streaming",
     "features/terraform/run-cancellation": "features/opentofu/run-cancellation",
     "features/terraform/run-timeout": "features/opentofu/run-timeout",
-    "features/ansible/api-reference": "api-reference"
+    "features/ansible/api-reference": "architecture/using-the-api",
+    "api-reference": "architecture/using-the-api",
+    "api-reference/README": "architecture/using-the-api"
   }
 }

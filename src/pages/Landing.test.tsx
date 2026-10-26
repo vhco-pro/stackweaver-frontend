@@ -179,3 +179,15 @@ describe('Landing: structure', () => {
     }
   });
 });
+
+describe('Landing: tour progress controls', () => {
+  it('exposes labelled, keyboard-native progress buttons for every screen', () => {
+    const { container } = renderPage();
+    const controls = container.querySelectorAll('button[data-tour-progress]');
+    expect(controls).toHaveLength(7);
+    for (const control of controls) {
+      expect(control).toHaveAttribute('aria-label', expect.stringMatching(/^Show /));
+      expect(control.closest('[aria-hidden="true"]')).toBeNull();
+    }
+  });
+});

@@ -1,0 +1,30 @@
+{
+  "schema": 1,
+  "areas": [
+    {
+      "id": "opentofu",
+      "name": "OpenTofu"
+    },
+    {
+      "id": "ansible",
+      "name": "Ansible"
+    },
+    {
+      "id": "platform",
+      "name": "Platform"
+    }
+  ],
+  "views": [
+    {
+      "path": "features/README.md"
+    },
+    {
+      "path": "features/opentofu/README.md",
+      "area": "opentofu"
+    },
+    {
+      "path": "features/ansible/README.md",
+      "area": "ansible"
+    }
+  ]
+}

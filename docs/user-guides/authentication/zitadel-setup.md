@@ -6,281 +6,66 @@ covers:
   - "deploy/helm/**"
 ---
 
-# Zitadel Setup Guide
+# Set up Zitadel
 
-This guide covers how Zitadel is configured and initialized in StackWeaver, for both the Kubernetes (Helm) and Docker Compose deployment paths.
+The bundled initializer creates the OIDC applications, login service user and webhook keys that Stackweaver needs. Use your deployment's bootstrap path below, then verify a browser sign-in. You do not need to create those applications by hand in the Zitadel console.
 
-> **References:**
-> - [Zitadel defaults.yaml](https://github.com/zitadel/zitadel/blob/main/cmd/defaults.yaml)
-> - [Zitadel setup steps.yaml](https://github.com/zitadel/zitadel/blob/main/cmd/setup/steps.yaml)
-> - [Zitadel production guide](https://zitadel.com/docs/self-hosting/manage/production)
+Stackweaver serves the login UI at the application's `/login` routes. Zitadel remains the identity service, and the API proxies login requests to it.
 
-## Overview
+## Before you start
 
-Zitadel provides OIDC/OAuth 2.0 authentication for StackWeaver, including:
+Use the [Compose deployment](../../get-started/self-hosting/docker-compose/README.md) or [Kubernetes deployment](../../get-started/self-hosting/kubernetes/README.md) as the installation source. Choose the public app and auth hostnames before inviting users. For domain settings, follow [Zitadel custom domain](./zitadel-custom-domain.md).
 
-- OpenID Connect and OAuth 2.0 flows (a confidential authorization-code client the API signs browsers in with, and an API app)
-- Multi-factor and passwordless authentication
-- User management and roles
-- Login V2: a custom login UI bundled into the Stackweaver SPA (`/login/*` routes), backed by an auth proxy in the API container that handles all Zitadel session API + OIDC endpoint calls. Stackweaver does not use Zitadel's standalone `ghcr.io/zitadel/zitadel-login` container.
+Keep the identity database, master key and generated credentials backed up together. Bootstrap reuses existing applications; it does not reset an existing administrator's password.
 
-StackWeaver ships a `zitadel-init` bootstrap container that automatically provisions all required OIDC apps, service users, and webhooks after Zitadel starts.
-No manual Zitadel console steps are required.
+## Docker Compose
 
-## Kubernetes / Helm Deployment
-
-### What the Chart Does Automatically
-
-When you install the Helm chart, the following happens without any manual intervention:
-
-```mermaid
-flowchart TD
-    A["1. secrets-init Job (PreSync)"] -->|Creates K8s Secret if missing| B["2. Zitadel Starts"]
-    B -->|Reads masterkey + adminPassword| C["3. zitadel-init Sidecar"]
-    C --> D["Provisions OIDC apps, webhooks, service users"]
-    C --> E["Writes results to K8s Secret"]
-    C --> F["Restarts API + frontend pods"]
-    C -->|Admin PAT in K8s Secret| G["4. zitadel-reconcile Job (post-install/post-upgrade)"]
-    G --> H["Applies SMTP provider + login policy"]
-```
-
-<details>
-<summary><strong>Flow Steps (Legend)</strong></summary>
-
-1. **Secrets init (PreSync Job)** - A `secrets-init` Job runs before the rest of the chart. It creates the Zitadel Kubernetes Secret (containing a randomly generated 32-character `masterkey` and an `adminPassword`) only if the secret does not already exist. This is idempotent - re-syncing never overwrites existing credentials.
-
-2. **Zitadel starts** - The Zitadel pod waits for PostgreSQL to be ready (via an initContainer), then runs `start-from-init`. It reads `masterkey` and `adminPassword` from the Kubernetes Secret via environment variables.
-
-3. **zitadel-init sidecar** - A sidecar container in the same pod as Zitadel waits for Zitadel to become ready, then provisions the OIDC apps (the confidential browser sign-in client and the API app), registers the production redirect and post-logout URIs and the back-channel logout URI, deactivates any public frontend app an earlier install created, sets the Login V2 BaseURI to the Stackweaver SPA's `/login` path via the Feature API, configures the login service user (whose PAT is consumed by the API container's auth proxy + TOTP service + Zitadel webhook handler), and webhook keys, then writes the results directly into the Zitadel Kubernetes Secret. It also triggers rolling restarts of the API + frontend pods, then enters an idle state with a health endpoint on `:8081`.
-
-4. **zitadel-reconcile Job** - After every `helm install` and `helm upgrade`, a Job (`stackweaver-zitadel-reconcile` for a release named `stackweaver`) runs the same image in reconcile-only mode (`ZITADEL_INIT_MODE=reconcile`). It reads the admin PAT the sidecar stored in the Zitadel Secret, configures Zitadel's SMTP provider from the `smtp.*` values, and sets the login policy (registration, password reset, email codes) to match whether email can be delivered and `signup.selfRegistration`. A failure fails the `helm` command while Zitadel keeps serving sign-ins. The Job renders only with `zitadel.bundled: true`. See [Email (SMTP) and sign-up](../../get-started/self-hosting/email.md).
-
-</details>
-
-**PAT acquisition**: On the first boot (fresh database), Zitadel writes an admin PAT to a shared emptyDir volume. The sidecar reads this file and persists the PAT into the K8s Secret (`admin-pat` key). On subsequent pod restarts, the emptyDir is empty (Zitadel skips PAT generation for existing databases), so the sidecar falls back to reading the PAT from the K8s Secret. This three-tier fallback (`ZITADEL_PAT` env var > PAT file > K8s Secret) ensures the sidecar never crash-loops on pod restarts.
-
-### Accessing the Zitadel Admin Console (Kubernetes)
-
-The Zitadel console is available at `https://<ingress.hosts.auth>/ui/console`.
-
-**Admin credentials:**
-
-In Zitadel, login names follow the format `username@orgname.externaldomain`.
-When `ExternalDomain` is your auth hostname (e.g. `sw-auth.example.com`), the admin login name becomes:
-
-```
-admin@zitadel.<ingress.hosts.auth>
-# example: admin@zitadel.sw-auth.example.com
-```
-
-The email address, configured via `zitadel.init.adminUsername` (`admin@stackweaver.local` by default), also works as a login identifier. With an empty `platform.admins`, this account is also the installation's [platform administrator](../platform-administration.md).
-
-The password is auto-generated on first install. Retrieve it with:
+Run these commands in the directory containing your installed `docker-compose.yml`:
 
 ```bash
-kubectl get secret stackweaver-zitadel -n stackweaver \
-  -o jsonpath='{.data.admin-password}' | base64 -d
-```
-
-> **Note:** In Docker Compose, `ExternalDomain` is `localhost`, so the login name is `admin@ZITADEL.localhost` with the static password `Password1!`. These differ from Kubernetes by design.
-
-### Troubleshooting: Admin Password Does Not Work (Kubernetes)
-
-The admin password is written to the Kubernetes Secret by the PreSync `secrets-init` job and injected into Zitadel via `ZITADEL_FIRSTINSTANCE_ORG_HUMAN_PASSWORD`. This only takes effect during the **first** Zitadel initialization - if the database already existed with a different password (e.g. the secret was deleted and recreated), the DB and secret are out of sync.
-
-To recover, reset the Zitadel database and let it reinitialize:
-
-```bash
-PG_POD=$(kubectl get pod -n stackweaver \
-  -l app.kubernetes.io/component=postgresql \
-  -o jsonpath='{.items[0].metadata.name}')
-
-kubectl exec -n stackweaver "$PG_POD" -- \
-  psql -U iac -c "DROP DATABASE IF EXISTS zitadel;"
-
-kubectl exec -n stackweaver "$PG_POD" -- \
-  psql -U iac -c "CREATE DATABASE zitadel OWNER iac;"
-
-kubectl rollout restart deployment/stackweaver-zitadel -n stackweaver
-```
-
-After Zitadel restarts and completes initialization, the new password from the secret will be active.
-
-### Monitoring Initialization Progress
-
-```bash
-# Watch the zitadel-init sidecar logs
-kubectl logs -f deployment/stackweaver-zitadel -c zitadel-init -n stackweaver
-
-# Check Zitadel pod status
-kubectl get pod -n stackweaver -l app.kubernetes.io/component=zitadel
-```
-
-### Troubleshooting: zitadel-init Crash-Looping (PAT Not Found)
-
-If the `zitadel-init` sidecar is crash-looping with errors about the PAT file not being found, this means:
-
-1. The database already exists (Zitadel skips `FirstInstance`, so no PAT file is written to emptyDir).
-2. The K8s Secret does not contain an `admin-pat` value (e.g., the secret was manually recreated without it).
-
-**To fix**, force a clean first-time initialization:
-
-```bash
-# Option A: Reset the Zitadel database (preserves other data)
-PG_POD=$(kubectl get pod -n stackweaver \
-  -l app.kubernetes.io/component=postgresql \
-  -o jsonpath='{.items[0].metadata.name}')
-
-kubectl exec -n stackweaver "$PG_POD" -- \
-  psql -U iac -c "DROP DATABASE IF EXISTS zitadel;"
-
-kubectl exec -n stackweaver "$PG_POD" -- \
-  psql -U iac -c "CREATE DATABASE zitadel OWNER iac;"
-
-# Delete the Zitadel secret so it gets recreated with empty admin-pat
-kubectl delete secret stackweaver-zitadel -n stackweaver
-
-# Restart Zitadel to trigger a fresh FirstInstance
-kubectl rollout restart deployment/stackweaver-zitadel -n stackweaver
-```
-
-After Zitadel reinitializes, the sidecar will read the PAT from the emptyDir and persist it to the K8s Secret. Future pod restarts will use the secret fallback.
-
-### Troubleshooting: Stuck Migration Lock
-
-If Zitadel fails with `migration already started` or `migration failed err.id=MIGR-*`, a previous run left a partially completed migration lock in the database.
-This typically happens after a crash during first initialization.
-
-To clear it, drop and recreate the `zitadel` database:
-
-```bash
-PG_POD=$(kubectl get pod -n stackweaver \
-  -l app.kubernetes.io/component=postgresql \
-  -o jsonpath='{.items[0].metadata.name}')
-
-kubectl exec -n stackweaver "$PG_POD" -- \
-  psql -U iac -c "DROP DATABASE IF EXISTS zitadel;"
-
-kubectl exec -n stackweaver "$PG_POD" -- \
-  psql -U iac -c "CREATE DATABASE zitadel OWNER iac;"
-```
-
-Then restart the Zitadel pod:
-
-```bash
-kubectl rollout restart deployment/stackweaver-zitadel -n stackweaver
-```
-
-### Troubleshooting: Zitadel Panics with "no private ip address"
-
-If Zitadel panics with:
-
-```
-none of the enabled methods for identifying the machine succeeded
-failed to get Private IP address no private ip address
-```
-
-This means Zitadel's Sonyflake ID generator cannot identify the machine.
-In Kubernetes each pod runs in its own network namespace, so the private IP scan returns nothing.
-The Helm chart avoids this by setting `Machine.Identification.Hostname.Enabled: true`.
-If you see this panic, upgrade to the current chart version and resync.
-
-### Troubleshooting: Zitadel Not Starting
-
-```bash
-# Check Zitadel pod logs
-kubectl logs -n stackweaver \
-  $(kubectl get pod -n stackweaver -l app.kubernetes.io/component=zitadel -o jsonpath='{.items[0].metadata.name}')
-
-# Check if PostgreSQL is ready
-kubectl get pod -n stackweaver -l app.kubernetes.io/component=postgresql
-```
-
-### Troubleshooting: OAuth Redirects to Internal Service URL
-
-If the browser is redirected to a URL like `http://stackweaver-frontend:5173/login/...` (an internal Kubernetes DNS name) instead of `https://<your-app-host>/login/...`, the Login V2 BaseURI in Zitadel's database is pointing at the internal service instead of the public app domain.
-
-`zitadel-init` calls the Zitadel Feature API (`SetInstanceFeatures`) on every run to set `LoginV2.BaseUri` to `https://<ingress.hosts.app>/login` (the Stackweaver SPA's `/login` routes).
-The Feature API update runs after every ArgoCD sync, so setting the correct `ingress.hosts.app` in `values.yaml` and resyncing corrects the BaseURI.
-
-If you need to verify what BaseURI is currently active:
-
-```bash
-# Check the LOGIN_UI_BASE_URL passed to the zitadel-init sidecar
-kubectl get deploy stackweaver-zitadel -n stackweaver \
-  -o jsonpath='{.spec.template.spec.containers[?(@.name=="zitadel-init")].env[?(@.name=="LOGIN_UI_BASE_URL")].value}'
-
-# Or check the zitadel-init sidecar logs for the confirmation line
-kubectl logs deploy/stackweaver-zitadel -c zitadel-init -n stackweaver | grep "Login V2 BaseURI"
-```
-
----
-
-## Docker Compose Deployment
-
-### Quick Start (Automated Bootstrap)
-
-The Docker Compose stack includes the `zitadel-init` container (image `ghcr.io/vhco-pro/stackweaver-zitadel-init`), which provisions all required OIDC apps automatically. Run these commands in your Compose directory (the directory that holds `docker-compose.yml`, see the [Docker Compose deployment guide](../../get-started/self-hosting/docker-compose/README.md)).
-
-```bash
-# 1. Start the stack. zitadel-init runs automatically once Zitadel is up.
 docker compose up -d
-
-# 2. Follow the initializer until it reports completion
 docker compose logs -f zitadel-init
+```
 
-# 3. Recreate the services so they pick up the values init wrote to .env
+Wait for initialization to finish, then leave log-following with **Ctrl+C** and apply the generated values:
+
+```bash
 docker compose up -d
 ```
 
-To run the initializer again later, for example after changing `zitadel-init.yaml`, use `docker compose run --rm zitadel-init` and then `docker compose up -d`.
+The second command lets Compose recreate services whose resolved configuration changed after the initializer wrote `.env`. To reconcile a changed `zitadel-init.yaml` later, run:
 
-> **Networking:** `docker-compose.yml` runs every service on a single user-defined bridge network, so containers reach each other by service name (for example `zitadel:8080`) and the browser-facing ports are published on `localhost`.
-
-### Admin Credentials (Docker Compose)
-
-The Docker Compose stack uses static credentials defined in `zitadel-init-steps.yaml`:
-
-| Field | Value |
-|---|---|
-| Username | `admin@ZITADEL.localhost` |
-| Password | `Password1!` |
-| Console URL | `http://localhost:8080/ui/console` |
-
-This account is also the installation's [platform administrator](../platform-administration.md) unless `STACKWEAVER_PLATFORM_ADMINS` in `sso.env` names other people.
-
-### What `zitadel-init` Does
-
-```mermaid
-flowchart TD
-    A["1. Acquire Admin PAT"] --> B["2. Connect to Zitadel (gRPC)"]
-    B --> C["3. Provision Resources"]
-    C --> D["4. Write Generated Values"]
-
-    C --> C1["Organization + Project"]
-    C --> C2["OIDC Apps (Browser sign-in client, API)"]
-    C --> C3["Service User + PAT (consumed by API auth proxy)"]
-    C --> C4["Webhook Signing Keys + BaseURI"]
-    C --> C5["SMTP Provider + Login Policy"]
+```bash
+docker compose run --rm zitadel-init
+docker compose up -d
 ```
 
-<details>
-<summary><strong>Flow Steps (Legend)</strong></summary>
+The bundled local development configuration uses `admin@ZITADEL.localhost`, password `Password1!`, and console `http://localhost:8080/ui/console`. Treat these as local development values; inspect your installed bootstrap configuration and change the administrator password before exposing an installation.
 
-1. **Acquire admin PAT** - **Docker Compose**: waits up to 300s for `/pat/admin.pat` (written by Zitadel during `start-from-init`). **Kubernetes (first boot)**: waits for readiness, reads PAT from emptyDir, persists to K8s Secret. **Kubernetes (pod restart)**: falls back to `admin-pat` from K8s Secret. **Manual override**: `ZITADEL_PAT` env var takes highest priority.
-2. **Connect** - Uses the PAT to connect to Zitadel via gRPC at `ZITADEL_INTERNAL_ADDR`: `zitadel:8080` on the Docker Compose bridge network, or `localhost:8080` on Kubernetes, where the initializer runs inside the Zitadel pod.
-3. **Provision** - Creates or updates: Organization `IAC Platform`, Project, the confidential browser sign-in app (`Stackweaver BFF`, described under [The Browser Sign-in Client](#the-browser-sign-in-client)), API app (client secret), deactivation of any public frontend app an earlier install created, service-account machine user + PAT (`IAM_LOGIN_CLIENT` role, named `login-ui-service`, consumed by the API container's auth proxy + TOTP service + Zitadel webhook handler), webhook signing keys, and Login V2 BaseURI (via Feature API). Then it configures Zitadel's SMTP provider from the `SMTP_*` settings in `sso.env` and sets the login policy to match whether email can be delivered and `STACKWEAVER_SELF_REGISTRATION`; an error in either step stops the run (see [Email (SMTP) and sign-up](../../get-started/self-hosting/email.md)). In Kubernetes the sidecar skips these two steps, which the reconcile Job performs instead.
-4. **Write** - Writes the generated values to `.env` in the Compose directory.
+> [!IMPORTANT]
+> `.env` is generated. Keep persistent SMTP and SSO settings in `sso.env`, VCS settings in `vcs.env`, and workload signing settings in `oidc.env`.
 
-</details>
+### Configuration inputs and generated results
 
-The bootstrap is idempotent - re-running it reuses existing apps and orgs.
+| Input | What it controls |
+|---|---|
+| `zitadel-defaults.yaml` | External domain, port and scheme used to derive the public issuer. |
+| `zitadel-init.yaml` | Additional trusted domains and bootstrap configuration. |
+| `LOGIN_UI_BASE_URL` on the initializer | The browser-reachable app login URL, such as `https://app.example.com/login`. |
+| `ZITADEL_DOMAIN` | Instance hostname for the initializer connection. Match the configured `ExternalDomain`, especially on the first public-domain bootstrap. |
+| `ZITADEL_INTERNAL_ADDR` | Internal connection to Zitadel, `zitadel:8080` on the Compose network. |
+| `ZITADEL_PAT` | Optional administrator PAT override for initialization. Protect it as a secret. |
+| `PROJECT_ROOT` | Configuration/output directory; `/config` inside the initializer container. |
+| `ZITADEL_ADMIN_USERNAME`, `ZITADEL_ADMIN_PASSWORD` | Bootstrap administrator values. They do not overwrite an existing account password. |
+| `FRONTEND_REDIRECT_URI`, `FRONTEND_POST_LOGOUT_URI` | Explicit application redirect and logout URLs when supplied. |
 
-### Environment Variables Written to `.env`
+The initializer creates or reconciles **Stackweaver BFF**, preserves its stored client secret,
+adds configured callback/logout URIs, and deactivates the old public frontend application.
+It writes client IDs, the BFF and API client secrets, the login service user token/ID, issuer, external host, TLS mode and webhook keys to `.env`. The names include:
 
 ```env
-ZITADEL_BFF_CLIENT_ID=<browser-sign-in-client-id>
-ZITADEL_BFF_CLIENT_SECRET=<browser-sign-in-client-secret>
+ZITADEL_BFF_CLIENT_ID=<confidential-client-id>
+ZITADEL_BFF_CLIENT_SECRET=<confidential-client-secret>
 ZITADEL_API_CLIENT_ID=<api-client-id>
 ZITADEL_API_CLIENT_SECRET=<api-client-secret>
 ZITADEL_LOGIN_SERVICE_USER_TOKEN=<login-service-user-pat>
@@ -292,83 +77,66 @@ ZITADEL_WEBHOOK_IDP_SYNC_KEY=<webhook-key>
 ZITADEL_WEBHOOK_COMPLEMENT_TOKEN_KEY=<webhook-key>
 ```
 
-`ZITADEL_BFF_CLIENT_SECRET` is kept across runs: Zitadel returns a client secret only when it creates an app, so `zitadel-init` keeps the stored value, and generates a new secret only when none is stored.
+These are output names for diagnosis, not values to paste into a hand-maintained `.env`. See [Email and sign-up](../../get-started/self-hosting/email.md) for SMTP, self-registration and notification-mode inputs.
 
-> **Important:** `zitadel-init` rewrites `.env` on each run.
-> Keep SSO, VCS, and workload identity settings in `sso.env`, `vcs.env`, and `oidc.env`, which it never touches.
+## Kubernetes and Helm
 
-### Environment Variable Reference for `zitadel-init`
+These initialization steps require `zitadel.bundled: true`. With an external Zitadel instance, first [create the confidential client](#using-an-external-zitadel), then configure the [existing identity Secret](../../get-started/self-hosting/kubernetes/README.md#byo-zitadel-secret-with-external-zitadel). No bundled initializer sidecar runs.
 
-| Variable | Description | Default |
-|---|---|---|
-| `ZITADEL_ISSUER` | Public issuer written to `.env` | `http://localhost:8080` |
-| `ZITADEL_INTERNAL_ADDR` | Host:port the initializer dials | `zitadel:8080` (set in `docker-compose.yml`) |
-| `ZITADEL_ADMIN_USERNAME` | Admin username (matches init-steps.yaml) | `admin@ZITADEL.localhost` |
-| `ZITADEL_ADMIN_PASSWORD` | Admin password (matches init-steps.yaml) | `Password1!` |
-| `PROJECT_ROOT` | Where env/config files are written | `/config` inside container |
-| `ZITADEL_PAT` | Optional PAT override instead of `/pat/admin.pat` | empty |
-| `FRONTEND_REDIRECT_URI` | Sign-in redirect URI (`https://<app host>/auth/callback`) registered on the browser sign-in app, in addition to `http://localhost:5173/auth/callback` and the `frontend_redirect_uris` in `zitadel-init.yaml` | empty (Kubernetes only) |
-| `FRONTEND_POST_LOGOUT_URI` | Post-logout redirect URI (the app's origin) registered on the browser sign-in app, in addition to `http://localhost:5173` and the `frontend_post_logout_redirect_uris` in `zitadel-init.yaml` | empty (Kubernetes only) |
-| `ZITADEL_BFF_BACKCHANNEL_LOGOUT_URI` | Back-channel logout URI registered on the browser sign-in app, where Zitadel posts a logout token when a session ends. It must be the API's `/auth/oidc/end-session`, at an address Zitadel can reach | empty |
-| `LOGIN_UI_BASE_URL` | Login V2 BaseURI set via Feature API (overrides database value) - points at the Stackweaver SPA's `/login` route. Despite the `LOGIN_UI` prefix, the value is the SPA URL | empty (Kubernetes only) |
+The bundled chart initializes identity resources and reconciles email/login policy through separate steps:
 
-The SMTP, sign-up and notification-mode variables (`SMTP_*`, `STACKWEAVER_SELF_REGISTRATION`, `STACKWEAVER_NOTIFICATION_MODE`) are described in [Email (SMTP) and sign-up](../../get-started/self-hosting/email.md) and the [Environment Variables Reference](../../get-started/self-hosting/environment-variables.md).
-
-### Troubleshooting: Zitadel Not Starting (Docker Compose)
-
-```bash
-# Check logs
-docker logs zitadel
-
-# Verify PostgreSQL is accessible
-docker exec postgres psql -U iac -d iac_platform -c "SELECT 1;"
+```mermaid
+flowchart TD
+    A["Create missing secrets"] --> B["Start Zitadel"]
+    B --> C["Initializer sidecar provisions identity resources"]
+    C --> D["Persist credentials in Kubernetes Secret"]
+    D --> E["Restart API and frontend"]
+    D --> F["Reconcile email and login policy"]
 ```
 
-### Troubleshooting: `App.NotFound` Error
+<details>
+<summary>Initialization flow legend</summary>
 
-The OAuth client ID doesn't exist or isn't accessible.
+Secrets initialization preserves existing credentials. The sidecar waits for Zitadel, creates or reuses applications and the login service user, sets the public login BaseURI, writes results to the Secret and restarts dependent pods. It then serves its health endpoint on port 8081.
 
-- Run `docker compose run --rm zitadel-init` to create/update applications, then `docker compose up -d`.
-- Verify that `ZITADEL_BFF_CLIENT_ID` in `.env` matches the client ID of the `Stackweaver BFF` app in the Zitadel console.
+The reconcile Job runs after Helm install/upgrade when bundled Zitadel is enabled. It configures SMTP and login policy from chart values. A failure fails the Helm operation while Zitadel can continue serving sign-ins.
 
-### Troubleshooting: Sign-in Fails After the Login Page
+On first boot, the sidecar reads the generated admin PAT from a shared volume and persists it as `admin-pat` in the Secret. On restart it can read the persisted PAT. An explicit `ZITADEL_PAT` takes priority.
 
-If the login page accepts the password but the browser returns to the sign-in screen, or the callback page reports that the sign-in could not be completed, check the API logs with `docker compose logs api | grep "auth proxy"`.
+</details>
 
-- A failed code exchange means the redirect URI the API sends is not registered on the app, or the API's `ZITADEL_BFF_CLIENT_SECRET` does not match the app in Zitadel. Running `zitadel-init` again adds missing redirect URIs, but it keeps a stored secret, so it does not repair a secret that went stale, for example after the secret was regenerated in the Zitadel console or an older `.env` or Secret was restored. To replace the secret, remove the stored one first so that `zitadel-init` generates a new one: in Docker Compose, delete the `ZITADEL_BFF_CLIENT_SECRET` line from `.env`, run `docker compose run --rm zitadel-init`, then `docker compose up -d` to recreate the API with the new value. In Kubernetes with the bundled Zitadel, remove the `bff-client-secret` key from the Zitadel Secret with `kubectl patch secret <release>-zitadel -n <namespace> --type=json -p '[{"op":"remove","path":"/data/bff-client-secret"}]'`, then run `kubectl rollout restart deployment/<release>-zitadel -n <namespace>`; the sidecar writes the new secret and restarts the API.
-- A sign-in that completes and is then immediately lost means the browser dropped the session cookie. Browser sign-in needs HTTPS, or `http://localhost`; see [HTTPS and reverse proxies](../../get-started/self-hosting/docker-compose/README.md#https-and-browser-sessions).
+Configure public hosts in your values file and apply it through the [Kubernetes deployment procedure](../../get-started/self-hosting/kubernetes/README.md). The login BaseURI must point to the **app** host's `/login` route, not the auth host or a cluster service name.
 
----
+For a release and namespace named `stackweaver`, inspect progress with:
 
-## Login V2 (Custom Stackweaver SPA)
+```bash
+kubectl logs -f deployment/stackweaver-zitadel -c zitadel-init -n stackweaver
+kubectl get pod -n stackweaver -l app.kubernetes.io/component=zitadel
+kubectl get pod -n stackweaver -l app.kubernetes.io/component=postgresql
+```
 
-Both deployment paths use Zitadel's Login V2 feature. Instead of Zitadel's standalone `ghcr.io/zitadel/zitadel-login` Next.js service, Stackweaver serves a custom login UI bundled into the Stackweaver SPA (`/login/*` routes); the auth proxy in the API container handles all Zitadel session API + OIDC endpoint calls. See the [Zitadel Custom Login UI guide](https://zitadel.com/docs/guides/integrate/login-ui) for the upstream architecture pattern this implementation follows.
+Leave log-following with **Ctrl+C** when initialization completes. The console is at `https://<auth-host>/ui/console`. Use the email configured by `zitadel.init.adminUsername`, or the account's Zitadel login name. The generated password is available to administrators who can read the Secret:
 
-### How the Login V2 BaseURI is managed
+```bash
+kubectl get secret stackweaver-zitadel -n stackweaver \
+  -o jsonpath='{.data.admin-password}' | base64 -d
+```
 
-The BaseURI (the browser-reachable URL Zitadel redirects users to for login) is set from two sources, in priority order:
+Replace release-derived resource names and the namespace for your installation. Do not paste the password into support logs.
 
-**Kubernetes (Helm):**
-1. `DefaultInstance.Features.LoginV2.BaseURI` in the Zitadel ConfigMap - sets the initial value in the database on first Zitadel startup. Set to `https://<ingress.hosts.app>/login` (the Stackweaver SPA's login route on the **app** host, not the auth host).
-2. `zitadel-init` Feature API call - on every post-install/post-upgrade run, `zitadel-init` calls `SetInstanceFeatures` with `LoginV2.BaseUri` set to the same public URL. This overwrites the database value, so domain changes take effect on the next sync without a database reset.
-
-**Docker Compose:**
-The `DefaultInstance.Features.LoginV2.BaseURI` in the mounted `zitadel-defaults.yaml` is set to `http://localhost:5173/login`, which is directly browser-reachable because the Compose stack publishes the SPA on port 5173 of localhost.
-
-> **Note:** `DefaultInstance` settings only apply during first initialization.
-> In Kubernetes, `zitadel-init` handles ongoing updates via the Feature API - you do not need to reset the database when the auth domain changes.
-
----
-
-## The Browser Sign-in Client
+## The browser sign-in client
 
 Stackweaver signs browsers in on the server. The API completes the OpenID Connect authorization-code flow itself, as a confidential client, and gives the browser a session cookie that page scripts cannot read. The browser never holds an OAuth token, and Stackweaver stores none: it verifies the tokens Zitadel returns at sign-in and then discards them.
 
-With the bundled Zitadel, `zitadel-init` creates and maintains this client as a web application named `Stackweaver BFF` in the Stackweaver project. The app authenticates with a client secret sent as HTTP Basic, allows the authorization-code grant only, issues JWT access tokens, and has ID-token userinfo assertion enabled, so the ID token carries the email address and whether it is verified. Its redirect URI is the app's `/auth/callback` page and its post-logout redirect URI is the app's origin. Its back-channel logout URI is the API's `/auth/oidc/end-session` when `ZITADEL_BFF_BACKCHANNEL_LOGOUT_URI` is set, which the Helm chart does; the Docker Compose example leaves it unset, because Zitadel's default deny list blocks the private address the API has there, so on that install a session ended in Zitadel ends in Stackweaver at the next liveness check, and a URI you set in the console is kept. On every run `zitadel-init` adds any missing URIs and restores these settings, and it deactivates any public frontend app an earlier install created, so no client on the app's origin can obtain tokens.
+With the bundled Zitadel, `zitadel-init` creates and maintains this client as a web application named `Stackweaver BFF` in the Stackweaver project. The app authenticates with a client secret sent as HTTP Basic, allows the authorization-code grant only, issues JWT access tokens, and has ID-token userinfo assertion enabled, so the ID token carries the email address and whether it is verified.
+
+Its redirect URI is the app's `/auth/callback` page and its post-logout redirect URI is the app's origin.
+
+Its back-channel logout URI is the API's `/auth/oidc/end-session` when `ZITADEL_BFF_BACKCHANNEL_LOGOUT_URI` is set. The Helm chart sets this value. The Docker Compose example leaves it unset because Zitadel's default deny list blocks the API's private address. In that case, a session ended in Zitadel ends in Stackweaver at the next liveness check. The initializer preserves a URI you set in the console. On every run `zitadel-init` adds any missing URIs, restores these settings, and deactivates the public frontend app from an earlier install.
 
 The client id and secret reach the API as `ZITADEL_BFF_CLIENT_ID` and `ZITADEL_BFF_CLIENT_SECRET`: through `.env` in Docker Compose, and through the `bff-client-id` and `bff-client-secret` keys of the Zitadel Secret in Kubernetes. When the API runs with `GIN_MODE=release`, as it does in the Helm chart, it refuses to start without them or without `ZITADEL_LOGIN_SERVICE_USER_TOKEN`.
 
-### Using an External Zitadel
+### Using an external Zitadel
 
 If you run your own Zitadel (`zitadel.bundled: false` in Helm), create the browser sign-in client yourself before you install or upgrade Stackweaver. In the Zitadel console, open the project that holds your Stackweaver apps and add a web application with these settings:
 
@@ -390,7 +158,7 @@ Zitadel must be able to reach the back-channel logout URI, because it posts a lo
 
 Stackweaver reads SSO groups from the `sso_groups` claim of the access token this client receives at sign-in, so [SSO team mapping](../sso/team-mapping.md) works with an external Zitadel only when its complement-token action adds that claim to the tokens of this app.
 
-## Browser Sessions
+## Browser sessions
 
 A signed-in browser holds one cookie, `__Host-sw_session`. It is `HttpOnly`, `Secure` and `SameSite=Strict`, and it survives a browser restart until a session limit ends it. The session itself lives in Stackweaver's PostgreSQL database, so it survives restarts of the API and works on every API replica.
 
@@ -421,16 +189,81 @@ Zitadel's access-token lifetime does not affect how long a browser stays signed 
 
 Scripts, CI pipelines and the Terraform CLI do not use browser sessions. They authenticate with an API token, created under **Settings > API Tokens** or with `terraform login`, and sent as `Authorization: Bearer <token>`. A Zitadel access token is not accepted as an API credential.
 
-## Production Considerations
 
-- Serve Stackweaver over HTTPS. The session cookie is `Secure`, so browsers drop it over plain HTTP on any host other than `localhost`, and the API logs a warning at startup when `STACKWEAVER_APP_URL` is plain `http` on another host. In Helm, set `ingress.tls.enabled: true`.
-- Store secrets in a secrets manager or use the `secrets.<component>.secretName` values to bring your own pre-created Kubernetes Secrets.
-- Review the session limits above against your organization's policy.
-- Back up the Zitadel PostgreSQL database regularly.
+## Verify the installation
 
-## Additional Resources
+1. Confirm initializer logs report the expected applications and public Login V2 BaseURI.
+2. Open the public app URL and sign in. The login page must be reachable by the browser.
+3. Sign out and sign in again to check the configured callback and logout URLs.
+4. If using external SSO, complete a separate [SSO sign-in test](../sso/README.md).
 
-- [Zitadel Documentation](https://zitadel.com/docs)
-- [OIDC Specification](https://openid.net/specs/openid-connect-core-1_0.html)
-- [Zitadel Go SDK](https://pkg.go.dev/github.com/zitadel/oidc/v3/pkg/oidc)
-- [Login UI integration guide](https://zitadel.com/docs/guides/integrate/login-ui)
+`DefaultInstance` settings only initialize a fresh identity database. The initializer's Feature API call reconciles the Login V2 BaseURI on later runs; check its confirmation in logs after a domain change. A warning about this update means you must verify the active redirect rather than assuming it changed.
+
+## Troubleshooting
+
+| Symptom | Check and next action |
+|---|---|
+| Administrator password is rejected. | Check the deployment's login identifier and existing account password. A new Secret value does not change a password already stored in Zitadel. Recover through an existing administrator or your tested identity backup procedure. |
+| Initializer cannot find an admin PAT. | Check the configured PAT source, its permissions, and the persisted `admin-pat` key. Restore the original credential or supply a valid authorized PAT through your secret configuration. |
+| Zitadel reports a migration lock or failed migration. | Keep the logs and backup, check for concurrent migration processes, and follow the recovery procedure for your deployed Zitadel version. Do not delete the identity database to clear a login or startup error. |
+| `no private ip address` during startup. | Check that your chart renders `Machine.Identification.Hostname.Enabled: true` and apply the matching chart configuration. |
+| Browser redirects to an internal service hostname. | Correct the public app host/Login BaseURI, rerun initialization, and inspect the confirmation log. |
+| `App.NotFound`. | Rerun the initializer and check that the generated BFF client ID and secret reach the API configuration. |
+| API cannot connect to Zitadel. | Inspect Zitadel and database readiness, then check internal service addressing and the configured auth hostname. |
+
+### Sign-in fails after the login page
+
+If the password is accepted but the callback fails or returns to sign-in, inspect the API's
+`auth proxy` logs:
+
+```bash
+docker compose logs api | grep "auth proxy"
+```
+
+A failed code exchange can mean an unregistered redirect URI or a mismatched
+`ZITADEL_BFF_CLIENT_SECRET`. Compare the API's callback with the BFF application's
+registered URI. Rerunning the initializer adds missing URIs but **preserves a stored secret**;
+it cannot repair a secret regenerated in the console or restored from an outdated backup.
+
+For the **bundled Zitadel**, recover a stale secret using the matching deployment:
+
+- **Docker Compose:** remove only the generated `ZITADEL_BFF_CLIENT_SECRET` line from `.env`,
+  run `docker compose run --rm zitadel-init`, then `docker compose up -d` so the API receives
+  the new value. This is a credential-recovery operation; keep ordinary persistent settings
+  in the hand-managed env files described above.
+- **Kubernetes:** remove only `bff-client-secret` from the Zitadel Secret, then restart the
+  Zitadel Deployment. The initializer sidecar writes a new secret and restarts the API.
+  Replace the release and namespace placeholders before running:
+
+```bash
+kubectl patch secret <release>-zitadel -n <namespace> --type=json \
+  -p '[{"op":"remove","path":"/data/bff-client-secret"}]'
+kubectl rollout restart deployment/<release>-zitadel -n <namespace>
+```
+
+With **external Zitadel**, synchronize the confidential application's secret through your
+secret-management system and restart the API; the bundled initializer does not manage it.
+If sign-in succeeds and is immediately lost, inspect whether the browser accepted the
+session cookie. Browser sign-in requires HTTPS or `http://localhost`; see
+[HTTPS and browser sessions](../../get-started/self-hosting/docker-compose/README.md#https-and-browser-sessions).
+
+### Deployment diagnostics
+
+Compose diagnostics:
+
+```bash
+docker compose logs zitadel zitadel-init
+docker compose exec postgres psql -U iac -d iac_platform -c "SELECT 1;"
+```
+
+Kubernetes BaseURI diagnostics:
+
+```bash
+kubectl get deploy stackweaver-zitadel -n stackweaver \
+  -o jsonpath='{.spec.template.spec.containers[?(@.name=="zitadel-init")].env[?(@.name=="LOGIN_UI_BASE_URL")].value}'
+kubectl logs deploy/stackweaver-zitadel -c zitadel-init -n stackweaver | grep "Login V2 BaseURI"
+```
+
+## Operate in production
+
+Use HTTPS, protect generated credentials in your secret-management system, review token lifetimes, and back up Zitadel's PostgreSQL database and master key. Keep [email and sign-up](../../get-started/self-hosting/email.md) configured consistently with the authentication methods you offer.

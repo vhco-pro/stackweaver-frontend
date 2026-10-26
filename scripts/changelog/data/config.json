@@ -1,0 +1,30 @@
+{
+  "repository": "michielvha/stackweaver",
+  "baseline": "c2fc43889a8deb175dadbf9eeb9cac35cc8ad0dd",
+  "components": {
+    "api": {
+      "repository": "vhco-pro/stackweaver-api",
+      "artifact": "ghcr.io/vhco-pro/stackweaver-api"
+    },
+    "frontend": {
+      "repository": "vhco-pro/stackweaver-frontend",
+      "artifact": "ghcr.io/vhco-pro/stackweaver-frontend"
+    },
+    "ansible-runner": {
+      "repository": "vhco-pro/stackweaver-ansible-runner",
+      "artifact": "ghcr.io/vhco-pro/stackweaver-ansible-runner"
+    },
+    "opentofu-runner": {
+      "repository": "vhco-pro/stackweaver-opentofu-runner",
+      "artifact": "ghcr.io/vhco-pro/stackweaver-opentofu-runner"
+    },
+    "zitadel-init": {
+      "repository": "vhco-pro/stackweaver-zitadel-init",
+      "artifact": "ghcr.io/vhco-pro/stackweaver-zitadel-init"
+    },
+    "helm": {
+      "repository": "vhco-pro/stackweaver-helm",
+      "artifact": "ghcr.io/vhco-pro/charts/stackweaver"
+    }
+  }
+}

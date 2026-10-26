@@ -36,6 +36,7 @@ import ProfileSettings from './pages/Settings/Profile';
 import NotificationSettings from './pages/Settings/Notifications';
 import SecuritySettings from './pages/Settings/Security';
 import UsersSettings from './pages/Settings/Users';
+import { internalDocs } from './components/docs/docsCollection';
 import DocsIndex from './pages/Docs/DocsIndex';
 import DocsViewer from './pages/Docs/DocsViewer';
 import ApiReferenceExplorer from './pages/Docs/ApiReferenceExplorer';
@@ -100,7 +101,7 @@ function AppContent() {
                   markdown document and 404. */}
               <Route path="/docs/api-reference/explorer" element={<ApiReferenceExplorer />} />
               <Route path="/docs/*" element={<DocsViewer />} />
-              <Route path="/internal-docs" element={<ProtectedRoute><DocsViewer docsBase="/internal-docs" indexFile="/internal-docs-index.json" /></ProtectedRoute>} />
+              <Route path="/internal-docs" element={<ProtectedRoute><DocsIndex collection={internalDocs} /></ProtectedRoute>} />
               <Route path="/internal-docs/*" element={<ProtectedRoute><DocsViewer docsBase="/internal-docs" indexFile="/internal-docs-index.json" /></ProtectedRoute>} />
             <Route
               path="/dashboard"
