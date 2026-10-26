@@ -1,11 +1,15 @@
 ---
 description: "Top-level documentation index and navigation page"
-covers: []
+covers:
+  - "frontend/src/pages/Docs/**"
+  - "frontend/src/components/docs/**"
 ---
 
 # Documentation Index
 
 Welcome to the StackWeaver documentation. This directory contains comprehensive documentation for developers, operators, and users of the orchestration platform.
+
+The [documentation homepage](/docs) presents the documentation folders as cards with descriptions, page counts, and article links. The sidebar preserves the same folder hierarchy. Open a folder to read its overview, or browse its generated contents when it has no overview article. Use search or press Ctrl+K on Windows and Linux, or Cmd+K on macOS, to search documentation titles and content.
 
 ## Get Started
 
@@ -21,11 +25,13 @@ Welcome to the StackWeaver documentation. This directory contains comprehensive 
 
 ## API Reference
 
-- **[API Reference](./api-reference/README.md)**: The OpenAPI 3 description of the whole HTTP API, how to fetch it, and what it promises. The rendered reference is at [`/docs/api-reference/explorer`](/docs/api-reference/explorer), one click from the **API Reference** link in the top navigation.
+- **[API Reference](/docs/api-reference/explorer)**: Browse endpoints, request bodies, response schemas and examples in the standalone explorer.
 
 ## Architecture
 
 - **[Architecture Overview](./architecture/README.md)**: System architecture, components, and end-to-end data flows
+
+Read [Using the API](./architecture/using-the-api.md) for authentication, pagination and OpenAPI guidance. Search from the overview or from the sidebar while reading an article.
 
 ## Platform Features
 
@@ -42,7 +48,7 @@ Welcome to the StackWeaver documentation. This directory contains comprehensive 
 ### Ansible
 
 - **[Ansible Overview](./features/ansible/README.md)**: How Ansible is modeled and executed in StackWeaver
-- **[API Reference](./api-reference/README.md)**: The Ansible REST API endpoints are part of the API Reference, rendered in the [API explorer](/docs/api-reference/explorer)
+- **[API Reference](/docs/api-reference/explorer)**: The Ansible REST API endpoints are part of the API Reference, rendered in the [API explorer](/docs/api-reference/explorer)
 - **[Galaxy Collections](./features/ansible/galaxy-collections.md)**: Automatic collection installation via requirements files
 - **[Roadmap](./features/ansible/roadmap.md)**: What the Ansible integration provides today and the known gaps
 - **[Changelog](./features/ansible/changelog.md)**: User-visible changes to the Ansible feature set

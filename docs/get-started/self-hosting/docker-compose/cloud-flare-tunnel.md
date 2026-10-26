@@ -1,176 +1,128 @@
 ---
 description: "Guide for exposing StackWeaver via Cloudflare Tunnel with systemd persistence"
-covers: []
+covers:
+  - "deploy/docker-compose.yml"
+  - "frontend/nginx.conf"
 ---
 
-# Use Cloudflare tunnel to expose local service
+# Expose a Compose install with Cloudflare Tunnel
 
-Using a Cloudflare tunnel is a free, static alternative to using something like ngrok
+Route a stable hostname to your local Stackweaver installation without opening inbound
+ports. This guide uses a locally managed tunnel so its ingress rules live in YAML. Cloudflare
+also offers remotely managed tunnels, including API and Terraform management; see its
+[tunnel management options](https://developers.cloudflare.com/tunnel/features/locally-managed-tunnels/).
 
-**Key advantages:**
-- **Static hostname** - you get a permanent subdomain that doesn't change
-- **Completely free** - no limitations on the free tier for basic tunneling
-- **GitHub webhook compatible** - reliable, static URL you can configure once
+## Before you start
 
-**Quick setup:**
+- A working [Compose installation](./README.md), with frontend on port 5173, API on 8022
+  and Zitadel on 8080.
+- A domain managed in your Cloudflare account and permission to create DNS records.
+- `cloudflared` installed using [Cloudflare's installation instructions](https://developers.cloudflare.com/cloudflare-one/networks/connectors/cloudflare-tunnel/downloads/).
+- Public application and identity URLs configured using [Configure a Zitadel domain](../../../user-guides/authentication/zitadel-custom-domain.md).
 
-1. Install cloudflared:
-```bash
-# macOS
-brew install cloudflare/cloudflare/cloudflared
+A named tunnel's `<UUID>.cfargotunnel.com` address is its DNS target, not a free public
+application hostname. Use your own domain. A quick tunnel gives a temporary `trycloudflare.com`
+address and is unsuitable as a stable OAuth callback or webhook URL.
 
-# Linux
-wget https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64.deb
-sudo dpkg -i cloudflared-linux-amd64.deb
-```
+## 1. Create the tunnel
 
-2. Authenticate:
+Run these commands as the account that will own the tunnel files:
+
 ```bash
 cloudflared tunnel login
+cloudflared tunnel create stackweaver
+cloudflared tunnel list
 ```
 
-3. Create a tunnel (one-time):
-```bash
-cloudflared tunnel create my-github-webhook
-```
+Record the tunnel UUID. The creation command writes its credentials JSON in your
+`.cloudflared` directory; keep that file private.
 
-4. Configure it - create `~/.cloudflared/config.yml`:
+## 2. Route the application and identity hostnames
+
+Create `~/.cloudflared/config.yml`. Replace the UUID, username and domains:
+
 ```yaml
-tunnel: <tunnel-id-from-previous-command>
-credentials-file: /home/your-user/.cloudflared/<tunnel-id>.json
+tunnel: "<tunnel-uuid>"
+credentials-file: /home/your-user/.cloudflared/<tunnel-uuid>.json
 
 ingress:
-  - hostname: my-webhook.yourdomain.com  # or use a free .cfargotunnel.com domain
-    service: http://localhost:8022
+  - hostname: app.example.com
+    service: http://localhost:5173
+  - hostname: auth.example.com
+    service: http://localhost:8080
   - service: http_status:404
 ```
 
-5. Route the tunnel:
-```bash
-cloudflared tunnel route dns my-github-webhook my-webhook.yourdomain.com
+The frontend's supplied nginx configuration forwards API, discovery and login-proxy paths
+to the API while serving SPA routes itself. Routing the entire app hostname to port 5173
+therefore preserves the same-origin browser setup. The identity hostname goes to Zitadel.
+The final catch-all rule must stay last.
+
+```mermaid
+flowchart LR
+    A["Browser or API client"] --> C["Cloudflare Tunnel"]
+    C -->|"app.example.com"| F["Frontend :5173"]
+    F -->|"API and auth proxy paths"| API["API :8022"]
+    C -->|"auth.example.com"| Z["Zitadel :8080"]
 ```
 
-6. Run it:
-```bash
-cloudflared tunnel run my-github-webhook
-```
+If `cloudflared` runs in a container, `localhost` is that container. Use reachable service
+names or host addresses instead of copying these host-run origins unchanged.
 
-**Even simpler - quick tunnel mode:**
-If you just want to test first:
-```bash
-cloudflared tunnel --url http://localhost:8022
-```
-
-This gives you a temporary URL, but once you create a named tunnel as above, you get a permanent static hostname perfect for GitHub webhooks.
-
-The static URL won't change, so you can configure it in GitHub once and forget about it.
-
-Best ways to run cloudflared detached:
-
-## Option 1: Systemd Service (Recommended, survives reboot)
-
-The service runs as root and reads config from `/etc/cloudflared/`. Use a system-wide deploy so it starts on boot.
-
-**1. Deploy config and credentials:**
+Register both DNS records, validate the file and run in the foreground:
 
 ```bash
-# Create system config directory
-sudo mkdir -p /etc/cloudflared
-
-# Copy your config (adjust paths if yours differ)
-sudo cp ~/.cloudflared/config.yml /etc/cloudflared/
-
-# Copy the tunnel credentials JSON (replace <tunnel-id> with your tunnel UUID from `cloudflared tunnel list`)
-sudo cp ~/.cloudflared/<tunnel-id>.json /etc/cloudflared/
+cloudflared tunnel route dns stackweaver app.example.com
+cloudflared tunnel route dns stackweaver auth.example.com
+cloudflared tunnel ingress validate
+cloudflared tunnel ingress rule https://app.example.com/
+cloudflared tunnel run stackweaver
 ```
 
-**2. Point config at the system credentials path:**
+Open the app hostname, sign in and return to the app. Check the
+[discovery document](https://app.example.com/.well-known/terraform.json) and send a test delivery from your
+[VCS provider](../../../user-guides/vcs/README.md) if webhooks are enabled. A tunnel exposes
+traffic; it does not update Stackweaver's issuer, redirect registrations or public URLs.
 
-Edit `/etc/cloudflared/config.yml` and set `credentials-file` to the path under `/etc/cloudflared/`:
+## 3. Persist the tunnel on Linux
 
-```yaml
-tunnel: my-github-webhook
-credentials-file: /etc/cloudflared/<tunnel-id>.json
-
-ingress:
-  - hostname: my-webhook.yourdomain.com
-    service: http://localhost:8022
-  - service: http_status:404
-```
-
-Or do it in one go:
+Copy the files into a root-owned directory. Replace `TUNNEL_UUID` before running:
 
 ```bash
-sudo sed -i 's|/home/your-user/.cloudflared/|/etc/cloudflared/|g' /etc/cloudflared/config.yml
-```
-(Replace `your-user` with your actual username.)
-
-**3. Install and enable the systemd service:**
-
-```bash
-sudo cloudflared service install
+sudo install -d -m 700 /etc/cloudflared
+sudo install -m 600 ~/.cloudflared/config.yml /etc/cloudflared/config.yml
+sudo install -m 600 ~/.cloudflared/TUNNEL_UUID.json /etc/cloudflared/TUNNEL_UUID.json
 ```
 
-This creates `cloudflared.service` and uses `/etc/cloudflared/config.yml`. Then:
+In `/etc/cloudflared/config.yml`, change only the credential path to
+`/etc/cloudflared/TUNNEL_UUID.json`, using the actual UUID in both places. Then install
+with an explicit config path so `sudo` does not look in `/root/.cloudflared`:
 
 ```bash
-# Enable on boot
-sudo systemctl enable cloudflared
-
-# Start now
-sudo systemctl start cloudflared
-
-# Check status
+sudo cloudflared --config /etc/cloudflared/config.yml tunnel ingress validate
+sudo cloudflared --config /etc/cloudflared/config.yml service install
+sudo systemctl enable --now cloudflared
 sudo systemctl status cloudflared
-```
-
-**4. Manage the service:**
-
-```bash
-# Start
-sudo systemctl start cloudflared
-
-# Stop
-sudo systemctl stop cloudflared
-
-# Restart
-sudo systemctl restart cloudflared
-
-# Status
-sudo systemctl status cloudflared
-
-# View logs
 sudo journalctl -u cloudflared -f
 ```
 
-Once this is done, the tunnel runs on boot and survives reboots.
+## Add a hostname or diagnose a failure
 
-## Adding another service (e.g. Zitadel at zitadel.vhco.pro)
+Add new hostname rules before the catch-all, create the matching DNS record with
+`cloudflared tunnel route dns`, validate, then run `sudo systemctl restart cloudflared`.
+Use `sudo systemctl stop cloudflared` to stop the service without deleting its tunnel.
 
-If you already have a persisted tunnel and want to expose another local service (e.g. Zitadel on port 8080):
+| Symptom | Check |
+|---|---|
+| Cloudflare reports an unreachable origin | The local service is running and reachable from the `cloudflared` process. |
+| A hostname returns the catch-all 404 | The hostname, DNS route and first matching ingress rule agree. |
+| Sign-in redirects to localhost or the wrong domain | Reconcile the persistent identity and application URL settings, not just tunnel DNS. |
+| Webhook deliveries are blocked | The webhook URL reaches the API and any Cloudflare access policy permits the provider's requests. |
 
-1. **Add an ingress rule** in your tunnel config (`~/.cloudflared/config.yml` or `/etc/cloudflared/config.yml`). Add a new line *before* the catch-all `service: http_status:404`:
+For temporary origin testing, create a quick tunnel:
 
-   ```yaml
-   ingress:
-     - hostname: existing.example.com
-       service: http://localhost:8022
-     - hostname: zitadel.vhco.pro
-       service: http://localhost:8080
-     - service: http_status:404
-   ```
+```bash
+cloudflared tunnel --url http://localhost:5173
+```
 
-2. **Route DNS** for the new hostname (use your existing tunnel name from `cloudflared tunnel list`):
-
-   ```bash
-   cloudflared tunnel route dns <your-tunnel-name> zitadel.vhco.pro
-   ```
-
-   This creates a CNAME record `zitadel.vhco.pro` → `<tunnel-id>.cfargotunnel.com` in Cloudflare (zone for vhco.pro must be on your Cloudflare account).
-
-3. **Restart the tunnel** so it picks up the new config:
-
-   - If running manually: stop and run `cloudflared tunnel run <your-tunnel-name>` again.
-   - If using systemd: `sudo systemctl restart cloudflared`.
-
-After that, https://zitadel.vhco.pro will proxy to http://localhost:8080.
+Keep registered callbacks and production webhooks on the named hostnames.

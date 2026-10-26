@@ -153,10 +153,10 @@ export function CodeGroup({ children, languages, defaultTab = 0 }: CodeGroupProp
   };
 
   return (
-    <div className="my-4">
+    <div className="my-4 min-w-0 max-w-full">
       {/* Tab header - plain HTML to avoid shadcn TabsList h-10 override issues */}
-      <div className="flex items-center justify-between rounded-t-lg border border-[rgba(203,213,225,0.25)] bg-muted/30 px-2 py-1">
-        <div className="flex items-center gap-0.5" role="tablist">
+      <div className="flex min-w-0 items-center justify-between gap-2 rounded-t-lg border border-[rgba(203,213,225,0.25)] bg-muted/30 px-2 py-1">
+        <div className="flex min-w-0 flex-1 items-center gap-0.5 overflow-x-auto" role="tablist">
           {codeBlocks.map((_, index) => {
             const displayLang = getLabel(index);
             const iconPath = getLanguageIcon(displayLang) ?? getLanguageIcon(getLanguage(index));
@@ -168,7 +168,7 @@ export function CodeGroup({ children, languages, defaultTab = 0 }: CodeGroupProp
                 role="tab"
                 aria-selected={isActive}
                 onClick={() => setActiveTab(index)}
-                className={`inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-sm font-medium transition-colors ${
+                className={`inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-md px-2.5 py-1 text-sm font-medium transition-colors ${
                   isActive ? 'text-foreground' : 'text-muted-foreground hover:text-foreground'
                 }`}
               >
@@ -189,7 +189,7 @@ export function CodeGroup({ children, languages, defaultTab = 0 }: CodeGroupProp
         <button
           type="button"
           onClick={() => { void handleCopy(); }}
-          className="flex items-center gap-1.5 rounded-md px-2 py-1 text-sm text-muted-foreground hover:text-foreground"
+          className="flex shrink-0 items-center gap-1.5 rounded-md px-2 py-1 text-sm text-muted-foreground hover:text-foreground"
         >
           {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
           <span>{copied ? 'Copied' : 'Copy'}</span>

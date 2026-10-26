@@ -8,42 +8,29 @@ covers:
   - "backend/internal/api/v2/handlers/runner*"
 ---
 
-# Self-Hosted Runners
+# Set up self-hosted runners
 
-Learn how to run OpenTofu and Ansible workloads on your own infrastructure using StackWeaver self-hosted runners. By the end of this guide, you will know how to create agent pools, register runners, and route jobs to them.
+Run OpenTofu or Ansible inside your own network by starting a runner container, registering it with an agent pool and explicitly routing work to that pool. Each runner executes one job at a time; add runners to increase parallel capacity.
 
-## What Are Self-Hosted Runners?
+| Execution choice | Who operates the runner? |
+|---|---|
+| Platform-hosted. | The Stackweaver operator supplies execution capacity. |
+| Self-hosted. | You run a persistent container that polls Stackweaver for work. |
 
-StackWeaver can execute OpenTofu plans and applies and Ansible jobs in two ways:
+Use separate pools for trust or network boundaries, and grant each pool only the workspace/project access it needs. A runner initiates outbound connections to Stackweaver; you do not need an inbound listener for job dispatch. Workloads still need their own network access to providers, targets, repositories and dependency registries.
 
-| Execution type | Description |
-|----------------|-------------|
-| **Platform-hosted** | StackWeaver runs jobs in containers it manages. No infrastructure for you to operate. |
-| **Self-hosted** | You run a runner container on your own servers or Kubernetes. Jobs are assigned to your runners via agent pools. |
-
-Self-hosted runners use the **same runner images** as platform-hosted runs. The only difference is how the runner gets work: platform-hosted runners are started on demand by StackWeaver; self-hosted runners run continuously and poll for jobs. This is useful when you need workloads to run inside your network, on specific hardware, or under your own compliance and security controls.
-
-## When to Use Self-Hosted Runners
-
-Consider self-hosted runners when you:
-
-- Need OpenTofu or Ansible to run inside your private network (e.g., to reach internal APIs or databases).
-- Want to control where and how jobs run for compliance or security.
-- Prefer to scale capacity yourself instead of using platform-hosted execution.
-- Use the same patterns as Terraform Cloud / HCP Terraform agent pools and want compatibility with tools like the Terraform provider for TFE. Agent pools and agent tokens can also be managed as code with the [StackWeaver Terraform provider](./terraform-provider.md).
-
-## What You'll Need
+## Before you start
 
 Before you start, make sure you have:
 
 | Requirement | Description |
 |-------------|-------------|
-| **StackWeaver account** | Sign in to your organization. |
+| **Stackweaver account** | Sign in to your organization. |
 | **Organization admin or runner permissions** | You need permission to manage agent pools and API keys with runner scopes. |
 | **Docker (or Kubernetes)** | A host where you can run the runner container. |
-| **Outbound HTTPS access** | The runner must reach your StackWeaver API (e.g. `https://your-stackweaver.example.com`). |
+| **Outbound HTTPS access** | The runner must reach your Stackweaver API (e.g. `https://your-stackweaver.example.com`). |
 
-## Overview: Agent Pools and Runners
+## Registration and dispatch
 
 **Agent pools** group runners and define which workspaces or projects can use them. You create a pool in Settings, then register runners into that pool. When you configure a workspace (or project) to use agent execution, you attach it to a pool; jobs for that workspace or project are then dispatched to runners in that pool.
 
@@ -65,19 +52,19 @@ flowchart LR
 1. **Agent pool** - Create an agent pool and optionally restrict which workspaces or projects can use it.
 2. **API key** - Create an API key with runner scopes.
 3. **Runner** - Run the runner container with that API key and the pool ID; the runner registers itself.
-4. **Routing** - Configure workspaces (OpenTofu) or projects (Ansible) to use agent execution and the correct pool so jobs are routed to your runners.
+4. **Routing** - Set workspace/project/organization execution defaults for OpenTofu; select the pool on an Ansible template or ad hoc command.
 
 </details>
 
 ---
 
-## Step 1: Create an Agent Pool
+## 1. Create an agent pool
 
 Agent pools are managed per organization under **Settings > Agent Pools**.
 
 1. In your organization, go to **Settings** (from the sidebar or org menu).
 2. Open **Agent Pools**.
-3. Click **New Agent Pool** (or the equivalent create action).
+3. Choose **New Agent Pool**.
 4. Give the pool a name (e.g. `production-runners` or `ansible-pool`).
 5. Choose **Organization-scoped** or **Restricted**:
    - **Organization-scoped**: The pool is available to all workspaces in the organization unless you exclude specific workspaces.
@@ -92,9 +79,9 @@ You can later edit the pool to change allowed or excluded workspaces and project
 
 ---
 
-## Step 2: Create an API Key with Runner Scopes
+## 2. Create a registration credential
 
-Runners authenticate using the same API key system as the rest of StackWeaver. You create a key with runner scopes and use it only when starting the runner. This key is a *registration* credential: when a runner registers, the API issues it its own runner-scoped token, and the runner uses that token - not your registration key - for every heartbeat and job afterward. That means you can safely revoke the registration key once your runners are up; they keep running until they next restart and need to register again.
+Runners authenticate using the same API key system as the rest of Stackweaver. You create a key with runner scopes and use it only when starting the runner. This key is a *registration* credential: when a runner registers, the API issues it its own runner-scoped token, and the runner uses that token - not your registration key - for every heartbeat and job afterward. That means you can safely revoke the registration key once your runners are up; they keep running until they next restart and need to register again.
 
 1. Go to **Settings > API Keys**.
 2. Create a new API key.
@@ -104,22 +91,37 @@ Runners authenticate using the same API key system as the rest of StackWeaver. Y
    - **Runner: OpenTofu** and/or **Runner: Ansible** (or **Runner: Combined** if one runner will do both).
 5. Save the key and **copy the token** (e.g. `tfe-xxx...`). You will not see it again.
 
-Use this token only when starting the runner container. Do not commit it to source control or share it broadly. You can revoke the key at any time in Settings > API Keys. Because each runner switches to its own runner-scoped token after registration, revoking the registration key does not interrupt runners that are already registered - they keep receiving jobs until they restart, at which point they need a valid registration key to register again.
+The registration key must explicitly carry `org:<organization-id>:runner:register`.
+A general-purpose key with no scopes or wildcard scopes cannot register a runner. Pool-bound
+keys must match that pool; an unreadable binding is an error, not unrestricted access.
+
+Protect the registration credential and supply it only to the runner. Revoking it does not stop already-registered runners, because they use their own scoped tokens; a restart needs a valid registration credential again.
 
 > [!TIP]
 > **Pool-scoped agent tokens.** Instead of a general runner-scoped API key, you can create an agent token directly on a pool: expand the pool on the **Settings > Agent Pools** page and use its **Agent tokens** section (create with a description, copy the value once, revoke when done). An agent token is a registration credential **bound to that one pool** - a runner presenting it can only join that pool - so it is the safest way to hand out registration access per environment. This is the Terraform-compatible `tfe_agent_token` resource, so you can also manage these tokens with the `hashicorp/tfe` provider. Everything below works the same whichever kind of registration token you use.
 
 ### Rotating an agent token
 
-To replace an agent token without a registration gap, use **Rotate** on the token's row in the pool's **Agent tokens** section. You choose a grace period (24 hours by default, up to 7 days, or immediate retirement), and StackWeaver creates a new token with the same description and shows its value once. The old token keeps working until the grace period ends and is rejected afterwards; its row shows when it expires. Within that window, update each runner's `STACKWEAVER_TOKEN` to the new value and restart it: a runner that registers again under the same `RUNNER_NAME` keeps its identity, labels, and pool, so the fleet moves over one host at a time without downtime. Rotating a token that is already retiring never extends its expiry.
+1. Expand the pool's **Agent tokens** section and choose **Rotate** on the token row.
+2. Choose the grace period: 24 hours by default, up to 7 days, or immediate retirement. Copy the new token when shown; its value is displayed once.
+3. Within the grace period, update each runner's `STACKWEAVER_TOKEN` and restart it. Keep its intended `RUNNER_NAME` and pool. Replace runners individually and keep enough remaining capacity for work during each restart.
+4. Confirm each runner is Online in the intended pool and verify a test workload before retiring the old credential across the fleet.
 
-Rotation is also available over the API as `POST /api/v2/authentication-tokens/:id/actions/rotate`, with an optional `grace-period-hours` attribute (0 to 168). The response carries the new token and, in its `meta`, the id and expiry of the token it replaced. This action is a StackWeaver extension: the TFE agent token API has no rotate operation, so the `hashicorp/tfe` provider cannot drive it, and a token managed by that provider is rotated by replacing the resource instead.
+The old registration token works until its grace period ends; its row shows the expiry. Same-name registration in the same organization reuses the runner identity and labels. Rotating an already-retiring token never extends its expiry. Choose immediate retirement only when you are ready for restarts to require the new credential.
+
+Rotation is also available through this API action, with an optional `grace-period-hours` attribute (0 to 168):
+
+```text
+POST /api/v2/authentication-tokens/:id/actions/rotate
+```
+
+Replace `:id` with the agent token ID. The response carries the new token and, in its `meta`, the id and expiry of the token it replaced. This action is a Stackweaver extension: the TFE agent token API has no rotate operation, so the `hashicorp/tfe` provider cannot drive it, and a token managed by that provider is rotated by replacing the resource instead.
 
 ---
 
-## Step 3: Run the Runner
+## 3. Start the runner
 
-You run the same container images StackWeaver uses for platform-hosted execution, but in **agent mode**. The runner registers with the API, polls for jobs, and runs them locally on your infrastructure.
+You run the same container images Stackweaver uses for platform-hosted execution, but in **agent mode**. The runner registers with the API, polls for jobs, and runs them locally on your infrastructure.
 
 ### Required values
 
@@ -128,8 +130,8 @@ Before starting a runner, gather the following values.
 | Value | Where to find it | Example |
 |-------|-------------------|---------|
 | **Agent pool ID** | Agent Pools UI (pool detail page or URL) | `a1b2c3d4-e5f6-7890-abcd-ef1234567890` |
-| **API key** | The token you created in Step 2 | `tfe-xxx...` |
-| **StackWeaver server** | Your StackWeaver URL | `https://app.stackweaver.io` |
+| **Registration token** | The token you created in step 2 | `tfe-xxx...` |
+| **Stackweaver server** | Your Stackweaver URL | `https://app.stackweaver.io` |
 
 ### Docker
 
@@ -139,8 +141,8 @@ Use `docker run` to start a runner on any machine with Docker installed. Pick th
 ```bash [OpenTofu runner]
 docker run -d --restart unless-stopped \
   -e RUNNER_MODE=agent \
-  -e RUNNER_AGENT_POOL_ID=<pool-uuid> \
-  -e STACKWEAVER_TOKEN=<your-api-key> \
+  -e RUNNER_AGENT_POOL_ID="<pool-uuid>" \
+  -e STACKWEAVER_TOKEN="<your-api-key>" \
   -e STACKWEAVER_SERVER=https://your-stackweaver.example.com \
   -e RUNNER_NAME=my-tofu-runner \
   ghcr.io/vhco-pro/stackweaver-opentofu-runner:latest
@@ -148,8 +150,8 @@ docker run -d --restart unless-stopped \
 ```bash [Ansible runner]
 docker run -d --restart unless-stopped \
   -e RUNNER_MODE=agent \
-  -e RUNNER_AGENT_POOL_ID=<pool-uuid> \
-  -e STACKWEAVER_TOKEN=<your-api-key> \
+  -e RUNNER_AGENT_POOL_ID="<pool-uuid>" \
+  -e STACKWEAVER_TOKEN="<your-api-key>" \
   -e STACKWEAVER_SERVER=https://your-stackweaver.example.com \
   -e RUNNER_NAME=my-ansible-runner \
   ghcr.io/vhco-pro/stackweaver-ansible-runner:latest
@@ -158,14 +160,14 @@ docker run -d --restart unless-stopped \
 
 ### Kubernetes
 
-To run self-hosted runners on Kubernetes, create a Secret with your API key and deploy a runner using a Deployment manifest.
+Create the target namespace first. Store the registration credential in a Secret, then deploy the runner with `runner.yaml`. Pin the runner image to a reviewed release for a repeatable deployment; `latest` below is an example tag. Avoid entering real tokens in shared shell history, and use your secret-management tooling for production.
 
 #### Step 3a: Create a Secret for the API key
 
 ```bash
 kubectl create secret generic stackweaver-runner-token \
-  --namespace <runner-namespace> \
-  --from-literal=token=<your-api-key>
+  --namespace "<runner-namespace>" \
+  --from-literal=token="<your-api-key>"
 ```
 
 #### Step 3b: Deploy the runner
@@ -264,10 +266,10 @@ spec:
               memory: 1Gi
 ```
 
-Apply the manifest with `kubectl apply -f runner.yaml`. The runner pod starts, registers with the API, and appears in **Settings > Runners**.
+Apply the manifest with `kubectl apply -f runner.yaml`. The runner pod starts, registers with the API, and appears in **Settings > Runners**. Confirm its pool and **Online** status before routing work.
 
 > [!TIP]
-> Use `RUNNER_NAME` with `fieldRef: metadata.name` so each pod automatically gets a unique name in the UI. If you scale to multiple replicas, every pod registers as a separate runner in the same pool.
+> Use `RUNNER_NAME` with `fieldRef: metadata.name` so each pod gets a distinct registration name. A Deployment replacement changes the pod name and can leave an old offline row. For stable fleet identities, use a deployment model with stable names and verify registrations after replacement.
 
 ### Optional environment variables
 
@@ -290,23 +292,17 @@ After the runner starts, it registers with the API and appears under **Settings 
 
 ---
 
-## Step 4: Route Work to Your Runners
+## 4. Route work to the pool
 
-### Terraform workspaces
+### OpenTofu workspaces
 
-For Terraform, runs are routed to a pool when the workspace uses **agent** execution mode and is associated with that pool.
+Open the workspace's edit form, set **Execution Mode** to **Agent**, select **Agent Pool**, then save. Verify both the mode and pool on the saved workspace before starting a test plan.
 
-1. Open the workspace you want to run on self-hosted runners.
-2. Edit the workspace (e.g. **Settings** or **Edit** on the workspace).
-3. Set **Execution mode** to **Agent**.
-4. If your UI has an **Agent pool** (or similar) field, select the pool you created.
-5. Save.
-
-Subsequent plan and apply runs for that workspace will be assigned to runners in the selected pool instead of platform-hosted execution.
+Pool eligibility alone does not select agent execution. A workspace assigned to a pool with no available runner waits; there is no automatic platform fallback.
 
 ### Routing every workspace by default
 
-Setting each workspace individually does not scale once you have more than a handful. Instead, set an organization-wide default: open **Settings → Agent Pools** and use the **Default execution** section at the top to choose **Agent** and the pool you want. Every workspace then runs on that pool without being configured, and you only touch the ones that need something different.
+Setting each workspace individually does not scale once you have more than a handful. Instead, set an organization-wide default: open **Settings > Agent Pools** and use the **Default execution** section at the top to choose **Agent** and the pool you want. Every workspace then runs on that pool without being configured, and you only touch the ones that need something different.
 
 Stackweaver resolves execution settings when a run starts, taking the most specific setting that applies. A workspace with its own execution mode always wins. Otherwise the workspace's project decides, if the project set its own defaults. Only when neither has expressed a preference does the organization default apply. A project that has deliberately chosen a non-agent mode is respected, so it will not be pulled onto agents by an organization default.
 
@@ -314,20 +310,22 @@ The same settings are available to Terraform configuration through the `tfe_orga
 
 ### Ansible jobs
 
-For Ansible, job routing is typically controlled at the project or organization level via the agent pool configuration. Ensure the agent pool’s allowed workspaces or projects include the workspaces or projects where your Ansible jobs run. Jobs in those scopes will then be eligible to run on runners in that pool.
+Select **Agent Pool (Optional)** on the job template, or the agent-pool choice for an ad hoc command. Jobs inherit the template's selected pool. A job with a pool is offered to self-hosted runners; a job without one uses platform execution. The pool must belong to the same organization and permit the relevant scope.
+
+Do not assume OpenTofu organization execution defaults select the Ansible job's pool. Verify the saved template and start a non-destructive test job before routing production automation.
 
 ---
 
-## Step 5: Optional Ansible Configuration
+## 5. Configure Ansible dependencies
 
-If you use Ansible, you can customize `ansible.cfg` per organization, project, or workspace so that jobs run with your preferred settings (e.g. timeouts, SSH options, callback plugins).
+If you use Ansible, you can customize `ansible.cfg` per organization or project so that jobs run with your preferred settings (e.g. timeouts, SSH options, callback plugins).
 
 1. Go to **Settings > Ansible Configuration**.
-2. Choose the scope: **Organization**, or a **Project** (and optionally a workspace if supported).
-3. Edit the configuration content. The UI often provides a default template; you can modify sections such as `[defaults]` and `[ssh_connection]`.
+2. Choose the scope: **Organization** or **Project**.
+3. Edit the configuration content. Edit sections such as `[defaults]` and `[ssh_connection]`.
 4. Save.
 
-When a job runs (on a platform-hosted or self-hosted runner), StackWeaver injects the appropriate `ansible.cfg` into the job environment. More specific scope overrides less specific (e.g. workspace over project over organization).
+When a job runs (on a platform-hosted or self-hosted runner), Stackweaver injects the appropriate `ansible.cfg` into the job environment. The settings UI exposes organization and project configuration; a project override takes precedence over the organization default.
 
 ### Ansible runner prerequisites
 
@@ -343,12 +341,17 @@ Installed collections are cached per project under `GALAXY_CACHE_DIR`, which def
 -v stackweaver-galaxy-cache:/home/stackweaver/workspaces/galaxy-cache
 ```
 
-With Kubernetes, mount a `PersistentVolumeClaim` at the same path in the runner container:
+With Kubernetes, provision a `stackweaver-galaxy-cache` PVC in the runner's namespace, then merge this fragment into `runner.yaml`. The container name must match the existing Deployment; this is not a complete manifest:
 
 ```yaml
-        volumeMounts:
-          - name: galaxy-cache
-            mountPath: /home/stackweaver/workspaces/galaxy-cache
+spec:
+  template:
+    spec:
+      containers:
+        - name: runner
+          volumeMounts:
+            - name: galaxy-cache
+              mountPath: /home/stackweaver/workspaces/galaxy-cache
       volumes:
         - name: galaxy-cache
           persistentVolumeClaim:
@@ -359,61 +362,86 @@ A project's cache that has not been used for `GALAXY_CACHE_TTL_DAYS` days (14 by
 
 ---
 
-## Managing and Monitoring Runners
+## Verify and monitor runners
 
-### Settings > Runners
+Open **Settings > Runners** to check status, type, pool, hostname, heartbeat and current load. Open a runner for capabilities, labels and recent jobs.
 
-The **Runners** page lists all runners in the organization. For each runner you can see:
+![A registered online OpenTofu runner in its production pool.](./images/self-hosted-runners.png "Synthetic example. Online registration is distinct from successfully executing a workload.")
 
-- **Status**: Online, Busy, Offline, or Error.
-- **Type**: Terraform, Ansible, or Combined.
-- **Agent pool**: Which pool the runner belongs to.
-- **Hostname and IP**: Reported by the runner.
-- **Last heartbeat**: How recently the runner checked in.
-- **Current load**: e.g. number of jobs running vs. max concurrent.
-
-Clicking a runner opens its detail page with system info, capabilities, labels, and recent job history.
+After registration, run a reviewed test plan or harmless Ansible job and verify its runner assignment and output. Online heartbeats prove connectivity, not cloud permissions or successful workload execution.
 
 ### Runner status
 
-Runners send heartbeats to the API on a regular interval. If heartbeats stop (e.g. container down or network issue), StackWeaver marks the runner **Offline** after a short period. No new jobs are assigned to offline runners. When the runner comes back and heartbeats again, it returns to **Online** and can receive jobs again.
+Runners send heartbeats to the API on a regular interval. If heartbeats stop (e.g. container down or network issue), Stackweaver marks the runner **Offline** after a short period. No new jobs are assigned to offline runners. When the runner comes back and heartbeats again, it returns to **Online** and can receive jobs again.
 
-### Editing and deleting
+Use **Edit** on a runner to change its description or labels. See [Operate and troubleshoot](#operate-and-troubleshoot) for deletion, image replacement and bulk maintenance.
 
-- **Edit**: From the runner list or detail page, use **Edit** to change the runner’s description and labels. Labels can be used for job targeting (e.g. route only to runners with a `gpu` label).
-- **Delete**: Deleting a runner removes it from the UI. The container will no longer receive jobs. To use that host again, run the container again with the same or a new API key; it will register as a new runner.
+## Configure pools and routing as code
 
-To act on several runners at once, tick the checkbox on each runner card, or use **Select all** in the bar above the list. With runners selected, the bar offers **Add label** and **Remove label**, which change only that one label on each selected runner and leave its other labels alone, and **Delete**, which asks for confirmation and lists the runners it will remove. If some runners in a batch fail, the rest are still processed, and only the failed ones stay selected so you can retry them.
+Configure [the Stackweaver provider](./terraform-provider.md) and save `runner-pool.tf`. Use an authorized organization credential for management; keep the resulting registration token private:
 
----
+```hcl
+resource "stackweaver_agent_pool" "production" {
+  organization        = "your-org"
+  name                = "production-runners"
+  organization_scoped = true
+}
 
-## Security and Best Practices
+resource "stackweaver_agent_token" "production" {
+  agent_pool_id = stackweaver_agent_pool.production.id
+  description   = "Production runner registration"
+}
 
-1. **API keys**: Create API keys with the minimum scopes needed (e.g. only Runner: Register and Runner: Terraform for a Terraform-only runner). Rotate or revoke keys if they may have been exposed.
-2. **Network**: Runners initiate all connections to StackWeaver (outbound only). You do not need to open inbound ports on the runner. Use TLS for the StackWeaver server URL.
-3. **Pools**: Use separate pools for different trust or network boundaries (e.g. DMZ vs. internal), and restrict which workspaces or projects can use each pool.
-4. **Resource limits**: Use Docker (or Kubernetes) resource limits so a single job cannot exhaust the host. A runner runs one job at a time, so size the host for one job per runner you start on it.
+resource "stackweaver_organization_default_settings" "execution" {
+  organization           = "your-org"
+  default_execution_mode = "agent"
+  default_agent_pool_id  = stackweaver_agent_pool.production.id
+}
+```
 
----
+This makes the pool eligible organization-wide and sets the OpenTofu organization default; review that scope before apply. Use allowed/excluded workspace and project resources for narrower eligibility. Workspace/project overrides still take precedence. Provider state contains the token, even though the attribute is sensitive. Obtain the token through your protected deployment workflow rather than a public output.
 
-## Common Questions
+For a specific workspace, set `execution_mode = "agent"` and `agent_pool_id` on its provider resource. An Ansible template's `agent_pool_id` is a separate setting; see [playbook management](./managing-ansible-playbooks.md) for source selection and the provider reference for the complete template schema. The compatible TFE pool, token and organization-default resource families can also manage the corresponding OpenTofu settings.
 
-**Q: Can one runner run both OpenTofu and Ansible jobs?**  
-A: Yes, if you use a **combined** runner image (when available) or register with scopes that allow both. Otherwise use separate Ansible and OpenTofu runner containers and put them in the same or different pools as needed.
+## Create a pool through the API
 
-**Q: What happens if all runners in a pool are offline?**  
-A: New jobs that are assigned to that pool will wait until a runner in the pool is online. Ensure at least one runner in the pool is running for critical workloads, or use platform-hosted execution as a fallback by not using agent mode for that workspace.
+Set `STACKWEAVER_URL` to the origin without a trailing slash, `STACKWEAVER_TOKEN` to an organization credential authorized to manage pools, and `ORG` to its name. Save `agent-pool.json`:
 
-**Q: How do I update the runner image?**  
-A: Pull the new image, stop the old container, and start a new one with the same environment variables (same pool ID and a valid API key). The new container will register and appear as the same or a new runner depending on implementation; check the Runners UI after restart.
+```json
+{
+  "data": {
+    "type": "agent-pools",
+    "attributes": {
+      "name": "production-runners",
+      "organization-scoped": true
+    }
+  }
+}
+```
 
-**Q: My runner stays Offline.**  
-A: Check that the container is running, that `STACKWEAVER_SERVER` and `STACKWEAVER_TOKEN` are correct, and that the host can reach the StackWeaver API over HTTPS. Check container logs for registration or heartbeat errors.
+```bash
+curl --fail-with-body --silent --show-error \
+  --header "Authorization: Bearer $STACKWEAVER_TOKEN" \
+  --header 'Content-Type: application/vnd.api+json' \
+  --data @agent-pool.json \
+  "$STACKWEAVER_URL/api/v2/organizations/$ORG/agent-pools"
+```
 
----
+Record the returned pool ID and verify its access scope. List pools before retrying an uncertain create. Create a pool token in the UI or provider path above; [the API explorer](/docs/api-reference/explorer) documents token creation, rotation and routing schemas. Runner deployment itself uses the Docker environment or Kubernetes YAML shown above, not a Stackweaver management-YAML resource.
 
-## What's Next?
+## Operate and troubleshoot
 
-- Use [Managing Workspace Variables](./managing-workspace-variables.md) to configure variables for workspaces that run on your runners.
-- Use [Understanding OpenTofu Runs](./understanding-opentofu-runs.md) to interpret plan and apply output for runs executed on your runners.
-- Use [Running Your First Ansible Job](../get-started/your-first-ansible-job.md) to run Ansible jobs that can be routed to your self-hosted Ansible runners.
+| Symptom or task | Action |
+|---|---|
+| Runner stays offline. | Check the container, server URL, registration credential, outbound TLS connection and registration/heartbeat logs. |
+| Runner is online but work waits. | Check workload type, pool assignment/access, labels and available capacity. One runner executes one job at a time. |
+| All runners in a pool are offline. | Restore capacity or explicitly change execution routing after reviewing its trust/network implications. There is no automatic fallback. |
+| Upgrade a runner. | Pull a reviewed image, replace the container with the same intended name/pool and a valid registration credential, then confirm registration and a test job. Same-name registration in the same organization reuses the runner record and refreshes its scoped token. Do not run two instances with the same name. |
+| Run both workload types. | Deploy the documented OpenTofu and Ansible images separately. A registration scope or UI type does not install the other workload's runtime in an image. |
+| Remove a runner. | Stop the container as well as deleting its registration. A running container with valid registration credentials can register again. |
+
+Use resource limits and size each runner for its workload. Keep registration keys out of repositories and avoid passing the runner's full environment to jobs. Use [the environment allowlist](../get-started/self-hosting/environment-variables.md#runner-variables-that-reach-runs) when additional job variables are needed.
+
+For bulk maintenance, select runner cards and use **Add label**, **Remove label** or **Delete**. Label operations change only the selected label; deletion asks for confirmation. Partial failures leave failed runners selected for retry. Verify selection and scope before repeating a batch.
+
+Next, [manage workspace inputs](./managing-workspace-variables.md), [read OpenTofu run results](./understanding-opentofu-runs.md) or [run an Ansible job](../get-started/your-first-ansible-job.md).

@@ -1,195 +1,110 @@
 ---
-description: "Solutions for frequent OpenTofu, Ansible, VCS, and general platform problems"
-covers: []
+description: "Locate the failing execution stage, inspect read-only evidence and choose a safe recovery."
+covers:
+  - "backend/internal/api/v2/handlers/**"
+  - "backend/cmd/orchestrator/**"
+  - "backend/cmd/runner/**"
+  - "backend/cmd/ansible-runner/**"
+  - "core/services/ansible/**"
 ---
 
-# Troubleshooting Common Issues
+# Troubleshoot common issues
 
-Solutions for the most frequent problems and questions when using StackWeaver.
+Start with the execution's first meaningful error and the stage that stopped. Record the
+run/job ID and configuration version before changing settings. Repeated retries can hide
+the cause or repeat real changes.
 
-## OpenTofu Issues
+## OpenTofu
 
-### Workspace Won't Start a Run
+| Symptom | Check first | Next action |
+|---|---|---|
+| Run stays queued. | Workspace lock, execution mode, runner pool availability and orchestrator status. | Restore the intended runner path. See [self-hosted runners](./self-hosted-runners.md). |
+| Run fails before planning. | Repository access, branch/commit, working directory and initialization output. | Correct the specific connection or path; preserve the existing connection while diagnosing. |
+| Unexpected deletion or replacement. | Selected commit, variables, state version and provider lock file. | Stop before apply. Compare with a known successful run and investigate drift deliberately. |
+| Provider authentication/permission error. | Credential expiry, workload-identity trust, target account/region and operation permission. | Correct the narrow failing permission or credential. See [workload identity](./oidc-configuration.md). |
+| A required external check holds the run. | Stage, task finding and enforcement level. | Follow [run-task recovery](./run-tasks.md); an override bypasses a gate and needs appropriate access. |
+| Run times out. | Last output and whether it is progressing or waiting on a remote operation. | Diagnose first, then review [run timeout](../features/opentofu/run-timeout.md). |
 
-**Symptoms**: Run stays queued or fails immediately without running OpenTofu.
+A failed apply can leave partial infrastructure changes. Inspect the actual result and state
+before queuing another apply. Refresh/import/state changes are deliberate recovery actions,
+not the first response to an unexpected plan.
 
-**Possible causes and solutions:**
+### State lock errors
 
-- **VCS connection issue**: Verify your GitHub connection is active in organization settings. Try disconnecting and reconnecting.
-- **Repository access**: Ensure StackWeaver has access to the repository. Check repository permissions in GitHub.
-- **Working directory**: If your OpenTofu files aren't in the repo root, verify the working directory path is correct.
-- **Runner unavailable**: Check if there are any runner issues. Check the runner logs for errors: `docker compose logs runner` in your Compose directory, or `kubectl logs deployment/stackweaver-runner --namespace stackweaver` on Kubernetes. If runs consistently fail to start, review the orchestrator logs as well.
-
-### Plan Shows Unexpected Changes
-
-**Symptoms**: Plan indicates resources will be destroyed or recreated when you didn't change anything.
-
-**This usually means:**
-
-- **State drift**: Infrastructure was changed outside OpenTofu (manually or by another tool)
-- **Provider version change**: Provider behavior changed between versions
-- **Code sync issue**: Workspace is using a different branch or commit than expected
-
-**To fix:**
-
-1. Review the plan carefully - are the changes actually needed?
-2. Check the configuration version shown in the run metadata
-3. If state drifted, consider refreshing or importing the current state
-4. Compare to your last successful run to see what changed
-
-### Apply Fails with Provider Error
-
-**Symptoms**: Run fails with errors like "authentication failed" or "resource not found".
-
-**Common solutions:**
-
-- **Check credentials**: Verify your cloud provider credentials are correct and not expired
-- **Review permissions**: Ensure the credentials have sufficient permissions for the resources you're creating
-- **Provider version**: Try pinning your provider version if using latest
-- **Region/endpoint**: Verify you're using the correct region and API endpoints
-
-### State Lock Errors
-
-**Symptoms**: Error message about state being locked by another run.
-
-**What's happening:**
-
-OpenTofu locks state during runs to prevent concurrent modifications. This error means another run is already using the state.
-
-**To resolve:**
-
-- Wait for the other run to complete (usually just a few minutes)
-- If the lock persists, check if a run is stuck and cancel it
-- In rare cases, you may need to manually unlock (be very careful with this)
+1. Identify the lock holder and check the workspace's active runs and CLI operations.
+2. Wait for a healthy operation to complete. If it is stuck, investigate and cancel through
+   the normal run controls, then confirm the worker has stopped.
+3. If no operation owns the lock, have an authorized operator review recovery against the
+   correct backend and lock ID.
 
 > [!WARNING]
-> Never force-unlock state unless you're certain no other operations are running. This can corrupt state.
+> Never force-unlock while another operation may still write state. Bypassing the lock can
+> allow concurrent writers and corrupt state. A stale-looking UI alone is not proof that
+> the worker has stopped.
 
-## Ansible Issues
+### Imported state looks incomplete
 
-### Job Fails: Host Unreachable
+Check the destination workspace, state version, resource addresses and import result.
+Compare against the protected source backup. Do not force-push over a newer state version
+or bypass lineage/serial checks. Follow the guarded
+[migration procedure](./migrating-from-terraform-cloud.md).
 
-**Symptoms**: Job fails immediately with connection errors.
+## Ansible
 
-**Check these:**
+| Symptom | Check first | Next action |
+|---|---|---|
+| Host unreachable. | Inventory hostname/IP, runner network path, SSH port and attached credential. | Test reachability from the runner's network; private targets may need a self-hosted runner. |
+| Permission denied or become failure. | Remote user, key selection, sudo/become policy and file permissions. | Correct the target's required permission; do not broadly disable host security. |
+| Playbook not found. | Registration, repository-relative path, branch and last sync. | Use [playbook management](./managing-ansible-playbooks.md) to inspect the snapshot and selected revision. |
+| Job hangs or times out. | Last task output, network waits, target load and forks. | Diagnose the stalled task before increasing the timeout; split work or bound task runtime if appropriate. |
+| Hosts missing or inventory warning. | Source sync status, plugin authentication/configuration and last successful sync. | Follow [dynamic inventories](./dynamic-inventories.md). A failed refresh does not always prevent a job from using older hosts. |
 
-1. **Inventory addresses**: Verify host IPs or hostnames are correct in your inventory
-2. **Network access**: Ensure StackWeaver runners can reach your target servers
-3. **SSH configuration**: Check that SSH ports (usually 22) are open
-4. **Credentials**: Verify SSH keys or passwords are correct in your credentials
+## Access, webhooks and dashboard figures
 
-**For private networks:**
+| Symptom | Check first |
+|---|---|
+| Organization/workspace denied or not found. | Correct organization, invitation, team membership, workspace permissions and API-token scope. Ask an owner to verify the intended grant. |
+| Push/PR does not trigger a run. | Repository/branch linkage, speculative setting, path filters, provider hook events and delivery status. Follow the relevant [VCS guide](./vcs/README.md). |
+| Hook delivery returns an error. | Public reachability, current secret and the provider's response body. Redact credentials before sharing delivery records. |
+| Counts differ across pages. | Organization, visibility, selected time range and live versus historical figures. See [dashboard](./reading-the-dashboard.md) and [analytics](./usage-analytics.md). |
 
-If your servers aren't publicly accessible, you'll need to use self-hosted runners that have network access to your infrastructure.
+Do not delete and reconnect an OAuth connection as the first diagnostic step. It can affect
+resources using it. Use the provider-specific recovery only after verifying the failure.
 
-### Job Hangs or Times Out
+## Collect read-only evidence
 
-**Symptoms**: Job runs for a long time then fails with a timeout.
+In a Compose deployment, run from the directory containing `docker-compose.yml`:
 
-**Possible causes:**
+```bash
+docker compose ps
+docker compose logs --tail=100 api orchestrator runner ansible-runner
+```
 
-- **Network issues**: Slow or unreliable connection to target servers
-- **Task complexity**: Individual tasks taking longer than expected
-- **Resource constraints**: Servers under heavy load responding slowly
+For Kubernetes, replace these names and namespace with the installed release's actual
+Deployments:
 
-**Solutions:**
+```bash
+kubectl get pods --namespace stackweaver
+kubectl logs deployment/stackweaver-runner --namespace stackweaver --tail=100
+kubectl logs deployment/stackweaver-orchestrator --namespace stackweaver --tail=100
+```
 
-1. Increase the job timeout in your job template settings
-2. Reduce the number of forks (parallel execution) to avoid overwhelming servers
-3. Break large playbooks into smaller, focused playbooks
-4. Add task timeouts in your Ansible playbooks for individual tasks
+For an individual OpenTofu execution, an authorized API read works without the UI. Set the
+public origin, token and run ID locally:
 
-### Playbook File Not Found
+```bash
+curl --fail-with-body --silent --show-error \
+  "$STACKWEAVER_URL/api/v2/runs/$RUN_ID" \
+  --header "Authorization: Bearer $STACKWEAVER_TOKEN"
+```
 
-**Symptoms**: Error when trying to select a playbook in job template.
+The UI's raw output and the [API viewer](/docs/api-reference/explorer) help inspect an
+execution; management HCL or YAML is not a general diagnostic replacement. Use the linked
+task guide when a configuration change is needed.
 
-**Verify:**
+## Ask for help with the evidence
 
-- **File path**: The path should be relative to your repository root
-- **File extension**: Playbooks should be `.yml` or `.yaml`
-- **Repository branch**: Ensure you're looking at the correct branch
-- **VCS connection**: Confirm the repository is connected and accessible
-
-### Credential Permission Errors
-
-**Symptoms**: Job runs but tasks fail with "permission denied" or sudo errors.
-
-**Check:**
-
-- **SSH user permissions**: The SSH user needs appropriate permissions
-- **Sudo configuration**: For tasks requiring sudo, verify the user can run sudo commands
-- **Become method**: If using become/privilege escalation, check the become method in your playbook
-- **File permissions**: Ensure SSH keys have correct permissions (should be 600)
-
-## General Issues
-
-### Can't Access Organization or Workspace
-
-**Symptoms**: Getting "access denied" or "not found" errors.
-
-**This is usually a permissions issue:**
-
-1. **Check team membership**: Verify you're a member of the organization
-2. **Review workspace access**: Ensure your team has access to the workspace (if using teams)
-3. **Organization role**: Check your role in the organization (owner, member, etc.)
-4. **Contact admin**: If you should have access, ask an organization owner to verify your permissions
-
-### VCS Webhook Not Triggering
-
-**Symptoms**: Pull requests or pushes don't automatically trigger runs.
-
-**Troubleshooting steps:**
-
-1. **Webhook configuration**: Verify webhooks are set up in your VCS provider (GitHub, etc.)
-2. **Repository permissions**: Ensure StackWeaver app has webhook permissions
-3. **Webhook events**: Check that the right events are enabled (pull requests, pushes, etc.)
-4. **Webhook URL**: Verify the webhook URL is correct in your VCS settings
-5. **Check webhook logs**: Review webhook delivery logs in your VCS provider
-
-### Dashboard Shows Wrong Counts
-
-**Symptoms**: Dashboard metrics don't match what you see in workspaces or projects.
-
-**Common causes:**
-
-- **Timing**: Dashboard data is fetched live from the API. Try refreshing the page.
-- **Filter scope**: Check if filters are applied that might exclude some resources
-- **Permission filtering**: Dashboard only shows resources you have access to
-
-### Imported State Missing Resources
-
-**Symptoms**: After importing state, some resources don't appear or state seems incomplete.
-
-**Check:**
-
-- **Import completeness**: Ensure all resources were successfully imported
-- **State version**: Verify you're looking at the correct state version
-- **Workspace connection**: Confirm the imported state matches the workspace configuration
-- **Resource names**: Check that resource names in state match your OpenTofu code
-
-## Getting More Help
-
-If you're still stuck:
-
-1. **Check the error details**: Expand failed resources or tasks to see detailed error messages
-2. **Review raw output**: Switch to raw output tab for full logs and stack traces
-3. **Compare to working runs**: See what changed between successful and failed runs
-4. **Search documentation**: Check other guides for related topics
-5. **Open an issue**: If the issue persists, [open a GitHub issue](https://github.com/vhco-pro/stackweaver/issues) with:
-   - Error messages
-   - Relevant run IDs
-   - Steps to reproduce
-   - What you've already tried
-
-## Reporting Issues
-
-When reporting problems, include:
-
-- What you were trying to do
-- What actually happened
-- Error messages (full text, not just screenshots)
-- Run IDs or workspace names
-- Steps to reproduce
-- Any relevant configuration (workspace settings, job template settings, etc.)
-
-This information helps us diagnose and fix issues faster.
+Include the intended action, run/job ID, stage, redacted error text, selected version/commit,
+reproduction steps and checks already performed. Remove bearer tokens, passwords, sensitive
+state and private data. [Report a reproducible issue](https://github.com/michielvha/stackweaver/issues)
+when the problem remains after those checks.

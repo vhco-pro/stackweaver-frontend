@@ -4,6 +4,7 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import path from 'path'
 import tailwindcss from '@tailwindcss/vite'
+import { internalDocPrototypes, excludeInternalDocs } from './dev/internalDocPrototypes.ts'
 
 // Security response headers for the dev + preview servers. Real deployments serve
 // the built SPA via nginx with the full, strict header set (frontend/nginx.conf +
@@ -44,7 +45,7 @@ const securityHeaders: Record<string, string> = {
 
 // https://vite.dev/config/
 export default defineConfig(({ mode }) => ({
-  plugins: [react(), tailwindcss()],
+  plugins: [react(), tailwindcss(), internalDocPrototypes(path.resolve(__dirname, '../docs/internal')), excludeInternalDocs()],
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),

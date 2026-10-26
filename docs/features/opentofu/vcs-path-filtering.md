@@ -1,133 +1,169 @@
 ---
-description: "GitOps-style path filtering that triggers workspace runs only when the files a workspace monitors actually change"
+description: "Choose working-directory, prefix or glob rules, configure them with Terraform/API and verify monorepo triggering."
 covers:
-  - "backend/internal/api/v2/handlers/**"
+  - "backend/internal/api/v2/handlers/vcs_path_filtering.go"
+  - "backend/internal/api/v2/handlers/vcs_app_installation.go"
+  - "backend/internal/api/v2/handlers/terraform/workspaces.go"
+capabilities: [
+  {
+    "id": "workspace-path-filters",
+    "name": "Repository path filters",
+    "summary": "Trigger workspace runs only when monitored files change, using directories or glob patterns.",
+    "area": "opentofu",
+    "availability": "available",
+    "limitations": "Turning file triggers off ignores path filters; branch and automatic-queue gates still apply.",
+    "evidence": [
+      "backend/internal/api/v2/handlers/vcs_path_filtering.go",
+      "backend/internal/api/v2/handlers/vcs_path_filtering_test.go"
+    ]
+  }
+]
 ---
 
-# VCS Path Filtering
+# Filter runs by changed paths
 
-StackWeaver intelligently filters which workspaces should trigger runs based on which files actually changed in your repository. This GitOps-style filtering prevents unnecessary runs when multiple workspaces share the same repository but monitor different paths.
+When several workspaces share a repository, path filters decide which of them should run
+for a push or pull request. Start with each workspace's working directory, then add shared
+directories or replace directory matching with explicit patterns.
 
-## How It Works
+## Start with the working directory
 
-When you push code to your repository, StackWeaver checks which files changed and only triggers workspaces that monitor at least one of them. By default a workspace monitors its working directory; the settings described under [Configuration](#configuration) widen or replace that.
+For this repository, give the production workspace `environments/production` as its working
+directory and the staging workspace `environments/staging`:
 
-### Example: Multiple Environments in One Repository
-
-Many teams organize infrastructure by environment in a single repository:
-
-```
-terraform/
-├── environments/
-│   ├── dev/
-│   │   └── main.tf
-│   ├── staging/
-│   │   └── main.tf
-│   └── production/
-│       └── main.tf
+```text
+environments/
+  production/main.tf
+  staging/main.tf
+modules/
+  network/main.tf
 ```
 
-With path filtering:
+A production-only change then matches production. A shared module change needs an extra
+prefix or pattern; path filtering does not discover your module dependency graph for you.
 
-- **Dev workspace** (`working_directory: environments/dev`) only triggers when files in `environments/dev/` change
-- **Staging workspace** (`working_directory: environments/staging`) only triggers when files in `environments/staging/` change
-- **Production workspace** (`working_directory: environments/production`) only triggers when files in `environments/production/` change
+The UI can edit the working directory. Configure file-trigger enablement, extra prefixes
+and patterns through Terraform or the TFE-compatible API.
 
-If you push changes to `environments/dev/main.tf`, only the dev workspace triggers a run. Staging and production workspaces remain unaffected.
+## Matching precedence
 
-## Path Matching Rules
+| Setting | Matching rule |
+|---|---|
+| File triggers disabled | Every relevant repository change matches; directory, prefix and pattern filters are ignored. |
+| Patterns present | Only the patterns are consulted. The working directory is **not** added automatically. |
+| Prefixes present | Match those directories plus a non-root working directory. |
+| Neither list present | Match the working directory. Empty or `/` means the repository root. |
 
-These are the rules a workspace follows when it relies on its working directory alone, which is the default.
+For a root workspace with explicit prefixes, those prefixes narrow the match; the empty
+working directory does not add a match-all rule. Without prefixes or patterns, the root
+still matches every changed path.
 
-### Root-Level Workspaces
+Directory prefixes match boundaries: `modules/net` matches files below that directory,
+but not `modules/network/main.tf`. Subdirectories are included. The same workspace
+matching rules apply to GitHub push/PR handling and Azure DevOps deliveries. If an event
+provides no changed-file list, Stackweaver can trigger conservatively rather than assume
+nothing changed.
 
-Workspaces with empty or `/` working directory:
+<a id="configuration" style="scroll-margin-top: 7rem"></a>
 
-- Trigger for **any** file change in the repository
-- Use this when the workspace monitors the entire repository
+### Configure directory prefixes with Terraform
 
-### Subfolder Workspaces
-
-Workspaces with a configured working directory (like `environments/prod`):
-
-- Only trigger when files **within that subfolder** are changed
-- Matches any file path that starts with the configured working directory
-- Subdirectories within the working directory are included
-
-For example, if your working directory is `infrastructure/network`:
-
-- ✅ Triggers for: `infrastructure/network/main.tf`, `infrastructure/network/modules/firewall/main.tf`
-- ❌ Does not trigger for: `infrastructure/storage/main.tf`, `application/api/main.tf`
-
-## GitOps Benefits
-
-This filtering enables GitOps-style workflows where:
-
-- **Single source of truth**: Keep all infrastructure code in one repository
-- **Logical separation**: Organize by environment, team, or service
-- **Selective execution**: Only relevant workspaces run on each change
-- **Reduced noise**: Avoid unnecessary runs that would just show "no changes"
-
-## Configuration
-
-Path filtering needs no configuration to be useful: as soon as a workspace has a working directory, it only triggers when files in that directory change, and leaving the working directory blank monitors the whole repository. The same rules apply to every event StackWeaver receives, so a push, a pull request that opens a speculative plan, and an Azure DevOps delivery all reach the same verdict for the same change.
-
-When required status checks are configured on a repository connected to several path-filtered workspaces, an organization can additionally opt in to posting a passing status for the workspaces a pull request does not trigger, so an irrelevant required check never blocks the merge. That policy, along with the aggregated single-status alternative for monorepos, lives at the organization level - see the [Organization Settings guide](../../user-guides/organization-settings.md#pull-request-behavior).
-
-Three workspace settings adjust that default. They are part of the TFE-compatible API, so you set them through the API or the Terraform provider rather than the web interface.
-
-### Always Trigger Runs
-
-Setting `file_triggers_enabled` to `false` turns path filtering off for that workspace. Every change to the tracked branch queues a run, and the working directory, trigger prefixes and trigger patterns are all ignored. Use this when a workspace depends on the whole repository in ways its directory layout does not express.
-
-### Monitoring Extra Directories
-
-`trigger_prefixes` takes a list of repository-root-relative directories that are monitored **in addition to** the working directory. A workspace whose working directory is `environments/production` and whose trigger prefixes are `["modules/network"]` triggers for changes in either location, which is the usual way to make an environment react to the shared modules it consumes. Prefixes match on directory boundaries, so `modules/net` does not match `modules/network/main.tf`.
-
-### Matching With Glob Patterns
-
-`trigger_patterns` takes a list of glob patterns, always relative to the repository root. When patterns are set they are the only thing consulted - the working directory is no longer monitored on its own, which is what makes patterns able to express "any `.tf` file anywhere" as `**/*.tf`. Within a pattern, `**` spans directory separators, `*` matches within a single path segment, and `?` matches exactly one character. A pattern written as a directory, such as `modules/`, matches everything underneath it.
+Use your existing [Stackweaver provider](../../user-guides/terraform-provider.md) management
+configuration. Add the settings to the workspace resource you already manage:
 
 ```hcl
-resource "tfe_workspace" "production" {
+resource "stackweaver_workspace" "production" {
   name              = "production"
-  organization      = "acme"
+  organization      = "example-platform"
   working_directory = "environments/production"
 
-  trigger_prefixes = ["modules/network", "modules/database"]
-  # or, instead of prefixes:
-  # trigger_patterns = ["environments/production/**", "modules/**/*.tf"]
+  file_triggers_enabled = true
+  trigger_prefixes      = ["modules/network", "modules/database"]
 }
 ```
 
-Trigger patterns and trigger prefixes are mutually exclusive. Setting both in one request is rejected with a `422`, and setting one on a workspace that already has the other replaces it.
+Retain your resource's VCS connection/repository settings and other managed attributes.
+For an existing workspace not yet in state, import it before applying this resource.
+Review the plan so that adopting path settings does not create a duplicate workspace.
+The upstream `tfe_workspace` alias uses the corresponding field names.
 
-## Common Use Cases
+<a id="common-use-cases" style="scroll-margin-top: 7rem"></a>
 
-### Multi-Environment Setup
+### Use patterns instead of prefixes
 
-One repository with separate workspaces for dev, staging, and production:
+Replace `trigger_prefixes` with this attribute in that resource:
 
-- Workspace: "dev-infrastructure" → Working Directory: `environments/dev`
-- Workspace: "staging-infrastructure" → Working Directory: `environments/staging`
-- Workspace: "prod-infrastructure" → Working Directory: `environments/production`
+```hcl
+trigger_patterns = [
+  "environments/production/**",
+  "modules/**/*.tf"
+]
+```
 
-### Service-Based Organization
+| Pattern | Meaning |
+|---|---|
+| `**/*.tf` | Terraform files at any depth, including the root. |
+| `modules/*/main.tf` | A `main.tf` one directory below `modules`. |
+| `modules/network/` | Everything below that directory. |
+| `services/?/infra/**` | A one-character service directory, then its infrastructure tree. |
 
-Multiple services in one repository:
+`**` can span directory separators, `*` stays within one segment, and `?` matches one
+character. Patterns are relative to the repository root. Include environment files
+explicitly if they must trigger runs alongside shared modules.
 
-- Workspace: "api-infrastructure" → Working Directory: `services/api/infrastructure`
-- Workspace: "web-infrastructure" → Working Directory: `services/web/infrastructure`
+Prefixes and patterns are mutually exclusive. Sending both nonempty lists is rejected
+with `422`. Setting a nonempty list can replace the other kind already stored.
 
-### Team-Based Structure
+## Update filters through the API
 
-Separate infrastructure per team:
+Set the API origin, token and `WORKSPACE_ID`. The request must include the intended
+`working-directory`; omitting it on the current update path can clear it to the root.
+Save this as `path-filters.json`:
 
-- Workspace: "platform-team-infra" → Working Directory: `teams/platform/infrastructure`
-- Workspace: "product-team-infra" → Working Directory: `teams/product/infrastructure`
+```json
+{
+  "data": {
+    "type": "workspaces",
+    "id": "ws-replace-with-id",
+    "attributes": {
+      "working-directory": "environments/production",
+      "file-triggers-enabled": true,
+      "trigger-prefixes": ["modules/network", "modules/database"]
+    }
+  }
+}
+```
 
-## Related Documentation
+Replace the document ID with the same workspace ID as the request URL, then apply and read back:
 
-- [Workspace Editing](./workspace-editing.md) - How to set working directories
-- [Your First OpenTofu Workspace](../../get-started/your-first-opentofu-workspace.md) - Workspace setup and configuration
-- [Connecting to GitHub](../../user-guides/vcs/github-app.md) - Setting up VCS integration
+```bash
+curl --fail-with-body --request PATCH \
+  --header "Authorization: Bearer $STACKWEAVER_TOKEN" \
+  --header 'Content-Type: application/vnd.api+json' \
+  --data-binary @path-filters.json \
+  "$STACKWEAVER_API_URL/api/v2/workspaces/$WORKSPACE_ID"
+curl --fail-with-body \
+  --header "Authorization: Bearer $STACKWEAVER_TOKEN" \
+  "$STACKWEAVER_API_URL/api/v2/workspaces/$WORKSPACE_ID"
+```
+
+To use patterns, replace the `trigger-prefixes` key with `trigger-patterns`. To stop filtering,
+set `file-triggers-enabled` to `false`; this broadens triggering, it does not stop automation.
+There is no separate repository YAML definition for these workspace settings.
+
+<a id="gitops-benefits" style="scroll-margin-top: 7rem"></a>
+
+## Verify the result
+
+1. Read back the stored working directory and filters.
+2. In a test repository, push one matching and one unrelated change to the tracked branch.
+3. Check webhook delivery and the workspace's resulting runs. Matching paths do not bypass
+   repository/branch selection, automatic-queue settings or other launch requirements.
+4. For PRs, check the organization's [pull request behavior](../../user-guides/organization-settings.md#pull-request-behavior).
+   Passing statuses for untriggered workspaces and aggregated monorepo status checks are
+   separate organization policies.
+
+The same pattern applies to environment workspaces, service subtrees and team directories.
+Keep each resource's working directory correct even when patterns decide triggering: it
+still determines where OpenTofu executes. See [Workspace editing](./workspace-editing.md)
+and [GitHub App setup](../../user-guides/vcs/github-app.md).

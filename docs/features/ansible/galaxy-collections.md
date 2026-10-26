@@ -1,93 +1,43 @@
 ---
-description: "Ansible Galaxy collection support including pre-installed collections and auto-install from requirements.yml"
+description: "Declare repository requirements, verify installs, understand cache/search behavior and configure private Ansible content."
 covers:
   - "backend/cmd/ansible-runner/**"
   - "runner-images/ansible/**"
+capabilities: [
+  {
+    "id": "ansible-galaxy",
+    "name": "Galaxy collections and roles",
+    "summary": "Install repository requirements before jobs, with per-project caching on platform and self-hosted runners.",
+    "area": "ansible",
+    "availability": "available",
+    "limitations": "An installation failure is reported but the play still runs. Private servers require runner network access and configuration.",
+    "evidence": [
+      "backend/cmd/ansible-runner/galaxy.go",
+      "backend/cmd/ansible-runner/galaxy_test.go",
+      "backend/cmd/ansible-runner/main.go",
+      "backend/cmd/ansible-runner/agent_mode.go"
+    ]
+  }
+]
 ---
 
-# Ansible Galaxy Collections
+# Use Ansible Galaxy collections and roles
 
-## Overview
+Declare extra collections and roles in your playbook repository's `requirements.yml`.
+Both platform runners and self-hosted Ansible runners install those requirements before
+running the playbook. Keep dependency versions in that repository, alongside the code
+that uses them.
 
-Ansible Galaxy is the official hub for sharing Ansible content. StackWeaver's Ansible runner comes with essential collections pre-installed. The runner also **automatically installs additional collections** from `requirements.yml` in your playbook repository, whether the job runs on the platform runner or on a self-hosted agent pool.
+## Add repository requirements
 
-## Pre-Installed Collections
+Create one requirements file at the prepared repository root. The runner uses the first
+file it finds in this order:
 
-The runner image installs the `ansible` community package, and the collections that package bundles are the pre-installed set. The ones most playbooks reach for are listed below, and the package bundles many more.
-
-| Collection | Purpose |
-|------------|---------|
-| `amazon.aws` | AWS EC2, S3, IAM, dynamic inventory |
-| `azure.azcollection` | Azure resources, dynamic inventory |
-| `google.cloud` | GCP compute, storage, dynamic inventory |
-| `community.vmware` | VMware vSphere |
-| `community.general` | 1000+ general-purpose modules |
-| `ansible.posix` | POSIX operations, JSONL callback |
-| `ansible.netcommon` | Network automation base |
-
-The version of each collection is the one the installed `ansible` release ships. The image pins that release in `runner-images/ansible/pyproject.toml` and `runner-images/ansible/uv.lock`, so the `ansible` version is what decides the pre-installed set: a newer `ansible` release brings newer bundled collections with it.
-
-To see every installed collection with its version:
-```bash
-docker exec ansible-runner ansible-galaxy collection list
-```
-
-## Auto-Install from requirements.yml ✅
-
-Collections and roles are automatically installed from `requirements.yml` before playbook execution, on the platform runner and on self-hosted runners alike.
-
-The runner checks these locations in order:
-1. `requirements.yml` (repo root)
+1. `requirements.yml`
 2. `collections/requirements.yml`
 3. `roles/requirements.yml`
 
-The job output shows the install as it happens. A `galaxy_install` entry announces the requirements file that was found, and a `galaxy_install_complete` entry carries the `ansible-galaxy` output once the install has finished. When the collection install fails, for example because a collection name cannot be resolved or the Galaxy server cannot be reached, a `galaxy_install_failed` entry carries the `ansible-galaxy` output and is marked as failed, and the play still runs. A play that needs the missing collection then fails at the first task that uses it, and a play that does not need it completes normally.
-
-Each job installs into its own staging directory, seeded from a cache that the runner keeps per project, so a later job for the same project finds the collections already present and one project's collections are never served to another. When a job's staging directory was seeded from that cache, the job output carries a `galaxy_cache_seeded` entry ahead of `galaxy_install`, naming whether collections, roles or both were reused. A job that starts from an empty cache has no such entry.
-
-**Code Reference**: `backend/cmd/ansible-runner/galaxy.go` - `installGalaxyRequirements()`
-
-### Where a job looks for collections and roles
-
-The platform runner and self-hosted runners resolve collections and roles by the same rule. When a job installed requirements, the runner places the job's installed collections and the playbook's own `collections/` directory in front of the collections path that is already in effect: the value of `ANSIBLE_COLLECTIONS_PATH` when it is set in the runner's environment, otherwise the `collections_path` from the `ansible.cfg` the job uses, otherwise Ansible's default of `~/.ansible/collections:/usr/share/ansible/collections`. Roles are resolved the same way through `ANSIBLE_ROLES_PATH` and `roles_path`. A job whose repository has no `requirements.yml` runs with both variables exactly as the runner's environment and `ansible.cfg` define them, so Ansible searches the playbook's own `collections/` and `roles/` directories and then the configured or default paths. In every case the collections bundled with the `ansible` package are searched last, which is why anything found earlier takes precedence over the bundled copy.
-
-Installed requirements belong to the jobs of the repository that declares them. A job whose repository has no `requirements.yml`, and an ad hoc command, does not search the project's Galaxy cache, so content that only another repository of the project installs is not available to it: the play stops at the first task that needs it with `couldn't resolve module/action '<name>'`, or with `the role '<name>' was not found` for a role. A repository gets such content by declaring it in its own `requirements.yml`.
-
-An ad hoc command has no repository to declare requirements in and takes its content from the search path in effect. That leaves three routes to a collection or role the `ansible` package does not bundle, on either runner. The first is an image built on top of the runner image that installs it into `/usr/share/ansible/collections`, as described under [Adding a Collection or a Newer Version](#adding-a-collection-or-a-newer-version). The second is a collections or roles search path in the `ansible.cfg` stored for the project or organization, which the runner writes into every job, ad hoc commands included. The third is the search path variable set on the runner container. On the platform runner the `ansible.cfg` route can name the project's own cache directory, `galaxy-cache/<project id>/collections` and `galaxy-cache/<project id>/roles` under `WORKSPACES_DIR`. That directory holds what the project's repositories last installed, and the runner removes it once no job has installed requirements for the project for `GALAXY_CACHE_TTL_DAYS` days, so prefer the image for content an ad hoc command must always find.
-
-**Code Reference**: `backend/cmd/ansible-runner/ansible_cfg.go` - `withJobSearchPaths()`
-
-### Self-hosted runners
-
-A self-hosted runner installs requirements from inside your network, so the runner host needs a route to wherever the collections come from. That is `galaxy.ansible.com` for public collections, your Git host for entries of `type: git`, or a private Automation Hub or Galaxy server. To use a private server, add a `[galaxy]` section with a `server_list` to the `ansible.cfg` stored for the project or organization in Stackweaver: the runner writes that file into the job and `ansible-galaxy` reads it during the install. `ANSIBLE_GALAXY_SERVER_*` environment variables set on the runner reach `ansible-galaxy` only when you name each one in `STACKWEAVER_RUN_ENV_PASSTHROUGH`, because a runner hands its jobs only an allowlist of its own environment (see [Runner variables that reach runs](../../get-started/self-hosting/environment-variables.md#runner-variables-that-reach-runs)).
-
-The per-project cache lives under the directory named by `GALAXY_CACHE_DIR`, which defaults to `galaxy-cache` under `WORKSPACES_DIR`. Without a volume the cache lasts as long as the runner container. Mount a volume at that path to keep it across restarts. Dedicate the directory to the runner and keep nothing else in it: the runner creates one subdirectory per project, named after the project's ID, and removes a project's subdirectory once it has not been used for `GALAXY_CACHE_TTL_DAYS` days (14 by default). Setting the value to `0` turns the cleanup off.
-
-Collections you have installed on the runner host yourself stay available, because a job's installed requirements are placed in front of the search path already in effect rather than replacing it, as described under [Where a job looks for collections and roles](#where-a-job-looks-for-collections-and-roles).
-
-## Using Collections in Playbooks
-
-Collections are automatically available in playbooks. Use the Fully Qualified Collection Name (FQCN):
-
-```yaml
----
-- hosts: all
-  tasks:
-    - name: Install package using community.general
-      community.general.pacman:
-        name: nginx
-        state: present
-
-    - name: Create AWS EC2 instance
-      amazon.aws.ec2_instance:
-        name: "webserver"
-        instance_type: t3.micro
-        image_id: ami-12345678
-```
-
-## Custom Collections via requirements.yml
-
-Create a `requirements.yml` in your playbook repository:
+For example:
 
 ```yaml
 # requirements.yml
@@ -98,119 +48,209 @@ collections:
   - name: paloaltonetworks.panos
   - name: ansible.windows
     version: "2.0.0"
-
 roles:
   - name: geerlingguy.docker
   - name: geerlingguy.nginx
 ```
 
-An entry's `version` is how you pin a collection or a role. Job templates carry no collection list or version pin of their own: a job installs what its repository's `requirements.yml` declares, so pinning a version for a template means pinning it in the `requirements.yml` of the repository the template's playbook comes from.
+These illustrate accepted names and version syntax, not a recommended dependency set.
+Choose releases compatible with your runner's Ansible version and pin exact versions you
+have tested when reproducibility matters. Unversioned entries and ranges can resolve to
+different content over time. A job template has no separate collection-version list.
 
-**How It Works**:
-1. When a job starts, the runner clones the playbook repository
-2. Checks for `requirements.yml` in common locations
-3. Runs `ansible-galaxy collection install -r requirements.yml`
-4. Runs `ansible-galaxy role install -r requirements.yml`
-5. Creates job events to track installation progress
-6. Proceeds with playbook execution
+Register the playbook through the [UI, Terraform or API](../../user-guides/managing-ansible-playbooks.md#automate-registrations).
+Those interfaces choose the repository and source mode; YAML declares the dependencies.
+Do not invent a Stackweaver collection resource to replace `requirements.yml`.
 
-**Events in UI**:
-- "Installing Galaxy Requirements" - shown at job start
-- "Galaxy Requirements Installed" - on success
-- "Galaxy Installation Failed" - on error (job continues)
+## Verify the install in job output
 
-## Adding a Collection or a Newer Version
+1. Run the playbook against a test inventory.
+2. Find the requirements-install events before the playbook tasks.
+3. Check the selected requirements path, installation result and any downloaded versions.
+4. Confirm a task using the required collection or role succeeds on the intended runner.
 
-There are three ways to run a play against a collection the bundle lacks, or against a newer version of one it has. All three work the same on the platform runner and on self-hosted runners.
-
-The first, and the right one for most projects, is a `requirements.yml` in the playbook repository, as described above. It is installed for each job and searched ahead of everything else, so it needs no image change and it can differ per repository.
-
-The second is a newer `ansible` release in the image, for when you build the runner image from this repository yourself. Raise the `ansible` version in `runner-images/ansible/pyproject.toml`, refresh the lock file with `uv lock --upgrade-package ansible` in that directory, and rebuild the image. Every bundled collection moves to the version that release ships.
-
-```bash
-docker compose -f deploy/docker-compose.yml build ansible-runner
-docker compose -f deploy/docker-compose.yml up -d ansible-runner
+```mermaid
+flowchart LR
+    R["Repository requirements"] --> S["Job-local staging"]
+    C["Project cache"] --> S
+    S --> G["Install collections and roles"]
+    G -->|success| P["Publish cache and run playbook"]
+    G -->|install failure| W["Report failure, then run playbook"]
 ```
 
-The third is an image of your own, built on top of the runner image, that installs the collections you want into `/usr/share/ansible/collections`. That directory is on Ansible's default collections path, the runner user can read it, and a collection found there takes precedence over the bundled copy. Install as `root` with the Galaxy client's `--collections-path /usr/share/ansible/collections` option, then switch back to the `stackweaver` user. A collection installed without that option lands in the home directory of the user who ran the install, and the runner user cannot read the home directory of `root`. A collections path you configure yourself replaces Ansible's default, so include `/usr/share/ansible/collections` in it if you set one.
+<details>
+<summary>Dependency install legend</summary>
 
-## Collection Search
+1. The cache seeds an isolated job directory; concurrent cache publication does not replace
+   files under a running job.
+2. Collections and roles are installed separately from the selected requirements file.
+3. A successful install can warm that project's cache for another job.
 
-Browse available collections at [Galaxy Hub](https://galaxy.ansible.com/):
-- Search by keyword, author, or category
-- View documentation and examples
-- Check compatibility with Ansible versions
+</details>
 
-## Private Collections
+> [!IMPORTANT]
+> An installation failure is reported, but the playbook still runs. It fails when a task
+> needs missing content; a playbook that never uses it can succeed. Check the install
+> event rather than treating a successful job as proof every dependency installed.
 
-For private collections (internal Galaxy servers or Git repos):
+| Event | Meaning |
+|---|---|
+| `galaxy_cache_seeded` | Collections, roles or both were reused from this project's cache. |
+| `galaxy_install` | The runner found a requirements file and started installation. |
+| `galaxy_install_complete` | Installation completed; review the command output. |
+| `galaxy_install_failed` | Installation failed; diagnostics accompany the event. |
+
+An empty cache has no seeded event. Installation is bounded; an unreachable dependency
+must not occupy a runner slot indefinitely.
+
+## Use installed content
+
+Use fully qualified collection names so the module's origin is clear:
 
 ```yaml
-# requirements.yml
+---
+- name: Check target connectivity
+  hosts: all
+  gather_facts: false
+  tasks:
+    - name: Ping through the built-in module
+      ansible.builtin.ping:
+```
+
+For another module, such as `community.general.pacman` or `amazon.aws.ec2_instance`, also
+supply its required target platform, arguments and cloud credentials. Installing a
+collection does not configure its authentication or make every example portable.
+
+The runner image includes the collections bundled with its installed `ansible` community
+package. Common examples are `amazon.aws`, `azure.azcollection`, `google.cloud`,
+`community.vmware`, `community.general`, `ansible.posix` and `ansible.netcommon`. Exact
+versions depend on the image you deploy; inspect that image or runner instead of relying
+on a second hand-maintained version list.
+
+From the deployment's Compose directory (`deploy/` in this repository), read the
+installed set and engine version:
+
+```bash
+docker compose exec ansible-runner ansible-galaxy collection list
+docker compose exec ansible-runner ansible --version
+```
+
+For self-hosted execution, run the equivalent read-only commands on that runner. Inspecting
+one platform container does not prove what another agent has installed.
+
+## Understand search order and cache scope
+
+When requirements are installed, the job's installed directories and the playbook's own
+collections/roles precede the paths already configured for the runner. Existing paths come
+from the runner environment, its effective `ansible.cfg`, or Ansible defaults. Bundled
+collections remain a fallback, so an earlier copy can take precedence over the bundle.
+
+| Situation | Where content must come from |
+|---|---|
+| Repository declares requirements | Its own staged install, then the effective search path. |
+| Repository has no requirements | Its repository content and configured/default paths; another repository's cached dependencies are not automatically added. |
+| Ad hoc command | Configured/default paths; it has no repository requirements file to install. |
+
+The project cache improves downloads; it is not a global dependency store or a deployment
+contract. `GALAXY_CACHE_DIR` defaults beneath `WORKSPACES_DIR`, with separate project
+subdirectories. Use a dedicated persistent volume if it must survive runner restarts.
+Idle project caches are removed after `GALAXY_CACHE_TTL_DAYS` days, default 14; `0` disables
+that cleanup. Keep unrelated files out of the cache directory.
+
+For ad hoc content that must always exist, prefer a runner image containing it. A project's
+or organization's `ansible.cfg`, or runner search-path environment, can also expose content.
+Pointing platform commands at a project cache depends on that cache being present and not
+expired; it is not a substitute for a declared or bundled dependency.
+
+## Configure private collection sources
+
+A requirements file can use a private Galaxy endpoint or a Git source:
+
+```yaml
 collections:
-  - name: https://github.com/myorg/my-collection.git
+  - name: https://github.com/example-platform/private-collection.git
     type: git
     version: main
-  
-  - name: my_namespace.my_collection
-    source: https://galaxy.internal.company.com
+  - name: example_platform.operations
+    source: https://galaxy.example.com
 ```
 
-**Note**: Private collections require VCS credentials to be configured.
+Use a tested commit/tag instead of a moving branch when you need a fixed Git dependency.
+The runner must reach and authenticate to the source. A Stackweaver VCS connection used
+to clone the playbook does not by itself establish authentication for every Galaxy/Git
+requirement.
 
-## Platform Integration Status
+Open **Settings > Ansible Configuration**, select **Organization** or the intended
+**Project**, and save a server definition in that scope's `ansible.cfg`:
 
-### ✅ Completed
-- Pre-installed essential collections in runner image
-- Auto-detect `requirements.yml` from playbook repos
-- Install collections before job execution
-- Events logged for Galaxy installation
-- Per-project collection caching on a dedicated cache volume (isolated from the terraform runner and from each job's scratch dir), reused across jobs to avoid re-downloading. Each project's cache is namespaced separately so collections are never shared across tenants, and a background janitor evicts caches left idle beyond a configurable TTL (`GALAXY_CACHE_TTL_DAYS`, default 14 days) so the volume cannot grow without bound.
+```ini
+[galaxy]
+server_list = internal
 
-### 🔄 Planned
-- [ ] Show installed collections in UI
-- [ ] Organization-level collection management
-
-### 💡 Future
-- [ ] Private Galaxy server support
-- [ ] Collection usage analytics
-- [ ] "Collection Store" UI for browsing available collections
-
-## Troubleshooting
-
-### Collection Not Found
-```
-ERROR! couldn't resolve module/action 'community.mysql.mysql_db'
+[galaxy_server.internal]
+url = https://galaxy.example.com/api/
 ```
 
-**Solution**: Check if collection is installed:
-```bash
-docker exec ansible-runner ansible-galaxy collection list | grep mysql
+
+You can manage the same configuration with the native provider. Save the INI above as
+`ansible.cfg` beside your Terraform files, then use:
+
+```hcl
+resource "stackweaver_ansible_config" "galaxy" {
+  organization   = "example-platform"
+  config_content = file("${path.module}/ansible.cfg")
+}
 ```
 
-If it is not installed, add it to a `requirements.yml` in the playbook repository, as described under [Custom Collections via requirements.yml](#custom-collections-via-requirementsyml).
+Use `project_id` instead of `organization` for a project-scoped config. Exactly one scope
+must be set. This is the whole config for that scope: merge other needed settings into
+the file, rather than overwriting an existing config with only the Galaxy section.
+See [Configure Ansible dependencies](../../user-guides/self-hosted-runners.md#5-configure-ansible-dependencies)
+for the UI procedure and precedence.
 
-### Version Conflicts
-```
-ERROR! Collection version 2.0.0 requires ansible-core >= 2.14
+Supply the server's credentials through your approved runner/Ansible configuration.
+If using an `ANSIBLE_GALAXY_SERVER_*` environment variable on the runner, name it in
+`STACKWEAVER_RUN_ENV_PASSTHROUGH` so it can reach `ansible-galaxy`. See
+[Runner variables that reach runs](../../get-started/self-hosting/environment-variables.md#runner-variables-that-reach-runs).
+Keep tokens out of committed requirements and logs. Private servers need network access
+and configuration; they are not an unsupported future feature merely because there is no
+collection-store UI.
+
+## Build an image with additional content
+
+Use repository requirements for most playbooks. For content required by ad hoc commands,
+create a runner image that installs it into a directory the runner user can read, such as
+`/usr/share/ansible/collections`. Install as the image's build user and switch back to the
+runtime user afterward. Do not install only into root's home directory.
+
+A Dockerfile extending your chosen runner image can install content into that shared path.
+Replace the base image placeholder with the runner image/tag you have tested:
+
+```dockerfile
+FROM your-runner-image:tested-tag
+USER root
+RUN ansible-galaxy collection install community.general \
+    --collections-path /usr/share/ansible/collections
+USER stackweaver
 ```
 
-**Solution**: Check Ansible version compatibility:
-```bash
-docker exec ansible-runner ansible --version
-```
+Pin the required collection version after testing compatibility with that image; an
+unversioned install is not a reproducible dependency lock.
 
-### Collection Installation Errors
-```
-ERROR! Failed to download collection
-```
+A custom `collections_path` replaces defaults, so include that shared directory if it
+must remain searchable. If maintaining the runner source image, changing its pinned
+`ansible` version and lock file changes the bundled set as a whole; test compatibility
+before deploying the rebuilt image.
 
-**Possible causes**:
-1. Network issues in container
-2. Galaxy Hub rate limiting
-3. Invalid collection name
+## Recover a dependency problem
 
-**Debug**:
-```bash
-docker exec ansible-runner ansible-galaxy collection install -vvv collection.name
-```
+| Symptom | Next check |
+|---|---|
+| Module/action cannot be resolved | Check this repository's requirements, the install event and the executing runner's collection list. |
+| Role not found | Check its requirements entry and effective roles path; another repository's cache is not inherited. |
+| Version incompatibility | Compare the selected collection with the runner's Ansible version. Pin a compatible release. |
+| Download or authentication failure | Check runner network access, private-server credentials and passthrough settings. |
+| A different module version runs | Inspect effective search order; a repository or staged copy can override a bundled collection. |
+
+Use [Ansible's collection installation reference](https://docs.ansible.com/projects/ansible/latest/collections_guide/collections_installing.html)
+for full requirements syntax and [Execution flows](./execution-flows.md) for runner routing.

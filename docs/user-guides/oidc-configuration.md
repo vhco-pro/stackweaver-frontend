@@ -5,22 +5,48 @@ covers:
   - "core/services/oidc/**"
   - "backend/cmd/runner/**"
   - "backend/internal/api/v2/handlers/**"
+capabilities: [
+  {
+    "id": "workload-identity",
+    "name": "OIDC workload identity",
+    "summary": "Authenticate OpenTofu runs to Azure, AWS, GCP or Vault with short-lived workload tokens.",
+    "area": "platform",
+    "availability": "available",
+    "limitations": "Operators must configure signing keys and each target cloud must trust the intended run subject.",
+    "evidence": [
+      "core/services/oidc/token.go",
+      "core/services/oidc/token_test.go",
+      "backend/cmd/runner/main.go",
+      "backend/cmd/runner/agent_mode.go"
+    ]
+  }
+]
 ---
 
-# OIDC Configuration
+# Configure workload identity
 
-OIDC (OpenID Connect) configuration enables keyless authentication from Stackweaver-managed OpenTofu and Ansible runs to your cloud provider or HashiCorp Vault. Instead of storing long-lived credentials in your workspace variables, Stackweaver issues a short-lived signed JWT at run time, which the target accepts in exchange for a scoped access token via workload identity federation.
+Use workload identity to give OpenTofu runs short-lived cloud or Vault access without storing a cloud secret in workspace variables. First configure the operator's signing key and issuer, then the target's trust and a Stackweaver registration.
 
-The same mechanism backs every supported target - only the trust setup on the target side and the registration resource differ:
+This guide covers OpenTofu targets below. Ansible uses different resource subjects and authentication paths; use [dynamic inventories](./dynamic-inventories.md) for inventory discovery and [Azure Key Vault from playbooks](./azure-key-vault-from-playbooks.md) for Azure job identity. Do not assume an OpenTofu registration enables every Ansible integration.
 
-| Target | Registration resource | Trust setup |
-|--------|-----------------------|-------------|
-| Azure | `tfe_azure_oidc_configuration` | App Registration + federated credential |
-| AWS | `tfe_aws_oidc_configuration` | IAM OIDC identity provider + role trust policy |
-| GCP | `tfe_gcp_oidc_configuration` | Workload Identity Pool + provider + service account binding |
-| Vault | `tfe_vault_oidc_configuration` | JWT auth method + role (the runner logs in and exports `VAULT_TOKEN`) |
+| Target | Registration resource | Trust and audience |
+|---|---|---|
+| Azure. | `stackweaver_azure_oidc_configuration`. | Entra federated credential; `api://AzureADTokenExchange`. |
+| AWS. | `stackweaver_aws_oidc_configuration`. | IAM OIDC provider and role; `sts.amazonaws.com`. |
+| GCP. | `stackweaver_gcp_oidc_configuration`. | Workload Identity Pool/provider and service account; `//iam.googleapis.com/<workload-provider-name>`. |
+| Vault. | `stackweaver_vault_oidc_configuration`. | JWT auth method and role; `vault.workload.identity`. |
 
-## How It Works
+## Choose a configuration path
+
+Use [the Stackweaver provider](./terraform-provider.md) and save the target's registration example in `workload-identity.tf`. The compatible `tfe_*` resources expose the corresponding configuration. Review the plan before apply. Cloud trust resources are configured separately on the target platform; Stackweaver's registration stores identifiers, not cloud permissions.
+
+In the UI, open **Settings > OIDC Configurations**, choose **Add OIDC**, select the target and enter the same identifiers. For Azure, the form looks like this:
+
+![Azure OIDC configuration form with client, subscription and tenant identifiers.](./images/key-vault-azure-identity.png "Synthetic identifiers. The maintained form capture is shared with the Key Vault guide.")
+
+A direct [JSON:API example](#register-through-the-api) is also provided. There is no separate management-YAML format for these registrations. Repository provider configuration and Ansible inventory plugin YAML serve different purposes.
+
+## How a run authenticates
 
 ```mermaid
 sequenceDiagram
@@ -29,7 +55,7 @@ sequenceDiagram
     participant Cloud
 
     Note over SW: Exposes OIDC discovery + JWKS endpoints
-    Runner->>Runner: Generate short-lived JWT (workspace + phase scoped)
+    Note over Runner,SW: Platform runner or API creates a phase-scoped JWT
     Runner->>Cloud: Present JWT as a federated / web-identity credential
     Cloud->>SW: Fetch JWKS to verify signature
     Cloud-->>Runner: Cloud access token
@@ -42,18 +68,18 @@ sequenceDiagram
 1. **OIDC provider** - Stackweaver exposes a signing key at `/.well-known/jwks` and a discovery document at `/.well-known/openid-configuration`.
 2. **Cloud trust** - You configure your cloud to trust Stackweaver as an OIDC issuer (an Azure federated credential, an AWS IAM OIDC provider + role, or a GCP Workload Identity Pool provider).
 3. **Registration** - You register the cloud-side identifiers in Stackweaver using the TFE Terraform provider (one resource per cloud).
-4. **Run time** - The runner generates a short-lived JWT scoped to the specific workspace and run phase, and injects it alongside the cloud identifiers as environment variables. The cloud's Terraform provider and Ansible collection pick these up automatically, so no stored secret is needed.
+4. **Run time** - The runner generates a short-lived JWT scoped to the specific workspace and run phase, and injects it alongside the cloud identifiers as environment variables. The target provider uses the injected credential. Ansible integrations have their own documented configuration.
 
 </details>
 
 ## Prerequisites
 
 - You must be an organization owner in Stackweaver, or have the `manage-vcs-settings` permission.
-- You must have the `hashicorp/tfe` Terraform provider configured against your Stackweaver instance.
-- Your Stackweaver issuer must be **publicly reachable** by the cloud provider (it fetches the JWKS to verify tokens). See [Operator Configuration](#operator-configuration).
+- For the HCL path, configure the Stackweaver provider against your instance. For the UI/API path, use the same organization permissions.
+- Your Stackweaver issuer must be **publicly reachable** by the cloud provider (it fetches the JWKS to verify tokens). Ask your operator to complete [operator configuration](#operator-configuration) before testing trust.
 - You need permission on the cloud side to create the relevant trust (App Registration / IAM OIDC provider + role / Workload Identity Pool).
 
-## The Token Subject (shared across clouds)
+## The token subject (shared across clouds)
 
 Stackweaver embeds a subject in every workload identity token; your cloud-side trust matches on it. The format depends on the resource type.
 
@@ -77,7 +103,7 @@ organization:main:project:infra:workspace:production:run_phase:apply
 organization:<org-name>:project:<project-name>:inventory:<name>:sync
 ```
 
-`<name>` is the **inventory name** for VCS-backed inventories, or the **source name** for UI-configured (dynamic) inventories - so a single inventory can have multiple cloud sources, each with its own credential.
+For a UI-configured dynamic source using Stackweaver federation, `<name>` is the **source name**. Native tokens can also represent an inventory, but a VCS inventory file does not automatically use that trust contract. Follow the [dynamic inventory guide](./dynamic-inventories.md) for VCS runtime identity and plugin configuration.
 
 **Ansible job execution** (StackWeaver-native format):
 
@@ -89,7 +115,9 @@ organization:<org-name>:project:<project-name>:job:<job-name>:run
 
 ### Pinning to immutable identifiers
 
-The subject is built from organization, project, and workspace **names**, which can be renamed. Because the colon separates the subject's segments, a name that contains a colon is rejected when a token is minted, so no name can shift the segment boundaries. Organization names are permanently reserved once used, so a deleted organization's name cannot be reclaimed by someone else, either by creating a new organization with it or by renaming an existing organization onto it. Renaming an organization keeps its previous name reserved for that same organization, which can rename back to it but cannot hand it to anyone else. For defense in depth, where your cloud provider lets you match on token claims beyond `sub`, every token also carries the immutable UUIDs of the resources it was minted for: `stackweaver_organization_id`, `stackweaver_project_id`, and `stackweaver_workspace_id` (Terraform runs) or `stackweaver_organization_id` and `stackweaver_project_id` (Ansible resources). Adding a claim condition on `stackweaver_organization_id` alongside the subject ensures a token is only accepted for the exact organization you trust regardless of any later rename. You can find an organization's ID in its settings, or in the `id` field of the organization's API response.
+The subject uses organization, project and resource names. Renaming one can break an exact cloud trust match. Names containing a colon are rejected when minting a token so they cannot shift subject segments. Organization names remain reserved after deletion or rename; only the same organization can reuse its prior name.
+
+Where the target supports custom-claim conditions, pin the immutable `stackweaver_organization_id` as well as `sub`. Tokens also carry `stackweaver_project_id` and, for Terraform runs, `stackweaver_workspace_id`. Get the organization ID from its API response. Ansible tokens carry organization/project IDs rather than a Terraform workspace ID.
 
 ---
 
@@ -116,16 +144,12 @@ Keyless auth to Azure uses an Entra ID App Registration with a federated credent
 
 ### Step 2: Assign Azure RBAC Roles
 
-The App Registration needs permission to create and manage Azure resources on behalf of your automation. Because Terraform often needs to assign roles (e.g., granting a managed identity access to a Key Vault), `Contributor` is not sufficient - role assignment requires `Owner`.
+Grant the service principal only the permissions the workload needs, at the smallest useful scope. Select it under **Access control (IAM) > Add role assignment** on the target resource group, subscription or management group.
 
-1. Navigate to the **Subscription** (or **Management Group** for cross-subscription scope) where your automation will run.
-2. Go to **Access control (IAM)** > **Add role assignment**.
-3. Select **Owner**.
-4. Under **Assign access to**, select **User, group, or service principal**, search for the App Registration name, and select it.
-5. Click **Review + assign**.
+`Contributor` can manage resources but cannot assign Azure RBAC roles. If the workload creates role assignments, grant the corresponding role-assignment permissions too, for example a suitably scoped Role Based Access Control Administrator role. `Owner` is a broader option, not a requirement for all automation. See [Azure's privileged built-in roles](https://learn.microsoft.com/en-us/azure/role-based-access-control/built-in-roles/privileged).
 
 > [!WARNING]
-> `Owner` at subscription scope grants full control over all resources and role assignments. Assign it only to service principals, and revoke it when no longer needed. If your automation never manages RBAC assignments, `Contributor` is a safer alternative.
+> A federated credential authenticates the principal; it does not limit its Azure permissions. Avoid subscription-wide Owner access unless the workload requires that scope and authority.
 
 ### Step 3: Configure a Federated Identity Credential
 
@@ -145,15 +169,15 @@ The App Registration needs permission to create and manage Azure resources on be
 ### Step 4: Register the Configuration in Stackweaver
 
 ```hcl
-resource "tfe_azure_oidc_configuration" "main" {
+resource "stackweaver_azure_oidc_configuration" "main" {
   organization    = "your-org-name"
-  client_id       = "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"  # Application (client) ID
-  subscription_id = "yyyyyyyy-yyyy-yyyy-yyyy-yyyyyyyyyyyy"  # Azure subscription ID
-  tenant_id       = "zzzzzzzz-zzzz-zzzz-zzzz-zzzzzzzzzzzz"  # Directory (tenant) ID
+  client_id       = "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" # Application (client) ID
+  subscription_id = "yyyyyyyy-yyyy-yyyy-yyyy-yyyyyyyyyyyy" # Azure subscription ID
+  tenant_id       = "zzzzzzzz-zzzz-zzzz-zzzz-zzzzzzzzzzzz" # Directory (tenant) ID
 }
 ```
 
-After `terraform apply`, Stackweaver returns an `id` in the form `azoidc-{16-char-alphanumeric}`.
+After apply, confirm the registration exists and its returned identifiers match the intended target before starting a run.
 
 ### Step 5: Configure the azurerm Provider in Your Workspaces
 
@@ -214,20 +238,20 @@ Create a role your automation will assume, trusting the provider from Step 1 and
 
 Add a condition entry for each subject you want to allow (`plan` and `apply` are distinct), or use `StringLike` with a wildcard. Attach whatever resource-management permissions your automation needs to the role.
 
-### Step 3: Register the Configuration in Stackweaver
+### Step 3: Register AWS in Stackweaver
 
 ```hcl
-resource "tfe_aws_oidc_configuration" "main" {
+resource "stackweaver_aws_oidc_configuration" "main" {
   organization = "your-org-name"
   role_arn     = "arn:aws:iam::123456789012:role/stackweaver-oidc"
 }
 ```
 
-After `terraform apply`, Stackweaver returns an `id` in the form `awsoidc-{16-char-alphanumeric}`.
+After apply, confirm the registration exists and its returned identifiers match the intended target before starting a run.
 
 ### Step 4: Configure the aws Provider in Your Workspaces
 
-No provider block changes are required - the `aws` provider performs `AssumeRoleWithWebIdentity` automatically from the injected environment. The runner writes the token to a file and sets:
+With no conflicting static credentials configured, the `aws` provider performs `AssumeRoleWithWebIdentity` automatically from the injected environment. The runner writes the token to a file and sets:
 
 | Variable | Description |
 |----------|-------------|
@@ -239,7 +263,11 @@ No provider block changes are required - the `aws` provider performs `AssumeRole
 
 ## GCP
 
-Keyless auth to GCP uses Workload Identity Federation: a Workload Identity Pool with an OIDC provider that trusts Stackweaver, bound to a service account your automation impersonates. The token audience is `//iam.googleapis.com/<workload-provider-name>`.
+Keyless auth to GCP uses Workload Identity Federation: a Workload Identity Pool with an OIDC provider that trusts Stackweaver, bound to a service account your automation impersonates. The token audience uses the full provider resource name:
+
+```text
+//iam.googleapis.com/<workload-provider-name>
+```
 
 ### Step 1: Create a Workload Identity Pool and OIDC Provider
 
@@ -254,7 +282,11 @@ gcloud iam workload-identity-pools providers create-oidc stackweaver \
   --allowed-audiences="//iam.googleapis.com/projects/123456789012/locations/global/workloadIdentityPools/stackweaver/providers/stackweaver"
 ```
 
-Note the numeric **project number** and the full **provider resource name** (`projects/<number>/locations/global/workloadIdentityPools/<pool>/providers/<provider>`) - you register both in Step 3.
+Note the numeric **project number** and the full **provider resource name**. Register both in Step 3. The resource name has this form:
+
+```text
+projects/<number>/locations/global/workloadIdentityPools/<pool>/providers/<provider>
+```
 
 ### Step 2: Bind the Service Account
 
@@ -269,10 +301,10 @@ gcloud iam service-accounts add-iam-policy-binding \
 
 Add a binding per subject you want to allow (`plan` and `apply` are distinct), or bind on a mapped attribute. Grant the service account itself whatever resource-management roles your automation needs.
 
-### Step 3: Register the Configuration in Stackweaver
+### Step 3: Register GCP in Stackweaver
 
 ```hcl
-resource "tfe_gcp_oidc_configuration" "main" {
+resource "stackweaver_gcp_oidc_configuration" "main" {
   organization           = "your-org-name"
   service_account_email  = "stackweaver@my-project.iam.gserviceaccount.com"
   project_number         = "123456789012"
@@ -280,7 +312,7 @@ resource "tfe_gcp_oidc_configuration" "main" {
 }
 ```
 
-After `terraform apply`, Stackweaver returns an `id` in the form `gcpoidc-{16-char-alphanumeric}`.
+After apply, confirm the registration exists and its returned identifiers match the intended target before starting a run.
 
 ### Step 4: Configure the google Provider in Your Workspaces
 
@@ -317,24 +349,34 @@ vault write auth/jwt/config \
 
 ### Step 2: Create a Role Bound to the Run
 
-```bash
-vault write auth/jwt/role/stackweaver \
-  role_type="jwt" \
-  bound_audiences="vault.workload.identity" \
-  user_claim="sub" \
-  bound_subject="organization:main:project:infra:workspace:production:run_phase:apply" \
-  token_policies="my-policy" \
-  token_ttl="20m"
+Save this role definition as `stackweaver-vault-role.json`. Replace the organization/project/workspace names and policy. Both subjects are listed because the registration below selects one role for both phases:
+
+```json
+{
+  "role_type": "jwt",
+  "bound_audiences": ["vault.workload.identity"],
+  "user_claim": "sub",
+  "bound_claims": {
+    "sub": [
+      "organization:main:project:infra:workspace:production:run_phase:plan",
+      "organization:main:project:infra:workspace:production:run_phase:apply"
+    ]
+  },
+  "token_policies": ["my-policy"],
+  "token_ttl": "20m"
+}
 ```
 
-Create a role (or `bound_subject`/`bound_claims` entry) per subject you want to allow - see
-[The Token Subject](#the-token-subject-shared-across-clouds); `plan` and `apply` are distinct. Attach
-the Vault policies your run needs via `token_policies`.
+```bash
+vault write auth/jwt/role/stackweaver @stackweaver-vault-role.json
+```
 
-### Step 3: Register the Configuration in Stackweaver
+The [Vault JWT role schema](https://developer.hashicorp.com/vault/api-docs/auth/jwt#bound_claims) accepts a list of allowed values for a bound claim. This example grants the same policy to both phases; do not assume separate phase-specific roles are selected automatically. Review the policy so plan has only the access you intend to grant.
+
+### Step 3: Register Vault in Stackweaver
 
 ```hcl
-resource "tfe_vault_oidc_configuration" "main" {
+resource "stackweaver_vault_oidc_configuration" "main" {
   organization = "your-org-name"
   address      = "https://vault.example.com:8200"
   role_name    = "stackweaver"
@@ -344,7 +386,7 @@ resource "tfe_vault_oidc_configuration" "main" {
 }
 ```
 
-After `terraform apply`, Stackweaver returns an `id` in the form `vaultoidc-{16-char-alphanumeric}`.
+After apply, confirm the registration exists and its returned identifiers match the intended target before starting a run.
 
 ### Step 4: Use the vault Provider in Your Workspaces
 
@@ -360,26 +402,59 @@ token. The `vault` provider (and any provider reading `VAULT_*`) picks it up aut
 
 ---
 
-## Operator Configuration
+## Register through the API
 
-Two variables control how Stackweaver issues OIDC tokens (the same for every cloud). On Docker Compose they live in `oidc.env` in your Compose directory (copied from `oidc.env.example` during installation). On Kubernetes, set the issuer with the `oidc.issuerUrl` Helm value; the chart generates the signing key into a Secret shared by the API and both runners, or uses your own Secret when you set `secrets.oidc.secretName`.
+Set `STACKWEAVER_URL` to the origin without a trailing slash, `STACKWEAVER_TOKEN` to an authorized organization credential, and `ORG` to its name. After creating Azure trust, save the identifiers as `azure-oidc.json`:
+
+```json
+{
+  "data": {
+    "type": "azure-oidc-configurations",
+    "attributes": {
+      "client-id": "11111111-1111-4111-8111-111111111111",
+      "subscription-id": "22222222-2222-4222-8222-222222222222",
+      "tenant-id": "33333333-3333-4333-8333-333333333333"
+    }
+  }
+}
+```
+
+Replace every sample UUID with the matching Azure identifier, then submit:
+
+```bash
+curl --fail-with-body --silent --show-error \
+  --header "Authorization: Bearer $STACKWEAVER_TOKEN" \
+  --header 'Content-Type: application/vnd.api+json' \
+  --data @azure-oidc.json \
+  "$STACKWEAVER_URL/api/v2/organizations/$ORG/oidc-configurations"
+```
+
+Expect an `azure-oidc-configurations` resource with an ID. List the registrations to verify the saved identifiers before retrying an uncertain create. The same endpoint dispatches AWS, GCP and Vault bodies by their JSON:API type; use [the API explorer](/docs/api-reference/explorer) for their complete schemas and the target-specific HCL examples above for declarative management.
+
+## Verify a workload
+
+Use a test workspace and review a plan with the intended identity. Check that the target accepts the issuer, exact subject and audience and permits the required read operations. Confirm apply-phase trust separately before approving changes: plan and apply have different subjects. A saved registration alone does not prove federation or resource permissions work.
+
+## Operator configuration
+
+Workload identity has its own issuer; it is separate from the Zitadel issuer used for user sign-in. Two variables control token signing and discovery for every target. On Docker Compose they live in `oidc.env` in your Compose directory (copied from `oidc.env.example` during installation). On Kubernetes, set the issuer with the `oidc.issuerUrl` Helm value; the chart generates the signing key into a Secret shared by the API and both runners, or uses your own Secret when you set `secrets.oidc.secretName`.
 
 | Variable | Required | Description |
 |----------|----------|-------------|
 | `OIDC_SIGNING_KEY` | **Yes** | Base64-encoded RSA-2048 private key used to sign workload identity tokens. |
-| `OIDC_ISSUER_URL` | **Yes** | The public URL embedded in tokens and the OIDC discovery document. Must match the **Issuer** you configured on the cloud side exactly (no trailing slash). |
+| `OIDC_ISSUER_URL` | Set explicitly | The public URL embedded in tokens and the OIDC discovery document. Must match the **Issuer** you configured on the cloud side exactly (no trailing slash). |
 
-### Why the signing key is required
+### Share a persistent signing key
 
-Stackweaver runs two separate containers that participate in OIDC: the API (which serves the JWKS public key endpoint the cloud fetches) and the runner (which signs the workload identity token injected into each run). Both read the same `OIDC_SIGNING_KEY`, so the key the runner signs with is the key the API publishes. Without it the API refuses to start, and the runners start with workload identity disabled. An ephemeral key is generated only when `DEV_INSECURE_KEY=1` is set, which is meant for local development: each container then mints its own key, the runner's token carries a `kid` the API's JWKS does not advertise, and the cloud rejects it (for example Azure's `AADSTS700211`).
+Stackweaver runs two separate containers that participate in OIDC: the API (which serves the JWKS public key endpoint the cloud fetches) and the runner (which signs the workload identity token injected into each run). Both read the same `OIDC_SIGNING_KEY`, so the key the runner signs with is the key the API publishes. Without a valid configured key, secure API startup fails and platform runners cannot initialize workload identity. An ephemeral key is generated only when `DEV_INSECURE_KEY=1` is set, which is meant for local development: each container then mints its own key, the runner's token carries a `kid` the API's JWKS does not advertise, and the cloud rejects it (for example Azure's `AADSTS700211`).
 
 On Docker Compose, set `OIDC_SIGNING_KEY` in `oidc.env`; the self-hosting bundle reads that file into the API and both runners. On Kubernetes the chart generates the key into a Secret and mounts it into the same three Deployments, or uses the Secret you name in `secrets.oidc.secretName`.
 
-### Why the key must be base64-encoded
+### Store the key on one line
 
 Docker Compose `env_file` does not support multi-line values. A raw PEM key spans multiple lines; base64 collapses it to a single line `env_file` can read.
 
-### Generating the signing key
+### Generate and apply the signing key
 
 On Docker Compose, generate a 2048-bit RSA key and base64-encode it onto a single line:
 
@@ -395,7 +470,14 @@ After editing `oidc.env`, recreate the services that read it so they pick up the
 docker compose up -d api runner ansible-runner
 ```
 
-On Kubernetes the chart generates the key for you. After changing `oidc.issuerUrl`, apply it with `helm upgrade stackweaver oci://ghcr.io/vhco-pro/charts/stackweaver --namespace stackweaver --values my-values.yaml`.
+Keep the key private and shared by the components that sign or serve tokens. Do not regenerate it as routine troubleshooting; changing it affects existing trust and active tokens.
+
+On Kubernetes the chart generates the key for you. After changing `oidc.issuerUrl` in `my-values.yaml`, apply it with:
+
+```bash
+helm upgrade stackweaver oci://ghcr.io/vhco-pro/charts/stackweaver \
+  --namespace stackweaver --values my-values.yaml
+```
 
 ## Troubleshooting
 
@@ -403,18 +485,18 @@ On Kubernetes the chart generates the key for you. After changing `oidc.issuerUr
 
 Your Stackweaver token does not have the `manage-vcs-settings` permission. Perform the configuration as an organization owner, or ask an owner to grant you that permission.
 
-### The cloud rejects the token with "no matching identity" (e.g. Azure `AADSTS70021`, AWS `Not authorized to perform sts:AssumeRoleWithWebIdentity`, GCP `unable to verify`)
+### The cloud rejects the token with "no matching identity" (e.g. Azure `AADSTS70021`, AWS web-identity authorization failure, GCP `unable to verify`)
 
 The issuer, subject, or audience in the token does not match your cloud-side trust. Check:
 
 - The **Issuer** configured on the cloud matches `OIDC_ISSUER_URL` (or `API_URL` if that variable is not set) exactly, with no trailing slash, and is publicly reachable.
 - The **Subject** matches the run that failed - see [The Token Subject](#the-token-subject-shared-across-clouds). `plan` and `apply` have different subjects and each needs its own trust entry.
-- The **Audience** matches the cloud: `api://AzureADTokenExchange` (Azure), `sts.amazonaws.com` (AWS), or `//iam.googleapis.com/<workload-provider-name>` (GCP).
+- The **Audience** matches the cloud: `api://AzureADTokenExchange` (Azure), `sts.amazonaws.com` (AWS), or the full provider-resource audience shown in [GCP](#gcp).
 
 ### Tokens are rejected only after a Stackweaver restart, or intermittently
 
-The containers are running with `DEV_INSECURE_KEY=1` and no `OIDC_SIGNING_KEY`, so each one generates its own RSA key pair on every start and the API and runner hold different keys. On Docker Compose, set a stable, shared `OIDC_SIGNING_KEY` in `oidc.env`, remove `DEV_INSECURE_KEY`, and recreate the services as described in [Generating the signing key](#generating-the-signing-key). On Kubernetes, confirm that the API and runner Deployments reference the same OIDC Secret.
+The containers are running with `DEV_INSECURE_KEY=1` and no `OIDC_SIGNING_KEY`, so each one generates its own RSA key pair on every start and the API and runner hold different keys. On Docker Compose, set a stable, shared `OIDC_SIGNING_KEY` in `oidc.env`, remove `DEV_INSECURE_KEY`, and recreate the services as described in [Generating the signing key](#generate-and-apply-the-signing-key). On Kubernetes, confirm that the API and runner Deployments reference the same OIDC Secret.
 
-### Azure: `Contributor` role is not sufficient
+### Azure: role-assignment authorization fails
 
-If OpenTofu gets an `AuthorizationFailed` error creating role assignments (e.g., for managed identities), the App Registration needs the `Owner` role, not `Contributor`.
+Check the failed operation and service principal scope. `Contributor` cannot assign Azure RBAC roles. Grant the required role-assignment permission at the intended scope rather than switching every workload to subscription Owner.

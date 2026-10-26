@@ -14,9 +14,25 @@ covers:
 
 # Environment Variables Reference
 
-This page documents every environment variable used by StackWeaver services.
-Variables are grouped by the service that reads them.
-Where a variable is used by multiple services, it is listed under each one.
+Use this reference to place deployment settings and check which service reads them. It covers
+the main service settings; workspace variables and job credentials belong in their resource
+guides. Defaults can come from application configuration, Compose or Helm, so read the scope
+beside each value rather than assuming one default applies to every deployment.
+
+## Choose where to configure it
+
+| Task | Configuration source |
+|---|---|
+| SSO or sign-in email in Compose | Persistent `sso.env`. |
+| GitHub or Azure DevOps credentials in Compose | Persistent `vcs.env`. |
+| Workload identity signing in Compose | Persistent `oidc.env`. |
+| Database, public URLs and initial bootstrap inputs in the standalone Compose example | Follow the [Compose guide](./docker-compose/README.md); distinguish operator inputs from generated identity values. |
+| Kubernetes deployment | Chart values and referenced Secrets in the [Helm guide](./kubernetes/README.md). |
+| Variables a run should receive | Workspace variables, Ansible credentials or the explicit [runner passthrough](#runner-variables-that-reach-runs). |
+
+Do not put persistent integration settings into generated identity output. After changing a
+value, update the service that consumes it and verify the effective behavior. Merely editing
+an env file does not change a process that is already running.
 
 ## API
 
@@ -105,9 +121,12 @@ want two isolated sets of services on one Redis, as a development slot does.
 | `ANSIBLE_ENCRYPTION_KEY` | Alias for `ENCRYPTION_KEY` (checked first) | Falls back to `ENCRYPTION_KEY` |
 | `DEV_INSECURE_KEY` | Set to `1` to allow starting with a missing/insecure key, falling back to an all-zero key. **Local development only - never set in production.** | unset |
 
-This single key encrypts all sensitive data at rest: workspace and variable-set variables, Ansible credentials, OpenTofu **state files** in object storage, sensitive OpenTofu **output values**, and **VCS connection tokens** in the database. Use the same value across every service that handles this data so they can read each other's ciphertext. The **orchestrator** also reads it, to decrypt VCS tokens when refreshing OAuth tokens and building clone URLs and to decrypt the signing keys of notification and run-task webhooks. Like the API and the runners, it refuses to start with a missing, too-short, or all-zero key.
+This key protects the following stored values: workspace and variable-set variables, Ansible credentials, OpenTofu **state files** in object storage, sensitive OpenTofu **output values**, and **VCS connection tokens** in the database. Use the same value across every service that handles this data so they can read each other's ciphertext. The **orchestrator** also reads it, to decrypt VCS tokens when refreshing OAuth tokens and building clone URLs and to decrypt the signing keys of notification and run-task webhooks. Like the API and the runners, it refuses to start with a missing, too-short, or all-zero key.
 
-The Helm chart provisions a strong `ENCRYPTION_KEY` automatically into a Kubernetes Secret (preserved across upgrades and uninstall) and injects it into the API, runners, **and orchestrator**, or you can bring your own - see the [Kubernetes guide](kubernetes/README.md#secrets). Self-hosted *agent* runners (`RUNNER_MODE=agent`) do not need this key: they receive already-decrypted job artifacts over the API.
+The Helm chart provisions a strong `ENCRYPTION_KEY` automatically into a Kubernetes Secret (preserved across upgrades and uninstall) and injects it into the API, runners, **and orchestrator**, or you can bring your own - see the [Kubernetes guide](kubernetes/README.md#secrets). Self-hosted *agent* runners (`RUNNER_MODE=agent`) receive job artifacts over the API and do not need this platform encryption key.
+
+> [!WARNING]
+> Keep the encryption key with your database and object-storage backups. Generating a new key is not a credential-rotation procedure and can make stored data unreadable.
 
 State files and VCS tokens stored as plaintext remain readable: decryption tolerates plaintext, and each value is re-encrypted on its next write, so no migration step is required.
 
@@ -127,11 +146,20 @@ State files and VCS tokens stored as plaintext remain readable: decryption toler
 | `GITHUB_APP_PRIVATE_KEY_PATH` | Path to GitHub App private key PEM file | (none) |
 | `GITHUB_APP_PRIVATE_KEY` | PEM key contents (alternative to path) | (none) |
 | `GITHUB_APP_CLIENT_ID` | The GitHub App's OAuth client ID ("Client ID" on the App's settings page). **Required** to connect a GitHub App installation: connecting asks the person to authorize the App, which confirms they can access the installation. In Docker Compose, put it in `vcs.env`. | (none) |
-| `GITHUB_APP_CLIENT_SECRET` | A client secret generated on the App's settings page, used with `GITHUB_APP_CLIENT_ID`. In Docker Compose, put it in `vcs.env` and escape every `$` as `$$`. | (none) |
-| `GITHUB_WEBHOOK_SECRET` | Webhook signing secret. **Required** for GitHub webhooks: the App's incoming deliveries are authenticated by HMAC-SHA256 of the body against this value, and the endpoint **rejects every delivery (401) when it is unset** - set the same value here and in the GitHub App's webhook configuration. In Docker Compose, put it in `vcs.env` and escape every `$` as `$$` (see the note below). | (none) |
+| `GITHUB_APP_CLIENT_SECRET` | A client secret generated on the App's settings page, used with `GITHUB_APP_CLIENT_ID`. In Docker Compose, put it in `vcs.env`; single-quote a value containing literal dollar signs. | (none) |
+| `GITHUB_WEBHOOK_SECRET` | Webhook signing secret. **Required** for GitHub webhooks: the App's incoming deliveries are authenticated by HMAC-SHA256 of the body against this value, and the endpoint **rejects every delivery (401) when it is unset** - set the same value here and in the GitHub App's webhook configuration. In Docker Compose, put it in `vcs.env`; use the quoting guidance below. | (none) |
 
 > [!WARNING]
-> **Escape `$` in Docker Compose secrets.** Compose interpolates `$VAR` sequences in both `environment:` entries and `env_file` values, so a secret containing a literal `$` silently loses that sequence: a value of `s3cr3t$Alt!x` reaches the container as `s3cr3t!x`, and every webhook delivery then fails signature validation with a `401` that looks like a broken integration rather than a config typo. Write it as `s3cr3t$$Alt!x`, and confirm what the container will actually receive with `docker compose config | grep GITHUB_WEBHOOK_SECRET`. The same applies to any other secret you set this way.
+> **Preserve literal dollar signs.** Single-quote values in Compose env files to avoid
+> interpolation. In Compose YAML values, escape a literal dollar sign as `$$`. Keep the
+> same actual secret at the provider and Stackweaver; validate using synthetic values.
+
+For example, in `vcs.env`:
+
+```dotenv
+GITHUB_WEBHOOK_SECRET='example$literal'
+```
+
 
 ### Azure DevOps Integration
 
@@ -188,7 +216,7 @@ Configuration is loaded at runtime via an `env.js` file that sets values on `win
 The app falls back to `import.meta.env.VITE_*` build-time variables, and then to hardcoded defaults.
 
 In Kubernetes, the Helm chart generates `env.js` automatically from the ingress configuration - the frontend image is generic and does not need domain-specific build args.
-In Docker Compose, the frontend container writes `env.js` from its `VITE_*` environment variables each time it starts, so recreating the container applies a changed value.
+In the standalone Compose bundle, `frontend-config` writes `env.js` after identity initialization. Set its `VITE_*` inputs and re-run the config writer; adding those variables only to the frontend container does not update that file.
 
 | Variable | Description | Default |
 |---|---|---|
@@ -321,13 +349,57 @@ In agent mode (`RUNNER_MODE=agent`) the runner talks only to the Stackweaver API
 
 ### Runner variables that reach runs
 
-A runner's own environment holds the platform's secrets (the database password, the Redis and storage credentials, the encryption key, the workload identity signing key) or, for an agent, its runner token. The processes a runner starts for a run execute code the run's author controls: OpenTofu providers, the `external` data source and `local-exec` provisioners, playbooks, inventory plugins and scripts, and Galaxy installs. Both runners, in both modes, therefore build the environment of those processes from an allowlist, and every other runner variable stays behind, including any variable added to a deployment later.
+Runner services hold platform credentials that user-supplied code must not inherit. Both
+runner modes construct subprocess environments from the run's variables plus an allowlist.
+OpenTofu providers, provisioners, inventory plugins, playbooks and Galaxy installs all run
+code; granting a variable to a runner's jobs grants it to that code.
 
-A run is handed the variables the run itself defines (workspace and variable-set environment variables, job credentials, and the workload identity variables the platform mints for it) and, from the runner's own environment, only the following. Every run gets `PATH`, `HOME`, `USER`, `LOGNAME`, `TMPDIR`, `TZ`, `LANG`, `LANGUAGE` and every `LC_*` locale variable. It gets the proxy settings `HTTP_PROXY`, `HTTPS_PROXY`, `NO_PROXY` and `ALL_PROXY`, in upper and lower case, and the CA bundle settings `SSL_CERT_FILE`, `SSL_CERT_DIR`, `REQUESTS_CA_BUNDLE` and `CURL_CA_BUNDLE`. It gets the pod-level cloud identity variables that Kubernetes and the cloud webhooks set: `AWS_ROLE_ARN`, `AWS_WEB_IDENTITY_TOKEN_FILE`, `AWS_ROLE_SESSION_NAME`, `AWS_REGION`, `AWS_DEFAULT_REGION`, `AWS_STS_REGIONAL_ENDPOINTS`, `AWS_CONTAINER_CREDENTIALS_FULL_URI` and `AWS_CONTAINER_AUTHORIZATION_TOKEN_FILE` for IRSA and EKS Pod Identity, `AZURE_CLIENT_ID`, `AZURE_TENANT_ID`, `AZURE_FEDERATED_TOKEN_FILE` and `AZURE_AUTHORITY_HOST` for AKS workload identity, and `KUBERNETES_SERVICE_HOST` and `KUBERNETES_SERVICE_PORT`. An identity granted to the runner pod is therefore available to every run on it, which is what makes that a supported way to give runs cloud access.
+```mermaid
+flowchart LR
+    A["Runner service environment"] --> B["Built-in allowlist and explicit passthrough"]
+    B --> D["Run subprocess"]
+    C["Workspace variables or job credentials"] --> D
+```
 
-OpenTofu runs also get `TF_CLI_CONFIG_FILE`, `TF_PLUGIN_CACHE_DIR`, `TF_PLUGIN_CACHE_MAY_BREAK_DEPENDENCY_LOCK_FILE`, `TF_IN_AUTOMATION`, `TF_REGISTRY_DISCOVERY_RETRY`, `TF_REGISTRY_CLIENT_TIMEOUT`, `TF_PROVIDER_DOWNLOAD_RETRY` and every `TF_TOKEN_<host>` registry credential. Ansible jobs, inventory syncs and Galaxy installs also get `ANSIBLE_HOME`, `ANSIBLE_REMOTE_TMP`, `ANSIBLE_LOCAL_TEMP`, `ANSIBLE_COLLECTIONS_PATH`, `ANSIBLE_ROLES_PATH`, `VIRTUAL_ENV`, `AZURE_TENANT` and `AZURE_SUBSCRIPTION_ID`. Any other `ANSIBLE_*` variable set on the runner is not passed on.
+| Subprocess scope | Inherited names |
+|---|---|
+| Every run | `PATH`, `HOME`, `USER`, `LOGNAME`, `TMPDIR`, `TZ`, `LANG`, `LANGUAGE`, `LC_*`. |
+| Proxies and CA bundles | `HTTP_PROXY`, `HTTPS_PROXY`, `NO_PROXY`, `ALL_PROXY` and lowercase equivalents; `SSL_CERT_FILE`, `SSL_CERT_DIR`, `REQUESTS_CA_BUNDLE`, `CURL_CA_BUNDLE`. |
+| AWS pod identity | `AWS_ROLE_ARN`, `AWS_WEB_IDENTITY_TOKEN_FILE`, `AWS_ROLE_SESSION_NAME`, `AWS_REGION`, `AWS_DEFAULT_REGION`, `AWS_STS_REGIONAL_ENDPOINTS`, `AWS_CONTAINER_CREDENTIALS_FULL_URI`, `AWS_CONTAINER_AUTHORIZATION_TOKEN_FILE`. |
+| Azure pod identity | `AZURE_CLIENT_ID`, `AZURE_TENANT_ID`, `AZURE_FEDERATED_TOKEN_FILE`, `AZURE_AUTHORITY_HOST`. |
+| Kubernetes | `KUBERNETES_SERVICE_HOST`, `KUBERNETES_SERVICE_PORT`. |
+| OpenTofu only | `TF_CLI_CONFIG_FILE`, `TF_PLUGIN_CACHE_DIR`, `TF_PLUGIN_CACHE_MAY_BREAK_DEPENDENCY_LOCK_FILE`, `TF_IN_AUTOMATION`, `TF_REGISTRY_DISCOVERY_RETRY`, `TF_REGISTRY_CLIENT_TIMEOUT`, `TF_PROVIDER_DOWNLOAD_RETRY`, `TF_TOKEN_<host>`. |
+| Ansible jobs, inventory sync and Galaxy | `ANSIBLE_HOME`, `ANSIBLE_REMOTE_TMP`, `ANSIBLE_LOCAL_TEMP`, `ANSIBLE_COLLECTIONS_PATH`, `ANSIBLE_ROLES_PATH`, `VIRTUAL_ENV`, `AZURE_TENANT`, `AZURE_SUBSCRIPTION_ID`. Other `ANSIBLE_*` names are not automatically inherited. |
 
-To hand runs a further variable you set on the runner, such as a proxy credential or a cloud setting not listed above, list its name in `STACKWEAVER_RUN_ENV_PASSTHROUGH`, separated by commas: for example `STACKWEAVER_RUN_ENV_PASSTHROUGH=AWS_PROFILE,AWS_CONFIG_FILE`. Names are matched exactly and patterns are not accepted. With the Helm chart, set `runner.runEnvPassthrough` and `ansibleRunner.runEnvPassthrough` to a list of names and put the variables themselves in `runner.env` and `ansibleRunner.env`. On Docker Compose and on a self-hosted agent, set the variable on the runner container next to the variables it names. Never list a platform secret: whatever you name here is readable by every run on that runner.
+A pod-level cloud identity is available to every run on that runner. The database password,
+Redis/storage credentials, encryption/signing keys and agent token are not inherited through
+the built-in list.
+
+For additional names, set the variable on the runner service and list it explicitly:
+
+```dotenv
+AWS_PROFILE=example-profile
+AWS_CONFIG_FILE=/etc/aws/config
+STACKWEAVER_RUN_ENV_PASSTHROUGH=AWS_PROFILE,AWS_CONFIG_FILE
+```
+
+The referenced file must also exist in that runner. Names are exact and comma-separated;
+wildcards are unsupported. For Helm, use the corresponding runner's `env` and
+`runEnvPassthrough` values:
+
+```yaml
+runner:
+  env:
+    AWS_PROFILE: example-profile
+    AWS_CONFIG_FILE: /etc/aws/config
+  runEnvPassthrough:
+    - AWS_PROFILE
+    - AWS_CONFIG_FILE
+```
+
+Use `ansibleRunner.env` and `ansibleRunner.runEnvPassthrough` for Ansible. Never list a
+platform secret. Verify with a harmless diagnostic on an isolated test workload, without
+printing secrets into logs.
 
 ---
 
@@ -338,7 +410,7 @@ The following are the most relevant variables used in the StackWeaver deployment
 
 | Variable | Description | Default |
 |---|---|---|
-| `ZITADEL_MASTERKEY` | 32-character encryption master key | (required) |
+| `ZITADEL_MASTERKEY` | 32-byte encryption master key | (required) |
 | `ZITADEL_DATABASE_POSTGRES_HOST` | PostgreSQL host | `localhost` |
 | `ZITADEL_DATABASE_POSTGRES_ADMIN_PASSWORD` | DB admin password | From config |
 | `ZITADEL_DATABASE_POSTGRES_USER_PASSWORD` | DB user password | From config |
@@ -361,8 +433,8 @@ In Kubernetes, the `STACKWEAVER_NOTIFICATION_MODE`, `SMTP_*`, `STACKWEAVER_SELF_
 | `ZITADEL_PAT_PATH` | Path to PAT file written by Zitadel | `/pat/admin.pat` |
 | `ZITADEL_PAT` | Pre-existing PAT (highest priority, skips file and secret read) | (empty) |
 | `ZITADEL_CUSTOM_DOMAINS` | Additional custom domains | (none) |
-| `FRONTEND_REDIRECT_URI` | Sign-in redirect URI registered on the browser sign-in app, in addition to `http://localhost:5173/auth/callback` | Derived from app URL |
-| `FRONTEND_POST_LOGOUT_URI` | Post-logout redirect URI registered on the browser sign-in app, in addition to `http://localhost:5173` | Derived from app URL |
+| `FRONTEND_REDIRECT_URI` | Explicit sign-in redirect URI registered on the browser sign-in app; localhost defaults are added when this value is unset | `http://localhost:5173/auth/callback` |
+| `FRONTEND_POST_LOGOUT_URI` | Post-logout redirect URI registered on the browser sign-in app; localhost defaults follow the `FRONTEND_REDIRECT_URI` setting | `http://localhost:5173` |
 | `ZITADEL_BFF_BACKCHANNEL_LOGOUT_URI` | Back-channel logout URI registered on the browser sign-in app: the API's `/auth/oidc/end-session`, at an address Zitadel can reach. The Helm chart sets it to the API's in-cluster service | (empty) |
 | `LOGIN_UI_BASE_URL` | URL of the SPA's `/login` route, set as Zitadel's Login V2 base URI on every run | `http://localhost:5173/login` |
 | `STACKWEAVER_NOTIFICATION_MODE` | The API's notification mode, which decides whether codes can be delivered (`email` or `return_code`; `return_code` is refused in Kubernetes and needs `STACKWEAVER_ALLOW_RETURN_CODE=true` elsewhere) | `email` |

@@ -1,122 +1,134 @@
 ---
-description: "How automatic VCS-based playbook synchronization works via webhooks with path filtering"
+description: "Register VCS playbooks, understand push filtering, verify cached commits and distinguish sync from webhook job launches."
 covers:
+  - "backend/internal/api/v2/handlers/vcs_app_installation.go"
   - "backend/internal/api/v2/handlers/ansible/**"
-  - "core/vcs/**"
+  - "core/services/ansible/playbook_sync.go"
+  - "frontend/src/pages/Ansible/Playbooks.tsx"
 ---
 
-# Ansible Playbook Webhook Sync
+# Sync playbooks from repository pushes
 
-StackWeaver automatically synchronizes Ansible playbooks from your Git repositories whenever you push changes. Keep your playbooks in version control and let StackWeaver handle the rest.
+A push to a playbook's tracked branch can queue a sync of its cached content. Register the
+repository, branch and file once, then verify the synced commit after a relevant change.
+This works for GitHub and Azure DevOps connections; it does not need an OpenTofu workspace.
 
-## Overview
+## Connect the playbook
 
-Instead of manually uploading playbook files, you can connect your playbooks to a Git repository. StackWeaver monitors your repository and automatically syncs playbook files when changes are pushed, ensuring your playbooks are always up to date with your codebase.
+1. Configure a [GitHub App](../user-guides/vcs/github-app.md) or
+   [Azure DevOps connection](../user-guides/vcs/azure-devops.md) with repository access.
+2. Register the playbook with its VCS connection, repository, branch and playbook path.
+3. Wait for the initial sync to succeed. Check its commit and sync time.
+4. Push a small relevant change to the tracked branch, then confirm that the recorded
+   sync and commit update. A delivery being accepted does not prove the async sync succeeded.
 
-## How It Works
+![Register Playbook form with the repository, branch and playbook file inputs.](../user-guides/images/playbooks-register.png)
+
+Example registration using the real product form. For all UI fields, bulk import and
+source-mode choices, use [Managing Ansible playbooks](../user-guides/managing-ansible-playbooks.md).
+
+### Declare the registration with Terraform
+
+Configure the [Stackweaver provider](../user-guides/terraform-provider.md), then add this to
+`playbooks.tf` using existing IDs from the same organization:
+
+```hcl
+variable "project_id" { type = string }
+variable "vcs_connection_id" { type = string }
+
+resource "stackweaver_ansible_playbook" "deploy" {
+  project_id        = var.project_id
+  name              = "Deploy production"
+  vcs_connection_id = var.vcs_connection_id
+  vcs_repository    = "example-platform/automation"
+  vcs_branch        = "main"
+  playbook_path     = "playbooks/deploy.yml"
+  source_mode       = "cached"
+}
+```
+
+Run a reviewed Terraform plan and apply from your existing management configuration. For
+an existing registration, update its managed resource or import it rather than creating a
+duplicate. The resource registers the playbook; it neither installs a GitHub App nor launches
+a job. Use the linked guide for the complete [REST registration and sync procedure](../user-guides/managing-ansible-playbooks.md#register-and-sync-through-the-api).
+
+## Which changes queue a sync?
+
+| Change | Result |
+|---|---|
+| Added, modified or removed file in the registered playbook's directory. | Queues a playbook sync, including changes to the playbook itself. |
+| VCS inventory's configured file changes. | Queues that inventory's sync. |
+| No path configured on the registration. | Any push on its tracked branch can queue a sync. |
+| Different branch or unrelated path. | Does not sync that registration. |
+| Azure DevOps delivery without a changed-file list. | Syncs every matching playbook and inventory on the branch. |
+
+Keep dependencies such as variables and requirements in paths covered by your sync rules.
+For a playbook at the repository root, its directory covers repository changes broadly.
+These rules concern playbooks and inventories. [Workspace path filters](./opentofu/vcs-path-filtering.md)
+use their own directory/pattern settings.
 
 ```mermaid
 sequenceDiagram
     participant Dev as Developer
-    participant Git as Git Repository
-    participant SW as StackWeaver
-
-    Dev->>Git: Push changes
-    Git-->>SW: Webhook notification
-    SW->>SW: Path filter (playbook file changed?)
-    SW->>Git: Download latest playbook
-    SW->>SW: Update stored playbook
+    participant Git as Git provider
+    participant SW as Stackweaver
+    Dev->>Git: Push to tracked branch
+    Git->>SW: Authenticated webhook delivery
+    SW->>SW: Match connection, branch and changed paths
+    SW->>Git: Queue and fetch playbook content
+    SW->>SW: Record sync result and cached commit
 ```
 
 <details>
-<summary><strong>Flow Steps (Legend)</strong></summary>
+<summary>Sync flow legend</summary>
 
-1. **Connect** - Link your playbook to a Git repository and specify the branch and file path.
-2. **Push** - When you push changes to the repository, StackWeaver detects the push via webhook.
-3. **Filter** - Sync only triggers when a file in the playbook's directory changes.
-4. **Update** - StackWeaver downloads the latest version and updates the playbook automatically.
+1. The VCS connection must belong to the registration's organization and match the delivery.
+2. Path matching selects affected registrations; syncing is asynchronous.
+3. A sync refreshes cached content. It is separate from running a job template.
 
 </details>
 
-## Setting Up VCS Sync
+## Sync and job launch are separate
 
-To enable automatic playbook synchronization:
+A push can also launch templates that explicitly enable webhook launches. Keep that opt-in
+separate from playbook sync. Normal disabled-template, dependency and concurrency gates
+still apply to the launched job.
 
-1. **Create or Edit Playbook**: When creating a playbook, or when editing an existing one
-2. **Select VCS Connection**: Choose a configured GitHub App or Azure DevOps connection
-3. **Specify Repository**: Enter the repository name (e.g., `myorg/ansible-playbooks`)
-4. **Set Branch**: Choose which Git branch to sync from (default: `main`)
-5. **Configure Playbook Path**: Specify the path to your playbook file within the repository (e.g., `playbooks/deploy.yml`)
+> [!IMPORTANT]
+> Fresh mode fetches branch HEAD when the job starts; it does not pin the triggering commit.
+> In cached mode, a webhook launch can race a snapshot sync and use the older snapshot.
+> Verify the job's actual playbook source before treating it as a deployment of one commit.
 
-Once configured, StackWeaver automatically syncs the playbook whenever changes are pushed to that branch. A playbook is linked to its repository and branch on its own: a push syncs it whether or not an OpenTofu workspace uses the same repository. VCS inventories sync on a push the same way.
+See [Ansible execution](./ansible/execution-flows.md#webhook-triggers) for launch gates and
+[playbook source modes](../user-guides/managing-ansible-playbooks.md#source-modes) for the
+snapshot/fresh distinction.
 
-## Path-Based Filtering
+## Request another sync and check it
 
-StackWeaver syncs a playbook only when a push changes something it uses:
+Open the playbook and choose **Sync from VCS** or **Retry sync**, depending on its current
+status. Through the API, set your API origin, token and playbook ID, then queue a sync:
 
-- **Playbook directory changes**: a push that adds, modifies or removes a file in the playbook's directory (the directory of its playbook path), including the playbook file itself, syncs it. Keep a playbook's `requirements.yml` and variable files in that directory so that changing them syncs it too.
-- **Inventory file changes**: a VCS inventory syncs when its inventory file changes.
-- **No path set**: a playbook or inventory without a path syncs on every push to its branch.
-- **Unrelated changes ignored**: changes to other files in the repository don't trigger a sync.
+```bash
+curl --fail-with-body --request POST \
+  --header "Authorization: Bearer $STACKWEAVER_TOKEN" \
+  "$STACKWEAVER_API_URL/api/v2/ansible/playbooks/$PLAYBOOK_ID/actions/sync"
+curl --fail-with-body \
+  --header "Authorization: Bearer $STACKWEAVER_TOKEN" \
+  "$STACKWEAVER_API_URL/api/v2/ansible/playbooks/$PLAYBOOK_ID"
+```
 
-An Azure DevOps push delivery does not always list the files it changed. When it does not, every playbook and inventory on the pushed branch syncs.
+The POST returns `202 Accepted`. Read the registration until `last-sync-status` reports its
+result. Check `cached-commit`, sync time and any error; queue acceptance alone is not success.
+YAML configures your playbook and dependencies, not the Stackweaver registration itself.
 
-A push that syncs a playbook also launches that playbook's job templates that are enabled for webhook launches.
+## Recover a missed or failed sync
 
-## Manual Sync
+1. Check the provider's webhook delivery reached the public API and passed signature/secret
+   verification. For 401 responses, compare the deployment secret and env-file quoting.
+2. Confirm the connected installation/account can read the repository and tracked branch.
+3. Check the file path and whether the changed files match this registration.
+4. Read the sync error, correct the failed input and request another sync.
+5. Verify the intended cached commit, then inspect the source event of any resulting job.
 
-You can also manually trigger a sync at any time:
-
-1. Open the playbook detail page
-2. Click "Sync" to immediately pull the latest version from the repository
-
-Manual syncs are useful when:
-- You want to update before the next push
-- Testing sync configuration
-- Recovering from a failed automatic sync
-
-## Sync Status
-
-Each playbook shows sync status information:
-
-- **Last Sync Time**: When the playbook was last successfully synced
-- **Sync Status**: Success or failure of the last sync operation
-- **Commit Hash**: The Git commit SHA of the synced version
-- **Sync Errors**: Any errors encountered during sync (repository access, file not found, etc.)
-
-This helps you verify that your playbooks are staying in sync with your repository.
-
-## Benefits
-
-- **Version Control Integration**: Keep playbooks in Git with the rest of your infrastructure code
-- **Automatic Updates**: No manual uploads needed when you make changes
-- **Consistency**: All team members work from the same version in Git
-- **History**: Git provides full history and change tracking
-- **CI/CD Integration**: Combine with other automation for complete workflow integration
-
-## Use Cases
-
-Common scenarios for VCS-synced playbooks:
-
-- **Infrastructure as Code**: Store playbooks alongside OpenTofu configurations in the same repository
-- **Environment-Specific Playbooks**: Different branches for dev, staging, and production environments
-- **Shared Playbooks**: Multiple projects can reference the same playbook from a shared repository
-- **Automated Deployment**: Combine webhook sync with job templates for fully automated workflows
-
-## Troubleshooting
-
-If sync fails, check:
-
-- **VCS Connection**: Ensure the GitHub App connection is properly configured
-- **Repository Access**: Verify the connection has access to the repository
-- **Branch Name**: Confirm the branch exists in the repository
-- **File Path**: Ensure the playbook path is correct relative to the repository root
-- **Webhook Configuration**: Check that webhooks are properly configured in GitHub
-
-Sync errors are displayed in the playbook detail view, along with details about what went wrong.
-
-## Related Documentation
-
-- [Ansible Documentation](./ansible/README.md) - Complete Ansible integration guide
-- [GitHub App Setup](../user-guides/vcs/github-app.md) - Setting up VCS connections
-- [VCS Path Filtering](./opentofu/vcs-path-filtering.md) - How path-based filtering works for Terraform workspaces
+An older successful snapshot can remain usable after a failed sync. Do not confuse a job
+succeeding from that snapshot with the latest repository change being synchronized.

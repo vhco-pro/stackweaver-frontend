@@ -1,49 +1,189 @@
 ---
-description: "Guide for filing change requests against workspaces so teams know what needs fixing, and archiving them once the work is done"
+description: "File workspace action items, review open requests and archive completed work."
 covers:
   - "core/models/change_request*"
   - "core/repository/change_request*"
   - "backend/internal/api/v2/handlers/terraform/change_requests*"
   - "frontend/src/components/workspace/WorkspaceChangeRequests*"
+  - "frontend/src/pages/Workspaces.tsx"
   - "frontend/src/pages/Settings/ChangeRequests*"
+  - "frontend/src/api/client.ts"
+capabilities: [
+  {
+    "id": "workspace-change-requests",
+    "name": "Workspace change requests",
+    "summary": "Record work for workspace owners and archive each request when it is done.",
+    "area": "opentofu",
+    "availability": "available",
+    "limitations": "Filing needs organization workspace-management permission; archiving needs workspace write access. UI views load one page; use API pagination for larger backlogs.",
+    "evidence": [
+      "backend/internal/api/v2/handlers/terraform/change_requests.go",
+      "backend/internal/api/v2/handlers/terraform/change_requests_test.go",
+      "frontend/src/api/client.ts",
+      "frontend/src/components/workspace/WorkspaceChangeRequests.tsx",
+      "frontend/src/pages/Settings/ChangeRequests.tsx",
+      "core/repository/change_request.go"
+    ]
+  }
+]
 ---
 
-# Change Requests
+# Change requests
 
-A change request is an action item recorded on a workspace. It is how a platform administrator tells the team that owns a workspace that something needs attention, without leaving the platform or opening a ticket somewhere else.
+Use a change request to record work a workspace's team needs to do, such as upgrading a
+module. The request stays open until someone archives it. Filing a request does not change
+infrastructure or start a run.
 
-## Overview
+<a id="overview" style="scroll-margin-top: 7rem"></a>
 
-Change requests are deliberately small. A request has a subject, a message, and one of two states: open, or archived. An administrator files a request against one or more workspaces, the teams with access to those workspaces can see it on the workspace itself, and a team member archives it once the work is done. There is no assignment, no priority, and no comment thread.
+## Before you start
 
-The typical use is governance work that a platform team spots while reviewing an estate: a module version that has reached end of life, a security update that needs applying, a workspace that has drifted from a compliance baseline. Rather than chasing each workspace owner individually, you file one request against every affected workspace at once and let each team close out its own.
+| Action | Access needed |
+|---|---|
+| File a request or view the organization's open-request backlog | Organization permission to manage workspaces (`org:manage-workspaces`). Organization owners have this permission. |
+| Read a workspace's requests | Read access to that workspace, or organization ownership. |
+| Archive a request | Write access to that workspace, or organization ownership. |
 
-Filing a change request requires the `org:manage-workspaces` permission, which is the permission that stands in for an administrator here. Members of the owners team always have it. Archiving only requires write access to the workspace, so the team doing the work can close the request without needing administrator rights.
+Requests have a subject and an optional message. They do not have assignees, priorities
+or comment threads.
 
-## Filing a change request
+| Interface | Use it for |
+|---|---|
+| Web interface | File a request for one workspace and review or archive work. |
+| REST API | File the same instruction against explicit workspace IDs, list requests and archive completed work. The same access requirements apply. |
+| Terraform/OpenTofu provider | Request filing and archiving are not exposed as provider resources. Use the API for this operational workflow. |
 
-Open the Workspaces list, find the workspace that needs attention, and choose **File change request** from the actions menu at the end of its row, alongside Edit and Delete. The menu item only appears if you have permission to file. The dialog names the workspace you picked, so there is never any doubt about what you are filing against.
+<a id="filing-a-change-request" style="scroll-margin-top: 7rem"></a>
 
-Only the subject is required. The message is optional and is rendered as Markdown, so you can include a link to a runbook or a migration guide.
+## File a request
 
-To cover several workspaces, file a request on each one. They are independent from that point on: each owning team archives its own, which is what lets you track partial progress across an estate rather than an all-or-nothing task.
+1. Open your organization's **Workspaces** list.
+2. Open **Workspace actions** on the workspace's row and choose **File change request**.
+3. Check the workspace named in the dialog. Enter a **Subject** describing the work,
+   and optionally a **Message** with instructions. Messages display as plain text.
+4. Select **File request**.
+5. Open **Settings > Change Requests** and check that the request appears under the workspace.
 
-## Seeing and archiving requests
+For example, use a subject such as "Upgrade the network module" and put the target version
+and the checks to perform in the message. File a separate request for each affected workspace
+so its team can close out the work independently.
 
-Each workspace has a **Change Requests** tab listing everything filed against it. Open requests appear first, and archived ones are collapsed into a separate section below so a long history does not bury current work. Archiving is a single click, and the request records who archived it and when.
+![File a change request dialog with a subject and message for production-network](./images/change-requests-file.png)
 
-Archiving is not destructive and it is not reversible from the interface. An archived request remains visible in its collapsed section as a record that the work was done.
+*Example workspace and instruction. Filing records the work; it does not execute it.*
 
-## Triaging across the organization
+<a id="seeing-and-archiving-requests" style="scroll-margin-top: 7rem"></a>
 
-The per-workspace tab answers "what does this workspace need", but an administrator usually needs the opposite view: what is still outstanding everywhere. **Settings → Change Requests** lists every open request across the organization, grouped by workspace, with the same archive action inline. Each workspace name links straight to that workspace's Change Requests tab. The page only lists open requests, so it empties out as teams complete the work, and it is only visible to users who can file requests in the first place.
+## Close completed work
 
-## API compatibility
+1. Complete and verify the work described in the request.
+2. Open the workspace's **Change Requests** tab and select **Archive** on that request.
+3. Expand **Archived** to check that the request is retained there with its archive date.
 
-The change request endpoints match HCP Terraform's, so scripts written against Terraform Cloud work unchanged. The resource type on the wire is `workspace_change_requests`, and a request is open exactly when its `archived-by` and `archived-at` attributes are null.
+Archiving records completion without deleting the request. The interface does not offer a
+reopen action. It does not verify that the infrastructure work was completed for you.
 
-Requests are created through HCP Terraform's bulk action endpoint, which takes a single subject and message together with a list of target workspaces. The endpoint accepts many targets, matching HCP Terraform, even though the interface files against one workspace at a time; if you want to file the same request across an estate, script it against the API with several target ids in one call. See the handler in `backend/internal/api/v2/handlers/terraform/change_requests.go` for the exact request and response shapes, and the route registrations in `backend/internal/api/v2/routes/routes.go` for the full endpoint list.
+![Workspace Change Requests tab showing an open request and the expanded Archived section](./images/change-requests-workspace.png)
 
-There are two deliberate differences from HCP Terraform. The bulk action endpoint also accepts an Explorer query in place of an explicit list of workspaces, which Stackweaver rejects with a clear error because it does not implement the Explorer; pass target workspace ids instead. Stackweaver also adds an endpoint to delete a change request outright and an endpoint listing an organization's open requests, neither of which HCP Terraform provides.
+*An open module upgrade request and a completed lockfile review. Archived work stays separate.*
 
-There is no Terraform provider resource for change requests, in Stackweaver or in HCP Terraform, so they cannot be managed from Terraform configuration.
+<a id="triaging-across-the-organization" style="scroll-margin-top: 7rem"></a>
+
+## Review the organization's backlog
+
+Open **Settings > Change Requests** to see open requests grouped by workspace. Select a
+workspace name to open its requests, or use **Archive** there once its work is complete.
+Archived requests disappear from this backlog and remain in the workspace's **Archived** section.
+
+![Organization Change Requests page grouping open requests by workspace](./images/change-requests-backlog.png)
+
+*Example organization backlog with separate workspaces and an Archive action on each request.*
+
+For larger backlogs, use the paginated API below. The organization view loads up to 100
+open requests; the workspace tab loads up to 20 requests, with open requests first. These views
+do not load additional pages, so a missing older request is not proof it was deleted.
+
+## If an action is unavailable
+
+| Symptom | What to check |
+|---|---|
+| **File change request** is missing from the row menu | You need organization-level workspace management permission. Workspace write access alone is not enough. |
+| Archiving is refused | Ask an organization owner to check your write access to the workspace. |
+| **File request** is disabled | Enter a nonempty subject and check that a workspace is selected. |
+| An older request is missing | Read the API's next page. Include archived records when looking for completed work. |
+
+<a id="api-compatibility" style="scroll-margin-top: 7rem"></a>
+
+## Automate requests
+
+### 1. File against selected workspaces
+
+Configure the environment as in [Using the API](../architecture/using-the-api.md). Save
+the following as `change-request.json`, replacing the workspace IDs with IDs in the
+selected organization. Attribute names use underscores for this bulk operation.
+
+```json
+{
+  "data": {
+    "type": "bulk_actions",
+    "attributes": {
+      "action_type": "change_requests",
+      "action_inputs": {
+        "subject": "Upgrade the network module",
+        "message": "Update the version constraint and review a new plan."
+      },
+      "target_ids": ["<workspace-id>", "<another-workspace-id>"]
+    }
+  }
+}
+```
+
+```bash
+curl --fail --silent --show-error --request POST \
+  --header "Authorization: Bearer $STACKWEAVER_TOKEN" \
+  --header "Content-Type: application/vnd.api+json" \
+  --data @change-request.json \
+  "$STACKWEAVER_API_URL/api/v2/organizations/$STACKWEAVER_ORGANIZATION/explorer/bulk-actions"
+```
+
+A successful request returns `201 Created` describing the bulk action. Retrieve the created
+requests to obtain their individual IDs; the bulk-action response is not a request ID.
+Bulk filing accepts explicit `target_ids`, not a workspace query. All target IDs must belong
+to the selected organization; a missing or out-of-organization target rejects the operation
+before requests are created.
+
+Repeating this POST files new requests. If its response is uncertain, check the target
+workspaces before retrying so you do not file the same instruction twice.
+
+### 2. Find requests and their IDs
+
+Set `WORKSPACE_ID` to one of the target IDs above. This request includes archived records
+and asks for the first page of up to 100 results:
+
+```bash
+curl --fail --silent --show-error --globoff \
+  --header "Authorization: Bearer $STACKWEAVER_TOKEN" \
+  "$STACKWEAVER_API_URL/api/v2/workspaces/$WORKSPACE_ID/change-requests?filter[archived]=true&page[number]=1&page[size]=100"
+```
+
+Compare the subject, message, workspace and `created-at` before choosing a record's
+`data[].id`; a workspace can have several requests with the same subject. Open requests
+have `archived-at: null`. Omit `filter[archived]=true` to list only open requests. Follow
+`meta.pagination.next-page` until it is `null` to retrieve the complete list; do not stop
+after the first page when verifying a large batch. Repeat the check for each target workspace.
+
+### 3. Archive completed work
+
+After completing the work, set `CHANGE_REQUEST_ID` to that request's ID and archive it:
+
+```bash
+curl --fail --silent --show-error --request PATCH \
+  --header "Authorization: Bearer $STACKWEAVER_TOKEN" \
+  "$STACKWEAVER_API_URL/api/v2/workspaces/change-requests/$CHANGE_REQUEST_ID"
+```
+
+Check that the response has a non-null `data.attributes.archived-at`, then read the workspace
+list with archived records included to verify persistence. Archiving an already archived
+request preserves its original archive details. Read the
+[API explorer](/docs/api-reference/explorer) for complete operation schemas. Filing or
+archiving through the API does not execute the requested infrastructure work.

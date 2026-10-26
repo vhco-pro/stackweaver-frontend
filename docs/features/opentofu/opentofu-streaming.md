@@ -1,80 +1,118 @@
 ---
-description: "Real-time OpenTofu plan and apply output streaming with persistent log storage"
+description: "Follow plan/apply progress, read separate phase logs and understand polling, byte offsets and stored-output limits."
 covers:
+  - "frontend/src/pages/RunDetail.tsx"
+  - "frontend/src/hooks/useRunPolling.ts"
+  - "frontend/src/contexts/RunDisplayPreferencesContext.tsx"
+  - "frontend/src/components/runs/**"
+  - "backend/internal/api/v2/handlers/terraform/runs.go"
   - "backend/cmd/runner/**"
-  - "core/queue/**"
+  - "core/services/logbuffer/**"
+capabilities: [
+  {
+    "id": "run-output",
+    "name": "Run output",
+    "summary": "Follow plan and apply output while a run executes and read its stored logs afterwards.",
+    "area": "opentofu",
+    "availability": "available",
+    "evidence": [
+      "core/plugins/opentofu/plugin.go",
+      "backend/internal/api/v2/handlers/terraform/runs.go",
+      "backend/cmd/runner/agent_mode.go"
+    ]
+  }
+]
 ---
 
-# Run Output Streaming
+# Read live run output
 
-StackWeaver provides real-time, live streaming of OpenTofu output during plan and apply operations. Watch your infrastructure changes happen in real time without waiting for the entire operation to complete.
+Open a run to follow plan and apply progress, then return to the same run to inspect its
+stored output. This guide covers platform-managed remote runs and self-hosted agent runs.
+Local-mode execution keeps output with its local CLI; these API log endpoints can return
+an empty response for local runs.
 
-## Overview
+![Example run showing plan and apply phases, a resource operation and the Cancel Run control.](./images/run-live-output.png)
 
-Running the CLI directly shows output only after a command completes. StackWeaver streams output line-by-line as OpenTofu executes, giving you immediate visibility into what's happening during long-running operations.
+Synthetic run data in the real viewer. Read the run's status alongside its resource events;
+a progress row is not a completed operation.
 
-## How It Works
+## Follow a run in the UI
 
-When you start a run (plan or apply), StackWeaver:
+1. Open the workspace's **Runs** tab and select the run.
+2. Review the plan phase for refresh messages, proposed resource changes, diagnostics and
+   the add/change/destroy summary.
+3. For a run that enters apply, follow its separate apply phase and resource progress.
+4. Check the final run status and any error. Reopen the run to inspect the stored result.
 
-1. **Streams Output in Real Time**: Each line of OpenTofu output appears in the UI as soon as OpenTofu produces it
-2. **Captures All Output**: Both stdout and stderr are captured and streamed to your browser
-3. **Preserves Complete Logs**: All output is saved for later review, even after the run completes
+During planning, the default view can show a progress indicator until structured plan data
+is ready. To see terminal output during that phase, enable **Show Terminal During Planning**
+under **Settings > Preferences > Run Display Options**. That preference changes presentation, not execution.
 
-## Benefits
+The browser polls for new log bytes. Updates are near-live rather than a guaranteed
+instantaneous delivery, and a quiet output panel can mean that a provider has no new text.
+Terraform/OpenTofu run directly from a terminal can also stream output; Stackweaver adds
+the shared run page and stored phase history.
 
-- **Faster Feedback**: See what OpenTofu is doing immediately, not just when it finishes
-- **Early Problem Detection**: Spot issues as they occur rather than waiting for the operation to fail
-- **Better Visibility**: Monitor long-running applies without wondering if the system is working
-- **Debugging**: Real-time output makes it easier to understand what's happening during complex operations
+## Read plan and apply logs through the API
 
-## During Plan Operations
+Use an API token with access to this run's workspace. Set `STACKWEAVER_API_URL` to the API
+origin, without `/api/v2`, and `RUN_ID` to the run ID from its page:
 
-When running `terraform plan`, you'll see:
+::: code-group
+```bash [Plan output]
+curl --fail-with-body \
+  --header "Authorization: Bearer $STACKWEAVER_TOKEN" \
+  "$STACKWEAVER_API_URL/api/v2/runs/$RUN_ID/logs/plan"
+```
+```bash [Apply output]
+curl --fail-with-body \
+  --header "Authorization: Bearer $STACKWEAVER_TOKEN" \
+  "$STACKWEAVER_API_URL/api/v2/runs/$RUN_ID/logs/apply"
+```
+:::
 
-- Resource refresh status as OpenTofu queries providers
-- Plan calculations as OpenTofu determines what changes are needed
-- Resource count summaries (add, change, destroy)
-- Any warnings or errors as they're detected
+The response is plain-text phase output framed by STX (`0x02`) at the start and ETX
+(`0x03`) at completion. A log client must strip those bytes for display but include them
+when advancing byte offsets; it should not interpret an empty response as a completed run.
+The phase can have no output yet. Read the run record for lifecycle status:
 
-The streaming output appears in the run detail view, updating automatically as new output arrives.
+```bash
+curl --fail-with-body \
+  --header "Authorization: Bearer $STACKWEAVER_TOKEN" \
+  "$STACKWEAVER_API_URL/api/v2/runs/$RUN_ID"
+```
 
-## During Apply Operations
+For incremental reads, send `offset` and optional `limit` as **raw byte counts**, not
+character positions. Advance by bytes received and keep separate offsets for plan and apply.
+A completed stream uses an end-of-text marker; the web viewer handles this automatically.
+The generic logs endpoint also accepts an explicit phase:
 
-During `terraform apply`, streaming provides:
+```bash
+curl --fail-with-body --get \
+  --header "Authorization: Bearer $STACKWEAVER_TOKEN" \
+  --data-urlencode 'phase=plan' --data-urlencode 'offset=0' \
+  --data-urlencode 'limit=65536' \
+  "$STACKWEAVER_API_URL/api/v2/runs/$RUN_ID/logs"
+```
 
-- Resource creation progress as providers provision infrastructure
-- Real-time status updates for each resource being modified
-- Provider logs and diagnostic information
-- Error messages immediately when something fails
+Terraform providers manage configuration or run resources; they are not a log-tail
+interface. There is no YAML setting or Stackweaver CLI command required for this view.
+The [API explorer](/docs/api-reference/explorer) lists the full operation schemas.
 
-This is especially valuable for long-running applies where resources take time to provision.
+## Stored output and troubleshooting
 
-## Using Streaming Output
+Output is buffered while the run executes and persisted for later access. Stored logs
+remain subject to the run's availability and deployment storage/retention policies; this
+is not a promise that every log is kept forever.
 
-Streaming output is **automatic** - no configuration needed. When viewing a run in progress:
+| Symptom | Next check |
+|---|---|
+| Plan is still running but the page shows no terminal. | Check your terminal-during-planning preference and the plan log endpoint. |
+| Log request is empty. | Check the run status, selected phase and byte offset. That phase may not have emitted output. |
+| Apply output is absent. | Confirm the run entered apply; plan-only runs never do. |
+| Output stops updating. | Check API connectivity and runner status before assuming the operation stopped. |
+| Run is failed or canceled. | Review the phase output and saved state before retrying; a partial apply can leave resources. |
 
-1. Open the run detail page
-2. The output panel automatically updates as new output arrives
-3. Output scrolls automatically, keeping you on the latest information
-4. You can manually scroll up to review earlier output
-
-## Output Persistence
-
-All streamed output is saved permanently:
-
-- **During Execution**: Output is streamed incrementally to the run detail page, which fetches the bytes it has not seen yet every couple of seconds
-- **After Completion**: Complete logs are stored in object storage for long-term access
-- **Review Later**: You can view the complete output history for any run, even days or weeks later
-
-## Technical Details
-
-The runner captures OpenTofu's stdout and stderr line by line and appends each line to a short-lived log buffer as it is produced. The run detail page polls the run-log endpoint every two seconds and requests only the bytes it has not seen yet, so output appears incrementally while the run is still executing.
-
-This means output appears within a couple of seconds of OpenTofu producing it, rather than only after the command finishes.
-
-## Related Documentation
-
-- [Understanding OpenTofu Runs](../../user-guides/understanding-opentofu-runs.md) - Learn how to read run outputs
-- [Run Cancellation](./run-cancellation.md) - Cancel runs while they're streaming
-- [Workspace Editing](./workspace-editing.md) - Workspace configuration and management
+Use [Understanding runs](../../user-guides/understanding-opentofu-runs.md) for operation
+choices and phase interpretation, [Cancellation](./run-cancellation.md) to stop eligible
+work, and [Run timeouts](./run-timeout.md) for execution limits.

@@ -1,5 +1,5 @@
 ---
-description: "Guide for automatic team assignment based on IdP group claims using Zitadel webhooks"
+description: "Map exact external group values to teams and understand synchronization and revocation limits."
 covers:
   - "scripts/zitadel-init/**"
   - "deploy/sso.env.example"
@@ -7,300 +7,239 @@ covers:
   - "backend/internal/services/auth/**"
 ---
 
-# SSO Team Mapping
+# Map SSO groups to teams
 
-StackWeaver can automatically assign users to teams based on their identity provider (IdP) group memberships. When a user signs in via SSO, Zitadel adds their groups to the access token it issues to StackWeaver, and StackWeaver maps those groups to teams that have a matching `sso_team_id` configured.
+Map an external group to a Stackweaver team by setting the team's **SSO Team ID** to the
+exact value emitted by your identity provider. A successful match can add both team and
+parent-organization membership.
 
-## How It Works
+> [!WARNING]
+> Do not use team sync as your sole offboarding control. Empty or missing groups do not
+> reliably clear stored memberships, even with removal enabled. Revoke access explicitly
+> and verify it when removing a person's last external group.
 
-1. The user authenticates via an external IdP (Azure AD, Okta, Cognito, etc.) through Zitadel.
-2. The IdP returns group memberships in the token (e.g., `groups: ["engineering", "platform-team"]`).
-3. Zitadel Actions V2 webhooks capture the groups from the IdP response, store them as user metadata, and include them as an `sso_groups` claim in the access token Zitadel issues to StackWeaver at sign-in.
-4. At each sign-in, the StackWeaver API verifies that access token, reads the `sso_groups` claim, and its Team Sync service finds all teams across all organizations that have a `sso_team_id` matching one of the user's groups.
-5. The user is automatically added to those teams and their parent organizations.
+## Before you enable automatic access
 
-This process runs at every sign-in, so changes to a user's IdP groups take effect the next time they sign in. A signed-in browser is not re-synced while its session lasts; the next sign-in comes at the latest when the session reaches its maximum lifetime, twelve hours by default.
+You need working external SSO and permission to manage teams. Verify the actual group
+value using a nonprivileged test account. Entra commonly emits group Object IDs; Okta
+commonly emits names. Exact values and case matter.
 
-## Architecture: Zitadel Actions V2
+Mappings are globally unique and match across organizations. They are not namespaced by
+identity provider or tenant. If two providers emit the same group name, they can match the
+same team. Use distinct values under your control and review every mapping's permissions.
 
-StackWeaver uses Zitadel Actions V2, the officially supported webhook mechanism for Login V2. Unlike the legacy Actions V1 (which used embedded JavaScript), Actions V2 uses external HTTP endpoints that Zitadel calls during specific operations.
-
-Two webhooks are configured automatically by `zitadel-init`:
-
-1. **IDP Sync webhook** (`/api/v2/zitadel/actions/idp-sync`): A Response execution on `RetrieveIdentityProviderIntent`. When a user authenticates via any external OIDC provider, Zitadel sends the IdP's raw claims (including group memberships) to this webhook. The webhook extracts the groups and stores them as user metadata in Zitadel via the Management API.
-
-2. **Complement Token webhook** (`/api/v2/zitadel/actions/complement-token`): A Function execution on `preaccesstoken`. Before every access token is created, Zitadel sends the user's metadata to this webhook. The webhook reads the `sso_groups` metadata and includes it as a custom claim in the JWT.
-
-This approach is provider-agnostic and works with any OIDC provider that includes group claims in its token (Azure AD, Okta, Cognito, Google Workspace, etc.).
-
-For more details on Zitadel Actions V2, see the [Zitadel Actions V2 documentation](https://zitadel.com/docs/concepts/features/actions_v2) and the [migration guide](https://zitadel.com/docs/guides/integrate/actions/migrate-from-v1).
-
-## Enabling Team Sync
-
-Choose the instructions for your deployment method.
+## 1. Enable synchronization
 
 ### Docker Compose
 
-Add the following environment variables to **`sso.env`** in your Compose directory (the directory that holds `docker-compose.yml`; `zitadel-init` never overwrites this file):
+Save these API settings in persistent `sso.env`, beside the Compose file:
 
-```bash
-# Enable automatic team assignment based on SSO group claims
+```dotenv
 ENABLE_OIDC_TEAM_SYNC=true
-
-# Optional: remove users from SSO-managed teams when their group claims
-# no longer include that team's sso_team_id (default: false)
 OIDC_REMOVE_FROM_NON_SSO_TEAMS=false
 ```
 
-Then restart the API service:
+Apply them with `docker compose up -d api`. Runtime defaults are `false`; the checked-in
+`sso.env.example` explicitly enables team sync, so inspect the file you actually deploy.
 
-```bash
-# Run in your Compose directory
-docker compose up -d api
+The two Zitadel Actions targets must reach the API **from Zitadel's network**. For the
+bundled bridge-network Compose deployment, set this initializer environment override in
+your installed Compose configuration before creating targets:
+
+```yaml
+services:
+  zitadel-init:
+    environment:
+      ACTIONS_API_BASE_URL: http://api:8022
 ```
+
+Use your deployment's real service address. A localhost address inside the Zitadel
+container points to Zitadel itself. Run `docker compose run --rm zitadel-init` and inspect
+the targets in Zitadel. Reconciliation reuses existing targets; changing this variable does
+not repair an already registered endpoint. Correct that target in Zitadel and test delivery.
 
 ### Kubernetes / Helm
 
-Add the team sync values to your Helm values file:
+Merge into `my-values.yaml` and apply to the existing release:
 
 ```yaml
 sso:
   enableOidcTeamSync: true
-  oidcRemoveFromNonSsoTeams: false  # set to true to remove users when groups change
+  oidcRemoveFromNonSsoTeams: false
 ```
 
-Then upgrade the release:
+Set `STACKWEAVER_CHART_VERSION` locally to the installed chart version shown by
+`helm list --namespace stackweaver`. Preserve your release values; changing identity or VCS
+settings is not an instruction to upgrade the platform.
 
 ```bash
 helm upgrade stackweaver oci://ghcr.io/vhco-pro/charts/stackweaver \
-  --namespace stackweaver \
-  --values my-values.yaml
+  --version "${STACKWEAVER_CHART_VERSION:?Set the installed chart version}" \
+  --namespace stackweaver --values my-values.yaml
 ```
 
-## Configuring Team Mappings
+The chart supplies the in-cluster API address for Actions. Check the release's actual target
+URLs and successful delivery; configured targets alone do not establish synchronization.
 
-To map an IdP group to a StackWeaver team, set the team's `sso_team_id` field to match the group identifier from your IdP.
+## 2. Configure the team
 
-### Using the Terraform Provider
+Choose the UI, Terraform/OpenTofu provider or API. Deployment YAML enables the service;
+it does not declare team resources. There is no Stackweaver CLI procedure for this task.
 
-The recommended way to create teams with SSO mappings is using the `tfe_team` resource from the Terraform Enterprise provider. This ensures the team is created with the correct `sso_team_id` in a single declarative configuration.
+### In the UI
 
-First, configure the provider to point at your StackWeaver instance:
+1. Open **Settings > Users**, then the **Teams** tab.
+2. Choose **Create Team**, or edit an existing team.
+3. Set **SSO Team ID (Optional)** to the exact emitted group value.
+4. Grant only the needed permissions, save and reopen the team to check the value.
+
+![Create Team with an example external group mapping; the form has not been submitted.](../images/sso-team-mapping.png)
+
+### With Terraform or OpenTofu
+
+Use the [native provider](../terraform-provider.md) with a token allowed to manage teams:
 
 ```hcl
 terraform {
   required_providers {
-    tfe = {
-      source  = "hashicorp/tfe"
-      version = "~> 0.72.0"
+    stackweaver = {
+      source = "vhco-pro/stackweaver"
     }
   }
 }
 
-provider "tfe" {
-  hostname = "stackweaver.example.com"  # Your StackWeaver hostname
-  token    = var.stackweaver_token
+provider "stackweaver" {
+  hostname = "stackweaver.example.com"
 }
-```
 
-Then create a team mapped to an IdP group. Replace the `sso_team_id` value with the actual group identifier from your identity provider (for Azure AD, this is the group's Object ID from the Azure Portal):
-
-```hcl
-resource "tfe_team" "platform_engineering" {
-  name         = "platform-engineering"
+resource "stackweaver_team" "engineering" {
+  name         = "engineering"
   organization = "my-org"
-  visibility   = "organization"
-
-  # Azure AD group Object ID - must match exactly
-  sso_team_id = "7dddb675-73e0-4858-a8ad-0e597064301b"
+  sso_team_id  = "acme-engineering"
 }
 ```
 
-You can verify the mapping was created:
+Supply `TFE_TOKEN` securely, run `terraform init`, review `terraform plan` and apply only the
+intended team change. Inspect the saved mapping. The TFE-compatible `tfe_team.sso_team_id`
+path remains available for existing configurations; do not manage the same team twice.
 
-```bash
-terraform apply
-terraform output
-```
+### Through the API
 
-Multiple teams can be mapped to different groups in the same configuration:
+Save as `team-mapping.json`, replacing both the team ID and emitted group value:
 
-```hcl
-resource "tfe_team" "devops" {
-  name         = "devops-engineers"
-  organization = "my-org"
-  visibility   = "organization"
-  sso_team_id  = "<azure-ad-devops-group-object-id>"
-}
-
-resource "tfe_team" "security" {
-  name         = "security-team"
-  organization = "my-org"
-  visibility   = "organization"
-  sso_team_id  = "<azure-ad-security-group-object-id>"
+```json
+{
+  "data": {
+    "type": "teams",
+    "id": "team-example",
+    "attributes": { "sso-team-id": "acme-engineering" }
+  }
 }
 ```
 
-A user who is a member of both IdP groups will be automatically added to both StackWeaver teams on their next login.
-
-### Using the API
-
-You can also update a team's `sso_team_id` directly via the StackWeaver API, authenticating with a StackWeaver API token (`tfe-...`) created under **Settings > API Tokens**:
+With `STACKWEAVER_URL`, a `tfe-` API token in `STACKWEAVER_TOKEN`, and `TEAM_ID` set locally:
 
 ```bash
-curl -X PATCH "http://localhost:8022/api/v2/teams/{team-id}" \
-  -H "Authorization: Bearer {api-token}" \
-  -H "Content-Type: application/vnd.api+json" \
-  -d '{
-    "data": {
-      "type": "teams",
-      "id": "{team-id}",
-      "attributes": {
-        "sso-team-id": "engineering"
-      }
-    }
-  }'
+curl --fail-with-body --silent --show-error \
+  --request PATCH "$STACKWEAVER_URL/api/v2/teams/$TEAM_ID" \
+  --header "Authorization: Bearer $STACKWEAVER_TOKEN" \
+  --header 'Content-Type: application/vnd.api+json' \
+  --data-binary @team-mapping.json
 ```
 
-The `sso-team-id` value must exactly match the group identifier sent by your IdP. For Azure AD, this is typically a GUID (the group's Object ID). For Okta and Cognito, this is usually the group name.
+Check the returned `sso-team-id` and reopen the team. A duplicate-value error means another
+team already owns that mapping; investigate instead of reusing a broad shared group.
 
-### Example Mapping
+## 3. Verify the access chain
 
-Consider an organization with these teams and an Azure AD tenant with these groups:
+1. Sign in through the provider using a test account with the intended group.
+2. Verify successful IDP-sync and complement-token webhook delivery in Zitadel/API logs.
+3. Confirm the complement-token action runs for access tokens issued to **Stackweaver BFF**
+   and emits the intended nonempty `sso_groups` claim at sign-in. Use webhook delivery and API
+   logs plus resulting membership as evidence; the browser exposes no OAuth token to inspect.
+4. Make a normal authenticated API request and check team and organization membership.
+5. Test a user outside that group and confirm they do not gain the mapped access.
 
-| StackWeaver Team | `sso_team_id` | Azure AD Group |
-|------------------|---------------|----------------|
-| Platform Engineering | `platform-engineers` | `platform-engineers` |
-| Security Team | `security` | `security` |
-| Viewers | (not set) | - |
+The IDP-sync action captures groups; the complement-token action adds stored groups to
+the access token that the API verifies during sign-in. The API then discards that token.
+Team synchronization runs at sign-in with a nonempty group list. API-token requests
+follow a different authentication path and do not resynchronize teams.
+A new account's first-sign-in path does not guarantee group metadata transfer; verify the
+issued claims and membership rather than promising immediate first-login assignment.
 
-When a user who belongs to the `platform-engineers` and `security` Azure AD groups logs in:
+Existing browser sessions are not resynchronized after a group change. Ask the user to sign
+out and sign back in. A fresh sign-in is required when the session reaches its maximum
+lifetime, twelve hours by default; the identity provider must also return the updated groups.
+API tokens do not trigger SSO group synchronization.
 
-1. Their JWT contains `sso_groups: ["platform-engineers", "security"]`.
-2. Team Sync finds the "Platform Engineering" team (matching `sso_team_id = "platform-engineers"`) and the "Security Team" (matching `sso_team_id = "security"`).
-3. The user is added to both teams and to the parent organization.
+## Understand removal before using it
 
-Teams without an `sso_team_id` (like "Viewers" in this example) are never affected by the sync process.
+| Input and setting | Effect |
+|---|---|
+| Team sync disabled. | No automatic team synchronization. |
+| Nonempty groups, removal disabled. | Add matching team and organization memberships. |
+| Nonempty groups, removal enabled. | Also remove memberships from mapped teams absent from that list. |
+| Empty or missing groups. | Sync is skipped; previously stored groups/memberships can survive. |
+| Unmapped team or organization membership. | Removal does not delete the user, remove organization membership or change unmapped teams. |
 
-## Organization Membership
+Enable removal only after testing, using `OIDC_REMOVE_FROM_NON_SSO_TEAMS=true` or
+`sso.oidcRemoveFromNonSsoTeams: true`. For example, a refreshed list containing
+`acme-engineering` but not `acme-security` can remove the security-team membership. An
+empty list does not provide the same guarantee. Sync errors can be logged without blocking
+sign-in, so successful authentication is not proof of correct authorization.
 
-When a user is added to a team via SSO group mapping, they are also automatically added as a member of the team's parent organization. This ensures the user can access the organization's resources.
+## Find the emitted group identifier
 
-The sync only grants membership to organizations that contain teams matching the user's group claims. A user from Company A cannot gain access to Company B's organization unless Company B has a team with an `sso_team_id` that matches one of Company A's IdP groups. For this reason, use unique, organization-specific values for `sso_team_id` to maintain tenant isolation.
+| Provider | Where to check | Common value |
+|---|---|---|
+| Entra ID. | **Groups > group > Object ID**, plus the app's token group configuration. | Group Object ID, not display name. |
+| Okta. | **Directory > Groups**, then the custom-server Token Preview. | Exact group name in the documented groups claim. |
+| Cognito. | User pool **Groups**, then the upstream token. | Group name in `cognito:groups`. |
+| Keycloak. | Realm group and the client's Group Membership mapper. | Name or full path, according to `full_path`. |
 
-## Removal Behavior
+The token is the authority for matching. Portal labels alone do not show whether a mapper
+emits names, IDs or paths.
 
-By default, team sync only adds memberships. It does not remove users from teams, even if their IdP group claims change. This is the safe default to prevent accidental access revocation.
+## Read the diagnostic logs
 
-To enable automatic removal, set `OIDC_REMOVE_FROM_NON_SSO_TEAMS=true` in `sso.env` (Docker Compose) or `sso.oidcRemoveFromNonSsoTeams: true` in your Helm values (Kubernetes).
+These are read-only checks. Run them after signing in with the test account and making an
+authenticated API request. Use the release's actual Deployment names and namespace.
 
-When enabled, on each login, StackWeaver will:
-
-1. Check all SSO-managed teams the user is currently a member of (teams with a non-empty `sso_team_id`).
-2. Remove the user from any SSO-managed team whose `sso_team_id` is no longer in the user's current group claims.
-
-This only affects teams with `sso_team_id` set. Teams without an `sso_team_id` (manually-managed teams) are never modified by the sync process.
-
-### Example: Removal Flow
-
-A user is a member of the "Platform Engineering" team (`sso_team_id = "platform-engineers"`) and the "Security Team" (`sso_team_id = "security"`).
-
-The user is removed from the `security` group in the IdP. On the next login:
-
-1. The JWT contains `sso_groups: ["platform-engineers"]` (no longer includes `security`).
-2. Team Sync detects the user is in the "Security Team" but `security` is no longer in their claims.
-3. The user is removed from the "Security Team" (but stays in "Platform Engineering").
-
-## Multi-Tenant Considerations
-
-StackWeaver is a multi-tenant platform. The `sso_team_id` field is globally unique (enforced by a database unique constraint). This means:
-
-- Two teams in different organizations cannot share the same `sso_team_id`. This is by design to prevent unintended cross-tenant access.
-- If users from multiple organizations use the same IdP, use distinct `sso_team_id` values per organization (e.g., prefix with the org name: `acme-engineering`, `globex-engineering`).
-
-## Finding Group Identifiers
-
-The value you set as `sso_team_id` on a team must match the group identifier your IdP sends in its token. The format depends on the provider:
-
-| Provider | Where to find the group ID | Format | Example |
-|----------|---------------------------|--------|---------|
-| Azure AD / Entra ID | Azure Portal → Entra ID → Groups → select group → Object Id | UUID | `7dddb675-73e0-4858-a8ad-0e597064301b` |
-| Okta | Okta Admin → Directory → Groups → select group | Group name | `engineering` |
-| AWS Cognito | Cognito console → User Pool → Groups | Group name | `platform-team` |
-| Keycloak | Keycloak Admin → Realm → Groups | Group path or name | `/engineering` |
-| Generic OIDC | Check your provider's admin console | Varies | - |
-
-For Azure AD, if you configured group claims to use "Group ID" (the default), the groups claim contains Object IDs (UUIDs). If you selected "sAMAccountName" or display names instead, use those values as the `sso_team_id`.
-
-To verify what values your provider sends, check the API logs after an SSO login:
-
-**Docker Compose:**
-```bash
-docker compose logs api | grep -i "extracted.*groups"
+::: code-group
+```bash [Docker Compose]
+docker compose logs --tail=200 api | rg -i 'teamsync|idp sync webhook|complement token webhook'
+docker compose logs --tail=200 zitadel-init | rg -i 'actions v2|target|set execution'
 ```
-
-**Kubernetes:**
-```bash
-kubectl logs deployment/stackweaver-api -n stackweaver | grep -i "extracted.*groups"
+```bash [Kubernetes]
+kubectl logs deployment/stackweaver-api --namespace stackweaver --tail=200 | rg -i 'teamsync|idp sync webhook|complement token webhook'
+kubectl logs deployment/stackweaver-zitadel --namespace stackweaver -c zitadel-init --tail=200 | rg -i 'actions v2|target|set execution'
 ```
+:::
 
-The log will show the exact group values extracted from the IdP token.
+The examples use `rg` (ripgrep); use your usual log-search tool if it is not installed.
+The Compose initializer log line applies to a retained service container. If you used
+`docker compose run --rm zitadel-init`, inspect that command's output instead; its removed
+one-off container does not leave logs for this check.
 
-## Users Without Group Claims
+| Evidence | What it establishes |
+|---|---|
+| IDP-sync webhook receives a request and extracts groups. | The upstream claim reached group capture. |
+| Complement-token webhook runs. | Check its result and the issued `sso_groups` claim. |
+| TeamSync finds/adds the expected team. | Check actual team and organization membership afterward. |
+| Target/execution configuration messages. | The initializer configured bindings; successful delivery is a separate check. |
 
-If a user logs in via SSO but their token does not contain group claims (either because the IdP is not configured to send them or the user is not in any groups), the team sync process is skipped entirely. The user is still provisioned in StackWeaver but has no organization access until an administrator invites them manually.
+Redact tokens and private user/group information before sharing logs.
 
-## Environment Variable Reference
+## Troubleshoot the failing link
 
-| Variable | Helm value | Default | Description |
-|----------|-----------|---------|-------------|
-| `ENABLE_OIDC_TEAM_SYNC` | `sso.enableOidcTeamSync` | `false` | Enable automatic team assignment based on SSO group claims |
-| `OIDC_REMOVE_FROM_NON_SSO_TEAMS` | `sso.oidcRemoveFromNonSsoTeams` | `false` | Remove users from SSO-managed teams when their groups change |
+| Symptom | Next check |
+|---|---|
+| No `sso_groups`. | Provider's actual claims, target reachability and webhook delivery; then sign out and sign back in. |
+| Claim present, membership missing. | Team-sync setting, exact mapping, API logs and request authentication type. |
+| Membership persists after removal. | Check whether the fresh list is empty or stale. Remove access explicitly if required. |
+| Unexpected organization access. | Audit all mapped teams and repeated group values across identity providers. |
 
-## Troubleshooting
-
-### User is not being added to expected teams
-
-1. Verify the team has an `sso_team_id` set, and that it exactly matches the group identifier from the IdP (case-sensitive).
-2. Verify team sync is enabled: `ENABLE_OIDC_TEAM_SYNC=true` in `sso.env` (Docker Compose) or `sso.enableOidcTeamSync: true` in Helm values (Kubernetes).
-3. Check the API service logs for "TeamSync" messages:
-   ```bash
-   # Docker Compose
-   docker compose logs api | grep -i teamsync
-   # Kubernetes
-   kubectl logs deployment/stackweaver-api -n stackweaver | grep -i teamsync
-   ```
-4. Check the API service logs for "Zitadel IDP sync webhook" messages to verify the webhook is receiving IdP claims:
-   ```bash
-   # Docker Compose
-   docker compose logs api | grep -i "idp sync webhook"
-   # Kubernetes
-   kubectl logs deployment/stackweaver-api -n stackweaver | grep -i "idp sync webhook"
-   ```
-5. Check the API service logs for "complement token webhook" messages to verify the sso_groups claim is being appended:
-   ```bash
-   # Docker Compose
-   docker compose logs api | grep -i "complement token webhook"
-   # Kubernetes
-   kubectl logs deployment/stackweaver-api -n stackweaver | grep -i "complement token webhook"
-   ```
-6. Verify the user's JWT contains the `sso_groups` claim. You can decode the JWT at [jwt.io](https://jwt.io) to inspect its claims.
-7. If webhooks are not being called, verify the Actions V2 targets and executions are configured in Zitadel. Check the zitadel-init logs:
-   ```bash
-   # Docker Compose
-   docker compose logs zitadel-init | grep -i "actions v2"
-   # Kubernetes
-   kubectl logs deployment/stackweaver-zitadel -c zitadel-init -n stackweaver | grep -i "actions v2"
-   ```
-
-### User is not being removed from teams
-
-Verify that removal is enabled: `OIDC_REMOVE_FROM_NON_SSO_TEAMS=true` in `sso.env` (Docker Compose) or `sso.oidcRemoveFromNonSsoTeams: true` in Helm values (Kubernetes). When set to `false` (the default), users are never removed automatically.
-
-### Changes are not taking effect
-
-Team sync runs at each sign-in. Ask the user to sign out and sign back in for group changes to take effect. Changes to IdP group memberships do not propagate to a signed-in browser until its next sign-in.
-
-### Duplicate `sso_team_id` error
-
-The `sso_team_id` field has a unique constraint. If you see a duplicate key error when setting a team's `sso_team_id`, another team already uses that value. Use the API to search for the conflicting team and resolve the conflict.
+Group capture uses the first nonempty supported claim, rather than merging all claims:
+`groups`, `cognito:groups`, `roles`, `group`, then `realm_access.roles`. Inspect which one
+actually wins. See the [Entra](./azure-ad.md), [Okta](./okta.md),
+[generic OIDC](./generic-oidc.md) and [Cognito compatibility](./aws-cognito.md) guides.

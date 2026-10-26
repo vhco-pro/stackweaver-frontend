@@ -1,628 +1,175 @@
 ---
-description: "High-level architecture overview covering system components, data flows, security, and deployment"
+nav_order: 40
+description: "How Stackweaver's API, execution services and storage fit together, and what that means for operating a deployment."
 covers:
   - "deploy/docker-compose.yml"
-  - "scripts/zitadel-init/**"
+  - "deploy/helm/**"
+  - "backend/cmd/api/**"
+  - "backend/cmd/orchestrator/**"
+  - "backend/cmd/runner/**"
+  - "backend/cmd/ansible-runner/**"
+  - "core/queue/**"
+  - "core/storage/**"
   - "backend/internal/services/auth/**"
+  - "backend/internal/api/middleware/**"
+  - "scripts/zitadel-init/**"
 ---
 
-# Architecture Overview
+# Architecture overview
 
-This document provides a high-level overview of the Stackweaver Orchestration Platform architecture. For the multi-repo topology (monorepo + closed `core/` + the eight satellite distribution repos), see [`repositories.md`](./repositories.md).
+Stackweaver coordinates OpenTofu runs and Ansible jobs through an API and separate execution
+services. The API manages resources and access; runners execute the tools that change your
+infrastructure. You choose whether those runners operate alongside the platform or inside
+your own network.
 
-## System Architecture
+<a id="system-architecture"></a>
+
+## The system at a glance
 
 ```mermaid
 flowchart TB
-    subgraph Browser["User Browser"]
-        BrowserNote["http://localhost:5173"]
-    end
-
-    subgraph Frontend["Frontend (React/Vite)"]
-        F1["React 19 + TypeScript"]
-        F2["Vite Dev Server"]
-        F3["Session cookie (no token)"]
-    end
-
-    subgraph Backend["Backend API (Go/Gin)"]
-        B1["REST API"]
-        B2["Session and API token auth"]
-        B3["Business Logic"]
-    end
-
-    subgraph DataLayer["Data & Storage"]
-        PG["PostgreSQL<br/>(Metadata)"]
-        Redis["Redis<br/>(Queue/Logs)"]
-        Garage["Garage<br/>(S3 Storage)"]
-    end
-
-    subgraph Runners["Runner Services"]
-        R1["OpenTofu Runner"]
-        R2["Ansible Runner"]
-        R3["Orchestrator"]
-    end
-
-    subgraph Zitadel["Zitadel (Identity Provider)"]
-        Z1["OAuth2/OIDC Server"]
-        Z2["User Management"]
-        Z3["JWT Token Issuance"]
-    end
-
-    Browser -->|HTTP/HTTPS| Frontend
-    Frontend -->|API requests with the session cookie| Backend
-    Backend -->|Confidential OIDC client| Zitadel
-    Backend --> PG
-    Backend --> Redis
-    Backend --> Garage
-    PG --> Runners
-    Redis --> Runners
-    Garage --> Runners
-    Runners --> Zitadel
-```
-
-## Supported IaC Tools
-
-### OpenTofu
-
-- **Workspace Management**: Full TFE-compatible workspace lifecycle
-- **Run Execution**: Plan, apply, and destroy operations
-- **State Management**: Versioned state storage in S3-compatible storage
-- **Variable Management**: Workspace and variable set support
-- **Registry**: Private module and provider registry
-- **VCS Integration**: GitHub App and Azure DevOps for automatic configuration sync
-
-### Ansible
-
-- **Playbook Management**: VCS-synced and uploaded playbooks
-- **Inventory Management**: Static, dynamic, and VCS-based inventories
-- **Job Templates**: Reusable job configurations
-- **Job Execution**: Native `ansible-playbook` execution
-- **Credential Management**: Encrypted credential storage
-- **Scheduling**: Automated job scheduling
-- **Live Output**: Real-time job output streaming (JSONL format)
-- **Galaxy Collections**: Automatic collection installation
-
-## Component Overview
-
-### Frontend
-
-**Technology Stack**:
-- **Framework**: React 19 with TypeScript
-- **Build Tool**: Vite
-- **Routing**: React Router v7
-- **State Management**: React Context API
-- **UI Components**: shadcn/ui (Tailwind CSS)
-- **Authentication**: server-side session (an `HttpOnly` cookie set by the API after it signs the browser in with Zitadel)
-
-**Key Features**:
-- Single Page Application (SPA)
-- Client-side routing
-- Cookie-based session; the SPA holds no token
-- Real-time session management
-- Responsive UI
-- OpenTofu workspace management
-- Ansible playbook and job management
-- Live run/job output streaming
-- Activity feed and notifications
-
-**Directory Structure**: See `frontend/` directory structure in the repository. Key directories:
-- `src/api/` - API client and types (see `frontend/src/api/client.ts`)
-- `src/components/` - Reusable React components
-- `src/contexts/` - React contexts (Auth, Organization, Theme, Notification, RunDisplayPreferences)
-- `src/lib/` - Utilities (Zitadel, utils)
-- `src/pages/` - Route pages
-- `src/App.tsx` - Main app component
-
-### Backend API
-
-**Technology Stack**:
-- **Language**: Go 1.27+
-- **Framework**: Gin (HTTP web framework)
-- **ORM**: GORM (database ORM)
-- **Authentication**: browser sessions (an `HttpOnly` cookie backed by PostgreSQL) and `tfe-` API tokens
-- **Database**: PostgreSQL
-- **Cache/Queue**: Redis (queues, log buffering)
-- **Storage**: Garage (S3-compatible object storage)
-
-**Key Features**:
-- RESTful API design (v2 primary)
-- Browser sign-in as a confidential OIDC client, with CSRF protection for cookie requests
-- Auto-user provisioning
-- Team-based RBAC (Role-Based Access Control)
-- Rate limiting
-- CORS support
-- Terraform Registry API (TFE-compatible)
-<!-- - Ansible Automation Platform integration -->
-- VCS connections (GitHub App, Azure DevOps)
-
-**Directory Structure**: The Go codebase is split into two modules connected by `go.work`:
-
-`core/` - shared module used by all binaries:
-- `models/` - GORM database models (OpenTofu, Ansible, Registry)
-- `repository/` - Data access layer (CRUD per model)
-- `queue/` - Redis job queue (LPUSH to enqueue; runners claim with BLMOVE onto a processing list and acknowledge when done)
-- `storage/` - S3-compatible object storage interface
-- `vcs/github/` - the Git clone client used by the Ansible runner
-- `plugins/` - the OpenTofu runner plugin (`opentofu/`) and the result types it returns
-- `crypto/` - Encryption utilities
-- `id/` - ID generation
-- `services/` - Shared services (oidc, vcs, logbuffer, logparser, state, variable, ansible)
-
-`backend/` - binary-specific code:
-- `cmd/api/` - Application entry point
-- `cmd/runner/` - OpenTofu runner service
-- `cmd/ansible-runner/` - Ansible runner service
-- `cmd/orchestrator/` - Job orchestrator service
-- `internal/api/v2/` - API v2 implementation (primary)
-  - `handlers/` - HTTP request handlers (see `backend/internal/api/v2/handlers/`)
-    - `terraform/` - Terraform-specific handlers (workspaces, runs, state)
-    - `ansible/` - Ansible-specific handlers (playbooks, jobs, inventories)
-  - `routes/` - Route definitions (see `backend/internal/api/v2/routes/routes.go`)
-- `internal/api/middleware/` - HTTP middleware (auth, CORS, rate limit, RBAC, validation)
-- `internal/services/` - API-only business logic
-  - `activity/` - Activity and audit trail tracking
-  - `apikey/` - API key generation and validation
-  - `audit/` - Compliance auditing
-  - `auth/` - Authentication service (browser sessions, liveness checks, TFE tokens, auto-provisioning)
-  - `profile/` - User profile management
-  - `rbac/` - Team-based RBAC service
-  - `registry/` - Terraform Registry service
-  - `runner/` - Runner health checks and job assignment
-  - `sessions/` - Session management
-  - `team_sync/` - Automatic SSO team assignment
-  - `terraform/` - Terraform execution service
-  - `totp/` - TOTP two-factor authentication
-
-### Database (PostgreSQL)
-
-**Schema Overview**:
-- **Organizations**: Top-level organizational units
-- **Projects**: Projects within organizations
-- **Teams**: Team-based access control (TFE-compatible)
-- **Users**: Local user accounts (mapped from Zitadel), each carrying the platform administrator flag and whether the deployment declared it
-- **Terraform Resources**:
-  - **Workspaces**: Terraform workspaces
-  - **Runs**: Terraform execution runs (plan, apply, destroy)
-  - **Configuration Versions**: Workspace configuration versions
-  - **State Versions**: Terraform state version metadata (serial, lineage, version). The raw state JSON lives only in object storage, encrypted at rest with AES-256-GCM (state stored as plaintext is still read transparently); outputs and resources are extracted into dedicated `state_version_outputs` / `state_version_resources` tables for fast, permission-scoped serving (mirrors HashiCorp TFE's state model). Sensitive output values are encrypted at rest in `state_version_outputs`.
-  - **Variables**: Workspace variables (encrypted)
-  - **Variable Sets**: Reusable variable sets
-- **Ansible Resources**:
-  - **Playbooks**: Ansible playbook definitions
-  - **Inventories**: Static and dynamic inventory sources
-  - **Job Templates**: Reusable job configurations
-  - **Jobs**: Ansible job executions
-  - **Credentials**: Encrypted Ansible credentials
-  - **Schedules**: Automated job scheduling
-  - **Workflows**: Workflow templates (nodes, edges)
-- **Registry Resources**:
-  - **Modules**: Terraform module registry
-  - **Providers**: Terraform provider registry
-  - **Module Versions**: Module version tracking
-  - **Provider Versions**: Provider version tracking
-- **VCS Resources**:
-  - **VCS Connections**: GitHub App and Azure DevOps connections (access/refresh tokens encrypted at rest)
-  - **Webhook Events**: VCS event tracking
-- **Platform Resources**:
-  - **API Keys**: API authentication tokens
-  - **TFE Tokens**: Terraform Enterprise-compatible API tokens
-  - **Azure OIDC Configurations**: Workload identity federation
-  - **OpenTofu Versions**: The install-wide OpenTofu version catalog, managed by platform administrators and shared by every organization
-  - **Runners**: Runner agent registration and status
-  - **GPG Keys**: Provider signing keys
-- **Audit Logs**: Activity audit trail
-
-**Key Design Decisions**:
-- UUID primary keys for all entities
-- Soft deletes (future)
-- Timestamps (`created_at`, `updated_at`)
-- Foreign key relationships
-- Indexes on frequently queried columns
-
-### Identity Provider (Zitadel)
-
-**Features**:
-- OAuth2/OIDC provider
-- User management
-- Organization management
-- JWT token issuance
-
-**Login UI**: served by the Stackweaver frontend at `/login/*` rather than the upstream Zitadel hosted UI. The API container's auth proxy (`/auth/*` routes) forwards session and OIDC calls to Zitadel.
-
-**Configuration**:
-- External domain: `localhost:8080`
-- OAuth2 applications for frontend and backend
-
-## Data Flow
-
-### Authentication Flow
-
-```mermaid
-sequenceDiagram
-    participant User
-    participant Frontend
-    participant API
-    participant Zitadel
-
-    User->>Frontend: Clicks "Sign in"
-    Frontend->>API: Start sign-in
-    API->>Zitadel: Authorization request (confidential client)
-    User->>Frontend: Enters credentials on the login pages
-    Frontend->>API: Login steps
-    API->>Zitadel: Session API calls
-    Zitadel->>Frontend: Redirect with authorization code
-    Frontend->>API: Redeem code
-    API->>Zitadel: Exchange code with client secret
-    Zitadel-->>API: Tokens
-    API->>API: Verify tokens, provision user, create session
-    API-->>Frontend: Session cookie (HttpOnly)
+    Client["Browser"] -->|"HttpOnly session cookie + CSRF header"| API["Stackweaver API"]
+    Automation["API clients"] -->|"tfe- API token"| API
+    API -->|"Confidential sign-in client"| Identity["Zitadel"]
+    API --> Database["PostgreSQL<br/>Resources and execution records"]
+    API --> Queue["Redis<br/>Work queues and live logs"]
+    API --> Storage["S3-compatible storage<br/>Configuration, state and artifacts"]
+    Queue --> Execution["Platform execution services<br/>Orchestration and runners"]
+    Execution --> Storage
+    Execution --> Targets["Your infrastructure"]
+    Agent["Self-hosted runners"] -->|"Request work and report results"| API
+    Agent --> Targets
 ```
 
 <details>
-<summary><strong>Flow Steps (Legend)</strong></summary>
+<summary>Diagram legend: services and connections</summary>
 
-1. The user clicks "Sign in" and the frontend asks the API to start sign-in. The API sends Zitadel an authorization request as a confidential client and remembers the sign-in, bound to this browser.
-2. The user enters their credentials on Stackweaver's own login pages, which the API relays to Zitadel.
-3. Zitadel redirects the browser back to the frontend with an authorization code.
-4. The frontend hands the code to the API, which exchanges it with Zitadel using its client secret, verifies the tokens, provisions the user and syncs SSO teams, then discards the tokens.
-5. The API creates a session in PostgreSQL and sets an `HttpOnly`, `Secure`, `SameSite=Strict` cookie. Every later request from the frontend carries that cookie and a CSRF header.
+- **Browser users** sign in through the API, which acts as a confidential Zitadel client. Later requests use the session cookie and CSRF header. **Automation clients** use API tokens.
+- **API** checks access and manages resources. PostgreSQL holds records; object storage holds configuration, state and artifacts.
+- **Redis** carries queued work and buffers live output for the platform execution services.
+- **Platform execution services** schedule and run infrastructure tools with access to storage and the infrastructure they manage.
+- **Self-hosted runners** request work and report results through the API. Their access to your infrastructure comes from the network where you run them.
 
-</details>
-
-See the [Zitadel Setup guide](../user-guides/authentication/zitadel-setup.md) for how the identity provider behind this flow is configured.
-
-### API Request Flow
-
-```mermaid
-sequenceDiagram
-    participant Frontend
-    participant Middleware
-    participant Sessions as Session Store
-    participant Zitadel
-    participant Handler
-    participant RBAC as RBAC Service
-
-    Frontend->>Middleware: HTTP request<br/>(session cookie, X-Stackweaver-CSRF)
-    Middleware->>Middleware: Check the CSRF header, and the origin of a write
-    Middleware->>Sessions: Look up the session by its cookie
-    Sessions-->>Middleware: Session (or refused: unknown, idle, expired)
-    alt Liveness check due
-        Middleware->>Zitadel: Is the session, user and organisation still active?
-        Zitadel-->>Middleware: Yes, or the session ends
-    end
-    Middleware->>Middleware: Store the user in the context
-    Middleware->>Handler: Request + context
-    Handler->>RBAC: Check permissions
-    RBAC-->>Handler: Permission granted
-    Handler->>Handler: Process request
-    Handler-->>Frontend: HTTP response
-```
-
-<details>
-<summary><strong>Flow Steps (Legend)</strong></summary>
-
-1. The frontend sends the request with the `HttpOnly` session cookie, which the browser attaches, and the `X-Stackweaver-CSRF` header
-2. The middleware refuses a request without the header, and a write whose origin is not trusted
-3. The middleware looks the session up by its cookie and refuses one that is unknown or past its idle or absolute limit
-4. When the session's liveness check is due, the API asks Zitadel whether the session, the user and the organisation are still active, and ends the session if they are not
-5. The middleware stores the session's user in the context
-6. The handler processes the request with RBAC checks
-7. The handler returns the response
-
-A script, a CI job or the Terraform CLI sends a `tfe-` API token in the `Authorization` header instead of a cookie, and no CSRF check applies to it.
+The arrows show communication between services. They do not represent every request or a required network route for every execution mode.
 
 </details>
 
-### Terraform Run Execution Flow
+The API handles authentication, permissions and resource operations. Execution services run
+the infrastructure tools and report their results. The browser reads status and output
+through the API; it does not connect directly to the database or Redis.
 
-```mermaid
-sequenceDiagram
-    participant User
-    participant API
-    participant Database
-    participant Garage as S3 Storage
-    participant Redis as Redis Queue
-    participant Orchestrator
-    participant TFRunner as OpenTofu Runner
-    participant LogBuffer as Redis Log Buffer
-    participant Frontend
+For automation, use the [Terraform/OpenTofu provider](../user-guides/terraform-provider.md)
+to maintain supported resources as configuration, or the [REST API](./using-the-api.md)
+for integrations. Each interface supports a defined set of operations. Service configuration
+belongs in the [self-hosting guides](../get-started/self-hosting/README.md).
 
-    User->>API: Create Run (API or UI)
-    API->>Database: Store Run (pending)
-    API->>Garage: Upload Config Version
-    API->>Redis: Enqueue Run
-    Orchestrator->>Redis: Pick Up Run
-    Orchestrator->>TFRunner: Assign Run
-    TFRunner->>Garage: Download Configuration
-    Garage-->>TFRunner: Configuration
-    TFRunner->>TFRunner: Execute (plan/apply/destroy)
-    TFRunner->>LogBuffer: Stream Logs
-    Frontend->>LogBuffer: Poll for Live Output
-    LogBuffer-->>Frontend: Live Logs
-    TFRunner->>Garage: Upload State Version
-    TFRunner->>Database: Update Run Status
-    TFRunner-->>Orchestrator: Complete
-    Frontend->>Frontend: Final Status Update
-```
+<a id="component-overview"></a>
 
-<details>
-<summary><strong>Flow Steps (Legend)</strong></summary>
+## What each service does
 
-1. User creates run via API or UI
-2. Run stored in database with `pending` status
-3. Configuration version uploaded to S3-compatible storage
-4. Orchestrator picks up run from Redis queue
-5. Orchestrator assigns run to available OpenTofu runner
-6. Runner downloads configuration from storage
-7. Runner executes Terraform operation (plan/apply/destroy)
-8. Runner streams logs to Redis log buffer
-9. Frontend polls Redis for live log output
-10. Runner uploads state version to storage (on completion)
-11. Runner updates run status in database
-12. Frontend receives final status update
+| Component | Responsibility | What matters when operating it |
+|---|---|---|
+| Frontend | Displays resources, run output and documentation. | Users need access to its URL and the API and sign-in endpoints. |
+| API | Enforces access and manages organizations, projects, workspaces and jobs. | Automation clients and self-hosted runners connect here. |
+| Zitadel | Handles user identity and issues sign-in tokens. | Issuer and callback URLs must match the deployment's public addresses. |
+| Execution services | Schedule and execute OpenTofu runs and Ansible jobs. | Runners need access to the Git repositories, providers, collections and target hosts their work uses. |
+| PostgreSQL | Stores resource metadata, permissions and execution records. | Include its data in your backup and recovery plan. |
+| Redis | Holds work queues and buffers live output. | Keep it reachable by the services that enqueue and execute work. |
+| S3-compatible storage | Holds configuration snapshots, state files and artifacts. | Preserve it alongside the database. Garage is the bundled option; an external compatible service can be used. |
 
-</details>
+<a id="data-flow"></a>
 
-### Ansible Job Execution Flow
-
-```mermaid
-sequenceDiagram
-    participant User
-    participant API
-    participant Database
-    participant VCS
-    participant Redis as Redis Queue
-    participant Orchestrator
-    participant AnsibleRunner as Ansible Runner
-    participant LogBuffer as Redis Log Buffer
-    participant Frontend
-
-    User->>API: Create Job (API or UI, from template)
-    API->>Database: Store Job (pending)
-    API->>VCS: Sync Playbook (or upload)
-    API->>Redis: Enqueue Job
-    Orchestrator->>Redis: Pick Up Job
-    Orchestrator->>AnsibleRunner: Assign Job
-    AnsibleRunner->>AnsibleRunner: Retrieve Inventory, Credentials, Playbook
-    AnsibleRunner->>AnsibleRunner: Execute ansible-playbook (JSON callback)
-    AnsibleRunner->>LogBuffer: Stream Job Output
-    Frontend->>LogBuffer: Poll for Live Output (JSONL)
-    LogBuffer-->>Frontend: Live Job Output
-    AnsibleRunner->>AnsibleRunner: Parse JSON for Task Results
-    AnsibleRunner->>Database: Update Job Status & Results
-    AnsibleRunner-->>Orchestrator: Complete
-    Frontend->>Frontend: Final Status & Task Details
-```
-
-<details>
-<summary><strong>Flow Steps (Legend)</strong></summary>
-
-1. User creates job via API or UI (from job template)
-2. Job stored in database with `pending` status
-3. Playbook content synced from VCS or uploaded
-4. Orchestrator picks up job from Redis queue
-5. Orchestrator assigns job to available Ansible runner
-6. Runner retrieves inventory, credentials, and playbook
-7. Runner executes `ansible-playbook` with JSON callback
-8. Runner streams job output to Redis log buffer
-9. Frontend polls Redis for live job output (JSONL format)
-10. Runner parses JSON callback for structured task results
-11. Runner updates job status and results in database
-12. Frontend receives final status and task details
-
-</details>
-
-## Security Architecture
-
-### Authentication
-
-- **Backend-for-frontend sign-in**: The API completes the OAuth2 authorization-code flow (with PKCE) as a confidential client, verifies Zitadel's signed tokens, and stores none of them
-- **Browser sessions**: An opaque `HttpOnly`, `Secure`, `SameSite=Strict` cookie; the session is stored in PostgreSQL by the hash of its value, ends after an idle timeout or a maximum lifetime, and is checked against Zitadel at a regular interval
-- **CSRF protection**: Every cookie-authenticated request carries a custom header, and state-changing requests must come from a trusted origin
-- **API tokens**: Scripts, CI and the Terraform CLI authenticate with `tfe-` API tokens in the `Authorization` header
-
-### Authorization
-
-- **Team-Based RBAC**: Team-based access control (TFE-compatible)
-  - Teams have organization, project, and workspace-level permissions
-  - Users belong to teams, inheriting team permissions
-  - Default teams: "owners" (full access) and "viewers" (read-only)
-- **Resource-Level Permissions**: Users can only access resources they have permission for
-- **Platform Administrators**: A flag on the user, set from the deployment's declared list at sign-in or granted by another platform administrator, that reaches only the install-wide routes (the OpenTofu versions catalogue, the administrators list, the organization list) and gives no access inside an organization
-- **Auto-User Provisioning**: Users are automatically created on first login from Zitadel
-
-### Network Security
-
-- **CORS**: Configured for specific origins
-- **Rate Limiting**: Per-IP rate limiting on all endpoints
-- **HTTPS**: Required in production (TLS termination at load balancer)
-
-### Data Security
-
-- **Encryption at Rest**: Database encryption (future)
-- **Encryption in Transit**: TLS for all connections
-- **Sensitive Variables**: Encrypted in database using AES-256-GCM
-- **Ansible Credentials**: Encrypted in database using AES-256-GCM
-- **Storage**: S3-compatible storage provides encryption at rest (configurable)
-
-## Deployment Architecture
-
-### Docker Compose
+## From launch to result
 
 ```mermaid
 flowchart TB
-    subgraph AppTier["Application Tier (published to the host)"]
-        Frontend["Frontend<br/>:5173"]
-        API["API<br/>:8022"]
-        Zitadel["Zitadel<br/>:8080"]
-    end
-
-    subgraph Workers["Workers (no ports)"]
-        Orchestrator["Orchestrator"]
-        Runner["OpenTofu Runner"]
-        AnsibleRunner["Ansible Runner"]
-    end
-
-    subgraph DataTier["Data Tier (internal only)"]
-        PostgreSQL["PostgreSQL<br/>:5432"]
-        Redis["Redis<br/>:6379"]
-        Garage["Garage<br/>:3900"]
-    end
+    Launch["Launch a run or job"] --> Checks["Check permissions and launch conditions"]
+    Checks --> Pending["Queue work"]
+    Pending --> Execute["Runner executes the selected configuration"]
+    Execute --> Result["Record status, output and artifacts"]
+    Result --> Inspect["Inspect the result in the UI or API"]
 ```
 
-**Networking**: every service joins one user-defined bridge network and reaches the others by service name (for example `zitadel:8080` or `postgres:5432`). Only the frontend, the API, and Zitadel publish ports to the host. There is no separate login UI container: the frontend serves the login pages under `/login/*`, and the API's auth proxy under `/auth/*` forwards the Zitadel calls.
+<details>
+<summary>Diagram legend: launch and execution</summary>
 
-### Production (Kubernetes)
+1. You launch a run or job through the UI, an API client or an enabled trigger.
+2. Stackweaver checks permissions and launch conditions before releasing work for execution.
+3. A runner executes the selected configuration with that run or job's settings and credentials.
+4. Status, output and artifacts are recorded so you can inspect the result through the UI or API.
 
-```mermaid
-flowchart TB
-    LB["Load Balancer / Ingress"]
+Some launches wait for an inventory refresh, approval or available execution capacity. The linked execution guides explain those paths and their failure behavior.
 
-    subgraph AppTier["Application Tier"]
-        Frontend["Frontend<br/>(Nginx)"]
-        API["API (Go)"]
-        Zitadel["Zitadel"]
-    end
+</details>
 
-    subgraph DataTier["Data Tier"]
-        PostgreSQL["PostgreSQL<br/>(StatefulSet)"]
-        Redis["Redis"]
-        Garage["S3 Storage<br/>(Garage / External)"]
-    end
+For OpenTofu, a workspace supplies configuration and variables. A run can plan, apply or
+destroy infrastructure, subject to its settings and permissions. State versions are stored
+in object storage, with their metadata in PostgreSQL. See [Understanding OpenTofu runs](../user-guides/understanding-opentofu-runs.md).
 
-    LB --> Frontend
-    LB --> API
-    LB --> Zitadel
-    API --> PostgreSQL
-    API --> Redis
-    API --> Garage
-```
+For Ansible, a job template supplies the playbook, inventory and execution settings. Launch
+conditions can include inventory refreshes and concurrency limits. Workflows can add approval
+steps. The runner
+executes the playbook and reports host and task results. See [Ansible execution flows](../features/ansible/execution-flows.md)
+for the detailed paths, including workflows and self-hosted runners.
 
-## Technology Choices
+## Choose where execution runs
 
-### Why Go for Backend?
+The runner's network determines what a run or job can reach. Being able to open Stackweaver
+in your browser does not mean a runner can reach a private target.
 
-- **Performance**: Fast compilation and execution
-- **Concurrency**: Excellent goroutine support for async operations
-- **Type Safety**: Strong typing reduces runtime errors
-- **Ecosystem**: Rich standard library and package ecosystem
-- **Deployment**: Single binary deployment
+| Execution location | Use it when | Connections to plan for |
+|---|---|---|
+| Platform runners | The platform's execution environment can reach your targets and has the required tools. | The platform services use their configured database, Redis and object storage. Runners also need access to the repositories, dependencies and targets their work uses. |
+| Self-hosted runners | Work must execute within another network or on hosts you control. | Runners request work and report results through the API. They also need access to their repositories, dependencies and targets. They do not need direct access to the platform database or Redis. |
 
-### Why React for Frontend?
+Keep each runner's credentials limited to the work it performs. The API coordinates
+execution; it does not provide the runner's network access to target hosts. See
+[Self-hosted runners](../user-guides/self-hosted-runners.md) to configure agent pools and
+connect runners.
 
-- **Component-Based**: Reusable, maintainable UI components
-- **Ecosystem**: Large ecosystem of libraries and tools
-- **Developer Experience**: Great tooling (Vite, TypeScript)
-- **Performance**: Virtual DOM and efficient rendering
-- **Community**: Large, active community
+<a id="security-architecture"></a>
 
-### Why Zitadel?
+## Identity, access and data
 
-- **Open Source**: Self-hostable identity provider
-- **OIDC/OAuth2**: Industry-standard protocols
-- **Features**: User management, organizations, RBAC
-- **Integration**: Easy integration with Go and React
-- **UI**: Built-in login UI
+The API completes sign-in with Zitadel as the confidential **Stackweaver BFF** client,
+verifies and discards the tokens, and stores a browser session in PostgreSQL. The browser
+receives an opaque `HttpOnly`, `Secure`, `SameSite=Strict` cookie; the SPA holds no OAuth token.
+Cookie API requests carry `X-Stackweaver-CSRF: 1`, and writes also require a trusted origin.
+Default session limits are one hour idle, twelve hours absolute and a five-minute Zitadel
+liveness check. See [browser sessions](../user-guides/authentication/zitadel-setup.md#browser-sessions).
 
-### Why PostgreSQL?
+Stackweaver applies organization, project and resource permissions to requests; sign-in alone
+does not grant access to every resource. [Platform administration](../user-guides/platform-administration.md)
+controls install-wide operations without granting membership inside organizations.
+Automation authenticates with `tfe-` API tokens, not Zitadel access tokens. See [Using the API](./using-the-api.md) for
+integration guidance and the [API explorer](/docs/api-reference/explorer) for endpoint details.
 
-- **ACID Compliance**: Strong consistency guarantees
-- **JSON Support**: JSONB for flexible schemas
-- **Performance**: Excellent query performance
-- **Ecosystem**: Rich tooling and extensions
-- **Reliability**: Battle-tested, production-ready
+Keep database and Redis access restricted to the services and administrators that need it.
+Configure HTTPS at your deployment's public entry points.
 
-## API Design Principles
+### What to preserve for recovery
 
-### RESTful Design
+Database records and object-storage files serve different purposes. A recovery plan needs
+both, along with the identity and configuration needed to use them:
 
-- **Resources**: Nouns (organizations, projects, workspaces, runs)
-- **HTTP Methods**: GET (read), POST (create), PUT (update), DELETE (delete)
-- **Status Codes**: Proper HTTP status codes (200, 201, 204, 400, 401, 404, 500)
-- **URLs**: Hierarchical resource structure (`/organizations/:id/projects`)
+- **PostgreSQL:** resource definitions, permissions and execution records.
+- **Object storage:** configuration snapshots, state files and artifacts.
+- **Zitadel data:** user identities and sign-in configuration.
+- **Deployment configuration and encryption keys:** the settings and keys needed to restore
+  service connectivity and access to stored credentials.
 
-### Versioning
+The deployment guides describe storage setup. This overview is not a backup or restore
+procedure.
 
-- **Primary API**: `/api/v2/...` (TFE-compatible where applicable)
-- **Terraform Registry**: `.well-known/terraform.json` for service discovery
+<a id="deployment-architecture"></a>
 
-### Pagination
+## Deploy and configure
 
-- **JSON:API Style** (most endpoints): `page[number]` and `page[size]` query parameters
-- **Response Format**: `{ data: [...], meta: { pagination: { current-page, page-size, total-count, total-pages } } }`
+[Docker Compose](../get-started/self-hosting/docker-compose/README.md) runs the services on a
+single host. [Kubernetes](../get-started/self-hosting/kubernetes/README.md) provides the Helm
+deployment. Follow the guide for your environment for ingress, storage and identity setup;
+public addresses and ports depend on that configuration.
 
-### Error Handling
-
-- **JSON:API Format**: `{ errors: [{ status: "...", title: "...", detail: "..." }] }` for most endpoints
-- **Simple Format**: `{ error: "message" }` used by some internal endpoints
-- **Descriptive Messages**: Human-readable error messages
-- **Status Codes**: Appropriate HTTP status codes
-
-## Additional Components
-
-### Storage (Garage / S3-compatible)
-
-- **Purpose**: Object storage for Terraform state, configuration versions, and registry artifacts
-- **Implementation**: S3-compatible interface
-- **Buckets**: Separate buckets for state, configurations, and registry
-- **Features**: Pre-signed URLs for secure access, encryption at rest support
-
-### Queue (Redis)
-
-- **Purpose**: Job queue for Terraform runs and Ansible jobs
-- **Implementation**: Redis lists; jobs are pushed with LPUSH and claimed with BLMOVE onto a per-consumer processing list, so a runner that crashes mid-job leaves the job recoverable
-- **Features**: 
-  - Log buffering for live output streaming
-  - Job queuing for runners
-  - TTL-based log expiration (24 hours)
-
-### Runners
-
-- **OpenTofu Runner** (`cmd/runner/`): Executes OpenTofu plans/applies/destroys
-- **Ansible Runner** (`cmd/ansible-runner/`): Executes Ansible playbooks
-- **Orchestrator** (`cmd/orchestrator/`): Manages job scheduling and runner assignment
-
-### Terraform Registry
-
-- **Service Discovery**: `.well-known/terraform.json` endpoint
-- **Module Registry**: Private Terraform module registry (TFE-compatible)
-- **Provider Registry**: Private Terraform provider registry
-- **Publishing**: VCS webhook-based module/provider publishing
-
-### VCS Integration
-
-- **GitHub App**: Primary VCS integration method
-- **Azure DevOps**: Entra ID OAuth2 integration
-- **Features**: Automatic token management, repository access control, webhook handling
-- **Use Cases**: Playbook sync, module publishing, workspace configuration sync
-
-## Future Architecture Enhancements
-
-### Microservices (Future)
-
-- **API Gateway**: Single entry point, routing to services
-- **Notification Service**: Multi-channel notifications (Slack, Email, Webhooks)
-- **Policy Service**: Policy evaluation (OPA)
-- **Metrics Service**: Aggregated metrics and monitoring
-
-### Event-Driven Architecture (Future)
-
-- **Event Bus**: Pub/sub for domain events (using Redis Streams)
-- **Event Sourcing**: Audit trail and state reconstruction
-- **Webhooks**: Outbound webhook notifications
-
-### Plugin System (Future)
-
-- **IaC Plugins**: Pulumi, OpenTofu
-- **VCS Plugins**: GitLab, Bitbucket, Gitea
-- **Storage Plugins**: Azure Blob, GCS (beyond S3-compatible)
-- **Notification Plugins**: Slack, Email, Webhooks
-
-## References
-
-- [Zitadel Setup](../user-guides/authentication/zitadel-setup.md)
-- [API Reference](../api-reference/README.md)
-- [Zitadel Documentation](https://zitadel.com/docs)
-- [Gin Framework](https://gin-gonic.com/)
-- [React Documentation](https://react.dev/)
-
+For a codebase-oriented view, see [Repository layout](./repositories.md). The
+[environment variable reference](../get-started/self-hosting/environment-variables.md)
+describes configuration settings for each service.

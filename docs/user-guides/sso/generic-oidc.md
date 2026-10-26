@@ -1,24 +1,28 @@
 ---
-description: "Guide for configuring any OIDC-compliant identity provider as an SSO provider"
+description: "Register an OIDC client, discover its issuer, configure group claims and automate a Keycloak example."
 covers:
   - "scripts/zitadel-init/**"
   - "deploy/sso.env.example"
   - "deploy/helm/**"
 ---
 
-# Generic OIDC Provider Setup
+# Set up a generic OIDC provider
 
-This guide covers configuring any OIDC-compliant identity provider with StackWeaver. Use this guide if your provider is not Azure AD, Okta, or AWS Cognito, or if the provider-specific guides do not cover your setup.
+Register a confidential client at your identity provider, pass its issuer and credentials
+to the Stackweaver initializer, then test browser sign-in and organization access. Entra
+has a [dedicated guide](./azure-ad.md); Okta has a [tested custom-server recipe](./okta.md).
 
-Any identity provider that supports OpenID Connect with the Authorization Code flow can be integrated, including:
+The discovery and group-claim examples below are starting points for providers such as
+Auth0, Keycloak, Google Workspace, OneLogin, PingIdentity, JumpCloud and custom servers.
+Check the provider's supported scopes and claims rather than treating the list as a
+certification of every configuration.
 
-- Google Workspace
-- Auth0
-- Keycloak
-- OneLogin
-- PingIdentity
-- JumpCloud
-- Custom OIDC servers
+## Choose a setup path
+
+Use the portal procedure below, or the complete Terraform example. Both produce the client
+settings consumed by Stackweaver; registering the upstream application and configuring the
+Stackweaver deployment are separate steps. Complete the same sign-in and access checks
+regardless of which path you choose.
 
 ## Prerequisites
 
@@ -26,7 +30,10 @@ Your OIDC provider must support:
 
 1. **Authorization Code flow** with a client secret (confidential client).
 2. **Standard OIDC discovery** via a `/.well-known/openid-configuration` endpoint at the issuer URL.
-3. **Standard scopes**: `openid`, `profile`, `email`.
+3. **Requested scopes**: the initializer requests `openid`, `profile`, `email` and `groups`.
+   Confirm the provider accepts this set; the initializer has no per-provider scope override.
+4. **Userinfo endpoint** for identity/profile mapping. Group extraction can also read the
+   upstream ID/access tokens, so groups do not have to be duplicated in userinfo.
 
 ## Step 1: Register an Application
 
@@ -39,7 +46,7 @@ In your identity provider's admin console, create a new OIDC application:
    ```
    Replace `zitadel.example.com` with your actual Zitadel domain. For a localhost-only setup, use `http://localhost:8080/idps/callback`. See the [Custom Domain guide](../authentication/zitadel-custom-domain.md) for how the callback URL is constructed.
 3. Ensure the **Authorization Code** grant type is enabled.
-4. Request the scopes: `openid`, `profile`, `email`.
+4. Configure the client for the requested `openid`, `profile`, `email` and `groups` scopes.
 5. Note the **Client ID** and **Client Secret**.
 
 ## Step 2: Find Your Issuer URL
@@ -66,21 +73,91 @@ Common issuer URL formats:
 
 If you want automatic team mapping, configure your provider to include a `groups` claim in the ID token or the userinfo response. The exact steps vary by provider:
 
-- **Auth0**: Use a [Post Login Action](https://auth0.com/docs/customize/actions/flows-and-triggers/login-flow) to add a `groups` claim from user roles or organization memberships.
+- **Auth0**: Use a [Post Login Action](https://auth0.com/docs/customize/actions/flows-and-triggers/login-flow)
+  to customize claims. Check Auth0's reserved/namespaced-claim restrictions and the accepted
+  names below; a URL-namespaced claim is not automatically mapped to `groups`.
 - **Keycloak**: Add a "Group Membership" protocol mapper to your client with the claim name `groups`.
 - **Google Workspace**: Group information is not available in standard OIDC claims. Consider using a middleware or a different approach.
 - **OneLogin**: Configure a "Groups" parameter in the application's Parameters tab.
 
-The claim must be a JSON array of strings. For example:
+Prefer a JSON array of group identifiers. The extractor also accepts a single string;
+matching uses the exact emitted value. For example:
 ```json
 {
   "groups": ["engineering", "platform-admins", "security"]
 }
 ```
 
-StackWeaver's IDP sync webhook extracts groups from multiple sources automatically. It checks the following claim names in order: `groups`, `cognito:groups`, `roles`, `group`, and Keycloak's `realm_access.roles`. It also inspects the OAuth `id_token` and `access_token` JWTs directly, which is needed for providers like Azure AD that include groups in the token but not in the userinfo response.
+Stackweaver's IDP sync webhook extracts groups from multiple sources. It uses the first
+nonempty supported result rather than combining every claim. It checks the following claim names in order: `groups`, `cognito:groups`, `roles`, `group`, and Keycloak's `realm_access.roles`. It also inspects the OAuth `id_token` and `access_token` JWTs directly, which is needed for providers like Azure AD that include groups in the token but not in the userinfo response.
 
-## Step 4: Configure StackWeaver
+![Keycloak's official OIDC client settings reference.](./images/keycloak-client-settings.png)
+
+Keycloak's [Server Administration Guide](https://www.keycloak.org/docs/latest/server_admin/index.html#_oidc_clients)
+provides this unmodified reference image under [Apache 2.0](https://github.com/keycloak/keycloak/blob/main/LICENSE.txt).
+Use the confidential client, callback and scopes described here.
+
+
+## Automate the identity-provider setup with Terraform
+
+A generic OIDC client has no universal Terraform resource. This complete **Keycloak**
+example gives one concrete automation path; other providers use their own resources.
+It targets an existing realm and creates a confidential client, a `groups` client scope,
+its group-membership mapper and the client's optional-scope assignment.
+
+Authenticate the provider with `KEYCLOAK_URL`, `KEYCLOAK_REALM`, `KEYCLOAK_CLIENT_ID` and
+`KEYCLOAK_CLIENT_SECRET` for a management service account. The authentication realm can
+be different from the `realm_id` where you create the SSO client. The realm's normal
+`profile` and `email` default scopes must remain attached.
+
+Set `other_optional_scopes` to the complete desired set. That assignment is authoritative,
+so do not accidentally remove a scope your client needs. `full_path = false` emits group
+names; map their exact values and check for same-name collisions between nested groups.
+
+Download all files into a separate private working directory. The example creates upstream
+identity resources, not Stackweaver teams. Review existing resources before applying; do not
+create a second app merely to replace a working configuration.
+
+::: code-explorer ./examples/keycloak default="main.tf"
+:::
+
+Copy `terraform.tfvars.example` to `terraform.tfvars`, replace every example value, and run:
+
+```bash
+terraform init
+terraform plan -out=sso.tfplan
+terraform apply sso.tfplan
+```
+
+Keep the declared version constraint and commit the lock file produced by `terraform init`
+in your automation repository. The saved plan may contain
+secrets; keep it and state in protected storage. The `sensitive` output flag hides routine
+display but does not remove secrets from state. This example does not grant consent or
+establish successful sign-in by itself.
+
+Read the client credentials privately:
+
+```bash
+terraform output -raw oidc_idp_client_id
+terraform output -raw oidc_idp_client_secret
+```
+
+Use the realm's public issuer, normally the Keycloak origin followed by `/realms/<realm>`,
+and pass the client values to the persistent deployment inputs below.
+
+Import an existing client or `groups` scope before managing it; do not duplicate an existing
+working configuration. Client and scope imports use their internal UUIDs:
+
+```bash
+terraform import keycloak_openid_client.stackweaver REALM/CLIENT_UUID
+terraform import keycloak_openid_client_scope.groups REALM/SCOPE_UUID
+```
+
+The mapper import is `realm/client-scope/scope-uuid/mapper-uuid`; optional-scope assignments
+use `realm/internal-client-uuid`. See the
+[Keycloak provider reference](https://registry.terraform.io/providers/keycloak/keycloak/latest/docs).
+
+## Step 4: Configure Stackweaver
 
 | Variable | Required | Description |
 |----------|----------|-------------|
@@ -89,25 +166,28 @@ StackWeaver's IDP sync webhook extracts groups from multiple sources automatical
 | `OIDC_IDP_CLIENT_ID` | Yes | OAuth 2.0 client ID from your provider |
 | `OIDC_IDP_CLIENT_SECRET` | Yes | OAuth 2.0 client secret from your provider |
 
-Choose the instructions for your deployment method.
+Choose the instructions for your deployment method. These reconcile steps assume the
+bundled Stackweaver initializer. An externally managed Zitadel installation needs its own
+IdP/Actions configuration; the deployment wiring guide is not that manual procedure.
 
 ### Docker Compose
 
 Add the following variables to **`sso.env`** in your Compose directory (the directory that holds `docker-compose.yml`; `zitadel-init` never overwrites this file):
 
-```bash
+```dotenv
 # Generic OIDC SSO Configuration
-OIDC_IDP_NAME=My Provider
+OIDC_IDP_NAME="My Provider"
 OIDC_IDP_ISSUER=https://your-provider.example.com
 OIDC_IDP_CLIENT_ID=your-client-id
 OIDC_IDP_CLIENT_SECRET=your-client-secret
 ```
 
-Then restart the `zitadel-init` service:
+Apply the initializer inputs, then recreate services that consume the generated credentials:
 
 ```bash
 # Run in your Compose directory
-docker compose up -d zitadel-init
+docker compose run --rm zitadel-init
+docker compose up -d
 ```
 
 ### Kubernetes / Helm
@@ -131,10 +211,13 @@ sso:
     clientId: "your-client-id"
 ```
 
-Then upgrade the release:
+Set `STACKWEAVER_CHART_VERSION` to the installed chart version shown by
+`helm list --namespace stackweaver`. Preserve the existing release values when applying
+these settings. A configuration change should not silently upgrade the platform:
 
 ```bash
 helm upgrade stackweaver oci://ghcr.io/vhco-pro/charts/stackweaver \
+  --version "${STACKWEAVER_CHART_VERSION:?Set the installed chart version}" \
   --namespace stackweaver \
   --values my-values.yaml
 ```
@@ -161,7 +244,10 @@ flowchart LR
 
 Check the logs to verify:
 
-**Docker Compose:**
+**Docker Compose:** inspect the output of the preceding one-off initializer command.
+Its `--rm` container is removed after it exits, so service logs do not retain that output.
+If your deployment ran the service container instead, inspect its retained logs:
+
 ```bash
 docker compose logs zitadel-init
 ```
@@ -173,11 +259,11 @@ kubectl logs -f deployment/stackweaver-zitadel -c zitadel-init --namespace stack
 
 ## Step 5: Test the Integration
 
-1. Open StackWeaver in your browser.
+1. Open Stackweaver in your browser.
 2. On the login page, you should see a "Sign in with {OIDC_IDP_NAME}" button.
 3. Click it to be redirected to your provider's login page.
 4. Sign in with your credentials.
-5. On first login, Zitadel auto-provisions the user and redirects you back to StackWeaver.
+5. On first login, Zitadel auto-provisions the user and redirects you back to Stackweaver.
 
 After first login, the user is provisioned but has no organization access. An admin must invite the user, or you can configure [team mapping](./team-mapping.md) for automatic access.
 
@@ -188,8 +274,8 @@ After first login, the user is provisioned but has no organization access. An ad
 | Auto-creation | Enabled | New users are automatically created in Zitadel on first login, with their email marked as verified, even when public sign-up is off |
 | Auto-update | Enabled | User profile is synced on each login |
 | Account linking | Not automatic | A first sign-in whose email already belongs to an existing account is refused, and the person is asked to sign in with their password first |
-| Token mapping | Userinfo endpoint | Claims are read from the OIDC userinfo endpoint (not the ID token) |
-| Scopes | `openid`, `profile`, `email` | Standard OIDC scopes |
+| Profile mapping | Userinfo endpoint | Identity/profile uses userinfo; group extraction also checks upstream ID/access tokens |
+| Scopes | `openid`, `profile`, `email`, `groups` | Fixed initializer request; confirm provider compatibility |
 
 ## Limitations
 
@@ -201,7 +287,9 @@ If you need multiple Generic OIDC providers, you can configure additional provid
 
 ### Userinfo Endpoint Required
 
-StackWeaver configures the provider with `IsIdTokenMapping: false`, which means claims are read from the provider's userinfo endpoint rather than the ID token. Your provider must support the userinfo endpoint (most OIDC-compliant providers do).
+Identity/profile mapping uses userinfo. Group extraction is separate: the IDP-sync webhook
+also inspects upstream ID/access tokens. A missing groups field in userinfo alone does
+not establish that team mapping fails.
 
 ## Troubleshooting
 
@@ -225,7 +313,8 @@ The callback URL is constructed from the request's domain context, not directly 
 ### Groups not appearing
 
 1. Verify your provider sends a `groups` claim (as a JSON array of strings).
-2. Check that the claim appears in the userinfo response, not just the ID token.
+2. Check raw provider information and the upstream ID/access tokens. Groups in an ID token
+   can be sufficient; verify the subsequent `sso_groups` claim and mapped membership.
 3. Some providers require explicit configuration to include group claims. See your provider's documentation.
 
 ### "Errors.Target.DeniedURL" when configuring Actions (Kubernetes)

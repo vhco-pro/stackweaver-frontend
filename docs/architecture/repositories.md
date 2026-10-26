@@ -1,7 +1,7 @@
 ---
 status: stable
-status_description: "Authoritative map of the Stackweaver multi-repo topology: private monorepo + closed `core/` module + seven public satellite distribution repos. Drafted 2026-05-23 for OSPS QA-04.01."
-description: "Codebase map for Stackweaver. Names every repository in scope (monorepo, closed module, satellites, org-defaults repo), the directionality of sync between them, the licence per component, and the review boundary that human changes must cross. Required reading for any contributor, auditor, or operator."
+status_description: "Map of upstream development and eight public component distribution repositories, with verified repository/license links."
+description: "Find public component source and releases, understand upstream synchronization and choose where to report an issue."
 author: "Michiel VH"
 created: 2026-05-23
 covers:
@@ -14,95 +14,78 @@ covers:
   - "runner-images/"
 ---
 
-# Repositories
+# Stackweaver repositories
 
-> The Stackweaver source is split across several repositories. This page
-> is the canonical map. It satisfies OSPS Baseline **QA-04.01** (multi-
-> repo: document the list of codebases).
+Use the component repository to find a release, inspect distributed source or report an
+issue. Development source is maintained upstream and copied into the public component
+repositories by automated sync pull requests.
 
-## 1. Repository map
+## Find the component you need
 
-| Tier | Repo | Visibility | Audit scope | Contents |
-|------|------|------------|-------------|----------|
-| **Upstream monorepo** | `michielvha/stackweaver` | Private (permanent) | Internal upstream gate - not audited directly | All source, including the closed `core/` Go module |
-| **Closed Go module** | `core/` (inside monorepo) | Private (BSL when published) | Argued deviation under NDA - see [OSPS Baseline Compliance, Argued deviations](../security/osps-baseline-compliance.md#argued-deviations) | Shared GORM models, repositories, queue, storage, plugin contracts |
-| **Satellite - API**           | `vhco-pro/stackweaver-api`            | Public | ✅ | `backend/cmd/api`, `backend/internal/{api,services}`, `backend/config` |
-| **Satellite - Orchestrator**  | `vhco-pro/stackweaver-orchestrator`   | Public | ✅ | `backend/cmd/orchestrator` |
-| **Satellite - OpenTofu Runner** | `vhco-pro/stackweaver-opentofu-runner` | Public | ✅ | `backend/cmd/runner`, `runner-images/opentofu/Dockerfile` |
-| **Satellite - Ansible Runner**| `vhco-pro/stackweaver-ansible-runner` | Public | ✅ | `backend/cmd/ansible-runner`, `runner-images/ansible/*`, OIDC inventory script |
-| **Satellite - Frontend**      | `vhco-pro/stackweaver-frontend`       | Public | ✅ | `frontend/`, `docs/` (excluding `docs/internal/`) |
-| **Satellite - Helm chart**    | `vhco-pro/stackweaver-helm`           | Public         | ✅ | `deploy/helm/stackweaver/` |
-| **Satellite - Zitadel Init**  | `vhco-pro/stackweaver-zitadel-init`   | Public | ✅ | `scripts/zitadel-init/` |
-| **Satellite - Secrets Init**  | `vhco-pro/stackweaver-secrets-init`   | Public | ✅ | `scripts/secrets-init/` |
-| **Org-defaults repo**         | `vhco-pro/.github`                    | Public | Provides defaults - not audited directly | Community-health files, reusable workflows |
+| Component | Public repository | Purpose |
+|---|---|---|
+| API | [stackweaver-api](https://github.com/vhco-pro/stackweaver-api) | HTTP API, authentication integration and platform services. |
+| Orchestrator | [stackweaver-orchestrator](https://github.com/vhco-pro/stackweaver-orchestrator) | Dispatch queued infrastructure work. |
+| OpenTofu runner | [stackweaver-opentofu-runner](https://github.com/vhco-pro/stackweaver-opentofu-runner) | Execute plan/apply work and provide runner images. |
+| Ansible runner | [stackweaver-ansible-runner](https://github.com/vhco-pro/stackweaver-ansible-runner) | Execute playbooks and platform inventory syncs. |
+| Frontend | [stackweaver-frontend](https://github.com/vhco-pro/stackweaver-frontend) | Web application and public documentation. |
+| Helm chart | [stackweaver-helm](https://github.com/vhco-pro/stackweaver-helm) | Kubernetes installation and configuration. |
+| Identity initializer | [stackweaver-zitadel-init](https://github.com/vhco-pro/stackweaver-zitadel-init) | Configure the bundled Zitadel integration. |
+| Secrets initializer | [stackweaver-secrets-init](https://github.com/vhco-pro/stackweaver-secrets-init) | Prepare deployment secrets. |
 
-## 2. Sync directionality
+[Organization defaults](https://github.com/vhco-pro/.github) contains shared community-health
+files and reusable workflows. The upstream development repository also contains the shared
+`core` module used by the Go services; it is not a separately deployed service.
 
+## How source reaches a release
+
+```mermaid
+flowchart TD
+    U["Upstream development source"] --> S["Automated component sync pull requests"]
+    S --> A["API and orchestrator"]
+    S --> R["OpenTofu and Ansible runners"]
+    S --> F["Frontend and public docs"]
+    S --> D["Helm and deployment initializers"]
+    A --> P["Component releases and artifacts"]
+    R --> P
+    F --> P
+    D --> P
 ```
-       michielvha/stackweaver  (private monorepo, source of truth)
-                  │
-                  │  sync-*.yml (one-way; opens a sync PR on each satellite)
-                  ▼
-    vhco-pro/stackweaver-api
-    vhco-pro/stackweaver-orchestrator
-    vhco-pro/stackweaver-opentofu-runner
-    vhco-pro/stackweaver-ansible-runner
-    vhco-pro/stackweaver-frontend
-    vhco-pro/stackweaver-helm
-    vhco-pro/stackweaver-zitadel-init
-    vhco-pro/stackweaver-secrets-init
-```
 
-- Sync is performed by the `stackweaver-release-bot` GitHub App, which
-  opens a pull request on each satellite; see
-  [Sync Architecture](../security/sync-architecture.md).
-- No human pushes to satellite `main`. Branch protection on every
-  satellite requires a reviewed pull request and passing status checks.
-- Each satellite commit is Sigstore-signed and accompanied by a SLSA L3
-  provenance attestation referencing the upstream monorepo commit SHA.
-  See [Verifying a Stackweaver Release](../security/verifying-releases.md).
+<details>
+<summary>Repository and release legend</summary>
 
-## 3. Synced vs satellite-owned files
+1. Development changes are integrated upstream and then distributed to component repositories.
+2. A sync pull request is a source publication step, not proof that a new artifact is released.
+3. Components have independent version series. Match the artifact and provenance to the
+   component release you actually deploy.
+4. Public documentation is copied with the frontend; internal engineering documents and
+   saved design prototypes are excluded from the published product.
 
-| File / dir | Satellites that own it locally | Satellites where it's synced from monorepo |
-|------------|--------------------------------|---------------------------------------------|
-| `LICENSE`            | all                 | all (planned, with `licenses/` as the canonical source) |
-| `NOTICE`             | none                | runner, ansible-runner (planned) |
-| `README.md`          | all                 | all except helm (planned; helm `sed`s its README at release time) |
-| `gitversion.yml`     | all                 | - (uniform; could be synced, low priority) |
-| `.github/`           | all                 | - (caller workflows live with the runner - see §5) |
-| Top-level Dockerfile | api / orchestrator / zitadel-init / frontend (intentional, hand-maintained) | runner, ansible-runner (synced from `runner-images/*/Dockerfile`) |
-| Source tree          | - | every satellite's body is wiped-and-filled or full-mirrored from monorepo |
+</details>
 
-## 4. Licence per component
+Source synchronization is one way. A component repository's release workflow, version
+configuration and other distribution files can be maintained there rather than copied
+from upstream. Follow [Sync architecture](../security/sync-architecture.md) for the detailed
+publication boundary and [Verifying releases](../security/verifying-releases.md) to check
+artifact signatures and provenance.
 
-Each component carries one of two licences:
+## Check the component's license
 
-- BSL 1.1 + Apache-2.0 Change Date + SaaS-exclusion AUG → api, orchestrator,
-  frontend, helm, zitadel-init, `core/`
-- Apache-2.0 + `NOTICE` declaring the BSL `core/` linkage → runner,
-  ansible-runner
+Read the `LICENSE` at the tag or commit you use. The runner repositories and Helm chart
+publish Apache 2.0 licenses. API, orchestrator, frontend and initializer repositories
+publish BSL 1.1 licenses. Runner `NOTICE` files also describe the shared `core` linkage.
+Repository descriptions are not a substitute for those files.
 
-## 5. Review boundary
+The [OSPS evidence guide](../security/osps-baseline-compliance.md#argued-deviations)
+describes the assessment boundary and its private shared-module gap. This page supplies the
+repository map for QA-04.01; it does not certify a release merely because a repository exists.
 
-Authoritative human review happens **upstream** in the monorepo:
+## Report a problem
 
-- Every change reaches a satellite only via a monorepo PR with ≥ 1
-  non-author CODEOWNERS approval and passing CI.
-- Satellites are immutable distribution mirrors; their content is a
-  deterministic re-publication of a reviewed monorepo commit.
-- See [OSPS Baseline Compliance, Argued deviations](../security/osps-baseline-compliance.md#argued-deviations)
-  for the public deviation argument this model rests on, and the
-  [Sync Architecture threat model](../security/sync-architecture.md#threat-model)
-  for the underlying threat analysis.
-
-## 6. Where to file an issue
-
-- **Bug in API / Orchestrator / Runner / Frontend / Zitadel init / Helm
-  chart** → file on the satellite. The satellite's issue templates route
-  appropriately.
-- **Security report** → use GitHub Private Vulnerability Reporting on the
-  satellite where you observed the issue, or email the published security
-  mailbox (`vhco-pro/.github/SECURITY.md`).
-- **Cross-component / architectural** → file on the satellite you think
-  is most affected; maintainers triage.
+- Open a product issue in the component where you observed it. For a cross-component
+  problem, choose the most affected component and include the other component versions.
+- Follow that repository's contribution instructions. Direct changes to a distribution
+  mirror can be replaced by the next upstream sync.
+- Report vulnerabilities through the repository's private reporting channel or the
+  published [security policy](https://github.com/vhco-pro/.github/blob/main/SECURITY.md).

@@ -1,395 +1,320 @@
 ---
-description: "Guide for connecting Azure DevOps repositories using Entra ID OAuth2 including webhook setup"
+description: "Connect Azure DevOps repositories through Entra OAuth, verify service hooks and manage deployment credentials."
 covers:
-  - "core/vcs/**"
+  - "core/services/vcs/**"
+  - "backend/internal/api/v2/handlers/vcs*"
+  - "frontend/src/pages/Settings/VCSConnections*"
   - "deploy/vcs.env.example"
+  - "deploy/helm/**"
 ---
 
-# Azure DevOps VCS Integration
+# Connect Azure DevOps repositories
 
-This guide walks you through connecting Azure DevOps repositories to Stackweaver so it can trigger OpenTofu runs from code pushes and pull requests.
+Connect an Azure DevOps organization so workspaces can read repositories and respond to
+pushes and pull requests. The connection uses Microsoft Entra OAuth and is separate from
+[Entra browser SSO](../sso/azure-ad.md).
 
-The integration uses **Microsoft Entra ID OAuth2** (the current Microsoft identity platform) to authenticate with Azure DevOps. The older Azure DevOps-specific OAuth flow was deprecated in April 2025 and is no longer available for new applications.
+## Before you start
 
-## Prerequisites
+You need an Azure DevOps organization with a Git repository, access to that organization
+and permission to register an Entra application. In Stackweaver, you need organization-owner
+or **Manage VCS settings** access. An organization API token initiating installation needs
+write scope on that organization.
 
-You need an Azure DevOps organization with at least one project containing a Git repository. You also need permission to register applications in Microsoft Entra ID (Azure Active Directory), either as an Entra ID administrator or with permission granted by one.
+Choose the public app URL and API URL first. Microsoft must be able to redirect your
+browser to the app, and Azure DevOps must be able to deliver hooks to the API.
 
-## Step 1: Register an Application in Microsoft Entra ID
+| URL | Purpose |
+|---|---|
+| `https://app.example.com/vcs/azure-devops/callback` | Entra redirect for this VCS connection. |
+| `https://app.example.com/api/v2/vcs-connections/azure-devops/webhook` | Service-hook receiver when the API is routed under the app origin. |
+| `https://auth.example.com/idps/callback` | External SSO callback; do not use it for the VCS connection. |
 
-Registration is done in the **Azure Portal**, not in Azure DevOps.
+## 1. Register the Entra application
 
-Before starting, verify that the Azure DevOps enterprise application exists in your tenant by running:
+Use the manual steps below or the [Terraform template](#terraform-setup). Both configure
+the identity application; neither replaces a user's Azure DevOps authorization.
+
+1. In the [Azure Portal](https://portal.azure.com), open **Microsoft Entra ID > App registrations > New registration**.
+2. Name the app and select the intended account audience. Choose a single tenant for a
+   single-directory installation; use multiple tenants only when that is intended.
+3. Register the public VCS callback as a **Web** redirect URI. A local development URI is
+   a separate allowed entry:
+
+   ```text
+   http://localhost:5173/vcs/azure-devops/callback
+   ```
+4. Record the client ID and, for single-tenant mode, directory/tenant ID.
+5. Under **API permissions**, add the Azure DevOps delegated permissions below. Consent
+   is subject to your tenant policy; an administrator may need to approve it.
+6. Under **Certificates & secrets**, create a client secret, record the expiry and copy
+   its **value** immediately. The secret ID is not the credential.
+
+| Permission | Used for |
+|---|---|
+| `vso.code` | Repository/code access, including inherited service-hook access. |
+| `vso.code_status` | Commit and pull-request status checks. |
+| `vso.project` | Project/repository listing. |
+
+The connection also requests `offline_access` for refresh tokens. Do not add separate
+`vso.hooks` or `vso.hooks_write` scopes to this request. Use the
+[documented Azure DevOps scope hierarchy](https://learn.microsoft.com/en-us/azure/devops/integrate/get-started/authentication/oauth?view=azure-devops#available-scopes)
+and the [Entra OAuth guide](https://learn.microsoft.com/en-us/azure/devops/integrate/get-started/authentication/entra-oauth)
+when reviewing consent.
+
+If Azure DevOps does not appear as an API, an Entra administrator can check its enterprise
+application with Azure CLI:
 
 ```bash
 az ad sp show --id 499b84ac-1321-427f-aa17-267ca6975798
 ```
 
-If the command returns an error, the Azure DevOps service principal has not been provisioned in your tenant yet. Create it with:
+Only if that principal is absent, provision it in the intended tenant:
 
 ```bash
 az ad sp create --id 499b84ac-1321-427f-aa17-267ca6975798
 ```
 
-This is a one-time step per tenant. It does not affect any Azure DevOps organizations or users. Without this, Entra ID cannot resolve API permissions for the Azure DevOps resource and authorization will fail with AADSTS650052.
+## 2. Configure the deployment
 
-1. Sign in to the [Azure Portal](https://portal.azure.com).
-2. Navigate to **Microsoft Entra ID** → **App registrations** → **New registration**.
-3. Fill in the registration form:
-   - **Name**: `Stackweaver` (or any descriptive name).
-   - **Supported account types**: Select **Accounts in any organizational directory (Any Microsoft Entra ID tenant – Multitenant)**. This allows users from any Azure DevOps organization to connect, which is required if you host Stackweaver for multiple teams or clients. If Stackweaver serves only a single Entra tenant, you may choose **Accounts in this organizational directory only** instead.
-   - **Redirect URI**: Select **Web** and enter:
-     ```
-     http://localhost:5173/vcs/azure-devops/callback
-     ```
-     For production deployments, replace `localhost:5173` with your Stackweaver frontend domain.
-4. Click **Register**.
-5. On the resulting overview page, copy the following values; you will need them later:
-   - **Application (client) ID**: this is your `AZURE_DEVOPS_CLIENT_ID`
-   - **Directory (tenant) ID**: only needed if you chose single-tenant in the previous step
+### Docker Compose
 
-## Step 2: Add API Permissions for Azure DevOps
+Save persistent credentials in `vcs.env`, beside the Compose file. Replace placeholders,
+keep the file private and use a strong, independently generated webhook secret.
 
-After registration, grant the app permission to read Azure DevOps repositories.
-
-1. In the app registration, go to **API permissions** → **Add a permission**.
-2. Select **Azure DevOps** from the list of APIs. If it does not appear immediately, search for it.
-3. Select **Delegated permissions** (the app acts on behalf of the signed-in user).
-4. Select the following permissions:
-   - **Code (read)** (`vso.code`): read source code, commits, and branches.
-   - **Code (status)** (`vso.code_status`): read and write commit and pull request status. Required for PR status checks (showing plan results on pull requests).
-   - **Project and team (read)** (`vso.project`): read projects, required to list repositories across projects.
-5. Click **Add permissions**.
-
-You do not need to click **Grant admin consent** for these delegated permissions. Each user grants consent when they first authorize Stackweaver.
-
-Service hook subscriptions (used for webhook auto-registration) are covered automatically by `vso.code`. According to the [Azure DevOps scope hierarchy](https://learn.microsoft.com/en-us/azure/devops/integrate/get-started/authentication/oauth?view=azure-devops#available-scopes), `vso.code` inherits from `vso.hooks_write`. Do not add `vso.hooks_write` or `vso.hooks` as separate permissions; these scopes are no longer public in Entra ID and will cause an AADSTS650053 authorization error if explicitly requested.
-
-## Step 3: Create a Client Secret
-
-Stackweaver needs a client secret to exchange authorization codes for tokens.
-
-1. In the app registration, go to **Certificates & secrets** → **New client secret**.
-2. Add a description (e.g., `Stackweaver production`) and set an expiration period. Microsoft recommends 12 months or less. Note the expiration date; you must rotate this secret before it expires or the integration stops working.
-3. Click **Add**.
-4. **Copy the secret Value immediately.** It is only shown once. If you navigate away, you must create a new secret.
-
-## Step 4: Set Environment Variables
-
-The API, the orchestrator, and the Ansible runner all read the Azure DevOps settings. On Docker Compose, add the following to `vcs.env` in your Compose directory (the directory that holds `docker-compose.yml`); Compose loads that file into all three services:
-
-```bash
-# Public base URL of the Stackweaver API - used to auto-register webhook subscriptions.
-# Must be reachable from Azure DevOps. For local development, use a tunnel URL (see Step 7).
-STACKWEAVER_WEBHOOK_BASE_URL=https://your-stackweaver-domain:8022
-
-# Azure DevOps - Microsoft Entra ID OAuth2
-AZURE_DEVOPS_CLIENT_ID=<Application (client) ID from Step 1>
-AZURE_DEVOPS_CLIENT_SECRET=<Secret value from Step 3>
-AZURE_DEVOPS_REDIRECT_URI=http://localhost:5173/vcs/azure-devops/callback
-
-# Leave AZURE_DEVOPS_TENANT_ID unset (or set to "common") for multi-tenant.
-# Set to your specific Entra tenant ID if you chose single-tenant in Step 1.
-# AZURE_DEVOPS_TENANT_ID=common
+```dotenv
+AZURE_DEVOPS_CLIENT_ID=replace-with-client-id
+AZURE_DEVOPS_CLIENT_SECRET=replace-with-secret-value
+AZURE_DEVOPS_REDIRECT_URI=https://app.example.com/vcs/azure-devops/callback
+AZURE_DEVOPS_TENANT_ID=replace-with-single-tenant-id
+STACKWEAVER_WEBHOOK_BASE_URL=https://app.example.com
+AZURE_DEVOPS_WEBHOOK_SECRET=replace-with-strong-webhook-secret
 ```
 
-The redirect URI must exactly match the URI registered in Step 1. Common mismatches include trailing slashes, `http` vs `https`, and different port numbers.
+Leave `AZURE_DEVOPS_TENANT_ID` unset or set it to `common` only for the intended multitenant
+configuration. `STACKWEAVER_WEBHOOK_BASE_URL` is the **public API origin**, without `/api/v2`.
+Use a different origin if your API has its own host. Never maintain these values in
+auto-generated `.env`.
 
-Replace `your-stackweaver-domain:8022` with the public hostname and port of your Stackweaver API. For local development, see Step 7 for how to use a tunnel.
+```bash
+docker compose up -d api orchestrator ansible-runner
+docker compose logs api
+```
 
-On Kubernetes, the Helm chart has no dedicated Azure DevOps settings. Pass the same variables through the `env` map of the `api`, `orchestrator`, and `ansibleRunner` components in your values file, for example:
+### Kubernetes / Helm
+
+The chart's component `env` maps accept string values, not `valueFrom` objects. Merge the
+same settings into `api.env`, `orchestrator.env` and `ansibleRunner.env` in a protected
+values file. For example, the API portion is:
 
 ```yaml
 api:
   env:
-    STACKWEAVER_WEBHOOK_BASE_URL: "https://stackweaver.example.com"
-    AZURE_DEVOPS_CLIENT_ID: "<Application (client) ID from Step 1>"
-    AZURE_DEVOPS_CLIENT_SECRET: "<Secret value from Step 3>"
-    AZURE_DEVOPS_REDIRECT_URI: "https://stackweaver.example.com/vcs/azure-devops/callback"
+    AZURE_DEVOPS_CLIENT_ID: "replace-with-client-id"
+    AZURE_DEVOPS_CLIENT_SECRET: "replace-with-secret-value"
+    AZURE_DEVOPS_REDIRECT_URI: "https://app.example.com/vcs/azure-devops/callback"
+    AZURE_DEVOPS_TENANT_ID: "replace-with-single-tenant-id"
+    STACKWEAVER_WEBHOOK_BASE_URL: "https://app.example.com"
+    AZURE_DEVOPS_WEBHOOK_SECRET: "replace-with-strong-webhook-secret"
 ```
 
-Repeat the same entries under `orchestrator.env` and `ansibleRunner.env`. The `env` map holds plain values that end up in the Deployment specs, so keep the values file out of version control or restrict who can read it.
+Repeat under `orchestrator.env` and `ansibleRunner.env`. These values appear in Deployment
+specifications and Helm release data; restrict access and do not commit the file. Use your
+normal protected deployment process rather than pasting secrets into a shared terminal.
 
-## Step 5: Restart the Services
+Set `STACKWEAVER_CHART_VERSION` locally to the installed chart version shown by
+`helm list --namespace stackweaver`. Preserve your release values; changing identity or VCS
+settings is not an instruction to upgrade the platform.
 
-After setting the environment variables, recreate the services that read them so they load the new configuration.
-
-::: code-group
-```bash [Docker Compose]
-# Run in your Compose directory
-docker compose up -d api orchestrator ansible-runner
-```
-```bash [Kubernetes (Helm)]
+```bash
 helm upgrade stackweaver oci://ghcr.io/vhco-pro/charts/stackweaver \
-  --namespace stackweaver \
-  --values my-values.yaml
+  --version "${STACKWEAVER_CHART_VERSION:?Set the installed chart version}" \
+  --namespace stackweaver --values my-values.yaml
+kubectl logs deployment/stackweaver-api --namespace stackweaver
 ```
-:::
 
-A `helm upgrade` that changes the `env` values rolls the affected Deployments automatically.
+Use your installed release and Deployment names. The changed values roll the consumers.
 
-You can verify the Azure DevOps integration is enabled by checking the API logs:
+## 3. Authorize a connection
 
-::: code-group
-```bash [Docker Compose]
-docker compose logs api | grep -i "azure"
-```
-```bash [Kubernetes (Helm)]
-kubectl logs deployment/stackweaver-api --namespace stackweaver | grep -i "azure"
-```
-:::
+1. In the intended Stackweaver organization, open **Settings > VCS Connections**.
+2. Select **Connect Azure DevOps**.
+3. Enter the organization name from `dev.azure.com/<organization>`, not its full URL.
+4. Continue to Microsoft and authorize with an account that can access the target Azure
+   DevOps organization.
+5. Confirm the browser returns to Stackweaver and the connection appears in the list.
 
-## Step 6: Create a VCS Connection in Stackweaver
+![Azure DevOps connection form with a synthetic organization name before starting OAuth.](../images/azure-devops-connect.png)
 
-Connecting an organization to Azure DevOps requires being an organization owner in Stackweaver, or having the `manage-vcs-settings` permission in that organization. Starting the connection with an organization API token requires a token with write scope on that organization.
-
-1. Open Stackweaver in your browser.
-2. Navigate to your organization's **Settings** → **VCS Connections**.
-3. Click **Add VCS Connection** and select **Azure DevOps**.
-4. Enter your Azure DevOps organization name (the subdomain from `dev.azure.com/<org>`).
-5. You are redirected to Microsoft for authorization. Sign in with an account that has access to the Azure DevOps organization you want to connect.
-6. Review and accept the requested permissions.
-7. After authorization, you are redirected back to Stackweaver. The VCS connection is created with the access and refresh tokens stored securely.
-
-The connection now appears in your VCS Connections list. You can use it when creating workspaces to link them to Azure DevOps repositories.
-
-## Step 7: Webhooks for Automatic Runs
-
-Stackweaver automatically registers Service Hook subscriptions in Azure DevOps when you link a workspace, an Ansible playbook or an Ansible inventory to a repository (Step 8), and again whenever you save one. The subscriptions are scoped to that specific repository; Stackweaver does not register broad organization-wide hooks. No subscriptions are created when you first connect the VCS account; they are created on demand as resources are linked.
-
-Three subscriptions are created per linked repository:
-
-- **Code pushed**: triggers plan-and-apply runs on matching workspaces, and syncs the playbooks and inventories that track the repository and branch. A repository that only Ansible resources use syncs the same way; no workspace is needed.
-- **Pull request created**: triggers speculative (plan-only) runs.
-- **Pull request updated**: re-runs the plan when new commits are pushed to an open PR.
-
-The subscriptions are registered using the `STACKWEAVER_WEBHOOK_BASE_URL` value set in Step 4. Saving again does not create duplicate subscriptions: it replaces the existing ones for that repository, so they carry the current webhook secret.
-
-Incoming service-hook deliveries are authenticated: you must set `AZURE_DEVOPS_WEBHOOK_SECRET` (see [environment variables](../../get-started/self-hosting/environment-variables.md)). Stackweaver configures each auto-registered subscription with this value as its Basic-auth password and rejects any delivery that does not present it. While the secret is unset, Stackweaver registers no subscriptions and logs why. After setting or changing the secret, save one workspace, playbook or inventory per repository so its subscriptions are replaced with the current value; until then their deliveries are rejected with 401.
-
-### Local Development
-
-Azure DevOps cannot reach `localhost` directly, so `STACKWEAVER_WEBHOOK_BASE_URL` must point to a publicly accessible URL. Use a tunnel such as [Cloudflare Tunnel](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/) or [ngrok](https://ngrok.com/) to expose port 8022, then set:
+Authorization is interactive. There is no Stackweaver CLI command or repository YAML that
+replaces this consent step. API integrations can initiate the same browser flow:
 
 ```bash
-STACKWEAVER_WEBHOOK_BASE_URL=https://<your-tunnel-subdomain>.trycloudflare.com
+curl --fail-with-body --silent --show-error --get \
+  "$STACKWEAVER_URL/api/v2/organizations/my-org/vcs-connections/azure-devops/install" \
+  --header "Authorization: Bearer $STACKWEAVER_TOKEN" \
+  --data-urlencode 'ado_org=example-platform' \
+  --data-urlencode 'return=/app/my-org/settings/vcs-connections'
 ```
 
-Recreate the services after updating the URL (Step 5), then re-save any linked workspaces to register subscriptions pointing to the new tunnel URL.
+Set the public origin and authorized token locally, and replace both organization names.
+The response's `meta.auth-url` is the authorization destination, not a completed connection.
+Follow it in the browser to complete consent and the callback.
 
-### Manual Fallback
+## 4. Link a repository and verify hooks
 
-If `STACKWEAVER_WEBHOOK_BASE_URL` is not set or the automatic registration fails (for example, if the Azure DevOps organization administrator has disabled Service Hook creation via API), you can create the subscriptions manually.
+1. Create or edit a workspace. Select the connection, repository and branch.
+2. Azure DevOps repository identifiers use `ProjectName/RepositoryName`. Check the working
+   directory and speculative-run setting, then save.
+3. Inspect **Project settings > Service hooks** in Azure DevOps for that repository.
+4. Push a harmless test change to the tracked branch and confirm the expected run.
+5. For PR plans, test a pull request and verify the speculative result and commit status.
 
-1. In your Azure DevOps project, go to **Project settings** → **Service hooks**.
-2. Click **Create subscription** → **Web Hooks** → **Next**.
-3. Select **Code pushed** as the trigger, choose the specific repository, and click **Next**.
-4. Set the **URL** to:
+A connection alone creates no subscriptions. Saving a linked workspace, playbook or
+inventory registers hooks for that repository, including an Ansible-only repository.
+
+| Event | Expected behavior |
+|---|---|
+| Code pushed. | Queue matching workspace runs and sync tracked Ansible playbooks/inventories. |
+| Pull request created. | Queue eligible speculative plan-only runs. |
+| Pull request updated. | Refresh eligible PR plans after new commits. |
+
+Matching includes the connected Azure DevOps organization as well as repository and branch.
+Identical project/repository names in another Azure DevOps organization do not identify
+the same connection.
+
+Hook registration requires `AZURE_DEVOPS_WEBHOOK_SECRET`. It uses that value as the
+subscription's Basic-auth password; unauthenticated deliveries are rejected. After changing
+the secret or public URL, save one linked resource **per repository** to replace its
+subscriptions. Otherwise old deliveries can fail with `401`.
+
+### Manual service-hook fallback
+
+If automatic registration is unavailable, use **Project settings > Service hooks > Create subscription > Web Hooks**:
+
+1. Choose **Code pushed** and the specific repository.
+2. Set the receiver URL to your public API origin followed by:
+
+   ```text
+   /api/v2/vcs-connections/azure-devops/webhook
    ```
-   https://your-stackweaver-domain:8022/api/v2/vcs-connections/azure-devops/webhook
-   ```
-5. Set **Basic authentication username** to `stackweaver` and **Basic authentication password** to the value of `AZURE_DEVOPS_WEBHOOK_SECRET`.
-6. Set **Resource details to send** to **All**, leave the message fields as **None**, and click **Finish**.
-7. Repeat steps 2-6 for **Pull request created** and **Pull request updated** triggers.
+3. Use Basic-auth username `stackweaver` and the configured webhook secret as password.
+4. Send **All** resource details, with message fields **None**, then test the subscription.
+5. Repeat for **Pull request created** and **Pull request updated**.
 
-## Step 8: Create a Workspace with an Azure DevOps Repository
+For local development, use a public tunnel to the API. Azure DevOps cannot reach localhost.
+Set `STACKWEAVER_WEBHOOK_BASE_URL` to that public origin, recreate consumers and re-save
+linked resources. Do not expose credentials or unrelated local services through the tunnel.
 
-1. In Stackweaver, open your organization's **Workspaces** page and click **New Workspace** to open the **Create Workspace** dialog.
-2. Under **VCS Connection**, select your Azure DevOps connection.
-3. Browse and select the repository and branch. Repositories are listed in `project/repository` format.
-4. Configure the workspace settings (working directory, Terraform version, etc.).
-5. Save the workspace.
+## Terraform setup
 
-When you push code to the configured branch, Stackweaver automatically queues an OpenTofu run. Pull requests trigger speculative plan-only runs if the workspace has speculative execution enabled.
+The maintained AzureAD template configures the enterprise application, app registration,
+delegated permissions and client secret. Download all files from the explorer into a
+private working directory and review them before applying.
 
-## How It Works
-
-### OAuth2 Flow
-
-When you create a VCS connection, Stackweaver redirects you to Microsoft for authorization. After you grant access, Microsoft returns an authorization code. Stackweaver exchanges this code for an access token and a refresh token using standard OAuth2. The access token is used for API calls (listing repos, reading files) and the refresh token obtains new access tokens transparently when they expire. You do not need to re-authorize as long as the refresh token is valid.
-
-### Repository Format
-
-Azure DevOps repositories are identified by the project and repository name together. When browsing repositories in Stackweaver, you will see them listed as `ProjectName/RepositoryName`. Use this same format in workspace settings.
-
-### Clone URL Format
-
-When a runner needs to clone the repository, Stackweaver constructs the clone URL with an embedded OAuth2 token:
-
-```
-https://oauth2:<access-token>@dev.azure.com/<org>/<project>/_git/<repo>
-```
-
-The token is refreshed automatically before each clone operation if needed.
-
-### Webhook Processing
-
-When Azure DevOps sends a webhook event, Stackweaver:
-
-1. Parses the event into a normalized format (same structure used for GitHub webhooks), including the Azure DevOps organization the repository belongs to.
-2. Finds the workspaces, Ansible playbooks and Ansible inventories that track the event's repository and branch through a connection to that same Azure DevOps organization. A resource connected to a different Azure DevOps organization is never triggered, even when its project and repository names are the same.
-3. Queues plan-and-apply runs for push events, or plan-only runs for pull request events, and syncs the matched playbooks and inventories on a push.
-4. Records the event in the webhook event log of the organization connected to that Azure DevOps organization.
-
-## Client Secret Rotation
-
-Entra ID client secrets have a maximum lifetime of 24 months and must be rotated before they expire. When a secret expires, the integration stops working for new token exchanges (existing refresh tokens may still work temporarily).
-
-To rotate the secret:
-
-1. In the Azure Portal, go to the app registration → **Certificates & secrets** → **New client secret**.
-2. Create the new secret and copy its value.
-3. Update `AZURE_DEVOPS_CLIENT_SECRET` in `vcs.env` (Docker Compose) or in the `env` maps of your Helm values (Kubernetes).
-4. Recreate the services as described in Step 5 to apply the change.
-5. Verify the integration works, then delete the old secret from the portal.
-
-## Troubleshooting
-
-### "Azure DevOps integration is not configured" error
-
-Verify that `AZURE_DEVOPS_CLIENT_ID` and `AZURE_DEVOPS_CLIENT_SECRET` are set in `vcs.env` (Docker Compose) or in the `api.env` map of your Helm values (Kubernetes), and that the services were recreated after the change (Step 5).
-
-### OAuth authorization fails with "AADSTS650052: organization lacks a service principal for Azure DevOps"
-
-The Azure DevOps enterprise application has not been provisioned in your Entra tenant. This happens when a tenant has never used Azure DevOps or when the service principal was removed. Fix it by running this once as an Entra administrator:
-
-```bash
-az ad sp create --id 499b84ac-1321-427f-aa17-267ca6975798
-```
-
-Then retry the authorization flow. See Step 1 for details.
-
-### OAuth authorization fails with "AADSTS650053: scope 'vso.hooks_write' doesn't exist"
-
-`vso.hooks` and `vso.hooks_write` are no longer public scopes in Microsoft Entra ID. They cannot appear in the API permissions list and must not be requested explicitly. Stackweaver requests only `vso.code`, `vso.code_status`, and `vso.project` (plus `offline_access` for refresh tokens); service hook access is already included because `vso.code` inherits from `vso.hooks_write` in the Azure DevOps scope hierarchy.
-
-If you see this error, the authorization request is explicitly asking for `vso.hooks_write`. Check that your Entra app registration does not list `vso.hooks_write` or `vso.hooks` under API permissions, and make sure you are running the current Stackweaver release.
-
-### OAuth authorization fails with "redirect_uri does not match"
-
-The `AZURE_DEVOPS_REDIRECT_URI` value must exactly match the redirect URI configured in the Entra app registration. Check for trailing slashes, `http` vs `https`, and port number differences. The comparison is case-sensitive.
-
-### OAuth authorization fails with "AADSTS50011"
-
-This error means the redirect URI in the authorization request does not match any URI registered in the app. Go to the app registration → **Authentication** → confirm the redirect URI is listed under **Web**.
-
-### "User is not authorized to access this resource" (HTTP 401 from Azure DevOps API)
-
-An Azure DevOps organization administrator may have disabled third-party application access via OAuth. An administrator can re-enable it under:
-`https://dev.azure.com/<your-org-name>/_settings/organizationPolicy` → **Third-party application access via OAuth**
-
-### Webhook subscriptions were not auto-registered
-
-Check the API logs after you save (or re-save) a workspace, playbook or inventory linked to an Azure DevOps repository:
-
-```bash
-docker compose logs api | grep -i "webhook"
-# Kubernetes: kubectl logs deployment/stackweaver-api --namespace stackweaver | grep -i "webhook"
-```
-
-Common causes:
-
-- `STACKWEAVER_WEBHOOK_BASE_URL` is not set or is empty, so subscriptions are skipped silently. Set it (Step 4), recreate the services (Step 5), and re-save the workspace.
-- `AZURE_DEVOPS_WEBHOOK_SECRET` is not set. The log says so, and no subscription is registered. Set it, recreate the services, and re-save.
-- The authorizing user does not have permission to create Service Hook subscriptions. The user needs at least **Project Administrator** rights on the project.
-- The Azure DevOps organization has disabled Service Hook creation via API. An administrator can check this under **Organization settings** → **Extensions** and re-enable it, or you can create subscriptions manually (see Step 7).
-
-### Webhooks are not triggering runs
-
-1. Verify that Service Hook subscriptions exist in your Azure DevOps project under **Project settings** → **Service hooks**.
-2. Confirm the webhook URL in the subscription points to the correct Stackweaver API address and port (default 8022).
-3. If the API log shows the deliveries answered with 401, the subscription does not carry the current `AZURE_DEVOPS_WEBHOOK_SECRET` (it was created before the secret was set, or before it changed). Re-save a workspace, playbook or inventory on that repository to replace the subscriptions.
-4. Confirm the webhook can reach Stackweaver. Azure DevOps cannot reach `localhost`, so use a publicly accessible URL.
-5. Check the API logs for processing errors:
-   ```bash
-   docker compose logs api | grep -i "webhook"
-   # Kubernetes: kubectl logs deployment/stackweaver-api --namespace stackweaver | grep -i "webhook"
-   ```
-6. Use the **Test** button in the Service Hook subscription to send a test payload and inspect the response.
-
-### Token refresh fails
-
-Refresh tokens can expire or be revoked by an administrator. If refresh fails, re-authorize by deleting the VCS connection in Stackweaver and creating a new one.
-
-### Repositories return a 403 "Identity has not been materialized" error
-
-The Azure DevOps organization is not connected to your Entra ID tenant. Fix it once as an organization administrator:
-
-1. In Azure DevOps, go to **Organization settings** → **Microsoft Entra**.
-2. Click **Connect directory** and select your Entra ID tenant.
-3. Sign in to `https://dev.azure.com/<org>` with your Entra ID account once to activate your identity.
-4. Delete the VCS connection in Stackweaver and reconnect.
-
-### Repositories are not showing up
-
-Ensure the app registration has `vso.code`, `vso.code_status`, and `vso.project` delegated permissions added (Step 2). The integration lists all repositories across all projects in the Azure DevOps organization that the authorizing user can access.
-
-### Speculative runs not triggering on pull requests
-
-Pull request triggers require **Pull request created** and **Pull request updated** Service Hook subscriptions. These are created automatically when the workspace is saved with an Azure DevOps repository. If they are missing, re-save the workspace or create them manually as described in Step 7. The workspace must also have speculative execution enabled in its settings.
-
-### PR status checks not appearing on pull requests
-
-PR status checks require the `vso.code_status` scope. If your Entra ID app registration does not include it, add it (Step 2) and then delete and re-create the VCS connection in Stackweaver so the user re-authorizes with the new scope. Existing OAuth tokens do not automatically pick up new scopes.
-
-## Terraform Setup (Declarative)
-
-If you manage infrastructure as code, you can provision the entire Entra ID configuration with Terraform instead of following Steps 1 to 3 manually. The complete template is shown below; use the explorer's **Download** button to save all of its files into a local directory.
+> [!WARNING]
+> The template manages the tenant's shared Azure DevOps enterprise application, reusing
+> it when it already exists. Other applications can depend on that service principal.
+> Review state ownership before adopting it, and do not destroy this configuration as
+> routine Stackweaver cleanup. Check any deletion plan for shared tenant resources.
 
 ::: code-explorer ./entra-setup default="main.tf"
 :::
 
-The template uses the [AzureAD Terraform provider](https://registry.terraform.io/providers/hashicorp/azuread/latest/docs) to:
-
-- Provision the Azure DevOps enterprise application in your tenant (fixes AADSTS650052 if it occurs).
-- Create the app registration with `vso.code`, `vso.code_status`, and `vso.project` delegated permissions.
-- Create a client secret with a configurable expiry date.
-- Output the values ready to paste into your configuration (Step 4).
-
-### Authentication
-
-The provider authenticates via the Azure CLI by default. Log in before applying:
+Authenticate Azure CLI to the intended tenant, then run from the downloaded directory:
 
 ```bash
 az login
-```
-
-Alternatively, set `ARM_CLIENT_ID`, `ARM_CLIENT_SECRET`, and `ARM_TENANT_ID` environment variables for non-interactive environments.
-
-### Usage
-
-```bash
-cd entra-setup   # the folder inside the downloaded archive
 terraform init
-terraform apply \
-  -var='redirect_uris=["https://your-stackweaver-domain/vcs/azure-devops/callback"]' \
+terraform plan -out=azure-devops.tfplan \
+  -var='redirect_uris=["https://app.example.com/vcs/azure-devops/callback"]' \
   -var='display_name=Stackweaver'
 ```
 
-For local development, use `http://localhost:5173/vcs/azure-devops/callback` as the redirect URI. You can provide multiple URIs:
+Apply the exact reviewed plan:
 
 ```bash
-terraform apply \
-  -var='redirect_uris=["https://stackweaver.example.com/vcs/azure-devops/callback","http://localhost:5173/vcs/azure-devops/callback"]'
+terraform apply azure-devops.tfplan
 ```
 
-### Retrieving outputs
+For local plus public callbacks, supply both entries in `redirect_uris` when planning:
 
-After `terraform apply` succeeds, copy the outputs into your configuration as described in Step 4:
+```bash
+terraform plan -out=azure-devops.tfplan \
+  -var='redirect_uris=["https://app.example.com/vcs/azure-devops/callback","http://localhost:5173/vcs/azure-devops/callback"]'
+```
+
+The provider also supports
+service-principal authentication through `ARM_CLIENT_ID`, `ARM_CLIENT_SECRET` and
+`ARM_TENANT_ID`. This template uses the provider's single-tenant application default;
+it has no audience input. For a deliberate multitenant setup, adapt the app registration
+and review its audience separately. Select the intended management tenant and a suitable
+`secret_end_date`; do not assume a template default is your rotation policy.
+
+Retrieve outputs privately, then configure the deployment as above:
 
 ```bash
 terraform output AZURE_DEVOPS_CLIENT_ID
-terraform output -raw AZURE_DEVOPS_CLIENT_SECRET   # sensitive, printed as plain text with -raw
+terraform output -raw AZURE_DEVOPS_CLIENT_SECRET
 terraform output AZURE_DEVOPS_TENANT_ID
 ```
 
-Then recreate the services as described in Step 5 to load the new values.
+The `-raw` command prints the secret in plain text, and Terraform state contains it.
+Protect both. The template is not a verified zero-downtime secret-rotation procedure.
+Review its plan for password replacement before changing expiry; do not destroy the
+working credential before consumers have a tested replacement.
 
-### Secret rotation with Terraform
+## Rotate and recover deliberately
 
-When the client secret approaches its expiry, create a new one by changing `secret_end_date` and running `terraform apply` again. Terraform will create a new password resource. Remove the old one from the app registration in the Azure Portal after verifying the new secret works.
+Create a replacement secret, update `vcs.env` or the protected Helm values, and recreate
+consumers. Verify token exchange and repository access before retiring the old credential.
+If using Terraform, manage overlap explicitly and inspect the plan rather than assuming
+an expiry edit preserves the old secret.
 
-## References
+| Symptom | Check |
+|---|---|
+| Integration not configured. | Client ID/secret reached the API and workers after recreation. |
+| `AADSTS650052`. | Azure DevOps enterprise application exists in the intended Entra tenant. |
+| `AADSTS650053` for hooks scope. | Do not explicitly request separate hooks scopes; inspect app permissions and the actual authorization request. |
+| Redirect mismatch / `AADSTS50011`. | Exact public callback under the app's **Web** registration and deployment setting. |
+| No repositories. | Authorizing account's project access, delegated permissions, organization/tenant connection and activated Entra identity. |
+| Azure DevOps `401` or token refresh failure. | Account access, consent, credential expiry and organization policy. Refresh tokens can be revoked. |
+| Hook missing or rejected. | Current public API origin, webhook secret, per-repository save and Service Hook delivery result. |
+| PR plan/status absent. | Both PR events, speculative setting and `vso.code_status`; existing consent may need renewal after permission changes. |
 
-- [Oauth Authentication Official docs](https://learn.microsoft.com/en-us/azure/devops/integrate/get-started/authentication/oauth?view=azure-devops)
-- [Service Principal Authentication Official Docs](https://learn.microsoft.com/en-us/azure/devops/integrate/get-started/authentication/service-principal-managed-identity?view=azure-devops)
+An organization administrator may need to connect Azure DevOps to the intended Entra
+directory and have the user sign into that organization once. Re-authorize only after
+checking the cause and resources using the connection; deleting a shared connection is
+not the first diagnostic step. Preserve redacted errors and IDs for support.
+
+
+### Repositories return 403: Identity has not been materialized
+
+1. Confirm you selected the intended Azure DevOps organization and Entra directory.
+2. Sign into `https://dev.azure.com/<organization>` once using the **same Entra account**
+   that authorizes the Stackweaver connection, then retry repository listing.
+3. If the organization is connected to another directory, have its administrator review
+   **Organization settings > Microsoft Entra**. A directory change affects that organization;
+   do not change it merely to clear an unexplained error.
+4. Re-authorize the Stackweaver connection only after the account/directory issue is resolved
+   and you have checked the resources using the connection.
+
+### Inspect webhook delivery and PR status
+
+::: code-group
+```bash [Docker Compose]
+docker compose logs --tail=200 api | rg -i 'azure|webhook'
+```
+```bash [Kubernetes]
+kubectl logs deployment/stackweaver-api --namespace stackweaver --tail=200 | rg -i 'azure|webhook'
+```
+:::
+
+Check the Service Hook subscription's **Test** result and HTTP response as well as the API
+log. A `401` hook response can mean the stored subscription still uses an old webhook secret;
+save a linked resource for that repository after applying the current secret.
+
+For missing PR status, check the app's `vso.code_status` delegated permission, current user
+consent and both PR hook events. A permission added to the registration does not enlarge
+already-issued tokens. Arrange renewed consent/re-authorization after reviewing the shared
+connection's dependents, then test a PR and its status result.

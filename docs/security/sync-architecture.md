@@ -1,166 +1,179 @@
 ---
-description: "How code reaches the public Stackweaver satellite repositories. Documents the two-App, PR-based sync model, the four hard security gates that govern every automated merge, and the commands an external reviewer can run to verify the design is correctly deployed in production."
+description: "Understand the satellite publication path, signing identities, enforced checks and limits of the public audit evidence."
 covers:
   - ".github/workflows/sync-*.yml"
-  - ".github/workflows/auto-approve-sync.yml"
+  - ".github/workflows/bump-core.yml"
 ---
 
-<!--
-Copyright (c) 2025 VH & Co BV. Licensed under the Business Source License 1.1. See LICENSE for details.
--->
+<!-- Copyright (c) 2025 VH & Co BV. Licensed under the Business Source License 1.1. See LICENSE for details. -->
 
-# Sync Architecture
+# Understand satellite publication
 
-> **Status:** Live on all eight satellites - [`api`](https://github.com/vhco-pro/stackweaver-api), [`frontend`](https://github.com/vhco-pro/stackweaver-frontend), [`orchestrator`](https://github.com/vhco-pro/stackweaver-orchestrator), [`zitadel-init`](https://github.com/vhco-pro/stackweaver-zitadel-init), [`secrets-init`](https://github.com/vhco-pro/stackweaver-secrets-init), [`helm`](https://github.com/vhco-pro/stackweaver-helm), [`ansible-runner`](https://github.com/vhco-pro/stackweaver-ansible-runner), and [`opentofu-runner`](https://github.com/vhco-pro/stackweaver-opentofu-runner). On each of them, a monorepo push opens a `sync/<sha>` PR authored by `stackweaver-release-bot[bot]`, the four hard gates in `auto-approve-sync.yml` pass, `stackweaver-pr-reviewer[bot]` approves, the PR squash-merges after CodeQL goes green, and the GitVersion → Release cascade attaches `provenance.intoto.jsonl`, `sbom.spdx.intoto.jsonl`, and `checksums.txt` to the new tag. No satellite receives direct pushes.
+Stackweaver's public component repositories receive selected source from a private monorepo.
+A release-bot opens a sync pull request; a separate reviewer App can approve it and request
+a squash merge. The satellite then builds and publishes its own releases.
 
-Stackweaver is developed as a private monorepo at `michielvha/stackweaver`. Each user-facing component is mirrored to its own public satellite repository under the `vhco-pro` organisation (`stackweaver-api`, `stackweaver-frontend`, `stackweaver-orchestrator`, `stackweaver-zitadel-init`, `stackweaver-secrets-init`, `stackweaver-ansible-runner`, `stackweaver-helm`, and `stackweaver-opentofu-runner`). The satellites are what users build, audit and depend on; the monorepo is what we develop in.
+Use this page to distinguish the source-publication boundary from the artifact-signing
+boundary. For commands that verify a deployed image or chart, use
+[Verify a release](./verifying-releases.md).
 
-This page documents how code travels from the monorepo to a satellite. It is the authoritative description of the trust boundary between "internal development" and "what the public consumes", so it should be read before relying on any signed artefact produced by a satellite, before performing an OSPS Baseline audit on the project, and before contributing to any sync-related workflow.
-
-## Two GitHub Apps, two identities, two keys
-
-The sync pipeline uses two GitHub Apps with distinct private keys and minimum-privilege permission sets. Both Apps are owned by the `vhco-pro` organisation. Their permissions are pinned in their App settings and visible to anyone via `gh api /apps/<slug>`.
-
-| App | Permissions | Used by | What it can do |
-|-----|-------------|---------|----------------|
-| `stackweaver-release-bot` | `contents:write`, `pull_requests:write`, `administration:read`, `metadata:read` | Monorepo `sync-*.yml` workflows | Create the `sync/<sha>` branch on the satellite and open the pull request. |
-| `stackweaver-pr-reviewer` | `pull_requests:write`, `contents:write`, `metadata:read` | Satellite `auto-approve-sync.yml` workflow | Post an approving review and call `gh pr merge --auto --squash`. Cannot read secrets, cannot modify workflows (`workflows:write` is **not** granted, so GitHub blocks any PR merge that touches `.github/workflows/**` when this App is the merger), cannot change repository settings. `contents:write` is required only because GitHub's `enablePullRequestAutoMerge` GraphQL mutation refuses to schedule the eventual squash commit without it - the App never pushes directly. |
-
-Two Apps are required because GitHub explicitly forbids an App from approving its own pull requests. The author of the PR (the release-bot) and the approver of the PR (the pr-reviewer) must be different identities. This separation of duties is enforced server-side by GitHub and is the foundation of the entire model.
-
-## Lifecycle of a sync
-
-Every push to `main` on the monorepo triggers the following sequence for each affected satellite:
-
-```
-monorepo push to main
-        │
-        ▼
-monorepo .github/workflows/sync-<sat>.yml         [release-bot token]
-   • check out monorepo
-   • copy the synced subset to a working tree
-   • check out the satellite, apply the diff
-   • stop if sync/<short-sha> already has an open or merged PR
-   • push to branch sync/<short-sha>, unless a previous run
-     already published it
-   • open a PR for that branch via gh pr create
-        │
-        ▼
-satellite repo: pull request opens
-        │
-        │  triggers pull_request_target event
-        ▼
-satellite .github/workflows/auto-approve-sync.yml  [pr-reviewer token]
-   evaluates four gates in order; ALL must pass:
-   1. event.pull_request.user.login == "stackweaver-release-bot[bot]"
-   2. startsWith(event.pull_request.head.ref, "sync/")
-   3. event.pull_request.head.repo.full_name == event.pull_request.base.repo.full_name
-   4. no file under .github/workflows/** appears in changed_files
-   if all pass:
-      gh pr review --approve
-      gh pr merge --auto --squash
-   otherwise:
-      exit 0, leaving the PR open for manual review
-        │
-        ▼
-branch protection on main
-   • requires one approving review (provided by the gate above)
-   • requires all status checks to pass (CodeQL, lint, tests)
-   • dismisses stale reviews on any push to the PR
-   • applies to administrators with no bypass
-        │
-        ▼
-when CI passes AND the review is still valid
-   GitHub server-side performs the squash merge
-        │
-        ▼
-merge to main
-   • triggers GitVersion Tag, then Release, then release-assets
-   • the OSSF Scorecard "Code-Review" check counts the approved, merged PR
+```mermaid
+flowchart TD
+  A[Private monorepo source] --> B[Release App opens signed sync PR]
+  B --> C[Reviewer App checks eligible PR metadata]
+  C --> D[Review and repository merge requirements]
+  D --> E[Satellite squash commit]
+  E --> F[Tagged satellite release workflow]
+  F --> G[Image or chart plus signed attestations]
 ```
 
-Typical end-to-end latency is three to five minutes, dominated by CI runtime on the satellite. Nothing in this path requires human intervention under normal operation.
+<details>
+<summary>Diagram legend: which identity signs what?</summary>
 
-## The four hard gates
+- The release App creates the sync PR. Its PR-head commit uses the monorepo sync workflow's
+  Sigstore identity.
+- The reviewer App creates an automated approval. That approval is not a human review.
+- A squash merge creates a new commit. Its signature is separate from the PR head's signature.
+- The satellite release workflow signs its artifact and publishes attestations for that digest.
 
-The auto-approval workflow performs no other logic. It does not check out the pull request, it does not execute any code from the pull request, and it does not consult any data inside the diff. It only reads `github.event.pull_request.*` metadata and calls two GitHub REST endpoints. The four gates are:
+</details>
 
-**Gate 1: bot identity.** The pull request author must be `stackweaver-release-bot[bot]`. GitHub reserves the `[bot]` suffix for App-authored actions, so it cannot be spoofed by a human account or by another App. Even an attacker with a legitimate GitHub account named `stackweaver-release-bot` cannot match this gate because human accounts never carry the `[bot]` suffix.
+## Trust boundaries
 
-**Gate 2: branch convention.** The pull request branch must start with `sync/`. This is a sanity check that pairs with gate 1 to ensure the workflow only acts on pull requests that match the sync pattern.
+**Public source and private development.** You can inspect the satellite's source, PR history
+and workflows. The shared `core/` module and upstream review records are not publicly
+readable. Auditors can request access through the
+[security policy](https://github.com/vhco-pro/.github/blob/main/SECURITY.md#source-code-review-boundary).
+Public artifact provenance identifies the satellite build; it does not by itself prove
+which private monorepo change was reviewed.
 
-**Gate 3: no forks.** The pull request must originate from the satellite repository itself, not from a fork. This prevents a hypothetical attack where someone forks a satellite, creates a `sync/exploit` branch, and tries to bait the workflow into reviewing it.
+**Two Apps and GitHub permissions.** `stackweaver-release-bot` writes sync branches and PRs.
+`stackweaver-pr-reviewer` approves eligible PRs and requests auto-merge. They use separate App
+credentials because a PR author cannot supply its own required approval.
 
-**Gate 4: no workflow tampering.** The pull request must not modify any file under `.github/workflows/`. This is the most important gate, because without it a single malicious sync PR could rewrite `auto-approve-sync.yml` itself to weaken all future gates. Belt and suspenders: the pr-reviewer App lacks the `workflows:write` permission, so GitHub also rejects such merges server-side even if the gate were somehow bypassed.
+| App | Observed repository permissions | Purpose |
+|---|---|---|
+| Release bot | Contents write, pull requests write, administration read, metadata read | Publish the sync branch and PR. |
+| PR reviewer | Contents write, pull requests write, metadata read | Approve and request squash auto-merge. |
 
-## Why `pull_request_target` is safe here
+The reviewer has no workflow-write or administration permission in the checked App metadata.
+These scopes are separate from conditions in the automation. A compromised App credential
+can be used outside that workflow, so the workflow's author/branch checks do not prove that
+an attacker would need both App keys. Repository rules and the App's actual permissions
+remain part of the boundary.
 
-GitHub Actions distinguishes between `pull_request` (the workflow runs in the context of the pull request, with read-only `GITHUB_TOKEN`, and cannot access secrets when the PR comes from a fork) and `pull_request_target` (the workflow runs in the context of the base branch, with full secrets access). The latter is notorious for privilege-escalation attacks when authors check out and execute pull request code with secrets in scope.
+## What the approval workflow checks
 
-`auto-approve-sync.yml` uses `pull_request_target` because it needs access to the pr-reviewer App credentials. It is safe to do so because it never runs `actions/checkout` for any ref, never executes any code from the pull request, and never reads pull request file contents. Its only inputs are the metadata fields evaluated in the four gates above. Its only outputs are two API calls. The privilege-escalation pattern that makes `pull_request_target` dangerous in other contexts is structurally impossible here.
+The public `auto-approve-sync.yml` runs on `pull_request_target`. Before its job runs,
+three conditions must match:
 
-## Threat model
+1. The author is `stackweaver-release-bot[bot]`.
+2. The head branch starts with `sync/`.
+3. The head repository is the same as the base repository.
 
-| # | Threat | Mitigation |
-|---|--------|------------|
-| T1 | External attacker opens a pull request from a fork named `sync/exploit`, hoping for auto-approval. | Gate 1 (the `[bot]` suffix is unspoofable). |
-| T2 | Attacker forks a satellite, opens a PR from `sync/foo` while spoofing a display name. | Gate 3 (no forks). |
-| T3 | `pull_request_target` privilege escalation. | Workflow performs zero checkout of any ref and only makes API calls; gate logic uses only event metadata, never PR file contents. |
-| T4 | Malicious sync PR modifies the auto-approve workflow itself. | Gate 4 plus pr-reviewer App lacks `workflows:write`. |
-| T5 | release-bot App private key leak. | Keys are gitignored, never committed; attacker still needs the satellite CI suite (CodeQL, lint, tests) to pass on their PR; GitHub audit log records every App authentication; keys are rotated annually and on suspicion of compromise. |
-| T6 | pr-reviewer App private key leak. | Worst case: attacker can approve any open PR. But to be merged a PR must also match gate 1, which requires the release-bot key. A full exploit therefore requires a two-key compromise. |
-| T7 | Two concurrent monorepo syncs open competing PRs. | The monorepo `sync-*.yml` workflows use `concurrency: { group: sync-<sat>, cancel-in-progress: false }`. |
-| T8 | Approval survives a malicious push made after approval. | Branch protection has `dismiss_stale_reviews: true`. Any push to the PR branch invalidates the review and prevents auto-merge from firing. |
-| T9 | Branch-protection bypass by an administrator. | Branch protection has `enforce_admins: true`, `allow_force_pushes: false`, `allow_deletions: false`. |
+The job does not check out or execute PR source. It reads PR metadata and the changed-file
+list, mints a reviewer token, posts an approval and requests squash auto-merge. Avoiding
+untrusted code execution reduces one important risk of this privileged event; it does not
+make every use of the token safe automatically.
 
-## Why pull requests rather than direct pushes
+> [!WARNING]
+> The workflow-file check currently logs a warning and exits its step successfully when
+> `.github/workflows/` changes. The later approval and auto-merge steps are not conditional
+> on that result. This check is not an enforced fourth gate. Do not rely on the warning to
+> prevent approval or substitute it for GitHub permission and repository-rule checks.
 
-The sync workflows never push directly to a satellite `main` branch. A direct-push model would make a single compromised App key sufficient for full satellite compromise, would leave no queryable review trail, and would run CI only after the change had landed. The PR-based model closes all three, at a cost of roughly three to five minutes of end-to-end latency per sync and a second App whose credentials must be managed.
+The eight public satellites use the same checked auto-approval workflow. Workflow edits
+need explicit maintainer scrutiny, including whether the final approval and merge steps
+are prevented from running. Matching text in a workflow is not proof of that control flow.
 
-## The OpenTofu runner satellite
+## What repository protection enforces
 
-The runner satellite, [`stackweaver-opentofu-runner`](https://github.com/vhco-pro/stackweaver-opentofu-runner), is on the same footing as the other seven. It is public, ships the same `auto-approve-sync.yml` template, is synced by the branch-push/PR model in `sync-runner.yml`, and carries the same branch protection (required reviews plus a required status check). The runner is built on OpenTofu (MPL-2.0). The private `stackweaver-runner` repository is retired, referenced by no workflow, and not part of the distribution.
+A review requirement and required status checks are separate settings. The protection
+snapshot checked on 26 October 2026 shows:
 
-## Independent verification
+| Satellites | Approving reviews | Required status check | Dismiss stale reviews |
+|---|---|---|---|
+| API, Frontend, Orchestrator, Ansible runner, Zitadel init, Secrets init | 1 | Component CodeQL analysis | Yes |
+| OpenTofu runner | 1 | Go CodeQL analysis | No |
+| Helm | 1 | None configured in branch protection | Yes |
 
-An external reviewer can verify the design above is correctly deployed in production by running the following commands. None of them require special access; they only use the public GitHub REST API and read-only `gh` CLI calls. Run them against any satellite to confirm.
+All eight checked protections apply to administrators and disable force pushes and branch
+deletion. These observations describe the checked configuration, not an immutable promise.
+Read the current rules for the repository you are assessing; do not assume that every lint,
+test or release scan is a required merge check, or that settings are identical across satellites.
+Additional repository rulesets can impose further requirements.
+
+Sync jobs use per-component concurrency groups and retain running jobs. They check for an
+existing sync PR or published sync branch before retrying publication. This reduces duplicate
+publication work; it is not a guarantee of a fixed release time.
+
+## Inspect public evidence
+
+With GitHub CLI access to public repositories, choose the satellite you want to inspect.
+The [repository map](../architecture/repositories.md) lists the components; the OpenTofu
+runner is `vhco-pro/stackweaver-opentofu-runner`.
 
 ```bash
-# 1. Confirm pr-reviewer App permissions match the design
-gh api /apps/stackweaver-pr-reviewer --jq '.permissions'
-# Expect: {"contents":"write","metadata":"read","pull_requests":"write"}
+REPO=vhco-pro/stackweaver-api
 
-# 2. Confirm both Apps are installed on the satellite
-gh api /repos/vhco-pro/stackweaver-api/installation --jq '.app_slug'
-# Run for each of: stackweaver-api, stackweaver-frontend, stackweaver-orchestrator,
-# stackweaver-zitadel-init, stackweaver-secrets-init, stackweaver-ansible-runner,
-# stackweaver-helm, stackweaver-opentofu-runner
+# Read the full workflow, including conditions on later approval/merge steps.
+gh api "repos/${REPO}/contents/.github/workflows/auto-approve-sync.yml" \
+  --jq '.content' | base64 --decode
 
-# 3. Confirm the auto-approve workflow has all four gates and zero PR-ref checkouts
-gh api /repos/vhco-pro/stackweaver-api/contents/.github/workflows/auto-approve-sync.yml \
-  --jq '.content' | base64 -d \
-  | grep -E "user.login|head.ref|head.repo|workflows/|actions/checkout"
-# Expect: matches for the four gate predicates, zero matches for actions/checkout
+# Inspect recent sync PRs and their resulting merge commits.
+gh pr list --repo "$REPO" --state merged \
+  --author app/stackweaver-release-bot --limit 5 \
+  --json number,headRefName,headRefOid,mergeCommit,url
 
-# 4. Confirm branch protection on main matches the design
-gh api /repos/vhco-pro/stackweaver-api/branches/main/protection \
-  --jq '{
-    reviews_required: .required_pull_request_reviews.required_approving_review_count,
-    dismiss_stale: .required_pull_request_reviews.dismiss_stale_reviews,
-    checks: .required_status_checks.contexts,
-    force_push: .allow_force_pushes.enabled,
-    deletions: .allow_deletions.enabled,
-    enforce_admins: .enforce_admins.enabled
-  }'
-# Expect: reviews_required >= 1, dismiss_stale true, checks non-empty,
-#         force_push false, deletions false, enforce_admins true
+# Read the Apps' published permission declarations.
+gh api apps/stackweaver-release-bot --jq '.permissions'
+gh api apps/stackweaver-pr-reviewer --jq '.permissions'
 ```
 
-A clean run of these four blocks against any in-scope satellite is sufficient evidence that the sync model documented on this page is the model actually enforced in production. If any check fails, treat the satellite as untrusted and report it via a [Private Vulnerability Report](https://github.com/vhco-pro/.github/security/policy) or to `contact@vhco.pro`.
+Expect the three job-level predicates above and check what happens after the workflow-file
+step. App metadata describes declared permissions; it does not prove which installations
+or tokens had access at the time of a specific merge. Follow
+[sync-signature verification](./verifying-releases.md#verify-a-sync-commit) to verify a selected
+PR head's signer.
 
-## Where to look in the source
+## Inspect maintainer evidence
 
-* The reusable monorepo sync workflows live under `.github/workflows/sync-*.yml` in `michielvha/stackweaver` (private; not directly browseable by external reviewers, but their behaviour is fully observable from the satellite side via the gates listed above).
-* The `auto-approve-sync.yml` workflow lives under `.github/workflows/` in every satellite. It is identical across satellites.
-* Branch protection settings live in repository settings and are queryable via the GitHub REST API as shown above.
-* The two GitHub Apps' permission sets are pinned in their App settings under `vhco-pro/settings/apps` and are queryable via `gh api /apps/<slug>`.
+The protection lookup below needs suitable repository access. For fine-grained tokens,
+GitHub requires **Administration: read**. It can fail for an ordinary external reader even
+when the repository is public.
+
+```bash
+REPO=vhco-pro/stackweaver-api
+
+gh api "repos/${REPO}/branches/main/protection" --jq '{
+  reviews: .required_pull_request_reviews.required_approving_review_count,
+  dismiss_stale: .required_pull_request_reviews.dismiss_stale_reviews,
+  checks: (.required_status_checks.contexts // []),
+  admins: .enforce_admins.enabled,
+  force_push: .allow_force_pushes.enabled,
+  deletions: .allow_deletions.enabled
+}'
+
+# Inspect additional active repository rulesets as part of the assessment.
+gh api "repos/${REPO}/rulesets" --jq '.[] | {id, name, enforcement}'
+```
+
+Compare the result with the selected repository's expected policy. A `403` or `404` alone
+cannot distinguish missing permission from missing configuration. Ask a maintainer for a
+dated export when you cannot inspect the settings yourself.
+
+App-installation lookup authenticates as the relevant App. It does not list both Apps for
+an ordinary reader. For an audit, request separate evidence of installation, token scope,
+upstream reviews, credential handling and applicable bypass actors. Public workflow/source
+checks alone cannot establish those facts.
+
+## What to retain for an audit
+
+Keep the repository and commit, workflow revision, PR head and squash commit, protection/ruleset
+snapshot, App permission evidence and verified artifact digest together. Separate source
+observations from private maintainer assertions and artifact-level verification results.
+
+Do not infer a human review from an App approval, or infer uncompromised code from a valid
+signature. Use [OSPS evidence](./osps-baseline-compliance.md) for the control mapping and
+[release verification](./verifying-releases.md) for artifact checks. Report a suspected
+security problem through [the private reporting policy](https://github.com/vhco-pro/.github/blob/main/SECURITY.md).

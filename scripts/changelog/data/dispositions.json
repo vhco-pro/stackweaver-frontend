@@ -1,0 +1,10 @@
+[
+  {
+    "id": "193e4cde4fb65d12b97efa69ba68e16faac42cfc",
+    "reason": "Internal removal of an unread process-local revocation map and accessor. The existing session-existence check already governed refresh rejection. Browser-session user impact is recorded under browser-sessions-bff; this cleanup does not itself introduce logout enforcement."
+  },
+  {
+    "id": "58fcf46a9684b83f688cebd65cad44d4e8839b1c",
+    "reason": "Product-runtime dead-code cleanup also removes exported Go APIs. This is routed to the separate core-module compatibility/release channel, not treated as source-compatible or as a container-feature publication. The exported removals and migration references are retained in docs/internal/design/docs-bff-rebase-review.md for the module release follow-up; this product-component changelog makes no claim about module availability."
+  }
+]

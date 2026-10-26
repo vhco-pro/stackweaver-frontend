@@ -10,21 +10,44 @@ covers:
   - "backend/internal/services/auth/**"
 ---
 
-# Email (SMTP) and sign-up
+# Configure sign-in email and sign-up
 
-StackWeaver signs people in through Zitadel, and Zitadel sends every email the sign-in flow needs: the code that verifies a new account's address, the link that resets a forgotten password, and email login codes for two-factor authentication. You give it an SMTP server to send them through. This page explains how to configure one for Docker Compose and for Kubernetes, who may create an account, and what an install without SMTP offers instead.
+Configure SMTP so Zitadel can deliver verification codes, password-reset links and email
+login codes. Public sign-up is off by default. Without SMTP, use SSO or accounts created by
+an administrator; password recovery then needs an administrator too.
 
-Auth codes are only ever delivered by Zitadel. The API never returns a verification or reset code to the browser that asked for it, so nobody can reset someone else's password or verify an address they do not own.
+## Before you configure email
 
-## Choosing an SMTP provider
+Use an SMTP submission service and a sending domain you control. Add the provider's SPF,
+DKIM and DMARC records and verify that the chosen sender address is permitted. Confirm the
+provider's TLS and port requirements. Keep sign-in mail separate from marketing mail so
+newsletter reputation does not affect password-reset delivery.
 
-Any transactional email provider that offers SMTP submission works, on port 587 with STARTTLS or port 465 with TLS. Examples include Brevo, Mailjet, Resend, SMTP2GO, Postmark, Mailgun, Scaleway Transactional Email and Amazon SES; most have a free tier large enough for sign-in mail. Use a sending domain you control, for example `mail.example.com`, and add the SPF, DKIM and DMARC records your provider gives you, or receiving servers will treat the mail as spam.
+```mermaid
+flowchart LR
+    U["Sign-up or password reset"] --> Z["Zitadel"]
+    Z --> S["Your SMTP provider"]
+    S --> M["User's mailbox"]
+    M --> V["User verifies the code"]
+```
 
-Keep this sending identity for sign-in mail only. Newsletters and product announcements belong in your provider's marketing or broadcast product, sent from a different subdomain, so that a spam complaint about a newsletter never affects the delivery of a password reset.
+The browser does not receive a verification/reset code from the production API. It must be
+delivered to the address being verified.
 
 ## Docker Compose
 
-Put the SMTP settings in `sso.env` in your Compose directory. Both `zitadel-init` and the API read that file. The full list of settings is in `sso.env.example`:
+Save persistent values in `sso.env` beside your Compose file. Substitute your provider's
+settings; keep the password outside version control:
+
+```dotenv
+SMTP_HOST=smtp.example.com:587
+SMTP_USER=example-user
+SMTP_PASSWORD=replace-with-provider-password
+SMTP_SENDER_ADDRESS=noreply@mail.example.com
+SMTP_SENDER_NAME=Stackweaver
+SMTP_TLS=true
+STACKWEAVER_SELF_REGISTRATION=false
+```
 
 | Variable | Meaning |
 |---|---|
@@ -34,13 +57,50 @@ Put the SMTP settings in `sso.env` in your Compose directory. Both `zitadel-init
 | `SMTP_SENDER_ADDRESS` | The From address, for example `noreply@mail.example.com`. Required when `SMTP_HOST` is set. |
 | `SMTP_SENDER_NAME` | The From display name. Defaults to `Stackweaver`. |
 | `SMTP_TLS` | Whether to use TLS. Defaults to `true`. |
-| `STACKWEAVER_SELF_REGISTRATION` | Whether anyone may create an account (see [Who can sign up](#who-can-sign-up)). Defaults to `false`. |
+| `STACKWEAVER_SELF_REGISTRATION` | Whether anyone may create an account (see [Who can sign up](#decide-who-can-create-an-account)). Defaults to `false`. |
 
-Run `zitadel-init` again after changing these values (`docker compose run --rm --no-deps zitadel-init`); a one-off run reads `sso.env` afresh and leaves Zitadel and the other services running. It configures the provider in Zitadel, activates it and applies the matching login settings, and it stops with an error if `SMTP_HOST` is set without `SMTP_SENDER_ADDRESS` or a value cannot be parsed, so a misconfiguration is visible immediately.
+Protect the file. For literal dollar signs, follow the
+[Compose secret quoting guidance](./environment-variables.md#github-integration).
+Apply the new provider and login policy without stopping Zitadel:
+
+```bash
+docker compose run --rm --no-deps zitadel-init
+docker compose up -d
+```
+
+The one-off initializer reads `sso.env` afresh. A missing sender address with a configured
+host, or an invalid setting, fails visibly rather than silently enabling unusable email.
 
 ## Kubernetes (Helm)
 
-Set the SMTP settings in the chart's `smtp` values and keep the password in a Kubernetes Secret:
+This path requires the chart's **bundled Zitadel**. With `zitadel.bundled: false`, configure
+the SMTP provider and login policy in that external instance yourself.
+
+Create the namespace if needed, then a password Secret in the release namespace:
+
+```bash
+kubectl create secret generic stackweaver-smtp --namespace stackweaver \
+  --from-literal=smtp-password='replace-with-provider-password'
+```
+
+The placeholder becomes a real secret; avoid exposing the real value in shared terminals
+or shell history. A secrets operator can manage the same key instead.
+
+Save the non-secret settings as `email-values.yaml`:
+
+```yaml
+smtp:
+  host: smtp.example.com:587
+  user: example-user
+  senderAddress: noreply@mail.example.com
+  senderName: Stackweaver
+  tls: true
+  secretName: stackweaver-smtp
+  keys:
+    password: smtp-password
+signup:
+  selfRegistration: false
+```
 
 | Value | Meaning |
 |---|---|
@@ -53,39 +113,69 @@ Set the SMTP settings in the chart's `smtp` values and keep the password in a Ku
 | `smtp.keys.password` | The key of the password inside that Secret. Defaults to `smtp-password`. |
 | `signup.selfRegistration` | Whether anyone may create an account. Defaults to `false`. |
 
-Create the Secret before you install or upgrade:
+For an existing release, set `CHART_VERSION` to its installed chart version and retain its
+release values. This changes email settings without selecting a different chart version:
 
 ```bash
-kubectl create secret generic stackweaver-smtp -n stackweaver --from-literal=smtp-password='<password or API key>'
+helm upgrade stackweaver oci://ghcr.io/vhco-pro/charts/stackweaver \
+  --namespace stackweaver --version "$CHART_VERSION" \
+  --reuse-values --values email-values.yaml
 ```
 
-A Job runs after every `helm install` and `helm upgrade` and applies these settings to the bundled Zitadel. If a value is unusable, for example `smtp.host` without `smtp.senderAddress`, the Job fails and so does the `helm` command, while Zitadel keeps serving sign-ins with the settings it had. Changing any of these values takes effect on the next `helm upgrade`, including a password you rotated inside the same Secret. With Argo CD the Job runs as a PostSync hook on every sync. With Flux it runs whenever the HelmRelease is installed or upgraded. Rotating a Secret alone triggers neither, so after a rotation start a sync (Argo CD) or force an upgrade of the HelmRelease (Flux).
+For a new release, merge these settings into the [installation values](./kubernetes/README.md).
+A post-install/post-upgrade Job applies SMTP and login policy. An invalid configuration fails
+the Job and Helm operation; inspect the Job logs before retrying. Zitadel can continue serving
+its existing configuration, so a successful sign-in alone does not verify this change.
 
-The Job configures only the Zitadel the chart bundles. With an external Zitadel (`zitadel.bundled: false`), configure its SMTP provider and login policy in that Zitadel yourself. The API runs in email mode either way.
+Argo CD runs the reconcile Job as a PostSync hook. Flux runs it on Helm install/upgrade.
+Rotating only the SMTP Secret does not itself run that Job: trigger the relevant sync or
+HelmRelease upgrade after rotation.
 
-## Who can sign up
+## Decide who can create an account
 
-Public sign-up is off by default. Turn it on with `STACKWEAVER_SELF_REGISTRATION=true` in Compose or `signup.selfRegistration: true` in Helm. It takes effect only when an SMTP provider is configured, because a new account must verify its email address before it can use StackWeaver; without SMTP the verification code could never arrive, so sign-up stays off and `zitadel-init` logs a warning.
+| Choice | Result |
+|---|---|
+| Self-registration off, the default | People need a configured SSO path or an administrator-created account. |
+| Self-registration on with SMTP | New users verify their email before using Stackweaver. |
+| Self-registration on without SMTP | Sign-up stays off; the initializer warns because verification cannot be delivered. |
 
-With sign-up off, people get an account in one of these ways:
+Enable with `STACKWEAVER_SELF_REGISTRATION=true` in Compose or `signup.selfRegistration: true`
+in Helm. A configured SSO provider can create users on first sign-in independently of this
+switch. Restrict access at that provider: for Entra, use a tenant ID unless you intentionally
+allow multiple tenants (`AZURE_AD_ALLOW_MULTI_TENANT=true` or Helm's
+`sso.azureAd.allowMultiTenant: true`). Public identity providers can admit a wider population.
+Follow the [SSO setup guides](../../user-guides/sso/README.md) for the upstream restrictions.
 
-- **Single sign-on.** A first sign-in through an identity provider you configured (Azure AD, Okta or another OIDC provider, see the [SSO guides](../../user-guides/sso/README.md)) creates the account, with its email marked as verified, whether or not public sign-up is on. Configuring the provider is what allows its users in, so use a provider that only your organisation's people can sign in to. For Azure AD that means setting `AZURE_AD_TENANT_ID` (Helm: `sso.azureAd.tenantId`); without it `zitadel-init` stops with an error unless you set `AZURE_AD_ALLOW_MULTI_TENANT=true` (Helm: `sso.azureAd.allowMultiTenant`), which lets any Microsoft account create an account. Public providers such as Google, GitHub, GitLab.com or Apple do the same.
-- **An administrator creates the account** in the Zitadel console with an initial password. Tick **Email verified** when creating it: StackWeaver only lets in accounts whose email is verified, and without SMTP the user has no way to verify it later. The user is asked to change the password at first sign-in.
+For an administrator-created account without SMTP, mark its address verified in the Zitadel
+console and provide its initial password securely. The user must change that password at
+first sign-in. An unverified account cannot use Stackweaver or accept an invitation for that
+address. Existing password users linking SSO with the same address must first prove ownership
+by signing in with their password.
 
-Someone who already has an account with a password and then signs in through single sign-on with the same email address is asked to sign in with their password first.
+## Verify delivery and diagnose failures
 
-An account whose email is not verified cannot use StackWeaver. The API answers it with "verify your email address to continue", and the web app shows a page telling the person to sign in again and enter the code from their verification email when asked. An invitation to an organisation is only accepted by an account that has verified the invited address.
+1. Check the initializer or Helm reconcile Job completed successfully.
+2. Use an account you control to request a password reset or verification message.
+3. Confirm delivery, sender identity and that the code/link completes the intended flow.
+4. If no message arrives, inspect provider delivery events and spam folders; check sender
+   verification, credentials and TLS/port settings. Do not paste codes or passwords into logs.
 
-## What an install without SMTP offers
+Without SMTP, expect no **Create account**, **Forgot password?** or email-code second factor.
+Authenticator apps, security keys and passkeys remain available. An administrator resets
+forgotten passwords in the Zitadel console.
 
-Without an SMTP provider, StackWeaver switches off every flow that waits for an email: the sign-in page shows no "Create account" and no "Forgot password?", and two-factor setup does not offer email codes (authenticator apps, security keys and passkeys remain available). People get in through single sign-on or an administrator-created account as described above, and a forgotten password is reset by an administrator in the Zitadel console.
+## Which login settings the initializer owns
 
-## Settings StackWeaver manages
+The initializer reconciles registration, password-recovery visibility and email/SMS second
+factors on the instance and organizations with their own policy. It permits registration
+only with enabled self-registration and deliverable email; it removes email factors without
+SMTP and SMS factors without an active SMS provider. It restores email as an allowed second
+factor when configured and another second factor is already allowed.
 
-`zitadel-init` (in Kubernetes, the Job) manages four Zitadel login settings on the instance and on every organisation with its own login policy, and restores them on every run. It allows registration only when public sign-up is on and email can be delivered. It hides "Forgot password?" when email cannot be delivered. It removes email codes as a second factor when email cannot be delivered, and adds them back when it can, wherever another second factor is already allowed. It removes SMS codes as a second factor while no SMS provider is active.
+Change these managed choices through deployment settings. Direct console edits to them can
+be overwritten on reconciliation. Other login-policy choices remain operator-managed.
 
-Change them through the settings on this page, not in the Zitadel console: a console edit to any of them is reverted the next time `zitadel-init` runs. Every other login setting is yours to change in the console and is left as you set it.
-
-## Notification mode
-
-The API's `STACKWEAVER_NOTIFICATION_MODE` is `email`, and that is the only value a deployed instance uses. The value `return_code`, which shows codes in the browser instead of mailing them, exists for development machines only: the API refuses to start with it unless `STACKWEAVER_ALLOW_RETURN_CODE=true` is also set, refuses it in every case when `GIN_MODE=release`, which the Helm chart always sets, and refuses any value it does not recognise. Neither the Compose example nor the chart sets that switch. If your configuration sets `api.auth.notificationMode: return_code` or `STACKWEAVER_NOTIFICATION_MODE=return_code`, remove it and configure SMTP as described above. To check which mode a running API uses, read the `notification_mode` field of the API's `GET /auth/health/auth-proxy` response (see `AuthProxy.HealthAuthProxy()` in `backend/internal/api/v2/handlers/auth_proxy.go`).
+Keep `STACKWEAVER_NOTIFICATION_MODE=email` in deployments. The development `return_code` mode
+is refused in release mode and is not a substitute for SMTP. Check `notification_mode` at
+`GET /auth/health/auth-proxy` when diagnosing a configuration mismatch. See the
+[environment reference](./environment-variables.md#login-custom-stackweaver-spa) for the guard settings.

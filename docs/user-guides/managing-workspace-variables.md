@@ -5,177 +5,210 @@ covers:
   - "backend/internal/api/v2/handlers/variable*"
   - "frontend/src/components/variables/**"
   - "frontend/src/lib/dotenv.ts"
+capabilities: [
+  {
+    "id": "workspace-variables",
+    "name": "Variables and shared sets",
+    "summary": "Pass Terraform and environment variables to runs and share sets across projects or workspaces.",
+    "area": "opentofu",
+    "availability": "available",
+    "limitations": "Sensitive values are protected in storage, but code running in a job can expose values it receives.",
+    "evidence": [
+      "core/services/variable/service.go",
+      "core/services/variable/service_test.go",
+      "backend/internal/api/v2/handlers/variable_sets.go"
+    ]
+  }
+]
 ---
 
-# Managing Workspace Variables
+# Manage workspace variables
 
-Learn how to set up, organize, and manage variables across your OpenTofu workspaces and projects.
+Set inputs on a workspace, or share them through a variable set. Keep variable declarations in your OpenTofu repository and supply deployment-specific values through Stackweaver.
 
-## Overview
+## Choose a category and scope
 
-Variables let you customize OpenTofu configurations without changing code. This separation of configuration from code is essential for managing infrastructure across environments, securely handling secrets, creating reusable modules, and enabling team collaboration through centralized configuration management.
+| Choice | Use it for | Example |
+|---|---|---|
+| Terraform category. | Inputs declared in your root module. | `region = "eu-west-1"`. |
+| Environment category. | Providers or programs that read process environment variables. | `AWS_PROFILE`. |
+| Workspace scope. | Values specific to one workspace. | A production instance size. |
+| Variable set. | Values shared across selected projects/workspaces or the organization. | Shared environment defaults. |
+| Repository default. | A fallback and type declaration in the configuration itself. | `default = "t2.micro"`. |
 
-Instead of hardcoding values like instance types or region names in your OpenTofu files, you define variables and set their values in StackWeaver. This means the same code can deploy to any environment with different settings by simply changing the variables.
+Use the [provider](#configure-variables-as-code) for repeatable management, the [UI](#add-a-workspace-variable) for individual changes or `.env` import, and the [API](#configure-a-variable-through-the-api) for direct integrations. There is no separate Stackweaver management-YAML format; `.env` is an import format, not a continuously synchronized source.
 
-## Variable Scopes
+## Add a workspace variable
 
-StackWeaver supports variables at different levels:
+Use an account with permission to write variables on the workspace. Read access alone does not authorize a change.
 
-1. **Workspace variables**: Apply only to one workspace
-2. **Variable sets**: Reusable groups of variables you can attach to multiple workspaces
-3. **Terraform variables**: Variables defined in your `.tf` files
+1. Open the workspace's **Variables** tab and choose **Add variable**.
+2. Enter a key matching the root module's variable declaration, or the environment name expected by the tool. Choose **Terraform** or **Environment**.
+3. Enter the value. Enable **HCL** for a Terraform expression such as a list or map; leave it off for a literal string. Mark secrets **Sensitive**.
+4. Save, then confirm the key, category and flags in the list. The value is available to subsequent runs.
 
-### When to Use What
+![Workspace Variables tab with a Terraform region and a masked environment variable.](./images/workspace-variables.png "Synthetic example data. The secret value is not shown.")
 
-Each variable scope serves different purposes:
+| Value | HCL setting |
+|---|---|
+| `production` | Off, for a string. |
+| `["10.0.0.0/8", "192.168.0.0/16"]` | On, for a list. |
+| `{Environment = "prod", Team = "platform"}` | On, for a map. |
 
-| Variable Type | Best For | Example |
-|--------------|----------|---------|
-| **Workspace variables** | Workspace-specific overrides, one-off customizations, testing values | `instance_type = "t2.large"` for just this one workspace |
-| **Variable sets** | Shared configurations across workspaces, environment-specific settings (dev/staging/prod), common values used by many workspaces | A "production-defaults" set attached to all production workspaces |
-| **Terraform variables** | Default values, documentation, type validation | Default instance type in your `.tf` files with descriptions |
+Only the key is required for a non-HCL value. An empty string is valid; an empty HCL expression is rejected. A sensitive value is hidden in the editor: leaving its value field blank keeps the stored value, while typing a new one replaces it. Clearing a non-sensitive value or description stores the empty field.
 
-Most teams use a combination: variable sets for shared environment values, workspace variables for workspace-specific overrides, and Terraform variables for defaults and documentation.
+> [!WARNING]
+> Sensitive values are encrypted at rest and hidden from normal value readback. Programs running with those values can still print or transmit them. Do not rely on a Sensitive flag to make arbitrary job code or logs safe.
 
-## Creating Workspace Variables
+## Import a `.env` file
 
-To add variables directly to a workspace, open your workspace and navigate to the "Variables" tab. Click "Add Variable" and fill in the details.
+Choose **Import .env** next to **Add variable**, then select/drop a file or paste its text. The same importer is available when creating or editing variable sets.
 
-| Field | Description | Example |
-|-------|-------------|---------|
-| **Key** | The variable name (must match what OpenTofu expects) | `instance_type` |
-| **Value** | The variable value, which may be left empty | `t2.small` |
-| **Category** | Terraform variable (passed to Terraform) or environment variable (available as env var) | Usually "Terraform variable" |
-| **Sensitive** | Encrypt and hide this value in the UI | Check for passwords, API keys |
-| **HCL** | Parse the value as HCL code (for lists, maps) | Check for `["list", "items"]` |
+For example, a local `workspace.env` can contain:
 
-Only the key is required. An empty value is stored as an empty string, which is what you want for a flag that is deliberately blank or a placeholder filled in per environment. The exception is an HCL variable: because its value is inserted as a raw expression rather than as a quoted string, an empty one would not be valid HCL, so it is refused.
+```dotenv
+DEPLOY_REGION=eu-west-1
+FEATURE_FLAG=
+```
 
-> [!TIP]
-> Variable keys should match what your OpenTofu code expects. Check your `.tf` files for variable declarations like `variable "instance_type" {}`.
+1. Review the parsed rows, rename or edit keys as needed, and deselect rows you do not want.
+2. Choose **Import as** for the whole batch. Environment is the default; use Terraform for root-module inputs.
+3. Review Sensitive flags. Secret-like key names are detected heuristically, so check the result or use **Mark all sensitive**.
+4. For existing keys, choose whether to keep or replace. Replacement updates the value and sensitivity while retaining the existing category.
+5. Run the import and inspect created, replaced, skipped and failed counts. A failed row does not roll back successful rows; correct only the failures before retrying.
 
-Once you've filled in the details, save the variable and it will be available for your next OpenTofu run.
+| Input detail | Import behavior |
+|---|---|
+| Comments, blank lines and optional `export`. | Accepted. |
+| Single, double or backtick quotes; multiline values. | Accepted. Escape sequences are expanded only inside double quotes. |
+| `${DATABASE_HOST}`. | Stored literally; variable interpolation is not performed. |
+| Repeated key. | The last assignment in the file wins. |
+| Invalid assignment. | Reported with its line number. |
+| `FEATURE_FLAG=` replacing a key. | Clears its value when replacement is selected. An existing HCL value cannot be replaced by an empty expression. |
 
-## Importing Variables from a .env File
+Nothing is written before you review and confirm the import.
 
-When you already have the values in a `.env` file, you don't have to retype them one key at a time. The "Import .env" button next to "Add variable" opens a bulk import that accepts a dropped or selected file as well as pasted text. It sits alongside the regular form, which remains the way to add a single variable. The same button is available on variable sets, both while you are creating a set and when you manage an existing one.
+## Share values with variable sets
 
-The parser understands the usual `.env` conventions: comments, blank lines, an optional `export` prefix, single-quoted, double-quoted and backtick-quoted values, values that span several lines (such as a PEM key), and trailing comments after an unquoted value. Escape sequences like `\n` are expanded inside double quotes only, matching the behaviour of the common dotenv libraries. References to other variables such as `${DATABASE_HOST}` are stored exactly as written rather than expanded, because StackWeaver is not a shell and the value would otherwise change meaning. Lines that cannot be read as an assignment are listed with their line number instead of being imported silently, and when a key is assigned more than once the last value in the file wins.
+Open the organization's **Variable Sets**, create a named set, add its variables and select its scope. Organization members can view sets. Managing an organization-owned set requires owner or the relevant organization management permission; a project-owned set uses that project's write/maintain/admin or granular variable-set management permission.
 
-Nothing is written until you have reviewed the preview. Every key is listed with its value and can be renamed, edited or left out before the import runs, and a single "Import as" choice decides whether the whole batch becomes environment variables (the default, since that is what a `.env` file usually holds) or Terraform variables. Keys that look like they hold secrets, such as anything containing `PASSWORD`, `SECRET`, `TOKEN` or `KEY`, are marked sensitive automatically and their values are masked in the preview. That guess is a convenience and not a guarantee, so check the column before importing, and use "Mark all sensitive" when the whole file is secret material.
+| Scope | Where the set applies |
+|---|---|
+| Global, organization-owned. | Every workspace in the organization. |
+| Scoped, organization-owned. | Selected projects and/or individual workspaces. Selecting targets at creation makes it scoped. |
+| Project-owned. | Workspaces in its owning project. |
 
-Keys that already exist in the workspace or variable set are flagged as conflicts, and you choose whether to keep the existing value or replace it with the imported one. Replacing updates the value and its sensitive flag but deliberately leaves the category alone, so an existing Terraform variable is never silently turned into an environment variable. Variables are written one at a time, so a rejected key does not take the rest of the batch with it: the summary at the end reports exactly which keys were created, replaced, skipped or failed, and why.
+On a workspace's **Variables** tab, use **Attach Variable Set** to select an applicable set. Confirm it appears in the workspace before relying on its values.
 
-A line such as `FEATURE_FLAG=` imports as an empty value, marked "Empty" in the preview, because a deliberately blank flag or a placeholder to be filled in per environment is ordinary `.env` content. A blank line whose key already exists is treated like any other conflict: with "replace" chosen it clears the existing value, and with "keep" it is skipped. The one exception is an HCL variable, which cannot hold an empty value because it would be written into the generated tfvars as an incomplete assignment, so that row fails with an explanation and the variable is left unchanged.
+### Precedence
 
-When you edit a variable in the list, clearing its value or description and saving stores the empty field. A sensitive variable's current value is never shown, so its value field starts blank when you open the editor; leaving it blank keeps the hidden value, and typing a new one replaces it.
+For the same key and category, a **Priority** variable set overrides a workspace variable. Otherwise a workspace variable overrides ordinary variable sets. Repository defaults apply when no higher-precedence input supplies a value.
 
-## Working with Variable Sets
+For conflicts among sets, priority sets are considered before ordinary sets; global sets before scoped sets, then set names in lexical order. Avoid relying on set-name ordering to express an environment policy. Use a workspace override or explicit Priority setting and verify the resulting plan.
 
-Variable sets let you manage groups of related variables together.
+Terraform-category values are written to `stackweaver.auto.tfvars`. Your repository's `terraform.tfvars` is retained. Terraform/OpenTofu loads auto variable files after `terraform.tfvars`; other auto files and explicit CLI arguments can also affect the final input.
 
-Any member of an organization can view its variable sets, but managing them is scoped the same way it is in Terraform Cloud. Organization-owned variable sets can be created, edited, and deleted by organization owners and by teams with the "Manage all workspaces" or "Manage all projects" permission. Project-owned variable sets are governed by the owning project's team access, so a team with write, maintain, or admin access to that project (or the granular manage-variable-sets project permission) can manage them without needing organization-wide access.
+> [!IMPORTANT]
+> Do not maintain `stackweaver.auto.tfvars` in your repository. The runner creates it for each run. Put declarations in `.tf` files and repository defaults in a file you control.
 
-### Creating a Variable Set
+## Configure variables as code
 
-1. Go to your organization's Variable Sets
-2. Click "New Variable Set"
-3. Give it a name like "production-defaults" or "common-settings"
-4. Add variables the same way as workspace variables
-5. Save the set
+Configure [the Stackweaver provider](./terraform-provider.md) first, then put this example in `workspace-variables.tf`. Replace the workspace ID and organization. Review the plan before applying:
 
-### Choosing How a Variable Set Applies
+```hcl
+resource "stackweaver_variable" "region" {
+  workspace_id = "ws-REPLACE_ME"
+  key          = "region"
+  value        = "eu-west-1"
+  category     = "terraform"
+  hcl          = false
+  sensitive    = false
+}
 
-An organization-owned variable set can either be **global** or **scoped**. A global variable set applies automatically to every workspace in the organization, which is the right choice for values every workspace needs, such as cloud provider credentials. A scoped variable set applies only where you attach it: to specific projects (in which case it applies to every workspace in those projects) and/or to individual workspaces. Choosing specific projects or workspaces at creation time makes the set scoped rather than global. A project-owned variable set always applies to the workspaces in its owning project.
+resource "stackweaver_variable_set" "shared" {
+  organization  = "your-org"
+  name          = "shared-defaults"
+  global        = false
+  priority      = false
+  workspace_ids = ["ws-REPLACE_ME"]
+}
 
-### Attaching Variable Sets to Projects and Workspaces
+resource "stackweaver_variable" "shared_environment" {
+  variable_set_id = stackweaver_variable_set.shared.id
+  key             = "ENVIRONMENT"
+  value           = "production"
+  category        = "env"
+}
+```
 
-You can attach an organization-owned variable set to one or more projects so it applies to every workspace in those projects, and you can attach it to individual workspaces:
+After apply, confirm the workspace variable and attached set in the UI, then review the next run's plan. When managing secrets, protect provider state as well as configuration; marking a resource sensitive does not remove its value from ordinary Terraform state.
 
-1. Open a workspace
-2. Go to the Variables tab
-3. Click "Attach Variable Set"
-4. Select the set you want to use
-5. The variables from the set are now available to the workspace
+In the workload repository, declare the input separately, for example in `variables.tf`:
 
-### Variable Precedence
+```hcl
+variable "region" {
+  description = "Cloud region for this workspace"
+  type        = string
+  default     = "eu-west-1"
+}
 
-If the same variable exists in multiple places, StackWeaver resolves conflicts using this priority order (highest priority wins):
+variable "instance_type" {
+  description = "EC2 instance type for web servers"
+  type        = string
+  default     = "t2.micro"
+}
+```
 
-| Priority | Variable Source | Example |
-|----------|----------------|---------|
-| **1 (Highest)** | Workspace variables | `instance_type = "t2.large"` in workspace |
-| **2** | Variable set variables | `instance_type = "t2.medium"` in attached set |
-| **3 (Lowest)** | Terraform variable defaults | `default = "t2.micro"` in your `.tf` file |
+## Configure a variable through the API
 
-By default, workspace variables override variable set values. However, variable sets have a **Priority** option: when enabled, the variable set's values take precedence over workspace variables. This is useful for enforcing organization-wide standards (e.g. required tags) that individual workspaces should not be able to override.
+Use a token with write access to the workspace. Set `STACKWEAVER_URL` to the origin without a trailing slash, `STACKWEAVER_TOKEN` to the token, and `WORKSPACE_ID` to the destination ID. Save this request body as `variable.json`:
 
-## Variable Categories
+```json
+{
+  "data": {
+    "type": "vars",
+    "attributes": {
+      "key": "region",
+      "value": "eu-west-1",
+      "category": "terraform",
+      "hcl": false,
+      "sensitive": false
+    }
+  }
+}
+```
 
-Variables fall into two categories, each serving different purposes:
+```bash
+curl --fail-with-body --silent --show-error \
+  --header "Authorization: Bearer $STACKWEAVER_TOKEN" \
+  --header 'Content-Type: application/vnd.api+json' \
+  --data @variable.json \
+  "$STACKWEAVER_URL/api/v2/workspaces/$WORKSPACE_ID/vars"
+```
 
-| Category | How It's Used | When to Use |
-|----------|---------------|-------------|
-| **Terraform variables** | Written to `stackweaver.auto.tfvars` and passed to Terraform | Most variables - instance types, region names, resource counts |
-| **Environment variables** | Set as environment variables during runs | Provider credentials (`AWS_ACCESS_KEY_ID`), tools that read env vars, secrets providers need directly |
+Expect a `vars` resource with an ID. Read the collection back before retrying an uncertain create; do not assume a network failure means nothing was written. Use [the API explorer](/docs/api-reference/explorer) for variable-set attachment and update schemas.
 
-Most of the time, you'll use Terraform variables since they're directly consumed by your OpenTofu code. Environment variables are mainly for provider configuration or when external tools need to read values from the environment.
+## Read platform context from a run
 
-## How StackWeaver passes variables to OpenTofu
+The runner supplies `TF_WORKSPACE_ID`, `TF_WORKSPACE_NAME`, `TF_PROJECT_ID`, `TF_PROJECT_NAME`, `TF_ORGANIZATION_ID` and `TF_ORGANIZATION_NAME` as environment variables. They are not undeclared Terraform inputs. User-defined environment variables can override these values, so keep the names reserved in your configuration.
 
-StackWeaver writes workspace and variable set values (Terraform category) to **`stackweaver.auto.tfvars`** in the run directory. Terraform automatically loads `*.auto.tfvars` files, and our file is loaded after `terraform.tfvars`, so our values override the repo’s `terraform.tfvars` for any overlapping keys.
-
-**Your `terraform.tfvars` is not overwritten.** If you keep `terraform.tfvars` in your repository with default or shared values, those values stay. StackWeaver only adds or overrides the variables we manage in `stackweaver.auto.tfvars`.
-
-> [!IMPORTANT]  
-> **Do not edit `stackweaver.auto.tfvars` in your repo.** StackWeaver creates and overwrites this file on every run. Put your own defaults in `terraform.tfvars` or other `*.auto.tfvars` files you control.
-
-## Platform variables (workspace, project, organization)
-
-StackWeaver injects **platform variables** as **environment variables** (not in `stackweaver.auto.tfvars`). They are always available during runs and will not trigger OpenTofu “value for undeclared variable” warnings if you do not use them. This follows the same pattern as Terraform Cloud’s `TFC_WORKSPACE_ID`, `TFC_RUN_ID`, and similar: values are provided in the environment so configs that do not declare or use them keep working without warnings.
-
-| Variable | Description |
-|----------|-------------|
-| `TF_WORKSPACE_ID` | The workspace ID |
-| `TF_WORKSPACE_NAME` | The workspace name |
-| `TF_PROJECT_ID` | The project ID |
-| `TF_PROJECT_NAME` | The project name |
-| `TF_ORGANIZATION_ID` | The organization ID |
-| `TF_ORGANIZATION_NAME` | The organization name |
-
-### Using platform variables in OpenTofu
-
-Terraform and OpenTofu do **not** have an `env()` or `getenv()` function. To use arbitrary environment variables in expressions, you need the **`external` data source**: it runs a program that prints JSON to stdout, and you use `data.external.<name>.result` in your config. That’s the usual workaround. Below: a small script (cleanest) or a self-contained inline variant.
-
-**Option 1: Script file (cleanest)**
-
-Put a small script in your repo (e.g. `get-platform-env.sh` next to your `.tf` files):
+Terraform/OpenTofu expressions do not have an `env()` function. If you need this context in expressions, use the external data source with a program that emits valid JSON. For example, with `jq` installed on your runner, save `get-platform-env.sh` next to your `.tf` files:
 
 ```bash
 #!/bin/sh
-# get-platform-env.sh - outputs StackWeaver platform env vars as JSON for data.external
-cat <<EOF
-{
-  "workspace_id": "$TF_WORKSPACE_ID",
-  "workspace_name": "$TF_WORKSPACE_NAME",
-  "project_id": "$TF_PROJECT_ID",
-  "organization_id": "$TF_ORGANIZATION_ID"
-}
-EOF
+jq -n \
+  --arg workspace_id "$TF_WORKSPACE_ID" \
+  --arg workspace_name "$TF_WORKSPACE_NAME" \
+  --arg project_id "$TF_PROJECT_ID" \
+  --arg organization_id "$TF_ORGANIZATION_ID" \
+  '{workspace_id:$workspace_id,workspace_name:$workspace_name,project_id:$project_id,organization_id:$organization_id}'
 ```
 
-Then in OpenTofu:
+The `hashicorp/external` provider consumes string-valued JSON. In `platform-context.tf`:
 
 ```hcl
 data "external" "platform" {
   program = ["sh", "${path.module}/get-platform-env.sh"]
-}
-
-# Use in resources or outputs
-resource "aws_instance" "example" {
-  tags = {
-    StackWeaverWorkspace = data.external.platform.result.workspace_id
-  }
 }
 
 output "workspace_id" {
@@ -183,24 +216,18 @@ output "workspace_id" {
 }
 ```
 
-**Option 2: Self-contained (no extra file)**
-
-If you prefer not to add a script, you can inline it with `sh -c` and a heredoc (avoids the `printf` escape maze):
+Alternatively, the program can be inline with the same `jq` prerequisite:
 
 ```hcl
-data "external" "platform" {
+data "external" "platform_inline" {
   program = ["sh", "-c", <<-EOT
-    cat <<EOF
-{"workspace_id":"$TF_WORKSPACE_ID","workspace_name":"$TF_WORKSPACE_NAME"}
-EOF
+    jq -n --arg workspace_id "$TF_WORKSPACE_ID" --arg workspace_name "$TF_WORKSPACE_NAME" '{workspace_id:$workspace_id,workspace_name:$workspace_name}'
   EOT
   ]
 }
 ```
 
-**Provisioners**
-
-In `local-exec` (and similar) the `command` runs in a shell that already has the platform env vars, so you can use them directly:
+A provisioner's shell can read the environment directly:
 
 ```hcl
 resource "null_resource" "example" {
@@ -210,130 +237,16 @@ resource "null_resource" "example" {
 }
 ```
 
-## Sensitive Variables
-
-Mark variables as sensitive when they contain:
-
-- Passwords
-- API keys
-- Private keys
-- Tokens
-- Any other secret data
-
-Sensitive variables are:
-- Encrypted at rest
-- Hidden from UI display (shown as `***` or masked)
-- Not included in logs or outputs
-- Only accessible to users with workspace permissions
-
-> [!IMPORTANT]
-> Never commit sensitive values to your OpenTofu code. Always use StackWeaver variables for secrets.
-
-## Variable Values and HCL
-
-By default, variable values are treated as strings. If you check "HCL", StackWeaver will parse the value as HCL code.
-
-Use HCL parsing for:
-- Lists: `["item1", "item2"]`
-- Maps: `{key = "value"}`
-- Complex structures: `{subkey = ["value"]}`
-
-Leave HCL unchecked for:
-- Simple strings
-- Numbers (they'll be converted automatically)
-- Boolean values (use `true` or `false` as strings)
-
-### Examples
-
-**String variable (HCL unchecked):**
-```
-Key: environment_name
-Value: production
-```
-
-**List variable (HCL checked):**
-```
-Key: allowed_cidrs
-Value: ["10.0.0.0/8", "192.168.0.0/16"]
-```
-
-**Map variable (HCL checked):**
-```
-Key: tags
-Value: {Environment = "prod", Team = "platform"}
-```
-
-## Organizing Variables
-
-Good variable organization makes management easier:
-
-### Use Descriptive Names
-
-Bad: `var1`, `value`, `setting`  
-Good: `instance_type`, `database_password`, `vpc_cidr`
-
-### Group Related Variables
-
-Create variable sets for logical groups:
-- Environment settings (dev, staging, prod)
-- Application-specific configs
-- Infrastructure-wide defaults
-
-### Document Variables
-
-Use variable descriptions in your OpenTofu code:
-
-```hcl
-variable "instance_type" {
-  description = "EC2 instance type for web servers"
-  type        = string
-  default     = "t2.micro"
-}
-```
-
-## Best Practices
-
-**Keep secrets in StackWeaver**
-
-Never hardcode sensitive values in your OpenTofu files. Always use StackWeaver variables marked as sensitive.
-
-**Use variable sets for shared configs**
-
-If multiple workspaces use the same values, create a variable set instead of duplicating variables.
-
-**Version control your Terraform variables**
-
-Keep variable declarations (without values) in your code. This documents what variables are expected and their types.
-
-**Test with different variable sets**
-
-Use different variable sets for testing before applying to production.
-
-**Review variable usage regularly**
-
-Periodically review which variables are used where. Remove unused variables and consolidate duplicates.
+These external/null examples require their respective providers. The stock OpenTofu runner does not promise `jq`; use a reviewed runner image containing it for these examples.
 
 ## Troubleshooting
 
-**Variable not found error**
+| Symptom | What to check |
+|---|---|
+| Missing variable. | Match the case-sensitive declaration, category, workspace and set attachment. |
+| Wrong value. | Check Priority sets, workspace overrides and repository/CLI inputs. |
+| Wrong type or invalid expression. | Compare the declared type with the HCL flag and expression. |
+| Import partly failed. | Read the per-row summary and retry failed rows only. |
+| Secret appears in output. | Stop exposing it, restrict the output and rotate the credential if needed. Review the code that prints it; the Sensitive flag is not a guarantee against disclosure. |
 
-- Check the variable key matches what OpenTofu expects (case-sensitive)
-- Verify the variable category (Terraform vs environment)
-- Ensure the variable set is attached to the workspace
-
-**Variable has wrong type**
-
-- Check if HCL parsing is enabled for complex types
-- Verify the value format matches the expected type
-- Review Terraform variable type declarations
-
-**Sensitive variable visible in output**
-
-- Check that the variable is marked as sensitive
-- Verify it's not being output in your OpenTofu code
-- Review run logs to ensure masking is working
-
-## Next Steps
-
-- Read about [workspace editing](../features/opentofu/workspace-editing.md)
-- Explore [VCS path filtering](../features/opentofu/vcs-path-filtering.md) for multi-environment workflows
+For related changes, see [workspace editing](../features/opentofu/workspace-editing.md) and [VCS path filtering](../features/opentofu/vcs-path-filtering.md).

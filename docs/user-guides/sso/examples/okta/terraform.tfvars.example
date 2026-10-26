@@ -1,0 +1,4 @@
+zitadel_callback_url = "https://auth.example.com/idps/callback"
+auth_server_id       = "default"
+assigned_group_id    = "00g-replace-with-existing-group-id"
+policy_priority      = 1

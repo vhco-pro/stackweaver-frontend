@@ -6,9 +6,19 @@ covers:
   - "deploy/helm/**"
 ---
 
-# Azure AD / Entra ID SSO Setup
+# Set up Microsoft Entra ID SSO
 
-This guide walks you through configuring Microsoft Azure AD (now Microsoft Entra ID) as an external identity provider for StackWeaver.
+Connect Microsoft Entra ID to Zitadel for browser sign-in to Stackweaver. Keep the tenant,
+callback and group settings together, then verify account creation and organization access.
+This is separate from Azure workload identity for runs.
+
+## Choose a setup path
+
+Use the portal procedure below, or the complete Terraform example. Both produce the client
+settings consumed by Stackweaver; registering the upstream application and configuring the
+Stackweaver deployment are separate steps. Complete the same sign-in and access checks
+regardless of which path you choose.
+
 
 ## Step 1: Register an Application in Azure AD
 
@@ -16,7 +26,7 @@ This guide walks you through configuring Microsoft Azure AD (now Microsoft Entra
 2. Navigate to **Microsoft Entra ID** (formerly Azure Active Directory) > **App registrations**.
 3. Click **New registration**.
 4. Fill in the registration form:
-   - **Name**: `StackWeaver` (or any descriptive name).
+   - **Name**: `Stackweaver` (or any descriptive name).
    - **Supported account types**: Choose based on your requirements. For most organizations, select "Accounts in this organizational directory only (Single tenant)".
    - **Redirect URI**: Select **Web** and enter your Zitadel callback URL:
      ```
@@ -26,11 +36,17 @@ This guide walks you through configuring Microsoft Azure AD (now Microsoft Entra
      See the [Custom Domain guide](../authentication/zitadel-custom-domain.md) for how the callback URL is constructed.
 5. Click **Register**.
 
+![Microsoft Learn reference image showing the Entra application registration form.](./images/entra-registration.png)
+
+Microsoft Learn's [registration reference](https://learn.microsoft.com/en-us/entra/identity-platform/howto-create-service-principal-portal),
+reproduced under [CC BY 4.0](https://github.com/MicrosoftDocs/entra-docs/blob/main/ThirdPartyNotices.md).
+The image uses Microsoft's example names. Enter your Zitadel callback from the steps above.
+
 ## Step 2: Create a Client Secret
 
 1. In your newly registered application, go to **Certificates & secrets**.
 2. Click **New client secret**.
-3. Add a description (e.g., `StackWeaver SSO`) and choose an expiration period.
+3. Add a description (e.g., `Stackweaver SSO`) and choose an expiration period.
 4. Click **Add**.
 5. **Copy the client secret value immediately.** It will not be shown again.
 
@@ -54,10 +70,12 @@ If you want to use automatic team mapping based on Azure AD group memberships:
    - **Security groups**: Recommended for most setups.
    - **Directory roles**: Optional.
    - **Groups assigned to the application**: Use this for fine-grained control.
-4. Under **Customize token properties by type**, ensure **Group ID** is selected for the **ID** token type. You can also choose **sAMAccountName** or **Cloud-only group display names** if you prefer human-readable names as your `sso_team_id` values.
+4. Under **Customize token properties by type**, ensure **Group ID** is selected for the **ID** token type. Keep Object IDs for the recipe below. Other formats, such as **sAMAccountName** or
+     cloud display names, have provider/group restrictions; use the exact emitted value only
+     after checking [Microsoft's group-claim options](https://learn.microsoft.com/en-us/entra/identity/hybrid/connect/how-to-connect-fed-group-claims).
 5. Click **Add**.
 
-> **Note:** By default, Azure AD sends group Object IDs (GUIDs) in the `groups` claim. If you prefer readable names, select a different name format in Step 4. The values in the `groups` claim must match the `sso_team_id` values you configure on your StackWeaver teams.
+> **Note:** By default, Azure AD sends group Object IDs (GUIDs) in the `groups` claim. Readable names require the relevant Entra claim configuration and supported group type. The values in the `groups` claim must match the `sso_team_id` values you configure on your Stackweaver teams.
 
 ## Step 5: Configure API Permissions
 
@@ -71,28 +89,91 @@ Ensure the application has the following API permissions:
    - `email` (Delegated)
 3. If they are missing, click **Add a permission** > **Microsoft Graph** > **Delegated permissions** and add them.
 
-## Step 6: Configure StackWeaver
 
-Choose the instructions for your deployment method.
+## Automate the identity-provider setup with Terraform
+
+Authenticate the AzureAD provider with an Azure CLI session in the intended tenant, or
+with the management identity's `ARM_TENANT_ID`, `ARM_CLIENT_ID` and `ARM_CLIENT_SECRET`.
+That identity needs permission to manage the application and read the Microsoft Graph
+service principal. These management credentials are different from the SSO client secret
+created by the example.
+
+The example creates a single-tenant confidential Web app, security-group Object ID claims,
+Graph delegated permission declarations, a service principal and an expiring client secret.
+Choose a future `secret_expiry` according to your rotation policy. Required tenant consent
+remains a separate administrator/user action.
+
+Download all files into a separate private working directory. The example creates upstream
+identity resources, not Stackweaver teams. Review existing resources before applying; do not
+create a second app merely to replace a working configuration.
+
+::: code-explorer ./examples/entra default="main.tf"
+:::
+
+Copy `terraform.tfvars.example` to `terraform.tfvars`, replace every example value, and run:
+
+```bash
+terraform init
+terraform plan -out=sso.tfplan
+terraform apply sso.tfplan
+```
+
+Keep the declared version constraint and commit the lock file produced by `terraform init`
+in your automation repository. The saved plan may contain
+secrets; keep it and state in protected storage. The `sensitive` output flag hides routine
+display but does not remove secrets from state. This example does not grant consent or
+establish successful sign-in by itself.
+
+Read the generated configuration values privately:
+
+```bash
+terraform output -raw azure_ad_client_id
+terraform output -raw azure_ad_tenant_id
+terraform output -raw azure_ad_client_secret
+```
+
+Put them in the persistent Compose `sso.env` or the Helm values/Secret shown below. The
+client-secret output prints plain text; do not send it to a shared log.
+
+For an existing application, import its **object ID**, not the client ID, before reconciling
+the full resource configuration:
+
+```bash
+terraform import azuread_application.stackweaver /applications/REPLACE_WITH_OBJECT_ID
+```
+
+Import any existing service principal separately. Existing secret values cannot be imported
+into the password resource; introduce a replacement credential deliberately and preserve the
+working one until the deployment is verified. Full application resources manage more than
+redirects, so inspect the plan against the imported settings.
+
+See the [AzureAD provider reference](https://registry.terraform.io/providers/hashicorp/azuread/latest/docs).
+
+## Step 6: Configure Stackweaver
+
+Choose the instructions for your deployment method. These reconcile steps assume the
+bundled Stackweaver initializer. An externally managed Zitadel installation needs its own
+IdP/Actions configuration; the deployment wiring guide is not that manual procedure.
 
 ### Docker Compose
 
 Add the following variables to **`sso.env`** in your Compose directory (the directory that holds `docker-compose.yml`; `zitadel-init` never overwrites this file):
 
-```bash
+```dotenv
 # Azure AD / Entra ID SSO Configuration
 AZURE_AD_CLIENT_ID=a1b2c3d4-e5f6-7890-abcd-ef1234567890
 AZURE_AD_CLIENT_SECRET=your-client-secret-value
 AZURE_AD_TENANT_ID=f0e1d2c3-b4a5-6789-0abc-def123456789
 ```
 
-`AZURE_AD_TENANT_ID` is required. A first sign-in through Azure AD creates a StackWeaver account even when public sign-up is off (see [Email (SMTP) and sign-up](../../get-started/self-hosting/email.md)), so the tenant ID is what limits sign-in to your organisation's people. To accept any Microsoft account deliberately, leave the tenant ID empty and set `AZURE_AD_ALLOW_MULTI_TENANT=true` (Helm: `sso.azureAd.allowMultiTenant: true`); without one of the two, `zitadel-init` stops with an error naming both settings.
+`AZURE_AD_TENANT_ID` is required. A first sign-in through Azure AD creates a Stackweaver account even when public sign-up is off (see [Email (SMTP) and sign-up](../../get-started/self-hosting/email.md)), so the tenant ID is what limits sign-in to your organisation's people. To accept any Microsoft account deliberately, leave the tenant ID empty and set `AZURE_AD_ALLOW_MULTI_TENANT=true` (Helm: `sso.azureAd.allowMultiTenant: true`); without one of the two, `zitadel-init` stops with an error naming both settings.
 
-Then restart the `zitadel-init` service to apply the configuration:
+Apply the initializer inputs, then recreate services that consume the generated credentials:
 
 ```bash
 # Run in your Compose directory
-docker compose up -d zitadel-init
+docker compose run --rm zitadel-init
+docker compose up -d
 ```
 
 ### Kubernetes / Helm
@@ -115,10 +196,13 @@ sso:
     tenantId: "f0e1d2c3-b4a5-6789-0abc-def123456789"
 ```
 
-Then upgrade the release:
+Set `STACKWEAVER_CHART_VERSION` to the installed chart version shown by
+`helm list --namespace stackweaver`. Preserve the existing release values when applying
+these settings. A configuration change should not silently upgrade the platform:
 
 ```bash
 helm upgrade stackweaver oci://ghcr.io/vhco-pro/charts/stackweaver \
+  --version "${STACKWEAVER_CHART_VERSION:?Set the installed chart version}" \
   --namespace stackweaver \
   --values my-values.yaml
 ```
@@ -145,7 +229,10 @@ flowchart LR
 
 Check the logs to verify:
 
-**Docker Compose:**
+**Docker Compose:** inspect the output of the preceding one-off initializer command.
+Its `--rm` container is removed after it exits, so service logs do not retain that output.
+If your deployment ran the service container instead, inspect its retained logs:
+
 ```bash
 docker compose logs zitadel-init
 ```
@@ -155,10 +242,11 @@ docker compose logs zitadel-init
 kubectl logs -f deployment/stackweaver-zitadel -c zitadel-init --namespace stackweaver
 ```
 
-Look for output like:
+A first reconcile can report lines like these; an existing provider/target reports
+`Updated Azure AD provider` or `Using existing target` instead. Check the complete log for
+errors rather than requiring every create message:
 ```
-✅ Created Azure AD provider: <provider-id>
-✅ Added Azure AD provider to login policy
+✅ Created Azure AD provider (instance): <provider-id>
 ✅ Created target 'stackweaver-idp-sync': <target-id>
 ✅ Created target 'stackweaver-complement-token': <target-id>
 ✅ Set execution: Response on RetrieveIdentityProviderIntent → IDP Sync webhook
@@ -167,15 +255,15 @@ Look for output like:
 
 ## Step 7: Test the Integration
 
-1. Open StackWeaver in your browser (`http://localhost:5173`).
+1. Open your public Stackweaver URL in your browser. A local development installation uses `http://localhost:5173`.
 2. On the login page, you should see a "Sign in with Microsoft" button.
 3. Click it to be redirected to Microsoft's login page.
 4. Sign in with your Azure AD credentials.
-5. On first login, Zitadel will auto-provision the user and redirect you back to StackWeaver.
+5. On first login, Zitadel will auto-provision the user and redirect you back to Stackweaver.
 
-After the first login, the user is provisioned in StackWeaver but does not have access to any organization. An admin must invite the user to an organization, or you can configure [team mapping](./team-mapping.md) for automatic access. 
+After the first login, the user is provisioned in Stackweaver but does not have access to any organization. An admin must invite the user to an organization, or you can configure [team mapping](./team-mapping.md) for automatic access.
 
-## Provider Behavior
+## Provider behavior
 
 The Azure AD provider is configured with the following behaviors:
 
@@ -207,7 +295,7 @@ If the error shows `https://localhost:8080/idps/callback`, the `CUSTOM_REQUEST_H
 grep ZITADEL_EXTERNAL_HOST .env
 
 # Check that the API container has the header configured
-docker exec api sh -c 'printenv CUSTOM_REQUEST_HEADERS'
+docker compose exec api printenv CUSTOM_REQUEST_HEADERS
 # Expected: x-zitadel-instance-host:zitadel.example.com
 ```
 
@@ -217,7 +305,8 @@ Also ensure the redirect URI registered in Azure Portal matches `https://your-do
 
 ### User creation failed on first SSO login
 
-If the first SSO login ends on a "Registration failed" page (a URL ending in `/registration-failed`), Zitadel could not auto-provision the user. The most common cause is a missing first or last name in the Azure AD profile. Zitadel requires a non-empty `GivenName` (first name) to create a user.
+If the first SSO login ends on a "Registration failed" page (a URL ending in `/registration-failed`), Zitadel could not auto-provision the user. Check the upstream email, first/last name, required profile fields and the exact API error.
+Missing profile data is one possible cause; do not assume every registration error has the same cause.
 
 To fix this:
 
@@ -233,7 +322,9 @@ This is expected behavior. SSO users are provisioned without organization member
 
 1. Verify you configured group claims in **Token configuration** (Step 4).
 2. Check that the user is a member of at least one Azure AD group.
-3. If you have more than 200 groups, Azure AD may return a link to the Graph API instead of inline groups. In that case, consider using "Groups assigned to the application" to limit the number of groups.
+3. If membership exceeds the JWT limit of 200 groups, Entra can send overage information
+   instead of inline groups. Stackweaver does not resolve that Graph link. Limit the emitted
+   groups, for example with **Groups assigned to the application**, and verify the result.
 
 ### Login page shows a blank or skeleton page
 

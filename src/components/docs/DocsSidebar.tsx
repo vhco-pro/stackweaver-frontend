@@ -1,9 +1,10 @@
 // Copyright (c) 2025 VH & Co BV. Licensed under the Business Source License 1.1. See LICENSE for details.
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { ChevronRight, ChevronDown, FileText, Folder, FolderOpen } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { resolveCollection, useDocsIndex, useCompletedFilter, type DocsCollection } from './docsCollection';
 import { DocsSearch } from './DocsSearch';
 
 interface DocTreeNode {
@@ -16,18 +17,14 @@ interface DocTreeNode {
   children?: DocTreeNode[];
 }
 
-interface DocsIndex {
-  tree: DocTreeNode[];
-  flat: Record<string, DocTreeNode>;
-  generated: string;
-}
-
 interface DocsSidebarProps {
   className?: string;
+  collection?: DocsCollection;
+  showSearch?: boolean;
   onNavigate?: () => void;
   docsBase?: string;
   indexFile?: string;
-  /** Control seated on the search box's row: the desktop pane's collapse button. */
+  /** Desktop pane collapse button, retained when homepage search lives in main. */
   headerAction?: React.ReactNode;
 }
 
@@ -69,33 +66,15 @@ function filterTree(nodes: DocTreeNode[], hideCompleted: boolean): DocTreeNode[]
     .filter((n): n is DocTreeNode => n !== null);
 }
 
-export function DocsSidebar({ className, onNavigate, docsBase = '/docs', indexFile = '/docs-index.json', headerAction }: DocsSidebarProps) {
+export function DocsSidebar({ className, onNavigate, docsBase: legacyBase, indexFile: legacyIndex, collection: explicitCollection, showSearch = true, headerAction }: DocsSidebarProps) {
+  const collection = resolveCollection({ collection: explicitCollection, docsBase: legacyBase, indexFile: legacyIndex });
+  const { docsBase } = collection;
   const location = useLocation();
   const navigate = useNavigate();
-  const [index, setIndex] = useState<DocsIndex | null>(null);
+  const { data: index, isPending: loading } = useDocsIndex(collection);
   const [expandedDirs, setExpandedDirs] = useState<Set<string>>(new Set());
-  const [loading, setLoading] = useState(true);
-  const isInternal = docsBase === '/internal-docs';
-  const [hideCompleted, setHideCompleted] = useState(() =>
-    isInternal && localStorage.getItem('internal-docs-hide-completed') === 'true'
-  );
-
-  useEffect(() => {
-    async function loadIndex() {
-      try {
-        const response = await fetch(indexFile);
-        if (!response.ok) throw new Error('Failed to load docs index');
-        const data = await response.json() as DocsIndex;
-        setIndex(data);
-      } catch (error) {
-        console.error('Failed to load docs index:', error);
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    void loadIndex();
-  }, [indexFile]);
+  const isInternal = !!collection.statusFilter;
+  const [hideCompleted, setHideCompleted] = useCompletedFilter(collection);
 
   // Auto-expand directories that contain the current path when the location (or
   // the freshly-loaded index) changes. Done as a during-render merge keyed on the
@@ -331,7 +310,6 @@ export function DocsSidebar({ className, onNavigate, docsBase = '/docs', indexFi
               checked={hideCompleted}
               onChange={(e) => {
                 setHideCompleted(e.target.checked);
-                localStorage.setItem('internal-docs-hide-completed', String(e.target.checked));
               }}
               className="rounded-sm border-border"
             />
@@ -344,19 +322,17 @@ export function DocsSidebar({ className, onNavigate, docsBase = '/docs', indexFi
   };
 
   return (
-    <nav className={cn('px-4 pb-4', className)}>
-      {/* The search row stays pinned while the tree scrolls, so search and the
-          collapse button are reachable from anywhere in a long nav. The action
-          sits on the outer edge, where the collapsed rail's expand button lands. */}
-      <div className="sticky top-0 z-10 -mx-4 flex items-center gap-2 bg-background px-4 pb-3 pt-4">
+    <nav className={cn('px-4 pb-4', !showSearch && !headerAction && 'pt-4', className)}>
+      {/* Keep the pane action reachable even when search lives on the homepage. */}
+      {(showSearch || headerAction) && <div className="sticky top-0 z-10 -mx-4 flex items-center gap-2 bg-background px-4 pb-3 pt-4">
         {headerAction}
-        <div className="min-w-0 flex-1">
+        {showSearch && <div className="min-w-0 flex-1">
           <DocsSearch
             docsBase={docsBase}
-            searchIndexFile={isInternal ? '/internal-docs-search-index.json' : '/docs-search-index.json'}
+            searchIndexFile={collection.searchIndexFile}
           />
-        </div>
-      </div>
+        </div>}
+      </div>}
       {renderBody()}
     </nav>
   );

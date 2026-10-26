@@ -1,6 +1,20 @@
 ---
 description: "Index page for VCS integration guides"
 covers: []
+capabilities: [
+  {
+    "id": "vcs-connections",
+    "name": "GitHub and Azure DevOps connections",
+    "summary": "Connect repositories for code-driven infrastructure and Ansible workflows.",
+    "area": "platform",
+    "availability": "available",
+    "evidence": [
+      "backend/internal/api/v2/handlers/vcs_connections.go",
+      "backend/internal/api/v2/handlers/vcs_app_installation.go",
+      "core/services/vcs/provider.go"
+    ]
+  }
+]
 ---
 
 # VCS Integration

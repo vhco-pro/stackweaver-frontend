@@ -4,67 +4,52 @@ covers:
   - "deploy/helm/**"
 ---
 
-# Creating a Kubernetes Pull Secret for GHCR
+# Pull Stackweaver images from GHCR
 
-StackWeaver container images are hosted in the GitHub Container Registry (GHCR) under the `vhco-pro` organisation. The API, frontend, orchestrator, OpenTofu runner, and Zitadel init images are private packages; the Helm chart and the Ansible runner and secrets-init images are public. Because a deployment needs the private images, you must request access, create a GitHub personal access token, and register it as a Kubernetes pull secret before the StackWeaver pods can start. The same token also works with `docker login ghcr.io` for a Docker Compose installation.
+Create a namespace-scoped pull Secret for the private images your installation needs. Public
+container images can be pulled anonymously; access to a public source repository does not
+establish access to its container package.
 
-## Prerequisites
+## 1. Confirm package access
 
-Before you start, make sure you have:
+The deployment currently needs private API, frontend, orchestrator, OpenTofu runner and
+Zitadel-init images under `ghcr.io/vhco-pro`. The Ansible runner and secrets-init images are
+public. Check the exact package and tag you will deploy if a pull is denied.
 
-- A GitHub account
-- `kubectl` installed and configured to talk to your cluster
-- Access to the namespace where StackWeaver will run
+Request package access from `support@stackweaver.co`, including the GitHub username that
+will pull images. Accept any organization invitation you receive. Organization membership
+alone is not a guarantee: the account must have read access to the relevant packages.
+For shared infrastructure, use an account whose lifecycle is managed by the operating team.
 
-## Step 1: Request Access to the `vhco-pro` Organisation
+In GitHub, open **Settings > Developer settings > Personal access tokens > Tokens (classic)**.
+Create a token with `read:packages`, an expiry that fits your rotation policy, and SSO
+authorization if your organization requires it. Save it in a secret store. GitHub Packages
+uses classic PATs for this path; see its
+[container-registry authentication guidance](https://docs.github.com/en/packages/working-with-a-github-packages-registry/working-with-the-container-registry#authenticating-to-the-container-registry).
 
-The private StackWeaver images can only be pulled by members of the `vhco-pro` GitHub organisation, so you must join it before your token can pull them.
+## 2. Create the Kubernetes Secret
 
-Contact the StackWeaver team at `support@stackweaver.co` and ask to be invited to the `vhco-pro` organisation on GitHub. Include the GitHub username that should receive the invitation. Once the team processes your request you will receive an email from GitHub; accept the invitation before continuing.
+Use `kubectl` against the intended cluster. The namespace must exist; create it before the
+Secret if this is a first installation. Use the same namespace as the Helm release.
 
-> [!NOTE]
-> If you are deploying StackWeaver on behalf of a company rather than as an individual, ask the team to invite a dedicated machine/bot account instead of a personal account. This avoids disruptions when individuals leave.
-
-## Step 2: Create a Personal Access Token
-
-Once you are a member of `vhco-pro`, create a GitHub personal access token (PAT) scoped to read packages.
-
-1. In GitHub, open **Settings → Developer settings → Personal access tokens → Tokens (classic)**.
-2. Click **Generate new token (classic)**.
-3. Give the token a descriptive name such as `stackweaver-k8s-pull-<cluster-name>`.
-4. Set an expiry date that matches your rotation policy (90 days is a common baseline).
-5. Under **Scopes**, grant **read:packages**. No other scopes are required.
-6. Click **Generate token** and copy the value immediately. GitHub will not show it again.
-
-> [!IMPORTANT]
-> You must use a **classic** personal access token. Fine-grained tokens do not support the `read:packages` scope required for pulling container images from GHCR. See [GitHub's packages permissions documentation](https://docs.github.com/en/packages/learn-github-packages/about-permissions-for-github-packages) for details.
-
-> [!WARNING]
-> Store the token securely. Do not commit it to version control. Treat it like a password.
-
-## Step 3: Create the Kubernetes Secret
-
-Run the following command, replacing the placeholder values with your own:
+Set `GITHUB_USERNAME`, `GHCR_TOKEN` and `NAMESPACE` through your shell or secret tooling, then:
 
 ```bash
 kubectl create secret docker-registry ghcr-pull-secret \
   --docker-server=ghcr.io \
-  --docker-username=<your-github-username> \
-  --docker-password=<your-pat> \
-  --namespace=<your-namespace>
+  --docker-username="$GITHUB_USERNAME" \
+  --docker-password="$GHCR_TOKEN" \
+  --namespace="$NAMESPACE"
+kubectl get secret ghcr-pull-secret --namespace "$NAMESPACE"
 ```
 
-This creates a secret of type `kubernetes.io/dockerconfigjson` that Kubernetes nodes use to authenticate against GHCR when pulling images.
+The expected type is `kubernetes.io/dockerconfigjson`. Do not commit its unencrypted YAML or
+print its contents into review logs. Supplying a real token as a CLI argument can expose it
+to local process inspection; use your platform's secret-management path where required.
 
-You can verify the secret was created:
+## 3. Wire it into the chart
 
-```bash
-kubectl get secret ghcr-pull-secret -n <your-namespace>
-```
-
-## Step 4: Configure the Helm Chart to Use the Secret
-
-Tell the StackWeaver Helm chart about the pull secret by setting `global.imagePullSecrets` in your values file:
+Save as `pull-secret-values.yaml`:
 
 ```yaml
 global:
@@ -72,35 +57,56 @@ global:
     - name: ghcr-pull-secret
 ```
 
-Then install or upgrade the chart:
+For a new release, merge this with the [Helm installation values](./README.md). For an existing
+release, set `CHART_VERSION` to the installed chart version and preserve the other values:
 
 ```bash
-helm upgrade --install stackweaver oci://ghcr.io/vhco-pro/charts/stackweaver \
-  -f your-values.yaml \
-  --namespace <your-namespace>
+helm upgrade stackweaver oci://ghcr.io/vhco-pro/charts/stackweaver \
+  --namespace "$NAMESPACE" --version "$CHART_VERSION" \
+  --reuse-values --values pull-secret-values.yaml
 ```
 
-All pods managed by the chart will now automatically use the pull secret to authenticate against GHCR.
+All chart-managed workload pods use this reference, including hook Jobs. The Secret must
+exist before those pods need to pull images. A registry login on your laptop does not supply
+credentials to Kubernetes nodes.
 
-## Rotating the Token
+## 4. Verify a pull
 
-When your PAT expires or needs to be rotated, generate a new token following Step 2 and update the secret in place:
+```bash
+kubectl get pods --namespace "$NAMESPACE"
+kubectl describe pod POD_NAME --namespace "$NAMESPACE"
+```
+
+Replace `POD_NAME` with an affected pod. Read its image-pull events: `unauthorized` suggests
+package/token access; `not found` may mean an incorrect repository or tag. Check the pod's
+`imagePullSecrets` reference and that the Secret exists in the same namespace. Successful
+Secret creation alone does not prove image access.
+
+## Rotate without deleting the Secret
+
+Generate a replacement token with the same required access, set `GHCR_TOKEN` to that value
+and update the existing Secret:
 
 ```bash
 kubectl create secret docker-registry ghcr-pull-secret \
   --docker-server=ghcr.io \
-  --docker-username=<your-github-username> \
-  --docker-password=<new-pat> \
-  --namespace=<your-namespace> \
-  --dry-run=client -o yaml | kubectl apply -f -
+  --docker-username="$GITHUB_USERNAME" \
+  --docker-password="$GHCR_TOKEN" \
+  --namespace="$NAMESPACE" \
+  --dry-run=client --output=yaml | kubectl apply -f -
 ```
 
-Using `--dry-run=client -o yaml | kubectl apply` replaces the secret without deleting it first, which avoids a brief gap where running pods could fail to pull new images.
+Verify the replacement can pull the configured images before revoking the old token. Existing
+running containers do not prove a future image pull will succeed. Secret names and chart values
+can remain unchanged.
 
-> [!TIP]
-> Set a calendar reminder a few days before your token expires so you have time to rotate without any impact on running workloads.
+## Docker Compose
 
-## Related Documentation
+The same account and token can authenticate the local Docker client:
 
-- [Self-Hosted Runners](../../../user-guides/self-hosted-runners.md): run StackWeaver workloads on your own Kubernetes infrastructure
-- [Get Started](../../README.md): overview of all setup guides
+```bash
+printf '%s' "$GHCR_TOKEN" | docker login ghcr.io --username "$GITHUB_USERNAME" --password-stdin
+```
+
+Then follow the [Compose installation](../docker-compose/README.md). This does not create a
+Kubernetes Secret; the two clients store credentials separately.

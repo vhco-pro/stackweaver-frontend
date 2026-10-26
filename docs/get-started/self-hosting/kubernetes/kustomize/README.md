@@ -4,55 +4,90 @@ covers:
   - "deploy/helm/**"
 ---
 
-# GitOps with Kustomize
+# Deploy with Kustomize and GitOps
 
-This guide shows how to deploy StackWeaver using Kustomize in a GitOps workflow with Argo CD or Flux CD.
-The approach uses Kustomize's `helmCharts` feature to render the StackWeaver Helm chart, paired with a base/overlay directory structure that lets you manage multiple environments from a single Git repository.
+Keep shared deployment configuration in a base and environment-specific chart values in
+overlays. The supplied example uses Kustomize's Helm chart inflation. Argo CD and Flux need
+different execution paths; do not point Flux's Kustomize controller at `helmCharts` and expect
+it to run Helm.
 
-## Directory Structure
+## Choose the controller path
 
-The example below shows a minimal but complete layout.
-The `base` layer declares the namespace and any shared resources.
-Each `overlays/<env>` directory supplies the environment-specific `values.yaml` for the Helm chart, along with any platform-specific resources such as PersistentVolumes.
+| Path | How the chart is rendered |
+|---|---|
+| Local Kustomize | `kustomize build --enable-helm`, with Helm available. |
+| Argo CD | Enable Helm inflation in the repo-server's Kustomize build options, then use the overlay Application. |
+| Flux | Reconcile an `OCIRepository` and `HelmRelease` through Flux's source/Helm controllers. Use Kustomize to compose those resources. |
+
+Before deploying, complete the [Helm prerequisites](../README.md#before-you-start), image access,
+namespace storage and TLS setup. Select an exact published chart version and matching values;
+the example pin is an example, not a promise that it is the latest release.
+
+## Adapt the base and overlay
+
+Download the complete example. It includes a namespace base, production overlay, values file
+and an Azure Blob CSI static volume example:
 
 ::: code-explorer ./example
 :::
 
-## How It Works
+Change these inputs before a sync:
 
-Kustomize will expand the `helmCharts` entry in `overlays/production/kustomization.yaml` by fetching the chart from the OCI registry and rendering it with the supplied `values.yaml`.
-The `../../base` resource reference pulls in the namespace declaration so Kustomize produces a self-contained set of manifests.
+- `overlays/production/kustomization.yaml`: reviewed chart version and release namespace.
+- `overlays/production/values.yaml`: app/auth hosts, ingress provider/class, TLS Secret names,
+  image tags/digests and `global.imagePullSecrets` when needed.
+- `overlays/production/pv-pvc.yaml`: storage driver, volume identity and claim for your cluster.
+  The Azure-specific identifiers are placeholders, not portable storage defaults.
+- `runnerWorkspaces.existingClaim`: must match the runner claim, `runner-workspaces-pvc` in
+  this example. Replace the static volume resources with your storage path if different.
 
-Both Argo CD and Flux CD support this pattern natively.
-Neither tool needs any special plugins; Helm chart expansion via Kustomize is built into both.
+This example disables the persistent Galaxy cache, so a restarted Ansible runner downloads
+collections again. PostgreSQL and Garage still need durable storage; a runner scratch claim
+is not a database backup.
 
-## Adapting the Example
+```mermaid
+flowchart LR
+    G["Git: base and environment values"] --> A["Argo CD: Kustomize with Helm enabled"]
+    G --> F["Flux: Kustomize of HelmRelease resources"]
+    A --> K["Kubernetes resources and hooks"]
+    F --> H["Flux Helm controller"]
+    H --> K
+```
 
-Open `overlays/production/values.yaml` and replace the example host names and TLS secret names with your own:
+## Render locally before syncing
 
-- `ingress.hosts.app`: the domain where the StackWeaver UI will be served.
-- `ingress.hosts.auth`: the domain for the Zitadel authentication service.
-- `ingress.provider`: the ingress controller type (`nginx-inc`, `community-nginx`, `traefik`, or `none`). See [Ingress Controller Provider](../README.md#ingress-controller-provider) for details.
-- `ingress.tls.secretName` and `ingress.tls.authSecretName`: the names of the Kubernetes TLS secrets for each domain.
+With an OCI-capable Kustomize (for example 5.7.1) and Helm installed, from the extracted
+example root:
 
-Set `platform.admins` to the email addresses of the people who manage the installation. Left empty, the bundled Zitadel's bootstrap admin (`zitadel.init.adminUsername`) is the one platform administrator; with an external Zitadel the list must be set. See [Platform Administration](../README.md#platform-administration) for the role and the `platform.organizationCreation` setting.
+```bash
+kustomize build overlays/production --enable-helm > rendered.yaml
+```
 
-For persistent storage, `overlays/production/pv-pvc.yaml` contains an Azure Blob CSI example.
-If your cluster uses a different storage provider (AWS EFS, an NFS server, or a dynamic provisioner), replace the `csi` block with the appropriate driver configuration.
-The PVC name `runner-workspaces-pvc` must match the value you set for `runnerWorkspaces.existingClaim` in `values.yaml`.
-
-## Secrets
-
-The example `values.yaml` leaves all `secrets.*` fields empty, which makes the chart's `secrets-init` bootstrap Job generate the credentials in-cluster on the first sync.
-That is safe under GitOps - the Job creates only what is missing and never rewrites a live value, and the rendered manifests contain no secret material - but for production you should still manage secrets externally so the credentials have a lifecycle you control.
-Provision them ahead of time using the External Secrets Operator, Sealed Secrets, or your platform's secrets store, then set `secrets.<component>.secretName` to the pre-existing Secret name.
-When every secret name is populated the chart renders neither the bootstrap Job nor its RBAC, making the overlay fully declarative and independent of the `secretsInit` image.
-
-See the [Kubernetes deployment guide](../README.md#secrets) for the full list of secret fields and example `kubectl create secret` commands.
+Use a Kustomize version that supports your OCI chart source, and verify its Helm command can
+pull the selected version. Review the output's namespace, hosts, image references, PVCs and
+hook annotations. This renders files; it does not create resources. Protect rendered output
+if you add secrets or sensitive env values.
 
 ## Argo CD
 
-Create an `Application` resource pointing at the overlay directory in your Git repository.
+An Argo administrator must enable Helm inflation in the `argocd-cm` ConfigMap. Merge this
+setting with existing build options rather than replacing unrelated configuration:
+
+```yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: argocd-cm
+  namespace: argocd
+data:
+  kustomize.buildOptions: --enable-helm
+```
+
+This is a repo-server/global build setting, not a per-Application `kustomize.enableHelm`
+field. A custom config-management plugin is another option when a global setting is unsuitable.
+See [Argo CD's Kustomize guidance](https://argo-cd.readthedocs.io/en/stable/user-guide/kustomize/#kustomizing-helm-charts).
+
+Save an Application in your deployment repository, substituting its URL and overlay path:
 
 ```yaml
 apiVersion: argoproj.io/v1alpha1
@@ -70,46 +105,97 @@ spec:
     server: https://kubernetes.default.svc
     namespace: stackweaver
   syncPolicy:
-    automated:
-      prune: true
-      selfHeal: true
     syncOptions:
       - CreateNamespace=true
 ```
 
-Argo CD requires Helm chart expansion to be explicitly enabled.
-Add `--enable-helm` to the Kustomize build options in your Argo CD config, or set the following field on the Application's source:
+Review the diff and perform the first sync manually. The chart uses PreSync secret bootstrap
+and PostSync identity-policy reconciliation. Do not assume a selective resource sync executes
+all hooks. Enable automated pruning/self-healing only after agreeing how deletions and secret
+ownership should be handled.
+
+## Flux
+
+Flux's Kustomize controller does not execute the Helm inflation plugin. Use its native Helm
+resources. The following belongs in a directory referenced by your existing Flux
+`GitRepository`/`Kustomization`; create namespace `stackweaver` and prerequisite Secrets first.
+Replace `REPLACE_WITH_CHART_VERSION` with the exact selected chart tag:
 
 ```yaml
-    kustomize:
-      enableHelm: true
-```
-
-## Flux CD
-
-Create a `Kustomization` resource that points at the overlay directory.
-
-```yaml
-apiVersion: kustomize.toolkit.fluxcd.io/v1
-kind: Kustomization
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: OCIRepository
 metadata:
   name: stackweaver
-  namespace: flux-system
+  namespace: stackweaver
 spec:
   interval: 10m
-  path: ./overlays/production
-  prune: true
-  sourceRef:
-    kind: GitRepository
-    name: your-gitops-repo
-  targetNamespace: stackweaver
+  url: oci://ghcr.io/vhco-pro/charts/stackweaver
+  ref:
+    tag: REPLACE_WITH_CHART_VERSION
+  layerSelector:
+    mediaType: application/vnd.cncf.helm.chart.content.v1.tar+gzip
+    operation: copy
+---
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: stackweaver
+  namespace: stackweaver
+spec:
+  interval: 10m
+  releaseName: stackweaver
+  chartRef:
+    kind: OCIRepository
+    name: stackweaver
+  values:
+    global:
+      imagePullSecrets:
+        - name: ghcr-pull-secret
+    ingress:
+      provider: nginx-inc
+      className: nginx
+      hosts:
+        app: stackweaver.example.com
+        auth: auth.stackweaver.example.com
+      tls:
+        enabled: true
+        secretName: stackweaver-tls
+        authSecretName: stackweaver-auth-tls
 ```
 
-Flux enables Helm chart expansion in Kustomize by default.
-No additional configuration is required.
+Copy your complete environment values into `spec.values`, or reference an appropriately
+managed values source. The local Kustomize `valuesFile` does not automatically become Flux
+HelmRelease values. Include your storage/secret overrides as well. For full source and
+release options, use [Flux's Helm guide](https://fluxcd.io/flux/guides/helmreleases/).
 
-## Image Pull Secret
+## Browser-session upgrades
 
-The StackWeaver images are hosted on GHCR and require an image pull secret.
-See [Kubernetes Pull Secret for GHCR](../kubernetes-pull-secret-ghcr.md) for instructions on creating the secret.
-Once created, add its name to `global.imagePullSecrets` in the example `values.yaml`, which ships as an empty list.
+Before a GitOps upgrade with external Zitadel, create the confidential BFF client and
+populate its required Secret keys. Pin the reviewed per-component image versions or use
+`Always` so a cached initializer cannot leave the new API without credentials. Follow
+[the Helm upgrade sequence](../README.md#upgrading-to-server-side-browser-sessions), including
+readiness checks and rollback prerequisites; do not let an automatic rollback conceal missing keys.
+
+## Secrets and first-sync checks
+
+The chart's bootstrap Job creates missing Secrets without overwriting existing values.
+For production lifecycle control, provision credentials through your secret store/operator
+and reference them through `secrets.<component>.secretName`. To omit bootstrap entirely,
+supply all five credential Secrets and disable bundled Garage; see
+[Helm secret ownership](../README.md#secrets). Kubernetes RBAC and hook ordering still matter.
+
+Do not commit live passwords or unencrypted pull credentials in Git. The chart's credential
+references do not make arbitrary values you add to manifests secret.
+
+After syncing, check:
+
+```bash
+kubectl get pods,pvc --namespace stackweaver
+kubectl logs --namespace stackweaver job/stackweaver-secrets-init
+kubectl logs --namespace stackweaver deployment/stackweaver-zitadel -c zitadel-init
+```
+
+If you intentionally omitted bootstrap or use external identity, skip the absent Job/container
+and verify that path's supplied credentials. Check the controller's Ready/health conditions,
+then sign in through the configured HTTPS app hostname. On a failed sync, inspect image pulls,
+PVC binding and hook logs before retrying; do not delete Secrets to force a clean sync.

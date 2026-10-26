@@ -12,12 +12,15 @@ import { cleanup } from '@testing-library/react';
 // cancelled animation nobody awaited surfaces as an unhandled rejection. Motion cancels its
 // native animations when a component unmounts, which cleanup() does after every test. Mark the
 // promise handled the way a browser does; code that awaits `finished` still sees the rejection.
-// eslint-disable-next-line @typescript-eslint/unbound-method -- re-bound with call() below
-const cancelAnimation = Animation.prototype.cancel;
-Animation.prototype.cancel = function cancel(this: Animation) {
-  this.finished.catch(() => undefined);
-  cancelAnimation.call(this);
-};
+// Node-only dev-server tests share this setup file but have no Animation global.
+if (typeof Animation !== 'undefined') {
+  // eslint-disable-next-line @typescript-eslint/unbound-method -- re-bound with call() below
+  const cancelAnimation = Animation.prototype.cancel;
+  Animation.prototype.cancel = function cancel(this: Animation) {
+    this.finished.catch(() => undefined);
+    cancelAnimation.call(this);
+  };
+}
 
 afterEach(() => {
   cleanup();

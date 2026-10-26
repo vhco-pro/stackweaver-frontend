@@ -1,55 +1,128 @@
 ---
-description: "Guide to organization-level settings and policies: admin contact, who may create organizations, token access, the default OpenTofu version, force-delete policy, health assessments, and pull request status behavior"
+description: "Guide to organization-level settings and policies: admin contact, token access, force-delete policy, health assessments, and pull request status behavior"
 covers:
   - "frontend/src/pages/Settings/Organization.tsx"
   - "backend/internal/api/v2/handlers/organizations*"
   - "backend/internal/api/middleware/org_wall*"
   - "core/models/organization*"
-  - "backend/internal/services/platformadmin/settings.go"
-  - "backend/internal/api/v2/handlers/platform_settings.go"
-  - "frontend/src/pages/Organizations.tsx"
+capabilities: [
+  {
+    "id": "organization-policies",
+    "name": "Organization policies",
+    "summary": "Configure token access, workspace policies and pull-request behavior for an organization.",
+    "area": "platform",
+    "availability": "available",
+    "evidence": [
+      "backend/internal/api/v2/handlers/organizations.go",
+      "backend/internal/api/middleware/org_wall_registry.go",
+      "frontend/src/pages/Settings/Organization.tsx"
+    ]
+  }
+]
 ---
 
-# Organization Settings
+# Configure organization settings
 
-Every organization carries a set of organization-wide settings and policies that its workspaces and members inherit. You manage them in the UI under **Settings → Organization**, and every setting is equally available as code through the `tfe_organization` resource of the Terraform provider, using the same attribute names Terraform Cloud and Enterprise use. This guide explains what each setting does at run time.
+Open **Settings > Organization** to change policies for an organization. These settings affect API access, workspace deletion, drift assessments and pull-request plans. Use an organization owner or an account with organization membership-management permission.
 
-## General
+## Change a setting and confirm it
 
-The admin email is the organization's contact address, stored for TFE compatibility and returned by the API. The collaborator authentication policy can be set to `password` or `two_factor_mandatory`; the value is stored and round-trips through the provider, but enforcement of mandatory two-factor authentication is not wired up yet - it arrives together with the identity provider's MFA integration. Session timeout settings that exist in Terraform Enterprise have no equivalent here because sessions are owned by the identity provider (Zitadel); if you migrate a configuration that sets `session_timeout_minutes` or `session_remember_minutes`, remove those attributes or the plan will show permanent drift.
+1. Select the intended organization and open **Settings > Organization**.
+2. Edit the admin contact/authentication policy and choose **Save**, or change an individual policy switch. Switches save immediately.
+3. Wait for the result, then reopen the page to confirm the persisted value. Check affected automation before changing another access policy.
 
-## Creating organizations
+![Organization settings with general fields and workspace, pull-request and token policies.](./images/organization-policies.png "Synthetic organization. No settings were changed during capture.")
 
-Creating an organization requires a user token - a personal API token or a `terraform login` session. Organization tokens are deliberately rejected on the create endpoint, matching the Terraform Cloud model where an automation token scoped to one organization cannot mint new organizations for its owner. The user who creates an organization is automatically added to it as a member and placed in its `owners` team, and the organization is bootstrapped with `owners` and `viewers` teams and a `default` project.
+## General and access policies
+
+| Setting | Current behavior |
+|---|---|
+| Admin email. | Stores the organization's contact address and returns it through the API. |
+| Collaborator authentication policy. | Accepts `password` or `two_factor_mandatory`, but mandatory two-factor enforcement is not implemented by this setting. Configure actual authentication through the identity provider. |
+| Allow user tokens, default on. | When off, non-owner personal API tokens and `terraform login` sessions receive 403 on organization routes. Organization-owner user tokens remain usable, and browser sessions are unaffected. Use an organization token for automation subject to this policy. |
+
+Create an organization token under **Settings > Organization Token** before moving automation away from personal tokens. Confirm the replacement can perform its required operations before disabling user-token access.
+
+## Workspace policies
+
+| Setting | Effect and limits |
+|---|---|
+| Allow force-deleting workspaces, default off. | When off, deleting a workspace with managed resources requires an organization owner. When on, a workspace admin can force-delete it too. Deleting an empty workspace still follows workspace permissions. |
+| Enforce health assessments, default off. | Includes every eligible workspace in drift detection, ignoring a workspace opt-out. Explicit drift schedules remain; otherwise checks use a daily cadence. A workspace without an uploaded configuration version is skipped. |
+| Cost estimation. | Stores and returns the flag. It does not enable a working cost-estimation engine. |
+
+> [!WARNING]
+> Force deletion removes workspace management records without destroying the infrastructure. Keep state and ownership recovery requirements in mind before granting that permission.
+
+## Pull-request behavior
+
+| Setting | Effect |
+|---|---|
+| Speculative plan management, default on. | Cancels still-pending speculative plans from older commits on the same branch when a newer commit arrives. Other pull requests and plan-and-apply runs are unaffected. |
+| Aggregated status checks, default off. | Posts one `terraform-plan` status per commit across its workspace plans, using the worst result and a passed/total summary. |
+| Passing statuses for untriggered plans, default off. | Posts a passing check for connected workspaces skipped by path filtering so an unrelated change does not block a required check. |
+
+Aggregated checks and passing statuses for untriggered plans are mutually exclusive. The UI turns the other option off when enabling one; the API rejects a body enabling both.
+
+## Configure settings as code
+
+Configure [the Stackweaver Terraform provider](./terraform-provider.md), then use `organization.tf`. The example creates a new organization; import an existing organization into the chosen resource before managing it, rather than creating a duplicate.
+
+```hcl
+resource "stackweaver_organization" "platform" {
+  name                                                    = "your-org"
+  email                                                   = "platform@example.com"
+  user_tokens_enabled                                     = true
+  allow_force_delete_workspaces                           = false
+  assessments_enforced                                    = false
+  speculative_plan_management_enabled                     = true
+  aggregated_commit_status_enabled                        = false
+  send_passing_statuses_for_untriggered_speculative_plans = false
+}
+```
+
+Review the plan, apply, then confirm the policy values on the organization page or API response. The compatible `tfe_organization` resource exposes the corresponding supported attributes as well.
+
+Do not set `session_timeout_minutes`, `session_remember_minutes`, `enforce_hyok`, `stacks_enabled`, `max_ttl_enabled` or `owners_team_saml_role_id` expecting a subsystem to be enabled. They have no backing behavior here; session settings are controlled by Zitadel and unsupported provider attributes can produce drift.
+
+## Update an existing organization through the API
+
+Use an authorized token. Set `STACKWEAVER_URL` to the origin without a trailing slash, `STACKWEAVER_TOKEN` to the token, and `ORG` to the organization name. Save `organization-policy.json`:
+
+```json
+{
+  "data": {
+    "type": "organizations",
+    "attributes": {
+      "allow-force-delete-workspaces": false,
+      "aggregated-commit-status-enabled": true,
+      "send-passing-statuses-for-untriggered-speculative-plans": false
+    }
+  }
+}
+```
+
+```bash
+curl --fail-with-body --silent --show-error --request PATCH \
+  --header "Authorization: Bearer $STACKWEAVER_TOKEN" \
+  --header 'Content-Type: application/vnd.api+json' \
+  --data @organization-policy.json \
+  "$STACKWEAVER_URL/api/v2/organizations/$ORG"
+```
+
+Expect the organization resource with the saved attributes. Re-read it to resolve an uncertain update before retrying. See [Using the API](../architecture/using-the-api.md) for token scope, error responses and operation discovery. These management settings use provider HCL or JSON:API, not a repository YAML document.
+
+## Organization creation and names
+
+Creating an organization requires a user credential; an organization token cannot create another organization. The creator becomes a member of its `owners` team. The organization starts with `owners` and `viewers` teams and a `default` project.
+
+Organization names are permanently reserved because workload-identity trust can contain them. Deleting an organization does not free its name. A create or rename using another organization's reserved name returns 422. Renaming preserves the old name for the same organization, which may rename back to it. Review cloud trust before changing a name used in token subjects.
+
+
+## Organization creation and install-wide defaults
 
 Who may create organizations is a deployment setting, `STACKWEAVER_ORGANIZATION_CREATION` in `sso.env` on Docker Compose or `platform.organizationCreation` on Kubernetes. The default, `everyone`, lets every signed-in user create organizations. With `platform-admins`, only a [platform administrator](./platform-administration.md) may create one: the create endpoint answers 403 to everyone else, and the Organizations page hides **Create Organization** and says "Organizations on this installation are created by a platform administrator. Ask yours to create one and add you to it." The person who creates an organization still becomes its owner, whatever the setting. Any client can read the value from `GET /api/v2/platform/settings` (attribute `organization-creation`), and `GET /api/v2/account/details` reports whether the signed-in user may create organizations in `permissions.can-create-organizations`.
 
 Note that organization names are permanently reserved once used. Deleting an organization does not free its name, because workload-identity token subjects embed the organization name and a re-registered name could otherwise be trusted by the original tenant's cloud federation. Terraform Enterprise would allow the reuse; here a create with a previously-used name returns a 422, and so does renaming an organization onto a name another organization used before, so pick a new name. Renaming keeps the old name reserved for your organization, so you can rename back to it later but nobody else can take it.
 
-## Token access
-
-The **Allow user tokens** policy (`user_tokens_enabled`, default on) controls whether personal, user-bound API tokens may access the organization's API at all. When you switch it off, non-owner members' personal tokens and their `terraform login` sessions receive a 403 against every route of this organization, and automation should authenticate with the organization token instead (minted under **Settings → Organization Token**). Organization owners' user tokens keep working even when the policy is off - a deliberate divergence from Terraform Enterprise that prevents an organization from locking itself out before it has minted an organization token. Browser sessions are never affected by this policy.
-
-## Workspace policies
-
-**Default OpenTofu version** (`default-terraform-version`, not set by default) is the OpenTofu version a workspace runs when it does not specify one of its own. You set it in the **Workspace Policies** card on the organization's general settings page, choosing from the enabled, non-deprecated versions of the installation's OpenTofu versions catalogue, or **Not set** to clear it. The catalogue itself is install-wide and is managed by a [platform administrator](./platform-administration.md).
-
-**Allow force-deleting workspaces** (`allow_force_delete_workspaces`, default off) governs who may delete a workspace that still has resources under management. With the policy off, a force deletion of such a workspace requires organization-owner permissions; workspace admins can still delete workspaces whose infrastructure has been destroyed. With the policy on, workspace admins may force-delete regardless of remaining resources.
-
-**Enforce health assessments** (`assessments_enforced`, default off) pulls every eligible workspace of the organization into drift detection, regardless of each workspace's own assessment or drift settings. Workspaces without a drift schedule of their own are checked on a default daily cadence; workspaces that already carry an explicit drift detection schedule keep it. A workspace-level opt-out is ignored while the organization enforces assessments - that is what enforcement means. Each drift check plans the workspace's latest configuration version against its current state, so a workspace that has never had a configuration uploaded is skipped until it has one.
-
-**Cost estimation** (`cost_estimation_enabled`, off unless turned on when the organization is created or in these settings) is stored and round-trips through the provider; the estimation engine itself is under development and tracked separately, so the flag has no run-time effect yet.
-
-## Pull request behavior
-
-**Speculative plan management** (`speculative_plan_management_enabled`, default on) keeps pull requests tidy: when a newer commit is pushed to a branch or pull request, still-pending speculative plans from the outdated commits of that same branch are cancelled automatically. Plans belonging to other open pull requests on the same workspace are never touched, and neither are plan-and-apply runs.
-
-**Aggregated status checks** (`aggregated_commit_status_enabled`, default off) is for monorepos where one pull request fans out into many workspace plans. Instead of one commit status per workspace, the organization posts a single rolled-up `terraform-plan` status per commit whose state is the worst of all the commit's workspace plans, with a passed-of-total summary in the description.
-
-**Passing statuses for untriggered plans** (`send_passing_statuses_for_untriggered_speculative_plans`, default off) helps when required status checks are configured on a repository connected to several workspaces with path filtering. Workspaces that a pull request does not trigger - because none of the changed files fall inside their working directory or trigger paths - post an immediate passing status, so a required check never blocks a pull request that simply does not concern that workspace.
-
-The last two settings are mutually exclusive: enabling one turns the other off, and the API rejects a request that would enable both.
-
-## Managing these settings as code
-
-All of the above maps onto the `tfe_organization` resource, so a migrated Terraform Cloud configuration keeps working - see [Managing StackWeaver with Terraform](./terraform-provider.md) for provider setup and the migration path. Attributes with no backing subsystem (`enforce_hyok`, `stacks_enabled`, `max_ttl_enabled`, `owners_team_saml_role_id`, and the session settings) are returned as stable defaults and should stay unset in your configuration.
+The default OpenTofu version (`default-terraform-version`) is set in **Workspace Policies**. Choose an enabled, non-deprecated entry from the installation catalogue or **Not set**. A platform administrator manages the catalogue; organization ownership alone does not grant that role.

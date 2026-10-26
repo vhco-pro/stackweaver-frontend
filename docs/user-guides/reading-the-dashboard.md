@@ -1,55 +1,150 @@
 ---
-description: "Guide to reading the dashboard: a cross-organization view of what needs you, what is running, and where to go next"
+description: "Find work that needs attention across organizations, inspect queued or active operations and choose the next action."
 covers:
   - "frontend/src/pages/Dashboard/**"
+  - "backend/internal/api/v2/handlers/dashboard*"
+  - "core/repository/dashboard*"
+  - "frontend/src/components/ui/collapsible-section.tsx"
+  - "frontend/src/components/layout/Sidebar.tsx"
+capabilities: [
+  {
+    "id": "dashboard",
+    "name": "Cross-organization dashboard",
+    "summary": "Find waiting approvals, failed work and running operations across organizations you can access.",
+    "area": "platform",
+    "availability": "available",
+    "limitations": "Runner and change-request rows require their respective organization management permissions.",
+    "evidence": [
+      "frontend/src/pages/Dashboard/attention.ts",
+      "frontend/src/pages/Dashboard/attention.test.ts",
+      "frontend/src/pages/Dashboard/useDashboardData.ts",
+      "frontend/src/pages/Dashboard/index.tsx",
+      "frontend/src/pages/Dashboard/onboarding.ts",
+      "frontend/src/pages/Dashboard/LiveOperations.tsx",
+      "frontend/src/pages/Dashboard/Organizations.tsx",
+      "backend/internal/api/v2/handlers/dashboard.go",
+      "core/repository/dashboard.go"
+    ]
+  }
+]
 ---
 
-# Reading the Dashboard
+# Reading the dashboard
 
-The dashboard is where signing in lands you, and it is the one screen in StackWeaver that spans every organization you belong to. It exists to answer a question none of the other pages can: not "how is this organization doing", but "which of my organizations needs me right now".
+Start at the dashboard to find work that needs attention across your organizations.
+Each attention row names an organization and links to the workspace list, workflow list
+or other page where you can investigate.
 
-That is why it has no organization selector. Everywhere else, choosing an organization is how you narrow down to the thing you came for. Here, being told which organization to care about is the point. If you had to pick one first, you could only ever be told about the organization you were already thinking of.
-
-## Folding sections away
-
-Every section folds away from its heading, and StackWeaver remembers which ones you closed, so a section you have no use for stays closed on your next visit rather than needing to be dismissed again. Closing a section also stops it fetching, so folding away live operations on a machine you leave open all day genuinely stops the polling rather than merely hiding it.
+![Dashboard with live operations, organization summaries and recent activity.](./images/dashboard-overview.png "Example data, with the attention section folded. Select the image to enlarge it.")
 
 ## What needs your attention
 
-The list at the top is the page. Each row names one organization, one thing that needs doing, and how many of them there are, and takes you straight to where you would do it. Rows only appear when there is something to report, so the length of the list is the size of your problem, and an empty list is a single line telling you so, rather than a screen of zeroes.
+Rows appear only when there is something to report. Decisions waiting for a person come
+first, followed by failed work and other action items.
 
-The list covers OpenTofu and Ansible together, and the two are mixed rather than grouped, so the order tells you how urgent something is instead of which half of the product it came from.
+![Attention rows name the organization, show the waiting or failed work, and link to the relevant page.](./images/dashboard-attention.png "Example attention items. Each row opens the page where you can act.")
 
-Two rows mean **somebody is blocked on a decision right now**, so they sort to the top: an OpenTofu run that has planned and is holding until someone confirms the apply, and an Ansible workflow approval holding a workflow open until someone approves or denies it. They are the same idea under two names.
+| Signal | Where to go and what to check |
+|---|---|
+| OpenTofu runs waiting for apply | Open the filtered **Workspaces** list, then review the relevant run's plan before applying. |
+| Ansible workflow approvals | Open **Workflows**, inspect the waiting workflow run, and approve or deny its gate. |
+| Workspaces left broken | Open the errored **Workspaces** list and inspect the most recent failed run. |
+| Job templates left failing | Open **Job Templates** and inspect the template's latest failed job. |
+| Inventories failed to sync | Open **Inventories** and read the failed sync output. Check whether jobs would use stale hosts. |
+| Runners offline | Open **Settings > Runners** and check the affected runners and pools. Other runners may still be available. |
+| Recent OpenTofu failures | Open **Usage** to investigate the failed runs. |
+| Recent Ansible failures | Open the filtered **Jobs** list and inspect the failed jobs. |
+| Open change requests | Open **Settings > Change Requests** to review outstanding workspace tasks. |
 
-Two more mean **something has been left broken**: a workspace whose most recent run errored and which has not been run since, and a job template whose most recent job failed the same way, however long ago that was. These are the rows that surface what is quietly rotting rather than what just happened. Alongside them, **an inventory that failed to sync** means the hosts your next job would target are stale or wrong.
+### Read the counts correctly
 
-**Runners offline** tells you an organization has lost the capacity to execute anything at all, on either platform.
+| Count | What it means |
+|---|---|
+| A workspace or template left failing | Its latest execution failed and no newer run or job has replaced it. |
+| Recent failures | Failures in the last 14 days, including work that may since have recovered. A failed ad hoc Ansible job belongs here, not under failing job templates. |
 
-Then the recent failures, reported separately for **OpenTofu runs** and **Ansible jobs** inside a short window. These are the counterpart to "left broken": what went wrong lately, rather than what is still wrong. They are split by platform because which half of your estate is unhealthy is the actionable part, and the two take you to different places. A one-off ad-hoc job that failed shows up here but not as a "left failing" template: it was an event, not a piece of standing automation.
+You see only data your account can access. Runner rows require permission to manage agent
+pools; change-request rows require permission to manage workspaces in that organization.
+An omitted row does not prove that everything is healthy.
 
-Last, **open change requests** are notes your team filed against workspaces.
+<a id="what-is-running-right-now" style="scroll-margin-top: 7rem"></a>
 
-If you do not administer an organization, you will not see its runner or change-request rows. They are omitted rather than shown as zero, because a zero would tell you nothing is wrong when the truth is that you were not shown.
+## Check live operations
 
-## What is running right now
+**Live operations** lists queued and active OpenTofu runs and Ansible jobs across your
+accessible organizations, oldest first. Select a row to open its run or job details.
+The list shows up to 25 items and tells you when more are in flight.
 
-Live operations lists the OpenTofu runs and Ansible jobs executing anywhere you can see, oldest first so the longest-running work leads, each row naming its organization, how long it has been going and where it is in its lifecycle. It refreshes every few seconds while anything is running and slows down when your estate goes quiet, so leaving the page open is a reasonable way to watch a deploy, including one somebody else started, in an organization you were not looking at.
+Runs waiting for apply confirmation appear in the attention section instead. Use the
+status on each live row to distinguish queued work from execution already in progress.
 
-Runs waiting for you to confirm an apply are not listed here. They are not running, they are waiting, which is what the attention row above says about them.
+The list refreshes about every 5 seconds while it contains work and every 30 seconds
+when empty. Attention counts refresh about once a minute, so the sections can briefly differ.
 
 ## Your organizations
 
-Below that, every organization you belong to gets a card with what it holds (projects, workspaces, playbooks) and one line saying what it is doing: what needs attention, what is running, or what succeeded this month. Organizations with something waiting are outlined, so you can see at a glance which ones are quiet.
+Select an organization card to open its **Workspaces** list. The card shows resource
+counts and a brief activity summary. Its attention highlight covers standing problems
+and pending decisions; it does not include every recent failure or open change request.
 
-These cards are also the navigation. There is no shortcut row on this page, because a button labelled "Workspaces" would have no organization to open; choosing which organization you mean is the step that has to come first, and selecting a card is that step.
-
-For an organization's own numbers, such as success rates, durations, busiest workspaces, and day-by-day volume you can drill into, open it and go to [Usage & Analytics](./usage-analytics.md). The dashboard deliberately does not repeat any of that: a smaller copy you cannot click into would be worse than the real thing one step away.
+For success rates, durations and delivery trends, open **Usage** in the organization's
+sidebar. [Usage & Analytics](./usage-analytics.md) explains that page. Read
+[Change requests](./change-requests.md)
+for the filing and archive workflow.
 
 ## Your recent activity
 
-The list at the bottom is your own: the last few things you did, across organizations, with a link to the full activity log.
+Use **Recent activity** to see your latest actions across organizations. Select **View all**
+to open the full activity log.
 
-## When you are just getting started
+<a id="folding-sections-away" style="scroll-margin-top: 7rem"></a>
 
-Until you have an organization, a project and a workspace, the dashboard replaces the attention and live-operations sections with a three-step checklist that walks you through creating them, marking each step done as you go. A fresh installation has nothing running to report on, so the checklist is the more useful thing to show. Once all three exist, it stands down and the full dashboard takes its place.
+## Adjust the view
+
+Select a section heading to collapse or expand it. Your browser remembers the choice
+for your next visit.
+
+<a id="when-you-are-just-getting-started" style="scroll-margin-top: 7rem"></a>
+
+## First-time setup
+
+The **Getting started** checklist replaces attention and live operations until your account
+can see an organization, a project and an OpenTofu workspace. Ansible playbooks or jobs alone
+do not complete that checklist. If the operational sections are absent, check those setup
+steps and your resource access first.
+
+## Read dashboard data through the API
+
+| Interface | Use it for |
+|---|---|
+| Dashboard | Inspect signals and follow links to the page where you can act. |
+| REST API | Read cross-organization statistics and live operations for your authenticated identity. |
+
+The dashboard is a read-only overview, so there is no dashboard YAML or Terraform
+configuration to apply. Changes to runs, jobs or resources happen through their own
+operations. With the environment from [Using the API](../architecture/using-the-api.md):
+
+### Read statistics
+
+```bash
+curl --fail --silent --show-error \
+  --header "Authorization: Bearer $STACKWEAVER_TOKEN" \
+  "$STACKWEAVER_API_URL/api/v2/dashboard/stats"
+```
+
+Read the cross-organization counts and per-organization breakdown in `data.attributes`.
+Respect the permission-based omissions described above; a zero count or missing field
+does not establish health for resources the caller cannot see.
+
+### Read queued and active operations
+
+```bash
+curl --fail --silent --show-error \
+  --header "Authorization: Bearer $STACKWEAVER_TOKEN" \
+  "$STACKWEAVER_API_URL/api/v2/dashboard/operations"
+```
+
+Read `data.attributes.executions` and `data.attributes.truncated`. If `truncated` is true,
+the response is a bounded snapshot, not a complete queue. Use the organization's
+**Workspaces** or **Jobs** list to investigate work beyond it. An empty list still reflects the caller's access.
+Use the [API explorer](/docs/api-reference/explorer) for full schemas.
