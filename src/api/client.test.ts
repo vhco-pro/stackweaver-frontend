@@ -24,8 +24,8 @@ import {
   workspacesApi,
   type RunIntent,
 } from './client';
+import { onAuthenticationRequired } from '@/lib/zitadel';
 
-vi.mock('@/lib/zitadel', () => ({ getAccessToken: () => 'test-token' }));
 
 interface Captured {
   url: string;
@@ -973,5 +973,49 @@ describe('state versions (Phase 5)', () => {
     const v = await stateVersionsApi.removeResource('ws-1', 'null_resource.a');
     expect(sent()[0].body).toEqual({ data: { type: 'state-versions', attributes: { address: 'null_resource.a' } } });
     expect(v.id).toBe('sv-1');
+  });
+});
+
+// The browser's credential is the httpOnly session cookie (backend-for-frontend-session-plan.md,
+// AC1, AC24): requests carry the CSRF header and no Authorization, and only the authentication
+// layer's 401 ends the session.
+describe('the session cookie', () => {
+  afterEach(() => { vi.unstubAllGlobals(); });
+
+  it('sends the cookie and the CSRF header, never an Authorization header', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({ data: [] }), { status: 200, headers: { 'Content-Type': 'application/json' } }));
+    vi.stubGlobal('fetch', fetchMock);
+    await organizationsApi.list().catch(() => undefined);
+    const [, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(init.credentials).toBe('include');
+    expect((init.headers as Record<string, string>)['X-Stackweaver-CSRF']).toBe('1');
+    expect(init.headers).not.toHaveProperty('Authorization');
+  });
+
+  it('the multipart uploads carry the CSRF header too', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(new Response('{}', { status: 201, headers: { 'Content-Type': 'application/json' } }));
+    vi.stubGlobal('fetch', fetchMock);
+    await registryApi.modules.publishVersion('acme', 'vpc', 'aws', '1.0.0', new File(['x'], 'm.tgz'));
+    const [, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect((init.headers as Record<string, string>)['X-Stackweaver-CSRF']).toBe('1');
+    expect(init.headers).not.toHaveProperty('Authorization');
+  });
+
+  it('reports a 401 carrying authentication-required', async () => {
+    const ended = vi.fn();
+    const stop = onAuthenticationRequired(ended);
+    stubErrorResponse(401, JSON.stringify({ errors: [{ status: '401', code: 'authentication-required', detail: 'not signed in' }] }));
+    await organizationsApi.create({ name: 'acme' }).catch(() => undefined);
+    stop();
+    expect(ended).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not report a 401 passed through from another service', async () => {
+    const ended = vi.fn();
+    const stop = onAuthenticationRequired(ended);
+    stubErrorResponse(401, JSON.stringify({ errors: [{ status: '401', detail: 'the registry refused the credentials' }] }));
+    await organizationsApi.create({ name: 'acme' }).catch(() => undefined);
+    stop();
+    expect(ended).not.toHaveBeenCalled();
   });
 });

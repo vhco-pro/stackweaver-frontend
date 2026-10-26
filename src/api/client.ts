@@ -8,8 +8,17 @@ import { fetchAllPages } from '@/lib/pagination';
 // ESLint disable comments are added inline where necessary.
 
 import { config } from '@/config';
+import { csrfHeaders, isAuthenticationRequired, reportAuthenticationRequired } from '@/lib/zitadel';
 
 const API_BASE_URL = config.apiUrl;
+
+// reportIfSessionEnded reads a failed response's body for the authentication layer's code and
+// reports a session that is gone. It is for the fetches outside ApiClient.request.
+async function reportIfSessionEnded(response: Response): Promise<void> {
+  if (response.status !== 401) return;
+  const body: unknown = await response.json().catch(() => null);
+  if (isAuthenticationRequired(body)) reportAuthenticationRequired();
+}
 
 // Retry configuration
 const MAX_RETRIES = 3;
@@ -48,24 +57,18 @@ class ApiClient {
   ): Promise<T> {
     const url = `${this.baseURL}${endpoint}`;
     
-    // Get Zitadel access token
-    const { getAccessToken } = await import('@/lib/zitadel');
-    const accessToken = getAccessToken();
-    
-    if (!accessToken) {
-      console.warn('No access token found - user may not be logged in');
-    }
-    
+    // The browser's credential is its httpOnly session cookie, sent with credentials: 'include';
+    // the CSRF header proves the SPA made the request.
     const headers: HeadersInit = {
       'Content-Type': 'application/json',
-      ...(accessToken && { Authorization: `Bearer ${accessToken}` }),
+      ...csrfHeaders,
       ...options.headers,
     };
 
     const config: RequestInit = {
       ...options,
       headers,
-      credentials: 'include', // Send cookies
+      credentials: 'include',
     };
 
     let lastError: Error | null = null;
@@ -83,9 +86,12 @@ class ApiClient {
         
         clearTimeout(timeoutId);
 
-        // Handle 401 unauthorized - don't auto-redirect, let AuthContext handle it
+        // A 401 from the authentication layer means the session is gone, and AuthContext signs
+        // the browser out; any other 401 (passed through from a registry or a VCS provider) is
+        // only this request's failure.
         if (response.status === 401) {
           const errorData = await response.json().catch(() => ({}));
+          if (isAuthenticationRequired(errorData)) reportAuthenticationRequired();
           // Errors arrive as the JSON:API error document, and that is the only shape read here.
           const error = new Error(errorData.errors?.[0]?.detail || 'Unauthorized');
           (error as Error & { status?: number }).status = 401;
@@ -2081,19 +2087,17 @@ export const runsApi = {
       url.searchParams.append('phase', options.phase);
     }
     
-    const { getAccessToken } = await import('@/lib/zitadel');
-    const accessToken = getAccessToken();
-    
     const response = await fetch(url.toString(), {
       method: 'GET',
       headers: {
         'Accept': 'text/plain',
-        ...(accessToken && { Authorization: `Bearer ${accessToken}` }),
+        ...csrfHeaders,
       },
       credentials: 'include',
     });
     
     if (!response.ok) {
+      await reportIfSessionEnded(response);
       throw new Error(`Failed to fetch logs: ${response.statusText}`);
     }
     
@@ -2110,19 +2114,17 @@ export const runsApi = {
       url.searchParams.append('limit', options.limit.toString());
     }
     
-    const { getAccessToken } = await import('@/lib/zitadel');
-    const accessToken = getAccessToken();
-    
     const response = await fetch(url.toString(), {
       method: 'GET',
       headers: {
         'Accept': 'text/plain',
-        ...(accessToken && { Authorization: `Bearer ${accessToken}` }),
+        ...csrfHeaders,
       },
       credentials: 'include',
     });
     
     if (!response.ok) {
+      await reportIfSessionEnded(response);
       throw new Error(`Failed to fetch plan logs: ${response.statusText}`);
     }
     
@@ -2139,19 +2141,17 @@ export const runsApi = {
       url.searchParams.append('limit', options.limit.toString());
     }
     
-    const { getAccessToken } = await import('@/lib/zitadel');
-    const accessToken = getAccessToken();
-    
     const response = await fetch(url.toString(), {
       method: 'GET',
       headers: {
         'Accept': 'text/plain',
-        ...(accessToken && { Authorization: `Bearer ${accessToken}` }),
+        ...csrfHeaders,
       },
       credentials: 'include',
     });
     
     if (!response.ok) {
+      await reportIfSessionEnded(response);
       throw new Error(`Failed to fetch apply logs: ${response.statusText}`);
     }
     
@@ -3776,13 +3776,11 @@ export const registryApi = {
       formData.append('file', file);
 
       const url = `${API_BASE_URL}/organizations/${encodeURIComponent(organizationName)}/registry/modules/${moduleName}/${provider}/versions`;
-      const { getAccessToken } = await import('@/lib/zitadel');
-      const accessToken = getAccessToken();
 
       const response = await fetch(url, {
         method: 'POST',
         headers: {
-          ...(accessToken && { Authorization: `Bearer ${accessToken}` }),
+          ...csrfHeaders,
         },
         body: formData,
         credentials: 'include',
@@ -3790,6 +3788,7 @@ export const registryApi = {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
+        if (response.status === 401 && isAuthenticationRequired(errorData)) reportAuthenticationRequired();
         const errorMessage = errorData.errors?.[0]?.detail || `HTTP error! status: ${response.status}`;
         throw new Error(errorMessage);
       }
@@ -3856,13 +3855,11 @@ export const registryApi = {
       const url = `${API_BASE_URL}/organizations/${encodeURIComponent(organizationName)}/registry-providers/` +
         `${encodeURIComponent(registryName)}/${encodeURIComponent(namespace)}/${encodeURIComponent(providerName)}` +
         `/versions/${encodeURIComponent(version)}/platforms`;
-      const { getAccessToken } = await import('@/lib/zitadel');
-      const accessToken = getAccessToken();
 
       const response = await fetch(url, {
         method: 'POST',
         headers: {
-          ...(accessToken && { Authorization: `Bearer ${accessToken}` }),
+          ...csrfHeaders,
         },
         body: formData,
         credentials: 'include',
@@ -3870,6 +3867,7 @@ export const registryApi = {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
+        if (response.status === 401 && isAuthenticationRequired(errorData)) reportAuthenticationRequired();
         const errorMessage = errorData.errors?.[0]?.detail || `HTTP error! status: ${response.status}`;
         throw new Error(errorMessage);
       }

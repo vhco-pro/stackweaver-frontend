@@ -16,7 +16,6 @@ import { MemoryRouter } from 'react-router-dom';
 import { stubJsonApiFetch, requestsTo, type SentRequest } from '@/test/jsonapi-fetch';
 import Profile from './Profile';
 
-vi.mock('@/lib/zitadel', () => ({ getAccessToken: () => 'test-token' }));
 
 const userDocument = {
   data: {

@@ -14,7 +14,6 @@ import {
   ansibleWorkflowsApi,
 } from './ansible';
 
-vi.mock('@/lib/zitadel', () => ({ getAccessToken: () => 'test-token' }));
 
 interface Captured {
   url: string;

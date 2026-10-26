@@ -5,7 +5,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Loader2, LogOut, X } from 'lucide-react';
-import { clearTokens, getLogoutUrl } from '@/lib/zitadel';
+import { signOut } from '@/lib/zitadel';
 import { searchSessions, deleteSession } from '@/api/auth-client';
 import { useMountEffect } from '@/hooks/useMountEffect';
 import LoginLayout from './LoginLayout';
@@ -32,9 +32,9 @@ import { parseSearchSessionsResponse, initialsFromName, resolvePostLogoutRedirec
  *     retries, and the swap-after-delete invalidation.
  *   - Render a per-session row with avatar initials + display name +
  *     loginName + a per-session "Remove" (X) button.
- *   - "Sign out of all" → primary CTA - clears local tokens AND
- *     redirects to Zitadel's OIDC end_session endpoint via the proxy
- *     so the OP-side session is terminated too. (Per-session removes
+ *   - "Sign out of all" → primary CTA - posts to /auth/session/end,
+ *     where the API ends the browser session and its Zitadel session and
+ *     sends the browser through Zitadel's OIDC end_session. (Per-session removes
  *     are local cookie cleanups; only end_session terminates the
  *     full OIDC session.)
  *   - "Cancel" → navigate(-1) for users who hit logout by mistake.
@@ -115,8 +115,9 @@ export default function Logout() {
     });
 
     const handleSignOutAll = () => {
-        clearTokens();
-        window.location.href = getLogoutUrl();
+        // The API ends the Stackweaver session and its Zitadel session, clears the cookie and
+        // sends the browser through Zitadel's end_session.
+        signOut();
     };
 
     const handleRemoveSession = async (sessionId: string) => {

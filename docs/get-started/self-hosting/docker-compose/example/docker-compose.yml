@@ -232,6 +232,8 @@ services:
       ZITADEL_API_CLIENT_ID: ${ZITADEL_API_CLIENT_ID:-}
       ZITADEL_API_CLIENT_SECRET: ${ZITADEL_API_CLIENT_SECRET:-}
       ZITADEL_LOGIN_SERVICE_USER_TOKEN: ${ZITADEL_LOGIN_SERVICE_USER_TOKEN:-}
+      ZITADEL_BFF_CLIENT_ID: ${ZITADEL_BFF_CLIENT_ID:-}
+      ZITADEL_BFF_CLIENT_SECRET: ${ZITADEL_BFF_CLIENT_SECRET:-}
       ZITADEL_INTERNAL_ADDR: zitadel:8080
       # The bootstrap admin's email, the same literal zitadel-init receives: the API declares it
       # the first platform administrator unless STACKWEAVER_PLATFORM_ADMINS is set in sso.env.
@@ -242,6 +244,11 @@ services:
       # ships localhost); it also makes IdP callbacks use that domain.
       CUSTOM_REQUEST_HEADERS: "x-zitadel-instance-host:${ZITADEL_EXTERNAL_HOST:-}"
       CORS_EXTRA_ORIGINS: ${CORS_EXTRA_ORIGINS:-}
+      # Browser session lifetimes (Go durations); unset means 1h idle, 12h in total, checked
+      # against Zitadel every 5m.
+      STACKWEAVER_SESSION_IDLE_TIMEOUT: ${STACKWEAVER_SESSION_IDLE_TIMEOUT:-}
+      STACKWEAVER_SESSION_MAX_LIFETIME: ${STACKWEAVER_SESSION_MAX_LIFETIME:-}
+      STACKWEAVER_SESSION_LIVENESS_INTERVAL: ${STACKWEAVER_SESSION_LIVENESS_INTERVAL:-}
       ZITADEL_WEBHOOK_IDP_SYNC_KEY: ${ZITADEL_WEBHOOK_IDP_SYNC_KEY:-}
       ZITADEL_WEBHOOK_COMPLEMENT_TOKEN_KEY: ${ZITADEL_WEBHOOK_COMPLEMENT_TOKEN_KEY:-}
       STACKWEAVER_APP_URL: ${STACKWEAVER_APP_URL:-http://localhost:5173}
@@ -296,18 +303,12 @@ services:
     network_mode: none
     environment:
       VITE_API_URL: ${VITE_API_URL:-http://localhost:5173/api/v2}
-      VITE_ZITADEL_REDIRECT_URI: ${VITE_ZITADEL_REDIRECT_URI:-http://localhost:5173/auth/callback}
     volumes:
       - .:/work
     entrypoint: ["/bin/sh", "-c"]
     command:
       - |
         set -eu
-        client_id="$$(sed -n 's/^ZITADEL_FRONTEND_CLIENT_ID=//p' /work/.env | tail -n 1)"
-        if [ -z "$$client_id" ]; then
-          echo "ZITADEL_FRONTEND_CLIENT_ID is not in .env: zitadel-init has not written it" >&2
-          exit 1
-        fi
         # Docker leaves a directory here if the frontend was ever started before this file
         # existed; it has to go before the file can be written.
         if [ -d /work/env.js ]; then rmdir /work/env.js; fi
@@ -315,12 +316,10 @@ services:
         cat > /work/env.js << EOF
         window.__STACKWEAVER__ = {
           VITE_API_URL: "$$VITE_API_URL",
-          VITE_ZITADEL_CLIENT_ID: "$$client_id",
-          VITE_ZITADEL_REDIRECT_URI: "$$VITE_ZITADEL_REDIRECT_URI",
         };
         EOF
         chmod 644 /work/env.js
-        echo "wrote env.js for client $$client_id"
+        echo "wrote env.js"
 
   frontend:
     image: ghcr.io/vhco-pro/stackweaver-frontend:latest

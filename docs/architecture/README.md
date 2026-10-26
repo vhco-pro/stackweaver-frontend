@@ -3,6 +3,7 @@ description: "High-level architecture overview covering system components, data 
 covers:
   - "deploy/docker-compose.yml"
   - "scripts/zitadel-init/**"
+  - "backend/internal/services/auth/**"
 ---
 
 # Architecture Overview
@@ -20,12 +21,12 @@ flowchart TB
     subgraph Frontend["Frontend (React/Vite)"]
         F1["React 19 + TypeScript"]
         F2["Vite Dev Server"]
-        F3["Zitadel OIDC Client"]
+        F3["Session cookie (no token)"]
     end
 
     subgraph Backend["Backend API (Go/Gin)"]
         B1["REST API"]
-        B2["JWT Verification"]
+        B2["Session and API token auth"]
         B3["Business Logic"]
     end
 
@@ -48,7 +49,8 @@ flowchart TB
     end
 
     Browser -->|HTTP/HTTPS| Frontend
-    Frontend -->|API Requests with Bearer Token| Backend
+    Frontend -->|API requests with the session cookie| Backend
+    Backend -->|Confidential OIDC client| Zitadel
     Backend --> PG
     Backend --> Redis
     Backend --> Garage
@@ -90,12 +92,12 @@ flowchart TB
 - **Routing**: React Router v7
 - **State Management**: React Context API
 - **UI Components**: shadcn/ui (Tailwind CSS)
-- **Authentication**: Zitadel OIDC PKCE Flow
+- **Authentication**: server-side session (an `HttpOnly` cookie set by the API after it signs the browser in with Zitadel)
 
 **Key Features**:
 - Single Page Application (SPA)
 - Client-side routing
-- Token-based authentication
+- Cookie-based session; the SPA holds no token
 - Real-time session management
 - Responsive UI
 - OpenTofu workspace management
@@ -117,14 +119,14 @@ flowchart TB
 - **Language**: Go 1.27+
 - **Framework**: Gin (HTTP web framework)
 - **ORM**: GORM (database ORM)
-- **Authentication**: Zitadel OIDC JWT verification
+- **Authentication**: browser sessions (an `HttpOnly` cookie backed by PostgreSQL) and `tfe-` API tokens
 - **Database**: PostgreSQL
 - **Cache/Queue**: Redis (queues, log buffering)
 - **Storage**: Garage (S3-compatible object storage)
 
 **Key Features**:
 - RESTful API design (v2 primary)
-- JWT token verification
+- Browser sign-in as a confidential OIDC client, with CSRF protection for cookie requests
 - Auto-user provisioning
 - Team-based RBAC (Role-Based Access Control)
 - Rate limiting
@@ -161,7 +163,7 @@ flowchart TB
   - `activity/` - Activity and audit trail tracking
   - `apikey/` - API key generation and validation
   - `audit/` - Compliance auditing
-  - `auth/` - Authentication service (JWT, TFE tokens, auto-provisioning)
+  - `auth/` - Authentication service (browser sessions, liveness checks, TFE tokens, auto-provisioning)
   - `profile/` - User profile management
   - `rbac/` - Team-based RBAC service
   - `registry/` - Terraform Registry service
@@ -239,30 +241,31 @@ flowchart TB
 sequenceDiagram
     participant User
     participant Frontend
+    participant API
     participant Zitadel
 
     User->>Frontend: Clicks "Sign in"
-    Frontend->>Zitadel: Redirect (OAuth2 PKCE)
-    User->>Zitadel: Authenticates
-    Zitadel->>Frontend: Redirect with Auth Code
-    Frontend->>Zitadel: Exchange Code for Access Token
-    Zitadel-->>Frontend: Access Token
-    Frontend->>Frontend: Store Token in sessionStorage
-    Frontend->>Zitadel: Fetch User Info
-    Zitadel-->>Frontend: User Info
-    Frontend->>Frontend: Establish Session
+    Frontend->>API: Start sign-in
+    API->>Zitadel: Authorization request (confidential client)
+    User->>Frontend: Enters credentials on the login pages
+    Frontend->>API: Login steps
+    API->>Zitadel: Session API calls
+    Zitadel->>Frontend: Redirect with authorization code
+    Frontend->>API: Redeem code
+    API->>Zitadel: Exchange code with client secret
+    Zitadel-->>API: Tokens
+    API->>API: Verify tokens, provision user, create session
+    API-->>Frontend: Session cookie (HttpOnly)
 ```
 
 <details>
 <summary><strong>Flow Steps (Legend)</strong></summary>
 
-1. User clicks "Sign in" → Frontend redirects to Zitadel
-2. User authenticates with Zitadel
-3. Zitadel redirects back with authorization code
-4. Frontend exchanges code for access token
-5. Frontend stores token in `sessionStorage`
-6. Frontend fetches user info from Zitadel
-7. Frontend establishes session
+1. The user clicks "Sign in" and the frontend asks the API to start sign-in. The API sends Zitadel an authorization request as a confidential client and remembers the sign-in, bound to this browser.
+2. The user enters their credentials on Stackweaver's own login pages, which the API relays to Zitadel.
+3. Zitadel redirects the browser back to the frontend with an authorization code.
+4. The frontend hands the code to the API, which exchanges it with Zitadel using its client secret, verifies the tokens, provisions the user and syncs SSO teams, then discards the tokens.
+5. The API creates a session in PostgreSQL and sets an `HttpOnly`, `Secure`, `SameSite=Strict` cookie. Every later request from the frontend carries that cookie and a CSRF header.
 
 </details>
 
@@ -274,45 +277,39 @@ See the [Zitadel Setup guide](../user-guides/authentication/zitadel-setup.md) fo
 sequenceDiagram
     participant Frontend
     participant Middleware
-    participant Zitadel as Zitadel JWKS
-    participant UserService as User Service
+    participant Sessions as Session Store
+    participant Zitadel
     participant Handler
     participant RBAC as RBAC Service
-    participant Database
 
-    Frontend->>Middleware: HTTP Request<br/>(Bearer Token)
-    Middleware->>Middleware: Extract Token
-    Middleware->>Zitadel: Verify Token Signature
-    Zitadel-->>Middleware: Token Valid
-    Middleware->>Middleware: Validate Token Claims
-    alt User Info Needed
-        Middleware->>Zitadel: Fetch User Info
-        Zitadel-->>Middleware: User Info
+    Frontend->>Middleware: HTTP request<br/>(session cookie, X-Stackweaver-CSRF)
+    Middleware->>Middleware: Check the CSRF header, and the origin of a write
+    Middleware->>Sessions: Look up the session by its cookie
+    Sessions-->>Middleware: Session (or refused: unknown, idle, expired)
+    alt Liveness check due
+        Middleware->>Zitadel: Is the session, user and organisation still active?
+        Zitadel-->>Middleware: Yes, or the session ends
     end
-    Middleware->>UserService: Map Subject to User
-    UserService->>Database: Check/Create User<br/>(Auto-provisioning)
-    Database-->>UserService: User ID
-    UserService-->>Middleware: User ID
-    Middleware->>Middleware: Store User ID in Context
-    Middleware->>Handler: Request + Context
-    Handler->>RBAC: Check Permissions
-    RBAC-->>Handler: Permission Granted
-    Handler->>Handler: Process Request
-    Handler-->>Frontend: HTTP Response
+    Middleware->>Middleware: Store the user in the context
+    Middleware->>Handler: Request + context
+    Handler->>RBAC: Check permissions
+    RBAC-->>Handler: Permission granted
+    Handler->>Handler: Process request
+    Handler-->>Frontend: HTTP response
 ```
 
 <details>
 <summary><strong>Flow Steps (Legend)</strong></summary>
 
-1. Frontend makes API request with Bearer token
-2. Backend middleware extracts token
-3. Backend verifies token signature with Zitadel JWKS
-4. Backend validates token claims
-5. Backend fetches user info from Zitadel (if needed)
-6. Backend maps Zitadel subject to local user (auto-provisioning)
-7. Backend stores user ID in context
-8. Handler processes request with RBAC checks
-9. Handler returns response
+1. The frontend sends the request with the `HttpOnly` session cookie, which the browser attaches, and the `X-Stackweaver-CSRF` header
+2. The middleware refuses a request without the header, and a write whose origin is not trusted
+3. The middleware looks the session up by its cookie and refuses one that is unknown or past its idle or absolute limit
+4. When the session's liveness check is due, the API asks Zitadel whether the session, the user and the organisation are still active, and ends the session if they are not
+5. The middleware stores the session's user in the context
+6. The handler processes the request with RBAC checks
+7. The handler returns the response
+
+A script, a CI job or the Terraform CLI sends a `tfe-` API token in the `Authorization` header instead of a cookie, and no CSRF check applies to it.
 
 </details>
 
@@ -419,10 +416,10 @@ sequenceDiagram
 
 ### Authentication
 
-- **OAuth2 Authorization Code Flow with PKCE**: Prevents authorization code interception
-- **JWT Tokens**: Signed by Zitadel, verified using JWKS
-- **Token Storage**: `sessionStorage` (cleared on tab close)
-- **Token Validation**: Every API request verifies token signature and claims
+- **Backend-for-frontend sign-in**: The API completes the OAuth2 authorization-code flow (with PKCE) as a confidential client, verifies Zitadel's signed tokens, and stores none of them
+- **Browser sessions**: An opaque `HttpOnly`, `Secure`, `SameSite=Strict` cookie; the session is stored in PostgreSQL by the hash of its value, ends after an idle timeout or a maximum lifetime, and is checked against Zitadel at a regular interval
+- **CSRF protection**: Every cookie-authenticated request carries a custom header, and state-changing requests must come from a trusted origin
+- **API tokens**: Scripts, CI and the Terraform CLI authenticate with `tfe-` API tokens in the `Authorization` header
 
 ### Authorization
 

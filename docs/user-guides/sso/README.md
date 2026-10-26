@@ -28,9 +28,11 @@ sequenceDiagram
     User->>IdP: Authenticates with corporate credentials
     IdP-->>Zitadel: ID token (email, name, groups)
     Zitadel->>Zitadel: Sign in linked user / create on first login
-    Zitadel-->>StackWeaver: StackWeaver JWT
-    StackWeaver->>API: API request with JWT
-    API->>API: Verify JWT & provision user
+    Zitadel-->>StackWeaver: Redirect with authorization code
+    StackWeaver->>API: Redeem code
+    API->>Zitadel: Exchange code for tokens
+    API->>API: Verify tokens, provision user, create session
+    API-->>StackWeaver: Session cookie
 ```
 
 <details>
@@ -39,8 +41,8 @@ sequenceDiagram
 1. **External login** - The user clicks the external login button on the StackWeaver login page.
 2. **Broker redirect** - StackWeaver redirects to Zitadel, which redirects to the external IdP (e.g., Azure AD).
 3. **Authentication** - The IdP authenticates the user and returns an ID token with claims (email, name, groups).
-4. **User linking** - Zitadel receives the token. A user already linked to this identity is signed in; on a first sign-in StackWeaver creates the user in Zitadel from the identity provider's profile. Zitadel then issues a StackWeaver JWT.
-5. **API provisioning** - The StackWeaver API verifies the JWT and provisions the user in its local database.
+4. **User linking** - Zitadel receives the token. A user already linked to this identity is signed in; on a first sign-in StackWeaver creates the user in Zitadel from the identity provider's profile. Zitadel then returns the browser to StackWeaver with an authorization code.
+5. **API provisioning** - The StackWeaver API exchanges the code with Zitadel, verifies the tokens, provisions the user in its local database, and starts a browser session held in an `HttpOnly` cookie. The tokens are not kept.
 
 </details>
 
@@ -57,7 +59,7 @@ Users are automatically provisioned in StackWeaver on their first login, but the
 
 ## Group-Based Team Mapping
 
-StackWeaver can automatically assign users to teams based on their IdP group memberships. When a user logs in, the groups from their IdP token are forwarded through the JWT, and StackWeaver maps them to teams that have a matching `sso_team_id` configured.
+StackWeaver can automatically assign users to teams based on their IdP group memberships. When a user signs in, Zitadel adds the groups from their IdP token to the access token it issues to StackWeaver, and StackWeaver maps them to teams that have a matching `sso_team_id` configured.
 
 See the [Team Mapping Guide](./team-mapping.md) for details on configuring automatic team assignment.
 
@@ -86,7 +88,7 @@ Before configuring SSO, ensure you have:
                      └──────────────┘
 ```
 
-Zitadel acts as an OIDC identity broker. It handles all the protocol-level complexity of communicating with external IdPs, including token exchange, user linking, and claim mapping. StackWeaver only needs to verify Zitadel-issued JWTs, which it does on every request.
+Zitadel acts as an OIDC identity broker. It handles all the protocol-level complexity of communicating with external IdPs, including token exchange, user linking, and claim mapping. StackWeaver only needs to verify the tokens Zitadel issues at sign-in; after that, the browser is authenticated by its StackWeaver session.
 
 ## Multi-Tenant Isolation
 

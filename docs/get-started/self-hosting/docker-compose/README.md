@@ -164,8 +164,8 @@ By default StackWeaver runs on `localhost`. To use a custom domain, update the f
 1. Edit `zitadel-defaults.yaml` and set the `ExternalDomain`, `ExternalPort`, and `ExternalSecure` fields.
 2. Set `ZITADEL_EXTERNAL_HOST` in `.env` to the same domain and `ZITADEL_ISSUER` to its full URL. The API names the Zitadel instance with `ZITADEL_EXTERNAL_HOST`, so both must be correct before the services start. When TLS terminates at your reverse proxy, also set `ZITADEL_TLS_MODE=external` in `.env`, so that Zitadel issues tokens with the `https` issuer the API expects.
 3. Set the `ZITADEL_CUSTOM_DOMAINS` environment variable in `.env`.
-4. Update the frontend settings (`VITE_API_URL`, `VITE_ZITADEL_REDIRECT_URI`) in `.env`.
-5. Update `zitadel-init.yaml` with custom domain and redirect URIs.
+4. Set `STACKWEAVER_APP_URL` in `.env` to the app's public URL (for example `https://app.example.com`) and `VITE_API_URL` to the same origin followed by `/api/v2`. The API sends Zitadel `STACKWEAVER_APP_URL` followed by `/auth/callback` as the sign-in redirect, and trusts the origin of `STACKWEAVER_APP_URL` for browser requests.
+5. Update `zitadel-init.yaml`: add the custom domain to `custom_domains`, `https://app.example.com/auth/callback` to `frontend_redirect_uris`, and `https://app.example.com` to `frontend_post_logout_redirect_uris`. `zitadel-init` registers these on the browser sign-in app.
 6. Recreate all services: `docker compose down && docker compose up -d`.
 
 See the [Zitadel Setup guide](../../../user-guides/authentication/zitadel-setup.md) for detailed instructions.
@@ -196,6 +196,20 @@ The frontend already forwards the API's paths to the API, so sending the whole a
 
 **Auth domain** (e.g. `auth.example.com`):
 - All traffic → `localhost:8080`. Stackweaver serves login through its own SPA pages under the app domain's `/login/*`, with `/auth/*` on the app domain proxying Zitadel's session + OIDC APIs.
+
+### HTTPS and Browser Sessions
+
+Browser sign-in needs HTTPS. After sign-in the browser's only credential is a session cookie, `__Host-sw_session`, which is `HttpOnly`, `Secure` and `SameSite=Strict`, and browsers drop a `Secure` cookie received over plain HTTP on any host other than `localhost`. The default `http://localhost:5173` works as it is; any other address needs TLS in front of Stackweaver. The API logs a warning at startup when `STACKWEAVER_APP_URL` is plain `http` on a host other than `localhost`.
+
+A reverse proxy in front of the app domain must do the following:
+
+- Pass the `Cookie` request header and the `Set-Cookie` response header through unmodified. Do not rewrite cookie domains or paths (for example with nginx `proxy_cookie_domain` or `proxy_cookie_path`): a `__Host-` cookie must have no `Domain` and `Path=/`, and the browser rejects it otherwise.
+- Forward the `X-Stackweaver-CSRF` request header. The browser sends it on every request, and the API refuses a cookie-authenticated request without it with `403`.
+- Set `X-Forwarded-Proto` when it terminates TLS, and list the proxy in `TRUSTED_PROXIES` so the client IP recorded for a session and used for rate limiting is the browser's.
+
+The API trusts the origin of `STACKWEAVER_APP_URL` for browser requests. Set `CORS_EXTRA_ORIGINS` only when the SPA is served from another origin than that, because every state-changing browser request from an origin that is not trusted is refused.
+
+How long a sign-in lasts is set in `.env` with `STACKWEAVER_SESSION_IDLE_TIMEOUT` (default `1h` without activity), `STACKWEAVER_SESSION_MAX_LIFETIME` (default `12h` after sign-in) and `STACKWEAVER_SESSION_LIVENESS_INTERVAL` (default `5m`). A sign-in survives a browser restart until one of these limits ends it. See [Browser Sessions](../../../user-guides/authentication/zitadel-setup.md#browser-sessions).
 
 ## Data Persistence
 
@@ -231,6 +245,19 @@ The API auto-migrates the database schema on startup via GORM, so no manual migr
 > Sign in once as the bootstrap administrator after this upgrade, or set `STACKWEAVER_PLATFORM_ADMINS` in `sso.env` to the people who manage the installation; from this version the OpenTofu versions catalogue and the other install-wide pages are reserved for platform administrators.
 
 If a release includes breaking changes, the release notes will contain specific upgrade instructions.
+
+### Upgrading to Server-Side Browser Sessions
+
+If your installation signs browsers in with the public frontend app, the next `docker compose up -d` after pulling switches it to server-side browser sessions with nothing else to run: `zitadel-init` creates the confidential browser sign-in app, writes `ZITADEL_BFF_CLIENT_ID` and `ZITADEL_BFF_CLIENT_SECRET` to `.env`, deactivates the public frontend app, and the API reads the new values when it starts.
+
+Before you upgrade, check two settings in `.env` if you run Stackweaver on an address other than `http://localhost:5173`:
+
+- Set `STACKWEAVER_APP_URL` to the app's public URL. The API builds the sign-in redirect from it, so it must match the `/auth/callback` URL registered in `zitadel-init.yaml`. If you had set `VITE_ZITADEL_REDIRECT_URI`, set `STACKWEAVER_APP_URL` to the same origin; `VITE_ZITADEL_REDIRECT_URI` is not read and can be removed.
+- Serve the app over HTTPS, as described in [HTTPS and Browser Sessions](#https-and-browser-sessions).
+
+After the upgrade, each browser signs in once and returns to the page it had open. API tokens, the Terraform CLI and runners keep working without any change. A script that called the API with a Zitadel access token must use an API token instead, created under **Settings > API Tokens**.
+
+If you go back to a release from before server-side browser sessions by setting the StackWeaver image tags in `docker-compose.yml` to an older version, browsers cannot sign in until you reactivate the public frontend app, because the older `zitadel-init` signs browsers in with it and never reactivates it. Sign in to the Zitadel console as the administrator, open the `IAC Platform Project` project in the `IAC Platform` organization, select the `IAC Platform Frontend` application, and reactivate it. A later upgrade deactivates it again.
 
 ## Troubleshooting
 

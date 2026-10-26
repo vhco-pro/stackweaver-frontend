@@ -77,7 +77,7 @@ helm install stackweaver oci://ghcr.io/vhco-pro/charts/stackweaver \
 That is it.
 The chart generates random secrets for PostgreSQL, storage, the encryption key, and Zitadel, and persists them in Kubernetes Secrets that survive upgrades and uninstalls.
 
-The frontend is configured automatically; its API URL, Zitadel issuer, and OAuth2 redirect URI are all derived from the ingress host names.
+The frontend's API URL and the address Zitadel returns the browser to after sign-in are derived from the ingress host names.
 
 ## Using a Values File
 
@@ -162,6 +162,26 @@ api:
 
 If many of your users legitimately share one attributed IP (for example an office NATing through a single egress address), raise the login rate limit instead of widening proxy trust: see `AUTH_RATE_LIMIT_RPS` / `AUTH_RATE_LIMIT_BURST` in the [environment variables reference](../environment-variables.md).
 
+## Browser Sessions and HTTPS
+
+After sign-in the browser's only credential is a session cookie, `__Host-sw_session`, set by the API on the app host. It is `HttpOnly`, `Secure` and `SameSite=Strict`, and the session it names is stored in PostgreSQL, so it survives API restarts and works on every API replica without session affinity. Because the cookie is `Secure`, browser sign-in needs HTTPS on any host other than `localhost`: keep `ingress.tls.enabled: true`. The API logs a warning at startup when the app URL is plain `http` on another host.
+
+The chart's ingress passes cookies and headers through as they are. If you put another proxy in front of it, or route the app with your own Gateway or IngressRoute, that proxy must pass the `Cookie` and `Set-Cookie` headers unmodified (no cookie domain or path rewriting, such as nginx `proxy_cookie_domain`: a `__Host-` cookie must have no `Domain` and `Path=/`), forward the `X-Stackweaver-CSRF` request header, and set `X-Forwarded-Proto` when it terminates TLS.
+
+The API trusts the origin of `ingress.hosts.app` for browser requests, so a default install needs no `api.corsExtraOrigins`. Set `api.corsExtraOrigins` only when the SPA is served from another origin, because every state-changing browser request from an origin that is not trusted is refused with `403`.
+
+How long a sign-in lasts is set under `api.session`:
+
+```yaml
+api:
+  session:
+    idleTimeout: "1h"        # signed out after this long without user activity
+    maxLifetime: "12h"       # signed out this long after sign-in, whatever the activity
+    livenessInterval: "5m"   # how often the session is checked against Zitadel
+```
+
+A sign-in survives a browser restart until one of these limits ends it. See [Browser Sessions](../../../user-guides/authentication/zitadel-setup.md#browser-sessions) for what ends a session and how the liveness check behaves when Zitadel is unreachable.
+
 ## Secrets
 
 By default the chart generates all secrets for you.
@@ -236,7 +256,6 @@ kubectl create secret generic my-zitadel-secret \
   --from-literal=client-id="" \
   --from-literal=client-secret="" \
   --from-literal=login-service-user-token="" \
-  --from-literal=frontend-client-id="" \
   --from-literal=webhook-idp-sync-key="" \
   --from-literal=webhook-complement-token-key="" \
   --from-literal=admin-pat=""
@@ -269,7 +288,8 @@ kubectl create secret generic my-zitadel-secret \
   --namespace stackweaver \
   --from-literal=client-id="<your API app client ID>" \
   --from-literal=client-secret="<your API app client secret>" \
-  --from-literal=frontend-client-id="<your frontend app client ID>" \
+  --from-literal=bff-client-id="<your browser sign-in app client ID>" \
+  --from-literal=bff-client-secret="<your browser sign-in app client secret>" \
   --from-literal=login-service-user-token="<your service user PAT>" \
   --from-literal=masterkey="" \
   --from-literal=admin-password="" \
@@ -277,9 +297,11 @@ kubectl create secret generic my-zitadel-secret \
   --from-literal=webhook-complement-token-key=""
 ```
 
+The browser sign-in app is a confidential web application you create in your Zitadel; its settings are listed in [Using an External Zitadel](../../../user-guides/authentication/zitadel-setup.md#using-an-external-zitadel). The API refuses to start without `bff-client-id`, `bff-client-secret` and `login-service-user-token`.
+
 > [!WARNING]
 > If you set `zitadel.bundled: false` without providing `secrets.zitadel.secretName`, the bootstrap Job generates a Zitadel secret with empty derived keys and there is no sidecar to populate them.
-> The API and frontend will fail to start.
+> The API will fail to start.
 
 ### Required Keys Reference
 
@@ -290,8 +312,8 @@ Each secret must contain specific keys. If a key is missing, the dependent pods 
 | PostgreSQL | `password` | `secrets.postgresql.keys.password` |
 | Storage | `access-key`, `secret-key` | `secrets.storage.keys.accessKey`, `secrets.storage.keys.secretKey` |
 | Encryption | `encryption-key` | `secrets.encryption.keys.key` |
-| Zitadel (bundled) | `masterkey`, `admin-password` (derived keys filled by sidecar) | `secrets.zitadel.keys.*` |
-| Zitadel (external) | `client-id`, `client-secret`, `frontend-client-id`, `login-service-user-token` | `secrets.zitadel.keys.*` |
+| Zitadel (bundled) | `masterkey`, `admin-password` (derived keys, including `bff-client-id` and `bff-client-secret`, filled by sidecar) | `secrets.zitadel.keys.*` |
+| Zitadel (external) | `client-id`, `client-secret`, `bff-client-id`, `bff-client-secret`, `login-service-user-token` | `secrets.zitadel.keys.*` |
 
 If your existing secret uses different key names, set the corresponding `secrets.<component>.keys.*` values to match.
 
@@ -299,7 +321,10 @@ If your existing secret uses different key names, set the corresponding `secrets
 
 A `zitadel-init` sidecar runs alongside Zitadel in the same pod.
 It waits for Zitadel to become ready, then creates the OIDC apps, service users, and webhooks that StackWeaver needs, writes the generated credentials directly into the Zitadel Kubernetes Secret, and triggers rolling restarts of the API and frontend.
+Among the apps is the confidential browser sign-in app the API completes sign-in with; its client id and secret go into the Secret as `bff-client-id` and `bff-client-secret`, and its back-channel logout URI is the API's in-cluster `/auth/oidc/end-session`.
 No manual steps are required.
+
+The API reads `bff-client-id`, `bff-client-secret` and `login-service-user-token` as required keys. On a fresh install an API pod created before the sidecar has written them waits in `CreateContainerConfigError`, naming the missing key, and starts once the key appears.
 
 On the first boot, the sidecar reads the admin PAT from a shared emptyDir volume (written by Zitadel during database initialization) and persists it to the K8s Secret.
 On subsequent pod restarts, the sidecar falls back to reading the PAT from the K8s Secret, so it never crash-loops waiting for a file that won't appear.
@@ -319,23 +344,27 @@ This means:
 
 - The same frontend image works for any deployment (staging, production, different domains).
 - Changing configuration only requires a Helm upgrade, not an image rebuild.
-- The Zitadel client ID is injected from the Zitadel secret automatically.
+- The frontend carries no OAuth client configuration: the API completes sign-in itself.
 
 The generated `env.js` sets these values:
 
 | Variable | Derived From |
 |---|---|
 | `VITE_API_URL` | `https://<ingress.hosts.app>/api/v2` |
-| `VITE_ZITADEL_REDIRECT_URI` | `https://<ingress.hosts.app>/auth/callback` |
-| `VITE_ZITADEL_CLIENT_ID` | `secrets.zitadel` Secret (injected at pod start) |
+| `VITE_STACKWEAVER_AUTO_SUBMIT_CODE` | `api.auth.autoSubmitCode` |
 
 ## Deploying Without Ingress (localhost / port-forward)
 
 For local testing or environments without an ingress controller, disable ingress and override the Zitadel domain configuration.
+Set `ingress.hosts.app` to the address the browser opens: the API trusts that origin for browser requests and returns the browser there after sign-in, and with TLS disabled it becomes `http://localhost:5173`. Browser sign-in works over plain HTTP only on `localhost`.
 
 ```yaml
 ingress:
   enabled: false
+  tls:
+    enabled: false
+  hosts:
+    app: localhost:5173
 
 # Override Zitadel's ExternalDomain (normally derived from ingress.hosts.auth)
 zitadel:
@@ -349,11 +378,10 @@ zitadel:
     # Zitadel's LoginV2.BaseURI at the SPA's /login route.
     loginUIBaseURL: "http://localhost:5173/login"
 
-# Override frontend env vars (normally derived from ingress hosts)
+# Override the frontend's API URL (normally derived from ingress hosts)
 frontend:
   env:
     VITE_API_URL: "http://localhost:8022/api/v2"
-    VITE_ZITADEL_REDIRECT_URI: "http://localhost:5173/auth/callback"
 ```
 
 Access the services via `kubectl port-forward`:
@@ -536,6 +564,24 @@ Pods are automatically restarted when ConfigMaps change (via checksum annotation
 If your release was installed by a chart version that rendered these Secrets itself, upgrading needs no manual step.
 Helm stops tracking those Secrets on the upgrade, their `helm.sh/resource-policy: keep` annotation leaves them in the cluster untouched, and the Job skips them because they already exist.
 Because the Job treats each secret as a whole, a chart version that adds a new key to an existing secret's schema will say so explicitly in its release notes.
+
+### Upgrading to Server-Side Browser Sessions
+
+If your release signs browsers in with the public frontend app, the chart version that introduces server-side browser sessions adds two keys to the Zitadel Secret, `bff-client-id` and `bff-client-secret`, which the API requires. With the bundled Zitadel, the zitadel-init sidecar creates them. The upgrade changes the sidecar's settings, so `helm upgrade` replaces the Zitadel pod and the new sidecar runs without a separate restart: it creates the browser sign-in app, writes `bff-client-id` and `bff-client-secret` into the Zitadel Secret, deactivates the public frontend app, and restarts the API Deployment. Upgrade as follows:
+
+1. Pin the StackWeaver images to the release you are upgrading to. Set `api.image.tag`, `frontend.image.tag`, `orchestrator.image.tag`, `runner.image.tag`, `ansibleRunner.image.tag`, `secretsInit.image.tag` and `zitadel.init.image.tag` to the release's version, or set their `pullPolicy` to `Always`. With the default `tag: latest` and `pullPolicy: IfNotPresent`, a node that still holds an older `latest` image runs the older zitadel-init, which never writes `bff-client-id`, and the new API pods wait in `CreateContainerConfigError` indefinitely.
+2. Run `helm upgrade` without `--wait` and without `--atomic`. The new API pods cannot start until the new keys exist, so a waiting upgrade would time out, and an atomic one would roll back.
+3. Watch the API come up with `kubectl rollout status deployment/<release>-api -n <namespace>`. If the API pods are still not Ready a few minutes after Zitadel is, check the sidecar's output with `kubectl logs deployment/<release>-zitadel -c zitadel-init -n <namespace>`, then run `kubectl rollout restart deployment/<release>-api -n <namespace>`.
+
+Browser sign-in is unavailable from the upgrade until the API rollout finishes, usually about a minute; the previous API pod keeps serving API tokens and runners throughout.
+
+The chart does not read `frontend.env.VITE_ZITADEL_REDIRECT_URI`. The sign-in redirect is always the app URL followed by `/auth/callback`, and the chart builds the app URL from `ingress.hosts.app`, with `https` when `ingress.tls.enabled` is true and `http` otherwise. If you had set `VITE_ZITADEL_REDIRECT_URI`, set `ingress.hosts.app` and `ingress.tls.enabled` so that they produce the same callback URL, and remove `VITE_ZITADEL_REDIRECT_URI` from `frontend.env`.
+
+With an external Zitadel (`zitadel.bundled: false`), create the browser sign-in app and add `bff-client-id` and `bff-client-secret` to your Zitadel Secret **before** you upgrade, as described in [Using an External Zitadel](../../../user-guides/authentication/zitadel-setup.md#using-an-external-zitadel).
+
+After the upgrade, each browser signs in once and returns to the page it had open, and a sign-in then lasts across browser restarts up to `api.session.maxLifetime`. API tokens, the Terraform CLI and runners are unaffected. A script that called the API with a Zitadel access token must use an API token instead, created under **Settings > API Tokens**.
+
+If you roll back to a chart version from before server-side browser sessions, with `helm rollback` or by pinning older image tags, browsers cannot sign in until you reactivate the public frontend app, because the older zitadel-init signs browsers in with it and never reactivates it. Sign in to the Zitadel console as the administrator, open the `IAC Platform Project` project in the `IAC Platform` organization, select the `IAC Platform Frontend` application, and reactivate it. A later upgrade deactivates it again.
 
 ## Uninstalling
 

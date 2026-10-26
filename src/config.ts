@@ -13,8 +13,6 @@
 
 interface RuntimeConfig {
   VITE_API_URL?: string;
-  VITE_ZITADEL_CLIENT_ID?: string;
-  VITE_ZITADEL_REDIRECT_URI?: string;
   VITE_BASE_PATH?: string;
   // Custom-login-ui UX flag. When "true", OTP/verification forms auto-submit
   // as soon as the user pastes a full-length code - a homelab convenience
@@ -44,8 +42,6 @@ function getConfig(key: keyof RuntimeConfig, fallback: string): string {
 
 export const config = {
   apiUrl: getConfig('VITE_API_URL', 'http://localhost:8022/api/v2'),
-  zitadelClientId: getConfig('VITE_ZITADEL_CLIENT_ID', ''),
-  zitadelRedirectUri: getConfig('VITE_ZITADEL_REDIRECT_URI', 'http://localhost:5173/auth/callback'),
   basePath: getConfig('VITE_BASE_PATH', ''),
   autoSubmitCode: getConfig('VITE_STACKWEAVER_AUTO_SUBMIT_CODE', 'false') === 'true',
 };
