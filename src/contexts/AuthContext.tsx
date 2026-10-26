@@ -1,11 +1,20 @@
 // Copyright (c) 2025 VH & Co BV. Licensed under the Business Source License 1.1. See LICENSE for details.
 
 import { createContext, useContext, useState, useCallback, useRef, type ReactNode } from 'react';
-import { getAccessToken, getUserInfo, getLogoutUrl, clearTokens, clearTokensIfClientChanged, isTokenExpired, refreshAccessToken } from '@/lib/zitadel';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import {
+  fetchSession,
+  onAuthenticationRequired,
+  signOut,
+  sweepTokenEraStorage,
+  touchSession,
+  type SessionProfile,
+} from '@/lib/zitadel';
 import { useMountEffect } from '@/hooks/useMountEffect';
-import { needsEmailVerification, verifyEmailRequiredPath } from '@/lib/emailVerification';
+import { RETURN_URL_KEY, SESSION_QUERY_KEY, TOUCH_INTERVAL_MS, startSignIn } from './authSession';
 
-// Zitadel user session type
+// The signed-in person. The browser holds no token: its credential is the httpOnly session cookie
+// the API set at sign-in, which page script cannot read.
 type Session = {
   id: string;
   user: {
@@ -16,7 +25,6 @@ type Session = {
     family_name?: string;
     picture?: string;
   };
-  access_token?: string;
 } | null;
 
 interface AuthContextType {
@@ -29,258 +37,108 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-/**
- * safeErrorSummary returns an opaque, telemetry-safe string for an
- * unknown error value. Round 25 Wave 7 (item 7 / R24-5): the previous
- * implementation passed the full `Error` to console.* - if a fetch
- * `Response` rejection ever included a JSON body containing the
- * invalid token (or if a future Sentry/Datadog browser SDK got
- * wired in), tokens would land in telemetry. Browser extensions
- * reading console output capture them too.
- *
- * The helper extracts only the type tag + HTTP status (when
- * present) so the line is still useful for diagnosing flow-level
- * failures without leaking the underlying request/response detail.
- */
-function safeErrorSummary(err: unknown): string {
-  if (err instanceof Error) {
-    const status = (err as { status?: number }).status;
-    if (typeof status === 'number') {
-      return `${err.name}(status=${status})`;
-    }
-    return err.name;
-  }
-  return typeof err;
+/** How often the session is read again, so a session ended elsewhere shows here. */
+const SESSION_RECHECK_MS = 5 * 60 * 1000;
+
+/** The input that counts as the person using the page. Polling and timers do not. */
+const ACTIVITY_EVENTS = ['keydown', 'pointerdown', 'pointermove', 'wheel', 'touchstart'] as const;
+
+function toSession(profile: SessionProfile | null): Session {
+  if (!profile) return null;
+  return {
+    id: profile.id,
+    user: {
+      id: profile.id,
+      email: profile.email,
+      name: profile.name,
+      given_name: profile.givenName,
+      family_name: profile.familyName,
+      picture: profile.picture,
+    },
+  };
 }
 
-// How long to wait before trying a failed renewal again.
-const RENEWAL_RETRY_MS = 30 * 1000;
-
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [session, setSession] = useState<Session | null>(null);
-  const [loading, setLoading] = useState(true);
-  // The pending retry after a failed renewal; one at a time.
-  const renewalRetry = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const queryClient = useQueryClient();
 
-  // A renewal that failed (rate limited, a 5xx, a lost connection) leaves the session alone and
-  // is tried again shortly; only a refused renewal signs the browser out.
-  const scheduleRenewalRetry = (): void => {
-    if (renewalRetry.current !== null) return;
-    renewalRetry.current = setTimeout(() => {
-      renewalRetry.current = null;
-      void checkSession();
-    }, RENEWAL_RETRY_MS);
-  };
-
-  const checkSession = async (): Promise<void> => {
-    try {
-      // If the OIDC clientId changed (e.g. cluster wipe + reinstall), tokens
-      // from the old install are invalid. Clear them before doing anything else.
-      clearTokensIfClientChanged();
-
-      let accessToken = getAccessToken();
-      
-      // Check if token is expired and try to refresh
-      if (accessToken && isTokenExpired()) {
-        console.log('Token expired, attempting refresh...');
-        const refreshed = await refreshAccessToken();
-        if (refreshed.status === 'renewed') {
-          accessToken = refreshed.tokens.access_token;
-          console.log('Token refreshed successfully');
-        } else if (refreshed.status === 'refused') {
-          console.warn('Token refresh refused, clearing session');
-          clearTokens();
-          setSession(null);
-          setLoading(false);
-          return Promise.resolve();
-        } else {
-          console.warn('Token refresh failed, keeping the session and retrying');
-          scheduleRenewalRetry();
-        }
+  // A browser coming from a token-in-browser release still holds its tokens. They are deleted
+  // before any query runs, and when the browser was signed in, sign-in starts on its own and
+  // returns to this page. Render-time initializer: it runs once, before the first request.
+  const [upgradedFromTokens] = useState(() => {
+    const signedIn = sweepTokenEraStorage();
+    if (signedIn && !window.location.pathname.startsWith('/auth/') && !window.location.pathname.startsWith('/login/')) {
+      try {
+        sessionStorage.setItem(RETURN_URL_KEY, `${window.location.pathname}${window.location.search}${window.location.hash}`);
+      } catch {
+        // Without storage the person lands on the dashboard instead; nothing else changes.
       }
-      
-      if (accessToken) {
-        // Verify token is still valid by fetching user info
-        try {
-          const userInfo = await getUserInfo(accessToken);
+    }
+    return signedIn;
+  });
 
-          // #829 D5: an account with an unverified email cannot use the platform (the API
-          // answers 403), so send it to the page that explains what to do.
-          if (needsEmailVerification(userInfo)) {
-            clearTokens();
-            setSession(null);
-            window.location.assign(verifyEmailRequiredPath(userInfo.email ?? ''));
-            return;
-          }
-
-          setSession({
-            id: userInfo.sub || '',
-            user: {
-              id: userInfo.sub || '',
-              email: userInfo.email || '',
-              name: userInfo.name,
-              given_name: userInfo.given_name,
-              family_name: userInfo.family_name,
-              picture: userInfo.picture,
-            },
-            access_token: accessToken,
-          });
-        } catch (error) {
-          // Round 24 Finding 1 (HIGH): status-code-first matching.
-          //
-          // The previous implementation substring-matched on
-          // `error.message`, so any error wrapping that dropped the
-          // status (transport errors, malformed JSON, future SDK
-          // updates, Zitadel error variants that don't include the
-          // word "Unauthorized") fell into the "keep existing
-          // session" branch - a revoked admin's window of access
-          // was up to the 5-minute periodic refresh PLUS this
-          // graceful-degrade fallback.
-          //
-          // Now we treat ANY HTTP status with a definite shape
-          // (`error.status` set) as authoritative: 4xx → token
-          // is bad, clear it. Only fall through to the
-          // "keep existing session" branch on transport-shaped
-          // errors (no status, e.g. `TypeError: Failed to fetch`)
-          // because those genuinely could be a momentary network
-          // blip rather than a revoked token.
-          const errStatus = (error as { status?: number }).status;
-          const isAuthFailure = typeof errStatus === 'number' && errStatus >= 400 && errStatus < 500;
-          // Belt-and-braces: keep the substring check so older
-          // error-throwing paths that don't carry status still
-          // get caught.
-          const messageMatchesAuthFail = error instanceof Error && (
-            error.message.includes('401') ||
-            error.message.includes('Unauthorized') ||
-            error.message.includes('invalid token') ||
-            error.message.includes('token is not valid') ||
-            error.message.includes('token has expired') ||
-            error.message.includes('access token invalid')
-          );
-          const isTokenError = isAuthFailure || messageMatchesAuthFail;
-          
-          if (isTokenError) {
-            // Try to refresh token before giving up
-            console.log('Token validation failed, attempting refresh...');
-            const refreshed = await refreshAccessToken();
-            if (refreshed.status === 'renewed') {
-              const newTokens = refreshed.tokens;
-              // Retry with new token
-              try {
-                const userInfo = await getUserInfo(newTokens.access_token);
-                if (needsEmailVerification(userInfo)) {
-                  clearTokens();
-                  setSession(null);
-                  window.location.assign(verifyEmailRequiredPath(userInfo.email ?? ''));
-                  return;
-                }
-                setSession({
-                  id: userInfo.sub || '',
-                  user: {
-                    id: userInfo.sub || '',
-                    email: userInfo.email || '',
-                    name: userInfo.name,
-                    given_name: userInfo.given_name,
-                    family_name: userInfo.family_name,
-                    picture: userInfo.picture,
-                  },
-                  access_token: newTokens.access_token,
-                });
-              } catch {
-                // Still failed, clear tokens
-                console.error('Token refresh succeeded but validation still failed');
-                clearTokens();
-                setSession(null);
-              }
-            } else if (refreshed.status === 'refused') {
-              // Refresh refused, clear tokens
-              console.error('auth: token validation and refresh failed', safeErrorSummary(error));
-              clearTokens();
-              setSession(null);
-            } else {
-              // The renewal itself failed; keep the tokens and try again shortly.
-              console.warn('auth: token refresh failed, keeping the session and retrying', safeErrorSummary(error));
-              scheduleRenewalRetry();
-            }
-          } else {
-            // For network or other errors, try to keep existing session if we have one
-            // Don't clear tokens on temporary network issues
-            console.warn('auth: token validation warning (keeping existing session)', safeErrorSummary(error));
-            // If we don't have a session yet, don't set one, but don't clear tokens either
-            // This allows the user to retry
-          }
-        }
-      } else {
-        setSession(null);
+  // The upgrade's automatic sign-in runs once, when the first session read says there is none.
+  const upgradeSignInPending = useRef(upgradedFromTokens);
+  const query = useQuery({
+    queryKey: SESSION_QUERY_KEY,
+    queryFn: async () => {
+      const profile = await fetchSession();
+      if (!profile && upgradeSignInPending.current) {
+        upgradeSignInPending.current = false;
+        void startSignIn();
       }
-    } catch (error) {
-      console.error('auth: session check failed', safeErrorSummary(error));
-      // Don't clear session on general errors - might be a temporary issue
-    } finally {
-      setLoading(false);
-    }
-  };
+      return profile;
+    },
+    refetchInterval: SESSION_RECHECK_MS,
+    // A failed read (not a 401, which is an answer) is retried; the person stays signed in meanwhile.
+    retry: 3,
+    staleTime: 60 * 1000,
+  });
+  const session = toSession(query.data ?? null);
+  const loading = query.isPending;
 
-  const login = async () => {
-    try {
-      // DR-2: Call the proxy's authorize endpoint - it intercepts Zitadel's 302
-      // and returns the authRequest ID as JSON. The SPA navigates to the login page.
-      const { authorize } = await import('@/api/auth-client');
-      const { buildAuthorizeParams } = await import('@/lib/zitadel');
-
-      // Build PKCE params (generates code_verifier + challenge, stores verifier in sessionStorage)
-      const params = await buildAuthorizeParams();
-      const authParams = Object.fromEntries(params.entries());
-
-      const response = await authorize(authParams);
-
-      // Navigate to the custom login page with the auth request context
-      const loginParams = new URLSearchParams({ authRequest: response.authRequest });
-      if (response.loginHint) loginParams.set('loginHint', response.loginHint);
-      if (response.prompt) loginParams.set('prompt', response.prompt);
-      window.location.href = `/login/loginname?${loginParams.toString()}`;
-    } catch (error) {
-      console.error('auth: login failed', safeErrorSummary(error));
-      // Fallback: redirect to login page without auth request
-      window.location.href = '/login/loginname';
-    }
-  };
-
-  const logout = (): void => {
-    try {
-      clearTokens();
-      setSession(null);
-      const logoutUrl = getLogoutUrl();
-      void (window.location.href = logoutUrl);
-    } catch (error) {
-      console.error('auth: logout failed', safeErrorSummary(error));
-      clearTokens();
-      setSession(null);
-      window.location.href = '/auth/login';
-    }
-  };
+  const lastTouch = useRef(0);
 
   useMountEffect(() => {
-    // Check session on mount
-    void checkSession();
+    // Any request that finds the session gone signs this browser out; ProtectedRoute then sends
+    // the person to sign-in and remembers where they were.
+    const stopListening = onAuthenticationRequired(() => {
+      queryClient.setQueryData(SESSION_QUERY_KEY, null);
+    });
 
-    // Set up periodic session refresh (every 5 minutes)
-    const refreshInterval = setInterval(() => {
-      void checkSession();
-    }, 5 * 60 * 1000);
+    // The activity touch: input on the page extends the session's idle limit, at most once a
+    // minute. Background polling never does, so a forgotten tab is signed out on time.
+    const onActivity = (): void => {
+      if (!queryClient.getQueryData(SESSION_QUERY_KEY)) return;
+      const now = Date.now();
+      if (now - lastTouch.current < TOUCH_INTERVAL_MS) return;
+      lastTouch.current = now;
+      void touchSession().catch(() => { /* a failed touch is retried by the next input */ });
+    };
+    for (const event of ACTIVITY_EVENTS) window.addEventListener(event, onActivity, { passive: true });
 
     return () => {
-      clearInterval(refreshInterval);
-      if (renewalRetry.current !== null) clearTimeout(renewalRetry.current);
+      stopListening();
+      for (const event of ACTIVITY_EVENTS) window.removeEventListener(event, onActivity);
     };
   });
 
-  const refreshSession = useCallback(async (): Promise<void> => {
-    return await checkSession();
+  const login = useCallback(async (): Promise<void> => {
+    await startSignIn();
   }, []);
 
+  const logout = useCallback((): void => {
+    queryClient.setQueryData(SESSION_QUERY_KEY, null);
+    // A form POST, not a fetch: the API ends the session and its Zitadel session, clears the
+    // cookie, and sends the browser through Zitadel's end_session.
+    signOut();
+  }, [queryClient]);
+
+  const refresh = useCallback(async (): Promise<void> => {
+    await queryClient.invalidateQueries({ queryKey: SESSION_QUERY_KEY });
+  }, [queryClient]);
+
   return (
-    <AuthContext.Provider value={{ session, loading, logout, refresh: refreshSession, login }}>
+    <AuthContext.Provider value={{ session, loading, logout, refresh, login }}>
       {children}
     </AuthContext.Provider>
   );
@@ -290,41 +148,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 export function useAuth() {
   const context = useContext(AuthContext);
   if (!context) {
-    // During HMR, the context tree might re-mount before the provider is ready
-    const isHMR = typeof window !== 'undefined' && (
-      (window as Window & { __vite_plugin_react_preamble_installed__?: boolean }).__vite_plugin_react_preamble_installed__ ||
-      import.meta.hot
-    );
-    
-    if (isHMR) {
-      // During HMR, preserve the session from sessionStorage to prevent logout.
-      // The AuthProvider will re-mount and call checkSession() to restore the
-      // full session - this fallback just keeps API calls working in the meantime.
-      const storedToken = sessionStorage.getItem('zitadel_access_token');
-      if (storedToken) {
-        return {
-          session: {
-            id: 'hmr-fallback',
-            user: { id: 'hmr-fallback', email: '', name: '' },
-            access_token: storedToken,
-          },
-          loading: false,
-          logout: () => { clearTokens(); window.location.href = '/auth/login'; return Promise.resolve(); },
-          refresh: async () => {},
-          login: async () => {},
-        };
-      }
-      return {
-        session: null,
-        loading: true,
-        logout: async () => {},
-        refresh: async () => {},
-        login: async () => {},
-      };
+    // During Vite HMR the tree can re-mount before the provider is back; report "loading" until
+    // it is, rather than throwing. The session itself is the cookie, so nothing is lost.
+    if (import.meta.hot) {
+      return { session: null, loading: true, logout: () => {}, refresh: async () => {}, login: async () => {} };
     }
-    
     throw new Error('useAuth must be used within AuthProvider');
   }
   return context;
 }
-

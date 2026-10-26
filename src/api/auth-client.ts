@@ -3,8 +3,8 @@
 /**
  * Unauthenticated API client for /auth/* endpoints.
  *
- * Unlike client.ts (which requires a Bearer token for JSON:API /api/v2/* calls),
- * this client talks to the auth proxy endpoints that handle the login flow.
+ * Unlike client.ts (the JSON:API /api/v2/* calls a signed-in browser makes), this client talks to
+ * the auth proxy endpoints that handle the login flow.
  * Requests use `credentials: 'include'` so the httpOnly session cookie is sent
  * automatically by the browser (see plan D6 cross-port dev note).
  *
@@ -177,46 +177,12 @@ async function authFetchRaw(path: string, options: RequestInit = {}): Promise<Re
 
 // --- OIDC endpoints ---
 
-export async function authorize(params: Record<string, string>): Promise<AuthorizeResponse> {
+// Starts a sign-in. The API generates the state, nonce and PKCE pair itself, keeps them in a login
+// transaction bound to this browser by a cookie, and answers the login UI's auth request id.
+// params carries only what shapes the login UI (organization scopes, a login hint, a prompt).
+export async function authorize(params: Record<string, string> = {}): Promise<AuthorizeResponse> {
   const query = new URLSearchParams(params).toString();
-  return authFetch<AuthorizeResponse>(`/oidc/authorize?${query}`);
-}
-
-export async function tokenExchange(formData: URLSearchParams): Promise<{
-  access_token: string;
-  id_token: string;
-  refresh_token?: string;
-  expires_in?: number;
-}> {
-  const url = `${AUTH_BASE_URL}/oidc/token`;
-  const response = await fetch(url, {
-    method: 'POST',
-    credentials: 'include',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: formData,
-  });
-
-  if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(`Token exchange failed: ${errorText}`);
-  }
-
-  return response.json() as Promise<{
-    access_token: string;
-    id_token: string;
-    refresh_token?: string;
-    expires_in?: number;
-  }>;
-}
-
-export async function endSession(params: Record<string, string>): Promise<void> {
-  const url = `${AUTH_BASE_URL}/oidc/end-session`;
-  await fetch(url, {
-    method: 'POST',
-    credentials: 'include',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: new URLSearchParams(params),
-  });
+  return authFetch<AuthorizeResponse>(`/oidc/authorize${query ? `?${query}` : ''}`);
 }
 
 // --- Auth request endpoints ---

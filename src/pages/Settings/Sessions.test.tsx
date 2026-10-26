@@ -19,7 +19,6 @@ import { MemoryRouter } from 'react-router-dom';
 import { stubJsonApiFetch, requestsTo, type SentRequest } from '@/test/jsonapi-fetch';
 import Sessions from './Sessions';
 
-vi.mock('@/lib/zitadel', () => ({ getAccessToken: () => 'test-token' }));
 
 vi.mock('@/contexts/AuthContext', () => ({
   useAuth: () => ({}),

@@ -3,118 +3,112 @@
 import { useState, useRef } from 'react';
 import { useMountEffect } from '@/hooks/useMountEffect';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { consumeOIDCState, exchangeCodeForTokens, storeTokens } from '@/lib/zitadel';
-import { useAuth } from '@/contexts/AuthContext';
+import { useQueryClient } from '@tanstack/react-query';
+import { EMAIL_NOT_VERIFIED, fetchSession, redeemSignIn, SessionError } from '@/lib/zitadel';
+import { RETURN_URL_KEY, SESSION_QUERY_KEY } from '@/contexts/authSession';
+import { verifyEmailRequiredPath } from '@/lib/emailVerification';
 import { Loader2 } from 'lucide-react';
 
+/**
+ * takeReturnUrl reads and clears the page the person was on before sign-in, when it is on this
+ * origin (an open-redirect guard), or answers null.
+ */
+function takeReturnUrl(): string | null {
+  let stored: string | null;
+  try {
+    stored = sessionStorage.getItem(RETURN_URL_KEY);
+    sessionStorage.removeItem(RETURN_URL_KEY);
+  } catch {
+    return null;
+  }
+  if (!stored) return null;
+  try {
+    const parsed = new URL(stored, window.location.origin);
+    return parsed.origin === window.location.origin ? parsed.toString() : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * The page Zitadel's sign-in redirect lands on, with the code and state. The API redeems them
+ * (POST /auth/session) as the confidential client, checks that this browser started the sign-in,
+ * and sets the session cookie. The page holds no token at any point.
+ */
 export default function Callback() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const { refresh } = useAuth();
+  const queryClient = useQueryClient();
   const [error, setError] = useState<string | null>(null);
-  const processingRef = useRef(false);
-  const processedCodeRef = useRef<string | null>(null);
+  const started = useRef(false);
+
+  const failWith = (message: string): void => {
+    setError(message);
+    setTimeout(() => { void Promise.resolve(navigate('/auth/login', { replace: true })); }, 3000);
+  };
+
+  const finish = (): void => {
+    const returnUrl = takeReturnUrl();
+    if (returnUrl) {
+      // A full navigation, so the page starts with the new session.
+      window.location.href = returnUrl;
+      return;
+    }
+    void Promise.resolve(navigate('/dashboard', { replace: true }));
+  };
 
   useMountEffect(() => {
-    // Prevent multiple executions
-    if (processingRef.current) return;
+    if (started.current) return;
+    started.current = true;
 
-    const handleCallback = async () => {
-      const code = searchParams.get('code');
-      const stateParam = searchParams.get('state');
+    const handleCallback = async (): Promise<void> => {
       const errorParam = searchParams.get('error');
-
-      // Check if we've already processed this code
-      if (code && processedCodeRef.current === code) {
-        console.log('Code already processed, redirecting...');
-        void Promise.resolve(navigate('/dashboard', { replace: true }));
-        return;
-      }
-
-      processingRef.current = true;
-
       if (errorParam) {
-        setError(errorParam);
-        setTimeout(() => {
-          void Promise.resolve(navigate('/auth/login', { replace: true }));
-        }, 3000);
-        processingRef.current = false;
+        failWith(errorParam);
         return;
       }
-
-      if (!code) {
-        setError('No authorization code received');
-        setTimeout(() => {
-          void Promise.resolve(navigate('/auth/login', { replace: true }));
-        }, 3000);
-        processingRef.current = false;
-        return;
-      }
-
-      // OIDC state validation (Round 18). MUST run BEFORE token exchange:
-      // an attacker-injected callback (foreign `?code=…&state=…`) would
-      // otherwise log the victim into the attacker's session. consumeOIDCState
-      // is one-shot - it always clears the stored state, so a successful
-      // match cannot be replayed and a mismatch attempt cannot be retried.
-      if (!consumeOIDCState(stateParam)) {
-        setError('Authentication failed: state mismatch (possible CSRF)');
-        // Same redirect-after-timeout pattern as the other error branches.
-        setTimeout(() => {
-          void Promise.resolve(navigate('/auth/login', { replace: true }));
-        }, 3000);
-        processingRef.current = false;
-        return;
-      }
-
-      // Mark this code as being processed
-      processedCodeRef.current = code;
 
       try {
-        // Exchange authorization code for tokens
-        const tokens = await exchangeCodeForTokens(code);
-        
-        // Store tokens (synchronous sessionStorage write) and refresh the auth context.
-        // AUD-078: the two 100ms "ensure it's stored/set" sleeps that used to bracket these were
-        // cargo-cult - storeTokens is synchronous and refresh() is awaited, so nothing races.
-        storeTokens(tokens);
-        await refresh();
-
-        // If a deep-linked page (e.g. the Terraform CLI /oauth/authorize flow)
-        // stashed a return URL before kicking off login, honour it. It is a
-        // same-origin app path, so a full-page navigation returns the user
-        // exactly where they were, query string intact.
-        const returnUrl = sessionStorage.getItem('oauth_return_url');
-        if (returnUrl) {
-          sessionStorage.removeItem('oauth_return_url');
-          // Open-redirect guard: only honour same-origin app URLs.
-          try {
-            const parsed = new URL(returnUrl, window.location.origin);
-            if (parsed.origin === window.location.origin) {
-              window.location.href = parsed.toString();
+        const code = searchParams.get('code');
+        const state = searchParams.get('state');
+        if (!code || !state) {
+          failWith('No authorization code received');
+          return;
+        }
+        // The API redeems the code and replaces whatever session this browser held, so a browser
+        // signing in again, as the same person or another, ends with the new session only.
+        let profile;
+        try {
+          profile = await redeemSignIn(code, state);
+        } catch (err) {
+          // A refused redemption (a reload of this page, or a code another tab of this browser
+          // already used) leaves the browser's session as it was; when it has one, go on with it.
+          if (err instanceof SessionError && err.status === 400) {
+            const existing = await fetchSession().catch(() => null);
+            if (existing) {
+              queryClient.setQueryData(SESSION_QUERY_KEY, existing);
+              finish();
               return;
             }
-          } catch {
-            // fall through to the default dashboard redirect
           }
+          throw err;
         }
-
-        // Redirect to dashboard
-        void Promise.resolve(navigate('/dashboard', { replace: true }));
+        queryClient.setQueryData(SESSION_QUERY_KEY, profile);
+        finish();
       } catch (err) {
-        console.error('Callback error:', err);
-        setError(err instanceof Error ? err.message : 'Authentication failed');
-        // Clear the processed code on error so user can retry
-        processedCodeRef.current = null;
-        setTimeout(() => {
-          void Promise.resolve(navigate('/auth/login', { replace: true }));
-        }, 3000);
-      } finally {
-        processingRef.current = false;
+        // #829 D5: an account whose email is not verified is refused at sign-in; send it to the
+        // page that explains what to do. Any other refusal (an untrusted origin, a proxy that drops
+        // the CSRF header) is shown as the error it is.
+        if (err instanceof SessionError && err.code === EMAIL_NOT_VERIFIED) {
+          window.location.assign(verifyEmailRequiredPath(''));
+          return;
+        }
+        console.error('auth: completing sign-in failed', err instanceof SessionError ? `status=${err.status}` : err instanceof Error ? err.name : typeof err);
+        failWith(err instanceof Error ? err.message : 'Authentication failed');
       }
     };
 
     void handleCallback();
-     
   });
 
   if (error) {
@@ -142,7 +136,3 @@ export default function Callback() {
     </div>
   );
 }
-
-
-
-

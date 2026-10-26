@@ -105,7 +105,6 @@ secrets:
       clientId: client-id
       clientSecret: client-secret
       loginServiceUserToken: login-service-user-token
-      frontendClientId: frontend-client-id
       webhookIdpSyncKey: webhook-idp-sync-key
       webhookComplementTokenKey: webhook-complement-token-key
   # OIDC workload identity signing key (optional - for Azure OIDC / inventory sync)

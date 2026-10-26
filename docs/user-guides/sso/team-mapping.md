@@ -9,17 +9,17 @@ covers:
 
 # SSO Team Mapping
 
-StackWeaver can automatically assign users to teams based on their identity provider (IdP) group memberships. When a user logs in via SSO, their group claims are forwarded through the JWT, and StackWeaver maps those groups to teams that have a matching `sso_team_id` configured.
+StackWeaver can automatically assign users to teams based on their identity provider (IdP) group memberships. When a user signs in via SSO, Zitadel adds their groups to the access token it issues to StackWeaver, and StackWeaver maps those groups to teams that have a matching `sso_team_id` configured.
 
 ## How It Works
 
 1. The user authenticates via an external IdP (Azure AD, Okta, Cognito, etc.) through Zitadel.
 2. The IdP returns group memberships in the token (e.g., `groups: ["engineering", "platform-team"]`).
-3. Zitadel Actions V2 webhooks capture the groups from the IdP response, store them as user metadata, and include them as an `sso_groups` claim in the StackWeaver JWT.
-4. On each login, StackWeaver's Team Sync service finds all teams across all organizations that have a `sso_team_id` matching one of the user's groups.
+3. Zitadel Actions V2 webhooks capture the groups from the IdP response, store them as user metadata, and include them as an `sso_groups` claim in the access token Zitadel issues to StackWeaver at sign-in.
+4. At each sign-in, the StackWeaver API verifies that access token, reads the `sso_groups` claim, and its Team Sync service finds all teams across all organizations that have a `sso_team_id` matching one of the user's groups.
 5. The user is automatically added to those teams and their parent organizations.
 
-This process runs on every login, so changes to a user's IdP groups take effect the next time they sign in.
+This process runs at every sign-in, so changes to a user's IdP groups take effect the next time they sign in. A signed-in browser is not re-synced while its session lasts; the next sign-in comes at the latest when the session reaches its maximum lifetime, twelve hours by default.
 
 ## Architecture: Zitadel Actions V2
 
@@ -145,11 +145,11 @@ A user who is a member of both IdP groups will be automatically added to both St
 
 ### Using the API
 
-You can also update a team's `sso_team_id` directly via the StackWeaver API:
+You can also update a team's `sso_team_id` directly via the StackWeaver API, authenticating with a StackWeaver API token (`tfe-...`) created under **Settings > API Tokens**:
 
 ```bash
 curl -X PATCH "http://localhost:8022/api/v2/teams/{team-id}" \
-  -H "Authorization: Bearer {token}" \
+  -H "Authorization: Bearer {api-token}" \
   -H "Content-Type: application/vnd.api+json" \
   -d '{
     "data": {
@@ -299,7 +299,7 @@ Verify that removal is enabled: `OIDC_REMOVE_FROM_NON_SSO_TEAMS=true` in `sso.en
 
 ### Changes are not taking effect
 
-Team sync runs on each login. Ask the user to sign out and sign back in for group changes to take effect. Changes to IdP group memberships do not propagate until the next authentication.
+Team sync runs at each sign-in. Ask the user to sign out and sign back in for group changes to take effect. Changes to IdP group memberships do not propagate to a signed-in browser until its next sign-in.
 
 ### Duplicate `sso_team_id` error
 
