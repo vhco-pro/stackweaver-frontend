@@ -440,7 +440,10 @@
         "path": "/docs/user-guides/authentication"
       }
     ],
-    "sourceCommits": [],
+    "sourceCommits": [
+      "97620deafad165dc5071746594252e7577d4928b",
+      "c590a3ee660503afeb04c633ca8b83e8f64f7f8d"
+    ],
     "requiredComponents": [
       "frontend"
     ],
