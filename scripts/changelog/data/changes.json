@@ -83,7 +83,7 @@
     "guides": [
       {
         "title": "Constructed inventory setup and constraints",
-        "path": "/docs/user-guides/dynamic-inventories#constructed-inventories"
+        "path": "/docs/user-guides/dynamic-inventories#build-a-constructed-inventory"
       }
     ],
     "sourceCommits": [
@@ -132,28 +132,36 @@
   },
   {
     "id": "generated-docs-homepages",
-    "title": "Browse documentation through generated folder overviews",
+    "title": "Browse documentation from a generated homepage",
     "area": "Documentation",
     "kind": "Added",
     "reviewed": true,
     "audience": "Readers of Stackweaver documentation.",
-    "before": "Documentation discovery and change guidance were spread across individual articles.",
-    "after": "Browse documentation through generated folder overviews.",
+    "before": "Finding a starting guide meant following individual article links.",
+    "after": "The documentation homepage groups sections with descriptions and a prominent search. Its destinations come from the generated documentation index.",
     "action": "No configuration change is required. Use the documentation navigation to find the relevant guide.",
     "details": [
       "Existing article links remain available."
     ],
     "guides": [
       {
-        "title": "Using the API",
-        "path": "/docs/architecture/using-the-api"
+        "title": "Get started",
+        "path": "/docs/get-started"
+      },
+      {
+        "title": "Task guides",
+        "path": "/docs/user-guides"
       }
     ],
-    "sourceCommits": [],
+    "sourceCommits": [
+      "4813dacb6a626e04a091b9e249f77e59d600a888"
+    ],
     "requiredComponents": [
       "frontend"
     ],
-    "availability": [],
+    "availability": [
+      "frontend@0.74.0"
+    ],
     "draftCommits": []
   },
   {
@@ -163,23 +171,27 @@
     "kind": "Added",
     "reviewed": true,
     "audience": "Readers of Stackweaver documentation.",
-    "before": "Documentation discovery and change guidance were spread across individual articles.",
-    "after": "Read product changes and upgrade actions in one changelog.",
-    "action": "No configuration change is required. Use the documentation navigation to find the relevant guide.",
+    "before": "Feature-specific notes and component release pages were separate starting points for understanding changes.",
+    "after": "The central changelog explains affected users, upgrade actions and confirmed availability for each required component.",
+    "action": "Read the action for each relevant change and compare its component release links with your installation. The listed versions are confirmation evidence, not a minimum supported bundle.",
     "details": [
-      "Existing article links remain available."
+      "Only reviewed entries with complete component evidence appear in the feed. Earlier notes remain available during the separate history review."
     ],
     "guides": [
       {
-        "title": "Using the API",
-        "path": "/docs/architecture/using-the-api"
+        "title": "Verify release artifacts",
+        "path": "/docs/security/verifying-releases"
       }
     ],
-    "sourceCommits": [],
+    "sourceCommits": [
+      "4813dacb6a626e04a091b9e249f77e59d600a888"
+    ],
     "requiredComponents": [
       "frontend"
     ],
-    "availability": []
+    "availability": [
+      "frontend@0.74.0"
+    ]
   },
   {
     "id": "public-docs-quality-workflow",
@@ -206,11 +218,15 @@
         "path": "/docs/features"
       }
     ],
-    "sourceCommits": [],
+    "sourceCommits": [
+      "4813dacb6a626e04a091b9e249f77e59d600a888"
+    ],
     "requiredComponents": [
       "frontend"
     ],
-    "availability": []
+    "availability": [
+      "frontend@0.74.0"
+    ]
   },
   {
     "id": "browser-sessions-bff",
@@ -226,7 +242,7 @@
       "Default session limits are one hour idle, twelve hours absolute and a five-minute identity liveness check. Unknown identity liveness retries after 30 seconds; idle and absolute expiry remain effective.",
       "Required sign-in factors must be verified before completing login. Existing browser sessions do not resynchronize SSO groups; changes apply at the next sign-in.",
       "Bundled initializers reconcile a one-hour Zitadel access-token lifetime for other applications. Configure a different lifetime explicitly when required; that lifetime does not control BFF browser-session duration.",
-      "Earlier browser-refresh implementations in this source range are superseded by the session model. API tokens, Terraform CLI and runner credentials retain their distinct programmatic authentication paths."
+      "Scripts, Terraform CLI and runners use their programmatic credentials rather than browser-session cookies. Use tfe- API tokens where an API token is required."
     ],
     "guides": [
       {
@@ -236,12 +252,12 @@
     ],
     "sourceCommits": [
       "07c49bcd38bfcc87f06d9f694a77763ee50f5fb0",
+      "1dfcd8315043a3e80210a86909d872673fcbae34",
       "4c4cdd89b5e5fc224ad7a7302674486eb9ff7e7e",
       "73619e01700c6a5a61c116a9fc776aa025d8b849",
+      "93d133c5eaf5c63582c6e49c4aaa84d888d74e6c",
       "9d34155aa0334fe3e3d8608f8de0de8be4a68980",
-      "1dfcd8315043a3e80210a86909d872673fcbae34",
-      "e36648aa46b5215702a54fb810c99e827f60db1a",
-      "93d133c5eaf5c63582c6e49c4aaa84d888d74e6c"
+      "e36648aa46b5215702a54fb810c99e827f60db1a"
     ],
     "requiredComponents": [
       "api",
@@ -249,7 +265,12 @@
       "zitadel-init",
       "helm"
     ],
-    "availability": []
+    "availability": [
+      "api@0.17.37",
+      "frontend@0.74.0",
+      "zitadel-init@0.8.0",
+      "helm@0.15.0"
+    ]
   },
   {
     "id": "saved-plan-storage",
@@ -260,7 +281,7 @@
     "audience": "Operators of the platform queue-mode OpenTofu runner.",
     "before": "Saved plan files could be stored without application-level encryption between plan and apply.",
     "after": "The platform runner seals saved plans using the configured encryption service and reads legacy plaintext plans.",
-    "action": "Keep the same encryption key across participating platform runners and coordinate runner upgrades before applying newly encrypted outstanding plans.",
+    "action": "Upgrade participating platform runners together: older runners cannot read newly encrypted plans. Keep the same encryption key across those runners before applying outstanding plans.",
     "details": [
       "An older runner cannot consume newly encrypted plan files. With no encryption service configured, plan storage remains plaintext.",
       "This change concerns the platform queue-mode runner; it does not change the self-hosted agent execution path."
@@ -308,7 +329,12 @@
       "zitadel-init",
       "helm"
     ],
-    "availability": []
+    "availability": [
+      "api@0.17.37",
+      "frontend@0.74.0",
+      "zitadel-init@0.8.0",
+      "helm@0.15.0"
+    ]
   },
   {
     "id": "runner-registration-boundaries",
@@ -331,13 +357,15 @@
       }
     ],
     "sourceCommits": [
-      "8287646615ea3013612c9fac7de7b89fbd65b4e1",
-      "0c60921195b1d7b1ca231e15646a9bac37b07568"
+      "0c60921195b1d7b1ca231e15646a9bac37b07568",
+      "8287646615ea3013612c9fac7de7b89fbd65b4e1"
     ],
     "requiredComponents": [
       "api"
     ],
-    "availability": []
+    "availability": [
+      "api@0.17.37"
+    ]
   },
   {
     "id": "verified-profile-email",
@@ -365,7 +393,10 @@
       "api",
       "frontend"
     ],
-    "availability": []
+    "availability": [
+      "api@0.17.37",
+      "frontend@0.74.0"
+    ]
   },
   {
     "id": "supported-vcs-connections",
@@ -390,7 +421,9 @@
     "requiredComponents": [
       "api"
     ],
-    "availability": []
+    "availability": [
+      "api@0.17.37"
+    ]
   },
   {
     "id": "ansible-vcs-credential-boundary",
@@ -400,15 +433,15 @@
     "reviewed": true,
     "audience": "People configuring repository access for Ansible automation.",
     "before": "The API and UI exposed SCM/VCS credential options that execution did not consume.",
-    "after": "The unsupported scm API credential type and the unused vcs UI option are removed from creation.",
+    "after": "The unsupported scm API credential type and the unused vcs UI option are removed from creation. Existing stored credentials are not migrated or deleted.",
     "action": "Configure repository access through a VCS connection instead of creating an Ansible SCM credential.",
     "details": [
       "Existing stored credential rows are not migrated or deleted by this change. Supported machine, vault and cloud credentials retain their own execution roles."
     ],
     "guides": [
       {
-        "title": "Ansible credential boundaries",
-        "path": "/docs/features/ansible/roadmap"
+        "title": "Register Ansible playbooks and repository access",
+        "path": "/docs/user-guides/managing-ansible-playbooks#before-you-start"
       }
     ],
     "sourceCommits": [
@@ -418,7 +451,10 @@
       "api",
       "frontend"
     ],
-    "availability": []
+    "availability": [
+      "api@0.17.37",
+      "frontend@0.74.0"
+    ]
   },
   {
     "id": "landing-route-loading",
@@ -428,11 +464,11 @@
     "reviewed": true,
     "audience": "People opening the landing page, documentation, sign-in and application screens.",
     "before": "Opening the landing page loaded unrelated application screens and an oversized default logo before the visitor could use the page.",
-    "after": "Pages load their code on demand, the default logo uses an optimized asset, and inactive tour images are deferred while the last decoded screenshot remains visible.",
+    "after": "Public pages open without downloading unrelated application screens. Navigation shows loading feedback and offers a reload action if the requested page cannot be downloaded.",
     "action": "No configuration changes are required. Reload an open page if a page update leaves an unavailable code chunk.",
     "details": [
       "Existing links, browser sessions, themes and landing-page layouts are preserved. Application navigation shows loading feedback and offers an explicit reload if a page cannot be downloaded.",
-      "Development and production share route isolation. Backend request latency is unchanged."
+      "The landing tour defers inactive screenshots and keeps its last loaded image visible during a transition. Backend request latency is unchanged."
     ],
     "guides": [
       {
@@ -447,22 +483,24 @@
     "requiredComponents": [
       "frontend"
     ],
-    "availability": []
+    "availability": [
+      "frontend@0.74.0"
+    ]
   },
   {
     "id": "generated-docs-overviews",
     "title": "Find guides through generated documentation overviews",
-    "area": "Platform",
+    "area": "Documentation",
     "kind": "Changed",
     "reviewed": true,
-    "audience": "Readers browsing the public documentation and hosts reusing its collection renderer.",
+    "audience": "Readers finding setup instructions and task guides in the documentation.",
     "before": "Section overviews used manually maintained directory lists or tables, and the documentation root presented uniformly sized folder cards.",
-    "after": "The root highlights its first explicitly ordered section. Opted-in section overviews show generated article rows and child-section cards while retaining authored setup guidance and generated capability references.",
+    "after": "The main overview highlights the first section. Section pages combine folder cards and article links, while keeping their setup guidance and capability references.",
     "action": "No configuration changes are required. Existing guide URLs remain available.",
     "details": [
       "The existing viewer header, folder sidebar and article frame are preserved.",
       "External Markdown links keep their original destination, and relative Markdown links with fragments resolve to the intended document heading.",
-      "Collection hosts can opt a navigation README into the overview layout through generated metadata; explanation READMEs remain articles."
+      "Generated folder navigation stays in step with available documentation. Explanatory articles retain their authored content."
     ],
     "guides": [
       {
@@ -472,6 +510,61 @@
       {
         "title": "User guides",
         "path": "/docs/user-guides"
+      }
+    ],
+    "sourceCommits": [
+      "1999a71b0cd8a224195b7a971fd1851ca8f3ebef"
+    ],
+    "requiredComponents": [
+      "frontend"
+    ],
+    "availability": [
+      "frontend@0.74.0"
+    ]
+  },
+  {
+    "id": "docs-code-block-cache-identity",
+    "title": "Show distinct documentation commands correctly",
+    "area": "Platform",
+    "kind": "Fixed",
+    "reviewed": true,
+    "audience": "Readers using code examples in documentation and other shared Markdown views.",
+    "before": "Code blocks in the same language that shared their first 100 characters could display the same highlighted snippet, even when their remaining commands differed.",
+    "after": "The highlighting cache uses the complete code block, so examples with a shared prefix retain their distinct displayed content.",
+    "action": "Reload an open documentation page after updating the frontend. No configuration change is required.",
+    "details": [
+      "Copy uses the block source. Displayed examples and copied text are checked together by the regression.",
+      "This corrects ordinary fenced code blocks; it does not redesign CodeGroup navigation."
+    ],
+    "guides": [
+      {
+        "title": "Platform administration",
+        "path": "/docs/user-guides/platform-administration"
+      }
+    ],
+    "sourceCommits": [],
+    "requiredComponents": [
+      "frontend"
+    ],
+    "availability": []
+  },
+  {
+    "id": "changelog-independent-release-evidence",
+    "title": "Read verified component changes in the central changelog",
+    "area": "Documentation",
+    "kind": "Fixed",
+    "reviewed": true,
+    "audience": "Operators checking changes and upgrade actions for their installation.",
+    "before": "An unavailable release-provenance asset in one component prevented the evidence refresh from retaining verified observations for other components.",
+    "after": "Verified component observations are retained independently. Entries still require evidence for every component they need, and incomplete entries stay out of the public feed.",
+    "action": "Read the action and confirmed component versions for relevant entries before upgrading. No deployment setting is changed by the changelog refresh.",
+    "details": [
+      "Each entry leads with its user impact. Previous behavior and supporting scope remain available in expandable details."
+    ],
+    "guides": [
+      {
+        "title": "Verify release artifacts",
+        "path": "/docs/security/verifying-releases"
       }
     ],
     "sourceCommits": [],

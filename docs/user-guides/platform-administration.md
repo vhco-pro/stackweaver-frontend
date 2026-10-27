@@ -1,7 +1,10 @@
 ---
-description: "Guide to the platform administrator: what the install-wide role can and cannot do, the platform Settings pages, declared and granted administrators, platform admin tokens, the admin API, and recovering a lost login"
+description: "Configure platform administrators, scoped tokens and the OpenTofu catalogue through deployment settings, UI, API and Terraform."
 covers:
   - "backend/internal/services/platformadmin/**"
+  - "backend/internal/services/auth/sign_in.go"
+  - "deploy/docker-compose.yml"
+  - "deploy/helm/stackweaver/templates/api/**"
   - "backend/internal/api/v2/handlers/admin_users.go"
   - "backend/internal/api/v2/handlers/admin_organizations.go"
   - "backend/internal/api/v2/handlers/admin_tofu_versions.go"
@@ -17,70 +20,321 @@ covers:
   - "deploy/helm/stackweaver/values.yaml"
 ---
 
-# Platform Administration
+# Administer a Stackweaver installation
 
-A platform administrator manages the StackWeaver installation itself rather than any one organization in it. The role covers three things: the OpenTofu versions catalogue that every workspace on the installation chooses from, the list of platform administrators, and a read-only list of every organization on the installation. Everything else in StackWeaver belongs to an organization and is governed by that organization's teams and permissions.
+Use platform administration to manage installation-wide administrators, the OpenTofu
+version catalogue, and a read-only organization directory. Organization access remains
+separate: this role does not let you open another organization's workspaces or secrets.
+
+## Choose the right interface
+
+| Task | Use |
+|---|---|
+| Declare the installation's administrators or restrict organization creation | Docker Compose environment configuration or Helm values. |
+| Grant or remove an administrator | **Settings > Platform Administrators**, or the admin API. |
+| Manage the version catalogue | **Settings > OpenTofu Versions**, or the Terraform/OpenTofu provider. |
+| Find organizations on the installation | **Settings > Organizations**, or the read-only admin API. |
+
+There is no Stackweaver CLI or management YAML resource for granting this role. Helm YAML
+configures the deployment; it does not replace organization membership or API resources.
 
 ## What the role can and cannot do
 
-A platform administrator adds, enables, disables and deletes versions in the OpenTofu versions catalogue, grants and removes other platform administrators, and sees every organization on the installation with its admin email, member count, workspace count and creation date.
+| Platform administrators can | Organization access still requires |
+|---|---|
+| Add, enable, disable and delete catalogue versions, subject to deletion restrictions. | Membership and permissions in the target organization. |
+| Grant and remove other platform administrators. | An existing owner to add you to the `owners` team when owner access is needed. |
+| See each organization's admin email, member/workspace counts and creation date. | Membership before its directory row opens workspaces. Other rows say **Not a member**. |
 
-The role gives no access inside an organization. A platform administrator who is not a member of an organization cannot open its workspaces, runs, state, variables, teams or settings, and the organization list marks that organization "Not a member". To work inside a customer's organization, a platform administrator joins that organization's `owners` team the same way anyone else does, through an existing owner, so the membership shows up like any other owner's.
-
-Owning organizations, even every organization on the installation, does not make someone a platform administrator either, and the install-wide pages and routes answer an organization owner as if they did not exist.
-
-Each organization chooses its own default OpenTofu version from the catalogue. Its owners set it on the organization's general settings page, as [Organization Settings](./organization-settings.md) describes; it is not a platform setting.
-
-## The platform Settings pages
-
-A platform administrator sees a **Platform** section on the Settings page, below their personal settings, with three pages. Nobody else sees the section, and anyone else who opens one of these addresses gets a not-found page and no data.
-
-**Platform Administrators** (`/settings/platform/administrators`) lists every platform administrator with their name and email address. Administrators declared by the deployment carry a "Declared by the deployment" badge and have no remove action. **Add administrator** asks for one exact email address, looks up the account that holds it and grants it the role; the dialog says "No account has this email address" when there is none, so the person must have signed in to StackWeaver at least once before you can add them. To remove a granted administrator, open the row's actions menu, choose **Remove administrator** and confirm. A read-only **Deployment settings** panel on the same page shows the installation's organization-creation setting.
-
-**OpenTofu Versions** (`/settings/platform/terraform-versions`) manages the catalogue of OpenTofu versions available to every workspace on the installation.
-
-**Organizations** (`/settings/platform/organizations`) is a searchable, read-only table of every organization on the installation. A row links into the organization only when you are a member of it.
+Being an organization owner does not grant the platform role. Organization owners select
+their own default OpenTofu version from the catalogue under
+[Organization settings](./organization-settings.md).
 
 ## Declared and granted administrators
 
-There are two kinds of platform administrator, and they differ in who can remove them.
+| Type | Controlled by | How access changes |
+|---|---|---|
+| Declared | The deployment's list of verified email addresses. | Add an address and have the user sign in. Remove an address and restart or redeploy the API with the updated configuration. |
+| Granted | Another admin, through the UI or API. | A grant or removal takes effect on the next request, without signing out. |
 
-A declared administrator is named by the deployment configuration: `STACKWEAVER_PLATFORM_ADMINS` in `sso.env` on Docker Compose, or the chart value `platform.admins` on Kubernetes, as a list of email addresses. When the list is unset, it holds the bootstrap admin, the first Zitadel account the installer creates (`ZITADEL_ADMIN_USERNAME` on Compose, `zitadel.init.adminUsername` with the chart's bundled Zitadel), so a fresh installation has a platform administrator as soon as that account signs in. An installation that uses its own Zitadel (`zitadel.bundled: false`) has no bootstrap admin the chart knows about and must set `platform.admins`. With an empty list, the API logs a warning at startup and nobody can reach the platform pages until the list is set.
+Declared administrators carry a **Declared by the deployment** badge and cannot be removed
+through the UI or API. A granted administrator can remove themselves. Keep a controlled,
+usable declared account so you can recover access.
 
-StackWeaver matches the list, ignoring case, against the email address the identity provider reports as verified when a person signs in. A person whose address is on the list but not verified does not get the role. A declared administrator cannot be removed through the API or the UI. To remove one, take the address off the list and restart the API; the role is withdrawn when the API starts with the new list. A declared administrator who changes their verified email at the identity provider to an address that is not on the list loses the role on their next request.
+Stackweaver matches declared addresses case-insensitively against the verified email at
+sign-in. A granted administrator whose address is added to the list becomes declared at
+their next sign-in. A declared administrator signing in with a verified address outside
+the list loses the role at that sign-in. Existing browser sessions do not re-evaluate the
+declared email list on each request.
 
-Declare only addresses you control at every identity provider this installation signs people in with, and declare them before anyone else could register them. The match trusts each identity provider's verification of the address, so an address someone else could register and verify at any of those providers would make that person a platform administrator.
+> [!WARNING]
+> Declare only addresses you control at every identity provider used by the installation.
+> Someone able to register and verify a declared address at any trusted provider could
+> receive platform administration access.
 
-A granted administrator is added by another platform administrator, on the Platform Administrators page or through the API, and any platform administrator can remove them again, including themselves. The change applies to the person's next request, with no need to sign out. Because the declared administrators cannot be removed from inside StackWeaver, the installation always keeps at least the administrators its deployment names. A granted administrator whose address is then added to the declared list becomes a declared one on their next request.
+Grants, removals, declarations and withdrawals create activity records outside any
+organization. The records identify the actor and affected user; startup reconciliation
+uses the system as the actor.
 
-Every grant, removal, declaration and withdrawal is recorded as an activity that belongs to no organization, naming who acted (the system, for the check the API runs at startup) and whose role changed.
+## Declare administrators in the deployment
+
+Before changing access, confirm you control the declared accounts and can sign in through
+the configured identity provider. Replace the example addresses with verified addresses
+from your own installation.
+
+### Docker Compose
+
+Add this to the hand-managed `deploy/sso.env` file:
+
+```dotenv
+STACKWEAVER_PLATFORM_ADMINS=ops@example.com,lead@example.com
+STACKWEAVER_ORGANIZATION_CREATION=platform-admins
+```
+
+The second setting is optional. Its default, `everyone`, lets any signed-in user create an
+organization; `platform-admins` restricts creation to platform administrators.
+
+From `deploy/`, recreate the API using your installation's normal Compose files and any
+tunnel or other overrides:
+
+```bash
+docker compose up -d --no-deps api
+```
+
+A plain container restart does not reload a changed Compose environment file. Do not edit
+the generated `deploy/.env` for these settings. After recreation, sign in with a declared
+address and check **Settings > Platform Administrators** for the declaration badge and
+**Deployment settings** for the expected organization-creation policy.
+
+### Kubernetes with Helm
+
+Save these overrides as `platform-values.yaml`:
+
+```yaml
+platform:
+  admins:
+    - ops@example.com
+    - lead@example.com
+  organizationCreation: platform-admins
+```
+
+Set `RELEASE`, `NAMESPACE` and `CHART_VERSION` to your existing release, namespace and
+**installed chart version**. Preserve the release's other values for this settings-only
+change:
+
+```bash
+helm upgrade "$RELEASE" oci://ghcr.io/vhco-pro/charts/stackweaver \
+  --namespace "$NAMESPACE" --version "$CHART_VERSION" \
+  --reuse-values --values platform-values.yaml
+```
+
+Wait for the API rollout, sign in as a declared user, then check the badge and policy on
+**Settings > Platform Administrators**. This changes access policy; review the addresses
+before applying it. It is not an instruction to upgrade the platform version.
+
+### Bootstrap and external identity setups
+
+When the declared list contains no address, the API falls back to `ZITADEL_ADMIN_USERNAME`.
+The bundled installers set this to their bootstrap human administrator's email. The Helm
+chart uses `zitadel.init.adminUsername` with bundled Zitadel.
+
+With an external Zitadel (`zitadel.bundled: false`), explicitly set `platform.admins`.
+The chart cannot infer an external bootstrap account. If neither the list nor a bootstrap
+address is configured, the API logs a warning and cannot declare an administrator. Adding
+an address takes effect when that person signs in; startup reconciliation only withdraws
+stale declarations.
+
+## The platform Settings pages
+
+Platform administrators see a **Platform** section below personal settings. Its pages are:
+
+- **Platform Administrators** (`/settings/platform/administrators`): administrators and
+  the read-only deployment policy.
+- **OpenTofu Versions** (`/settings/platform/terraform-versions`): the shared catalogue.
+- **Organizations** (`/settings/platform/organizations`): the searchable directory.
+
+Other users do not see this section. The platform pages and authenticated admin API calls
+return not found when the caller lacks the required access.
+
+### Add or remove an administrator
+
+1. Have the person sign in to Stackweaver once so their account exists.
+2. Open **Settings > Platform Administrators**, then **Add administrator**.
+3. Enter the account's full email address and submit. A successful grant adds it to the list.
+   **No account has this email address** means no matching account exists.
+4. To remove a granted administrator, open their row's actions menu, choose
+   **Remove administrator**, then confirm. Their organization memberships remain unchanged.
+
+![Platform Administrators with one deployment-declared account, one granted account and the deployment policy.](./images/platform-administrators.png)
+
+*Generated example data. Declared accounts have a badge and no remove action.*
+
+### Inspect the organization directory
+
+Open **Settings > Organizations** and search by organization name. Check its contact,
+counts and creation date. **Open** appears only for organizations you belong to; **Not a
+member** does not provide a way to bypass membership.
+
+![The platform organization directory with an accessible example organization and a second organization marked Not a member.](./images/platform-organizations.png)
+
+*Generated example data. Directory visibility does not grant organization access.*
 
 ## Platform admin tokens
 
-The install-wide API accepts only one kind of API token: a personal token minted with the platform admin scope. On **Settings > API Tokens**, the create dialog of a platform administrator has a **Platform admin** checkbox, and a token created with it carries a "Platform admin" badge in the token list. The checkbox appears to platform administrators only, and only a signed-in platform administrator can mint such a token.
+For scripts and the provider, create a personal token with the platform administration
+scope:
 
-Every other token gets a not-found answer from the install-wide routes, even when its owner is a platform administrator. That covers a plain personal token, a `terraform login` token (which is always plain) and every organization or team token. Inside organizations, a platform admin token acts exactly as a plain personal token of the same person: it reaches the organizations that person belongs to, with that person's permissions, and nothing more.
+1. Sign in as a platform administrator and open **Settings > API Tokens**.
+2. Choose **Create Token**, provide a description and optionally an expiry date.
+3. Select **Platform admin: this token may call the install-wide admin API**, then create
+   the token. Save the one-time value in your secret store.
+4. Check the token's **Platform admin** badge and verify a read-only admin request below.
 
-A platform admin token stops working for the install-wide routes as soon as its owner stops being a platform administrator, and it keeps working everywhere else as a plain personal token. The `tfe_terraform_version` resource of the Terraform provider needs one; see [Managing StackWeaver with Terraform](./terraform-provider.md#authenticating).
+![The personal token creation form with the Platform admin option selected and an example description.](./images/platform-admin-token.png)
+
+*Generated example data. The form is prepared without creating or exposing a token.*
+
+Only a platform administrator can create this token. A plain personal token, a token from
+`terraform login`, and organization/team tokens cannot call the admin routes, even if
+their owner is a platform administrator. A Zitadel access token is not a Stackweaver API
+credential; use a `tfe-` API token.
+
+Inside organizations, a platform admin token has its owner's ordinary membership and
+permissions. Removing the owner's platform role stops install-wide access on the next
+request; it does not revoke their organization access or turn the token into an invalid
+personal token.
 
 ## The platform API
 
-The install-wide routes follow the shape of the Terraform Enterprise admin API. Each of them answers 404 to any caller who is not a platform administrator, whether that caller uses a browser session or a token without the platform admin scope.
+Set `STACKWEAVER_URL` to the HTTPS **API origin** of your installation, without `/api/v2`
+or a trailing slash. Supply `TFE_TOKEN` from your secret store; do not paste tokens into
+command history. This read lists current administrators:
 
-| Route | What it does |
+```bash
+curl --fail-with-body --silent --show-error --get \
+  "$STACKWEAVER_URL/api/v2/admin/users" \
+  --header "Authorization: Bearer $TFE_TOKEN" \
+  --data-urlencode 'filter[admin]=true'
+```
+
+Expect a JSON:API `users` list with `is-admin` and `platform-admin-declared` attributes.
+To look up one existing account before granting access:
+
+```bash
+curl --fail-with-body --silent --show-error --get \
+  "$STACKWEAVER_URL/api/v2/admin/users" \
+  --header "Authorization: Bearer $TFE_TOKEN" \
+  --data-urlencode 'q=engineer@example.com'
+```
+
+Use the returned account ID as `USER_ID`, after checking its email. This action grants
+installation-wide privileges immediately:
+
+```bash
+curl --fail-with-body --silent --show-error --request POST \
+  "$STACKWEAVER_URL/api/v2/admin/users/$USER_ID/actions/grant_admin" \
+  --header "Authorization: Bearer $TFE_TOKEN"
+```
+
+Expect the returned user's `is-admin` to be `true`, then repeat the administrator-list
+request to confirm. To remove a **granted** administrator, use the same request with
+`revoke_admin` in place of `grant_admin`. This withdraws platform access immediately.
+Do not revoke your own only usable granted account without a working recovery path.
+
+The available routes are:
+
+```text
+GET    /api/v2/admin/users
+POST   /api/v2/admin/users/:id/actions/grant_admin
+POST   /api/v2/admin/users/:id/actions/revoke_admin
+GET    /api/v2/admin/organizations
+GET    /api/v2/admin/organizations/:name
+       /api/v2/admin/terraform-versions
+```
+
+The last route supports catalogue operations; check the API reference for their methods
+and schemas.
+
+| Operation | Purpose or failure behavior |
 |---|---|
-| `GET /api/v2/admin/users` | Looks up accounts. A call must carry `filter[admin]=true`, which lists every platform administrator, or `q` set to one full email address, which returns at most the one account that holds it. Any other call answers 400, so the route never lists every account on the installation. Each user carries `is-admin` and `platform-admin-declared`. |
-| `POST /api/v2/admin/users/:id/actions/grant_admin` | Makes the user a platform administrator. Answers 400 when the user already is one. |
-| `POST /api/v2/admin/users/:id/actions/revoke_admin` | Removes a granted administrator. Answers 400 when the user is not one, and 422 for a declared administrator. |
-| `GET /api/v2/admin/organizations`, `GET /api/v2/admin/organizations/:name` | Lists every organization, or reads one, without its settings, members or tokens. |
-| `/api/v2/admin/terraform-versions` | Manages the OpenTofu versions catalogue. |
+| User lookup | Requires `filter[admin]=true` or `q` with one full email address. Invalid or missing lookup parameters return 400; this is not a directory of all accounts. |
+| Grant | An already-granted administrator returns 400. A declared administrator stays unchanged. |
+| Revoke | A non-admin returns 400; a deployment-declared administrator returns 422. |
+| Organization list or read | Returns summaries without member lists, settings or tokens. |
 
-Two routes answer every signed-in caller. `GET /api/v2/account/details` reports whether the caller is a platform administrator (`is-site-admin`), whether the deployment declared them (`platform-admin-declared`), and whether they may create organizations (`permissions.can-create-organizations`). `GET /api/v2/platform/settings` returns the installation's `organization-creation` setting, `everyone` or `platform-admins`, which the deployment sets with `STACKWEAVER_ORGANIZATION_CREATION` or `platform.organizationCreation`. [Organization Settings](./organization-settings.md#creating-organizations) explains what the setting changes.
+For authenticated callers, missing platform standing or a missing platform-admin token
+scope returns 404. `GET /api/v2/account/details` and `GET /api/v2/platform/settings` are
+available to signed-in callers without that role. Account details report `is-site-admin`,
+`platform-admin-declared` and `permissions.can-create-organizations`; platform settings
+report `organization-creation`. See the [API reference](/api-reference) for operation schemas.
+
+## Manage catalogue versions with Terraform or OpenTofu
+
+Use the native provider's `stackweaver_terraform_version` resource or its
+`tfe_terraform_version` alias with a platform admin token. Follow the
+[provider setup](./terraform-provider.md) for the hostname, credentials and version pinning.
+Save this example alongside that provider configuration:
+
+```hcl
+variable "opentofu_version" {
+  type = string
+}
+
+variable "opentofu_download_url" {
+  type = string
+}
+
+variable "opentofu_sha256" {
+  type = string
+}
+
+resource "stackweaver_terraform_version" "approved" {
+  version = var.opentofu_version
+  url     = var.opentofu_download_url
+  sha     = var.opentofu_sha256
+  enabled = true
+}
+```
+
+Supply the version, Linux/amd64 archive URL and its verified SHA-256 from the release you
+intend to offer. For other runner architectures, configure the provider's `archs` entries
+as described in its resource reference. Do not use a dummy checksum or an untrusted binary.
+
+Review the plan before applying:
+
+```bash
+terraform plan
+terraform apply
+terraform state show stackweaver_terraform_version.approved
+```
+
+Check the result under **Settings > OpenTofu Versions**. Use `tofu` for the same sequence
+with OpenTofu. Set `enabled = false` to disable
+a catalogue entry. Deletion is refused for official entries and versions assigned to a
+workspace. A catalogue change is shared across the installation; review its effect before
+applying. The provider does not expose a role-grant resource for this guide's admin actions.
 
 ## Recovering a lost login
 
-StackWeaver has no recovery mechanism of its own, because signing in belongs to the identity layer. When a platform administrator cannot sign in, an operator resets their password in the Zitadel console at `/ui/console` on the auth host, as the [Zitadel Setup Guide](./authentication/zitadel-setup.md) describes.
+If a declared administrator cannot sign in, recover the identity account through your
+Zitadel administrator or your tested identity recovery procedure. Stackweaver does not
+manage identity passwords. The Zitadel console is normally at `/ui/console` on the auth
+host; see [Zitadel setup](./authentication/zitadel-setup.md#troubleshooting).
 
-When nobody can sign in to the console either, the `zitadel-init` machine user's personal access token still reaches Zitadel's management API. On Docker Compose it is the file `/pat/admin.pat` in the `zitadel-pat` volume; on Kubernetes it is the `admin-pat` key of the Zitadel Secret. With it you can set a new password for the account, or create a new human user that holds a declared address, marked as verified, which becomes a platform administrator at its first sign-in.
+If you have deployment access and another usable identity account, add its verified email
+to the declared list, redeploy or recreate the API, then have that user sign in. Changing
+the list does not fix a password, create an identity account or verify its email.
 
-To make someone else a platform administrator without signing in at all, add their address to `STACKWEAVER_PLATFORM_ADMINS` (or `platform.admins`), restart the API, and have them sign in.
+For installations using the bundled initializer, a persisted administrator PAT may support
+identity recovery: Docker Compose uses `/pat/admin.pat` in the `zitadel-pat` volume, and
+Kubernetes persists `admin-pat` in the Zitadel Secret. This requires a still-valid credential
+with the necessary Zitadel permissions. External identity installations may use a different
+credential source. Protect it as an identity administrator secret; use the recovery
+procedure for your deployed identity version rather than assuming it always works.
+
+| Symptom | Check |
+|---|---|
+| Platform pages are missing or show not found. | Confirm the account signed in after declaration, its verified email matches, and the API loaded the intended deployment list. |
+| UI works but the provider or admin API returns 404. | Use a personal token with **Platform admin** selected and confirm its owner still has the role. |
+| A declared account cannot be removed in the UI. | Remove its address from deployment configuration and reload the API configuration. Check the bootstrap fallback if the list becomes empty. |
+| Admin lookup finds no account. | Have the person sign in first, then use their complete account email address. |
