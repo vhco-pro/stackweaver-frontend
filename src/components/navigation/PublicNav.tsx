@@ -1,5 +1,6 @@
 // Copyright (c) 2025 VH & Co BV. Licensed under the Business Source License 1.1. See LICENSE for details.
 
+import { defaultLogo } from '@/lib/brandAssets';
 import { useState } from 'react';
 import { useMountEffect } from '@/hooks/useMountEffect';
 import { useNavigate, Link } from 'react-router-dom';
@@ -81,11 +82,11 @@ export function PublicNav({ activeLink = 'home', logoOpacity }: PublicNavProps) 
           className="flex items-center gap-3 hover:opacity-80 transition-opacity"
         >
           {logoOpacity ? (
-            <motion.img data-nav-logo src="/logo.png" alt="Stackweaver" className="h-8 w-8 md:h-10 md:w-10" style={{ opacity: logoOpacity }} />
+            <motion.img data-nav-logo src={defaultLogo} alt="Stackweaver" className="h-8 w-8 md:h-10 md:w-10" style={{ opacity: logoOpacity }} />
           ) : (
             <img
               data-nav-logo
-              src="/logo.png"
+              src={defaultLogo}
               alt="Stackweaver"
               className={`h-8 w-8 md:h-10 md:w-10 transition-opacity duration-500 ${
                 isScrolled ? 'opacity-100' : 'opacity-80'
@@ -293,7 +294,7 @@ export function PublicNav({ activeLink = 'home', logoOpacity }: PublicNavProps) 
           <SheetContent side="right" className="w-[280px] bg-white dark:bg-slate-900 border-l border-gray-200 dark:border-white/10">
             <SheetHeader>
               <SheetTitle className="flex items-center gap-2">
-                <img src="/logo.png" alt="Stackweaver" className="h-6 w-6" />
+                <img src={defaultLogo} alt="Stackweaver" className="h-6 w-6" />
                 <span className="bg-gradient-to-r from-blue-500 via-blue-600 to-purple-500 bg-clip-text text-transparent font-bold">
                   Stackweaver
                 </span>

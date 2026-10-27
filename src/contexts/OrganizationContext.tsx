@@ -74,12 +74,14 @@ export function OrganizationProvider({ children }: { children: ReactNode }) {
 
   // Persist current org to localStorage (side effect only - no state update).
   useEffect(() => {
+    // A public/app round trip must not erase the saved org before its query resolves.
+    if (loading) return;
     if (currentOrg) {
       localStorage.setItem('currentOrganization', currentOrg.name);
     } else {
       localStorage.removeItem('currentOrganization');
     }
-  }, [currentOrg]);
+  }, [currentOrg, loading]);
 
   const switchOrganization = useCallback((orgName: string) => {
     // Try to find the org in the current list

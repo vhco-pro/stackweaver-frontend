@@ -1,5 +1,6 @@
 // Copyright (c) 2025 VH & Co BV. Licensed under the Business Source License 1.1. See LICENSE for details.
 
+import { defaultLogo } from '@/lib/brandAssets';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { LogOut, Menu } from 'lucide-react';
@@ -34,7 +35,7 @@ export function Navbar({ onMenuClick }: NavbarProps) {
           </button>
           <Link to="/dashboard" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
             <img
-              src="/logo.png"
+              src={defaultLogo}
               alt="Stackweaver"
               className="h-8 w-8"
             />

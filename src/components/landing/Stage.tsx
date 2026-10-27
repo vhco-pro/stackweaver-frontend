@@ -1,5 +1,6 @@
 // Copyright (c) 2026 VH & Co BV. Licensed under the Business Source License 1.1. See LICENSE for details.
 
+import { defaultLogo } from '@/lib/brandAssets';
 import { useRef, useState, useSyncExternalStore, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { FileText, X } from 'lucide-react';
@@ -19,6 +20,7 @@ import { useInterval } from '@/hooks/useInterval';
 import { useTheme } from '@/contexts/ThemeContext';
 import { Button } from '@/components/ui/button';
 import { GradientButton } from '@/components/ui/gradient-button';
+import { TourImages } from '@/components/landing/TourImages';
 import { PublicNav } from '@/components/navigation/PublicNav';
 import { Slide } from '@/components/animate-ui/primitives/effects/slide';
 import { Shine } from '@/components/animate-ui/primitives/effects/shine';
@@ -104,7 +106,7 @@ function HeroCopy() {
 
 const HeroLogo = () => (
   <Slide direction="up" delay={200} inView inViewOnce>
-    <img src="/logo.png" alt="Stackweaver" className="h-32 w-32 md:h-48 md:w-48 lg:h-56 lg:w-56 drop-shadow-2xl" />
+    <img src={defaultLogo} alt="Stackweaver" className="h-32 w-32 md:h-48 md:w-48 lg:h-56 lg:w-56 drop-shadow-2xl" />
   </Slide>
 );
 
@@ -271,28 +273,7 @@ interface TourWindowProps {
 
 /** The product window: a browser frame around the capture of the active screen. */
 function TourWindow({ active, theme, onEnlarge, className }: TourWindowProps) {
-  const screens = (
-    <>
-      {TOUR_SCREENS.map((screen, i) => (
-        <img
-          key={screen.id}
-          data-tour-screen={screen.id}
-          data-active={i === active}
-          data-theme={theme}
-          src={screen.image[theme]}
-          alt={`Screenshot: ${screen.title}`}
-          aria-hidden={i !== active}
-          loading={i === 0 ? 'eager' : 'lazy'}
-          decoding="async"
-          draggable={false}
-          className={cn(
-            'absolute inset-0 w-full h-full object-cover object-top max-lg:object-[right_top] transition-opacity duration-300',
-            i === active ? 'opacity-100' : 'opacity-0'
-          )}
-        />
-      ))}
-    </>
-  );
+  const screens = <TourImages active={active} theme={theme} />;
   const frame = 'relative block w-full overflow-hidden bg-white dark:bg-slate-950 aspect-[1024/800] lg:aspect-[16/10]';
   return (
     <div
@@ -335,6 +316,9 @@ function TourWindow({ active, theme, onEnlarge, className }: TourWindowProps) {
 const startPastSidebar = (el: HTMLDivElement | null) => { el?.scrollTo(180, 0); };
 
 function ZoomOverlay({ screen, theme, onClose }: { screen: TourScreen; theme: 'dark' | 'light'; onClose: () => void }) {
+  const source = screen.image[theme];
+  const [loaded, setLoaded] = useState<string | null>(null);
+  const [failed, setFailed] = useState<string | null>(null);
   return (
     <div
       role="dialog"
@@ -353,7 +337,11 @@ function ZoomOverlay({ screen, theme, onClose }: { screen: TourScreen; theme: 'd
         <X className="h-4 w-4" />
         Close
       </button>
-      <img src={screen.image[theme]} alt={`Screenshot: ${screen.title}`} className="block w-[1100px] max-w-none" />
+      <img src={source} alt={`Screenshot: ${screen.title}`} width={1920} height={1200} className={cn('block w-[1100px] max-w-none', loaded === source ? 'visible' : 'invisible')} onLoad={(event) => {
+        const image = event.currentTarget;
+        void image.decode().then(() => { setLoaded(source); }).catch(() => { setFailed(source); });
+      }} onError={() => { setFailed(source); }} />
+      {loaded !== source && <div role="status" className="fixed top-20 left-4 rounded-lg bg-white px-4 py-2 text-slate-900">{failed === source ? 'Screenshot could not be loaded. Close and try again.' : 'Loading screenshot...'}</div>}
     </div>
   );
 }

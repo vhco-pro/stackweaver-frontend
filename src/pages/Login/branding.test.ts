@@ -16,7 +16,7 @@ import type { BrandingSettings } from '@/api/auth-client';
 //   1. The current theme's logoUrl, if set
 //   2. The OTHER theme's logoUrl as a fallback (some orgs only
 //      configure one)
-//   3. The Stackweaver default (`/logo.png`)
+//   3. The bundled Stackweaver default logo
 //
 // Watermark removed 2026-05-09 - Stackweaver login is obviously
 // Stackweaver; the redundant "Powered by Stackweaver" was dropped.
