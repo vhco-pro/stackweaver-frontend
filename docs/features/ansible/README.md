@@ -1,4 +1,6 @@
 ---
+title: "Ansible features"
+layout: overview
 description: "Ansible capabilities, execution limits and links to the guides for using them."
 covers:
   - "scripts/capabilities/**"

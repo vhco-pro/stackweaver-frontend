@@ -1,5 +1,7 @@
 ---
-description: "Overview of SSO federation with external identity providers including architecture and multi-tenant isolation"
+title: "Single sign-on"
+layout: overview
+description: "Connect your identity provider through Zitadel and control how people join your organizations."
 covers:
   - "scripts/zitadel-init/**"
   - "deploy/sso.env.example"
@@ -47,15 +49,6 @@ sequenceDiagram
 </details>
 
 Users are automatically provisioned in StackWeaver on their first login, but they do not have access to any organization until an administrator invites them or SSO group-to-team mapping is configured. The account is created with its email marked as verified, and a configured identity provider creates accounts even when public sign-up is off, so configure only providers that your organisation's people alone can sign in to (see [Email (SMTP) and sign-up](../../get-started/self-hosting/email.md)). If an account with the same email address already exists, the first SSO sign-in is refused and the person is asked to sign in with their password first.
-
-## Supported Providers
-
-| Provider | Type | Guide |
-|----------|------|-------|
-| Azure AD / Entra ID | Dedicated template | [Azure AD Setup](./azure-ad.md) |
-| Okta | Generic OIDC | [Okta Setup](./okta.md) |
-| AWS Cognito | Generic OIDC | [AWS Cognito Setup](./aws-cognito.md) |
-| Any OIDC provider | Generic OIDC | [Generic OIDC Setup](./generic-oidc.md) |
 
 ## Group-Based Team Mapping
 

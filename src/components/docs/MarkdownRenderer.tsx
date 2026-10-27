@@ -588,6 +588,8 @@ function parseCallout(children: ReactNode): ParsedCallout {
 export interface MarkdownRendererProps {
   content: string;
   className?: string;
+  // Generated overviews own the page title; authored context retains its other headings.
+  hideTitle?: boolean;
   enableCallouts?: boolean;
   enableCodeGroups?: boolean;
   enableMermaid?: boolean;
@@ -656,6 +658,7 @@ function getStatusStyle(status: string) {
 export function MarkdownRenderer({
   content,
   className,
+  hideTitle = false,
   enableCallouts = true,
   enableCodeGroups = true,
   enableMermaid = true,
@@ -761,6 +764,7 @@ export function MarkdownRenderer({
     return {
       // Headings with IDs for anchor links and TOC
       h1: ({ ...props }: MarkdownHeadingProps) => {
+        if (hideTitle) return null;
         const children = props.children;
         const text = extractTextFromChildren(children);
         const id = text.toLowerCase().replace(/\s+/g, '-').replace(/[^\w-]/g, '');
@@ -1180,17 +1184,14 @@ export function MarkdownRenderer({
           );
         }
 
-        // Check if this is an internal markdown link (for docs viewer)
-        // Internal links: end with .md, start with ./ or ../, or are relative paths
-        const isInternalLink = href && docPath && (
-          href.endsWith('.md') || 
-          href.startsWith('./') || 
-          href.startsWith('../') ||
-          (!href.startsWith('http://') && !href.startsWith('https://') && !href.startsWith('mailto:') && !href.startsWith('#') && !href.startsWith('/'))
-        );
+        // Only relative document URLs enter the collection router. A remote .md file
+        // is still external; keep its origin and fragment intact.
+        const isInternalLink = href && docPath && !/^(?:[a-z][a-z0-9+.-]*:|\/|#)/i.test(href);
 
         if (isInternalLink && href) {
-          let path = href;
+          const suffixAt = href.search(/[?#]/);
+          const suffix = suffixAt < 0 ? '' : href.slice(suffixAt);
+          let path = suffixAt < 0 ? href : href.slice(0, suffixAt);
 
           // currentDir is computed once outside useMemo and closed over here.
           
@@ -1219,7 +1220,7 @@ export function MarkdownRenderer({
           }
           
           // Build the /docs/* path
-          const to = path === '' || path === 'README' ? docsBase : `${docsBase}/${path}`;
+          const to = (path === '' || path === 'README' ? docsBase : `${docsBase}/${path}`) + suffix;
           
           return (
             <a
@@ -1277,7 +1278,7 @@ export function MarkdownRenderer({
         </div>
       ),
     };
-  }, [highlightedCode, docPath, docsBase, navigate, copiedCodeId, enableCallouts, enableCodeGroups, enableMermaid, onLinkClick, currentDir, scheduleHighlightFlush]);
+  }, [highlightedCode, docPath, docsBase, navigate, copiedCodeId, hideTitle, enableCallouts, enableCodeGroups, enableMermaid, onLinkClick, currentDir, scheduleHighlightFlush]);
 
   // Create a key based on highlighted code blocks to force ReactMarkdown to re-render
   // when highlighting completes. ReactMarkdown only re-processes when content changes,

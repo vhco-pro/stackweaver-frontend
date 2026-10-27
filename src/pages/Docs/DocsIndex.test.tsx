@@ -70,3 +70,39 @@ it('browses a generated folder without a README without requesting missing Markd
   expect(fetchMock.mock.calls.map(([url]) => url)).toEqual(expect.arrayContaining(['/docs-index.json', '/docs-redirects.json']));
   expect(fetchMock).toHaveBeenCalledTimes(2);
 });
+
+
+it('gives only an explicitly ordered first root section a lead, with open article rows', async () => {
+  const data = makeIndex('guides');
+  data.tree[0].nav_order = 10;
+  data.tree.push({ type: 'file', name: 'help.md', path: 'help.md', title: 'Help' });
+  fetchMock.mockResolvedValue(new Response(JSON.stringify(data)));
+  render(<DocsIndex />, { wrapper: wrapper() });
+  await screen.findByRole('heading', { name: 'guides overview' });
+  expect(screen.getByRole('article')).toHaveAttribute('data-overview-lead', 'true');
+  expect(screen.getByRole('link', { name: /Help/ }).closest('[data-overview-articles]')).not.toBeNull();
+});
+
+it('routes an opted-in README through the overview while retaining authored context', async () => {
+  const data = makeIndex('guides');
+  Object.assign(data.flat['guides/README.md'], { layout: 'overview', title: 'Guides' });
+  fetchMock.mockImplementation(input => {
+    const url = (typeof input === 'string' ? input : input instanceof URL ? input.href : input.url);
+    return Promise.resolve(new Response(url === '/docs-index.json' ? JSON.stringify(data) : url === '/docs-redirects.json' ? '{}' : '# Guides\n\nKeep this important context.'));
+  });
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  render(<MemoryRouter initialEntries={['/docs/guides']}><QueryClientProvider client={client}><Routes><Route path="/docs/*" element={<DocsViewer />} /></Routes></QueryClientProvider></MemoryRouter>);
+  expect(await screen.findByRole('link', { name: /Introduction/ })).toHaveAttribute('href', '/docs/guides/intro');
+  expect(await screen.findByText('Keep this important context.')).toBeVisible();
+  expect(screen.getAllByRole('heading', { level: 1 })).toHaveLength(1);
+});
+
+
+it('keeps opted-in root introduction links available on the generated homepage', async () => {
+  const data = makeIndex('guides');
+  data.flat['README.md'] = { type: 'file', name: 'README.md', path: 'README.md', layout: 'overview' };
+  fetchMock.mockImplementation(input => Promise.resolve(new Response((typeof input === 'string' ? input : input instanceof URL ? input.href : input.url) === '/docs-index.json' ? JSON.stringify(data) : '# Documentation\n\n[Read API guidance](./architecture/using-the-api.md)')));
+  render(<DocsIndex />, { wrapper: wrapper() });
+  expect(await screen.findByRole('link', { name: 'Read API guidance' })).toHaveAttribute('href', '/docs/architecture/using-the-api');
+  expect(screen.getAllByRole('heading', { level: 1 })).toHaveLength(1);
+});

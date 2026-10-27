@@ -34,7 +34,7 @@ try {
       const body = match[2];
       const data = {};
       // Basic YAML parsing for known frontmatter fields
-      const fields = ['title', 'description', 'status', 'status_description', 'author', 'priority', 'created', 'updated', 'issue', 'goal', 'nav_order'];
+      const fields = ['title', 'description', 'status', 'status_description', 'author', 'priority', 'created', 'updated', 'issue', 'goal', 'nav_order', 'layout'];
       for (const field of fields) {
         const re = new RegExp(`^${field}:\\s*(.+)$`, 'm');
         const fm = frontmatter.match(re);
@@ -380,6 +380,7 @@ function buildTree(files) {
         description: metadata.description,
         type: 'file',
         ...(metadata.status ? { status: metadata.status } : {}),
+        ...(metadata.layout === 'overview' ? { layout: 'overview' } : {}),
         ...(metadata.nav_order !== undefined ? { nav_order: metadata.nav_order } : {}),
       };
       continue;
@@ -402,6 +403,7 @@ function buildTree(files) {
       description: metadata.description,
       type: 'file',
       ...(metadata.status ? { status: metadata.status } : {}),
+        ...(metadata.layout === 'overview' ? { layout: 'overview' } : {}),
       ...(metadata.nav_order !== undefined ? { nav_order: metadata.nav_order } : {}),
     };
   }
@@ -453,6 +455,7 @@ function buildTree(files) {
         title: metadata.title,
         description: metadata.description,
         ...(metadata.status ? { status: metadata.status } : {}),
+        ...(metadata.layout === 'overview' ? { layout: 'overview' } : {}),
         ...(metadata.nav_order !== undefined ? { nav_order: metadata.nav_order } : {}),
       });
     }
