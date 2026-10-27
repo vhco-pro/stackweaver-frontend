@@ -1,5 +1,6 @@
 // Copyright (c) 2026 VH & Co BV. Licensed under the Business Source License 1.1. See LICENSE for details.
 
+import { useRouteIntent } from '@/components/routes/useRouteIntent';
 import { Link } from 'react-router-dom';
 import {
   AlertTriangle,
@@ -108,9 +109,11 @@ const ICONS: Record<AttentionKind, typeof AlertTriangle> = {
 
 function AttentionRow({ item }: { item: AttentionItem }) {
   const Icon = ICONS[item.kind];
+  const intent = useRouteIntent(item.href);
   return (
     <Link
       to={item.href}
+      {...intent}
       className={cn(
         'flex min-h-[44px] items-center gap-3 rounded-xl px-2 py-2 sm:px-3',
         'transition-colors hover:bg-black/5 dark:hover:bg-white/5',

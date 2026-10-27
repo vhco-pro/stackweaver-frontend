@@ -313,7 +313,7 @@
         },
         {
           "path": "frontend/src/pages/Dashboard/Organizations.tsx",
-          "sha256": "58cd9eddda34ee6f236f31bc5aa4697f87625c6d747cb894b34089bd955b8f8d"
+          "sha256": "e80cc62c302251e04bf1561aa23db5b035bbe65bb020230e6be070e1e93e8ad4"
         },
         {
           "path": "frontend/src/pages/Dashboard/attention.test.ts",
@@ -325,7 +325,7 @@
         },
         {
           "path": "frontend/src/pages/Dashboard/index.tsx",
-          "sha256": "7b8a62d6464671800607961712dc713e9337b1ed6c6f19e6f3789a8695402a57"
+          "sha256": "d787a8d479b84c9cf2f64c2b21fa8995c03d459ab15a3533a4512409023c439a"
         },
         {
           "path": "frontend/src/pages/Dashboard/onboarding.ts",

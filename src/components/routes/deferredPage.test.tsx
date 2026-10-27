@@ -63,4 +63,52 @@ describe('deferred page navigation', () => {
     expect(await screen.findByText('Loaded once')).toBeInTheDocument();
     expect(load).toHaveBeenCalledTimes(1);
   });
+  it('shares speculative work with foreground loading and rendering', async () => {
+    let finish!: (value: { default: () => React.JSX.Element }) => void;
+    const load = vi.fn(() => new Promise<{ default: () => React.JSX.Element }>(resolve => { finish = resolve; }));
+    const Destination = deferredPage(load);
+    const speculation = Destination.prefetch();
+    const foreground = Destination.preload();
+    render(<MemoryRouter><Destination /></MemoryRouter>);
+    await act(async () => { finish({ default: () => <p>Shared module</p> }); await foreground; await speculation; });
+    expect(await screen.findByText('Shared module')).toBeInTheDocument();
+    expect(load).toHaveBeenCalledTimes(1);
+  });
+
+  it('clears a failed speculation before React adopts it and lets navigation try again', async () => {
+    const load = vi.fn()
+      .mockRejectedValueOnce(new TypeError('Speculative download failed'))
+      .mockResolvedValue({ default: () => <p>Recovered destination</p> });
+    const Destination = deferredPage(load);
+    await expect(Destination.prefetch()).resolves.toBeUndefined();
+    render(<MemoryRouter><Destination /></MemoryRouter>);
+    expect(await screen.findByText('Recovered destination')).toBeInTheDocument();
+    expect(load).toHaveBeenCalledTimes(2);
+  });
+
+  it('retains recovery when a speculative import fails after React adopts it', async () => {
+    const errorLog = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    let fail!: (error: Error) => void;
+    const load = vi.fn(() => new Promise<{ default: () => React.JSX.Element }>((_, reject) => { fail = reject; }));
+    const Destination = deferredPage(load);
+    try {
+      const speculation = Destination.prefetch();
+      render(<MemoryRouter><Destination /></MemoryRouter>);
+      await act(async () => { fail(new TypeError('Download failed')); await speculation; });
+      expect(await screen.findByRole('alert')).toHaveTextContent('could not be loaded');
+      expect(screen.getByRole('button', { name: 'Reload page' })).toBeInTheDocument();
+      await expect(Destination.prefetch()).resolves.toBeUndefined();
+      expect(load).toHaveBeenCalledTimes(1);
+    } finally { errorLog.mockRestore(); }
+  });
+
+  it('absorbs a loader that throws before returning its speculative promise', async () => {
+    const load = vi.fn(() => Promise.resolve({ default: () => <p>Recovered synchronous failure</p> }));
+    load.mockImplementationOnce(() => { throw new Error('Module loader unavailable'); });
+    const Destination = deferredPage(load);
+    await expect(Destination.prefetch()).resolves.toBeUndefined();
+    render(<MemoryRouter><Destination /></MemoryRouter>);
+    expect(await screen.findByText('Recovered synchronous failure')).toBeInTheDocument();
+  });
+
 });
