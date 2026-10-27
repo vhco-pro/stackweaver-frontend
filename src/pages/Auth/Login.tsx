@@ -1,5 +1,6 @@
 // Copyright (c) 2025 VH & Co BV. Licensed under the Business Source License 1.1. See LICENSE for details.
 
+import { defaultLogo } from '@/lib/brandAssets';
 import { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { GradientButton } from '@/components/ui/gradient-button';
@@ -25,7 +26,7 @@ export default function Login() {
         <div className="text-center">
           <div className="flex justify-center mb-4">
             <img
-              src="/logo.png"
+              src={defaultLogo}
               alt="Stackweaver"
               className="h-24 w-24"
             />

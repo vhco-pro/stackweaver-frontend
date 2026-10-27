@@ -6,5 +6,9 @@
   {
     "id": "58fcf46a9684b83f688cebd65cad44d4e8839b1c",
     "reason": "Product-runtime dead-code cleanup also removes exported Go APIs. This is routed to the separate core-module compatibility/release channel, not treated as source-compatible or as a container-feature publication. The exported removals and migration references are retained in docs/internal/design/docs-bff-rebase-review.md for the module release follow-up; this product-component changelog makes no claim about module availability."
+  },
+  {
+    "commit": "c398866bb7d6f0e97e7dd032d875d7c5354b427d",
+    "reason": "Internal developer-workflow migration to shared vh-adlc triage. Changes agent routing, repository triage settings and migration verification only; product runtime, APIs, deployment behavior and published customer capabilities are unchanged."
   }
 ]

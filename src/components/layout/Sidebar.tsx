@@ -1,5 +1,6 @@
 // Copyright (c) 2025 VH & Co BV. Licensed under the Business Source License 1.1. See LICENSE for details.
 
+import { defaultLogo } from '@/lib/brandAssets';
 import { useState } from 'react';
 import { Link, useLocation, useParams } from 'react-router-dom';
 import { cn } from '@/lib/utils';
@@ -194,7 +195,7 @@ export function Sidebar({ isOpen = false, onClose, collapsed = false, onToggleCo
             className={cn("group flex items-center transition-all duration-300 hover:opacity-80", collapsed ? "justify-center" : "gap-3")}
           >
             <img
-              src="/logo.png"
+              src={defaultLogo}
               alt="Stackweaver"
               className="h-8 w-8 transition-transform duration-300 group-hover:scale-110 shrink-0"
             />

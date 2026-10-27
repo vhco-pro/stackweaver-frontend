@@ -419,5 +419,31 @@
       "frontend"
     ],
     "availability": []
+  },
+  {
+    "id": "landing-route-loading",
+    "title": "Load public pages independently of application screens",
+    "area": "Platform",
+    "kind": "Performance",
+    "reviewed": true,
+    "audience": "People opening the landing page, documentation, sign-in and application screens.",
+    "before": "Opening the landing page loaded unrelated application screens and an oversized default logo before the visitor could use the page.",
+    "after": "Pages load their code on demand, the default logo uses an optimized asset, and inactive tour images are deferred while the last decoded screenshot remains visible.",
+    "action": "No configuration changes are required. Reload an open page if a page update leaves an unavailable code chunk.",
+    "details": [
+      "Existing links, browser sessions, themes and landing-page layouts are preserved. Application navigation shows loading feedback and offers an explicit reload if a page cannot be downloaded.",
+      "Development and production share route isolation. Backend request latency is unchanged."
+    ],
+    "guides": [
+      {
+        "title": "Browser authentication",
+        "path": "/docs/user-guides/authentication"
+      }
+    ],
+    "sourceCommits": [],
+    "requiredComponents": [
+      "frontend"
+    ],
+    "availability": []
   }
 ]

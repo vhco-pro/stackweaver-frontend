@@ -4,7 +4,6 @@ import { type ReactNode, useState, useLayoutEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Menu, List } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { PublicNav } from '@/components/navigation/PublicNav';
 import { Footer } from '@/components/layout/Footer';
 import { resolveCollection, useDocsIndex, type DocsCollection } from './docsCollection';
 import { DocsSidebar } from './DocsSidebar';
@@ -113,9 +112,6 @@ export function DocsLayout({ children, docsBase: legacyBase, indexFile: legacyIn
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Public Navigation */}
-      <PublicNav activeLink="docs" />
-      
       {/* Mobile Navigation Bar - visible below lg breakpoint */}
       <div className="lg:hidden fixed top-[6.5rem] left-0 right-0 z-30 bg-background/95 backdrop-blur-xs border-b border-border/40 px-4 py-2 flex items-center justify-between gap-2">
         <Button
