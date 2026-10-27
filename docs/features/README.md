@@ -1,4 +1,6 @@
 ---
+title: "Platform features"
+layout: overview
 nav_order: 30
 description: "Find Stackweaver capabilities and their task guides across OpenTofu, Ansible and the platform."
 covers:

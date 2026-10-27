@@ -1,79 +1,14 @@
 ---
-description: "Top-level documentation index and navigation page"
+title: "Documentation"
+layout: overview
+description: "Guides, concepts and references for infrastructure automation."
 covers:
   - "frontend/src/pages/Docs/**"
   - "frontend/src/components/docs/**"
 ---
 
-# Documentation Index
+# Documentation
 
-Welcome to the StackWeaver documentation. This directory contains comprehensive documentation for developers, operators, and users of the orchestration platform.
+Use the folder tree to browse, or search titles and page content with **Ctrl+K** on Windows/Linux or **Cmd+K** on macOS. On a phone, open **Navigation** to browse folders.
 
-The [documentation homepage](/docs) presents the documentation folders as cards with descriptions, page counts, and article links. The sidebar preserves the same folder hierarchy. Open a folder to read its overview, or browse its generated contents when it has no overview article. Use search or press Ctrl+K on Windows and Linux, or Cmd+K on macOS, to search documentation titles and content.
-
-## Get Started
-
-- **[Get Started](./get-started/README.md)**: Overview of StackWeaver and how to get up and running
-- **[Your First OpenTofu Workspace](./get-started/your-first-opentofu-workspace.md)**
-- **[Running Your First Ansible Job](./get-started/your-first-ansible-job.md)**
-- **[Self-Hosting](./get-started/self-hosting/)**
-  - **[Environment Variables Reference](./get-started/self-hosting/environment-variables.md)**: All service environment variables
-  - **[Docker Compose](./get-started/self-hosting/docker-compose/)**: Deploy on a single machine with Docker Compose
-    - **[Cloudflare Tunnel](./get-started/self-hosting/docker-compose/cloud-flare-tunnel.md)**: Expose your Docker Compose stack publicly via Cloudflare Tunnel
-  - **[Kubernetes](./get-started/self-hosting/kubernetes/)**: Deploy on Kubernetes using the Helm chart
-    - **[Kubernetes Pull Secret for GHCR](./get-started/self-hosting/kubernetes/kubernetes-pull-secret-ghcr.md)**: Pull StackWeaver images in a private cluster
-
-## API Reference
-
-- **[API Reference](/docs/api-reference/explorer)**: Browse endpoints, request bodies, response schemas and examples in the standalone explorer.
-
-## Architecture
-
-- **[Architecture Overview](./architecture/README.md)**: System architecture, components, and end-to-end data flows
-
-Read [Using the API](./architecture/using-the-api.md) for authentication, pagination and OpenAPI guidance. Search from the overview or from the sidebar while reading an article.
-
-## Platform Features
-
-- **[Platform Features Overview](./features/README.md)**: What StackWeaver does and how the platform is organized
-
-### Terraform
-
-- **[Output Streaming](./features/opentofu/opentofu-streaming.md)**: Live streaming of plan/apply output with resource status updates
-- **[Run Timeout](./features/opentofu/run-timeout.md)**: Automatic cancellation for long-running runs
-- **[Run Cancellation](./features/opentofu/run-cancellation.md)**: Manually cancel queued/planning/applying runs
-- **[Workspace Editing](./features/opentofu/workspace-editing.md)**: Update workspace settings after creation
-- **[VCS Path Filtering](./features/opentofu/vcs-path-filtering.md)**: Trigger runs only when relevant paths change
-
-### Ansible
-
-- **[Ansible Overview](./features/ansible/README.md)**: How Ansible is modeled and executed in StackWeaver
-- **[API Reference](/docs/api-reference/explorer)**: The Ansible REST API endpoints are part of the API Reference, rendered in the [API explorer](/docs/api-reference/explorer)
-- **[Galaxy Collections](./features/ansible/galaxy-collections.md)**: Automatic collection installation via requirements files
-- **[Roadmap](./features/ansible/roadmap.md)**: What the Ansible integration provides today and the known gaps
-- **[Changelog](./features/ansible/changelog.md)**: User-visible changes to the Ansible feature set
-- **[Playbook Webhook Sync](./features/ansible-playbook-webhook-sync.md)**: Sync playbooks from VCS on webhook events
-
-### Dashboard
-
-- **[Dashboard](./features/dashboard/README.md)**: Unified dashboard and activity overview
-
-## User Guides
-
-- **[User Guides Overview](./user-guides/README.md)**: Practical, step-by-step workflows
-  - **[Authentication](./user-guides/authentication/README.md)**
-    - **[Zitadel Setup](./user-guides/authentication/zitadel-setup.md)**: Set up Zitadel for authentication
-    - **[Custom Domain](./user-guides/authentication/zitadel-custom-domain.md)**: Configure a custom domain for Zitadel
-  - **[VCS Integration](./user-guides/vcs/README.md)**
-    - **[GitHub App](./user-guides/vcs/github-app.md)**: Configure GitHub App integration for VCS connections
-    - **[Azure DevOps](./user-guides/vcs/azure-devops.md)**: Connect Azure DevOps repositories
-  - **[Understanding OpenTofu Runs](./user-guides/understanding-opentofu-runs.md)**
-  - **[Managing Workspace Variables](./user-guides/managing-workspace-variables.md)**
-  - **[Managing StackWeaver with Terraform](./user-guides/terraform-provider.md)**: Manage the platform as code with the official Terraform provider
-  - **[Troubleshooting Common Issues](./user-guides/troubleshooting-common-issues.md)**
-  - **[Single Sign-On (SSO)](./user-guides/sso/README.md)**: Federated authentication with external identity providers
-    - **[Azure AD / Entra ID](./user-guides/sso/azure-ad.md)**
-    - **[Okta](./user-guides/sso/okta.md)**
-    - **[AWS Cognito](./user-guides/sso/aws-cognito.md)**
-    - **[Generic OIDC Provider](./user-guides/sso/generic-oidc.md)**
-    - **[SSO Team Mapping](./user-guides/sso/team-mapping.md)**
+For endpoint schemas, open the [API explorer](/docs/api-reference/explorer). [Using the API](./architecture/using-the-api.md) explains API credentials and integration conventions.

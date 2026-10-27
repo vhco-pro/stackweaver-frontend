@@ -1,18 +1,14 @@
 ---
-description: "Self-hosting index linking to Docker Compose, Kubernetes, and environment variable docs"
+title: "Self-hosting"
+layout: overview
+description: "Choose Docker Compose or Kubernetes, then configure your installation."
 covers: []
 ---
 
-# Self-Hosting StackWeaver
+# Self-hosting
 
-Choose your deployment method:
+## Choose a deployment
 
-- **[Docker Compose](./docker-compose/)**: deploy on a single machine. Quickest way to get started for development, evaluation, or small-scale production.
-  - [Cloudflare Tunnel](./docker-compose/cloud-flare-tunnel.md): expose your Docker Compose stack publicly with a static hostname
+**Docker Compose** runs the stack on one machine. **Kubernetes** uses the Helm chart. Each deployment guide covers its own prerequisites, identity setup and checks.
 
-- **[Kubernetes](./kubernetes/)**: deploy on Kubernetes using the official Helm chart. Recommended for production.
-  - [Kubernetes Pull Secret for GHCR](./kubernetes/kubernetes-pull-secret-ghcr.md): pull StackWeaver images in a private cluster
-
-- **[Email (SMTP) and sign-up](./email.md)**: configure email for sign-up verification, password reset and email login codes, and choose who may create an account
-
-- **[Environment Variables Reference](./environment-variables.md)**: all environment variables for every service, regardless of deployment method
+After deployment, configure [email and sign-up](./email.md) and use the [environment variables reference](./environment-variables.md) for service settings. For a public hostname over a tunnel, see [Cloudflare Tunnel](./docker-compose/cloud-flare-tunnel.md). For image-pull failures, see [Kubernetes pull secrets](./kubernetes/kubernetes-pull-secret-ghcr.md).

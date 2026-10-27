@@ -32,7 +32,7 @@ export default function DocsViewer(props: CollectionProps) {
   const docPath = params['*'] || 'README';
   const isDevPrototype = import.meta.env.DEV && collection.id === 'internal' &&
     /\.html$/i.test(docPath);
-  const directoryPath = docPath.replace(/\/$/, '');
+  const directoryPath = docPath.replace(/\/$/, '').replace(/(?:^|\/)readme$/i, '');
   const indexOnlyDirectory = !!index && !!findDirectory(index.tree, directoryPath) &&
     !index.flat[`${directoryPath}/README.md`] && !index.flat[`${directoryPath}/readme.md`];
 
@@ -137,6 +137,14 @@ export default function DocsViewer(props: CollectionProps) {
         </div>
       </DocsLayout>
     );
+  }
+
+  if (index?.flat[`${directoryPath ? `${directoryPath}/` : ''}README.md`]?.layout === 'overview' ||
+      index?.flat[`${directoryPath}/readme.md`]?.layout === 'overview') {
+    return <DocsIndex collection={collection} folderPath={directoryPath}>
+      <MarkdownRenderer content={content} hideTitle docPath={docPath} docsBase={docsBase} isDirectoryPage={isDirectoryPage} />
+      <DocAnchorScroll />
+    </DocsIndex>;
   }
 
   return (

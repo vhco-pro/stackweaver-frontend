@@ -448,5 +448,36 @@
       "frontend"
     ],
     "availability": []
+  },
+  {
+    "id": "generated-docs-overviews",
+    "title": "Find guides through generated documentation overviews",
+    "area": "Platform",
+    "kind": "Changed",
+    "reviewed": true,
+    "audience": "Readers browsing the public documentation and hosts reusing its collection renderer.",
+    "before": "Section overviews used manually maintained directory lists or tables, and the documentation root presented uniformly sized folder cards.",
+    "after": "The root highlights its first explicitly ordered section. Opted-in section overviews show generated article rows and child-section cards while retaining authored setup guidance and generated capability references.",
+    "action": "No configuration changes are required. Existing guide URLs remain available.",
+    "details": [
+      "The existing viewer header, folder sidebar and article frame are preserved.",
+      "External Markdown links keep their original destination, and relative Markdown links with fragments resolve to the intended document heading.",
+      "Collection hosts can opt a navigation README into the overview layout through generated metadata; explanation READMEs remain articles."
+    ],
+    "guides": [
+      {
+        "title": "Get started",
+        "path": "/docs/get-started"
+      },
+      {
+        "title": "User guides",
+        "path": "/docs/user-guides"
+      }
+    ],
+    "sourceCommits": [],
+    "requiredComponents": [
+      "frontend"
+    ],
+    "availability": []
   }
 ]

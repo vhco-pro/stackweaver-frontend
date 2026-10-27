@@ -10,6 +10,7 @@ export interface DocTreeNode {
   description?: string;
   status?: string;
   nav_order?: number;
+  layout?: 'overview';
   children?: DocTreeNode[];
 }
 export interface DocsIndex {
@@ -88,7 +89,7 @@ export function homepageEntries(index: DocsIndex, folder = '', hideCompleted = f
     return {
       ...node, title: overview?.title && overview.title !== 'README' ? overview.title : docLabel(node),
       description: overview?.description || `Explore the ${docLabel(node).toLowerCase()} documentation.`,
-      count: countFiles(node), links: (node.children ?? []).filter(n => n.type === 'file' && !/^readme\.md$/i.test(n.name)).slice(0, 2),
+      count: countFiles(node), links: (node.children ?? []).filter(n => !/^readme\.md$/i.test(n.name)).slice(0, 2).map(n => n.type === 'directory' ? { ...n, title: index.flat[`${n.path}/README.md`]?.title ?? docLabel(n) } : n),
     };
   });
   return { folders, files: nodes.filter(n => n.type === 'file' && !/^readme\.md$/i.test(n.name)) };

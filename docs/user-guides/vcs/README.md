@@ -1,5 +1,7 @@
 ---
-description: "Index page for VCS integration guides"
+title: "VCS integrations"
+layout: overview
+description: "Connect GitHub or Azure DevOps repositories for infrastructure and Ansible workflows."
 covers: []
 capabilities: [
   {
@@ -17,15 +19,8 @@ capabilities: [
 ]
 ---
 
-# VCS Integration
+# VCS integrations
 
-Connect a version control system so StackWeaver can trigger OpenTofu runs from code pushes and pull requests.
+## Automate Azure DevOps registration
 
-## Providers
-
-- **[GitHub App](./github-app.md)** - Create and configure a GitHub App to enable self-service VCS connections for GitHub repositories.
-- **[Azure DevOps](./azure-devops.md)** - Connect Azure DevOps repositories using Microsoft Entra ID OAuth2.
-
-## Terraform Helpers
-
-- **[Entra ID Setup Module](./azure-devops.md#terraform-setup-declarative)** - A Terraform module that provisions the Microsoft Entra ID App Registration needed for the Azure DevOps VCS connection.
+The Azure DevOps guide includes a [Terraform setup module](./azure-devops.md#terraform-setup) for the Microsoft Entra ID app registration. Follow the provider guide for permissions and callback configuration before connecting repositories.
