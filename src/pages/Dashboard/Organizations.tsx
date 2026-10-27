@@ -1,5 +1,6 @@
 // Copyright (c) 2026 VH & Co BV. Licensed under the Business Source License 1.1. See LICENSE for details.
 
+import { useRouteIntent } from '@/components/routes/useRouteIntent';
 import { Link } from 'react-router-dom';
 import { ArrowRight, Building2 } from 'lucide-react';
 import type { DashboardOrgStats, DashboardStats } from '@/api/client';
@@ -80,6 +81,7 @@ export function Organizations({
 }
 
 function OrgCard({ org }: { org: DashboardOrgStats }) {
+  const intent = useRouteIntent(`/app/${org.name}/workspaces`);
   const running = org.active_terraform_runs + org.active_ansible_jobs;
   // Counts the standing problems, both platforms, so the card agrees with the attention list above
   // it. Recent failures and change requests are excluded here on purpose: they are events and
@@ -95,6 +97,7 @@ function OrgCard({ org }: { org: DashboardOrgStats }) {
   return (
     <Link
       to={`/app/${org.name}/workspaces`}
+      {...intent}
       className={cn(
         'group flex flex-col rounded-2xl p-5 shadow-lg backdrop-blur-md transition-all duration-300 hover:shadow-xl',
         'bg-gradient-to-br from-white/90 via-white/75 to-white/60 dark:from-black/10 dark:via-black/5 dark:to-transparent',

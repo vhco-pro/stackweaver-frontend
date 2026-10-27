@@ -9,12 +9,13 @@ import { NotificationProvider, useNotifications } from '@/contexts/NotificationC
 import { RunDisplayPreferencesProvider } from '@/contexts/RunDisplayPreferencesContext';
 import { NotificationContainer } from '@/components/notifications/NotificationContainer';
 import { ConnectionStatus } from '@/components/ConnectionStatus';
+import { RoutePreloadProvider } from '@/components/routes/RoutePreloadContext';
 import { preloadRoute } from '@/components/routes/preloadRoute';
 import { appRoutes } from './appRoutes';
 
 function AppRoutes() {
   const location = useLocation();
-  for (const match of matchRoutes(appRoutes, location) ?? []) preloadRoute(match.route.element);
+  for (const match of matchRoutes(appRoutes, location) ?? []) void preloadRoute(match.route.element);
   return useRoutes(appRoutes);
 }
 
@@ -22,12 +23,14 @@ function AppContent() {
   const { notifications, dismissNotification } = useNotifications();
   return (
     <BrowserRouter basename={config.basePath}>
-      <div className="min-h-screen bg-background">
-        <NotificationContainer notifications={notifications} onDismiss={dismissNotification} />
-        <ConnectionStatus />
-        <AppRoutes />
-        <Toaster />
-      </div>
+      <RoutePreloadProvider routes={appRoutes}>
+        <div className="min-h-screen bg-background">
+          <NotificationContainer notifications={notifications} onDismiss={dismissNotification} />
+          <ConnectionStatus />
+          <AppRoutes />
+          <Toaster />
+        </div>
+      </RoutePreloadProvider>
     </BrowserRouter>
   );
 }

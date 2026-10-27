@@ -1,5 +1,6 @@
 // Copyright (c) 2025 VH & Co BV. Licensed under the Business Source License 1.1. See LICENSE for details.
 
+import { useRouteIntent } from '@/components/routes/useRouteIntent';
 import { defaultLogo } from '@/lib/brandAssets';
 import { useState } from 'react';
 import { Link, useLocation, useParams } from 'react-router-dom';
@@ -49,6 +50,49 @@ interface SidebarProps {
   onClose?: () => void;
   collapsed?: boolean;
   onToggleCollapse?: () => void;
+}
+
+function SidebarItemLink({ item, active, collapsed, onClick }: { item: NavItem; active: boolean; collapsed: boolean; onClick: () => void }) {
+  const Icon = item.icon;
+  const intent = useRouteIntent(item.path);
+  return (
+  <Link
+    to={item.path}
+    {...intent}
+    onClick={onClick}
+    aria-current={active ? 'page' : undefined}
+    aria-label={collapsed ? item.label : undefined}
+    className={cn(
+      'group relative flex items-center rounded-xl text-sm font-medium transition-all duration-300',
+      collapsed ? 'justify-center px-2 py-2.5' : 'space-x-3 px-3 py-2.5',
+      // The active item is a gradient bar on the leading edge and a tint, with no
+      // border, ring or shadow: a boxed item reads as a button (decision N1, see
+      // docs/internal/guidelines/frontend/page-header-pattern.md). Open, the tint
+      // fades out across the row; collapsed there is no room to fade, so it is flat.
+      active
+        ? cn(
+            'font-semibold text-foreground',
+            collapsed
+              ? 'bg-indigo-500/20'
+              : 'bg-gradient-to-r from-indigo-500/25 via-blue-500/10 to-transparent'
+          )
+        : cn(
+            'text-muted-foreground hover:text-foreground',
+            'hover:bg-gradient-to-r hover:from-blue-500/10 hover:via-blue-600/10 hover:to-purple-500/10',
+            'hover:shadow-md hover:shadow-blue-500/10 hover:scale-[1.02]'
+          )
+    )}
+  >
+    {active && (
+      <span
+        data-active-bar
+        className="absolute left-0 top-1.5 bottom-1.5 w-[3px] rounded-full bg-gradient-to-b from-violet-500 via-indigo-500 to-blue-500 shadow-[0_0_10px_1px_rgb(99_102_241/0.55)]"
+      />
+    )}
+    <Icon className={cn('h-5 w-5 transition-transform duration-300 shrink-0', active && 'scale-110 text-indigo-600 dark:text-indigo-400')} />
+    {!collapsed && <span className="whitespace-nowrap">{item.label}</span>}
+  </Link>
+  );
 }
 
 export function Sidebar({ isOpen = false, onClose, collapsed = false, onToggleCollapse }: SidebarProps) {
@@ -231,49 +275,9 @@ export function Sidebar({ isOpen = false, onClose, collapsed = false, onToggleCo
                   (collapsed || expandedSections.has(section.id)) ? 'max-h-[640px] opacity-100' : 'max-h-0 opacity-0'
                 )}
               >
-                {section.items.map((item, index) => {
-                  const Icon = item.icon;
-                  const active = isActive(item.path);
-                  
-                  return (
-                    <Link
-                      key={`${item.path}-${item.label}-${index}`}
-                      to={item.path}
-                      onClick={handleLinkClick}
-                      aria-current={active ? 'page' : undefined}
-                      aria-label={collapsed ? item.label : undefined}
-                      className={cn(
-                        'group relative flex items-center rounded-xl text-sm font-medium transition-all duration-300',
-                        collapsed ? 'justify-center px-2 py-2.5' : 'space-x-3 px-3 py-2.5',
-                        // The active item is a gradient bar on the leading edge and a tint, with no
-                        // border, ring or shadow: a boxed item reads as a button (decision N1, see
-                        // docs/internal/guidelines/frontend/page-header-pattern.md). Open, the tint
-                        // fades out across the row; collapsed there is no room to fade, so it is flat.
-                        active
-                          ? cn(
-                              'font-semibold text-foreground',
-                              collapsed
-                                ? 'bg-indigo-500/20'
-                                : 'bg-gradient-to-r from-indigo-500/25 via-blue-500/10 to-transparent'
-                            )
-                          : cn(
-                              'text-muted-foreground hover:text-foreground',
-                              'hover:bg-gradient-to-r hover:from-blue-500/10 hover:via-blue-600/10 hover:to-purple-500/10',
-                              'hover:shadow-md hover:shadow-blue-500/10 hover:scale-[1.02]'
-                            )
-                      )}
-                    >
-                      {active && (
-                        <span
-                          data-active-bar
-                          className="absolute left-0 top-1.5 bottom-1.5 w-[3px] rounded-full bg-gradient-to-b from-violet-500 via-indigo-500 to-blue-500 shadow-[0_0_10px_1px_rgb(99_102_241/0.55)]"
-                        />
-                      )}
-                      <Icon className={cn('h-5 w-5 transition-transform duration-300 shrink-0', active && 'scale-110 text-indigo-600 dark:text-indigo-400')} />
-                      {!collapsed && <span className="whitespace-nowrap">{item.label}</span>}
-                    </Link>
-                  );
-                })}
+                {section.items.map((item, index) => (
+                  <SidebarItemLink key={`${item.path}-${item.label}-${index}`} item={item} active={isActive(item.path)} collapsed={collapsed} onClick={handleLinkClick} />
+                ))}
               </div>
             </div>
           ))}

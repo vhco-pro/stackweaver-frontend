@@ -479,5 +479,35 @@
       "frontend"
     ],
     "availability": []
+  },
+  {
+    "id": "application-navigation-warmup",
+    "title": "Prepare frequently visited application screens after the dashboard loads",
+    "area": "Platform",
+    "kind": "Performance",
+    "reviewed": true,
+    "audience": "People navigating from the dashboard into Workspaces, Playbooks and Job Templates.",
+    "before": "The first visit to each application screen downloaded its page code during navigation.",
+    "after": "After the signed-in dashboard finishes its initial requests, up to three frequently used screens prepare their code in the background. Hovering, focusing or pressing navigation links also prepares their destination.",
+    "action": "No configuration changes are required. Use the existing reload action if a page download fails.",
+    "details": [
+      "Background preparation loads code only. Resource data is requested when its screen opens, so backend response time still affects content readiness.",
+      "Idle preparation pauses for hidden tabs, offline browsers and restricted connections. Landing-page route isolation and existing navigation controls are preserved."
+    ],
+    "guides": [
+      {
+        "title": "Reading the dashboard",
+        "path": "/docs/user-guides/reading-the-dashboard"
+      }
+    ],
+    "sourceCommits": [],
+    "requiredComponents": [
+      "frontend"
+    ],
+    "availability": [],
+    "draftCommits": [
+      "2655d7d97e02beed699a0f46c1e5c2f63590556b",
+      "9f4fb13f9a257c84db3638b1a2d803f2f8098a80"
+    ]
   }
 ]

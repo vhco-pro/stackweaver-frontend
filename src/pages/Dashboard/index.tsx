@@ -1,5 +1,6 @@
 // Copyright (c) 2026 VH & Co BV. Licensed under the Business Source License 1.1. See LICENSE for details.
 
+import { useNavigationWarmup } from '@/hooks/useNavigationWarmup';
 import { LayoutDashboard } from 'lucide-react';
 import { Page } from '@/components/layout/Page';
 import { PageHeader } from '@/components/layout/PageHeader';
@@ -29,6 +30,7 @@ import { useDashboardStats } from './useDashboardData';
 export default function Dashboard() {
   const { session } = useAuth();
   const stats = useDashboardStats();
+  useNavigationWarmup();
 
   // Toasts for activity that arrives while the dashboard is open. Shares its query with the Recent
   // Activity card, so the two do not each poll the same endpoint.
