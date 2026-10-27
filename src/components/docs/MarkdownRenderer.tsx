@@ -981,7 +981,7 @@ export function MarkdownRenderer({
             }
             
             // Calculate hash for copy functionality
-            const codeHash = hashCode(`${lang}-${codeTextTrimmed.substring(0, 100)}`);
+            const codeHash = hashCode(`${lang}-${codeTextTrimmed}`);
             
             // Display language label (use original lang before mapping for display)
             const displayLang = lang === 'dotenv' ? 'env' : lang;
@@ -1138,7 +1138,7 @@ export function MarkdownRenderer({
         };
         
         const codeTextTrimmed = extractCodeText(children).trim();
-        const codeHash = hashCode(`${lang}-${codeTextTrimmed.substring(0, 100)}`);
+        const codeHash = hashCode(`${lang}-${codeTextTrimmed}`);
         
         // If already highlighted, return marker for pre to pick up and replace
         // Note: pre component will replace this entire <pre><code> with a div

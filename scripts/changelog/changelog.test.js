@@ -199,3 +199,38 @@ test('Git fixture tests preserve the enclosing hook repository', t => {
   assert.equal(git('rev-parse', 'HEAD'), head, 'temporary fixture tests must not commit to the enclosing hook repository');
   assert.equal(git('show-ref'), refs, 'temporary fixture tests must not change the enclosing repository refs');
 });
+
+test('independent release refresh retains verified components and leaves incomplete changes unpublished', async t => {
+  const root = workspace(); t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  const f = fixture();
+  const cfg = { ...config, components: { ...config.components, runner: { repository: 'vhco-pro/runner', artifact: 'ghcr.io/vhco-pro/runner' } } };
+  for (const [endpoint, value] of Object.entries({ ...f.api })) {
+    const mirrored = JSON.parse(JSON.stringify(value).replaceAll('stackweaver-api', 'runner'));
+    if (endpoint.endsWith('/releases/latest')) mirrored.assets = [];
+    f.api[endpoint.replace('stackweaver-api', 'runner')] = mirrored;
+  }
+  const standalone = { ...entry(), availability: [] };
+  const dependent = { ...entry(), id: 'runner-dependent', title: 'Requires both components', requiredComponents: ['api', 'runner'], availability: [] };
+  const result = await require('./index.js').refreshReleases(cfg, [standalone, dependent], [], f.io);
+  assert.deepEqual(result.failures.map(failure => failure.component), ['runner']);
+  assert.match(result.failures[0].message, /Missing published artifact provenance/);
+  assert.deepEqual(result.releases.map(release => release.id), ['api@1.2.3']);
+  assert.deepEqual(result.changes[0].availability, ['api@1.2.3']);
+  assert.deepEqual(result.changes[1].availability, []);
+  assert.deepEqual(standalone.availability, [], 'refresh does not mutate reviewed inputs');
+  const markdown = render({ config: cfg, ...result, docsRoot: path.join(root, 'docs') });
+  assert.match(markdown, /Failed syncs preserve inventory/);
+  assert.doesNotMatch(markdown, /Requires both components/);
+});
+
+test('release entries lead with user impact and action while preserving historical context', t => {
+  const root = workspace(); t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  const change = entry();
+  const markdown = render({ config, changes: [change], releases: [release()], docsRoot: path.join(root, 'docs') });
+  const details = markdown.indexOf('<details>');
+  assert.ok(markdown.indexOf(change.after) < markdown.indexOf('**Action:**'));
+  assert.ok(markdown.indexOf('**Action:**') < details);
+  assert.ok(markdown.indexOf(change.before) > details, 'prior behavior remains available as supporting context');
+  assert.ok(markdown.includes(change.audience));
+  assert.ok(markdown.includes(change.details[0]));
+});

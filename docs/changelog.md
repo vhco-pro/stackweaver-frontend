@@ -10,13 +10,308 @@ covers:
 
 # Stackweaver changelog
 
-Review changes that affect your deployment and follow the linked guides for current instructions.
-Component versions identify releases confirmed to include a change. They are not minimum supported versions or a single Stackweaver product version.
+Read the action for changes that affect your deployment, then follow the linked guides for current instructions.
+Confirmed available by is the date of the latest required component publication in the recorded evidence, not the first release containing a change. Listed component versions are not minimum supported versions or a single Stackweaver product version.
 
 ## Browse by area
 
 - API and integrations: [Explore the API through one generated reference](#change-generated-api-reference)
-- Ansible: [Constructed inventories accept derived hosts and groups only](#change-constructed-derived-only) · [Failed inventory syncs preserve the last successful inventory](#change-failed-inventory-sync) · [Jobs warn when inventory refresh did not succeed](#change-inventory-refresh-warning)
+- Accounts: [Keep the verified email while a new address awaits verification](#change-verified-profile-email)
+- Administration: [Separate install-wide administration from organization ownership](#change-platform-admin-access)
+- Ansible: [Configure Ansible repository access through VCS connections](#change-ansible-vcs-credential-boundary) · [Constructed inventories accept derived hosts and groups only](#change-constructed-derived-only) · [Failed inventory syncs preserve the last successful inventory](#change-failed-inventory-sync) · [Jobs warn when inventory refresh did not succeed](#change-inventory-refresh-warning)
+- Authentication: [Browser sign-in uses a server-side session](#change-browser-sessions-bff)
+- Documentation: [Read product changes and upgrade actions in one changelog](#change-docs-quality-changelog) · [Browse documentation from a generated homepage](#change-generated-docs-homepages) · [Find guides through generated documentation overviews](#change-generated-docs-overviews) · [Clearer guides with maintained visuals and generated references](#change-public-docs-quality-workflow)
+- Platform: [Load public pages independently of application screens](#change-landing-route-loading)
+- Runners: [Require explicit registration scopes and confirmed runner bindings](#change-runner-registration-boundaries)
+- VCS: [Reject unsupported VCS providers when creating connections](#change-supported-vcs-connections)
+
+## Confirmed available by 2026-10-27
+
+<a id="change-ansible-vcs-credential-boundary" style="scroll-margin-top: 7rem"></a>
+
+### Configure Ansible repository access through VCS connections
+
+Ansible · Changed
+
+**For:** People configuring repository access for Ansible automation.
+
+The unsupported scm API credential type and the unused vcs UI option are removed from creation. Existing stored credentials are not migrated or deleted.
+
+**Action:** Configure repository access through a VCS connection instead of creating an Ansible SCM credential.
+
+**Confirmed in:** [API 0.17.37](https://github.com/vhco-pro/stackweaver-api/releases/tag/0.17.37) · [frontend 0.74.0](https://github.com/vhco-pro/stackweaver-frontend/releases/tag/0.74.0)
+
+<details>
+<summary>Previous behavior and scope</summary>
+
+**Before:** The API and UI exposed SCM/VCS credential options that execution did not consume.
+
+- Existing stored credential rows are not migrated or deleted by this change. Supported machine, vault and cloud credentials retain their own execution roles.
+
+</details>
+
+[Register Ansible playbooks and repository access](/docs/user-guides/managing-ansible-playbooks#before-you-start)
+
+<a id="change-browser-sessions-bff" style="scroll-margin-top: 7rem"></a>
+
+### Browser sign-in uses a server-side session
+
+Authentication · Changed
+
+**For:** Browser users and operators upgrading Stackweaver.
+
+The API signs in as a confidential Zitadel client and gives the browser an opaque HttpOnly session cookie. The SPA holds no OAuth token.
+
+**Action:** Create the confidential BFF application and provide its credentials before an external-Zitadel upgrade. Preserve HTTPS, the app URL and cookie/CSRF headers. Sign in again after upgrading; replace Zitadel bearer tokens in scripts with tfe- API tokens.
+
+**Confirmed in:** [API 0.17.37](https://github.com/vhco-pro/stackweaver-api/releases/tag/0.17.37) · [frontend 0.74.0](https://github.com/vhco-pro/stackweaver-frontend/releases/tag/0.74.0) · [zitadel init 0.8.0](https://github.com/vhco-pro/stackweaver-zitadel-init/releases/tag/0.8.0) · [helm 0.15.0](https://github.com/vhco-pro/stackweaver-helm/releases/tag/0.15.0)
+
+<details>
+<summary>Previous behavior and scope</summary>
+
+**Before:** Browser authentication depended on OAuth tokens held by the SPA.
+
+- Default session limits are one hour idle, twelve hours absolute and a five-minute identity liveness check. Unknown identity liveness retries after 30 seconds; idle and absolute expiry remain effective.
+- Required sign-in factors must be verified before completing login. Existing browser sessions do not resynchronize SSO groups; changes apply at the next sign-in.
+- Bundled initializers reconcile a one-hour Zitadel access-token lifetime for other applications. Configure a different lifetime explicitly when required; that lifetime does not control BFF browser-session duration.
+- Scripts, Terraform CLI and runners use their programmatic credentials rather than browser-session cookies. Use tfe- API tokens where an API token is required.
+
+</details>
+
+[Browser sessions and confidential-client setup](/docs/user-guides/authentication/zitadel-setup)
+
+<a id="change-docs-quality-changelog" style="scroll-margin-top: 7rem"></a>
+
+### Read product changes and upgrade actions in one changelog
+
+Documentation · Added
+
+**For:** Readers of Stackweaver documentation.
+
+The central changelog explains affected users, upgrade actions and confirmed availability for each required component.
+
+**Action:** Read the action for each relevant change and compare its component release links with your installation. The listed versions are confirmation evidence, not a minimum supported bundle.
+
+**Confirmed in:** [frontend 0.74.0](https://github.com/vhco-pro/stackweaver-frontend/releases/tag/0.74.0)
+
+<details>
+<summary>Previous behavior and scope</summary>
+
+**Before:** Feature-specific notes and component release pages were separate starting points for understanding changes.
+
+- Only reviewed entries with complete component evidence appear in the feed. Earlier notes remain available during the separate history review.
+
+</details>
+
+[Verify release artifacts](/docs/security/verifying-releases)
+
+<a id="change-generated-docs-homepages" style="scroll-margin-top: 7rem"></a>
+
+### Browse documentation from a generated homepage
+
+Documentation · Added
+
+**For:** Readers of Stackweaver documentation.
+
+The documentation homepage groups sections with descriptions and a prominent search. Its destinations come from the generated documentation index.
+
+**Action:** No configuration change is required. Use the documentation navigation to find the relevant guide.
+
+**Confirmed in:** [frontend 0.74.0](https://github.com/vhco-pro/stackweaver-frontend/releases/tag/0.74.0)
+
+<details>
+<summary>Previous behavior and scope</summary>
+
+**Before:** Finding a starting guide meant following individual article links.
+
+- Existing article links remain available.
+
+</details>
+
+[Get started](/docs/get-started) · [Task guides](/docs/user-guides)
+
+<a id="change-generated-docs-overviews" style="scroll-margin-top: 7rem"></a>
+
+### Find guides through generated documentation overviews
+
+Documentation · Changed
+
+**For:** Readers finding setup instructions and task guides in the documentation.
+
+The main overview highlights the first section. Section pages combine folder cards and article links, while keeping their setup guidance and capability references.
+
+**Action:** No configuration changes are required. Existing guide URLs remain available.
+
+**Confirmed in:** [frontend 0.74.0](https://github.com/vhco-pro/stackweaver-frontend/releases/tag/0.74.0)
+
+<details>
+<summary>Previous behavior and scope</summary>
+
+**Before:** Section overviews used manually maintained directory lists or tables, and the documentation root presented uniformly sized folder cards.
+
+- The existing viewer header, folder sidebar and article frame are preserved.
+- External Markdown links keep their original destination, and relative Markdown links with fragments resolve to the intended document heading.
+- Generated folder navigation stays in step with available documentation. Explanatory articles retain their authored content.
+
+</details>
+
+[Get started](/docs/get-started) · [User guides](/docs/user-guides)
+
+<a id="change-landing-route-loading" style="scroll-margin-top: 7rem"></a>
+
+### Load public pages independently of application screens
+
+Platform · Performance
+
+**For:** People opening the landing page, documentation, sign-in and application screens.
+
+Public pages open without downloading unrelated application screens. Navigation shows loading feedback and offers a reload action if the requested page cannot be downloaded.
+
+**Action:** No configuration changes are required. Reload an open page if a page update leaves an unavailable code chunk.
+
+**Confirmed in:** [frontend 0.74.0](https://github.com/vhco-pro/stackweaver-frontend/releases/tag/0.74.0)
+
+<details>
+<summary>Previous behavior and scope</summary>
+
+**Before:** Opening the landing page loaded unrelated application screens and an oversized default logo before the visitor could use the page.
+
+- Existing links, browser sessions, themes and landing-page layouts are preserved. Application navigation shows loading feedback and offers an explicit reload if a page cannot be downloaded.
+- The landing tour defers inactive screenshots and keeps its last loaded image visible during a transition. Backend request latency is unchanged.
+
+</details>
+
+[Browser authentication](/docs/user-guides/authentication)
+
+<a id="change-platform-admin-access" style="scroll-margin-top: 7rem"></a>
+
+### Separate install-wide administration from organization ownership
+
+Administration · Changed
+
+**For:** Installation administrators and automation managing the OpenTofu version catalogue.
+
+Platform administrators manage installation-wide resources without receiving organization membership. Organization owners do not receive platform privileges.
+
+**Action:** Declare installation administrators, especially with external Zitadel. Mint a personal token explicitly carrying platform:admin for install-wide provider automation; plain CLI, organization and team tokens do not grant it.
+
+**Confirmed in:** [API 0.17.37](https://github.com/vhco-pro/stackweaver-api/releases/tag/0.17.37) · [frontend 0.74.0](https://github.com/vhco-pro/stackweaver-frontend/releases/tag/0.74.0) · [zitadel init 0.8.0](https://github.com/vhco-pro/stackweaver-zitadel-init/releases/tag/0.8.0) · [helm 0.15.0](https://github.com/vhco-pro/stackweaver-helm/releases/tag/0.15.0)
+
+<details>
+<summary>Previous behavior and scope</summary>
+
+**Before:** Install-wide operations did not have the current explicit platform-administrator boundary.
+
+- The bundled bootstrap administrator is the fallback when the declared administrator list is empty. External identity installations must declare their administrators.
+- Organization default OpenTofu versions are configured in organization settings. Organization creation remains open to signed-in users unless the installation restricts it to platform administrators.
+
+</details>
+
+[Platform administration](/docs/user-guides/platform-administration)
+
+<a id="change-public-docs-quality-workflow" style="scroll-margin-top: 7rem"></a>
+
+### Clearer guides with maintained visuals and generated references
+
+Documentation · Changed
+
+**For:** Readers and operators using the public Stackweaver documentation.
+
+Reviewed guides provide visible configuration examples, maintained product screenshots and focused diagrams. A generated capability catalogue and central changelog keep repeated facts in their source pipelines.
+
+**Action:** Use the current task guides and canonical references. No deployment configuration change is required for this documentation update.
+
+**Confirmed in:** [frontend 0.74.0](https://github.com/vhco-pro/stackweaver-frontend/releases/tag/0.74.0)
+
+<details>
+<summary>Previous behavior and scope</summary>
+
+**Before:** Public guides mixed task instructions with implementation history and repeated reference lists, while screenshots had no shared freshness check.
+
+- The original Ansible changelog remains available while its migration is reviewed.
+- Documentation images use the active light or dark theme when expanded, and optional background uses the shared disclosure styling.
+- Security guides distinguish verified release evidence from compliance claims, and linked live Scorecard badges remain available in both themes.
+
+</details>
+
+[Task guides](/docs/user-guides) · [Generated feature catalogue](/docs/features)
+
+<a id="change-verified-profile-email" style="scroll-margin-top: 7rem"></a>
+
+### Keep the verified email while a new address awaits verification
+
+Accounts · Changed
+
+**For:** People changing their account email address.
+
+The account retains its verified address while the proposed address is reported as unconfirmed-email. Verified sign-in synchronizes the new address.
+
+**Action:** Complete verification through the configured identity service and sign in with the verified account. A deployment without the profile service refuses a changed email.
+
+**Confirmed in:** [API 0.17.37](https://github.com/vhco-pro/stackweaver-api/releases/tag/0.17.37) · [frontend 0.74.0](https://github.com/vhco-pro/stackweaver-frontend/releases/tag/0.74.0)
+
+<details>
+<summary>Previous behavior and scope</summary>
+
+**Before:** A profile edit could replace the stored email before the new address was verified.
+
+- Resubmitting the same address, ignoring case, does not trigger another verification request.
+
+</details>
+
+[Identity and browser sign-in](/docs/user-guides/authentication/zitadel-setup)
+
+## Confirmed available by 2026-10-26
+
+<a id="change-runner-registration-boundaries" style="scroll-margin-top: 7rem"></a>
+
+### Require explicit registration scopes and confirmed runner bindings
+
+Runners · Changed
+
+**For:** Operators registering self-hosted runners or reading agent-pool queue depth.
+
+Registration requires an explicit runner registration scope. Failed or mismatched binding checks refuse the request.
+
+**Action:** Use an explicitly scoped runner-registration credential or a pool-bound agent token. Replace unscoped or wildcard general-purpose registration keys.
+
+**Confirmed in:** [API 0.17.37](https://github.com/vhco-pro/stackweaver-api/releases/tag/0.17.37)
+
+<details>
+<summary>Previous behavior and scope</summary>
+
+**Before:** General-purpose registration credentials and failed binding lookups could be treated too broadly.
+
+- Registration requires org:&lt;organization-id&gt;:runner:register. A mismatched pool or organization is refused; an unreadable pool binding is a server error rather than unrestricted access.
+- An intentionally unbound but correctly scoped registration credential can still name a pool in its organization.
+
+</details>
+
+[Self-hosted runner credentials](/docs/user-guides/self-hosted-runners)
+
+<a id="change-supported-vcs-connections" style="scroll-margin-top: 7rem"></a>
+
+### Reject unsupported VCS providers when creating connections
+
+VCS · Changed
+
+**For:** People or automation creating VCS connections.
+
+Connection creation accepts the implemented github and azure\_devops providers and rejects unsupported values immediately.
+
+**Action:** Use GitHub or Azure DevOps for a new connection. Review existing placeholder connections; this change does not migrate or delete them.
+
+**Confirmed in:** [API 0.17.37](https://github.com/vhco-pro/stackweaver-api/releases/tag/0.17.37)
+
+<details>
+<summary>Previous behavior and scope</summary>
+
+**Before:** Placeholder provider connections could be accepted and then fail when used.
+
+
+</details>
+
+[VCS integrations](/docs/user-guides/vcs)
 
 ## Confirmed available by 2026-10-18
 
@@ -26,9 +321,7 @@ Component versions identify releases confirmed to include a change. They are not
 
 Ansible · Changed
 
-Anyone who added hosts or groups by hand, through the API or through Terraform to a constructed inventory.
-
-Hand-created rows could coexist with derived inventory even though a rebuild replaces the materialized set. Earlier rebuilds could also leave stale hosts and empty groups behind.
+**For:** Anyone who added hosts or groups by hand, through the API or through Terraform to a constructed inventory.
 
 Hosts and groups come from the inputs and rules. Writes that create a host, group or source, add group membership, or move a group under another are refused with 409 Conflict. The next successful rebuild removes stale rows, including manually added rows that are not derived.
 
@@ -37,7 +330,9 @@ Hosts and groups come from the inputs and rules. Writes that create a host, grou
 **Confirmed in:** [API 0.17.22](https://github.com/vhco-pro/stackweaver-api/releases/tag/0.17.22) · [frontend 0.70.3](https://github.com/vhco-pro/stackweaver-frontend/releases/tag/0.70.3) · [ansible runner 0.6.113](https://github.com/vhco-pro/stackweaver-ansible-runner/releases/tag/0.6.113)
 
 <details>
-<summary>Scope and behavior details</summary>
+<summary>Previous behavior and scope</summary>
+
+**Before:** Hand-created rows could coexist with derived inventory even though a rebuild replaces the materialized set. Earlier rebuilds could also leave stale hosts and empty groups behind.
 
 - Reading inventory, disabling a host, and deleting hosts, groups or memberships remain available. Other inventory types are unaffected.
 - A parsing failure preserves the last successful build. Removal of stale rows happens after a successful rebuild.
@@ -45,7 +340,7 @@ Hosts and groups come from the inputs and rules. Writes that create a host, grou
 
 </details>
 
-[Constructed inventory setup and constraints](/docs/user-guides/dynamic-inventories#constructed-inventories)
+[Constructed inventory setup and constraints](/docs/user-guides/dynamic-inventories#build-a-constructed-inventory)
 
 <a id="change-failed-inventory-sync" style="scroll-margin-top: 7rem"></a>
 
@@ -53,9 +348,7 @@ Hosts and groups come from the inputs and rules. Writes that create a host, grou
 
 Ansible · Fixed
 
-Operators of dynamic inventory sources, especially sources with overwrite enabled.
-
-An authentication, connectivity or configuration failure could be recorded as a successful sync with no hosts. With overwrite enabled, that result could remove every host and group owned by the source.
+**For:** Operators of dynamic inventory sources, especially sources with overwrite enabled.
 
 These failures are recorded as failed syncs. The output includes the plugin error, and the last successful hosts and groups remain available.
 
@@ -64,7 +357,9 @@ These failures are recorded as failed syncs. The output includes the plugin erro
 **Confirmed in:** [API 0.17.22](https://github.com/vhco-pro/stackweaver-api/releases/tag/0.17.22) · [ansible runner 0.6.113](https://github.com/vhco-pro/stackweaver-ansible-runner/releases/tag/0.6.113)
 
 <details>
-<summary>Scope and behavior details</summary>
+<summary>Previous behavior and scope</summary>
+
+**Before:** An authentication, connectivity or configuration failure could be recorded as a successful sync with no hosts. With overwrite enabled, that result could remove every host and group owned by the source.
 
 - The preservation rule also applies to a constructed inventory build that cannot parse an input or its rules. It keeps the last successful hosts, groups and memberships.
 - A failed refresh and a successful empty result are different outcomes. Overwrite continues to prune rows after a successful sync; it is not disabled by this fix.
@@ -79,9 +374,7 @@ These failures are recorded as failed syncs. The output includes the plugin erro
 
 API and integrations · Changed
 
-People integrating Stackweaver with automation and API clients.
-
-Separate endpoint catalogues could disagree about available operations and request fields.
+**For:** People integrating Stackweaver with automation and API clients.
 
 The API explorer presents the generated operation descriptions, parameters and response examples in one place.
 
@@ -90,7 +383,9 @@ The API explorer presents the generated operation descriptions, parameters and r
 **Confirmed in:** [frontend 0.70.3](https://github.com/vhco-pro/stackweaver-frontend/releases/tag/0.70.3)
 
 <details>
-<summary>Scope and behavior details</summary>
+<summary>Previous behavior and scope</summary>
+
+**Before:** Separate endpoint catalogues could disagree about available operations and request fields.
 
 - The narrative integration guide links to the operation reference rather than maintaining another endpoint catalogue.
 
@@ -104,9 +399,7 @@ The API explorer presents the generated operation descriptions, parameters and r
 
 Ansible · Added
 
-Anyone launching jobs against inventory with update-on-launch sources.
-
-A job could continue after a failed pre-launch inventory refresh without clearly telling you that its hosts came from an earlier sync.
+**For:** Anyone launching jobs against inventory with update-on-launch sources.
 
 The job still runs against the last successfully synced hosts, with a warning above its tabs and at the start of its output. A refresh still running after 30 minutes also stops holding the job and produces a warning. If the source has never synced successfully, the job runs without hosts from that source.
 
@@ -115,7 +408,9 @@ The job still runs against the last successfully synced hosts, with a warning ab
 **Confirmed in:** [API 0.17.22](https://github.com/vhco-pro/stackweaver-api/releases/tag/0.17.22) · [frontend 0.70.3](https://github.com/vhco-pro/stackweaver-frontend/releases/tag/0.70.3)
 
 <details>
-<summary>Scope and behavior details</summary>
+<summary>Previous behavior and scope</summary>
+
+**Before:** A job could continue after a failed pre-launch inventory refresh without clearly telling you that its hosts came from an earlier sync.
 
 - Each warning identifies the source and reason, with the last successful sync time when one exists. A timeout warning means the sync has not finished; it does not mean the sync completed with an error.
 - The warning is available with platform and self-hosted runners, including ad hoc commands and launches from schedules and workflows.
