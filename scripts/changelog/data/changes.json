@@ -298,7 +298,9 @@
     "requiredComponents": [
       "opentofu-runner"
     ],
-    "availability": []
+    "availability": [
+      "opentofu-runner@0.2.29"
+    ]
   },
   {
     "id": "platform-admin-access",
@@ -542,11 +544,15 @@
         "path": "/docs/user-guides/platform-administration"
       }
     ],
-    "sourceCommits": [],
+    "sourceCommits": [
+      "a0997b335430e4c5a6793ebea8184f4c3f5ec28a"
+    ],
     "requiredComponents": [
       "frontend"
     ],
-    "availability": []
+    "availability": [
+      "frontend@0.74.2"
+    ]
   },
   {
     "id": "changelog-independent-release-evidence",
@@ -567,11 +573,15 @@
         "path": "/docs/security/verifying-releases"
       }
     ],
-    "sourceCommits": [],
+    "sourceCommits": [
+      "a0997b335430e4c5a6793ebea8184f4c3f5ec28a"
+    ],
     "requiredComponents": [
       "frontend"
     ],
-    "availability": []
+    "availability": [
+      "frontend@0.74.2"
+    ]
   },
   {
     "id": "application-navigation-warmup",
@@ -593,14 +603,44 @@
         "path": "/docs/user-guides/reading-the-dashboard"
       }
     ],
-    "sourceCommits": [],
+    "sourceCommits": [
+      "0eb79ee23e730457ab4eb7fa6aa58005b98528ce"
+    ],
     "requiredComponents": [
       "frontend"
     ],
-    "availability": [],
+    "availability": [
+      "frontend@0.74.2"
+    ],
     "draftCommits": [
       "2655d7d97e02beed699a0f46c1e5c2f63590556b",
       "9f4fb13f9a257c84db3638b1a2d803f2f8098a80"
     ]
+  },
+  {
+    "id": "changelog-registry-provenance",
+    "title": "Collect release history from verified registry provenance",
+    "area": "Documentation",
+    "kind": "Fixed",
+    "reviewed": true,
+    "audience": "Contributors refreshing the central changelog.",
+    "before": "Releases without an attached provenance file could not establish availability even when they published valid GitHub artifact attestations.",
+    "after": "The read-only refresh can verify published OCI provenance with the exact release identity when the GitHub Release has no provenance attachment.",
+    "action": "Use the current GitHub CLI and review the refreshed evidence snapshot before publication. No running-deployment change is required.",
+    "details": [
+      "The artifact digest, tag commit, source sync and successful release run must agree.",
+      "An invalid attachment or failed cryptographic verification still fails closed."
+    ],
+    "guides": [
+      {
+        "title": "Verify released artifacts",
+        "path": "/docs/security/verifying-releases"
+      }
+    ],
+    "sourceCommits": [],
+    "requiredComponents": [
+      "frontend"
+    ],
+    "availability": []
   }
 ]

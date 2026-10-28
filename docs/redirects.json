@@ -18,6 +18,7 @@
     "features/terraform/run-timeout": "features/opentofu/run-timeout",
     "features/ansible/api-reference": "architecture/using-the-api",
     "api-reference": "architecture/using-the-api",
-    "api-reference/README": "architecture/using-the-api"
+    "api-reference/README": "architecture/using-the-api",
+    "features/ansible/changelog": "changelog"
   }
 }

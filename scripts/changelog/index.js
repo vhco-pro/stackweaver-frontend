@@ -63,7 +63,10 @@ function validateRelease(r, config) {
   requireValue(SHA.test(r.tagCommit) && SHA.test(r.sourceCommit) && SHA.test(r.sync?.mergeCommit), 'Invalid release source SHA');
   requireValue(new RegExp('^' + prefix.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + 'pull/[0-9]+$').test(r.sync.url), 'Invalid sync evidence');
   requireValue(r.workflow?.conclusion === 'success' && r.workflow.headSha === r.tagCommit && r.workflow.url.startsWith(prefix + 'actions/runs/'), 'Missing successful release workflow');
-  requireValue(r.artifact?.name === component.artifact && /^sha256:[a-f0-9]{64}$/.test(r.artifact?.digest) && r.artifact.provenanceUrl === prefix + `releases/download/${r.tag}/provenance.intoto.jsonl`, 'Missing or inconsistent artifact evidence');
+  const provenanceUrl = r.artifact?.evidence === 'github-attestation'
+    ? `https://api.github.com/repos/${r.repository}/attestations/${r.artifact.digest}`
+    : prefix + `releases/download/${r.tag}/provenance.intoto.jsonl`;
+  requireValue(r.artifact?.name === component.artifact && /^sha256:[a-f0-9]{64}$/.test(r.artifact?.digest) && r.artifact.provenanceUrl === provenanceUrl, 'Missing or inconsistent artifact evidence');
   unique(r.includedCommits, 'included commits');
   requireValue(r.includedCommits.every(s => SHA.test(s)), 'Invalid inclusion SHA');
 }
@@ -165,12 +168,28 @@ async function collectRelease(componentId, config, changes, io) {
   const run = runs.workflow_runs.find(r => r.path === '.github/workflows/release.yml' && r.conclusion === 'success' && r.status === 'completed' && r.head_sha === commit.sha);
   requireValue(run, 'No successful publication workflow for released tag');
   const asset = release.assets.find(a => a.name === 'provenance.intoto.jsonl');
-  requireValue(asset, 'Missing published artifact provenance');
-  const bundles = (await io.asset(repo, asset.id)).trim().split('\n').map(line => JSON.parse(line));
-  const subjects = bundles.flatMap(bundle => {
-    const envelope = bundle.dsseEnvelope;
-    requireValue(envelope?.payload, 'Missing provenance envelope');
-    const statement = JSON.parse(Buffer.from(envelope.payload, 'base64').toString('utf8'));
+  requireValue(asset || typeof io.attestation === 'function', 'Missing published artifact provenance');
+  let statements;
+  if (asset) {
+    // An invalid attachment must fail rather than silently selecting another source.
+    statements = (await io.asset(repo, asset.id)).trim().split('\n').map(line => {
+      const envelope = JSON.parse(line).dsseEnvelope;
+      requireValue(envelope?.payload, 'Missing provenance envelope');
+      return JSON.parse(Buffer.from(envelope.payload, 'base64').toString('utf8'));
+    });
+  } else {
+    // The adapter invokes gh's cryptographic verifier, never a raw bundle decoder.
+    const verified = await io.attestation(repo, component.artifact, release.tag_name);
+    requireValue(Array.isArray(verified) && verified.length > 0, 'Missing verified registry provenance');
+    statements = verified.map(item => {
+      const result = item.verificationResult, certificate = result?.signature?.certificate;
+      requireValue(certificate?.subjectAlternativeName === `https://github.com/${repo}/.github/workflows/release.yml@refs/tags/${release.tag_name}`
+        && certificate.issuer === 'https://token.actions.githubusercontent.com'
+        && certificate.sourceRepositoryDigest === commit.sha, 'Registry provenance signer or source mismatch');
+      return result.statement;
+    });
+  }
+  const subjects = statements.flatMap(statement => {
     const definition = statement.predicate?.buildDefinition;
     const workflow = definition?.externalParameters?.workflow;
     const invocation = statement.predicate?.runDetails?.metadata?.invocationId;
@@ -191,7 +210,10 @@ async function collectRelease(componentId, config, changes, io) {
       includedCommits.add(sha);
     }
   }
-  const result = { id, component: componentId, repository: repo, tag: release.tag_name, tagCommit: commit.sha, publishedAt: release.published_at, url: release.html_url, sourceCommit, sync: { url: pr.html_url, mergeCommit: pr.merge_commit_sha }, workflow: { url: run.html_url, conclusion: run.conclusion, headSha: run.head_sha }, artifact: { name: subjects[0].name, digest: 'sha256:' + subjects[0].digest.sha256, provenanceUrl: asset.browser_download_url }, includedCommits: [...includedCommits].sort() };
+  const digest = 'sha256:' + subjects[0].digest.sha256;
+  const artifact = { name: subjects[0].name, digest, provenanceUrl: asset ? asset.browser_download_url : `https://api.github.com/repos/${repo}/attestations/${digest}` };
+  if (!asset) artifact.evidence = 'github-attestation';
+  const result = { id, component: componentId, repository: repo, tag: release.tag_name, tagCommit: commit.sha, publishedAt: release.published_at, url: release.html_url, sourceCommit, sync: { url: pr.html_url, mergeCommit: pr.merge_commit_sha }, workflow: { url: run.html_url, conclusion: run.conclusion, headSha: run.head_sha }, artifact, includedCommits: [...includedCommits].sort() };
   validateRelease(result, config);
   return result;
 }

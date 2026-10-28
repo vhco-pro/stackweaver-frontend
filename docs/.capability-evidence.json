@@ -84,7 +84,7 @@
     {
       "id": "ansible-credentials",
       "guide": "features/ansible/roadmap.md",
-      "guideHash": "5e062823e4ae5158eadeae71a1f4b82727bf98b1291b0f405321b68f0763275f",
+      "guideHash": "4bc08a58913c2f0a1b3d0eb4c317d1ed4be9c6a7244d5c1f5c62e6416828e439",
       "metadataHash": "0b80ef1e74d686989125d22c1047bd3927655708e6414bd7e511c43b00ba188d",
       "evidence": [
         {
@@ -160,7 +160,7 @@
     {
       "id": "ansible-notifications",
       "guide": "features/ansible/roadmap.md",
-      "guideHash": "5e062823e4ae5158eadeae71a1f4b82727bf98b1291b0f405321b68f0763275f",
+      "guideHash": "4bc08a58913c2f0a1b3d0eb4c317d1ed4be9c6a7244d5c1f5c62e6416828e439",
       "metadataHash": "fbb5784f344b7236a3f07fdd23e9af2f61e50c7e2362a1be23dfc8c2228f6e93",
       "evidence": [
         {
