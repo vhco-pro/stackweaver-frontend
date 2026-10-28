@@ -1,0 +1,5 @@
+# Optional public-indexing override. Keep the same project name as the base install.
+services:
+  frontend:
+    volumes:
+      - ./public-site-settings.conf:/etc/nginx/public-site-settings.conf:ro

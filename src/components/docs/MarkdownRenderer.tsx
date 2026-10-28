@@ -1,15 +1,17 @@
 // Copyright (c) 2025 VH & Co BV. Licensed under the Business Source License 1.1. See LICENSE for details.
 
+import { useDocsEnvironment } from './DocsEnvironment';
 import { Children, isValidElement, useState, useRef, useMemo, type ReactNode, type KeyboardEvent } from 'react';
 import { useMountEffect } from '@/hooks/useMountEffect';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeRaw from 'rehype-raw';
 import { cn } from '@/lib/utils';
 import { glassSurface } from '@/lib/surfaces';
 import './disclosures.css';
-import { Copy, Check, ChevronRight } from 'lucide-react';
+import { ChevronRight } from 'lucide-react';
+import { DocsCodeBlock } from './DocsCodeBlock';
 import { JsonSyntaxHighlighter } from '@/components/code/JsonSyntaxHighlighter';
 import { CalloutBox, type CalloutType } from '@/components/docs/CalloutBox';
 import { CodeGroup } from '@/components/docs/CodeGroup';
@@ -109,6 +111,7 @@ function darkVariant(src: string): string {
  */
 function DocImage({ src, alt, title, currentDir, docsBase, onLightbox }: DocImageProps) {
   const { resolvedTheme } = useTheme();
+  const { assetUrl } = useDocsEnvironment();
   const isDark = resolvedTheme === 'dark';
   const [darkFailed, setDarkFailed] = useState(false);
   const [lastSrc, setLastSrc] = useState(src);
@@ -144,7 +147,7 @@ function DocImage({ src, alt, title, currentDir, docsBase, onLightbox }: DocImag
     setDarkFailed(false);
   }
 
-  const activeSrc = isDark && !darkFailed ? darkVariant(resolvedSrc) : resolvedSrc;
+  const activeSrc = assetUrl(isDark && !darkFailed ? darkVariant(resolvedSrc) : resolvedSrc);
 
   const handleClick = () => {
     if (activeSrc) onLightbox(activeSrc, alt ?? '');
@@ -668,6 +671,8 @@ export function MarkdownRenderer({
   onLinkClick,
 }: MarkdownRendererProps) {
   const navigate = useNavigate();
+  const location = useLocation();
+  const { staticRender, assetUrl } = useDocsEnvironment();
   const [highlightedCode, setHighlightedCode] = useState<Record<string, string>>({});
   const [copiedCodeId, setCopiedCodeId] = useState<string | null>(null);
   const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
@@ -680,7 +685,7 @@ export function MarkdownRenderer({
   const flushScheduledRef = useRef(false);
 
   const scheduleHighlightFlush = useRef(() => {
-    if (flushScheduledRef.current) return;
+    if (staticRender || flushScheduledRef.current) return;
     flushScheduledRef.current = true;
     queueMicrotask(() => {
       flushScheduledRef.current = false;
@@ -1000,35 +1005,14 @@ export function MarkdownRenderer({
               };
 
               return (
-                <div className="shiki-wrapper">
-                  <div className="flex items-center justify-between px-3 py-1.5 border-b border-border/20" style={{ backgroundColor: 'transparent' }}>
-                    <span className="text-sm text-muted-foreground font-mono lowercase">
-                      {displayLang}
-                    </span>
-                    <button
-                      onClick={() => { void handleCopy(); }}
-                      className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors ml-auto"
-                    >
-                      {copiedCodeId === codeId ? (
-                        <>
-                          <Check className="h-4 w-4" />
-                          <span>Copied</span>
-                        </>
-                      ) : (
-                        <>
-                          <Copy className="h-4 w-4" />
-                          <span>Copy code</span>
-                        </>
-                      )}
-                    </button>
-                  </div>
+                <DocsCodeBlock language={displayLang} copied={copiedCodeId === codeId} onCopy={handleCopy}>
                   <JsonSyntaxHighlighter 
                     json={codeTextTrimmed} 
                     maxHeight="none"
                     className="border-0 bg-transparent"
                     stringColor="green"
                   />
-                </div>
+                </DocsCodeBlock>
               );
             }
             
@@ -1054,35 +1038,9 @@ export function MarkdownRenderer({
               const displayLang = lang === 'text' ? '' : (lang === 'dotenv' ? 'env' : lang);
 
               return (
-                <div
-                  className="shiki-wrapper"
-                  data-language={lang}
-                >
-                  <div className="flex items-center justify-between px-3 py-1.5 border-b border-border/20" style={{ backgroundColor: 'transparent' }}>
-                    {displayLang && (
-                      <span className="text-sm text-muted-foreground font-mono lowercase">
-                        {displayLang}
-                      </span>
-                    )}
-                    <button
-                      onClick={() => { void handleCopy(); }}
-                      className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors ml-auto"
-                    >
-                      {copiedCodeId === codeId ? (
-                        <>
-                          <Check className="h-4 w-4" />
-                          <span>Copied</span>
-                        </>
-                      ) : (
-                        <>
-                          <Copy className="h-4 w-4" />
-                          <span>Copy code</span>
-                        </>
-                      )}
-                    </button>
-                  </div>
+                <DocsCodeBlock language={displayLang} copied={copiedCodeId === codeId} onCopy={handleCopy}>
                   <div dangerouslySetInnerHTML={{ __html: html }} />
-                </div>
+                </DocsCodeBlock>
               );
             }
           }
@@ -1174,7 +1132,7 @@ export function MarkdownRenderer({
           return (
             <a
               {...props}
-              href={href}
+              href={href?assetUrl(href):href}
               onClick={(e) => {
                 e.preventDefault();
                 onLinkClick(href);
@@ -1225,8 +1183,9 @@ export function MarkdownRenderer({
           return (
             <a
               {...props}
-              href={to}
+              href={assetUrl(to)}
               onClick={(e) => {
+                if(e.button!==0||e.metaKey||e.ctrlKey||e.shiftKey||e.altKey) return;
                 e.preventDefault();
                 void Promise.resolve(navigate(to));
               }}
@@ -1239,7 +1198,7 @@ export function MarkdownRenderer({
         return (
           <a
             {...props}
-            href={href}
+            href={href?.startsWith('#')?assetUrl(location.pathname)+href:href?assetUrl(href):href}
             target={href?.startsWith('http://') || href?.startsWith('https://') ? '_blank' : undefined}
             rel={href?.startsWith('http://') || href?.startsWith('https://') ? 'noopener noreferrer' : undefined}
             className="text-primary underline hover:text-primary/80"
@@ -1278,7 +1237,7 @@ export function MarkdownRenderer({
         </div>
       ),
     };
-  }, [highlightedCode, docPath, docsBase, navigate, copiedCodeId, hideTitle, enableCallouts, enableCodeGroups, enableMermaid, onLinkClick, currentDir, scheduleHighlightFlush]);
+  }, [assetUrl, location.pathname, highlightedCode, docPath, docsBase, navigate, copiedCodeId, hideTitle, enableCallouts, enableCodeGroups, enableMermaid, onLinkClick, currentDir, scheduleHighlightFlush]);
 
   // Create a key based on highlighted code blocks to force ReactMarkdown to re-render
   // when highlighting completes. ReactMarkdown only re-processes when content changes,
@@ -1330,7 +1289,7 @@ export function MarkdownRenderer({
               Superseded
             </span>
             <a
-              href={to}
+              href={assetUrl(to)}
               onClick={(e) => { e.preventDefault(); void navigate(to); }}
               className="text-primary underline hover:text-primary/80 font-mono text-xs"
             >

@@ -131,6 +131,13 @@ For public domains, follow [Configure a Zitadel domain](../../../user-guides/aut
 and reconcile persistent identity settings and registered redirects. A reverse proxy or
 [Cloudflare Tunnel](./cloud-flare-tunnel.md) does not change those registrations for you.
 
+### Public pages and indexing
+
+Public product pages and documentation share the app hostname. The frontend requests
+exclusion from search by default. To publish those pages, use the bundle's optional
+`docker-compose.public-site.yml` override and configure your own HTTPS address with
+[Public pages and search indexing](../public-site.md#docker-compose).
+
 ### HTTPS and browser sessions
 
 

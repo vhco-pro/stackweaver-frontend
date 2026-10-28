@@ -1,5 +1,7 @@
 // Copyright (c) 2025 VH & Co BV. Licensed under the Business Source License 1.1. See LICENSE for details.
 
+import { useDocsEnvironment } from './DocsEnvironment';
+import { DocsCodeBlock } from './DocsCodeBlock';
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useMountEffect } from '@/hooks/useMountEffect';
@@ -160,7 +162,21 @@ export interface CodeExplorerProps {
   docsBase?: string;
 }
 
-export function CodeExplorer({ path, defaultFile = '', docsBase = '/docs' }: CodeExplorerProps) {
+export function CodeExplorer(props:CodeExplorerProps) {
+  const { staticRender, files } = useDocsEnvironment();
+  if (!staticRender) return <InteractiveCodeExplorer {...props}/>;
+  const root=`${props.docsBase??'/docs'}/${props.path}`;
+  const text=files?.[root+'.explorer.json'];
+  if(!text) throw new Error(`Missing static code explorer: ${root}`);
+  const manifest=JSON.parse(text) as ExplorerManifest;
+  return <div className="docs-static-explorer">{manifest.files.map(file=>{
+    const body=files?.[root+'/'+file.path];
+    if(body===undefined) throw new Error(`Missing static explorer source: ${root}/${file.path}`);
+    return <section key={file.path}><h3>{file.path}</h3><DocsCodeBlock language={file.lang}><pre><code>{body}</code></pre></DocsCodeBlock></section>;
+  })}</div>;
+}
+function InteractiveCodeExplorer({ path, defaultFile = '', docsBase = '/docs' }: CodeExplorerProps) {
+  const { assetUrl } = useDocsEnvironment();
   const [selectedFile, setSelectedFile] = useState<string>(defaultFile);
   const [selectedLang, setSelectedLang] = useState<string>('text');
   const [copied, setCopied] = useState(false);
@@ -188,7 +204,7 @@ export function CodeExplorer({ path, defaultFile = '', docsBase = '/docs' }: Cod
   const { data: manifest = null, isError: manifestError } = useQuery({
     queryKey: ['docs-code-explorer', docsBase, path],
     queryFn: async (): Promise<ExplorerManifest> => {
-      const r = await fetch(`${docsBase}/${path}.explorer.json`);
+      const r = await fetch(assetUrl(`${docsBase}/${path}.explorer.json`));
       if (!r.ok) throw new Error(`${r.status}`);
       return (await r.json()) as ExplorerManifest;
     },
@@ -214,7 +230,7 @@ export function CodeExplorer({ path, defaultFile = '', docsBase = '/docs' }: Cod
   const { data: fileContent = null, isError: contentError } = useQuery({
     queryKey: ['docs-code-explorer-file', docsBase, path, selectedFile],
     queryFn: async (): Promise<string> => {
-      const r = await fetch(`${docsBase}/${path}/${selectedFile}`);
+      const r = await fetch(assetUrl(`${docsBase}/${path}/${selectedFile}`));
       if (!r.ok) throw new Error(`${r.status}`);
       return await r.text();
     },
@@ -273,7 +289,7 @@ export function CodeExplorer({ path, defaultFile = '', docsBase = '/docs' }: Cod
       const folder = zip.folder(manifest.root)!;
       await Promise.all(
         manifest.files.map(async (file) => {
-          const res = await fetch(`${docsBase}/${path}/${file.path}`);
+          const res = await fetch(assetUrl(`${docsBase}/${path}/${file.path}`));
           const blob = await res.blob();
           folder.file(file.path, blob);
         })

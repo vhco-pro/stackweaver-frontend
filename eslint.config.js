@@ -7,7 +7,8 @@ import reactRefresh from 'eslint-plugin-react-refresh'
 import tseslint from 'typescript-eslint'
 
 export default [
-  { ignores: ['dist'] },
+  { ignores: ['dist', '.public-build'] },
+  { files: ['scripts/**/*.mjs', 'tests/**/*.mjs'], languageOptions: { globals: globals.node } },
   js.configs.recommended,
   ...tseslint.configs.recommended,
   // Type-aware linting for TypeScript files (catches build errors)

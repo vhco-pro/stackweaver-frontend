@@ -4,8 +4,12 @@ import { ProtectedRoute } from '@/components/ProtectedRoute';
 import { internalDocs } from '@/components/docs/docsCollection';
 import { deferredPage } from '@/components/routes/deferredPage';
 import { DocsShell } from '@/components/routes/DocsShell';
+import { PublicNotFound } from '@/components/blog/PublicNotFound';
 import Landing from './pages/Landing';
 
+const AnsiblePublic = deferredPage(() => import('./pages/Blog/Ansible'), 'AnsiblePublic');
+const Blog = deferredPage(() => import('./pages/Blog/Index'), 'Blog');
+const BlogArticle = deferredPage(() => import('./pages/Blog/Article'), 'BlogArticle');
 const ApplicationProviders = deferredPage(() => import('@/components/routes/ApplicationProviders'), 'ApplicationProviders');
 
 const Layout = deferredPage(async () => ({ default: (await import('@/components/layout/Layout')).Layout }), 'Layout');
@@ -82,6 +86,10 @@ const AnsibleWorkflows = deferredPage(() => import('./pages/Ansible/Workflows'),
 
 export const appRoutes = createRoutesFromElements(<>
 
+              <Route path="/ansible" element={<AnsiblePublic />} />
+              <Route path="/blog" element={<Blog />} />
+              <Route path="/compare/:slug" element={<BlogArticle />} />
+              <Route path="/blog/:slug" element={<BlogArticle />} />
               <Route path="/landing" element={<Landing />} />
               <Route path="/privacy" element={<Privacy />} />
               <Route path="/terms" element={<Terms />} />
@@ -905,4 +913,5 @@ export const appRoutes = createRoutesFromElements(<>
               }
             />
             </Route>
+              <Route path="*" element={<PublicNotFound />} />
 </>);

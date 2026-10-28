@@ -688,5 +688,33 @@
       "zitadel-init"
     ],
     "availability": []
+  },
+  {
+    "id": "public-site-seo-foundations",
+    "title": "Public pages and configurable search indexing",
+    "area": "Platform",
+    "kind": "Added",
+    "reviewed": true,
+    "audience": "People evaluating Stackweaver and operators publishing its public pages.",
+    "before": "Public routes depended on the browser application shell, and missing crawler files could return successful HTML.",
+    "after": "Public product pages and documentation have initial HTML, page metadata and canonical URLs. A shared catalogue generates the sitemap; private application routes retain the application shell and noindex policy. Unknown public pages and missing assets return 404.",
+    "action": "Search indexing is opt-in. Configure the installation HTTPS URL and enable public indexing when you intend to publish it. Helm uses frontend.publicSite.url and frontend.publicSite.indexing; the Compose guide provides an optional nginx settings override. Review callbacks and trusted origins separately when changing the app hostname.",
+    "details": [
+      "Self-hosted deployments retain their own domain. An unconfigured installation requests noindex and does not expose a sitemap.",
+      "Only published articles enter the production blog and sitemap. Draft comparisons remain excluded.",
+      "Documentation and articles use the same code-block presentation; deployment and static-render adapters stay separate from application services."
+    ],
+    "guides": [
+      {
+        "title": "Public pages and search indexing",
+        "path": "/docs/get-started/self-hosting/public-site"
+      }
+    ],
+    "sourceCommits": [],
+    "requiredComponents": [
+      "frontend",
+      "helm"
+    ],
+    "availability": []
   }
 ]

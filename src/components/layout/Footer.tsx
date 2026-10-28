@@ -12,6 +12,8 @@ interface FooterLink {
 
 const RESOURCES: FooterLink[] = [
   { label: 'GitHub', href: 'https://github.com/vhco-pro' },
+  { label: 'Blog', href: '/blog' },
+  { label: 'Ansible automation', href: '/ansible' },
   { label: 'Documentation', href: '/docs' },
   { label: 'API Reference', href: '/docs/api-reference/explorer' },
   { label: 'Support', href: 'https://github.com/vhco-pro/.github/blob/main/SUPPORT.md' },

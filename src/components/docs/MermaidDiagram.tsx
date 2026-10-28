@@ -1,5 +1,6 @@
 // Copyright (c) 2025 VH & Co BV. Licensed under the Business Source License 1.1. See LICENSE for details.
 
+import { useDocsEnvironment } from './DocsEnvironment';
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Maximize2 } from 'lucide-react';
@@ -21,6 +22,7 @@ interface MermaidDiagramProps {
  * In inline mode: click to open an enlarged view in a modal.
  */
 export function MermaidDiagram({ code, className = '' }: MermaidDiagramProps) {
+  const { staticRender } = useDocsEnvironment();
   const [expandOpen, setExpandOpen] = useState(false);
   const [id] = useState(() => `mermaid-${Math.random().toString(36).slice(2, 11)}`);
   const { resolvedTheme: theme } = useTheme();
@@ -39,6 +41,8 @@ export function MermaidDiagram({ code, className = '' }: MermaidDiagramProps) {
     retry: false,
   });
   const error = renderError ? (renderError instanceof Error ? renderError.message : String(renderError)) : null;
+
+  if (staticRender) return <figure className="my-4"><figcaption>Diagram definition</figcaption><pre className="overflow-auto"><code>{code}</code></pre></figure>;
 
   if (error) {
     return (

@@ -1,5 +1,6 @@
 // Copyright (c) 2025 VH & Co BV. Licensed under the Business Source License 1.1. See LICENSE for details.
 
+import { useDocsEnvironment } from '@/components/docs/DocsEnvironment';
 import { useState, useRef, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Search, FileText, X, Clock, Hash } from 'lucide-react';
@@ -121,6 +122,7 @@ export function DocsSearch({ docsBase = '/docs', searchIndexFile = '/docs-search
 }
 
 function SearchSession({ docsBase = '/docs', searchIndexFile = '/docs-search-index.json', shortcut = true, prominent = false }: DocsSearchProps) {
+  const { assetUrl } = useDocsEnvironment();
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
@@ -139,7 +141,7 @@ function SearchSession({ docsBase = '/docs', searchIndexFile = '/docs-search-ind
     if (searchIndexRef.current || loadingRef.current) return;
     loadingRef.current = true;
     try {
-      const response = await fetch(searchIndexFile);
+      const response = await fetch(assetUrl(searchIndexFile));
       if (!response.ok) throw new Error('Failed to load search index');
       const json = await response.text();
       searchIndexRef.current = MiniSearch.loadJSON(json, {
@@ -163,7 +165,7 @@ function SearchSession({ docsBase = '/docs', searchIndexFile = '/docs-search-ind
     } finally {
       loadingRef.current = false;
     }
-  }, [searchIndexFile]);
+  }, [assetUrl, searchIndexFile]);
 
   // Perform search with debounce
   const doSearch = useCallback((q: string) => {

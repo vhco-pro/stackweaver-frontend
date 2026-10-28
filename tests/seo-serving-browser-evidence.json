@@ -1,0 +1,77 @@
+{
+  "checkedAt": "2026-10-27",
+  "scope": "Production nginx runtime with actual built frontend and synthetic signed-out session; desktop dark and phone light; no production account or deployment",
+  "engines": {
+    "chromium": [
+      {
+        "theme": "dark",
+        "viewport": {
+          "width": 1440,
+          "height": 900
+        },
+        "homepageStatus": 200,
+        "docsStatus": 200,
+        "docsHeading": "Documentation",
+        "back": true,
+        "pageErrors": []
+      },
+      {
+        "theme": "light",
+        "viewport": {
+          "width": 390,
+          "height": 844
+        },
+        "homepageStatus": 200,
+        "docsStatus": 200,
+        "docsHeading": "Documentation",
+        "back": true,
+        "pageErrors": []
+      }
+    ],
+    "firefox": [
+      {
+        "theme": "dark",
+        "viewport": {
+          "width": 1440,
+          "height": 900
+        },
+        "homepageStatus": 200,
+        "docsStatus": 200,
+        "docsHeading": "Documentation",
+        "back": true,
+        "pageErrors": []
+      },
+      {
+        "theme": "light",
+        "viewport": {
+          "width": 390,
+          "height": 844
+        },
+        "homepageStatus": 200,
+        "docsStatus": 200,
+        "docsHeading": "Documentation",
+        "back": true,
+        "pageErrors": []
+      }
+    ]
+  },
+  "source_head": "21767dab",
+  "source_state": "uncommitted feature worktree; source hashes below identify the local serving change",
+  "runtime_image": "cgr.dev/chainguard/nginx@sha256:cfd045c63b7ff6c038f8039e8d2ac09b4c40213ff1505a6834852c6460ec8d2d",
+  "source_sha256": {
+    "frontend/nginx.conf": "0de12679251e874a8fc3be6d649b94d16824ee50fa68201ed2b34216f1e79a7e",
+    "frontend/security-headers.conf": "988c1d859490a0287c13548324cb79fc1021a3cd585f7b3a94640c49c455786f",
+    "frontend/public/robots.txt": "16ceb5ee3e0dc13aa9adf31a3ebbe45a1d965b8c2b9f72eaf84e5911e140ed95"
+  },
+  "verification": {
+    "isolated_nginx_checks": 18,
+    "built_frontend_http_checks": 8,
+    "frontend_unit_tests": 1044,
+    "frontend_verification_checks_passed": 13,
+    "frontend_verification_failed": [
+      "maintained guide visual evidence"
+    ],
+    "kind_e2e": "pending full feature verification",
+    "production_deployment": "pending"
+  }
+}

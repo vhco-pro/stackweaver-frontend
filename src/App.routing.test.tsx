@@ -48,7 +48,17 @@ describe('route contract and provider placement', () => {
   afterEach(() => { auth.session = { user: { id: 'person' } }; localStorage.clear(); });
 
   it('preserves every existing route in order, including guards and layout widths', () => {
-    expect(flatten(appRoutes).filter(r => r.path).map(r => ({ path: r.path, wrappers: wrappers(r.element) }))).toEqual(contract);
+    const added=new Set(['/ansible','/blog','/compare/:slug','/blog/:slug','*']);
+    const all=flatten(appRoutes).filter(r=>r.path).map(r=>({path:r.path,wrappers:wrappers(r.element)}));
+    // Preserve the captured private/public contract while adding the reviewed public routes.
+    expect(all.filter(route=>!added.has(route.path!))).toEqual(contract);
+    expect(all.filter(route=>added.has(route.path!))).toEqual([
+      {path:'/ansible',wrappers:[{name:'AnsiblePublic'}]},
+      {path:'/blog',wrappers:[{name:'Blog'}]},
+      {path:'/compare/:slug',wrappers:[{name:'BlogArticle'}]},
+      {path:'/blog/:slug',wrappers:[{name:'BlogArticle'}]},
+      {path:'*',wrappers:[{name:'PublicNotFound'}]},
+    ]);
   });
 
   it('matches the protected organization run route before its legacy duplicate', () => {

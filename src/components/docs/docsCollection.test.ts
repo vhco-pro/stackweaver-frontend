@@ -8,7 +8,7 @@ describe('generated homepage adapter', () => {
     expect(entries.folders[0]).toMatchObject({ title: 'Team handbook', description: 'Our team', count: 1 });
     expect(entries.files.map(n => n.path)).toEqual(['welcome.md']);
     expect(docUrl('/handbook', 'handbook/README.md')).toBe('/handbook/handbook');
-    expect(docUrl('/handbook', 'README.md')).toBe('/handbook/README');
+    expect(docUrl('/handbook', 'README.md')).toBe('/handbook');
   });
   it('handles empty, nested and missing-metadata folders without fixed links', () => {
     expect(homepageEntries({ generated: '', tree: [], flat: {} }).folders).toEqual([]);

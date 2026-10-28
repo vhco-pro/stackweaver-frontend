@@ -8,7 +8,7 @@ import { ArrowRight, Zap, Server, Cloud, Layers3, GitBranch, Cpu, KeyRound, Shie
 import { getVcsProviderIcon } from '@/lib/vcs';
 import { Button } from '@/components/ui/button';
 import { GradientButton } from '@/components/ui/gradient-button';
-import { useAuth } from '@/contexts/AuthContext';
+import { usePublicSession } from '@/contexts/PublicSessionContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import { CookieConsent } from '@/components/gdpr/CookieConsent';
 import { Stage } from '@/components/landing/Stage';
@@ -18,7 +18,7 @@ import { Footer } from '@/components/layout/Footer';
 
 
 export default function Landing() {
-  const { session } = useAuth();
+  const session = usePublicSession();
   const { resolvedTheme } = useTheme();
   const navigate = useNavigate();
 
@@ -90,9 +90,9 @@ export default function Landing() {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {[
               { icon: Layers3, title: 'TFE-Compatible Core', description: 'Organizations, Projects, Workspaces, Runs, Variables, State Versions, Tokens, JSON:API v2 and TFE token auth' },
-              { icon: PlugZap, title: 'Provider Compatibility', description: 'terraform-provider-tfe parity, so existing automation against the TFE API keeps working' },
+              { icon: PlugZap, title: 'Provider Compatibility', description: 'A TFE-compatible API for supported organizations, workspaces, runs and state workflows. Check the migration guide for compatibility limits.' },
               { icon: Database, title: 'State & Secrets', description: 'Encrypted state storage (S3-compatible), variable sets, sensitive vars, workspace-scoped secrets' },
-              { icon: Wrench, title: 'Ansible (AWX Parity)', description: 'Projects, inventories, credentials, job templates and schedules' },
+              { icon: Wrench, title: 'Ansible Automation', description: 'Projects, inventories, credentials, job templates and schedules' },
               { icon: GitBranch, title: 'VCS-Driven Workflows', description: 'GitHub App and Azure DevOps integration, repo/branch selection, webhooks for push/PR events, auto-queue and speculative plans' },
               { icon: Cpu, title: 'Remote Execution Engine', description: 'Self-hosted runners with agent pools, Redis-queued plans/applies, streamed logs and artifact storage, org-scoped runner assignment' },
               { icon: KeyRound, title: 'Identity & SSO', description: 'OIDC workload identity for AWS, GCP and Azure; no static credentials in runners. SSO via Azure AD, Okta, Cognito or any OIDC provider with optional team sync' },

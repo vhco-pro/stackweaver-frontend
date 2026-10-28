@@ -2,6 +2,7 @@
 
 @import "tailwindcss";
 @import "tw-animate-css";
+@import "./components/docs/code-blocks.css";
 
 @theme inline {
   --radius-lg: var(--radius);
@@ -469,20 +470,6 @@ html:not(.dark) .markdown-content li {
   white-space: pre;
 }
 
-/* Shiki syntax highlighting styles - card with colored border, transparent background */
-.shiki-wrapper {
-  @apply my-4 rounded-lg overflow-hidden;
-}
-
-/* Border color - darker in light mode for better visibility */
-.dark .shiki-wrapper {
-  border: 1px solid rgba(203, 213, 225, 0.25); /* Dark mode border */
-}
-
-html:not(.dark) .shiki-wrapper {
-  border: 1px solid rgba(148, 163, 184, 0.4); /* Darker border for light mode */
-}
-
 /* Strip Shiki background in code explorer and snippets - works inside Dialog portals outside .markdown-content */
 .code-explorer-code pre[class*='shiki'],
 .github-snippet-code pre[class*='shiki'] {
@@ -491,48 +478,6 @@ html:not(.dark) .shiki-wrapper {
 }
 .code-explorer-code pre[class*='shiki'] code,
 .github-snippet-code pre[class*='shiki'] code {
-  background-color: transparent !important;
-}
-
-/* Remove any background from shiki pre elements - ensure no borders on nested pre */
-.markdown-content .shiki-wrapper pre[class*='shiki'],
-.markdown-content pre[class*='shiki'] {
-  @apply m-0;
-  padding: 0.75rem !important;
-  font-family: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace !important;
-  font-size: 0.875rem !important;
-  line-height: 1.5 !important;
-  overflow-x: auto;
-  background-color: transparent !important;
-  background-image: none !important;
-  border: none !important; /* No border on nested pre elements */
-}
-
-.markdown-content .shiki-wrapper pre[class*='shiki'] code,
-.markdown-content pre[class*='shiki'] code {
-  font-family: inherit !important;
-  font-size: inherit !important;
-  line-height: inherit !important;
-  display: block;
-  overflow-x: auto;
-  background-color: transparent !important;
-  color: inherit;
-  border: none !important; /* No border on code elements */
-}
-
-/* Ensure code text is readable in light mode - Shiki uses inline styles but this is a fallback */
-html:not(.dark) .markdown-content .shiki-wrapper pre[class*='shiki'] code {
-  color: #24292f; /* GitHub light theme default text color */
-}
-
-.dark .markdown-content .shiki-wrapper pre[class*='shiki'] code {
-  color: #e6edf3; /* GitHub dark theme default text color */
-}
-
-/* Let shiki spans show their colors - don't override */
-/* Shiki generates HTML with inline style attributes for colors */
-.markdown-content .shiki-wrapper pre[class*='shiki'] code span,
-.markdown-content pre[class*='shiki'] code span {
   background-color: transparent !important;
 }
 

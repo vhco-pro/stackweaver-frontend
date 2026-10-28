@@ -131,6 +131,14 @@ Verify both HTTPS hostnames, successful sign-in and return to the app. With no S
 or an administrator-created verified account. Configure [email and sign-up](../email.md)
 before relying on verification or password-reset mail.
 
+## Public pages and indexing
+
+The frontend serves public product pages and documentation at your app hostname. Search
+indexing is disabled by default. Set `frontend.publicSite.url` and explicitly enable
+`frontend.publicSite.indexing` when publishing those pages; see
+[Public pages and search indexing](../public-site.md#helm) for values, supported URL paths
+and response checks. These settings do not change DNS, TLS or sign-in registrations.
+
 ## Ingress Controller Provider
 
 | `ingress.provider` | Use |

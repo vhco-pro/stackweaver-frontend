@@ -1,5 +1,6 @@
 // Copyright (c) 2025 VH & Co BV. Licensed under the Business Source License 1.1. See LICENSE for details.
 
+import { useDocsEnvironment } from './DocsEnvironment';
 import { Children, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { useMountEffect } from '@/hooks/useMountEffect';
 import { Check, Copy } from 'lucide-react';
@@ -23,6 +24,7 @@ interface CodeGroupProps {
  * </CodeGroup>
  */
 export function CodeGroup({ children, languages, defaultTab = 0 }: CodeGroupProps) {
+  const { staticRender } = useDocsEnvironment();
   const [activeTab, setActiveTab] = useState(defaultTab);
   const [highlightedBlocks, setHighlightedBlocks] = useState<Record<number, string>>({});
   const [themeMode, setThemeMode] = useState<'dark' | 'light'>(() =>
@@ -123,6 +125,8 @@ export function CodeGroup({ children, languages, defaultTab = 0 }: CodeGroupProp
     void highlightCode();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [codeBlocks.length, languages, themeMode]);
+
+  if (staticRender) return <div className="docs-static-code-group">{codeBlocks.map((block,index) => <section key={index}><p className="docs-code-language">{getLabel(index)}</p><pre><code>{(block as {props?:{children?:ReactNode}}).props?.children}</code></pre></section>)}</div>;
 
   if (codeBlocks.length === 0) {
     return <>{children}</>;

@@ -1,5 +1,6 @@
 // Copyright (c) 2025 VH & Co BV. Licensed under the Business Source License 1.1. See LICENSE for details.
 
+import { useDocsEnvironment } from '@/components/docs/DocsEnvironment';
 import { lazy, Suspense } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useParams, useLocation, Navigate } from 'react-router-dom';
@@ -22,6 +23,7 @@ function isHtmlFallback(response: Response): boolean {
 
 
 export default function DocsViewer(props: CollectionProps) {
+  const { assetUrl } = useDocsEnvironment();
   const collection = resolveCollection(props);
   const { docsBase } = collection;
   const { data: index, isError: indexError } = useDocsIndex(collection);
@@ -42,7 +44,7 @@ export default function DocsViewer(props: CollectionProps) {
   const { data: redirects } = useQuery<Record<string, string>>({
     queryKey: ['docs-redirects', docsBase],
     queryFn: async () => {
-      const res = await fetch(`${docsBase === '/docs' ? '' : docsBase}/docs-redirects.json`);
+      const res = await fetch(assetUrl(`${docsBase === '/docs' ? '' : docsBase}/docs-redirects.json`));
       if (!res.ok || isHtmlFallback(res)) return {};
       return (await res.json()) as Record<string, string>;
     },
@@ -64,14 +66,14 @@ export default function DocsViewer(props: CollectionProps) {
         filePath = `${docPath}/README.md`;
       }
 
-      let response = await fetch(`${docsBase}/${filePath}`);
+      let response = await fetch(assetUrl(`${docsBase}/${filePath}`));
 
       // If README.md wasn't found, try lowercase readme.md (some directories use it)
       if (docPath !== '' && docPath !== 'README' &&
           (!response.ok || isHtmlFallback(response)) &&
           filePath.endsWith('/README.md')) {
         filePath = `${docPath}/readme.md`;
-        response = await fetch(`${docsBase}/${filePath}`);
+        response = await fetch(assetUrl(`${docsBase}/${filePath}`));
       }
 
       // If the folder README still wasn't found, try as a regular .md file instead.
@@ -79,7 +81,7 @@ export default function DocsViewer(props: CollectionProps) {
           (!response.ok || isHtmlFallback(response))) {
         filePath = `${docPath}.md`;
         resolvedAsDirectory = false;
-        response = await fetch(`${docsBase}/${filePath}`);
+        response = await fetch(assetUrl(`${docsBase}/${filePath}`));
       }
 
       // Validate the final response

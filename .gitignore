@@ -44,3 +44,4 @@ public/docs-redirects.json
 public/internal-docs/**
 public/internal-docs-index.json
 public/internal-docs-search-index.json
+.public-build/
