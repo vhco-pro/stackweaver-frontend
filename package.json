@@ -10,7 +10,7 @@
   "scripts": {
     "dev": "vite",
     "build:docs": "node ../scripts/build-docs-index.js",
-    "build": "npm run build:docs -- --public-only && tsc -b && vite build",
+    "build": "npm run build:docs -- --public-only && tsc -b && vite build && node scripts/build-public-site.mjs",
     "lint": "eslint .",
     "type-check": "tsc -b --noEmit",
     "preview": "vite preview",
@@ -18,7 +18,9 @@
     "test:watch": "vitest",
     "dead-code": "fallow dead-code",
     "dead-code:audit": "fallow audit --quiet",
-    "dead-code:baseline": "fallow dead-code --quiet --save-baseline fallow-baselines/dead-code.json"
+    "dead-code:baseline": "fallow dead-code --quiet --save-baseline fallow-baselines/dead-code.json",
+    "test:serving": "node --test tests/seo-serving.http.mjs",
+    "test:site-settings": "node --test scripts/site-settings.unit.mjs"
   },
   "dependencies": {
     "@radix-ui/react-checkbox": "^1.3.3",
@@ -52,7 +54,8 @@
     "remark-gfm": "^4.0.0",
     "shiki": "^4.0.0",
     "sonner": "^2.0.7",
-    "tailwind-merge": "^3.5.0"
+    "tailwind-merge": "^3.5.0",
+    "yaml": "^2.9.0"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.0",

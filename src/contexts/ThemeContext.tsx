@@ -15,12 +15,12 @@ const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const [theme, setTheme] = useState<Theme>(() => {
     // Get from localStorage or default to system
-    const stored = localStorage.getItem('theme') as Theme | null;
+    const stored = typeof localStorage === 'undefined' ? null : localStorage.getItem('theme') as Theme | null;
     return stored || 'system';
   });
 
   const [systemTheme, setSystemTheme] = useState<'light' | 'dark'>(() => {
-    return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    return typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
   });
 
   // Derive resolved theme instead of setting it in effect

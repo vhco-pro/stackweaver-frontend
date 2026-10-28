@@ -1,4 +1,6 @@
 // Copyright (c) 2025 VH & Co BV. Licensed under the Business Source License 1.1. See LICENSE for details.
+import { PageMetadata } from '@/components/blog/PageMetadata';
+import { DocsEnvironmentContext } from '@/components/docs/DocsEnvironment';
 import { BrowserRouter, matchRoutes, useLocation, useRoutes } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { config } from '@/config';
@@ -16,7 +18,8 @@ import { appRoutes } from './appRoutes';
 function AppRoutes() {
   const location = useLocation();
   for (const match of matchRoutes(appRoutes, location) ?? []) void preloadRoute(match.route.element);
-  return useRoutes(appRoutes);
+  const content = useRoutes(appRoutes);
+  return <><PageMetadata key={location.pathname} path={location.pathname}/>{content}</>;
 }
 
 function AppContent() {
@@ -49,6 +52,7 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
+        <DocsEnvironmentContext.Provider value={{basePath:config.basePath,staticRender:false}}>
         <AuthProvider>
           <NotificationProvider>
             <RunDisplayPreferencesProvider>
@@ -56,6 +60,7 @@ function App() {
             </RunDisplayPreferencesProvider>
           </NotificationProvider>
         </AuthProvider>
+      </DocsEnvironmentContext.Provider>
       </ThemeProvider>
     </QueryClientProvider>
   );

@@ -4,6 +4,7 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import path from 'path'
 import tailwindcss from '@tailwindcss/vite'
+import { publicArticlesPlugin } from './dev/publicArticles.ts'
 import { internalDocPrototypes, excludeInternalDocs } from './dev/internalDocPrototypes.ts'
 
 // Security response headers for the dev + preview servers. Real deployments serve
@@ -45,7 +46,9 @@ const securityHeaders: Record<string, string> = {
 
 // https://vite.dev/config/
 export default defineConfig(({ mode }) => ({
-  plugins: [react(), tailwindcss(), internalDocPrototypes(path.resolve(__dirname, '../docs/internal')), excludeInternalDocs()],
+  base: './',
+  build: { manifest: true },
+  plugins: [publicArticlesPlugin(path.resolve(__dirname, 'src/content/articles')), react(), tailwindcss(), internalDocPrototypes(path.resolve(__dirname, '../docs/internal')), excludeInternalDocs()],
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),

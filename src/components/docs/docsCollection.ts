@@ -1,23 +1,10 @@
 // Copyright (c) 2026 VH & Co BV. Licensed under the Business Source License 1.1. See LICENSE for details.
+import { useDocsEnvironment } from './DocsEnvironment';
 import { useSyncExternalStore } from 'react';
 import { useQuery } from '@tanstack/react-query';
 
-export interface DocTreeNode {
-  type: 'directory' | 'file';
-  name: string;
-  path: string;
-  title?: string;
-  description?: string;
-  status?: string;
-  nav_order?: number;
-  layout?: 'overview';
-  children?: DocTreeNode[];
-}
-export interface DocsIndex {
-  tree: DocTreeNode[];
-  flat: Record<string, DocTreeNode>;
-  generated: string;
-}
+import type { DocTreeNode, DocsIndex } from './docsTypes';
+export type { DocTreeNode, DocsIndex } from './docsTypes';
 export interface DocsCollection {
   id: string;
   docsBase: string;
@@ -45,10 +32,11 @@ export function resolveCollection({ collection, docsBase = '/docs', indexFile }:
   return { ...defaults, docsBase, indexFile: indexFile ?? defaults.indexFile };
 }
 export function useDocsIndex(collection: DocsCollection) {
+  const { assetUrl } = useDocsEnvironment();
   return useQuery<DocsIndex>({
     queryKey: ['docs-index', collection.id, collection.docsBase, collection.indexFile],
     queryFn: async ({ signal }) => {
-      const response = await fetch(collection.indexFile, { signal });
+      const response = await fetch(assetUrl(collection.indexFile), { signal });
       if (!response.ok || response.headers.get('content-type')?.includes('text/html')) throw new Error('Unable to load documentation');
       const data = await response.json() as DocsIndex;
       if (!Array.isArray(data.tree) || !data.flat) throw new Error('Invalid documentation index');
@@ -63,7 +51,8 @@ export const docLabel = (node: DocTreeNode): string => {
   return fallback.replace(/\b\w/g, c => c.toUpperCase()).replace(/\bApi\b/g, 'API');
 };
 export function docUrl(base: string, path: string): string {
-  return `${base}/${path.replace(/\/README\.md$/i, '').replace(/\.md$/i, '')}`;
+  const clean=path.replace(/(?:^|\/)README\.md$/i,'').replace(/\.md$/i,'');
+  return `${base}${clean?'/'+clean:''}`;
 }
 export function findDirectory(nodes: DocTreeNode[], path: string): DocTreeNode | undefined {
   for (const node of nodes) {

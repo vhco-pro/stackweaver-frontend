@@ -31,6 +31,8 @@ function walk(dir: string): string[] {
 // a separate spec), the docs viewer, the shadcn primitives, and the animation primitives.
 const OUT_OF_SCOPE = [
   'pages/Landing.tsx',
+  'pages/Blog/',
+  'components/blog/',
   'pages/Docs/',
   'components/landing/',
   'components/docs/',

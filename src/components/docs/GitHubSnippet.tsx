@@ -1,5 +1,7 @@
 // Copyright (c) 2025 VH & Co BV. Licensed under the Business Source License 1.1. See LICENSE for details.
 
+import { useDocsEnvironment } from './DocsEnvironment';
+import { DocsCodeBlock } from './DocsCodeBlock';
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useMountEffect } from '@/hooks/useMountEffect';
@@ -33,7 +35,17 @@ export interface GitHubSnippetProps {
   docsBase?: string;
 }
 
-export function GitHubSnippet({ url, docsBase = '/docs' }: GitHubSnippetProps) {
+export function GitHubSnippet(props:GitHubSnippetProps) {
+ const { staticRender, files } = useDocsEnvironment();
+ if(!staticRender) return <InteractiveGitHubSnippet {...props}/>;
+ const key=`${props.docsBase??'/docs'}/_snippets/${snippetHash(props.url)}.snippet.json`;
+ const text=files?.[key];
+ if(!text) throw new Error(`Missing static snippet: ${key}`);
+ const snippet=JSON.parse(text) as SnippetData;
+ return <figure><figcaption><a href={props.url}>{snippet.path}</a></figcaption><DocsCodeBlock language={snippet.lang}><pre><code>{snippet.content}</code></pre></DocsCodeBlock></figure>;
+}
+function InteractiveGitHubSnippet({ url, docsBase = '/docs' }: GitHubSnippetProps) {
+  const { assetUrl } = useDocsEnvironment();
   const [copied, setCopied] = useState(false);
 
   // Track theme
@@ -56,7 +68,7 @@ export function GitHubSnippet({ url, docsBase = '/docs' }: GitHubSnippetProps) {
     queryKey: ['docs-github-snippet', docsBase, url],
     queryFn: async (): Promise<SnippetData> => {
       const hash = snippetHash(url);
-      const res = await fetch(`${docsBase}/_snippets/${hash}.snippet.json`);
+      const res = await fetch(assetUrl(`${docsBase}/_snippets/${hash}.snippet.json`));
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       return (await res.json()) as SnippetData;
     },

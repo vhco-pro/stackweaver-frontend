@@ -1,5 +1,6 @@
 // Copyright (c) 2025 VH & Co BV. Licensed under the Business Source License 1.1. See LICENSE for details.
 import { type ReactNode } from 'react';
+import { useDocsEnvironment } from '@/components/docs/DocsEnvironment';
 import { useQuery } from '@tanstack/react-query';
 import { MarkdownRenderer } from '@/components/docs/MarkdownRenderer';
 import { AlertCircle } from 'lucide-react';
@@ -15,6 +16,7 @@ export default function DocsIndex(props: CollectionProps & { folderPath?: string
   return <CollectionHome key={`${collection.id}:${collection.indexFile}`} collection={collection} folderPath={props.folderPath}>{props.children}</CollectionHome>;
 }
 function CollectionHome({ collection, folderPath = '', children }: Required<Pick<CollectionProps, 'collection'>> & { folderPath?: string; children?: ReactNode }) {
+  const { assetUrl } = useDocsEnvironment();
   const query = useDocsIndex(collection);
   const [hideCompleted, setHideCompleted] = useCompletedFilter(collection);
   const overview = query.data?.flat[`${folderPath ? `${folderPath}/` : ''}README.md`] ?? query.data?.flat[`${folderPath}/readme.md`];
@@ -23,7 +25,7 @@ function CollectionHome({ collection, folderPath = '', children }: Required<Pick
     queryKey: ['docs-overview-introduction', collection.id, collection.indexFile, collection.docsBase],
     enabled: root && !children && overview?.layout === 'overview',
     queryFn: async ({ signal }) => {
-      const response = await fetch(`${collection.docsBase}/README.md`, { signal });
+      const response = await fetch(assetUrl(`${collection.docsBase}/README.md`), { signal });
       if (!response.ok || response.headers.get('content-type')?.includes('text/html')) throw new Error('Unable to load introduction');
       return response.text();
     },

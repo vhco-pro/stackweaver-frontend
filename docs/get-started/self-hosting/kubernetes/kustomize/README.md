@@ -41,6 +41,10 @@ Change these inputs before a sync:
 - `runnerWorkspaces.existingClaim`: must match the runner claim, `runner-workspaces-pvc` in
   this example. Replace the static volume resources with your storage path if different.
 
+Keep search indexing disabled for private environments. If an overlay publishes public
+pages, configure `frontend.publicSite` in its chart values and follow the
+[public-site checks](../../public-site.md#helm) before submitting a sitemap.
+
 This example disables the persistent Galaxy cache, so a restarted Ansible runner downloads
 collections again. PostgreSQL and Garage still need durable storage; a runner scratch claim
 is not a database backup.

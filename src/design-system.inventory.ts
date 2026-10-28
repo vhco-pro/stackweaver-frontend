@@ -64,6 +64,7 @@ export const SWEPT_PAGES: string[] = [
 
 /** Page files that are deliberately not on Page and PageHeader, each with its reason. */
 export const EXEMPT_PAGES: Array<{ prefix: string; reason: string }> = [
+  { prefix: 'pages/Blog/', reason: 'the owner-approved public editorial design, separate from application pages' },
   { prefix: 'pages/Landing.tsx', reason: 'the public landing page; its design is a separate spec (landing-page-upgrade-plan.md)' },
   { prefix: 'pages/Privacy.tsx', reason: 'a public page with its own title block, covered by its own criterion' },
   { prefix: 'pages/Terms.tsx', reason: 'a public page with its own title block, built like the privacy page (landing-page-upgrade-plan.md)' },

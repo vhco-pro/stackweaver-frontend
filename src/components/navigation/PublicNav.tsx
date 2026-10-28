@@ -8,7 +8,7 @@ import { motion, type MotionValue } from 'motion/react';
 import { ArrowRight, Sun, Moon, Laptop, Menu } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { GradientButton } from '@/components/ui/gradient-button';
-import { useAuth } from '@/contexts/AuthContext';
+import { usePublicSession } from '@/contexts/PublicSessionContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import {
   DropdownMenu,
@@ -25,7 +25,7 @@ import {
 
 interface PublicNavProps {
   /** Active link to highlight. Options: 'home', 'docs' */
-  activeLink?: 'home' | 'docs';
+  activeLink?: 'home' | 'docs' | 'blog';
   /**
    * Drives the logo's opacity from outside. The landing page keeps the logo hidden until its
    * hero logo has travelled up to this spot.
@@ -34,7 +34,9 @@ interface PublicNavProps {
 }
 
 export function PublicNav({ activeLink = 'home', logoOpacity }: PublicNavProps) {
-  const { session } = useAuth();
+  const session = usePublicSession();
+  const blogActive = activeLink === 'blog';
+  const docsActive = activeLink === 'docs';
   const { theme, setTheme } = useTheme();
   const navigate = useNavigate();
   const [isScrolled, setIsScrolled] = useState(false);
@@ -103,7 +105,7 @@ export function PublicNav({ activeLink = 'home', logoOpacity }: PublicNavProps) 
         </a>
 
         {/* Desktop Navigation */}
-        <div className="hidden md:flex items-center gap-4">
+        <div className="hidden lg:flex items-center gap-3 xl:gap-4">
           {activeLink === 'home' ? (
             <>
               <a
@@ -138,6 +140,7 @@ export function PublicNav({ activeLink = 'home', logoOpacity }: PublicNavProps) 
               >
                 Features
               </a>
+              <Link to="/blog" aria-current={blogActive?'page':undefined} className={`text-sm hover:text-blue-600 dark:hover:text-blue-300 min-h-11 inline-flex items-center ${blogActive?'text-blue-600 dark:text-blue-400':'text-slate-800 dark:text-slate-200'}`}>Blog</Link>
               <Link
                 to="/docs"
                 className={`text-sm transition-all duration-300 hover:text-blue-500 dark:hover:text-blue-300 ${
@@ -153,10 +156,7 @@ export function PublicNav({ activeLink = 'home', logoOpacity }: PublicNavProps) 
                   isScrolled ? 'text-slate-800 dark:text-white' : 'text-slate-800/70 dark:text-white/70'
                 }`}
               >
-                {/* The desktop row is at its widest just above md, where the full label pushes
-                    the logo off its own width; the short form holds the row until lg. */}
-                <span className="lg:hidden">API</span>
-                <span className="hidden lg:inline">API Reference</span>
+                <span>API Reference</span>
               </Link>
             </>
           ) : (
@@ -169,45 +169,42 @@ export function PublicNav({ activeLink = 'home', logoOpacity }: PublicNavProps) 
               >
                 Home
               </Link>
-              <a
-                href="/#overview"
+              <Link
+                to="/#overview"
                 className={`text-sm transition-all duration-300 hover:text-blue-500 dark:hover:text-blue-300 ${
                   isScrolled ? 'text-slate-800 dark:text-white' : 'text-slate-800/70 dark:text-white/70'
                 }`}
               >
                 Overview
-              </a>
-              <a
-                href="/#compat"
+              </Link>
+              <Link
+                to="/#compat"
                 className={`text-sm transition-all duration-300 hover:text-blue-500 dark:hover:text-blue-300 ${
                   isScrolled ? 'text-slate-800 dark:text-white' : 'text-slate-800/70 dark:text-white/70'
                 }`}
               >
                 Compatibility
-              </a>
-              <a
-                href="/#install"
+              </Link>
+              <Link
+                to="/#install"
                 className={`text-sm transition-all duration-300 hover:text-blue-500 dark:hover:text-blue-300 ${
                   isScrolled ? 'text-slate-800 dark:text-white' : 'text-slate-800/70 dark:text-white/70'
                 }`}
               >
                 Install
-              </a>
-              <a
-                href="/#features"
+              </Link>
+              <Link
+                to="/#features"
                 className={`text-sm transition-all duration-300 hover:text-blue-500 dark:hover:text-blue-300 ${
                   isScrolled ? 'text-slate-800 dark:text-white' : 'text-slate-800/70 dark:text-white/70'
                 }`}
               >
                 Features
-              </a>
+              </Link>
+              <Link to="/blog" aria-current={blogActive?'page':undefined} className={`text-sm hover:text-blue-600 dark:hover:text-blue-300 min-h-11 inline-flex items-center ${blogActive?'text-blue-600 dark:text-blue-400':'text-slate-800 dark:text-slate-200'}`}>Blog</Link>
               <Link
                 to="/docs"
-                className={`text-sm transition-all duration-300 font-medium ${
-                  isScrolled
-                    ? 'text-blue-600 dark:text-blue-400'
-                    : 'text-blue-600/80 dark:text-blue-400/80'
-                }`}
+                className={`text-sm transition-all duration-300 font-medium ${docsActive ? 'text-blue-600 dark:text-blue-400' : 'text-slate-800/70 dark:text-white/70'}`}
               >
                 Docs
               </Link>
@@ -218,10 +215,7 @@ export function PublicNav({ activeLink = 'home', logoOpacity }: PublicNavProps) 
                   isScrolled ? 'text-slate-800 dark:text-white' : 'text-slate-800/70 dark:text-white/70'
                 }`}
               >
-                {/* The desktop row is at its widest just above md, where the full label pushes
-                    the logo off its own width; the short form holds the row until lg. */}
-                <span className="lg:hidden">API</span>
-                <span className="hidden lg:inline">API Reference</span>
+                <span>API Reference</span>
               </Link>
             </>
           )}
@@ -277,7 +271,7 @@ export function PublicNav({ activeLink = 'home', logoOpacity }: PublicNavProps) 
         </div>
 
         {/* Mobile Hamburger Button */}
-        <div className="flex md:hidden items-center gap-2">
+        <div className="flex lg:hidden items-center gap-2">
           <Button
             variant="ghost"
             size="icon"
@@ -331,6 +325,7 @@ export function PublicNav({ activeLink = 'home', logoOpacity }: PublicNavProps) 
                   >
                     Features
                   </a>
+                  <Link to="/blog" onClick={() => setMobileMenuOpen(false)} aria-current={blogActive?'page':undefined} className="text-sm text-slate-800 dark:text-slate-200 min-h-11 inline-flex items-center">Blog</Link>
                   <Link
                     to="/docs"
                     onClick={() => setMobileMenuOpen(false)}
@@ -355,34 +350,35 @@ export function PublicNav({ activeLink = 'home', logoOpacity }: PublicNavProps) 
                   >
                     Home
                   </Link>
-                  <a
-                    href="/#overview"
+                  <Link
+                    to="/#overview"
                     onClick={() => setMobileMenuOpen(false)}
                     className="flex items-center px-3 py-3 text-sm font-medium text-slate-700 dark:text-gray-200 hover:bg-slate-100 dark:hover:bg-white/10 rounded-lg transition-colors"
                   >
                     Overview
-                  </a>
-                  <a
-                    href="/#compat"
+                  </Link>
+                  <Link
+                    to="/#compat"
                     onClick={() => setMobileMenuOpen(false)}
                     className="flex items-center px-3 py-3 text-sm font-medium text-slate-700 dark:text-gray-200 hover:bg-slate-100 dark:hover:bg-white/10 rounded-lg transition-colors"
                   >
                     Compatibility
-                  </a>
-                  <a
-                    href="/#install"
+                  </Link>
+                  <Link
+                    to="/#install"
                     onClick={() => setMobileMenuOpen(false)}
                     className="flex items-center px-3 py-3 text-sm font-medium text-slate-700 dark:text-gray-200 hover:bg-slate-100 dark:hover:bg-white/10 rounded-lg transition-colors"
                   >
                     Install
-                  </a>
-                  <a
-                    href="/#features"
+                  </Link>
+                  <Link
+                    to="/#features"
                     onClick={() => setMobileMenuOpen(false)}
                     className="flex items-center px-3 py-3 text-sm font-medium text-slate-700 dark:text-gray-200 hover:bg-slate-100 dark:hover:bg-white/10 rounded-lg transition-colors"
                   >
                     Features
-                  </a>
+                  </Link>
+                  <Link to="/blog" onClick={() => setMobileMenuOpen(false)} aria-current={blogActive?'page':undefined} className="text-sm text-slate-800 dark:text-slate-200 min-h-11 inline-flex items-center">Blog</Link>
                   <Link
                     to="/docs"
                     onClick={() => setMobileMenuOpen(false)}

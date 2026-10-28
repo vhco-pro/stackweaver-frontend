@@ -36,6 +36,8 @@ COPY --from=builder /frontend/dist /usr/share/nginx/html
 # absolute-path `include` directives in nginx.conf.
 COPY --from=builder /frontend/nginx.conf /etc/nginx/conf.d/nginx.default.conf
 COPY --from=builder /frontend/security-headers.conf /etc/nginx/security-headers.conf
+COPY --from=builder /frontend/.public-build/public-site-settings.conf /etc/nginx/public-site-settings.conf
+COPY --from=builder /frontend/.public-build/public-private-routes.conf /etc/nginx/public-private-routes.conf
 
 LABEL org.opencontainers.image.source="https://github.com/vhco-pro/stackweaver-frontend"
 LABEL org.opencontainers.image.licenses="BUSL-1.1"

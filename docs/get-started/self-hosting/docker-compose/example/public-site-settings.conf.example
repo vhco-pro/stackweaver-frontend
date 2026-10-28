@@ -1,0 +1,6 @@
+# Copy to public-site-settings.conf and use a domain you control.
+# This example publishes at the root path and explicitly opts into indexing.
+set $sw_site_url "https://stackweaver.example.com";
+set $sw_base_path "";
+set $sw_noindex "";
+set $sw_sitemap_line "Sitemap: https://stackweaver.example.com/sitemap.xml";

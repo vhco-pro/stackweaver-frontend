@@ -54,7 +54,7 @@ ingress:
 ```
 
 The frontend's supplied nginx configuration forwards API, discovery and login-proxy paths
-to the API while serving SPA routes itself. Routing the entire app hostname to port 5173
+to the API while serving public pages and application routes itself. Routing the entire app hostname to port 5173
 therefore preserves the same-origin browser setup. The identity hostname goes to Zitadel.
 The final catch-all rule must stay last.
 
@@ -83,6 +83,8 @@ Open the app hostname, sign in and return to the app. Check the
 [discovery document](https://app.example.com/.well-known/terraform.json) and send a test delivery from your
 [VCS provider](../../../user-guides/vcs/README.md) if webhooks are enabled. A tunnel exposes
 traffic; it does not update Stackweaver's issuer, redirect registrations or public URLs.
+Configure your own canonical address and indexing policy with
+[Public pages and search indexing](../public-site.md).
 
 ## 3. Persist the tunnel on Linux
 

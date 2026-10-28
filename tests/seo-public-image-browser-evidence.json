@@ -1,0 +1,76 @@
+{
+  "date": "2026-10-28",
+  "scope": "Final built nginx frontend; fresh anonymous contexts, synthetic session401, no JavaScript initial HTML plus desktop dark and phone light, root and customer prefix; separate exact private HTTPS editorial preview",
+  "image": "stackweaver-frontend:public-seo-20261028-handoff",
+  "imageConfigDigest": "sha256:94a7ca85f135e207075257dcca6c75d88e2f0146e6d498d086ea0f535a204c28",
+  "engines": {
+    "chromium": [
+      {
+        "site": "https://stackweaver.sh",
+        "rawHTML": true,
+        "textCharacters": 75252
+      },
+      {
+        "site": "https://stackweaver.sh",
+        "hydratedCanonical": true,
+        "firstJobLink": "/docs/get-started/your-first-ansible-job",
+        "back": true,
+        "phoneMenu": true,
+        "errors": []
+      },
+      {
+        "site": "https://customer.example/stack",
+        "rawHTML": true,
+        "textCharacters": 75252
+      },
+      {
+        "site": "https://customer.example/stack",
+        "hydratedCanonical": true,
+        "firstJobLink": "/stack/docs/get-started/your-first-ansible-job",
+        "back": true,
+        "phoneMenu": true,
+        "errors": []
+      },
+      {
+        "privatePreview": true,
+        "status": 200,
+        "draftLinks": 3,
+        "https": true
+      }
+    ],
+    "firefox": [
+      {
+        "site": "https://stackweaver.sh",
+        "rawHTML": true,
+        "textCharacters": 75252
+      },
+      {
+        "site": "https://stackweaver.sh",
+        "hydratedCanonical": true,
+        "firstJobLink": "/docs/get-started/your-first-ansible-job",
+        "back": true,
+        "phoneMenu": true,
+        "errors": []
+      },
+      {
+        "site": "https://customer.example/stack",
+        "rawHTML": true,
+        "textCharacters": 75252
+      },
+      {
+        "site": "https://customer.example/stack",
+        "hydratedCanonical": true,
+        "firstJobLink": "/stack/docs/get-started/your-first-ansible-job",
+        "back": true,
+        "phoneMenu": true,
+        "errors": []
+      },
+      {
+        "privatePreview": true,
+        "status": 200,
+        "draftLinks": 3,
+        "https": true
+      }
+    ]
+  }
+}

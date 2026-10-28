@@ -1,5 +1,6 @@
 // Copyright (c) 2025 VH & Co BV. Licensed under the Business Source License 1.1. See LICENSE for details.
 
+import { PublicSessionContext } from './PublicSessionContext';
 import { createContext, useContext, useState, useCallback, useRef, type ReactNode } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
@@ -139,7 +140,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   return (
     <AuthContext.Provider value={{ session, loading, logout, refresh, login }}>
-      {children}
+      <PublicSessionContext.Provider value={!!session}>{children}</PublicSessionContext.Provider>
     </AuthContext.Provider>
   );
 }
