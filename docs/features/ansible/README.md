@@ -43,5 +43,5 @@ runner assignment and inventory synchronization.
 Use the [API explorer](/docs/api-reference/explorer) for operation schemas, or the
 [Stackweaver changelog](../../changelog.md) for released changes.
 
-The [existing Ansible changelog](./changelog.md) remains available. The
-[current limitations reference](./roadmap.md#not-yet-available) describes unsupported behavior.
+The [current limitations reference](./roadmap.md#not-yet-available) describes unsupported
+behavior. Use the central changelog's Ansible entries for verified release impact and actions.

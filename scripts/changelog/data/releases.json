@@ -209,6 +209,52 @@
     ]
   },
   {
+    "id": "frontend@0.74.2",
+    "component": "frontend",
+    "repository": "vhco-pro/stackweaver-frontend",
+    "tag": "0.74.2",
+    "tagCommit": "899e5496d546b42767f696cb9fe5a7a5d7359a55",
+    "publishedAt": "2026-10-27T22:44:20Z",
+    "url": "https://github.com/vhco-pro/stackweaver-frontend/releases/tag/0.74.2",
+    "sourceCommit": "a0997b335430e4c5a6793ebea8184f4c3f5ec28a",
+    "sync": {
+      "url": "https://github.com/vhco-pro/stackweaver-frontend/pull/273",
+      "mergeCommit": "899e5496d546b42767f696cb9fe5a7a5d7359a55"
+    },
+    "workflow": {
+      "url": "https://github.com/vhco-pro/stackweaver-frontend/actions/runs/40596673011",
+      "conclusion": "success",
+      "headSha": "899e5496d546b42767f696cb9fe5a7a5d7359a55"
+    },
+    "artifact": {
+      "name": "ghcr.io/vhco-pro/stackweaver-frontend",
+      "digest": "sha256:b934a8b03121dcd96b5c08d198bb29a94ff6dacd7bf184781017fa5faf561c38",
+      "provenanceUrl": "https://github.com/vhco-pro/stackweaver-frontend/releases/download/0.74.2/provenance.intoto.jsonl"
+    },
+    "includedCommits": [
+      "07c49bcd38bfcc87f06d9f694a77763ee50f5fb0",
+      "08481d5b9c802207744591d0f0b7ff287d85b1ef",
+      "0bad4a20d42d8d33ed45a4fa9aab7c24bd4e559e",
+      "0eb79ee23e730457ab4eb7fa6aa58005b98528ce",
+      "1999a71b0cd8a224195b7a971fd1851ca8f3ebef",
+      "1dfcd8315043a3e80210a86909d872673fcbae34",
+      "391ff24328adc20b9c5aa842a09ab29bfba6aa2e",
+      "4813dacb6a626e04a091b9e249f77e59d600a888",
+      "4c4cdd89b5e5fc224ad7a7302674486eb9ff7e7e",
+      "73619e01700c6a5a61c116a9fc776aa025d8b849",
+      "75d24fe5ae06b8a5c73fb8c63c42565bad622ac2",
+      "779de383f65152271f0a704253e04968b40b0597",
+      "93d133c5eaf5c63582c6e49c4aaa84d888d74e6c",
+      "97620deafad165dc5071746594252e7577d4928b",
+      "9beb8ae76a1dfaad311935b7d316db0f0f06f77a",
+      "9d34155aa0334fe3e3d8608f8de0de8be4a68980",
+      "a0997b335430e4c5a6793ebea8184f4c3f5ec28a",
+      "c590a3ee660503afeb04c633ca8b83e8f64f7f8d",
+      "e36648aa46b5215702a54fb810c99e827f60db1a",
+      "ed0977d194226dee1fe2b3e5287ad5d836234d11"
+    ]
+  },
+  {
     "id": "helm@0.15.0",
     "component": "helm",
     "repository": "vhco-pro/stackweaver-helm",
@@ -240,6 +286,34 @@
       "93d133c5eaf5c63582c6e49c4aaa84d888d74e6c",
       "9d34155aa0334fe3e3d8608f8de0de8be4a68980",
       "e36648aa46b5215702a54fb810c99e827f60db1a"
+    ]
+  },
+  {
+    "id": "opentofu-runner@0.2.29",
+    "component": "opentofu-runner",
+    "repository": "vhco-pro/stackweaver-opentofu-runner",
+    "tag": "0.2.29",
+    "tagCommit": "02a80afac9555334726ebda96b8af1c31a982e73",
+    "publishedAt": "2026-10-26T03:55:41Z",
+    "url": "https://github.com/vhco-pro/stackweaver-opentofu-runner/releases/tag/0.2.29",
+    "sourceCommit": "5976269850639be792eeda6aaf495f735427b936",
+    "sync": {
+      "url": "https://github.com/vhco-pro/stackweaver-opentofu-runner/pull/58",
+      "mergeCommit": "02a80afac9555334726ebda96b8af1c31a982e73"
+    },
+    "workflow": {
+      "url": "https://github.com/vhco-pro/stackweaver-opentofu-runner/actions/runs/40266223372",
+      "conclusion": "success",
+      "headSha": "02a80afac9555334726ebda96b8af1c31a982e73"
+    },
+    "artifact": {
+      "name": "ghcr.io/vhco-pro/stackweaver-opentofu-runner",
+      "digest": "sha256:aec87222439750469c161af1a0dfa540303595f180d3bbe5cd8e43145079d26e",
+      "provenanceUrl": "https://api.github.com/repos/vhco-pro/stackweaver-opentofu-runner/attestations/sha256:aec87222439750469c161af1a0dfa540303595f180d3bbe5cd8e43145079d26e",
+      "evidence": "github-attestation"
+    },
+    "includedCommits": [
+      "c16722589c617a0facf6a058e7f05bd00992cfd1"
     ]
   },
   {

@@ -14,6 +14,9 @@ async function main() {
   const io = {
     api: endpoint => JSON.parse(gh(['api', endpoint])),
     asset: (repo, id) => gh(['api', '-H', 'Accept: application/octet-stream', `repos/${repo}/releases/assets/${id}`]),
+    attestation: (repo, artifact, tag) => JSON.parse(gh(['attestation', 'verify', `oci://${artifact}:${tag}`, '--repo', repo,
+      '--cert-identity', `https://github.com/${repo}/.github/workflows/release.yml@refs/tags/${tag}`,
+      '--cert-oidc-issuer', 'https://token.actions.githubusercontent.com', '--predicate-type', 'https://slsa.dev/provenance/v1', '--format', 'json'])),
     resolve: ref => git(root, 'rev-parse', '--verify', `${ref}^{commit}`),
     ancestor: (base, head) => { try { git(root, 'merge-base', '--is-ancestor', base, head); return true; } catch { return false; } },
     reverts: (sha, head) => readCommits(root, sha, head).filter(c => c.message.toLowerCase().includes('this reverts commit ' + sha.toLowerCase())).map(c => c.sha),

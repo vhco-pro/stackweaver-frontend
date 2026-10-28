@@ -476,6 +476,10 @@ make an unproxied split-port example work.
 
 ## Upgrading
 
+Use [Plan and verify an upgrade](../upgrading.md) for component selection, maintenance
+and acceptance checks. Prepare a coordinated [recovery set](../backup-and-restore.md#kubernetes-and-externally-managed-services)
+before changing the release; Helm history alone cannot restore data or keys.
+
 > [!IMPORTANT]
 > When upgrading an installation that uses the public frontend client, complete
 > [browser-session upgrade preparation](#upgrading-to-server-side-browser-sessions) first,

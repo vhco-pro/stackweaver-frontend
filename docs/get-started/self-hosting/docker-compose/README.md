@@ -187,6 +187,10 @@ STACKWEAVER_RUN_ENV_PASSTHROUGH=PROXY_USER,PROXY_PASSWORD
 
 ## Preserve data and upgrade
 
+Use [Back up and restore](../backup-and-restore.md) for a complete recovery set and
+restore rehearsal, and [Plan and verify an upgrade](../upgrading.md) to select component
+versions and check the result. The commands below provide deployment-specific details.
+
 | Volume | Data | Critical? |
 |---|---|---|
 | `postgres_data` | Database (all application state) | Yes; back up regularly |
@@ -194,7 +198,7 @@ STACKWEAVER_RUN_ENV_PASSTHROUGH=PROXY_USER,PROXY_PASSWORD
 | `garage_meta` | Garage metadata (the index of the objects in `garage_data`) | Yes; back up together with `garage_data` |
 | `runner-workspaces` | Temporary workspace files of the OpenTofu runner | No; recreated on runs |
 | `ansible-workspaces` | Temporary per-job files and the Galaxy cache of the Ansible runner | No; recreated on jobs |
-| `zitadel-pat` | Zitadel admin PAT (shared with init job) | No; regenerated on init |
+| `zitadel-pat` | Zitadel admin PAT (shared with init job) | Preserve with the configured identity and generated `.env` |
 
 
 Back up the database, object storage and the configuration/key files together. A database

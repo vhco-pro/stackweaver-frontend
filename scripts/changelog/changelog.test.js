@@ -96,6 +96,50 @@ test('collector binds source sync, successful workflow and published artifact to
   assert.deepEqual(result.includedCommits, [source]);
 });
 
+test('collector accepts verified registry provenance when the release has no attachment', async () => {
+  const f = fixture();
+  f.api[`repos/${config.components.api.repository}/releases/latest`].assets = [];
+  f.io.attestation = () => [{ verificationResult: {
+    signature: { certificate: {
+      subjectAlternativeName: `https://github.com/${config.components.api.repository}/.github/workflows/release.yml@refs/tags/1.2.3`,
+      issuer: 'https://token.actions.githubusercontent.com',
+      sourceRepositoryDigest: tagSha,
+    } },
+    statement: structuredClone(f.statement),
+  } }];
+  const result = await collectRelease('api', config, [entry()], f.io);
+  assert.equal(result.artifact.evidence, 'github-attestation');
+  assert.equal(result.artifact.digest, release().artifact.digest);
+  assert.equal(result.artifact.provenanceUrl, `https://api.github.com/repos/${config.components.api.repository}/attestations/${result.artifact.digest}`);
+  assert.deepEqual(result.includedCommits, [source]);
+});
+
+test('registry provenance must verify the exact issuer, signer, source, artifact and run', async () => {
+  for (const change of [
+    result => { result.signature.certificate.issuer = 'https://untrusted.example'; },
+    result => { result.signature.certificate.subjectAlternativeName += '-other'; },
+    result => { result.signature.certificate.sourceRepositoryDigest = source; },
+    result => { result.statement.subject[0].name += '-other'; },
+    result => { result.statement.predicate.runDetails.metadata.invocationId += '-other'; },
+  ]) {
+    const f = fixture();
+    f.api[`repos/${config.components.api.repository}/releases/latest`].assets = [];
+    f.io.attestation = () => {
+      const result = { signature: { certificate: {
+        subjectAlternativeName: `https://github.com/${config.components.api.repository}/.github/workflows/release.yml@refs/tags/1.2.3`,
+        issuer: 'https://token.actions.githubusercontent.com', sourceRepositoryDigest: tagSha,
+      } }, statement: structuredClone(f.statement) };
+      change(result);
+      return [{ verificationResult: result }];
+    };
+    await assert.rejects(() => collectRelease('api', config, [entry()], f.io));
+  }
+  const f = fixture();
+  f.io.attestation = () => { throw new Error('Must not bypass a malformed release attachment'); };
+  f.statement.subject = [];
+  await assert.rejects(() => collectRelease('api', config, [entry()], f.io), /artifact identity/);
+});
+
 test('collector rejects skipped artifact, failed publication and ambiguous sync provenance', async () => {
   for (const mutation of [
     f => { f.statement.subject = []; },

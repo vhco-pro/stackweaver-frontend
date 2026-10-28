@@ -20,8 +20,9 @@ Confirmed available by is the date of the latest required component publication 
 - Administration: [Separate install-wide administration from organization ownership](#change-platform-admin-access)
 - Ansible: [Configure Ansible repository access through VCS connections](#change-ansible-vcs-credential-boundary) · [Constructed inventories accept derived hosts and groups only](#change-constructed-derived-only) · [Failed inventory syncs preserve the last successful inventory](#change-failed-inventory-sync) · [Jobs warn when inventory refresh did not succeed](#change-inventory-refresh-warning)
 - Authentication: [Browser sign-in uses a server-side session](#change-browser-sessions-bff)
-- Documentation: [Read product changes and upgrade actions in one changelog](#change-docs-quality-changelog) · [Browse documentation from a generated homepage](#change-generated-docs-homepages) · [Find guides through generated documentation overviews](#change-generated-docs-overviews) · [Clearer guides with maintained visuals and generated references](#change-public-docs-quality-workflow)
-- Platform: [Load public pages independently of application screens](#change-landing-route-loading)
+- Documentation: [Read verified component changes in the central changelog](#change-changelog-independent-release-evidence) · [Read product changes and upgrade actions in one changelog](#change-docs-quality-changelog) · [Browse documentation from a generated homepage](#change-generated-docs-homepages) · [Find guides through generated documentation overviews](#change-generated-docs-overviews) · [Clearer guides with maintained visuals and generated references](#change-public-docs-quality-workflow)
+- OpenTofu: [Encrypt saved plans when encryption at rest is configured](#change-saved-plan-storage)
+- Platform: [Prepare frequently visited application screens after the dashboard loads](#change-application-navigation-warmup) · [Show distinct documentation commands correctly](#change-docs-code-block-cache-identity) · [Load public pages independently of application screens](#change-landing-route-loading)
 - Runners: [Require explicit registration scopes and confirmed runner bindings](#change-runner-registration-boundaries)
 - VCS: [Reject unsupported VCS providers when creating connections](#change-supported-vcs-connections)
 
@@ -52,6 +53,32 @@ The unsupported scm API credential type and the unused vcs UI option are removed
 
 [Register Ansible playbooks and repository access](/docs/user-guides/managing-ansible-playbooks#before-you-start)
 
+<a id="change-application-navigation-warmup" style="scroll-margin-top: 7rem"></a>
+
+### Prepare frequently visited application screens after the dashboard loads
+
+Platform · Performance
+
+**For:** People navigating from the dashboard into Workspaces, Playbooks and Job Templates.
+
+After the signed-in dashboard finishes its initial requests, up to three frequently used screens prepare their code in the background. Hovering, focusing or pressing navigation links also prepares their destination.
+
+**Action:** No configuration changes are required. Use the existing reload action if a page download fails.
+
+**Confirmed in:** [frontend 0.74.2](https://github.com/vhco-pro/stackweaver-frontend/releases/tag/0.74.2)
+
+<details>
+<summary>Previous behavior and scope</summary>
+
+**Before:** The first visit to each application screen downloaded its page code during navigation.
+
+- Background preparation loads code only. Resource data is requested when its screen opens, so backend response time still affects content readiness.
+- Idle preparation pauses for hidden tabs, offline browsers and restricted connections. Landing-page route isolation and existing navigation controls are preserved.
+
+</details>
+
+[Reading the dashboard](/docs/user-guides/reading-the-dashboard)
+
 <a id="change-browser-sessions-bff" style="scroll-margin-top: 7rem"></a>
 
 ### Browser sign-in uses a server-side session
@@ -79,6 +106,57 @@ The API signs in as a confidential Zitadel client and gives the browser an opaqu
 </details>
 
 [Browser sessions and confidential-client setup](/docs/user-guides/authentication/zitadel-setup)
+
+<a id="change-changelog-independent-release-evidence" style="scroll-margin-top: 7rem"></a>
+
+### Read verified component changes in the central changelog
+
+Documentation · Fixed
+
+**For:** Operators checking changes and upgrade actions for their installation.
+
+Verified component observations are retained independently. Entries still require evidence for every component they need, and incomplete entries stay out of the public feed.
+
+**Action:** Read the action and confirmed component versions for relevant entries before upgrading. No deployment setting is changed by the changelog refresh.
+
+**Confirmed in:** [frontend 0.74.2](https://github.com/vhco-pro/stackweaver-frontend/releases/tag/0.74.2)
+
+<details>
+<summary>Previous behavior and scope</summary>
+
+**Before:** An unavailable release-provenance asset in one component prevented the evidence refresh from retaining verified observations for other components.
+
+- Each entry leads with its user impact. Previous behavior and supporting scope remain available in expandable details.
+
+</details>
+
+[Verify release artifacts](/docs/security/verifying-releases)
+
+<a id="change-docs-code-block-cache-identity" style="scroll-margin-top: 7rem"></a>
+
+### Show distinct documentation commands correctly
+
+Platform · Fixed
+
+**For:** Readers using code examples in documentation and other shared Markdown views.
+
+The highlighting cache uses the complete code block, so examples with a shared prefix retain their distinct displayed content.
+
+**Action:** Reload an open documentation page after updating the frontend. No configuration change is required.
+
+**Confirmed in:** [frontend 0.74.2](https://github.com/vhco-pro/stackweaver-frontend/releases/tag/0.74.2)
+
+<details>
+<summary>Previous behavior and scope</summary>
+
+**Before:** Code blocks in the same language that shared their first 100 characters could display the same highlighted snippet, even when their remaining commands differed.
+
+- Copy uses the block source. Displayed examples and copied text are checked together by the regression.
+- This corrects ordinary fenced code blocks; it does not redesign CodeGroup navigation.
+
+</details>
+
+[Platform administration](/docs/user-guides/platform-administration)
 
 <a id="change-docs-quality-changelog" style="scroll-margin-top: 7rem"></a>
 
@@ -288,6 +366,32 @@ Registration requires an explicit runner registration scope. Failed or mismatche
 </details>
 
 [Self-hosted runner credentials](/docs/user-guides/self-hosted-runners)
+
+<a id="change-saved-plan-storage" style="scroll-margin-top: 7rem"></a>
+
+### Encrypt saved plans when encryption at rest is configured
+
+OpenTofu · Changed
+
+**For:** Operators of the platform queue-mode OpenTofu runner.
+
+The platform runner seals saved plans using the configured encryption service and reads legacy plaintext plans.
+
+**Action:** Upgrade participating platform runners together: older runners cannot read newly encrypted plans. Keep the same encryption key across those runners before applying outstanding plans.
+
+**Confirmed in:** [opentofu runner 0.2.29](https://github.com/vhco-pro/stackweaver-opentofu-runner/releases/tag/0.2.29)
+
+<details>
+<summary>Previous behavior and scope</summary>
+
+**Before:** Saved plan files could be stored without application-level encryption between plan and apply.
+
+- An older runner cannot consume newly encrypted plan files. With no encryption service configured, plan storage remains plaintext.
+- This change concerns the platform queue-mode runner; it does not change the self-hosted agent execution path.
+
+</details>
+
+[Run lifecycle and execution paths](/docs/user-guides/understanding-opentofu-runs)
 
 <a id="change-supported-vcs-connections" style="scroll-margin-top: 7rem"></a>
 

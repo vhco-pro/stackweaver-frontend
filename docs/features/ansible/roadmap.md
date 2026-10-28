@@ -96,6 +96,23 @@ Credential types are `ssh`, `machine-ssh`, `vault`, `aws`, `azure`, `gcp` and `v
 Unknown types and the unsupported `scm` type are rejected. Configure repository access through a VCS connection, not an Ansible SCM credential. Responses expose presence flags for SSH keys, passwords,
 vault passwords and become passwords, not the secret values themselves.
 
+### GCP job authentication
+
+Attach a GCP service-account credential to the job template when its Google Cloud tasks
+should use that identity. Tasks that omit authentication use the attached account through
+Application Default Credentials. The runner supplies `GCP_AUTH_KIND=application` and a
+job-local file named by `GOOGLE_APPLICATION_CREDENTIALS`; do not hard-code that temporary
+path into a playbook. A task that explicitly selects its own authentication keeps that
+choice. The target project's permissions still come from the chosen Google identity.
+
+This applies to platform and current self-hosted runners. Upgrade self-hosted agents to
+the runner release carrying this behavior; changing only the platform does not update an
+agent. If the runner cannot write the credential file, the job fails instead of continuing
+without its attached identity. Never print the key or credential file to verify access;
+use a read-only Google Cloud operation against a dedicated test resource.
+
+### Attachment and deletion rules
+
 | Operation | Constraint |
 |---|---|
 | Template credential set | One credential per type, except multiple vault credentials with distinct vault IDs. |
