@@ -642,5 +642,51 @@
       "frontend"
     ],
     "availability": []
+  },
+  {
+    "id": "session-list-no-expiry",
+    "title": "Session list no longer shows a placeholder expiry date",
+    "area": "Accounts",
+    "kind": "Fixed",
+    "reviewed": true,
+    "audience": "People reviewing their signed-in sessions under Settings > Sessions.",
+    "before": "A session without an expiration showed \"Expires: 1/1/1\".",
+    "after": "A session without an expiration shows no expiry line, and the API leaves out its expiration-date attribute.",
+    "action": "No action is required.",
+    "details": [],
+    "guides": [
+      {
+        "title": "Browser sessions and confidential-client setup",
+        "path": "/docs/user-guides/authentication/zitadel-setup"
+      }
+    ],
+    "sourceCommits": [],
+    "requiredComponents": [
+      "api"
+    ],
+    "availability": []
+  },
+  {
+    "id": "sso-actions-target-repair",
+    "title": "The initializer repairs the address of SSO group webhooks",
+    "area": "SSO",
+    "kind": "Fixed",
+    "reviewed": true,
+    "audience": "Operators syncing SSO groups to teams through Zitadel Actions.",
+    "before": "Rerunning the initializer kept an existing Actions target at the address it was first registered with, so a corrected ACTIONS_API_BASE_URL did not reach Zitadel.",
+    "after": "When ACTIONS_API_BASE_URL is set, each initializer run moves the idp-sync and complement-token targets to that address and keeps their signing keys. Without it, existing targets keep their address.",
+    "action": "If SSO groups do not reach Stackweaver, set ACTIONS_API_BASE_URL to the API address Zitadel can reach and run the initializer again.",
+    "details": [],
+    "guides": [
+      {
+        "title": "SSO team mapping",
+        "path": "/docs/user-guides/sso/team-mapping"
+      }
+    ],
+    "sourceCommits": [],
+    "requiredComponents": [
+      "zitadel-init"
+    ],
+    "availability": []
   }
 ]
