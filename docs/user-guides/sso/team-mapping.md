@@ -55,8 +55,9 @@ services:
 
 Use your deployment's real service address. A localhost address inside the Zitadel
 container points to Zitadel itself. Run `docker compose run --rm zitadel-init` and inspect
-the targets in Zitadel. Reconciliation reuses existing targets; changing this variable does
-not repair an already registered endpoint. Correct that target in Zitadel and test delivery.
+the targets in Zitadel. When the variable is set, each run moves existing targets to this
+address and keeps their signing keys, so after changing it, run the initializer again and test
+delivery. Without it, existing targets keep the address they have.
 
 ### Kubernetes / Helm
 
