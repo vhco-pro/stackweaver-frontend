@@ -1,53 +1,64 @@
 ---
-title: "Terraform Cloud alternatives: choosing how you run IaC"
-description: "Compare HCP Terraform, Terraform Enterprise, Stackweaver and CI with remote state. Check execution, European hosting and migration work."
+title: "Terraform Cloud alternatives: OpenTofu and Ansible with Stackweaver"
+description: "Review infrastructure plans and manage OpenTofu state alongside Ansible jobs in Stackweaver. A practical alternative to separate automation platforms."
 canonical: /compare/terraform-cloud
 author: Michiel VH
 status: draft
-updated: 2026-10-27
+updated: 2026-10-29
 topics: [OpenTofu, Comparisons]
 ---
-Before replacing Terraform Cloud, decide which part you want to replace.
-Keeping state somewhere else is a much smaller change than moving the service that plans and applies infrastructure.
-I would make that distinction first, then compare the work your team will have to operate.
+Stackweaver brings OpenTofu workspaces and Ansible automation into the same platform.
+Your team can review an infrastructure plan and confirm the apply in the same application used to run repository playbooks.
 
-> I build Stackweaver at VH & Co BV, a company based in Europe.
-> This is a product author's comparison of documented workflows, not a performance benchmark or a completed migration trial.
+If you're looking for a Terraform Cloud alternative, that combination is where I would start the Stackweaver comparison.
+You get workspace state and a recorded run lifecycle alongside the configuration automation your infrastructure needs afterwards.
+I build Stackweaver at VH & Co BV, based in Europe.
+This is a product-author comparison of documented workflows, not a performance benchmark or a completed migration trial.
 
 ## Techstack
 
+- Stackweaver SaaS, or self-hosting with Docker Compose or Helm.
+- OpenTofu workspaces and Ansible repository playbooks.
 - HCP Terraform, the current name for Terraform Cloud.
-- Terraform Enterprise for a self-hosted HashiCorp deployment.
-- Stackweaver's OpenTofu workspaces and TFE-compatible API surface.
-- Terraform or OpenTofu CLI, depending on the platform and configuration.
+- Terraform Enterprise as HashiCorp's self-hosted distribution.
 
-## Separate state storage from remote execution
+## What Stackweaver replaces
 
-A [remote backend][tf-remote] can keep your state in a shared location while the CLI runs on a developer machine or a CI worker.
-HCP Terraform can also execute runs remotely and retain their results alongside the workspace.
-Those are different responsibilities, even when one product handles both.
+A state backend stores the snapshot your next Terraform or OpenTofu run needs.
+A platform also coordinates execution and lets your team inspect the result.
+Stackweaver models that work through a workspace, with its configuration settings and variables alongside state and run history.
 
-If your team already has a dependable CI pipeline and only needs shared state, compare backends before installing another application.
-You will still need to decide how the pipeline handles concurrent work and apply credentials.
-You also need a way to review the plan that will actually be applied.
+With auto-apply disabled, an infrastructure change is planned before an authorized user confirms the apply.
+The recorded result stays with the workspace.
+Ansible jobs live in the same application, using their own playbooks and inventories.
+That is useful when provisioning infrastructure and configuring it are both part of your team's work.
 
-If you want a shared workspace interface and a managed run lifecycle, a backend alone will leave more work for you.
-That is the comparison this article focuses on.
+![Stackweaver's workspace run chooser, separating inspection from a reviewed plan and apply.](/docs/user-guides/images/workspace-new-run.png)
 
-| Option | Who operates the control plane? | What to check before choosing it |
+The [OpenTofu run guide][sw-runs] explains the stages and output.
+The [Ansible first-job guide][sw-first-job] shows the other side of the workflow, including declared platform configuration through the management provider.
+You can keep the automation content in Git and manage the platform's objects as code too.
+
+## Managed hosting and self-hosting
+
+Use Stackweaver SaaS for managed hosting, [Docker Compose][sw-compose] for a host-based installation, or the [Helm chart][sw-helm] for Kubernetes.
+The [self-hosting guides][sw-self-hosting] cover the deployment configuration and supporting services.
+
+| Requirement | Stackweaver | HashiCorp option to compare |
 | --- | --- | --- |
-| HCP Terraform | HashiCorp operates the hosted application. | Your subscription's capabilities, execution mode and regional offering. |
-| Terraform Enterprise | Your team operates HashiCorp's self-hosted distribution. | Deployment requirements and the commercial agreement. |
-| Stackweaver | Your team operates a self-hosted installation today. | OpenTofu execution requirements and the documented API compatibility limits. |
-| CI with a remote backend | Your team maintains the pipeline and backend configuration. | Locking support, review controls and how execution records are retained. |
+| Managed workspace service | SaaS hosting with OpenTofu workspaces. | HCP Terraform's hosted application. |
+| Self-hosted control plane | Docker Compose or Helm. | Terraform Enterprise's supported deployment. |
+| Infrastructure and configuration jobs | OpenTofu workspaces alongside Ansible jobs. | Evaluate the integrations needed for the team's configuration automation. |
+| Existing Terraform management clients | TFE-compatible API surface with operation-level compatibility evidence. | Your current TFE API usage and provider resources. |
+| Runtime | Documented remote execution uses OpenTofu. | The Terraform runtime and provider versions your current deployment uses. |
 
-[Terraform Enterprise][tf-enterprise] is the self-hosted HashiCorp distribution.
-It should be on the shortlist when you want to retain that application model on infrastructure you operate.
-Self-hosting does not by itself make Stackweaver the closest replacement.
+HCP Terraform also supports [remote operations][hcp-remote] and a local execution mode where it stores state while your own machine executes the commands.
+If state storage is the only thing you need to replace, compare backends before moving the full workflow.
+For a team that wants a shared application for runs and Ansible jobs, evaluate Stackweaver as the platform replacement.
 
-## Compare a complete plan and apply
+## A first workspace without cloud credentials
 
-Create an evaluation repository with `main.tf` in a separate directory:
+Use a separate evaluation directory containing this `main.tf`:
 
 ```hcl
 terraform {
@@ -64,94 +75,104 @@ output "environment" {
 ```
 
 The built-in [`terraform_data` resource][tofu-data] records a value in state without creating a cloud resource.
-This example needs no external provider credentials.
-It is useful for checking the run lifecycle before involving infrastructure you care about.
+With a compatible OpenTofu installation, you can check the configuration locally:
 
-In HCP Terraform, create a VCS-connected workspace pointing at that directory and leave automatic application disabled.
-Use the [VCS run workflow][hcp-runs] to plan the configuration, review the proposed resource, then confirm the apply.
-Check the output and the workspace's retained state.
+```bash
+tofu init
+tofu plan -out=evaluation.tfplan
+tofu apply evaluation.tfplan
+tofu output -raw environment
+tofu plan
+```
 
-In Stackweaver, follow [the first-workspace guide][sw-first-workspace] with the same repository and working directory.
-Select an available OpenTofu version and keep auto-apply off.
-Queue a run, review the plan and confirm the apply.
-The workspace keeps its state and run history in Stackweaver.
+The first plan proposes one addition.
+After applying that saved plan, the output should be `staging` and the last plan should report no changes.
+Keep generated plan and state files out of version control.
 
-Change the input to `staging-review` and repeat the workflow.
-Ask a teammate to find the first apply and explain the second plan.
-Then check whether a user without apply permission can still change infrastructure through another route your team intends to use.
-That permission check needs to cover your actual integration, not only the button in the browser.
+To run the configuration in Stackweaver:
 
-This exercise does not prove compatibility with your cloud providers or existing state.
-Use a representative non-production workspace for that next step.
+1. Commit it to a repository you control and connect that repository to Stackweaver.
+2. Create a workspace pointing at the evaluation directory and select an available OpenTofu version.
+3. Keep auto-apply off and choose **Plan & Apply**.
+4. Review the addition, confirm **Apply Plan**, then inspect the recorded result and output.
 
-## Check OpenTofu and API compatibility separately
+The [first-workspace guide][sw-first-workspace] includes the full setup and the native provider alternative.
+A **Plan Only** run is useful for inspection but cannot be applied later.
+Choose **Plan & Apply** when you want the manual confirmation path.
 
-Stackweaver's documented workspace execution path uses OpenTofu.
-Accepting Terraform configuration or exposing TFE-compatible endpoints does not establish that it executes your chosen HashiCorp Terraform binary.
-Keep runtime compatibility separate from API compatibility when evaluating an alternative.
+Change the input to `staging-review` and queue a new run.
+The next plan should update the existing evaluation resource.
+For an HCP Terraform comparison, use the same repository configuration in an independent VCS-connected workspace with auto-apply off, following its [UI/VCS run workflow][hcp-vcs].
+Do not point both trials at state belonging to real infrastructure.
 
-The [migration guide][sw-migration] includes a dated resource-by-resource test snapshot for the stock `hashicorp/tfe` provider.
-It also records fixtures that did not pass.
-Use the operations your automation needs as the checklist, and verify them against the release you intend to install.
-An endpoint with a familiar name is not enough evidence for a drop-in migration.
+The local example is deliberately small.
+Before migrating an existing workspace, test its actual providers and credentials against non-production infrastructure using the runtime you intend to deploy.
 
-For new management configuration, the [native Stackweaver provider][sw-provider] manages the platform itself.
-Your workspace configuration manages infrastructure separately.
-Do not put those two jobs in one state file merely because they both use HCL.
+## Keep API compatibility separate from execution
 
-## European hosting and private execution
+Stackweaver's TFE-compatible API helps existing clients manage platform resources.
+Its documented remote workspace execution uses OpenTofu.
+Those are separate compatibility questions: accepting an API operation does not establish execution with an arbitrary Terraform binary.
 
-HashiCorp offers [HCP Terraform in Europe][hcp-europe], with accounts and workspaces separate from its other regions.
-The European offering has its own documented differences, including account administration and billing.
-Check those details rather than assuming a US subscription behaves identically in Europe.
+The [migration guide][sw-migration] includes a dated `hashicorp/tfe` provider test snapshot and identifies fixtures that did not pass.
+Use that operation-level evidence to select what to test against the Stackweaver release you intend to run.
+For new platform-management configuration, the [native provider][sw-provider] manages Stackweaver's workspaces and other objects directly.
 
-[HCP Terraform agents][hcp-agents] also let execution reach private infrastructure.
-Running an agent inside your network does not move the hosted control plane there.
-Ask where the state and run records are stored as well as where the commands execute.
+I prefer keeping platform-management state separate from the infrastructure state inside a workspace.
+It gives changes to the control plane their own plan and avoids coupling them to the infrastructure the platform executes.
 
-Stackweaver can be self-hosted on infrastructure you select.
-VH & Co is based in Europe, and a managed Stackweaver SaaS offering is planned.
-The company's location does not establish that future service's hosting region or contractual terms.
-Do not choose it today on the assumption that those terms have already been published.
+## European teams can choose their deployment
 
-## Migration includes the inputs outside state
+VH & Co is based in Europe.
+With self-hosting, you choose where to deploy Stackweaver and its storage.
 
-Start by making a protected state backup and choosing a cutover window with both sides paused.
-Recreate the destination workspace and recover sensitive variables from their original source.
-VCS connections and access rules need their own migration work.
-The state snapshot does not contain all of that configuration, and the source platform's API token does not become a destination token.
+HashiCorp also offers [HCP Terraform in Europe][hcp-europe], with separate regional resources and documented differences.
+Its [agents][hcp-agents] allow execution against private infrastructure while the application remains hosted.
+Compare control-plane location separately from worker location when that distinction matters to your organization.
 
-Follow a transfer procedure supported by your exact CLI and backend combination.
-The [Stackweaver migration guide][sw-migration] has a bounded manual procedure for an empty destination, with safeguards and stop conditions.
-Do not treat a new hostname in a `cloud` block as a completed transfer.
+## Move workspace ownership deliberately
 
-After transfer, compare the destination state and outputs with the backup, then inspect a plan before allowing an apply.
-Unexpected creates or replacements are a reason to stop.
-Leave the source unable to apply when you enable the destination, and retain the old run history for your retention period.
+A workspace migration includes its inputs and access rules as well as state.
+Recreate the destination settings and reconnect VCS.
+Recover sensitive variables from their original secret store; a source platform's API token does not become a Stackweaver token.
 
-## Choose the work you want to own
+| Migration input | What to carry across |
+| --- | --- |
+| Configuration | Repository revision, working directory and dependency lock file. |
+| Execution | Compatible runtime, providers and required credentials. |
+| State | Protected source backup and the correct empty destination. |
+| Controls | Apply permissions, checks and automatic triggers. |
+| History | Retain source run records for the period the team needs. |
 
-I would keep HCP Terraform if its workflow fits and the goal is to avoid operating the control plane.
-Compare Terraform Enterprise when the requirement is a self-hosted HashiCorp application.
-Evaluate Stackweaver when you want OpenTofu workspaces alongside Ansible and are willing to operate the platform.
+Pause triggers and concurrent applies on both sides before transferring ownership.
+The [migration guide][sw-migration] provides a bounded manual procedure for an empty destination, with state readback and stop conditions.
+Review the destination plan before allowing it to apply.
+Unexpected creates or replacements are a reason to compare the inputs and state before proceeding.
 
-Stackweaver is source-available under [BSL 1.1][sw-license], not OSI open source.
-Read the license when assessing your intended deployment.
-For a practical first check, use the [small workspace example][sw-first-workspace] before migrating state that manages anything valuable.
+Enable the destination only when it is the designated owner, leaving the source unable to apply.
+Changing a hostname in a `cloud` block does not transfer the surrounding platform configuration.
 
-## References and scope
+## Start with a Stackweaver workspace
 
-Competitor documentation checked on 27 October 2026.
-HCP Terraform is a hosted service; plan entitlements and regional terms need checking against the offer you intend to buy.
-This article does not compare quoted prices or claim equal feature coverage.
+Use [the first-workspace guide][sw-first-workspace] to follow a complete plan and apply, then add [an Ansible job][sw-first-job] from the same team workflow.
+Stackweaver's self-hosted code is source-available under [BSL 1.1][sw-license].
 
-[tf-remote]: https://developer.hashicorp.com/terraform/language/backend/remote
-[tf-enterprise]: https://developer.hashicorp.com/terraform/enterprise
-[hcp-runs]: https://developer.hashicorp.com/terraform/cloud-docs/workspaces/run/ui
+## References
+
+HCP Terraform's European offering was rechecked on October 29, 2026; the workflow and runtime references were checked during this article's October 28 authoring pass.
+This comparison includes no quoted prices or claim of complete feature parity.
+
+[hcp-remote]: https://developer.hashicorp.com/terraform/cloud-docs/workspaces/run/remote-operations
+[hcp-vcs]: https://developer.hashicorp.com/terraform/cloud-docs/workspaces/run/ui
 [hcp-agents]: https://developer.hashicorp.com/terraform/cloud-docs/agents
 [hcp-europe]: https://developer.hashicorp.com/terraform/cloud-docs/europe
 [tofu-data]: https://opentofu.org/docs/language/resources/tf-data/
+[sw-runs]: /docs/user-guides/understanding-opentofu-runs
+[sw-first-job]: /docs/get-started/your-first-ansible-job
 [sw-first-workspace]: /docs/get-started/your-first-opentofu-workspace
+[sw-self-hosting]: /docs/get-started/self-hosting
 [sw-migration]: /docs/user-guides/migrating-from-terraform-cloud
 [sw-provider]: /docs/user-guides/terraform-provider
+[sw-compose]: /docs/get-started/self-hosting/docker-compose
 [sw-license]: https://github.com/michielvha/stackweaver/blob/main/LICENSE
+[sw-helm]: /docs/get-started/self-hosting/kubernetes

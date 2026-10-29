@@ -15,6 +15,11 @@ describe('blog article source contract', () => {
     expect(article.topics).toEqual(['Ansible', 'Comparisons']);
     expect(article.body).toBe('## Evaluate a real workflow\n\nUse the same playbook in each evaluation.');
   });
+  it('preserves a boolean featured flag and rejects ambiguous values', () => {
+    expect(parseArticles({ 'founder.md': source('featured: true\n') })[0].featured).toBe(true);
+    expect(parseArticles({ 'ordinary.md': source() })[0].featured).toBeUndefined();
+    expect(() => parseArticles({ 'bad.md': source('featured: "yes"\n') })).toThrow(/featured/i);
+  });
   it('excludes drafts from published discovery without changing the source status', () => {
     const draft = source().replace('status: published', 'status: draft').replace('/compare/awx', '/compare/semaphore');
     const articles = parseArticles({ 'awx.md': source(), 'semaphore.md': draft });

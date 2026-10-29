@@ -8,6 +8,7 @@ export interface BlogArticle {
   author: string;
   status: 'draft' | 'published';
   published?: string;
+  featured?: boolean;
   updated: string;
   topics: string[];
   body: string;
@@ -50,6 +51,9 @@ export function parseArticles(sources: Record<string, string>): BlogArticle[] {
     paths.add(canonical);
     const status = text(metadata, 'status', source);
     if (status !== 'draft' && status !== 'published') throw new Error(`${source}: status must be draft or published`);
+    if (metadata.featured !== undefined && typeof metadata.featured !== 'boolean') {
+      throw new Error(`${source}: featured must be a boolean`);
+    }
     const topics = metadata.topics;
     if (!Array.isArray(topics) || !topics.length || !topics.every((topic: unknown) => typeof topic === 'string' && topic.trim())) {
       throw new Error(`${source}: topics must be a nonempty list of strings`);
@@ -68,6 +72,7 @@ export function parseArticles(sources: Record<string, string>): BlogArticle[] {
       author: text(metadata, 'author', source),
       status,
       published,
+      featured: metadata.featured,
       updated,
       topics: [...new Set((topics as string[]).map(topic => topic.trim()))],
       body,
