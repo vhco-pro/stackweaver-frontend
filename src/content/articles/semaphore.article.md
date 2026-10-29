@@ -1,51 +1,60 @@
 ---
-title: "Stackweaver vs Semaphore UI for Ansible and OpenTofu"
-description: "Compare Stackweaver and Semaphore UI for playbook launches, OpenTofu state and workflow configuration, with Community and Pro limits."
+title: "Stackweaver vs Semaphore UI: one platform for Ansible and OpenTofu"
+description: "Compare Stackweaver and Semaphore UI for Ansible jobs, OpenTofu state and change approvals, with practical examples of the team workflow."
 canonical: /compare/semaphore
 author: Michiel VH
 status: draft
-updated: 2026-10-27
+updated: 2026-10-29
 topics: [Ansible, OpenTofu, Comparisons]
 ---
-Semaphore UI already runs Ansible and OpenTofu.
-Putting those names beside Stackweaver is not much of a comparison.
-I would look at the way each platform handles your playbooks and infrastructure state, then decide whether the extra platform services are useful to your team.
+Stackweaver gives your team a shared home for Ansible playbooks and OpenTofu workspaces.
+You can launch configuration jobs and review infrastructure plans in the same application.
+Their results stay available for the team to inspect.
 
-> I build Stackweaver at VH & Co BV, a company based in Europe.
-> This is a product author's comparison of documented behavior, not an independent benchmark.
-> The exercises below are a way to evaluate both products; they are not reported results from a side-by-side deployment trial.
+Semaphore UI also supports Ansible and OpenTofu.
+The useful comparison is how those tools fit into your team's daily work, especially where state lives and how a change gets reviewed before it is applied.
+I build Stackweaver at VH & Co BV, based in Europe, so this is a product-author comparison rather than an independent benchmark.
 
 ## Techstack
 
-- Semaphore UI, with Community and Pro capabilities distinguished below.
-- Stackweaver's Ansible job templates and OpenTofu workspaces.
-- Ansible repository playbooks.
-- OpenTofu configuration with an explicitly chosen state backend.
+- Stackweaver SaaS, or self-hosting with Docker Compose or Helm.
+- Semaphore UI, with Community and Pro features distinguished.
+- Git repositories containing Ansible playbooks and OpenTofu configuration.
+- Independent state for each evaluation workspace.
 
-## Compare the setup you will maintain
+## A workspace for infrastructure and a template for configuration
 
-[Semaphore UI][semaphore-docs] runs as a binary or container and supports several database choices.
-Its [application catalogue][semaphore-apps] includes Terraform/OpenTofu and Ansible, along with shell and other scripting tools.
-Check that the tools your templates use are installed on the execution machine.
+Ansible and OpenTofu solve related parts of infrastructure work, but their execution needs differ.
+A playbook needs a target inventory and a way to reach those hosts.
+An OpenTofu run also needs the correct workspace state and a controlled plan/apply sequence.
 
-Stackweaver groups Ansible jobs and OpenTofu workspaces in one platform.
-Its [Docker Compose installation][sw-compose] includes the supporting database and identity services, plus object storage and execution services.
-I would compare that operational footprint before choosing based on the interface alone.
+Stackweaver keeps those concepts explicit.
+An Ansible template selects a registered playbook and inventory.
+An OpenTofu workspace keeps its run settings and variables with platform-managed state.
+Your team can follow each change from its repository configuration to its recorded result without maintaining a separate application for each tool.
 
-| Requirement | Semaphore UI | Stackweaver |
+I prefer having the platform configuration declared too.
+The Stackweaver management provider can create workspaces and Ansible configuration objects; the [first-job guide][sw-first-job] shows the inventory, playbook and template definitions.
+The infrastructure inside an OpenTofu workspace stays in separate state from the configuration that manages Stackweaver itself.
+
+## Where the products differ
+
+| Requirement | Stackweaver | Semaphore UI |
 | --- | --- | --- |
-| Ansible launch | An Ansible template selects the repository, playbook and inventory. | A registered playbook is selected by a job template. |
-| Terraform/OpenTofu execution | Task templates run the selected application. | Workspace runs use OpenTofu, with a plan and apply lifecycle. |
-| State storage | Uses the backend in the code unless the Pro HTTP backend is selected. | State belongs to the workspace and is managed by the platform. |
-| Workflow graph | The documented visual workflow editor is a Pro feature. | Graph nodes and edges are configured through the API. |
-| Community license | Semaphore's Community repository is MIT-licensed. | Stackweaver is source-available under BSL 1.1. |
+| Hosting | Managed SaaS, [Docker Compose][sw-compose] on a host, or [Helm][sw-helm] in Kubernetes. | Binary, Docker and other installation options are documented. |
+| Ansible launches | Reusable templates with registered playbooks, inventories and credentials. | Ansible templates select a repository, playbook and inventory. |
+| OpenTofu runs | Workspace state and recorded plan/apply lifecycle in the platform. | Terraform/OpenTofu templates with workspace selection. |
+| State backend | State is managed for each workspace. | Uses the configured backend; the built-in HTTP backend is Pro. |
+| Workflow editing | Nodes and edges configured through the API, including approval gates. | The visual workflow editor is a Pro feature. |
+| License | Self-hosted code under BSL 1.1. | Community repository under MIT, with separate commercial features. |
 
-The [Terraform/OpenTofu guide][semaphore-tofu] and [workflow guide][semaphore-workflows] identify the Pro features.
-Do not compare those capabilities as if they were all included in Community, or assume that paid features are absent from Semaphore altogether.
+Semaphore's [installation options][semaphore-install] make it a practical controller for repository tasks.
+Its [OpenTofu workspace support][semaphore-workspaces] is also real.
+Stackweaver's appeal is the combined workspace and automation experience, with a managed hosting option when you want to use the platform without running its services yourself.
 
-## Start with the same Ansible repository
+## Run a playbook in Stackweaver
 
-Use a separate repository containing this `site.yml`:
+Save this `site.yml` in a repository you control:
 
 ```yaml
 - name: Verify an automation template
@@ -58,91 +67,129 @@ Use a separate repository containing this `site.yml`:
         msg: "Template loaded from the evaluation repository"
 ```
 
-The play runs on the worker and changes no managed host.
-With Ansible installed, check it locally before configuring either platform:
+With Ansible installed, check it locally:
 
 ```bash
 ansible-playbook -i localhost, site.yml
 ```
 
-In Semaphore, add the repository and an inventory containing `localhost`, then create an [Ansible Playbook template][semaphore-ansible] pointing at `site.yml`.
-Run the template and check its task output.
-The local task does not need a target-host SSH key, though a private repository still needs its own access credential.
+The expected result is a successful job containing "Template loaded from the evaluation repository".
+The playbook runs on the execution worker and changes no managed host.
+In a controller, `localhost` refers to that worker.
 
-In Stackweaver, connect the repository and register `site.yml` as a playbook.
-Create the matching inventory and a job template, with privilege escalation disabled for this task.
-Launch it and inspect the output.
-The [first-job guide][sw-first-job] covers the setup, including how repository inventories differ from manually entered hosts.
+Connect the repository in Stackweaver and register `site.yml` as a playbook.
+Create an inventory containing `localhost`, then select both in a job template.
+Leave privilege escalation disabled and target-host SSH credentials empty for this local task.
+Launch the template and inspect its task result using the [first-job guide][sw-first-job].
 
-Now use the playbook in the [AWX comparison](/compare/awx) and launch it with `target_environment` set to `production`.
-Find the failed task in each interface and have a teammate repeat the launch.
-The exercise checks the job's path through the controller.
-It does not establish how either product behaves against your real host estate.
+![Stackweaver's playbook catalogue with repository-backed automation entries.](/docs/user-guides/images/playbooks-overview.png)
 
-## Choose where OpenTofu state belongs
+To run the same file in Semaphore, create an [Ansible Playbook template][semaphore-ansible] with the matching repository, inventory and path.
+A private Git repository needs its own access credential in either platform.
+For remote hosts, check the execution worker's network access and attach a suitable host credential.
 
-Semaphore's [Terraform/OpenTofu templates][semaphore-tofu] initialize the selected configuration and use its configured backend.
-The built-in HTTP state backend is a Pro feature.
-For Community, decide which backend your team will configure and operate.
-Do not leave that choice implicit when moving from a local trial to shared automation.
+A successful run covers the simple launch path.
+For a deliberate failed task, use the assertion example in the [Ansible Automation Platform comparison](/compare/awx).
+You can inspect how the result is presented without failing a task on a production server.
 
-Stackweaver's [OpenTofu workspace][sw-first-workspace] contains the configuration settings and state used by its runs.
-A plan can be reviewed before you confirm the apply, provided auto-apply is disabled.
-The distinction to evaluate is the workspace lifecycle and state ownership, not whether the platform can start the `tofu` command.
+## State stays with the workspace
 
-For a small comparison, use the `terraform_data` example in the first-workspace guide.
-It records a value in state without creating a cloud resource.
-Keep each platform's evaluation state separate and use an execution version compatible with that configuration.
+Semaphore's [Terraform/OpenTofu templates][semaphore-tofu] use the backend configured for the task.
+The [built-in HTTP backend][semaphore-state] is a Pro feature.
+If you choose Community with an external backend, that backend remains part of the configuration you maintain.
 
-Run an initial plan and apply, then change the input value and review the next plan.
-Check that state is still available after a new execution worker starts.
-Inspect how a second execution is handled while one is already in progress.
-These are checks to perform on your chosen deployment and backend, not guarantees inferred from the template type.
+In Stackweaver, the workspace owns its state and recorded runs.
+With auto-apply off, choose **Plan & Apply** to review the plan before confirming the apply.
+The platform keeps the result with that workspace for the next run.
+A **Plan Only** run is for inspection and cannot later be applied.
 
-## Check workflow editing before choosing
+![Stackweaver's run chooser, with separate Plan Only and Plan & Apply options.](/docs/user-guides/images/workspace-new-run.png)
 
-Semaphore Pro documents a visual workflow editor with approval nodes and branching.
-Stackweaver supports workflows with approval gates, but their graph is configured through the API.
-Nested workflows and launch-time survey prompts are unsupported in Stackweaver.
-The [Ansible capability catalogue][sw-ansible] keeps those limits beside the supported behavior.
+For a provider-free first run, save this as `main.tf` in a separate evaluation directory:
 
-I would choose based on who will maintain that configuration.
-If the team needs to edit the graph in the browser, the difference is immediate.
-An API can suit a declared configuration workflow, but that does not make it an equivalent visual editing experience.
+```hcl
+terraform {
+  required_version = ">= 1.6.0"
+}
 
-## Recreate the configuration around the playbooks
+variable "environment" {
+  type    = string
+  default = "staging"
+}
 
-Keeping the playbook repository does not migrate template settings or access rules.
-Inventory sources need checking separately, and stored secrets need to come from their original source.
-For OpenTofu, choose the destination backend before moving any state.
+resource "terraform_data" "evaluation" {
+  input = var.environment
+}
 
-Use one low-risk template and a disposable workspace for the first trial.
-Keep destination schedules disabled until one platform is the designated owner.
-Retain the old execution history rather than assuming a template import will copy it.
+output "environment" {
+  value = terraform_data.evaluation.output
+}
+```
 
-Semaphore Community's [MIT license][semaphore-license] and Stackweaver's [BSL 1.1 license][sw-license] are different choices.
-Stackweaver should not be presented as OSI open source.
-Self-hosting is available, and a managed SaaS offering is planned.
-Evaluate the deployment available today rather than assuming future hosting terms.
+The built-in [`terraform_data` resource][tofu-data] records the value without provisioning a cloud resource.
+With a compatible OpenTofu installation, its local workflow is:
 
-If a task-oriented interface and your chosen backend already meet the requirement, I would include Semaphore in the trial.
-If your team wants OpenTofu workspaces alongside Ansible, compare [Stackweaver's first workspace][sw-first-workspace] with the same small configuration.
-Let the state and run workflow determine whether the additional services are worth operating.
+```bash
+tofu init
+tofu plan -out=evaluation.tfplan
+tofu apply evaluation.tfplan
+tofu output -raw environment
+tofu plan -var='environment=staging-review'
+```
 
-## References and scope
+The apply creates one evaluation resource and the output should be `staging`.
+The last command proposes changing the stored input to `staging-review`; it does not apply that change.
+Keep the generated plan and state files out of Git.
 
-Semaphore documentation checked on 27 October 2026.
-The feature descriptions follow its current documentation, not a pinned Semaphore binary tested here.
-Confirm the installed release and subscription before relying on the Pro features described above.
+To run it in Stackweaver, commit the configuration and follow [the first-workspace guide][sw-first-workspace].
+Select its directory, use an available OpenTofu version and leave auto-apply off.
+For Semaphore, create an OpenTofu template with its own workspace and your chosen backend.
+Keep each platform's evaluation state independent.
 
-[semaphore-docs]: https://semaphoreui.com/docs
-[semaphore-apps]: https://semaphoreui.com/docs/user-guide/apps
+## Approvals and configuration should fit the team
+
+Semaphore Pro provides a [visual workflow editor][semaphore-workflows] with branching and approval steps.
+Stackweaver's workflow graph is configured through the API, including approval gates.
+The [Ansible catalogue][sw-ansible] covers the configuration details.
+
+The comparison should reflect the edition you would actually deploy.
+For Stackweaver, follow an Ansible job through its output and an OpenTofu change through its plan and confirmation.
+For Semaphore, include the backend and Pro features your workflow requires.
+That gives you a useful view of daily operations instead of a feature count with different editions mixed together.
+
+## Keep the automation, move its configuration deliberately
+
+Your repository content can stay in Git while you recreate a template in Stackweaver.
+Check its launch defaults and inventory groups, then restore credentials from their original secret source.
+Keep destination schedules disabled until the source scheduler is paused.
+An old controller's run history does not move with a playbook filename.
+
+For OpenTofu, transfer state only after choosing the authoritative destination.
+The [migration guide][sw-migration] gives a bounded empty-destination procedure and the checks to perform before allowing an apply.
+Use separate trial workspaces first, then move the configuration that matters to your team.
+
+## Bring the two workflows into Stackweaver
+
+If you want Ansible jobs and OpenTofu workspaces in one platform, start with [your first Ansible job][sw-first-job] and [your first workspace][sw-first-workspace].
+Stackweaver's self-hosted code uses [BSL 1.1][sw-license]; Semaphore Community uses [MIT][semaphore-license].
+
+## References
+
+Semaphore documentation checked on October 29, 2026.
+This compares documented product behavior and runnable examples, without a side-by-side deployment or performance claim.
+
+[semaphore-install]: https://semaphoreui.com/docs/admin-guide/installation
 [semaphore-ansible]: https://semaphoreui.com/docs/user-guide/apps/ansible
+[semaphore-workspaces]: https://semaphoreui.com/docs/user-guide/apps/terraform/workspaces
 [semaphore-tofu]: https://semaphoreui.com/docs/user-guide/apps/terraform
+[semaphore-state]: https://semaphoreui.com/docs/user-guide/apps/terraform/states
 [semaphore-workflows]: https://semaphoreui.com/docs/user-guide/workflows
 [semaphore-license]: https://github.com/semaphoreui/semaphore/blob/develop/LICENSE
+[tofu-data]: https://opentofu.org/docs/language/resources/tf-data/
 [sw-first-job]: /docs/get-started/your-first-ansible-job
 [sw-first-workspace]: /docs/get-started/your-first-opentofu-workspace
+[sw-migration]: /docs/user-guides/migrating-from-terraform-cloud
 [sw-ansible]: /docs/features/ansible
 [sw-compose]: /docs/get-started/self-hosting/docker-compose
 [sw-license]: https://github.com/michielvha/stackweaver/blob/main/LICENSE
+[sw-helm]: /docs/get-started/self-hosting/kubernetes

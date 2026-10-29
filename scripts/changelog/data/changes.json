@@ -716,5 +716,30 @@
       "helm"
     ],
     "availability": []
+  },
+  {
+    "id": "blog-featured-stories",
+    "title": "Featured stories in the blog archive",
+    "area": "Platform",
+    "kind": "Added",
+    "reviewed": true,
+    "audience": "Readers and maintainers of the public Stackweaver blog.",
+    "before": "The first source-file entry always occupied the lead card, and every article cover used a comparison label.",
+    "after": "Published stories can be featured explicitly, topic filters follow available articles, and vision articles have their own cover and banner wording.",
+    "action": "No action is required for existing articles. Authors may set featured: true in article metadata; draft articles remain excluded from production.",
+    "details": [
+      "Editorial manuscripts and present-tense launch copy remain drafts until separately published."
+    ],
+    "guides": [
+      {
+        "title": "Get started with Stackweaver",
+        "path": "/docs/get-started"
+      }
+    ],
+    "sourceCommits": [],
+    "requiredComponents": [
+      "frontend"
+    ],
+    "availability": []
   }
 ]
