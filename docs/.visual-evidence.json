@@ -277,7 +277,7 @@
     "frontend/src/components/layout/PageHeader.tsx": "899575dabcce638daf9e3cf9c4413daeaef5e9948a88e71cf5c79147f86d1f16",
     "frontend/src/components/layout/Sidebar.test.tsx": "1e30d2646e2c0018cacd0ca9b1c2cca314de1a83d1297103963e5890fee22865",
     "frontend/src/components/layout/Sidebar.tsx": "49bc893f7d651f62e6f99499d362e0ba0969bac9770e77bb0f694de033cd524d",
-    "frontend/src/components/navigation/PublicNav.tsx": "3f7cbbe3b99baf558dc3527ecacd79057d685bf18a9b130272d1fcec67415efb",
+    "frontend/src/components/navigation/PublicNav.tsx": "7acd9aef91c8050a1ebe20d8b5a0a4c5a6a98661f8c198324618873579d51967",
     "frontend/src/components/notifications/NotificationContainer.tsx": "c233bd96f8ad7cbd83f81a507b9363f5b63e29781d2783ae1b43fb6e73acfdcb",
     "frontend/src/components/notifications/NotificationToast.tsx": "2d2984d13076e6a23b15a615e683a9698e69548d9ddb19fc3b5e384d2672bde5",
     "frontend/src/components/platform/PlatformNotFound.tsx": "5d21b416f77b0d4dac38272175ee5b8fd7b6bbc9786ac9bbd5e595b169d7c8b5",

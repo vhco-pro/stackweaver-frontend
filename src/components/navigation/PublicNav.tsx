@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { GradientButton } from '@/components/ui/gradient-button';
 import { usePublicSession } from '@/contexts/PublicSessionContext';
 import { useTheme } from '@/contexts/ThemeContext';
+import { cn } from '@/lib/utils';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -23,8 +24,13 @@ import {
   SheetTitle,
 } from '@/components/ui/sheet';
 
+const mobilePageLinkClass = (active: boolean) => cn(
+  'flex min-h-11 items-center px-3 py-3 text-sm font-medium hover:bg-slate-100 dark:hover:bg-white/10 rounded-lg transition-colors',
+  active ? 'text-blue-600 dark:text-blue-400' : 'text-slate-700 dark:text-gray-200',
+);
+
 interface PublicNavProps {
-  /** Active link to highlight. Options: 'home', 'docs' */
+  /** Active public section to highlight. */
   activeLink?: 'home' | 'docs' | 'blog';
   /**
    * Drives the logo's opacity from outside. The landing page keeps the logo hidden until its
@@ -143,6 +149,7 @@ export function PublicNav({ activeLink = 'home', logoOpacity }: PublicNavProps) 
               <Link to="/blog" aria-current={blogActive?'page':undefined} className={`text-sm hover:text-blue-600 dark:hover:text-blue-300 min-h-11 inline-flex items-center ${blogActive?'text-blue-600 dark:text-blue-400':'text-slate-800 dark:text-slate-200'}`}>Blog</Link>
               <Link
                 to="/docs"
+                aria-current={docsActive ? 'page' : undefined}
                 className={`text-sm transition-all duration-300 hover:text-blue-500 dark:hover:text-blue-300 ${
                   isScrolled ? 'text-slate-800 dark:text-white' : 'text-slate-800/70 dark:text-white/70'
                 }`}
@@ -204,6 +211,7 @@ export function PublicNav({ activeLink = 'home', logoOpacity }: PublicNavProps) 
               <Link to="/blog" aria-current={blogActive?'page':undefined} className={`text-sm hover:text-blue-600 dark:hover:text-blue-300 min-h-11 inline-flex items-center ${blogActive?'text-blue-600 dark:text-blue-400':'text-slate-800 dark:text-slate-200'}`}>Blog</Link>
               <Link
                 to="/docs"
+                aria-current={docsActive ? 'page' : undefined}
                 className={`text-sm transition-all duration-300 font-medium ${docsActive ? 'text-blue-600 dark:text-blue-400' : 'text-slate-800/70 dark:text-white/70'}`}
               >
                 Docs
@@ -325,11 +333,12 @@ export function PublicNav({ activeLink = 'home', logoOpacity }: PublicNavProps) 
                   >
                     Features
                   </a>
-                  <Link to="/blog" onClick={() => setMobileMenuOpen(false)} aria-current={blogActive?'page':undefined} className="text-sm text-slate-800 dark:text-slate-200 min-h-11 inline-flex items-center">Blog</Link>
+                  <Link to="/blog" onClick={() => setMobileMenuOpen(false)} aria-current={blogActive?'page':undefined} className={mobilePageLinkClass(blogActive)}>Blog</Link>
                   <Link
                     to="/docs"
+                    aria-current={docsActive ? 'page' : undefined}
                     onClick={() => setMobileMenuOpen(false)}
-                    className="flex items-center px-3 py-3 text-sm font-medium text-slate-700 dark:text-gray-200 hover:bg-slate-100 dark:hover:bg-white/10 rounded-lg transition-colors"
+                    className={mobilePageLinkClass(docsActive)}
                   >
                     Docs
                   </Link>
@@ -378,11 +387,12 @@ export function PublicNav({ activeLink = 'home', logoOpacity }: PublicNavProps) 
                   >
                     Features
                   </Link>
-                  <Link to="/blog" onClick={() => setMobileMenuOpen(false)} aria-current={blogActive?'page':undefined} className="text-sm text-slate-800 dark:text-slate-200 min-h-11 inline-flex items-center">Blog</Link>
+                  <Link to="/blog" onClick={() => setMobileMenuOpen(false)} aria-current={blogActive?'page':undefined} className={mobilePageLinkClass(blogActive)}>Blog</Link>
                   <Link
                     to="/docs"
+                    aria-current={docsActive ? 'page' : undefined}
                     onClick={() => setMobileMenuOpen(false)}
-                    className="flex items-center px-3 py-3 text-sm font-medium text-blue-600 dark:text-blue-400 hover:bg-slate-100 dark:hover:bg-white/10 rounded-lg transition-colors"
+                    className={mobilePageLinkClass(docsActive)}
                   >
                     Docs
                   </Link>

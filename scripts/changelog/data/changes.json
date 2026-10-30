@@ -767,5 +767,28 @@
       "frontend"
     ],
     "availability": []
+  },
+  {
+    "id": "public-mobile-blog-navigation",
+    "title": "Consistent Blog navigation on mobile",
+    "area": "Platform",
+    "kind": "Fixed",
+    "reviewed": true,
+    "audience": "Readers using the public website on phones and tablets.",
+    "before": "The mobile Blog link was misaligned, and Docs stayed highlighted while reading the blog.",
+    "after": "Blog and Docs use matching spacing and typography. The current section is highlighted and identified to assistive technology, and selecting either link closes the mobile menu.",
+    "action": "Deploy the updated frontend. No configuration change is required.",
+    "details": [],
+    "guides": [
+      {
+        "title": "Public pages and search indexing",
+        "path": "/docs/get-started/self-hosting/public-site"
+      }
+    ],
+    "sourceCommits": [],
+    "requiredComponents": [
+      "frontend"
+    ],
+    "availability": []
   }
 ]
