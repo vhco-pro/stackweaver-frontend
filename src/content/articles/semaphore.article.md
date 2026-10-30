@@ -3,8 +3,9 @@ title: "Stackweaver vs Semaphore UI: one platform for Ansible and OpenTofu"
 description: "Compare Stackweaver and Semaphore UI for Ansible jobs, OpenTofu state and change approvals, with practical examples of the team workflow."
 canonical: /compare/semaphore
 author: Michiel VH
-status: draft
-updated: 2026-10-29
+status: published
+published: 2026-10-30
+updated: 2026-10-30
 topics: [Ansible, OpenTofu, Comparisons]
 ---
 Stackweaver gives your team a shared home for Ansible playbooks and OpenTofu workspaces.
@@ -14,6 +15,8 @@ Their results stay available for the team to inspect.
 Semaphore UI also supports Ansible and OpenTofu.
 The useful comparison is how those tools fit into your team's daily work, especially where state lives and how a change gets reviewed before it is applied.
 I build Stackweaver at VH & Co BV, based in Europe, so this is a product-author comparison rather than an independent benchmark.
+
+![Two separate work areas for Ansible jobs and OpenTofu workspaces, connected to a shared team view.](/blog/images/ansible-and-opentofu.svg "Ansible keeps its playbooks and inventories. OpenTofu keeps its state and plan/apply lifecycle. Both have a home in Stackweaver.")
 
 ## Techstack
 
@@ -34,6 +37,7 @@ An OpenTofu workspace keeps its run settings and variables with platform-managed
 Your team can follow each change from its repository configuration to its recorded result without maintaining a separate application for each tool.
 
 I prefer having the platform configuration declared too.
+
 The Stackweaver management provider can create workspaces and Ansible configuration objects; the [first-job guide][sw-first-job] shows the inventory, playbook and template definitions.
 The infrastructure inside an OpenTofu workspace stays in separate state from the configuration that manages Stackweaver itself.
 
@@ -82,7 +86,7 @@ Create an inventory containing `localhost`, then select both in a job template.
 Leave privilege escalation disabled and target-host SSH credentials empty for this local task.
 Launch the template and inspect its task result using the [first-job guide][sw-first-job].
 
-![Stackweaver's playbook catalogue with repository-backed automation entries.](/docs/user-guides/images/playbooks-overview.png)
+![Stackweaver's playbook catalogue with repository-backed automation entries.](/docs/user-guides/images/playbooks-overview.png "Your registered playbooks retain their repository context in the catalogue.")
 
 To run the same file in Semaphore, create an [Ansible Playbook template][semaphore-ansible] with the matching repository, inventory and path.
 A private Git repository needs its own access credential in either platform.
@@ -98,12 +102,15 @@ Semaphore's [Terraform/OpenTofu templates][semaphore-tofu] use the backend confi
 The [built-in HTTP backend][semaphore-state] is a Pro feature.
 If you choose Community with an external backend, that backend remains part of the configuration you maintain.
 
-In Stackweaver, the workspace owns its state and recorded runs.
+> In Stackweaver, the workspace owns its state and recorded runs.
+>
+> <cite>Michiel VH, founder of Stackweaver</cite>
+
 With auto-apply off, choose **Plan & Apply** to review the plan before confirming the apply.
 The platform keeps the result with that workspace for the next run.
 A **Plan Only** run is for inspection and cannot later be applied.
 
-![Stackweaver's run chooser, with separate Plan Only and Plan & Apply options.](/docs/user-guides/images/workspace-new-run.png)
+![Stackweaver's run chooser, with separate Plan Only and Plan & Apply options.](/docs/user-guides/images/workspace-new-run.png "With auto-apply off, Plan & Apply gives you a plan to review before confirming the apply.")
 
 For a provider-free first run, save this as `main.tf` in a separate evaluation directory:
 

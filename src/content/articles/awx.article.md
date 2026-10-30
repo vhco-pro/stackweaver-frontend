@@ -3,8 +3,9 @@ title: "AWX alternatives: Stackweaver vs Ansible Automation Platform"
 description: "Compare Stackweaver with Red Hat AAP for team Ansible automation, OpenTofu workspaces and repeatable infrastructure workflows."
 canonical: /compare/awx
 author: Michiel VH
-status: draft
-updated: 2026-10-29
+status: published
+published: 2026-10-30
+updated: 2026-10-30
 topics: [Ansible, Comparisons]
 ---
 Your team needs a shared place to run Ansible, with enough control to know which playbook ran and what happened on each host.
@@ -14,6 +15,8 @@ Stackweaver brings both workflows into one application.
 I build Stackweaver at VH & Co BV, based in Europe.
 For a new deployment, the Ansible product comparison I would make is Stackweaver against Red Hat Ansible Automation Platform, or AAP.
 AWX's old packaged release is a different proposition from the upstream project being developed now.
+
+![Two separate work areas for Ansible jobs and OpenTofu workspaces, connected to a shared team view.](/blog/images/ansible-and-opentofu.svg "Ansible keeps its playbooks and inventories. OpenTofu keeps its state and plan/apply lifecycle. Both have a home in Stackweaver.")
 
 ## Techstack
 
@@ -45,9 +48,10 @@ A plan can be reviewed before applying a change, with auto-apply disabled.
 This gives a team using both tools a shared place for provisioning work and configuration jobs.
 It does not require rewriting the Ansible playbooks as Terraform configuration.
 
-![Stackweaver's playbook registration form, showing repository, branch and playbook selection.](/docs/user-guides/images/playbooks-register.png)
+![Stackweaver's playbook registration form, showing repository, branch and playbook selection.](/docs/user-guides/images/playbooks-register.png "Register a repository playbook once, then select it in a reusable job template.")
 
 I prefer keeping automation content in Git and declaring the platform configuration too.
+
 The [first Ansible job guide][sw-first-job] includes a management-provider example for the inventory and job template.
 That lets you reproduce the setup without relying on someone's memory of the creation form.
 
@@ -115,13 +119,18 @@ Use the example to follow a job from its repository through to a readable task r
 Keep your playbooks in their repository and move one template with a known result first.
 Recreate its inventory source and launch defaults explicitly.
 Recover credentials from their original secret store and check who may use the new template.
-A playbook file does not contain the controller's access rules or execution history.
+
+> A playbook file does not contain the controller's access rules or execution history.
+>
+> <cite>Michiel VH, founder of Stackweaver</cite>
 
 If the old job uses a custom execution environment, reproduce its dependencies in the destination runtime before moving that job.
 For an existing release workflow, check its branches and approval steps against the [execution guide][sw-execution] before moving it.
 
 Keep destination schedules disabled until you switch ownership.
 After the successful run and the deliberate failure are understood, enable the new schedule and retain the old job records for the period you need.
+
+![Automation stays in Git while platform settings and execution ownership move deliberately.](/blog/images/move-automation-deliberately.svg "An Ansible job migration includes its inventory, credentials and launch settings. Verify the destination before enabling its schedule.")
 
 ## Run your first job
 

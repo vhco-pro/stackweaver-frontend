@@ -3,9 +3,10 @@ title: "Why I'm building Stackweaver"
 description: "My vision for an infrastructure automation platform people can use on their own terms, with a business built on expertise."
 canonical: /blog/why-i-built-stackweaver
 author: Michiel VH
-status: draft
+status: published
+published: 2026-10-30
 featured: true
-updated: 2026-10-29
+updated: 2026-10-30
 topics: [Stackweaver, Vision]
 ---
 I want good infrastructure automation to be accessible to people who aren't buying an enterprise software contract.
@@ -16,22 +17,30 @@ I want to make a living from the expertise around it, while giving people a real
 I build Stackweaver through VH & Co BV, my company based in Europe.
 This is the direction I want to take it, including the parts of the business model that matter to me and why the source is available under BSL rather than an open-source license today.
 
-## A free tier should be useful on its own
+![An open doorway beside a stack of infrastructure modules.](/blog/images/automation-your-terms.svg "Stackweaver is built around the choice of how you run it.")
+
+## Start by running it yourself
 
 A lot of the platforms I've looked at follow a familiar pattern.
 There is a free tier to get started, then the product becomes more expensive as it becomes part of how your team works.
 These are specialized tools, so the marketing and commercial model often aim at enterprise buyers.
 Smaller teams can end up choosing between running a collection of tools themselves and adopting a service whose longer-term cost is hard to judge at the start.
 
+I want to contribute an approachable platform that brings Ansible and OpenTofu together.
+
 I understand that people need to get paid for building software.
 I do too.
 What I don't like is a business model that depends on making it increasingly difficult for customers to leave.
-I want people to keep using Stackweaver because it is useful and because they trust the people behind it.
+> I want people to keep using Stackweaver because it is useful and because they trust the people behind it.
+>
+> <cite>Michiel VH, founder of Stackweaver</cite>
 
-That is also how I think about a free SaaS tier.
-I want small developers to have a useful place to learn and experiment, without treating every one of them as an enterprise sales opportunity.
-Some will eventually need more capacity or help with their infrastructure.
-Others will carry on using the free offering, and that should be a perfectly reasonable outcome.
+Self-hosting is the main way to try Stackweaver at the start.
+You can run it on your own infrastructure without buying a Stackweaver subscription, under the terms of its license.
+
+I would like to offer a useful free SaaS tier later, but I need paying customers first.
+Hosting the platform costs money, and someone has to maintain that infrastructure.
+A free hosted tier has to be something the business can sustain, so I am not promising one at launch.
 
 ## AWX helped clarify what I wanted to build
 
@@ -72,6 +81,8 @@ It should give people a shared view of the work without becoming the only place 
 When I try to describe the ambition, I keep coming back to something like a GitHub for infrastructure automation.
 The part of that comparison I care about is a common place for teams to work, while their automation stays in Git and uses the tools they choose.
 
+![A software workspace beside a person representing the expertise around it.](/blog/images/software-and-expertise.svg "The software is free to self-host under its license. Hosting and expertise support the business around it.")
+
 ## The business is built around expertise
 
 The SaaS is one way to use Stackweaver.
@@ -109,8 +120,11 @@ Trademark and logo rights are separate; BSL is the license for the software itse
 
 The current license already provides for each version to become available under Apache 2.0 through its change terms.
 My ambition goes beyond that version-by-version transition.
-Once there is a sustainable business around Stackweaver, I would like to make the whole project fully open source.
-I don't have a date to promise for that decision, but it is the direction I want to move in.
+> Once there is a sustainable business around Stackweaver, I would like to make the whole project fully open source.
+> I don't have a date to promise for that decision, but it is the direction I want to move in.
+> For now, Stackweaver is source-available.
+>
+> <cite>Michiel VH, founder of Stackweaver</cite>
 
 ## What I want people to choose us for
 
