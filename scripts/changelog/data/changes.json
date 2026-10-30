@@ -741,5 +741,31 @@
       "frontend"
     ],
     "availability": []
+  },
+  {
+    "id": "public-infrastructure-articles",
+    "title": "Infrastructure automation articles in the public blog",
+    "area": "Platform",
+    "kind": "Added",
+    "reviewed": true,
+    "audience": "Visitors evaluating Stackweaver and maintainers publishing its public frontend.",
+    "before": "The production blog excluded the editorial manuscripts as drafts.",
+    "after": "Five approved articles are included in public initial HTML, blog discovery, article metadata and the sitemap when indexing is enabled. They cover AAP, Semaphore UI, Terraform Cloud alternatives, the founder vision and AI-agent workflows.",
+    "action": "Deploy the updated frontend to serve the articles. Preserve the deployment-specific public origin and indexing settings; source publication does not configure DNS or change a private installation's default noindex policy.",
+    "details": [
+      "Articles use maintained product images, theme-paired editorial artwork and distinct author pull quotes.",
+      "The owner approved the launch-day product copy for publication; this content update does not itself release additional product interfaces."
+    ],
+    "guides": [
+      {
+        "title": "Public pages and search indexing",
+        "path": "/docs/get-started/self-hosting/public-site"
+      }
+    ],
+    "sourceCommits": [],
+    "requiredComponents": [
+      "frontend"
+    ],
+    "availability": []
   }
 ]

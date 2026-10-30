@@ -10,5 +10,25 @@
   {
     "commit": "c398866bb7d6f0e97e7dd032d875d7c5354b427d",
     "reason": "Internal developer-workflow migration to shared vh-adlc triage. Changes agent routing, repository triage settings and migration verification only; product runtime, APIs, deployment behavior and published customer capabilities are unchanged."
+  },
+  {
+    "commit": "717cfa55f1f13250abe54ea88a2a5343e7194bc3",
+    "reason": "Internal developer-workflow migration to shared vh-adlc maintenance. Changes agent routing, repository maintenance settings and migration verification only; product runtime, APIs, deployment behavior and published customer capabilities are unchanged."
+  },
+  {
+    "id": "maintenance-policy-location",
+    "reason": "Internal maintenance-agent migration repair: place the local policy at the accepted agents path, retain the shared routing and rollback/preflight checks, and preserve product runtime, APIs, deployment behavior and published customer capabilities."
+  },
+  {
+    "id": "maintenance-install-preflight",
+    "reason": "Internal maintenance-agent migration verification: align the installed plugin minimum to 0.6.0 and separately test clean cutover-evidence and dirty migration refusals. Product runtime, APIs, deployment behavior and published customer capabilities are unchanged."
+  },
+  {
+    "id": "maintenance-evidence-ref",
+    "reason": "Internal maintenance-agent migration documentation: align the local evidence-ref instruction with the accepted per-run shared Design. Historical evidence stays reachable. Product runtime, APIs, deployment behavior and published customer capabilities are unchanged."
+  },
+  {
+    "id": "maintenance-marketplace-adoption",
+    "reason": "Internal developer-workflow adoption metadata for the shared maintenance operation after actual marketplace/native-helper verification. Retains the local command, policy, helper and rollback route; product runtime, APIs, deployment behavior and published customer capabilities are unchanged."
   }
 ]

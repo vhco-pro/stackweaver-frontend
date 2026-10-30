@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="440" viewBox="0 0 900 440" role="img" aria-labelledby="title"><title id="title">Keep automation in Git and move platform configuration deliberately</title><defs><linearGradient id="orb" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#2563eb"/><stop offset="1" stop-color="#7c3aed"/></linearGradient></defs><rect width="900" height="440" rx="26" fill="#f3f6fd"/><g font-family="Inter, ui-sans-serif, system-ui, sans-serif">
+    <text x="56" y="62" font-size="12" fill="#526580" letter-spacing="2" font-weight="600">MOVING TO STACKWEAVER</text>
+    <text x="56" y="116" font-size="31" fill="#172554" font-weight="650" letter-spacing="-.8">Keep the automation. Move with care.</text>
+    <rect x="56" y="159" width="270" height="208" rx="20" fill="#ffffff" stroke="#c2d0e9" stroke-width="2"/><text x="82" y="197" font-size="12" fill="#526580" letter-spacing="2" font-weight="600">AUTOMATION IN GIT</text>
+    <circle cx="105" cy="236" r="7" fill="#2563eb"/><circle cx="105" cy="282" r="7" fill="#2563eb"/>
+    <circle cx="144" cy="258" r="7" fill="#7c3aed"/>
+    <path d="M105 243v32m7 -35 25 15" stroke="#2563eb" stroke-width="2" fill="none"/>
+    <text x="82" y="328" font-size="19" fill="#526580" >Keep your repository.</text>
+    <rect x="370" y="159" width="474" height="208" rx="20" fill="#ffffff" stroke="#c2d0e9" stroke-width="2"/><text x="397" y="197" font-size="12" fill="#526580" letter-spacing="2" font-weight="600">PLATFORM CONFIGURATION</text>
+    <text x="397" y="240" font-size="22" fill="#172554" font-weight="600">Recreate settings and access.</text>
+    <text x="397" y="277" font-size="22" fill="#172554" font-weight="600">Check execution and credentials.</text>
+    <text x="397" y="328" font-size="19" fill="#526580" >Switch ownership after verification.</text>
+    <text x="56" y="411" font-size="12" fill="#526580" letter-spacing="2" font-weight="600">ONE DESTINATION OWNS THE RUNS AND SCHEDULES</text></g></svg>

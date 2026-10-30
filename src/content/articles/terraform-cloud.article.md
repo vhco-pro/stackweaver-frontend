@@ -3,8 +3,9 @@ title: "Terraform Cloud alternatives: OpenTofu and Ansible with Stackweaver"
 description: "Review infrastructure plans and manage OpenTofu state alongside Ansible jobs in Stackweaver. A practical alternative to separate automation platforms."
 canonical: /compare/terraform-cloud
 author: Michiel VH
-status: draft
-updated: 2026-10-29
+status: published
+published: 2026-10-30
+updated: 2026-10-30
 topics: [OpenTofu, Comparisons]
 ---
 Stackweaver brings OpenTofu workspaces and Ansible automation into the same platform.
@@ -14,6 +15,8 @@ If you're looking for a Terraform Cloud alternative, that combination is where I
 You get workspace state and a recorded run lifecycle alongside the configuration automation your infrastructure needs afterwards.
 I build Stackweaver at VH & Co BV, based in Europe.
 This is a product-author comparison of documented workflows, not a performance benchmark or a completed migration trial.
+
+![A plan, a human review step and a recorded apply result.](/blog/images/review-before-apply.svg "Choose Plan & Apply with auto-apply off to review the proposed infrastructure change before confirming it.")
 
 ## Techstack
 
@@ -33,7 +36,7 @@ The recorded result stays with the workspace.
 Ansible jobs live in the same application, using their own playbooks and inventories.
 That is useful when provisioning infrastructure and configuring it are both part of your team's work.
 
-![Stackweaver's workspace run chooser, separating inspection from a reviewed plan and apply.](/docs/user-guides/images/workspace-new-run.png)
+![Stackweaver's workspace run chooser, separating inspection from a reviewed plan and apply.](/docs/user-guides/images/workspace-new-run.png "Plan Only is for inspection. Plan & Apply supports the manual confirmation path when auto-apply is off.")
 
 The [OpenTofu run guide][sw-runs] explains the stages and output.
 The [Ansible first-job guide][sw-first-job] shows the other side of the workflow, including declared platform configuration through the management provider.
@@ -118,8 +121,10 @@ The [migration guide][sw-migration] includes a dated `hashicorp/tfe` provider te
 Use that operation-level evidence to select what to test against the Stackweaver release you intend to run.
 For new platform-management configuration, the [native provider][sw-provider] manages Stackweaver's workspaces and other objects directly.
 
-I prefer keeping platform-management state separate from the infrastructure state inside a workspace.
-It gives changes to the control plane their own plan and avoids coupling them to the infrastructure the platform executes.
+> I prefer keeping platform-management state separate from the infrastructure state inside a workspace.
+> It gives changes to the control plane their own plan and avoids coupling them to the infrastructure the platform executes.
+>
+> <cite>Michiel VH, founder of Stackweaver</cite>
 
 ## European teams can choose their deployment
 
@@ -151,6 +156,8 @@ Unexpected creates or replacements are a reason to compare the inputs and state 
 
 Enable the destination only when it is the designated owner, leaving the source unable to apply.
 Changing a hostname in a `cloud` block does not transfer the surrounding platform configuration.
+
+![Automation stays in Git while platform settings and execution ownership move deliberately.](/blog/images/move-automation-deliberately.svg "A migration includes settings, credentials and state. Verify the destination before switching ownership.")
 
 ## Start with a Stackweaver workspace
 
