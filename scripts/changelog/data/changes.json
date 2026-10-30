@@ -790,5 +790,31 @@
       "frontend"
     ],
     "availability": []
+  },
+  {
+    "id": "compose-first-install-initializer",
+    "title": "A first Docker Compose install survives an interrupted initializer",
+    "area": "Platform",
+    "kind": "Fixed",
+    "reviewed": true,
+    "audience": "Operators installing Stackweaver with Docker Compose.",
+    "before": "The initializer wrote its generated client secrets and login token to .env only at the end of a successful run, so a run that stopped part-way lost values Zitadel returns only once, and a first install whose back-channel logout or Actions address named the API failed, because Zitadel cannot save an address on a host that is not running yet.",
+    "after": "The initializer records each generated value in .env the moment Zitadel returns it, replacing the file atomically, so the next run recovers a run that stopped part-way. While the API's host does not resolve, it creates the sign-in app without the back-channel logout URI and the Actions targets at a holding address on Zitadel, and its api-urls run (ZITADEL_INIT_MODE=api-urls), or its next full run, registers the API's addresses once the API is up.",
+    "action": "No action is required. To register the back-channel logout URI and Actions targets on a first install, run the initializer with ZITADEL_INIT_MODE=api-urls after the API is healthy, or run the initializer again.",
+    "details": [
+      "ZITADEL_INIT_ENV_FILE names another path for the generated values; the default is deploy/.env under the initializer's PROJECT_ROOT.",
+      "Because .env is replaced rather than rewritten in place, a container that bind-mounts .env as a single file sees the version that existed when it started."
+    ],
+    "guides": [
+      {
+        "title": "Environment variables",
+        "path": "/docs/get-started/self-hosting/environment-variables"
+      }
+    ],
+    "sourceCommits": [],
+    "requiredComponents": [
+      "zitadel-init"
+    ],
+    "availability": []
   }
 ]

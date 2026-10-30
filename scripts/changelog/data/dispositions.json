@@ -30,5 +30,9 @@
   {
     "id": "maintenance-marketplace-adoption",
     "reason": "Internal developer-workflow adoption metadata for the shared maintenance operation after actual marketplace/native-helper verification. Retains the local command, policy, helper and rollback route; product runtime, APIs, deployment behavior and published customer capabilities are unchanged."
+  },
+  {
+    "id": "compose-slots-dev-tooling",
+    "reason": "Developer tooling for running an isolated copy of the development Compose stack (scripts/compose-slot.sh, deploy/docker-compose.slot.yml, E2E container names read from env). deploy/docker-compose.yml and the tunnel overlay are unchanged, and no published image, chart, API or customer guide changes."
   }
 ]

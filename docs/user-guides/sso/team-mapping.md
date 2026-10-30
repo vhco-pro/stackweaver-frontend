@@ -54,8 +54,11 @@ services:
 ```
 
 Use your deployment's real service address. A localhost address inside the Zitadel
-container points to Zitadel itself. Run `docker compose run --rm zitadel-init` and inspect
-the targets in Zitadel. When the variable is set, each run moves existing targets to this
+container points to Zitadel itself. With the stack running, run
+`docker compose run --rm zitadel-init` and inspect the targets in Zitadel. While the API's
+host does not resolve, as on a first install where the API starts after the initializer, the
+initializer creates the targets at a holding address on Zitadel itself and the next run moves
+them to this address. When the variable is set, each run moves existing targets to this
 address and keeps their signing keys, so after changing it, run the initializer again and test
 delivery. Without it, existing targets keep the address they have.
 

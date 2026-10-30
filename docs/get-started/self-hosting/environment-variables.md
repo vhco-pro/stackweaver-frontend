@@ -435,7 +435,7 @@ In Kubernetes, the `STACKWEAVER_NOTIFICATION_MODE`, `SMTP_*`, `STACKWEAVER_SELF_
 | `ZITADEL_CUSTOM_DOMAINS` | Additional custom domains | (none) |
 | `FRONTEND_REDIRECT_URI` | Explicit sign-in redirect URI registered on the browser sign-in app; localhost defaults are added when this value is unset | `http://localhost:5173/auth/callback` |
 | `FRONTEND_POST_LOGOUT_URI` | Post-logout redirect URI registered on the browser sign-in app; localhost defaults follow the `FRONTEND_REDIRECT_URI` setting | `http://localhost:5173` |
-| `ZITADEL_BFF_BACKCHANNEL_LOGOUT_URI` | Back-channel logout URI registered on the browser sign-in app: the API's `/auth/oidc/end-session`, at an address Zitadel can reach. The Helm chart sets it to the API's in-cluster service | (empty) |
+| `ZITADEL_BFF_BACKCHANNEL_LOGOUT_URI` | Back-channel logout URI registered on the browser sign-in app: the API's `/auth/oidc/end-session`, at an address Zitadel can reach. The Helm chart sets it to the API's in-cluster service. In Docker Compose, while the address's host does not resolve yet (the API starts after the initializer), the app is created without it and the `api-urls` run adds it | (empty) |
 | `LOGIN_UI_BASE_URL` | URL of the SPA's `/login` route, set as Zitadel's Login V2 base URI on every run | `http://localhost:5173/login` |
 | `STACKWEAVER_NOTIFICATION_MODE` | The API's notification mode, which decides whether codes can be delivered (`email` or `return_code`; `return_code` is refused in Kubernetes and needs `STACKWEAVER_ALLOW_RETURN_CODE=true` elsewhere) | `email` |
 | `SMTP_HOST` | SMTP submission server as `host:port` for Zitadel's email provider; empty means no SMTP | (empty) |
@@ -447,7 +447,8 @@ In Kubernetes, the `STACKWEAVER_NOTIFICATION_MODE`, `SMTP_*`, `STACKWEAVER_SELF_
 | `STACKWEAVER_SELF_REGISTRATION` | Allow anyone to create an account; takes effect only with SMTP | `false` |
 | `ZITADEL_ACCESS_TOKEN_LIFETIME` | Lifetime of the access tokens Zitadel issues, as a duration (`1h`, `30m`); applied to the instance on every run, so changing it also updates an existing installation. It does not affect how long a browser stays signed in to Stackweaver. In Kubernetes it comes from `zitadel.config.accessTokenLifetime` | `1h` |
 | `AZURE_AD_ALLOW_MULTI_TENANT` | Allow configuring Azure AD without `AZURE_AD_TENANT_ID`, letting any Microsoft account sign in and create an account | `false` |
-| `ZITADEL_INIT_MODE` | `reconcile` applies only the email provider, the login policy and the access-token lifetime, and exits (the Helm chart's post-install/post-upgrade Job) | (empty: full setup) |
+| `ZITADEL_INIT_MODE` | `reconcile` applies only the email provider, the login policy and the access-token lifetime, and exits (the Helm chart's post-install/post-upgrade Job). `api-urls` registers only `ZITADEL_BFF_BACKCHANNEL_LOGOUT_URI` and moves the Actions targets to `ACTIONS_API_BASE_URL`, and exits; run it once the API is healthy, for example as a one-shot Compose service that depends on `api` with `condition: service_healthy` | (empty: full setup) |
+| `ZITADEL_INIT_ENV_FILE` | Docker Compose: the file the initializer writes its generated values to | `<PROJECT_ROOT>/deploy/.env` |
 
 ### Kubernetes-only variables
 
