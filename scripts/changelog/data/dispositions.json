@@ -34,5 +34,9 @@
   {
     "id": "compose-slots-dev-tooling",
     "reason": "Developer tooling for running an isolated copy of the development Compose stack (scripts/compose-slot.sh, deploy/docker-compose.slot.yml, E2E container names read from env). deploy/docker-compose.yml and the tunnel overlay are unchanged, and no published image, chart, API or customer guide changes."
+  },
+  {
+    "commit": "a92f9d6ce20045a6b765adfebe5fb3d96f070294",
+    "reason": "Developer tooling fix: scripts/compose-slot.sh creates a Compose slot's .env readable by the slot's containers. Only the development Compose slot tool and an internal lesson change; product runtime, APIs, deployment behavior and published customer capabilities are unchanged."
   }
 ]

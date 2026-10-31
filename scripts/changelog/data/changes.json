@@ -816,5 +816,39 @@
       "zitadel-init"
     ],
     "availability": []
+  },
+  {
+    "id": "ansible-delete-jobs-with-credentials",
+    "title": "Ansible deletes succeed for jobs that used credentials",
+    "area": "Ansible",
+    "kind": "Fixed",
+    "reviewed": true,
+    "audience": "Ansible users who delete job templates, playbooks, inventories, projects or organizations, and operators who set a job retention period.",
+    "before": "Deleting a job template failed with a database error when any of its jobs had run with a credential. A force delete of a playbook or inventory, a project or organization delete, and the scheduled removal of expired jobs failed the same way when the jobs they reached had used credentials.",
+    "after": "These deletes remove each job together with the record of the credentials it ran with, and complete. The credentials themselves are kept.",
+    "action": "Deploy the updated API. No configuration change is required.",
+    "details": [
+      "A credential that a remaining job ran with cannot be deleted on its own. The 409 response names those jobs as the reason. It no longer lists job templates and inventory sources, which do not block the delete.",
+      "When a job template or job starts using an inventory, or a job template starts using a playbook, while that inventory or playbook is being deleted, the 409 response names that template or job and how to remove it. It no longer lists inventory sources for an inventory or jobs for a playbook at that point, because those do not block the database delete."
+    ],
+    "guides": [
+      {
+        "title": "Ansible attachment and deletion rules",
+        "path": "/docs/features/ansible/roadmap#attachment-and-deletion-rules"
+      },
+      {
+        "title": "Delete a playbook registration",
+        "path": "/docs/user-guides/managing-ansible-playbooks#deleting-a-playbook"
+      },
+      {
+        "title": "Delete an inventory",
+        "path": "/docs/user-guides/dynamic-inventories#deleting-an-inventory"
+      }
+    ],
+    "sourceCommits": [],
+    "requiredComponents": [
+      "api"
+    ],
+    "availability": []
   }
 ]

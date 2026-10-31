@@ -97,7 +97,7 @@
         },
         {
           "path": "core/repository/ansible_playbook.go",
-          "sha256": "003579265cd6bcadd1094af6485862a545a53c8bf619a20265671d7a7ecbba52"
+          "sha256": "71fa94b5f959e0b8fe4ff5700102be103b5d88fc1aa78b8e2575f52f33f10fed"
         },
         {
           "path": "core/services/ansible/credential.go",
