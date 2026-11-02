@@ -146,7 +146,7 @@ export function PublicNav({ activeLink = 'home', logoOpacity }: PublicNavProps) 
               >
                 Features
               </a>
-              <Link to="/blog" aria-current={blogActive?'page':undefined} className={`text-sm hover:text-blue-600 dark:hover:text-blue-300 min-h-11 inline-flex items-center ${blogActive?'text-blue-600 dark:text-blue-400':'text-slate-800 dark:text-slate-200'}`}>Blog</Link>
+              <Link to="/blog" aria-current={blogActive?'page':undefined} className={`text-sm transition-all duration-300 hover:text-blue-500 dark:hover:text-blue-300 min-h-11 inline-flex items-center ${blogActive ? 'text-blue-600 dark:text-blue-400' : isScrolled ? 'text-slate-800 dark:text-white' : 'text-slate-800/70 dark:text-white/70'}`}>Blog</Link>
               <Link
                 to="/docs"
                 aria-current={docsActive ? 'page' : undefined}
@@ -208,7 +208,7 @@ export function PublicNav({ activeLink = 'home', logoOpacity }: PublicNavProps) 
               >
                 Features
               </Link>
-              <Link to="/blog" aria-current={blogActive?'page':undefined} className={`text-sm hover:text-blue-600 dark:hover:text-blue-300 min-h-11 inline-flex items-center ${blogActive?'text-blue-600 dark:text-blue-400':'text-slate-800 dark:text-slate-200'}`}>Blog</Link>
+              <Link to="/blog" aria-current={blogActive?'page':undefined} className={`text-sm transition-all duration-300 hover:text-blue-500 dark:hover:text-blue-300 min-h-11 inline-flex items-center ${blogActive ? 'text-blue-600 dark:text-blue-400' : isScrolled ? 'text-slate-800 dark:text-white' : 'text-slate-800/70 dark:text-white/70'}`}>Blog</Link>
               <Link
                 to="/docs"
                 aria-current={docsActive ? 'page' : undefined}

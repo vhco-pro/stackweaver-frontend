@@ -10,6 +10,7 @@
 import type {
   AnsibleJob,
   AnsibleJobStatus,
+  AnsibleJobType,
   AnsiblePlaybook,
   AnsibleInventory,
   AnsibleCredential,
@@ -40,6 +41,8 @@ export function getAnsibleJobFromJsonApi(resource: JsonApiResource): AnsibleJob 
     id: resource.id,
     project_id: getRelationship(resource, 'project')?.id || '',
     playbook_id: getRelationship(resource, 'playbook')?.id || '',
+    playbook_name: getAttribute<string>(resource, 'playbook-name'),
+    job_type: getAttribute<AnsibleJobType>(resource, 'job-type'),
     inventory_id: getRelationship(resource, 'inventory')?.id || '',
     job_template_id: getRelationship(resource, 'template')?.id,
     credential_ids: getRelationships(resource, 'credentials').map((r) => r.id),

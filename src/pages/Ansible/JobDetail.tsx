@@ -40,7 +40,6 @@ import {
   Ban,
   Info,
   Server,
-  FileCode,
   ChevronDown,
   ChevronUp,
   Cpu,
@@ -56,6 +55,8 @@ import { cn } from '@/lib/utils';
 import { dangerOutline } from '@/lib/surfaces';
 import { HostStatusCount } from '@/components/ansible/HostStatus';
 import { InventorySyncWarningsAlert } from '@/components/ansible/InventorySyncWarningsAlert';
+import { JobPlaybookLabel } from '@/components/ansible/JobPlaybookLabel';
+import { canRelaunchJob, jobPlaybookState } from '@/components/ansible/jobPlaybook';
 import { ANSIBLE_HOST_STATUSES, type HostStatus } from '@/components/ansible/hostStatus';
 
 // Date formatting helpers
@@ -655,6 +656,8 @@ export default function JobDetail() {
     );
   }
 
+  const playbookState = jobPlaybookState(job, playbook);
+
   return (
     <Page className="space-y-4">
       <PageHeader
@@ -675,21 +678,7 @@ export default function JobDetail() {
                 <Clock className="h-3.5 w-3.5" />
                 <span>{formatDuration(job.started_at, job.finished_at)}</span>
               </div>
-              {playbook && (
-                <button
-                  onClick={() => { void navigate(`/app/${orgName}/ansible/playbooks/${playbook.id}`); }}
-                  className="flex items-center gap-1.5 hover:text-foreground transition-colors"
-                >
-                  <FileCode className="h-3.5 w-3.5" />
-                  <span className="truncate max-w-[150px] underline-offset-2 hover:underline">{playbook.name}</span>
-                </button>
-              )}
-              {!playbook && (
-                <div className="flex items-center gap-1.5">
-                  <FileCode className="h-3.5 w-3.5" />
-                  <span className="truncate max-w-[150px]">Unknown</span>
-                </div>
-              )}
+              <JobPlaybookLabel state={playbookState} orgName={orgName ?? ''} variant="header" />
               {inventory && (
                 <button
                   onClick={() => { void navigate(`/app/${orgName}/ansible/inventories/${inventory.id}`); }}
@@ -748,7 +737,8 @@ export default function JobDetail() {
               ramp="app"
               className="w-auto px-4 py-2"
               onClick={() => { void handleRelaunch(); }}
-              disabled={relaunching}
+              disabled={relaunching || !canRelaunchJob(job)}
+              title={canRelaunchJob(job) ? undefined : 'The playbook this job ran has been deleted, so it cannot be relaunched'}
             >
               {relaunching ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
@@ -890,14 +880,7 @@ export default function JobDetail() {
                 <div>
                   <dt className="text-muted-foreground">Playbook</dt>
                   <dd className="mt-0.5">
-                    {playbook ? (
-                      <button 
-                        onClick={() => { void navigate(`/app/${orgName}/ansible/playbooks/${playbook.id}`); }}
-                        className="text-primary hover:underline"
-                      >
-                        {playbook.name}
-                      </button>
-                    ) : '-'}
+                    <JobPlaybookLabel state={playbookState} orgName={orgName ?? ''} variant="detail" />
                   </dd>
                 </div>
                 <div>

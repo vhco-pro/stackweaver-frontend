@@ -64,6 +64,7 @@ import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { HostStatusCount } from '@/components/ansible/HostStatus';
 import { ANSIBLE_HOST_STATUSES, hostStatusCount } from '@/components/ansible/hostStatus';
+import { canRelaunchJob } from '@/components/ansible/jobPlaybook';
 
 // Simple relative time formatter
 function formatRelativeTime(dateString: string): string {
@@ -412,7 +413,7 @@ export default function Jobs() {
                             View Details
                           </Link>
                         </DropdownMenuItem>
-                        {canExecuteJobs && (job.status === 'successful' || job.status === 'failed' || job.status === 'canceled') && (
+                        {canExecuteJobs && canRelaunchJob(job) && (job.status === 'successful' || job.status === 'failed' || job.status === 'canceled') && (
                           <DropdownMenuItem
                             onClick={() => { void handleRelaunch(job); }}
                             disabled={relaunching === job.id}

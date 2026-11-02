@@ -3,7 +3,11 @@
 import { useState } from 'react';
 import { useMountEffect } from '@/hooks/useMountEffect';
 import { Link } from 'react-router-dom';
-import { X, Settings } from 'lucide-react';
+import { Cookie, X, Settings } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { GradientButton } from '@/components/ui/gradient-button';
+import { Switch } from '@/components/ui/switch';
+import { glassSurface, glassDivider } from '@/lib/surfaces';
 import { cn } from '@/lib/utils';
 
 interface CookiePreferences {
@@ -26,8 +30,9 @@ export function CookieConsent() {
   useMountEffect(() => {
     const consent = localStorage.getItem('cookie-consent');
     if (!consent) {
-      // Show after a small delay for better UX
-      setTimeout(() => setShow(true), 1000);
+      // Show after a small delay for better UX.
+      const timer = setTimeout(() => setShow(true), 1000);
+      return () => clearTimeout(timer);
     }
   });
 
@@ -57,162 +62,120 @@ export function CookieConsent() {
     // gdprApi.updateConsents(consent);
   };
 
-  const togglePreference = (key: 'analytics' | 'marketing' | 'necessary') => {
-    if (key === 'necessary') return; // Can't disable necessary cookies
-    setPreferences(prev => ({ ...prev, [key]: !prev[key] }));
-  };
-
   if (!show) return null;
 
   return (
-    <div className="sticky bottom-0 left-0 right-0 z-40 border-t border-slate-200 dark:border-white/10 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xs shadow-2xl-inverted">
-      <div className="max-w-7xl mx-auto px-3 py-1.5 md:px-4 md:py-2">
+    <section aria-label="Cookie preferences" className="sticky bottom-0 z-40 px-3 pb-3 sm:px-6 sm:pb-6">
+      <div className={cn(glassSurface, 'relative mx-auto max-w-6xl bg-white p-4 text-slate-900 dark:bg-slate-950 dark:text-white sm:p-6')}>
         {!showSettings ? (
-          <div className="flex items-center gap-2 md:gap-3">
-            <div className="flex-1 min-w-0">
-              <p className="text-xs text-slate-600 dark:text-gray-300 leading-tight">
-                We use cookies.{' '}
-                <Link to="/privacy" className="text-blue-600 dark:text-blue-400 hover:text-blue-500 dark:hover:text-blue-300 underline">Learn more</Link>
-              </p>
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:gap-6 lg:pr-12">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setShow(false)}
+              className="absolute right-3 top-3 h-11 w-11 rounded-xl text-slate-500 dark:text-slate-400 sm:right-5 sm:top-5"
+              aria-label="Close"
+            >
+              <X aria-hidden="true" className="h-4 w-4" />
+            </Button>
+            <div className="flex min-w-0 flex-1 items-start gap-3 pr-12 lg:pr-0">
+              <Cookie aria-hidden="true" className="mt-1 h-5 w-5 shrink-0 text-blue-600 dark:text-blue-400" />
+              <div className="min-w-0 flex-1">
+                <h2 className="text-base font-semibold">We use cookies</h2>
+                <p className="mt-1 text-sm leading-relaxed text-slate-600 dark:text-slate-300">
+                  Manage your cookie preferences.{' '}
+                  <Link to="/privacy" className="inline-flex min-h-11 items-center rounded-sm text-blue-600 underline underline-offset-4 hover:text-blue-700 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 dark:text-blue-400 dark:hover:text-blue-300">Learn more</Link>
+                </p>
+              </div>
             </div>
-            <div className="flex items-center gap-2 shrink-0">
-              <button
-                onClick={handleAcceptAll}
-                className="group relative h-8 px-4 rounded-md overflow-hidden font-medium text-xs text-white transition-all duration-300 hover:scale-105 active:scale-95 shadow-md hover:shadow-lg"
-                style={{
-                  background: 'linear-gradient(135deg, #3b82f6 0%, #06b6d4 50%, #8b5cf6 100%)',
-                  backgroundSize: '200% 200%',
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.backgroundPosition = '100% 0%';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.backgroundPosition = '0% 0%';
-                }}
-              >
-                <span className="relative z-10">Accept All</span>
-                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700" />
-              </button>
-              
-              <button
-                onClick={handleAcceptNecessary}
-                className="group relative h-8 px-4 rounded-md font-medium text-xs transition-all duration-300 hover:scale-105 active:scale-95 bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10 text-slate-700 dark:text-white hover:bg-slate-200 dark:hover:bg-white/10 hover:border-slate-300 dark:hover:border-white/20 shadow-xs"
-              >
-                <span className="relative z-10">Necessary</span>
-              </button>
-              
-              <button
+            <div className="grid grid-cols-[1fr_1fr_auto] items-center gap-2 sm:flex sm:gap-3 lg:shrink-0">
+              <GradientButton ramp="brand" onClick={handleAcceptAll} className="h-11 px-3 sm:w-auto sm:px-5">
+                Accept All
+              </GradientButton>
+              <Button variant="outline" onClick={handleAcceptNecessary} className="h-11 rounded-xl px-3 sm:px-5">
+                Necessary
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
                 onClick={() => setShowSettings(true)}
-                className="h-8 w-8 flex items-center justify-center rounded-md transition-all duration-300 hover:scale-110 active:scale-95 bg-purple-50 dark:bg-purple-500/10 border border-purple-100 dark:border-purple-500/20 text-purple-600 dark:text-purple-300 hover:bg-purple-100 dark:hover:bg-purple-500/20 hover:border-purple-200 dark:hover:border-purple-500/30"
+                className="h-11 w-11 shrink-0 rounded-xl text-slate-600 dark:text-slate-300"
                 aria-label="Cookie Settings"
               >
-                <Settings className="h-4 w-4" />
-              </button>
-              
-              <button
-                onClick={() => setShow(false)}
-                className="h-8 w-8 flex items-center justify-center rounded-md transition-all duration-300 hover:scale-110 active:scale-95 bg-red-50 dark:bg-red-500/10 border border-red-100 dark:border-red-500/20 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-500/20 hover:border-red-200 dark:hover:border-red-500/30"
-                aria-label="Close"
-              >
-                <X className="h-4 w-4" />
-              </button>
+                <Settings aria-hidden="true" className="h-4 w-4" />
+              </Button>
             </div>
           </div>
         ) : (
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <h3 className="text-sm font-semibold text-slate-900 dark:text-white">Cookie Preferences</h3>
-              <button
+          <div className="flex max-h-[calc(100dvh-10rem)] flex-col gap-5">
+            <div className="flex shrink-0 items-start justify-between gap-4">
+              <div className="flex items-start gap-3">
+                <Cookie aria-hidden="true" className="mt-1 h-5 w-5 shrink-0 text-blue-600 dark:text-blue-400" />
+                <div>
+                  <h2 className="text-lg font-semibold">Cookie Preferences</h2>
+                  <p className="mt-1 text-sm leading-relaxed text-slate-600 dark:text-slate-300">Choose which optional cookies to allow.</p>
+                </div>
+              </div>
+              <Button
+                variant="ghost"
+                size="icon"
                 onClick={() => setShowSettings(false)}
-                className="text-slate-400 dark:text-gray-400 hover:text-slate-600 dark:hover:text-white transition-colors p-1"
+                className="h-11 w-11 shrink-0 rounded-xl text-slate-500 dark:text-slate-400"
+                aria-label="Close cookie preferences"
               >
-                <X className="h-4 w-4" />
-              </button>
+                <X aria-hidden="true" className="h-4 w-4" />
+              </Button>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-              {/* Necessary Cookies */}
-              <div className="flex items-center justify-between p-2 rounded-lg bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10">
-                <div className="flex-1 min-w-0 pr-2">
-                  <h4 className="text-xs font-semibold text-slate-900 dark:text-white">Necessary</h4>
-                  <p className="text-[10px] text-slate-500 dark:text-gray-400 mt-0.5">Required for the site to work.</p>
-                </div>
-                <div className="shrink-0">
-                  <div className="h-5 w-9 rounded-full bg-blue-600 flex items-center justify-end px-0.5 opacity-50 cursor-not-allowed">
-                    <div className="h-4 w-4 bg-white rounded-full shadow-xs" />
-                  </div>
-                </div>
-              </div>
+            <div className="grid min-h-0 grid-cols-1 gap-3 overflow-y-auto md:grid-cols-3">
+              <label htmlFor="cookie-necessary" className={cn(glassSurface, 'flex min-h-24 items-center justify-between gap-4 p-4')}>
+                <span className="min-w-0">
+                  <span id="cookie-necessary-label" className="block text-sm font-semibold">Necessary</span>
+                  <span id="cookie-necessary-description" className="mt-1 block text-xs leading-relaxed text-slate-600 dark:text-slate-300">Required for the site to work. Always on.</span>
+                </span>
+                <Switch id="cookie-necessary" checked disabled aria-labelledby="cookie-necessary-label" aria-describedby="cookie-necessary-description" />
+              </label>
 
-              {/* Analytics Cookies */}
-              <div className="flex items-center justify-between p-2 rounded-lg bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10">
-                <div className="flex-1 min-w-0 pr-2">
-                  <h4 className="text-xs font-semibold text-slate-900 dark:text-white">Analytics</h4>
-                  <p className="text-[10px] text-slate-500 dark:text-gray-400 mt-0.5">Help us improve our site.</p>
-                </div>
-                <div className="shrink-0">
-                  <button
-                    onClick={() => togglePreference('analytics')}
-                    className={cn(
-                      "h-5 w-9 rounded-full transition-colors flex items-center px-0.5",
-                      preferences.analytics ? "bg-blue-600 justify-end" : "bg-slate-300 dark:bg-gray-600 justify-start"
-                    )}
-                  >
-                    <div className="h-4 w-4 bg-white rounded-full shadow-xs" />
-                  </button>
-                </div>
-              </div>
+              <label htmlFor="cookie-analytics" className={cn(glassSurface, 'flex min-h-24 cursor-pointer items-center justify-between gap-4 p-4')}>
+                <span className="min-w-0">
+                  <span id="cookie-analytics-label" className="block text-sm font-semibold">Analytics</span>
+                  <span id="cookie-analytics-description" className="mt-1 block text-xs leading-relaxed text-slate-600 dark:text-slate-300">Help us improve our site.</span>
+                </span>
+                <Switch
+                  id="cookie-analytics"
+                  checked={preferences.analytics}
+                  onCheckedChange={(checked) => setPreferences(prev => ({ ...prev, analytics: checked }))}
+                  aria-labelledby="cookie-analytics-label"
+                  aria-describedby="cookie-analytics-description"
+                />
+              </label>
 
-              {/* Marketing Cookies */}
-              <div className="flex items-center justify-between p-2 rounded-lg bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10">
-                <div className="flex-1 min-w-0 pr-2">
-                  <h4 className="text-xs font-semibold text-slate-900 dark:text-white">Marketing</h4>
-                  <p className="text-[10px] text-slate-500 dark:text-gray-400 mt-0.5">Personalized advertisements.</p>
-                </div>
-                <div className="shrink-0">
-                  <button
-                    onClick={() => togglePreference('marketing')}
-                    className={cn(
-                      "h-5 w-9 rounded-full transition-colors flex items-center px-0.5",
-                      preferences.marketing ? "bg-blue-600 justify-end" : "bg-slate-300 dark:bg-gray-600 justify-start"
-                    )}
-                  >
-                    <div className="h-4 w-4 bg-white rounded-full shadow-xs" />
-                  </button>
-                </div>
-              </div>
+              <label htmlFor="cookie-marketing" className={cn(glassSurface, 'flex min-h-24 cursor-pointer items-center justify-between gap-4 p-4')}>
+                <span className="min-w-0">
+                  <span id="cookie-marketing-label" className="block text-sm font-semibold">Marketing</span>
+                  <span id="cookie-marketing-description" className="mt-1 block text-xs leading-relaxed text-slate-600 dark:text-slate-300">Personalized advertisements.</span>
+                </span>
+                <Switch
+                  id="cookie-marketing"
+                  checked={preferences.marketing}
+                  onCheckedChange={(checked) => setPreferences(prev => ({ ...prev, marketing: checked }))}
+                  aria-labelledby="cookie-marketing-label"
+                  aria-describedby="cookie-marketing-description"
+                />
+              </label>
             </div>
 
-            <div className="flex gap-3 pt-1">
-              <button
-                onClick={handleSavePreferences}
-                className="group relative flex-1 h-9 rounded-md overflow-hidden font-medium text-xs text-white transition-all duration-300 hover:scale-[1.02] active:scale-[0.98] shadow-md"
-                style={{
-                  background: 'linear-gradient(135deg, #10b981 0%, #3b82f6 50%, #8b5cf6 100%)',
-                  backgroundSize: '200% 200%',
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.backgroundPosition = '100% 0%';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.backgroundPosition = '0% 0%';
-                }}
-              >
-                <span className="relative z-10">Save Preferences</span>
-                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700" />
-              </button>
-              
-              <button
-                onClick={() => setShowSettings(false)}
-                className="group relative px-4 h-9 rounded-md font-medium text-xs transition-all duration-300 hover:bg-slate-100 dark:hover:bg-white/10 text-slate-600 dark:text-gray-300 border border-slate-200 dark:border-white/10 hover:border-slate-300 dark:hover:border-white/20"
-              >
-                <span>Cancel</span>
-              </button>
+            <div className={cn(glassDivider, 'flex shrink-0 flex-col gap-3 border-t pt-4 sm:flex-row sm:justify-end')}>
+              <GradientButton ramp="brand" onClick={handleSavePreferences} className="h-11 sm:order-last sm:w-auto sm:px-6">
+                Save Preferences
+              </GradientButton>
+              <Button variant="outline" onClick={() => setShowSettings(false)} className="h-11 rounded-xl sm:w-auto">
+                Cancel
+              </Button>
             </div>
           </div>
         )}
       </div>
-    </div>
+    </section>
   );
 }
-
