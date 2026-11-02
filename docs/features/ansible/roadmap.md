@@ -120,7 +120,8 @@ use a read-only Google Cloud operation against a dedicated test resource.
 | Update with `credentials` | Replace the set; an empty array clears it and omission preserves it. |
 | Attach one credential | Use the template credentials relationship endpoint. A type/vault-ID conflict returns `409`. |
 | Delete a credential | Existing jobs that used it block deletion with `409`. Otherwise it is removed from templates, inventory sources and workflow nodes that referenced it. |
-| Delete a job template | Its jobs and targeting schedules are also deleted. |
+| Delete a job template | Its jobs and targeting schedules are also deleted. A job of it that is still running is stopped. |
+| Delete a playbook | Job templates that use it, and jobs using it that are still pending or running, block deletion with `409`; a force delete cancels those jobs. Jobs that ran it keep their history and their recorded `playbook-name`, without a playbook relationship, and cannot be relaunched. Schedules that target it lose their playbook. Its cached snapshot and stored content are removed from object storage. |
 
 > [!WARNING]
 > Credential deletion can detach it from future automation even when no old job blocks it.

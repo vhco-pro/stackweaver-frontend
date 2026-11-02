@@ -2,13 +2,16 @@
 
 // Pins the job page's notice for a job that ran on inventory its update-on-launch syncs did not
 // refresh: one line per source, naming it, its sync's error and the hosts the job ran against,
-// and nothing at all for a job whose inventory was refreshed.
+// and nothing at all for a job whose inventory was refreshed. Also pins how the page shows the
+// playbook a job ran once that playbook is deleted: the recorded name marked deleted, no link to
+// it, and no relaunch.
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { ansibleJobsApi } from '@/api/ansible';
+import { ansibleJobsApi, ansiblePlaybooksApi } from '@/api/ansible';
 import JobDetail from './JobDetail';
 
 vi.mock('@/api/ansible', () => ({
@@ -102,5 +105,91 @@ describe('JobDetail inventory sync warnings', () => {
 
     expect(await screen.findByText('deploy web')).toBeInTheDocument();
     expect(screen.queryByRole('alert', { name: /ran on inventory that was not refreshed/i })).not.toBeInTheDocument();
+  });
+});
+
+function finishedJob(attributes: Record<string, unknown>, playbookId?: string) {
+  const resource = jobResource([]);
+  return {
+    ...resource,
+    attributes: { ...resource.attributes, ...attributes },
+    relationships: {
+      ...resource.relationships,
+      ...(playbookId ? { playbook: { data: { id: playbookId, type: 'ansible-playbooks' } } } : {}),
+    },
+  };
+}
+
+/** The Playbook row of the Details tab, which the test opens first. */
+async function detailsPlaybookRow() {
+  await userEvent.setup().click(screen.getByRole('tab', { name: /details/i }));
+  const term = await screen.findByText('Playbook', { selector: 'dt' });
+  return within(term.parentElement!);
+}
+
+describe('JobDetail playbook of a job', () => {
+  beforeEach(() => {
+    vi.mocked(ansibleJobsApi.getEvents).mockResolvedValue({ data: [] });
+    vi.mocked(ansiblePlaybooksApi.get).mockReset();
+  });
+
+  it('shows a deleted playbook by its recorded name, without a link or relaunch', async () => {
+    vi.mocked(ansibleJobsApi.get).mockResolvedValue({
+      data: finishedJob({ 'job-type': 'run', 'playbook-name': 'site-deploy' }),
+    });
+
+    renderPage();
+
+    expect(await screen.findByText('site-deploy')).toBeInTheDocument();
+    expect(screen.getByText('Deleted')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'site-deploy' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /relaunch/i })).toBeDisabled();
+    expect(ansiblePlaybooksApi.get).not.toHaveBeenCalled();
+
+    const row = await detailsPlaybookRow();
+    expect(row.getByText('site-deploy')).toBeInTheDocument();
+    expect(row.getByText('Deleted')).toBeInTheDocument();
+    expect(row.queryByRole('button')).not.toBeInTheDocument();
+  });
+
+  it('says deleted playbook for a job that recorded no name', async () => {
+    vi.mocked(ansibleJobsApi.get).mockResolvedValue({ data: finishedJob({ 'job-type': 'run' }) });
+
+    renderPage();
+
+    expect(await screen.findByText('Deleted playbook')).toBeInTheDocument();
+    const row = await detailsPlaybookRow();
+    expect(row.getByText('Deleted playbook')).toBeInTheDocument();
+  });
+
+  it('does not call an ad hoc job one of a deleted playbook', async () => {
+    vi.mocked(ansibleJobsApi.get).mockResolvedValue({
+      data: finishedJob({ 'job-type': 'adhoc', 'playbook-name': '' }),
+    });
+
+    renderPage();
+
+    expect(await screen.findByText('Ad hoc command')).toBeInTheDocument();
+    expect(screen.queryByText(/deleted/i)).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /relaunch/i })).toBeEnabled();
+    const row = await detailsPlaybookRow();
+    expect(row.getByText('Ad hoc command')).toBeInTheDocument();
+  });
+
+  it('links a playbook that still exists', async () => {
+    vi.mocked(ansibleJobsApi.get).mockResolvedValue({
+      data: finishedJob({ 'job-type': 'run', 'playbook-name': 'site-deploy' }, 'pb-1'),
+    });
+    vi.mocked(ansiblePlaybooksApi.get).mockResolvedValue({
+      data: { id: 'pb-1', type: 'ansible-playbooks', attributes: { name: 'site-deploy' } },
+    });
+
+    renderPage();
+
+    expect(await screen.findByRole('button', { name: 'site-deploy' })).toBeInTheDocument();
+    expect(screen.queryByText('Deleted')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /relaunch/i })).toBeEnabled();
+    const row = await detailsPlaybookRow();
+    expect(row.getByRole('button', { name: 'site-deploy' })).toBeInTheDocument();
   });
 });

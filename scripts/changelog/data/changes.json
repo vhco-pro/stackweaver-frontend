@@ -850,5 +850,61 @@
       "api"
     ],
     "availability": []
+  },
+  {
+    "id": "cookie-preferences-design",
+    "title": "Cookie preferences match the current design",
+    "area": "Platform",
+    "kind": "Changed",
+    "reviewed": true,
+    "audience": "Visitors choosing cookie preferences on the public website.",
+    "before": "The cookie banner used older styling, small controls and custom toggles without accessible names.",
+    "after": "The banner and preferences panel use the current shared design, named keyboard-accessible switches and larger action controls. The category list scrolls on short screens while the actions remain visible.",
+    "action": "Deploy the updated frontend. Existing saved consent choices are preserved; no configuration change is required.",
+    "details": [],
+    "guides": [
+      {
+        "title": "Public pages and search indexing",
+        "path": "/docs/get-started/self-hosting/public-site"
+      }
+    ],
+    "sourceCommits": [],
+    "requiredComponents": [
+      "frontend"
+    ],
+    "availability": []
+  },
+  {
+    "id": "playbook-delete-keeps-job-history",
+    "title": "Deleting a playbook keeps the history of its jobs",
+    "area": "Ansible",
+    "kind": "Fixed",
+    "reviewed": true,
+    "audience": "Ansible users who delete playbook registrations, and API clients that read jobs.",
+    "before": "A playbook that any job had run could not be deleted. The delete answered 409 until those jobs were removed, which meant giving up their logs, results and events. A force delete removed every job that had run the playbook.",
+    "after": "A playbook delete is blocked only by job templates that use the playbook and by jobs using it that are still pending or running. Jobs that ran the playbook keep their logs, results and events, and the job page shows the playbook by the name it had when the job ran, marked as deleted and without a link. A force delete cancels the jobs that have not finished, removes the jobs of the job templates it deletes and keeps the jobs that ran the playbook directly. The playbook's cached snapshot and stored content are removed from object storage.",
+    "action": "Deploy the updated API, frontend and Ansible runner, including self-hosted Ansible agents. No configuration change is required. Existing jobs take their playbook's current name the first time the updated API starts.",
+    "details": [
+      "A job's playbook-name attribute holds the name of the playbook it ran, recorded at launch. It stays after the playbook is deleted, when the job no longer has a playbook relationship. It is empty for ad hoc jobs.",
+      "A job whose playbook was deleted cannot be relaunched. The relaunch answers 409 and the job page disables Relaunch.",
+      "Platform runners and self-hosted agents stop a running job that is deleted, for example with its job template, as they stop a canceled one."
+    ],
+    "guides": [
+      {
+        "title": "Delete a playbook registration",
+        "path": "/docs/user-guides/managing-ansible-playbooks#deleting-a-playbook"
+      },
+      {
+        "title": "Ansible attachment and deletion rules",
+        "path": "/docs/features/ansible/roadmap#attachment-and-deletion-rules"
+      }
+    ],
+    "sourceCommits": [],
+    "requiredComponents": [
+      "api",
+      "frontend",
+      "ansible-runner"
+    ],
+    "availability": []
   }
 ]

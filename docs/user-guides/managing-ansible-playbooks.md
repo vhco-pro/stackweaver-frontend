@@ -200,12 +200,25 @@ move the playbook to a discoverable path. Do not assume every form accepts arbit
 ## Delete a registration
 
 Choose **Delete** from the list or playbook detail page and review the confirmation.
-If references from templates or jobs block deletion, review the dependency message. Keep
-the registration if you need those records; force deletion removes their history.
+
+Two things block the delete, and the dependency message names how many of each there are:
+
+- **Job templates that use the playbook.** Point those templates at another playbook or
+  delete them, then delete the registration again.
+- **Jobs using the playbook that have not finished**, pending or running. Wait for them to
+  finish, or cancel them from the job page, then delete the registration again.
+
+Jobs that ran the playbook stay, with their output, host results and events. The job page
+shows the playbook by the name it had when the job ran, marked **Deleted**, without a link.
+Such a job cannot be relaunched; launch a new job from another playbook or template instead.
+Schedules that synced the playbook stay without a playbook. The playbook's cached snapshot
+and stored content are removed from object storage.
 
 > [!WARNING]
-> **Force Delete Everything** also removes dependent templates, jobs and their events,
-> schedules and affected workflow steps. This cannot be undone. It requires playbook write
+> **Force Delete Everything** cancels the jobs using the playbook that have not finished, and
+> also removes the dependent job templates with their jobs and events, schedules that target
+> the playbook, and workflow steps that run those templates. Jobs that ran the playbook
+> without one of those templates stay. This cannot be undone. It requires playbook write
 > access and organization-level Ansible management permission.
 
 ## Automate registrations

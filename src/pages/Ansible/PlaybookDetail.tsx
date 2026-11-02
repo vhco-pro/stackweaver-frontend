@@ -1347,7 +1347,8 @@ export default function PlaybookDetail() {
               ) : (
                 <>
                   Are you sure you want to delete "{playbook.name}"? This action cannot be undone.
-                  Any job templates using this playbook will be affected.
+                  Jobs that ran this playbook keep their history. A job template that uses it,
+                  or a job using it that has not finished, blocks the delete.
                 </>
               )}
             </DialogDescription>
@@ -1356,8 +1357,9 @@ export default function PlaybookDetail() {
             <div className="rounded-md border border-red-500/20 bg-red-500/5 p-3 text-sm text-muted-foreground">
               Force delete removes the playbook <span className="font-medium text-foreground">and everything built on it</span>:
               its job templates (with their jobs, schedules, and notification attachments),
-              jobs run against it, schedules that target it directly, and any workflow steps
-              that run those templates. This cannot be undone.
+              schedules that target it directly, and any workflow steps that run those templates.
+              Jobs using it that have not finished are canceled. Jobs that ran the playbook
+              without one of those templates keep their history. This cannot be undone.
             </div>
           )}
           <DialogFooter>

@@ -9,15 +9,15 @@
       "evidence": [
         {
           "path": "backend/cmd/ansible-runner/agent_mode.go",
-          "sha256": "781f87406cccea5bb2b60713367133371f34c6b360fdc886c954810b85019ea6"
+          "sha256": "c705711bf0b1c4ba7e3a54d85683797c84ffa7df9e43c74352edce2b6a7bd42d"
         },
         {
           "path": "backend/cmd/ansible-runner/main.go",
-          "sha256": "eddf97c2531e1967fb577a483336466422161f9a27407844bcf9b440dcec57ee"
+          "sha256": "7fcb4f0d8d3370f6a17aa098db257a9c08ac60bdf593bddfbbdc440611f6c986"
         },
         {
           "path": "core/services/ansible/job.go",
-          "sha256": "9a82bc384363d5b062fba5f6e67a4e2c5e7abb9596b5037cda60166c2caf85b9"
+          "sha256": "485bdf9c2745f4742882fe6c40592e4ac11745459834920c41851ae4d0dab212"
         },
         {
           "path": "core/services/ansible/job_test.go",
@@ -33,15 +33,15 @@
       "evidence": [
         {
           "path": "backend/cmd/ansible-runner/agent_mode.go",
-          "sha256": "781f87406cccea5bb2b60713367133371f34c6b360fdc886c954810b85019ea6"
+          "sha256": "c705711bf0b1c4ba7e3a54d85683797c84ffa7df9e43c74352edce2b6a7bd42d"
         },
         {
           "path": "backend/internal/api/v2/handlers/runner_agent.go",
-          "sha256": "db5ee3743d845fc89bdbea0c7bde5b7108852a6fd081b0d99bc000340e875991"
+          "sha256": "bda4602f27eb2c722af4eb97321eb58d5dfee4a968e7b1695c19abe948d1709a"
         },
         {
           "path": "core/services/ansible/job.go",
-          "sha256": "9a82bc384363d5b062fba5f6e67a4e2c5e7abb9596b5037cda60166c2caf85b9"
+          "sha256": "485bdf9c2745f4742882fe6c40592e4ac11745459834920c41851ae4d0dab212"
         }
       ]
     },
@@ -53,15 +53,15 @@
       "evidence": [
         {
           "path": "backend/cmd/ansible-runner/agent_mode.go",
-          "sha256": "781f87406cccea5bb2b60713367133371f34c6b360fdc886c954810b85019ea6"
+          "sha256": "c705711bf0b1c4ba7e3a54d85683797c84ffa7df9e43c74352edce2b6a7bd42d"
         },
         {
           "path": "backend/cmd/ansible-runner/main.go",
-          "sha256": "eddf97c2531e1967fb577a483336466422161f9a27407844bcf9b440dcec57ee"
+          "sha256": "7fcb4f0d8d3370f6a17aa098db257a9c08ac60bdf593bddfbbdc440611f6c986"
         },
         {
           "path": "backend/internal/api/v2/handlers/runner_agent.go",
-          "sha256": "db5ee3743d845fc89bdbea0c7bde5b7108852a6fd081b0d99bc000340e875991"
+          "sha256": "bda4602f27eb2c722af4eb97321eb58d5dfee4a968e7b1695c19abe948d1709a"
         }
       ]
     },
@@ -84,20 +84,20 @@
     {
       "id": "ansible-credentials",
       "guide": "features/ansible/roadmap.md",
-      "guideHash": "4bc08a58913c2f0a1b3d0eb4c317d1ed4be9c6a7244d5c1f5c62e6416828e439",
+      "guideHash": "55b8c64c1a625ed3ba36dd887eae5c9ecfdebbf7ccca3430f1fba9be5f62d00c",
       "metadataHash": "0b80ef1e74d686989125d22c1047bd3927655708e6414bd7e511c43b00ba188d",
       "evidence": [
         {
           "path": "backend/cmd/ansible-runner/agent_mode.go",
-          "sha256": "781f87406cccea5bb2b60713367133371f34c6b360fdc886c954810b85019ea6"
+          "sha256": "c705711bf0b1c4ba7e3a54d85683797c84ffa7df9e43c74352edce2b6a7bd42d"
         },
         {
           "path": "backend/cmd/ansible-runner/main.go",
-          "sha256": "eddf97c2531e1967fb577a483336466422161f9a27407844bcf9b440dcec57ee"
+          "sha256": "7fcb4f0d8d3370f6a17aa098db257a9c08ac60bdf593bddfbbdc440611f6c986"
         },
         {
           "path": "core/repository/ansible_playbook.go",
-          "sha256": "71fa94b5f959e0b8fe4ff5700102be103b5d88fc1aa78b8e2575f52f33f10fed"
+          "sha256": "0cbfa3c785f8a00320126717842131bfa1a785b43d6e2280cca2a3767aad12c7"
         },
         {
           "path": "core/services/ansible/credential.go",
@@ -113,7 +113,7 @@
       "evidence": [
         {
           "path": "backend/cmd/ansible-runner/agent_mode.go",
-          "sha256": "781f87406cccea5bb2b60713367133371f34c6b360fdc886c954810b85019ea6"
+          "sha256": "c705711bf0b1c4ba7e3a54d85683797c84ffa7df9e43c74352edce2b6a7bd42d"
         },
         {
           "path": "backend/cmd/ansible-runner/galaxy.go",
@@ -125,7 +125,7 @@
         },
         {
           "path": "backend/cmd/ansible-runner/main.go",
-          "sha256": "eddf97c2531e1967fb577a483336466422161f9a27407844bcf9b440dcec57ee"
+          "sha256": "7fcb4f0d8d3370f6a17aa098db257a9c08ac60bdf593bddfbbdc440611f6c986"
         }
       ]
     },
@@ -137,11 +137,11 @@
       "evidence": [
         {
           "path": "backend/cmd/ansible-runner/agent_mode.go",
-          "sha256": "781f87406cccea5bb2b60713367133371f34c6b360fdc886c954810b85019ea6"
+          "sha256": "c705711bf0b1c4ba7e3a54d85683797c84ffa7df9e43c74352edce2b6a7bd42d"
         },
         {
           "path": "backend/cmd/ansible-runner/main.go",
-          "sha256": "eddf97c2531e1967fb577a483336466422161f9a27407844bcf9b440dcec57ee"
+          "sha256": "7fcb4f0d8d3370f6a17aa098db257a9c08ac60bdf593bddfbbdc440611f6c986"
         },
         {
           "path": "core/services/ansible/inventory_slice_test.go",
@@ -149,7 +149,7 @@
         },
         {
           "path": "core/services/ansible/job.go",
-          "sha256": "9a82bc384363d5b062fba5f6e67a4e2c5e7abb9596b5037cda60166c2caf85b9"
+          "sha256": "485bdf9c2745f4742882fe6c40592e4ac11745459834920c41851ae4d0dab212"
         },
         {
           "path": "frontend/src/pages/Ansible/run-viewer/adapter.test.ts",
@@ -160,7 +160,7 @@
     {
       "id": "ansible-notifications",
       "guide": "features/ansible/roadmap.md",
-      "guideHash": "4bc08a58913c2f0a1b3d0eb4c317d1ed4be9c6a7244d5c1f5c62e6416828e439",
+      "guideHash": "55b8c64c1a625ed3ba36dd887eae5c9ecfdebbf7ccca3430f1fba9be5f62d00c",
       "metadataHash": "fbb5784f344b7236a3f07fdd23e9af2f61e50c7e2362a1be23dfc8c2228f6e93",
       "evidence": [
         {
@@ -180,16 +180,16 @@
     {
       "id": "ansible-playbooks",
       "guide": "user-guides/managing-ansible-playbooks.md",
-      "guideHash": "b623fb1001b4dbc7450a3f9940b5c031dcb250bbcebb9d5c03051d0f1e7af1af",
+      "guideHash": "fc135041ae0f4787f36ca5006056574da2bb19157b40faef6ea2f690f08f102f",
       "metadataHash": "c7ada869a04d2d6b72e8b8a083ce791c7c159415e8766bef7443e3432ac33d57",
       "evidence": [
         {
           "path": "backend/cmd/ansible-runner/agent_mode.go",
-          "sha256": "781f87406cccea5bb2b60713367133371f34c6b360fdc886c954810b85019ea6"
+          "sha256": "c705711bf0b1c4ba7e3a54d85683797c84ffa7df9e43c74352edce2b6a7bd42d"
         },
         {
           "path": "backend/cmd/ansible-runner/main.go",
-          "sha256": "eddf97c2531e1967fb577a483336466422161f9a27407844bcf9b440dcec57ee"
+          "sha256": "7fcb4f0d8d3370f6a17aa098db257a9c08ac60bdf593bddfbbdc440611f6c986"
         },
         {
           "path": "backend/internal/api/v2/handlers/ansible/playbook_discovery.go",
@@ -197,7 +197,7 @@
         },
         {
           "path": "backend/internal/api/v2/handlers/runner_agent.go",
-          "sha256": "db5ee3743d845fc89bdbea0c7bde5b7108852a6fd081b0d99bc000340e875991"
+          "sha256": "bda4602f27eb2c722af4eb97321eb58d5dfee4a968e7b1695c19abe948d1709a"
         },
         {
           "path": "core/services/ansible/playbook_sync.go",
@@ -265,7 +265,7 @@
       "evidence": [
         {
           "path": "backend/cmd/ansible-runner/main.go",
-          "sha256": "eddf97c2531e1967fb577a483336466422161f9a27407844bcf9b440dcec57ee"
+          "sha256": "7fcb4f0d8d3370f6a17aa098db257a9c08ac60bdf593bddfbbdc440611f6c986"
         },
         {
           "path": "core/services/ansible/inventory_source.go",
@@ -289,7 +289,7 @@
         },
         {
           "path": "backend/cmd/ansible-runner/main.go",
-          "sha256": "eddf97c2531e1967fb577a483336466422161f9a27407844bcf9b440dcec57ee"
+          "sha256": "7fcb4f0d8d3370f6a17aa098db257a9c08ac60bdf593bddfbbdc440611f6c986"
         }
       ]
     },
@@ -385,7 +385,7 @@
       "evidence": [
         {
           "path": "backend/internal/api/v2/routes/routes.go",
-          "sha256": "5306c927ae8d20c53c8cb4662d4e6bc31bc2e9d55ee04a4107bbfa85fd521a5a"
+          "sha256": "bcd93d191ce0b3daf5781fd350cf77e775dac538f24a343137f6a03c4fd65195"
         },
         {
           "path": "frontend/src/pages/Docs/ApiReferenceExplorer.tsx",

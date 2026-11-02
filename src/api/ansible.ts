@@ -26,6 +26,9 @@ export type AnsibleJobStatus =
   | 'canceled' 
   | 'error';
 
+/** How a job runs its playbook. `adhoc` runs one module through a transient playbook. */
+export type AnsibleJobType = 'run' | 'check' | 'syntax' | 'adhoc';
+
 // Flat interface types (for use after JSON:API parsing)
 export interface AnsibleInventory {
   id: string;
@@ -206,7 +209,14 @@ export interface CreateJobTemplateInput {
 export interface AnsibleJob {
   id: string;
   project_id: string;
+  /** Empty for an ad hoc job, and for a job whose playbook has been deleted. */
   playbook_id: string;
+  /**
+   * The name of the playbook the job ran, recorded at launch. It stays when the playbook is
+   * deleted; empty for ad hoc jobs.
+   */
+  playbook_name?: string;
+  job_type?: AnsibleJobType;
   inventory_id: string;
   job_template_id?: string;
   /** The job's own credential set, snapshotted at launch. */
