@@ -54,8 +54,14 @@ export function pageStructuredData(page:PublicPage,siteUrl:string):Record<string
  if(page.kind==='article') return {'@context':'https://schema.org','@type':'Article',headline:page.title,description:page.description,url:siteUrl+page.path,author:{'@type':'Person',name:page.author},...(page.published?{datePublished:page.published}:{}),...(page.updated?{dateModified:page.updated}:{})};
  return null;
 }
+/** Resolve the shipped brand image against operator-owned origin and mount, like canonicals. */
+export function previewImageMetadata(siteUrl:string):Record<string,string> {
+ const imageUrl=siteUrl+'/logo.png';
+ return {'og:image':imageUrl,'og:image:type':'image/png','og:image:width':'1024','og:image:height':'1024','og:image:alt':'Stackweaver logo','twitter:image':imageUrl,'twitter:image:alt':'Stackweaver logo'};
+}
 export function pageMetadata(page:PublicPage):string {
  const title=escapeHtml(`${page.title} | Stackweaver`),description=escapeHtml(page.description),url='__SW_SITE_URL__'+page.path;
  const entity=pageStructuredData(page,'__SW_SITE_URL__');
- return `<title>${title}</title>\n<meta name="description" content="${description}" data-sw-meta>\n<link rel="canonical" href="${escapeHtml(url)}" data-sw-meta>\n<meta property="og:title" content="${title}" data-sw-meta>\n<meta property="og:description" content="${description}" data-sw-meta>\n<meta property="og:type" content="${page.kind==='article'?'article':'website'}" data-sw-meta>\n<meta property="og:url" content="${escapeHtml(url)}" data-sw-meta>\n<meta name="twitter:card" content="summary" data-sw-meta>${entity?`\n<script type="application/ld+json" data-sw-meta>${JSON.stringify(entity).replace(/</g,'\\u003c')}</script>`:''}`;
+ const images=Object.entries(previewImageMetadata('__SW_SITE_URL__')).map(([name,value])=>`<meta ${name.startsWith('og:')?'property':'name'}="${name}" content="${escapeHtml(value)}" data-sw-meta>`).join('\n');
+ return `<title>${title}</title>\n<meta name="description" content="${description}" data-sw-meta>\n<link rel="canonical" href="${escapeHtml(url)}" data-sw-meta>\n<meta property="og:title" content="${title}" data-sw-meta>\n<meta property="og:description" content="${description}" data-sw-meta>\n<meta property="og:type" content="${page.kind==='article'?'article':'website'}" data-sw-meta>\n<meta property="og:url" content="${escapeHtml(url)}" data-sw-meta>\n<meta name="twitter:card" content="summary" data-sw-meta>\n${images}${entity?`\n<script type="application/ld+json" data-sw-meta>${JSON.stringify(entity).replace(/</g,'\\u003c')}</script>`:''}`;
 }

@@ -181,5 +181,5 @@ This comparison includes no quoted prices or claim of complete feature parity.
 [sw-migration]: /docs/user-guides/migrating-from-terraform-cloud
 [sw-provider]: /docs/user-guides/terraform-provider
 [sw-compose]: /docs/get-started/self-hosting/docker-compose
-[sw-license]: https://github.com/michielvha/stackweaver/blob/main/LICENSE
+[sw-license]: https://github.com/vhco-pro/stackweaver-api/blob/main/LICENSE
 [sw-helm]: /docs/get-started/self-hosting/kubernetes

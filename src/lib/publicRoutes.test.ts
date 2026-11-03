@@ -17,6 +17,17 @@ describe('one public route catalogue',()=>{
   expect(buildPublicRoutes(index,[article]).some(r=>r.path===article.canonical)).toBe(false);
   expect(()=>buildPublicRoutes(index,[{...article,status:'published'}, {...article,status:'published'}])).toThrow(/duplicate/i);
  });
+ it('includes an absolute branded preview image in initial HTML without assuming the founder domain',()=>{
+  const page=buildPublicRoutes(index,[]).find(r=>r.path==='/blog')!;
+  const html=pageMetadata(page);
+  expect(html).toContain('property="og:image" content="__SW_SITE_URL__/logo.png"');
+  expect(html).toContain('property="og:image:type" content="image/png"');
+  expect(html).toContain('property="og:image:width" content="1024"');
+  expect(html).toContain('property="og:image:height" content="1024"');
+  expect(html).toContain('property="og:image:alt" content="Stackweaver logo"');
+  expect(html).toContain('name="twitter:image" content="__SW_SITE_URL__/logo.png"');
+  expect(html).toContain('name="twitter:image:alt" content="Stackweaver logo"');
+ });
  it('normalizes supported mounts and rejects traversal/HTML injection',()=>{
   expect(cleanBasePath('/stack/')).toBe('/stack');
   expect(cleanBasePath('')).toBe('');
