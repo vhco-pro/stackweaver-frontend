@@ -1028,5 +1028,30 @@
       "frontend"
     ],
     "availability": []
+  },
+  {
+    "id": "ansible-cached-vcs-selection",
+    "title": "Repository pickers select their sole connection after returning",
+    "area": "Ansible",
+    "kind": "Fixed",
+    "reviewed": true,
+    "audience": "People browsing playbook repositories with one VCS connection.",
+    "before": "Returning to a repository picker while its connection list was cached could leave the connection unselected and hide the repository selector.",
+    "after": "A sole connection is selected from cached or newly loaded data. Deliberate connection choices and clears survive refresh, and repository or branch drafts stay with their original connection.",
+    "action": "No action is required.",
+    "details": [
+      "With multiple connections, choose the connection to browse."
+    ],
+    "guides": [
+      {
+        "title": "Managing Ansible playbooks",
+        "path": "/docs/user-guides/managing-ansible-playbooks"
+      }
+    ],
+    "sourceCommits": [],
+    "requiredComponents": [
+      "frontend"
+    ],
+    "availability": []
   }
 ]
