@@ -1005,5 +1005,28 @@
       "frontend"
     ],
     "availability": []
+  },
+  {
+    "id": "formatted-heading-anchors",
+    "title": "Formatted documentation headings have anchors in initial HTML",
+    "area": "Platform",
+    "kind": "Fixed",
+    "reviewed": true,
+    "audience": "Readers following section links in public documentation or articles.",
+    "before": "Headings with inline code, emphasis or links had empty anchor IDs in initial HTML. The documentation table of contents repaired them after JavaScript ran.",
+    "after": "Heading anchors include their complete visible text in initial HTML and browser rendering. Existing plain-text heading anchors are preserved.",
+    "action": "Update the frontend image. No configuration or documentation-link change is required.",
+    "details": [],
+    "guides": [
+      {
+        "title": "Set up Okta SSO",
+        "path": "/docs/user-guides/sso/okta"
+      }
+    ],
+    "sourceCommits": [],
+    "requiredComponents": [
+      "frontend"
+    ],
+    "availability": []
   }
 ]
