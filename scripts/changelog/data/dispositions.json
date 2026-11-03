@@ -46,5 +46,13 @@
   {
     "commit": "ec2f72fe8fa4be1f8dec336a72f88931cf8a846a",
     "reason": "Merge commit that brought main into the YAML settings branch before landing it. It adds no change of its own; the branch moves vh-adlc triage and maintenance settings to YAML and records the published plugin, which is internal development tooling with no customer-facing capability."
+  },
+  {
+    "commit": "32a0a7f59d2242bab2b2f5944b194117ae95f989",
+    "reason": "Manual developer-tool repair: keep license-header scans inside their owning source tree and preserve nested Git repositories and linked worktrees. Product runtime, APIs, licensing terms, deployment behavior and published customer content are unchanged."
+  },
+  {
+    "id": "license-header-worktree-boundaries",
+    "reason": "Manual developer-tool repair: keep license-header scans inside their owning source tree and preserve nested Git repositories and linked worktrees. Product runtime, APIs, licensing terms, deployment behavior and published customer content are unchanged."
   }
 ]
