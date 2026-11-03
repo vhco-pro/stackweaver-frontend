@@ -35,9 +35,10 @@ interface MarkdownPreProps {
 }
 
 interface MarkdownCodeProps {
-  inline?: boolean;
   className?: string;
   children?: ReactNode;
+  node?: unknown;
+  [key: string]: unknown;
 }
 
 interface MarkdownLinkProps {
@@ -938,7 +939,8 @@ export function MarkdownRenderer({
           // child.type could be the string 'code' or the React component function
           const isCodeElement = childType === 'code' || 
             (typeof childElement.type === 'function' && childElement.type.name === 'code') ||
-            childClassName.includes('language-');
+            childClassName.includes('language-') ||
+            (isRecord(childElement.props?.node) && childElement.props.node.tagName === 'code');
           
           if (isCodeElement) {
             // Extract code text from children
@@ -1043,84 +1045,32 @@ export function MarkdownRenderer({
                 </DocsCodeBlock>
               );
             }
+
+            // Only a code child of pre is a block. Inline code never enters
+            // this path, including when react-markdown omits the inline prop.
+            if (codeTextTrimmed) {
+              pendingHighlightsRef.current.push({ hash: codeHash, code: codeTextTrimmed, lang });
+              scheduleHighlightFlush();
+            }
+            const codeProps = { ...childElement.props };
+            delete codeProps.node;
+            return (
+              <pre {...props}>
+                <code {...codeProps} className={`language-${lang} ${className}`}>{childElement.props?.children}</code>
+              </pre>
+            );
           }
         }
         
         // Regular pre (not a code block with shiki) - render normally
         return <pre {...props}>{children}</pre>;
       },
-      // Code blocks - Use shiki for syntax highlighting (colored text only, no backgrounds)
-      code: ({ inline, className, children, ...props }: MarkdownCodeProps) => {
-        if (inline) {
-          return (
-            <code className="bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200/70 dark:border-indigo-700/30 text-indigo-800 dark:text-indigo-200 px-1.5 py-0.5 rounded-md text-sm font-mono whitespace-nowrap" {...props}>
-              {children}
-            </code>
-          );
-        }
-
-        // Block-level code - highlight with shiki
-        let lang = className?.replace('language-', '') || 'text';
-        // Map common language aliases to Shiki language identifiers
-        if (lang === 'env') {
-          lang = 'dotenv';
-        }
-        // Mermaid is rendered by the pre component; return plain code so pre can replace it
-        if (lang === 'mermaid' && enableMermaid) {
-          return (
-            <code className={`language-mermaid ${className || ''}`} {...props}>
-              {children}
-            </code>
-          );
-        }
-        
-        // Extract text from children - handle arrays and strings
-        const extractCodeText = (node: ReactNode): string => {
-          if (typeof node === 'string') {
-            return node;
-          }
-          if (Array.isArray(node)) {
-            return node.map(extractCodeText).join('');
-          }
-          if (typeof node === 'object' && node !== null && 'props' in node) {
-            const nodeProps = node.props as { children?: ReactNode };
-            return extractCodeText(nodeProps.children || '');
-          }
-          // Handle primitive types safely - avoid String() on objects
-          if (node == null) {
-            return '';
-          }
-          return typeof node === 'string' || typeof node === 'number' || typeof node === 'boolean' 
-            ? String(node) 
-            : '';
-        };
-        
-        const codeTextTrimmed = extractCodeText(children).trim();
-        const codeHash = hashCode(`${lang}-${codeTextTrimmed}`);
-        
-        // If already highlighted, return marker for pre to pick up and replace
-        // Note: pre component will replace this entire <pre><code> with a div
-        if (highlightedCode[codeHash]) {
-          return (
-            <code 
-              className="shiki-code-render" 
-              data-shiki-html={highlightedCode[codeHash]}
-            >
-              {/* Fallback text - visible until pre replaces with highlighted version */}
-              {codeTextTrimmed}
-            </code>
-          );
-        }
-
-        // Queue for highlighting via deferred microtask (avoid setState during render)
-        if (codeTextTrimmed) {
-          pendingHighlightsRef.current.push({ hash: codeHash, code: codeTextTrimmed, lang });
-          scheduleHighlightFlush();
-        }
-
-        // Fallback while loading - render plain code block (always visible)
+      // Fenced code is handled structurally by pre; remaining code is inline.
+      code: ({ className, children, ...props }: MarkdownCodeProps) => {
+        // The syntax tree node is renderer metadata, not an HTML attribute.
+        delete props.node;
         return (
-          <code className={`language-${lang} ${className || ''}`} {...props}>
+          <code {...props} className={cn('bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200/70 dark:border-indigo-700/30 text-indigo-800 dark:text-indigo-200 px-1.5 py-0.5 rounded-md text-sm font-mono whitespace-nowrap', className)}>
             {children}
           </code>
         );
