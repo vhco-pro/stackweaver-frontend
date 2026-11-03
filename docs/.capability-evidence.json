@@ -380,7 +380,7 @@
     {
       "id": "platform-api",
       "guide": "architecture/using-the-api.md",
-      "guideHash": "fe0d522e748afa555689594b2c6da36bb0d94cafcb06e14e6842e8fe3f4c2c74",
+      "guideHash": "847c49634a4673d234fbca360a0ecaf8bf993f1e0497685950e81c1353722117",
       "metadataHash": "b5fbdbebb886a67b8db068cd6b69be4534643f11317cdcc230c720c4179ead03",
       "evidence": [
         {
@@ -504,7 +504,7 @@
     {
       "id": "static-inventories",
       "guide": "get-started/your-first-ansible-job.md",
-      "guideHash": "8fcb17ac51974e2f268a6a791a0b21ec63ec26b72ff728ba27e38267640d4a6f",
+      "guideHash": "d72210718db54db881e39545e2a69e7bbfdf9fc400518d52dcabf4a3c03442e7",
       "metadataHash": "10d8b72a352e14dbc34729d41351234db0d866c7a9a02df5e0c5acb111a23933",
       "evidence": [
         {

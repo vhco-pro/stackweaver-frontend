@@ -2,7 +2,7 @@
 
 // eslint-disable-next-line no-restricted-imports -- legitimate dependency-based effect
 import { useEffect, useRef, useState, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useMountEffect } from '@/hooks/useMountEffect';
 import { ArrowRight, Zap, Server, Cloud, Layers3, GitBranch, Cpu, KeyRound, ShieldCheck, Wrench, Database, Globe, PlugZap, Container, Copy, Check, ExternalLink } from 'lucide-react';
 import { getVcsProviderIcon } from '@/lib/vcs';
@@ -111,6 +111,7 @@ export default function Landing() {
                   <div>
                     <h3 className="text-lg font-semibold mb-1 text-slate-950 dark:text-white">{feature.title}</h3>
                     <p className="text-slate-800 dark:text-gray-400 text-sm leading-relaxed">{feature.description}</p>
+                    {feature.title === 'Ansible Automation' && <Link to="/ansible" className="mt-2 inline-flex min-h-11 items-center text-sm font-medium text-blue-600 underline underline-offset-4 dark:text-blue-400">Explore Ansible automation</Link>}
                   </div>
                 </div>
               </div>

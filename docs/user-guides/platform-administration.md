@@ -266,7 +266,7 @@ For authenticated callers, missing platform standing or a missing platform-admin
 scope returns 404. `GET /api/v2/account/details` and `GET /api/v2/platform/settings` are
 available to signed-in callers without that role. Account details report `is-site-admin`,
 `platform-admin-declared` and `permissions.can-create-organizations`; platform settings
-report `organization-creation`. See the [API reference](/api-reference) for operation schemas.
+report `organization-creation`. See the [API reference](/docs/api-reference/explorer) for operation schemas.
 
 ## Manage catalogue versions with Terraform or OpenTofu
 

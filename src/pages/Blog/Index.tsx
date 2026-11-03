@@ -1,5 +1,5 @@
 // Copyright (c) 2026 VH & Co BV. Licensed under the Business Source License 1.1. See LICENSE for details.
-import articles from 'virtual:public-articles';
+import articles from 'virtual:public-article-summaries';
 import { BlogIndex } from '@/components/blog/BlogIndex';
 import { PublicNav } from '@/components/navigation/PublicNav';
 import { Footer } from '@/components/layout/Footer';

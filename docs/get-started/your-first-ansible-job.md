@@ -236,7 +236,7 @@ A `403` can mean the token can manage configuration but lacks permission to exec
 in this template's project. Correct that permission before retrying.
 
 Record the returned job ID. Read `GET /api/v2/ansible/jobs/<job-id>` and its `/output` endpoint
-for status/output. See the [API viewer](/api-reference) for the full contract and the
+for status/output. See the [API viewer](/docs/api-reference/explorer) for the full contract and the
 [execution guide](../features/ansible/execution-flows.md#launch-once-through-the-api) for JSON
 launch overrides. There is no released Stackweaver CLI equivalent documented for this task.
 
