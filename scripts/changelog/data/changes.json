@@ -1099,5 +1099,30 @@
       "frontend"
     ],
     "availability": []
+  },
+  {
+    "id": "subject-related-public-reading",
+    "title": "Article recommendations follow the subject and support links are public",
+    "area": "Platform",
+    "kind": "Fixed",
+    "reviewed": true,
+    "audience": "Readers exploring Stackweaver articles and troubleshooting guidance.",
+    "before": "Continue reading links followed source-file order, including unrelated comparisons. The troubleshooting guide linked to an issue tracker anonymous visitors could not access.",
+    "after": "Continue reading selects up to two other published articles by their main subject and shared subjects, with featured and recent articles as fallbacks. The troubleshooting guide links to the public support policy for choosing a component issue tracker.",
+    "action": "Update the frontend image. No configuration change is required.",
+    "details": [
+      "Recommendations are present in initial HTML and after browser navigation. Drafts and the current article are excluded."
+    ],
+    "guides": [
+      {
+        "title": "Troubleshoot common issues",
+        "path": "/docs/user-guides/troubleshooting-common-issues"
+      }
+    ],
+    "sourceCommits": [],
+    "requiredComponents": [
+      "frontend"
+    ],
+    "availability": []
   }
 ]
