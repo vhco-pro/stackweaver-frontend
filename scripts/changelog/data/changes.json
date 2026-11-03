@@ -1248,5 +1248,56 @@
       "frontend"
     ],
     "availability": []
+  },
+  {
+    "id": "registry-module-input-metadata",
+    "title": "Published module inputs preserve empty arrays and tuple types",
+    "area": "Registry",
+    "kind": "Fixed",
+    "reviewed": true,
+    "audience": "Operators publishing private Registry modules.",
+    "before": "Empty list, set and tuple defaults appeared as null, and tuple type constraints could repeat the tuple constructor.",
+    "after": "New module versions preserve empty list, set and tuple defaults as arrays and show tuple type constraints with the intended nesting.",
+    "action": "Update the API and publish a new module version to regenerate affected metadata. Existing stored versions keep their current metadata.",
+    "details": [
+      "Explicit null defaults remain null. Populated defaults and required-input handling are preserved."
+    ],
+    "guides": [
+      {
+        "title": "Using the API",
+        "path": "/docs/architecture/using-the-api"
+      }
+    ],
+    "sourceCommits": [],
+    "requiredComponents": [
+      "api"
+    ],
+    "availability": []
+  },
+  {
+    "id": "registry-module-provider-requirements",
+    "title": "Published modules list declared provider requirements",
+    "area": "Registry",
+    "kind": "Fixed",
+    "reviewed": true,
+    "audience": "Operators publishing private Registry modules.",
+    "before": "Provider requirements declared in modern required_providers blocks were missing from published module metadata.",
+    "after": "New module versions include the provider names, sources and version constraints declared in required_providers blocks.",
+    "action": "Update the API and publish a new module version to regenerate affected metadata. Existing stored versions keep their current metadata.",
+    "details": [
+      "Legacy attribute-form requirements and default provider sources are preserved.",
+      "Provider requirements are read from versions.tf; terraform.tf is used only when versions.tf is absent."
+    ],
+    "guides": [
+      {
+        "title": "Using the API",
+        "path": "/docs/architecture/using-the-api"
+      }
+    ],
+    "sourceCommits": [],
+    "requiredComponents": [
+      "api"
+    ],
+    "availability": []
   }
 ]
