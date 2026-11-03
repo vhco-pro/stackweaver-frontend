@@ -1,5 +1,31 @@
 [
   {
+    "id": "indexed-docs-source-loading",
+    "title": "Documentation loads indexed source files directly",
+    "area": "Platform",
+    "kind": "Performance",
+    "reviewed": true,
+    "audience": "People browsing documentation in the frontend.",
+    "before": "Leaf articles requested two missing folder README files before loading their actual Markdown source.",
+    "after": "The viewer first requests a source listed in its generated collection index. Folder precedence, relative links and legacy fallbacks for stale or unavailable indexes are preserved.",
+    "action": "Update the frontend image. No configuration change is required.",
+    "details": [
+      "Relative links retain their document or directory context.",
+      "HTML fallback responses are rejected rather than rendered as Markdown."
+    ],
+    "guides": [
+      {
+        "title": "Public pages and search indexing",
+        "path": "/docs/get-started/self-hosting/public-site"
+      }
+    ],
+    "sourceCommits": [],
+    "requiredComponents": [
+      "frontend"
+    ],
+    "availability": []
+  },
+  {
     "id": "inventory-refresh-warning",
     "title": "Jobs warn when inventory refresh did not succeed",
     "area": "Ansible",
