@@ -1053,5 +1053,28 @@
       "frontend"
     ],
     "availability": []
+  },
+  {
+    "id": "public-link-preview-images",
+    "title": "Public links include branded previews and a reachable licence reference",
+    "area": "Platform",
+    "kind": "Fixed",
+    "reviewed": true,
+    "audience": "Readers sharing links to public pages and operators hosting Stackweaver on their own domain.",
+    "before": "Public HTML included preview text without a preview image.",
+    "after": "Public pages provide the existing Stackweaver logo, image dimensions and descriptive alternative text in Open Graph and Twitter metadata. Image URLs use the configured public origin and base path, including after navigation. The three comparison articles link to the public canonical licence, which anonymous visitors can read.",
+    "action": "Update the frontend image. Preview services control when they refresh cached links.",
+    "details": [],
+    "guides": [
+      {
+        "title": "Public pages and search indexing",
+        "path": "/docs/get-started/self-hosting/public-site"
+      }
+    ],
+    "sourceCommits": [],
+    "requiredComponents": [
+      "frontend"
+    ],
+    "availability": []
   }
 ]

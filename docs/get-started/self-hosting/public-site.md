@@ -6,6 +6,8 @@ covers:
   - "frontend/security-headers.conf"
   - "frontend/scripts/site-settings.mjs"
   - "frontend/src/config.ts"
+  - "frontend/src/lib/publicRoutes.ts"
+  - "frontend/src/components/blog/PageMetadata.tsx"
   - "deploy/helm/stackweaver/**"
 ---
 
@@ -30,8 +32,9 @@ robots file therefore allows crawling even when indexing is disabled. See
 - Your existing image pins, chart version and deployment values. Keep them when applying
   these settings so a publishing change does not upgrade the installation.
 
-The public URL controls canonical links and sitemap addresses. It does not create DNS
-records, provision TLS or update identity-provider registrations.
+The public URL controls canonical links, sitemap addresses and social-preview image URLs.
+Public pages use the included Stackweaver logo for their preview image. This setting does
+not create DNS records, provision TLS or update identity-provider registrations.
 
 ## Helm
 
@@ -127,6 +130,9 @@ curl -fsS "$SITE_URL/blog"
 ```
 
 Check that sitemap entries and the page's canonical link use your configured address.
+The page's `og:image` and `twitter:image` metadata should use the same address, including
+any configured prefix, followed by `/logo.png`. Confirm that this image URL returns
+HTTP 200 with the `image/png` content type.
 Private application and sign-in routes should retain their `noindex` policy. Public content
 must be readable in the initial HTML; an empty root element is not a successful check.
 Only published article sources appear in public discovery and the sitemap.

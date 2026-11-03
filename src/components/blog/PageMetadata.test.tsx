@@ -9,12 +9,18 @@ describe('metadata across public/private navigation',()=>{
   const config=document.createElement('meta');config.name='sw-public-site-url';config.content='https://canonical.customer.example/stack';document.head.append(config);
   const {rerender}=render(<PageMetadata key="blog" path="/blog"/>);
   expect(document.head.querySelector<HTMLLinkElement>('link[rel="canonical"]')?.href).toBe('https://canonical.customer.example/stack/blog');
+  expect(document.head.querySelector<HTMLMetaElement>('meta[property="og:image"]')?.content).toBe('https://canonical.customer.example/stack/logo.png');
+  expect(document.head.querySelector<HTMLMetaElement>('meta[name="twitter:image"]')?.content).toBe('https://canonical.customer.example/stack/logo.png');
+  expect(document.head.querySelector<HTMLMetaElement>('meta[property="og:image:alt"]')?.content).toBe('Stackweaver logo');
   rerender(<PageMetadata key="privacy" path="/privacy"/>);
   expect(document.head.querySelector<HTMLLinkElement>('link[rel="canonical"]')?.href).toBe('https://canonical.customer.example/stack/privacy');
   expect(document.head.querySelectorAll('link[rel="canonical"]')).toHaveLength(1);
   expect(document.title).toBe('Privacy | Stackweaver');
+  expect(document.head.querySelectorAll('meta[property="og:image"]')).toHaveLength(1);
   rerender(<PageMetadata key="login" path="/login"/>);
   expect(document.head.querySelector('link[rel="canonical"]')).toBeNull();
+  expect(document.head.querySelector('meta[property="og:image"]')).toBeNull();
+  expect(document.head.querySelector('meta[name="twitter:image"]')).toBeNull();
   expect(document.head.querySelector<HTMLMetaElement>('meta[name="robots"]')?.content).toContain('noindex');
  });
 });

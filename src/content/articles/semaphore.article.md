@@ -198,5 +198,5 @@ This compares documented product behavior and runnable examples, without a side-
 [sw-migration]: /docs/user-guides/migrating-from-terraform-cloud
 [sw-ansible]: /docs/features/ansible
 [sw-compose]: /docs/get-started/self-hosting/docker-compose
-[sw-license]: https://github.com/michielvha/stackweaver/blob/main/LICENSE
+[sw-license]: https://github.com/vhco-pro/stackweaver-api/blob/main/LICENSE
 [sw-helm]: /docs/get-started/self-hosting/kubernetes

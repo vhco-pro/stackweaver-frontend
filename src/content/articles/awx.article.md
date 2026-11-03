@@ -155,5 +155,5 @@ This is a product-author comparison, without a side-by-side deployment benchmark
 [sw-first-job]: /docs/get-started/your-first-ansible-job
 [sw-first-workspace]: /docs/get-started/your-first-opentofu-workspace
 [sw-compose]: /docs/get-started/self-hosting/docker-compose
-[sw-license]: https://github.com/michielvha/stackweaver/blob/main/LICENSE
+[sw-license]: https://github.com/vhco-pro/stackweaver-api/blob/main/LICENSE
 [sw-helm]: /docs/get-started/self-hosting/kubernetes

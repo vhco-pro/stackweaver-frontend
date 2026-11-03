@@ -1,6 +1,6 @@
 // Copyright (c) 2026 VH & Co BV. Licensed under the Business Source License 1.1. See LICENSE for details.
 import { useMountEffect } from '@/hooks/useMountEffect';
-import { pageStructuredData } from '@/lib/publicRoutes';
+import { pageStructuredData, previewImageMetadata } from '@/lib/publicRoutes';
 import pages from 'virtual:public-pages';
 import { config } from '@/config';
 /** Mounted with a pathname key so navigation cannot retain another page's head state. */
@@ -14,6 +14,7 @@ export function PageMetadata({path}:{path:string}) {
   const meta=(name:string,content:string,property=false)=>{const el=document.createElement('meta');el.setAttribute(property?'property':'name',name);el.content=content;el.dataset.swMeta='';document.head.append(el);};
   if(!page) { meta('robots','noindex, nofollow'); return; }
   meta('description',page.description); meta('og:title',document.title,true); meta('og:description',page.description,true); meta('og:type',page.kind==='article'?'article':'website',true);meta('twitter:card','summary');
+  for(const [name,value] of Object.entries(previewImageMetadata(siteUrl))) meta(name,value,name.startsWith('og:'));
   const canonical=document.createElement('link');canonical.rel='canonical';canonical.href=`${siteUrl}${page.path}`;canonical.dataset.swMeta='';document.head.append(canonical);meta('og:url',canonical.href,true);
   const entity=pageStructuredData(page,siteUrl);if(entity){const script=document.createElement('script');script.type='application/ld+json';script.dataset.swMeta='';script.textContent=JSON.stringify(entity);document.head.append(script);}
  });
