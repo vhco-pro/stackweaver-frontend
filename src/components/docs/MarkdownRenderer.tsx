@@ -758,11 +758,14 @@ export function MarkdownRenderer({
   // Memoize components to ensure they update when highlightedCode changes
   const markdownComponents = useMemo(() => {
     const extractTextFromChildren = (children: ReactNode): string => {
-      if (typeof children === 'string') {
-        return children;
-      }
-      if (children != null && typeof children !== 'object') {
+      if (typeof children === 'string' || typeof children === 'number') {
         return String(children);
+      }
+      if (Array.isArray(children)) {
+        return children.map(extractTextFromChildren).join('');
+      }
+      if (isValidElement<{ children?: ReactNode }>(children)) {
+        return extractTextFromChildren(children.props.children);
       }
       return '';
     };
