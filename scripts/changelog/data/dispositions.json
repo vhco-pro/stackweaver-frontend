@@ -54,5 +54,25 @@
   {
     "id": "license-header-worktree-boundaries",
     "reason": "Manual developer-tool repair: keep license-header scans inside their owning source tree and preserve nested Git repositories and linked worktrees. Product runtime, APIs, licensing terms, deployment behavior and published customer content are unchanged."
+  },
+  {
+    "commit": "17134b51cec8656981e728526841ae503b739bdf",
+    "reason": "Internal developer-workflow migration to shared vh-adlc audit. Only agent routing, local audit policy, settings and migration verification change; no product runtime, API, deployment or customer capability changes."
+  },
+  {
+    "reason": "Internal developer-workflow migration to shared vh-adlc audit. Only agent routing, local audit policy, settings and migration verification change; no product runtime, API, deployment or customer capability changes.",
+    "id": "shared-audit-migration"
+  },
+  {
+    "commit": "b239cd43769455419ec412547dca6bd3d894a779",
+    "reason": "Internal branch reconciliation of the isolated shared audit migration with current main; retains both histories without rewriting or changing product behavior."
+  },
+  {
+    "commit": "6206122da04701a29fbf1bfe44ed1c5fe3796854",
+    "reason": "Internal shared-audit migration update: convert only audit settings and routing to YAML, retain the local ledger and operating policy, and apply the owner-selected separate-feature handoff. No product runtime, API, deployment or customer capability changes."
+  },
+  {
+    "commit": "f6c44dddc893f30940414fb0cd9e4ee744e8822e",
+    "reason": "Internal shared-audit migration verification: inspect every registered effect before cutover, preserve typed retained absence, and reject pending or unknown state. No product runtime, API, deployment or customer capability changes."
   }
 ]
