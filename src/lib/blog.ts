@@ -85,3 +85,29 @@ export function parseArticles(sources: Record<string, string>): BlogArticle[] {
 export function publishedArticles<T extends Pick<BlogArticle, 'status'>>(articles: readonly T[]): T[] {
   return articles.filter(article => article.status === 'published');
 }
+
+/** Subject matches lead; generic format labels do not make two articles related. */
+export function relatedArticles(article: BlogArticleSummary, candidates: readonly BlogArticleSummary[]): BlogArticleSummary[] {
+  const formats = new Set(['comparisons', 'tutorial']);
+  const topics = article.topics.map(topic => topic.toLowerCase());
+  const subjects = new Set(topics.filter(topic => !formats.has(topic)));
+  const primarySubject = topics.find(topic => !formats.has(topic));
+  const relevance = (candidate: BlogArticleSummary) => {
+    const candidateTopics = candidate.topics.map(topic => topic.toLowerCase());
+    const shared = candidateTopics.filter(topic => subjects.has(topic)).length;
+    return {
+      primary: Number(primarySubject !== undefined && candidateTopics.find(topic => !formats.has(topic)) === primarySubject),
+      shared,
+      format: shared ? candidateTopics.filter(topic => formats.has(topic) && topics.includes(topic)).length : 0,
+    };
+  };
+  return publishedArticles(candidates).filter(candidate => candidate.canonical !== article.canonical)
+    .sort((a, b) => {
+      const left = relevance(a), right = relevance(b);
+      return right.primary - left.primary || right.shared - left.shared ||
+        Number(b.featured === true) - Number(a.featured === true) ||
+        (b.published ?? b.updated).localeCompare(a.published ?? a.updated) ||
+        right.format - left.format || a.canonical.localeCompare(b.canonical);
+    })
+    .slice(0, 2);
+}

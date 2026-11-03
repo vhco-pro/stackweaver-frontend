@@ -106,5 +106,5 @@ task guide when a configuration change is needed.
 
 Include the intended action, run/job ID, stage, redacted error text, selected version/commit,
 reproduction steps and checks already performed. Remove bearer tokens, passwords, sensitive
-state and private data. [Report a reproducible issue](https://github.com/michielvha/stackweaver/issues)
-when the problem remains after those checks.
+state and private data. Use the [support guide](https://github.com/vhco-pro/.github/blob/main/SUPPORT.md)
+to choose a public issue tracker if the problem remains after those checks.
