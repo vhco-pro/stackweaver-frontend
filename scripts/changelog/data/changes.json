@@ -1124,5 +1124,28 @@
       "frontend"
     ],
     "availability": []
+  },
+  {
+    "id": "registry-phone-layout",
+    "title": "Registry modules fit phone screens",
+    "area": "Registry",
+    "kind": "Fixed",
+    "reviewed": true,
+    "audience": "People browsing Registry modules on phones and tablets.",
+    "before": "The filters and module cards shared a horizontal row at narrow widths, pushing module details outside the visible area.",
+    "after": "Filters stack above modules on narrow screens. Module names, descriptions and metadata wrap inside their cards, while desktop keeps filters beside modules.",
+    "action": "No action is required.",
+    "details": [],
+    "guides": [
+      {
+        "title": "Configure organization settings",
+        "path": "/docs/user-guides/organization-settings"
+      }
+    ],
+    "sourceCommits": [],
+    "requiredComponents": [
+      "frontend"
+    ],
+    "availability": []
   }
 ]
