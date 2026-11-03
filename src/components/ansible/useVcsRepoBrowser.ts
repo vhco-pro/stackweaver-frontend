@@ -24,7 +24,7 @@ export function useVcsRepoBrowser(
   enabled: boolean,
   initial?: { connectionId?: string; repository?: string; branch?: string },
 ) {
-  const [connectionId, setConnectionId] = useState(initial?.connectionId ?? '');
+  const [chosenConnectionId, setChosenConnectionId] = useState(initial?.connectionId || undefined);
   const [vcsProject, setVcsProject] = useState('');
   const [repository, setRepository] = useState(initial?.repository ?? '');
   const [branch, setBranch] = useState(initial?.branch ?? '');
@@ -33,15 +33,18 @@ export function useVcsRepoBrowser(
     queryKey: ['vcsRepoBrowserConnections', organizationName],
     queryFn: async () => {
       const res = await vcsConnectionsApi.list(organizationName);
-      const deduped = dedupeVcsConnections(Array.isArray(res) ? res : []);
-      // Auto-select a sole connection, matching the create-dialog behavior.
-      if (deduped.length === 1) {
-        setConnectionId((prev) => prev || deduped[0].id);
-      }
-      return deduped;
+      return dedupeVcsConnections(Array.isArray(res) ? res : []);
     },
     enabled: enabled && !!organizationName,
   });
+  // The default comes from query data, including a fresh cached result. An
+  // explicit choice (even clearing it) takes precedence until this draft ends.
+  const connectionId = chosenConnectionId ?? (connections.length === 1 ? connections[0].id : '');
+  // Initial repository/branch values already form a draft. Bind them as
+  // soon as its first default resolves, just as downstream user choices do.
+  if (chosenConnectionId === undefined && connectionId && (vcsProject || repository || branch)) {
+    setChosenConnectionId(connectionId);
+  }
   const connection: VCSConnection | undefined = connections.find((c) => c.id === connectionId);
 
   const { data: repositories = [], isLoading: loadingRepos } = useQuery({
@@ -74,28 +77,36 @@ export function useVcsRepoBrowser(
   });
 
   const selectConnection = (id: string) => {
-    setConnectionId(id);
+    setChosenConnectionId(id);
     setVcsProject('');
     setRepository('');
     setBranch('');
   };
 
   const selectVcsProject = (project: string) => {
+    // Bind downstream drafts before a refetch can change the sole default.
+    setChosenConnectionId(connectionId);
     setVcsProject(project);
     setRepository('');
     setBranch('');
   };
 
   const selectRepository = (fullName: string) => {
+    setChosenConnectionId(connectionId);
     setRepository(fullName);
     const repo = repositories.find((r) => r.full_name === fullName);
     setBranch(repo?.default_branch || '');
+  };
+
+  const selectBranch = (name: string) => {
+    setChosenConnectionId(connectionId);
+    setBranch(name);
   };
 
   return {
     connectionId, vcsProject, repository, branch,
     connection, connections, repositories, branches, files,
     loadingConnections, loadingRepos, loadingBranches, loadingFiles,
-    selectConnection, selectVcsProject, selectRepository, selectBranch: setBranch,
+    selectConnection, selectVcsProject, selectRepository, selectBranch,
   };
 }

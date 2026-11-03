@@ -42,5 +42,9 @@
   {
     "id": "docs-audit-fences-internal",
     "reason": "Preserves fenced examples using backticks or tildes, including quoted, listed and CRLF forms, and their source locations in the internal documentation auditor. This affects developer audit findings only and adds no customer-facing capability or release claim."
+  },
+  {
+    "commit": "ec2f72fe8fa4be1f8dec336a72f88931cf8a846a",
+    "reason": "Merge commit that brought main into the YAML settings branch before landing it. It adds no change of its own; the branch moves vh-adlc triage and maintenance settings to YAML and records the published plugin, which is internal development tooling with no customer-facing capability."
   }
 ]
