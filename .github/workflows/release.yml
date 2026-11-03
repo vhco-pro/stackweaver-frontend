@@ -28,7 +28,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Build and push by digest
-        uses: michielvha/docker-release-action@c499e52a1a05e5bdd8cf03ba19a423d4c7ec25e3 # v2
+        uses: michielvha/docker-release-action@5426d802b1dea56dc9e86585b67276ed92fef986 # verified Trivy download
         with:
           matrix-mode: build
           version: ${{ github.ref_name }}
@@ -52,7 +52,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Create multi-arch manifest
-        uses: michielvha/docker-release-action@c499e52a1a05e5bdd8cf03ba19a423d4c7ec25e3 # v2
+        uses: michielvha/docker-release-action@5426d802b1dea56dc9e86585b67276ed92fef986 # verified Trivy download
         with:
           matrix-mode: merge
           version: ${{ github.ref_name }}
