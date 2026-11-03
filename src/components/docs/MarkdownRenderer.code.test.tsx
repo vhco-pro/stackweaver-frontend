@@ -1,15 +1,50 @@
 // Copyright (c) 2026 VH & Co BV. Licensed under the Business Source License 1.1. See LICENSE for details.
 import { expect, it, vi } from 'vitest';
-import { fireEvent, render, waitFor, within } from '@testing-library/react';
+import { act, fireEvent, render, waitFor, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { ThemeProvider } from '@/contexts/ThemeContext';
 import { MarkdownRenderer } from './MarkdownRenderer';
+import { codeToHtml } from '@/lib/highlighter';
 
 vi.mock('mermaid', () => ({ default: { initialize: vi.fn(), run: vi.fn() } }));
 vi.mock('@/lib/highlighter', () => ({
   codeToHtml: vi.fn((code: string) => Promise.resolve(`<pre><code>${code}</code></pre>`)),
   isUnknownLanguageError: () => false,
 }));
+
+it('keeps an inline-only article mounted without requesting block highlighting', async () => {
+  const view = render(<MemoryRouter><ThemeProvider><MarkdownRenderer content={'# Inline article\n\nUse `stackweaver` and [read more](https://example.com).'} /></ThemeProvider></MemoryRouter>);
+  const heading = view.getByRole('heading', { name: 'Inline article' });
+  const link = view.getByRole('link', { name: 'read more' });
+  link.focus();
+  await act(async () => { await vi.dynamicImportSettled(); });
+  expect(codeToHtml).not.toHaveBeenCalled();
+  expect(view.getByRole('heading', { name: 'Inline article' })).toBe(heading);
+  expect(document.activeElement).toBe(link);
+  expect(view.container.querySelector('pre')).toBeNull();
+});
+
+it('highlights only the fenced command in a document containing inline code', async () => {
+  const view = render(<MemoryRouter><ThemeProvider><MarkdownRenderer content={'Use `inline-command`.\n\n```sh\nprintf hello\n```'} /></ThemeProvider></MemoryRouter>);
+  await waitFor(() => { expect(view.container.querySelector('.shiki-wrapper pre')).toHaveTextContent('printf hello'); });
+  expect(codeToHtml).toHaveBeenCalledExactlyOnceWith('printf hello', expect.objectContaining({ lang: 'sh' }));
+  expect(view.getByText('inline-command').tagName).toBe('CODE');
+});
+
+it('preserves unlabelled and empty fences and the JSON renderer', async () => {
+  const view = render(<MemoryRouter><ThemeProvider><MarkdownRenderer content={'```\nplain command\n```\n\n```\n```\n\n```json\n{"ready":true}\n```'} /></ThemeProvider></MemoryRouter>);
+  await waitFor(() => { expect(codeToHtml).toHaveBeenCalledExactlyOnceWith('plain command', expect.objectContaining({ lang: 'plaintext' })); });
+  expect(view.container.querySelector('pre code:empty')).not.toBeNull();
+  expect(view.getByText('"ready"')).toBeInTheDocument();
+});
+
+it('preserves authored attributes on inline and unhighlighted preformatted code', async () => {
+  const view = render(<MemoryRouter><ThemeProvider><MarkdownRenderer content={'<code id="inline-anchor" title="Inline title">inline</code>\n\n<pre><code id="empty-anchor" title="Empty title"></code></pre>'} /></ThemeProvider></MemoryRouter>);
+  await act(async () => { await vi.dynamicImportSettled(); });
+  expect(view.getByTitle('Inline title')).toHaveAttribute('id', 'inline-anchor');
+  expect(view.getByTitle('Empty title')).toHaveAttribute('id', 'empty-anchor');
+  expect(codeToHtml).not.toHaveBeenCalled();
+});
 
 it('displays and copies distinct commands whose first 100 characters match', async () => {
   const prefix = 'curl --fail-with-body --silent --show-error --get \\\n  "$STACKWEAVER_URL/api/v2/admin/users" \\\n  --header "Authorization: Bearer $TFE_TOKEN" \\\n  --data-urlencode ';

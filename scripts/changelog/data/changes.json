@@ -980,5 +980,30 @@
       "frontend"
     ],
     "availability": []
+  },
+  {
+    "id": "docs-inline-code-highlighting",
+    "title": "Inline code keeps documentation articles stable",
+    "area": "Documentation",
+    "kind": "Fixed",
+    "reviewed": true,
+    "audience": "Readers of documentation containing inline code.",
+    "before": "Inline code triggered asynchronous block highlighting, replacing the article after its first render and losing selection or keyboard focus.",
+    "after": "Inline code renders directly. Articles without asynchronously highlighted fenced blocks keep their existing content and keyboard focus.",
+    "action": "No action is required.",
+    "details": [
+      "Fenced code continues to highlight asynchronously and retains its language labels and copy controls."
+    ],
+    "guides": [
+      {
+        "title": "Architecture overview",
+        "path": "/docs/architecture"
+      }
+    ],
+    "sourceCommits": [],
+    "requiredComponents": [
+      "frontend"
+    ],
+    "availability": []
   }
 ]
