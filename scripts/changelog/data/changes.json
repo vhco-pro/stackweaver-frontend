@@ -1198,5 +1198,30 @@
       "frontend"
     ],
     "availability": []
+  },
+  {
+    "id": "module-detail-phone-layout",
+    "title": "Module controls fit phone screens",
+    "area": "Registry",
+    "kind": "Fixed",
+    "reviewed": true,
+    "audience": "People reading Registry modules on phones and tablets.",
+    "before": "Module metadata, tabs and the usage sidebar extended beyond the visible area on narrow screens.",
+    "after": "Module metadata and tabs wrap within the page on phones and tablets, and usage instructions sit below the main content. Desktop keeps its right sidebar.",
+    "action": "Update the frontend. No configuration change is required.",
+    "details": [
+      "Tabs, the version selector and sidebar actions are at least 44 pixels high on narrow screens. Long usage lines scroll inside their code block."
+    ],
+    "guides": [
+      {
+        "title": "Configure organization settings",
+        "path": "/docs/user-guides/organization-settings"
+      }
+    ],
+    "sourceCommits": [],
+    "requiredComponents": [
+      "frontend"
+    ],
+    "availability": []
   }
 ]

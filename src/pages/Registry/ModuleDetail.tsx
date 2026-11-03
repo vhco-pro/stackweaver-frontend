@@ -393,14 +393,14 @@ export default function ModuleDetail() {
       {/* Breadcrumb Header */}
       <div className="border-b border-border/40 bg-background/95 backdrop-blur-sm supports-[backdrop-filter]:bg-background/60">
         <div className="px-6 py-3">
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+          <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
             <span>{orgName}</span>
             <span>/</span>
-            <span className="hover:text-foreground cursor-pointer" onClick={() => { void Promise.resolve(navigate(`/app/${orgName}/registry`)); }}>
+            <span className="inline-flex min-h-11 items-center hover:text-foreground cursor-pointer lg:min-h-0" onClick={() => { void Promise.resolve(navigate(`/app/${orgName}/registry`)); }}>
               Registry
             </span>
             <span>/</span>
-            <span className="hover:text-foreground cursor-pointer" onClick={() => { void Promise.resolve(navigate(`/app/${orgName}/registry`)); }}>
+            <span className="inline-flex min-h-11 items-center hover:text-foreground cursor-pointer lg:min-h-0" onClick={() => { void Promise.resolve(navigate(`/app/${orgName}/registry`)); }}>
               Modules
             </span>
             <span>/</span>
@@ -441,7 +441,7 @@ export default function ModuleDetail() {
               {module.description && (
                 <p className="text-muted-foreground text-lg mb-4">{module.description}</p>
               )}
-              <div className="flex items-center gap-6 text-sm text-muted-foreground">
+              <div className="flex flex-wrap items-center gap-x-6 gap-y-3 text-sm text-muted-foreground">
                 <span>Published by {orgName}</span>
                 <div className="flex items-center gap-2">
                   <span className="font-medium text-foreground">Provider</span>
@@ -460,7 +460,7 @@ export default function ModuleDetail() {
                           if (version) setSelectedVersion(version);
                         }}
                       >
-                        <SelectTrigger className="w-[140px] h-8">
+                        <SelectTrigger className="w-[140px] h-11 lg:h-8">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
@@ -501,16 +501,16 @@ export default function ModuleDetail() {
           }
         />
 
-        <div className="flex gap-6">
+        <div className="flex flex-col gap-6 lg:flex-row">
           {/* Main Content */}
-          <div className="flex-1">
+          <div className="min-w-0 flex-1">
             {/* Tabs */}
             <div className="border-b border-border mb-6">
-              <div className="flex items-center gap-6">
+              <div className="flex flex-wrap items-center gap-6">
                 <button
                   onClick={() => setActiveTab('readme')}
                   className={cn(
-                    'px-4 py-2 text-sm font-medium border-b-2 transition-colors',
+                    'min-h-11 px-4 py-2 text-sm font-medium border-b-2 transition-colors lg:min-h-0',
                     activeTab === 'readme'
                       ? 'border-primary text-primary'
                       : 'border-transparent text-muted-foreground hover:text-foreground'
@@ -521,7 +521,7 @@ export default function ModuleDetail() {
                 <button
                   onClick={() => setActiveTab('inputs')}
                   className={cn(
-                    'px-4 py-2 text-sm font-medium border-b-2 transition-colors',
+                    'min-h-11 px-4 py-2 text-sm font-medium border-b-2 transition-colors lg:min-h-0',
                     activeTab === 'inputs'
                       ? 'border-primary text-primary'
                       : 'border-transparent text-muted-foreground hover:text-foreground'
@@ -532,7 +532,7 @@ export default function ModuleDetail() {
                 <button
                   onClick={() => setActiveTab('outputs')}
                   className={cn(
-                    'px-4 py-2 text-sm font-medium border-b-2 transition-colors',
+                    'min-h-11 px-4 py-2 text-sm font-medium border-b-2 transition-colors lg:min-h-0',
                     activeTab === 'outputs'
                       ? 'border-primary text-primary'
                       : 'border-transparent text-muted-foreground hover:text-foreground'
@@ -543,7 +543,7 @@ export default function ModuleDetail() {
                 <button
                   onClick={() => setActiveTab('dependencies')}
                   className={cn(
-                    'px-4 py-2 text-sm font-medium border-b-2 transition-colors',
+                    'min-h-11 px-4 py-2 text-sm font-medium border-b-2 transition-colors lg:min-h-0',
                     activeTab === 'dependencies'
                       ? 'border-primary text-primary'
                       : 'border-transparent text-muted-foreground hover:text-foreground'
@@ -554,7 +554,7 @@ export default function ModuleDetail() {
                 <button
                   onClick={() => setActiveTab('resources')}
                   className={cn(
-                    'px-4 py-2 text-sm font-medium border-b-2 transition-colors',
+                    'min-h-11 px-4 py-2 text-sm font-medium border-b-2 transition-colors lg:min-h-0',
                     activeTab === 'resources'
                       ? 'border-primary text-primary'
                       : 'border-transparent text-muted-foreground hover:text-foreground'
@@ -565,7 +565,7 @@ export default function ModuleDetail() {
                 <button
                   onClick={() => setActiveTab('versions')}
                   className={cn(
-                    'px-4 py-2 text-sm font-medium border-b-2 transition-colors',
+                    'min-h-11 px-4 py-2 text-sm font-medium border-b-2 transition-colors lg:min-h-0',
                     activeTab === 'versions'
                       ? 'border-primary text-primary'
                       : 'border-transparent text-muted-foreground hover:text-foreground'
@@ -824,7 +824,7 @@ export default function ModuleDetail() {
                           )}
                           onClick={() => setSelectedVersion(v)}
                         >
-                          <div className="flex items-center justify-between">
+                          <div className="flex flex-wrap items-center justify-between gap-3">
                             <div className="flex items-center gap-3">
                               <div className="flex items-center gap-2">
                                 <Tag className="h-4 w-4 text-muted-foreground" />
@@ -869,7 +869,7 @@ export default function ModuleDetail() {
                       <p className="text-sm text-muted-foreground mb-4">
                         Upload a version manually or push a Git tag to auto-publish
                       </p>
-                      <GradientButton ramp="app" emphasis="secondary" className="w-auto" onClick={() => setUploadDialogOpen(true)}>
+                      <GradientButton ramp="app" emphasis="secondary" className="w-auto min-h-11 lg:min-h-0" onClick={() => setUploadDialogOpen(true)}>
                         <Upload className="h-4 w-4 mr-2" />
                         Upload Version
                       </GradientButton>
@@ -881,11 +881,11 @@ export default function ModuleDetail() {
           </div>
 
           {/* Right Sidebar */}
-          <div className="w-80 space-y-6">
+          <div className="min-w-0 w-full space-y-6 lg:w-80 lg:shrink-0">
             <div className="space-y-4">
               <Button 
                 variant="outline" 
-                className="w-full justify-start gap-2"
+                className="h-auto min-h-11 w-full justify-start gap-2 whitespace-normal lg:h-10 lg:min-h-0 lg:whitespace-nowrap"
                 onClick={() => setManageDialogOpen(true)}
               >
                 <Settings className="h-4 w-4" />
@@ -907,7 +907,7 @@ export default function ModuleDetail() {
               />
               <Button
                 variant="outline"
-                className="w-full gap-2"
+                className="min-h-11 w-full gap-2 lg:min-h-0"
                 onClick={() => { void handleCopyConfig(); }}
               >
                 {copied ? (
