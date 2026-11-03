@@ -906,5 +906,31 @@
       "ansible-runner"
     ],
     "availability": []
+  },
+  {
+    "id": "delete-prunes-object-storage",
+    "title": "Deleting a project or organization removes its stored objects",
+    "area": "Platform",
+    "kind": "Fixed",
+    "reviewed": true,
+    "audience": "Anyone who deletes workspaces, projects or organizations, and operators who manage the object storage bucket.",
+    "before": "Deleting a project or organization removed its rows and left its objects in storage: state files, run logs, saved plans, configuration uploads and playbook content, and for an organization its registry modules and providers. Deleting a workspace removed its state and run objects and left its configuration uploads.",
+    "after": "A workspace, project or organization delete removes the objects of everything it deleted once the delete has committed. Objects that other workspaces, projects or organizations still use are kept. If storage cannot be reached the delete still succeeds, the failure is logged, and those objects stay.",
+    "action": "Deploy the updated API. No configuration change is required. Objects left by deletes made before this version stay in storage.",
+    "details": [
+      "Deleting a project keeps the organization's registry modules and providers, which belong to the organization.",
+      "An organization's registry objects are removed by the paths its versions recorded, so versions published before the organization was renamed are included."
+    ],
+    "guides": [
+      {
+        "title": "What a delete removes",
+        "path": "/docs/user-guides/organization-settings#what-a-delete-removes"
+      }
+    ],
+    "sourceCommits": [],
+    "requiredComponents": [
+      "api"
+    ],
+    "availability": []
   }
 ]
