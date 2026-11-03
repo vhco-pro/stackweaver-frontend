@@ -28,7 +28,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Build and push by digest
-        uses: michielvha/docker-release-action@c499e52a1a05e5bdd8cf03ba19a423d4c7ec25e3 # v2
+        uses: michielvha/docker-release-action@d2c6b4497aed3488e4d7da8f478d2b2cec6ee59e # reviewed Trivy repair
         with:
           matrix-mode: build
           version: ${{ github.ref_name }}
@@ -52,7 +52,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Create multi-arch manifest
-        uses: michielvha/docker-release-action@c499e52a1a05e5bdd8cf03ba19a423d4c7ec25e3 # v2
+        uses: michielvha/docker-release-action@d2c6b4497aed3488e4d7da8f478d2b2cec6ee59e # reviewed Trivy repair
         with:
           matrix-mode: merge
           version: ${{ github.ref_name }}
@@ -92,7 +92,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Log in to GHCR (for private packages)
-        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
+        uses: docker/login-action@81c6f93d4bc991e510b342a00b419b3bb4efc5c6 # v4.7.0
         with:
           registry: ghcr.io
           username: vhco-pro
