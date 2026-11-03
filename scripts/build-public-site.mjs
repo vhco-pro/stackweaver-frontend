@@ -24,16 +24,18 @@ const { renderPublicPage,renderPublicNotFound }=await import(pathToFileURL(join(
 const template=readFileSync(join(dist,'index.html'),'utf8');
 writeFileSync(join(dist,'app-shell.html'),template.replace('<head>','<head>\n<base href="__SW_BASE_PATH__/"><meta name="sw-public-site-url" content="__SW_SITE_URL__">'));
 const manifest=JSON.parse(readFileSync(join(dist,'.vite/manifest.json'),'utf8'));
-const modules={home:'src/main.tsx',blog:'src/pages/Blog/Index.tsx',article:'src/pages/Blog/Article.tsx',ansible:'src/pages/Blog/Ansible.tsx',docs:'src/pages/Docs/DocsViewer.tsx','docs-index':'src/pages/Docs/DocsIndex.tsx',privacy:'src/pages/Privacy.tsx',terms:'src/pages/Terms.tsx'};
+const modules={home:'src/pages/Landing.tsx',blog:'src/pages/Blog/Index.tsx',article:'src/pages/Blog/Article.tsx',ansible:'src/pages/Blog/Ansible.tsx',docs:'src/pages/Docs/DocsViewer.tsx','docs-index':'src/pages/Docs/DocsIndex.tsx',privacy:'src/pages/Privacy.tsx',terms:'src/pages/Terms.tsx'};
 function styles(key,seen=new Set()) {
  if(!key||seen.has(key)) return [];seen.add(key); const chunk=manifest[key]; if(!chunk) return [];
  return [...(chunk.css??[]),...(chunk.imports??[]).flatMap(next=>styles(next,seen))];
 }
 function html(content,head,kind) {
  const css=[...new Set(styles(modules[kind]??modules.blog))].map(path=>`<link rel="stylesheet" href="__SW_BASE_PATH__/${escapeHtml(path)}">`).join('\n');
+ const route=manifest[modules[kind]];
+ const preload=route?`<link rel="modulepreload" href="__SW_BASE_PATH__/${escapeHtml(route.file)}">`:'';
  content=content.replace(/(href|src)="\/(?!\/)/g,'$1="__SW_BASE_PATH__/');
  const fallback='<noscript><style>html{background:#f8fafc!important} [style*="opacity:0"]{opacity:1!important} [style*="visibility:hidden"]{visibility:visible!important} [data-stage]{height:auto!important}</style></noscript>';
- return publicDocument(template,{content,head,styles:css,fallback});
+ return publicDocument(template,{content,head,styles:preload+'\n'+css,fallback});
 }
 const files={};
 const docsRoot=join(dist,'docs');

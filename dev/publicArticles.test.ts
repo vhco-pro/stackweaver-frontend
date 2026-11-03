@@ -12,3 +12,18 @@ describe('public article build input', () => {
   expect(() => articleModule({'broken.md':'No metadata'},false)).toThrow(/frontmatter/);
  });
 });
+
+describe('article archive payload', () => {
+ it('keeps archive metadata without sending published or draft article bodies', () => {
+  const sources={'published.md':source('published'),'draft.md':source('draft').replace('/compare/awx','/blog/draft-only')};
+  const production=articleModule(sources,false,true);
+  expect(production).toContain('/compare/awx');
+  expect(production).toContain('Ansible');
+  expect(production).not.toContain('Private draft body');
+  expect(production).not.toContain('/blog/draft-only');
+  const preview=articleModule(sources,true,true);
+  expect(preview).toContain('/blog/draft-only');
+  expect(preview).not.toContain('Private draft body');
+  expect(articleModule(sources,false)).toContain('Private draft body');
+ });
+});

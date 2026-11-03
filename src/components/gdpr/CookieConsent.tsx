@@ -84,7 +84,7 @@ export function CookieConsent() {
                 <h2 className="text-base font-semibold">We use cookies</h2>
                 <p className="mt-1 text-sm leading-relaxed text-slate-600 dark:text-slate-300">
                   Manage your cookie preferences.{' '}
-                  <Link to="/privacy" className="inline-flex min-h-11 items-center rounded-sm text-blue-600 underline underline-offset-4 hover:text-blue-700 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 dark:text-blue-400 dark:hover:text-blue-300">Learn more</Link>
+                  <Link to="/privacy" className="inline-flex min-h-11 items-center rounded-sm text-blue-600 underline underline-offset-4 hover:text-blue-700 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 dark:text-blue-400 dark:hover:text-blue-300">Read the privacy policy</Link>
                 </p>
               </div>
             </div>

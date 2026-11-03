@@ -4,6 +4,11 @@ declare module 'virtual:public-articles' {
   export default articles;
 }
 
+declare module 'virtual:public-article-summaries' {
+  const articles: import('./lib/blog').BlogArticleSummary[];
+  export default articles;
+}
+
 declare module 'virtual:public-pages' {
  const pages: import('./lib/publicRoutes').PublicPage[];
  export default pages;

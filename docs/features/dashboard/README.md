@@ -82,7 +82,7 @@ assume an organization-scoped automation token can enumerate all of its owner's 
 | `GET /api/v2/dashboard/stats` | Totals and per-organization counts; `recent_failure_window_days` identifies the failure window. Permission-restricted fields may be omitted. |
 | `GET /api/v2/dashboard/operations` | In-flight executions and their organization, status and start time; inspect `truncated`. |
 
-Use the [API viewer](/api-reference) for the full response contract. These endpoints report
+Use the [API viewer](/docs/api-reference/explorer) for the full response contract. These endpoints report
 state; they do not acknowledge alerts or change infrastructure. Terraform and repository YAML
 configure resources elsewhere and are not alternative ways to read this screen.
 

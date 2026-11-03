@@ -38,7 +38,7 @@ capabilities: [
 
 ## 1. Configure your connection
 
-The main API lives at `/api/v2` on your Stackweaver API host. Send a `tfe-` API token in the `Authorization` header as `Bearer <token>`. A Zitadel access token is not an API credential. Browser sign-in uses a separate server-side session behind an `HttpOnly` cookie. See [Authenticating](../user-guides/terraform-provider.md#authenticating) for creating a personal token and using `terraform login`.
+The main API lives at `/api/v2` on your Stackweaver API host. Send a `tfe-` API token in the `Authorization` header as `Bearer <token>`. A Zitadel access token is not an API credential. Browser sign-in uses a separate server-side session behind an `HttpOnly` cookie. See [Choose the host and credentials](../user-guides/terraform-provider.md#1-choose-the-host-and-credentials) for creating a personal token and using `terraform login`.
 
 Choose a token with access to the organization and resources your automation needs. Account security operations, such as changing a password or managing sessions, require an interactive sign-in. An API token, including a personal token, receives `403 Forbidden` on those operations. Reading account details is available to API tokens.
 

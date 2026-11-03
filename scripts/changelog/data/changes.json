@@ -932,5 +932,53 @@
       "api"
     ],
     "availability": []
+  },
+  {
+    "id": "public-site-seo-polish",
+    "title": "Public pages have clearer navigation and smaller logo downloads",
+    "area": "Platform",
+    "kind": "Fixed",
+    "reviewed": true,
+    "audience": "Visitors reading Stackweaver public pages and installation guides.",
+    "before": "A generic privacy link, outdated API-reference links and a low-contrast blog callout made parts of public navigation less clear. Compact navigation logos used the larger hero image.",
+    "after": "The privacy link describes its destination, guides open the current API explorer and credential section, the blog callout has readable colors in both themes, and navigation selects a smaller version of the same logo artwork.",
+    "action": "Update the frontend image to receive these changes. Existing consent choices and supported deployment configuration are preserved.",
+    "details": [
+      "Navigation image variants are selected for the rendered size and pixel density; the hero artwork remains available at its existing resolution."
+    ],
+    "guides": [
+      {
+        "title": "Using the API",
+        "path": "/docs/architecture/using-the-api"
+      }
+    ],
+    "sourceCommits": [],
+    "requiredComponents": [
+      "frontend"
+    ],
+    "availability": []
+  },
+  {
+    "id": "public-ansible-discovery",
+    "title": "Public pages link Ansible evaluation and a tested walkthrough",
+    "area": "Platform",
+    "kind": "Changed",
+    "reviewed": true,
+    "audience": "Visitors evaluating Ansible automation and reading the public blog.",
+    "before": "Blog visits loaded homepage presentation code and the archive included full article bodies. The Ansible page did not link its relevant comparisons or a practical walkthrough.",
+    "after": "Public pages preload their own route, the blog archive loads article summaries, and contextual links lead from the homepage to Ansible comparisons and a tested manual-run and scheduling walkthrough.",
+    "action": "Update the frontend image to receive the public pages and navigation changes. No configuration change is required.",
+    "details": [],
+    "guides": [
+      {
+        "title": "Your first Ansible job",
+        "path": "/docs/get-started/your-first-ansible-job"
+      }
+    ],
+    "sourceCommits": [],
+    "requiredComponents": [
+      "frontend"
+    ],
+    "availability": []
   }
 ]

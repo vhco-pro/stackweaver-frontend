@@ -21,7 +21,7 @@ describe('CookieConsent', () => {
     render(<MemoryRouter><CookieConsent /></MemoryRouter>);
     expect(screen.queryByRole('button', { name: 'Accept All' })).not.toBeInTheDocument();
     act(() => { vi.advanceTimersByTime(1000); });
-    expect(screen.getByRole('link', { name: /learn more/i })).toHaveAttribute('href', '/privacy');
+    expect(screen.getByRole('link', { name: /read the privacy policy/i })).toHaveAttribute('href', '/privacy');
   });
 
   it('exposes named switches and saves the selected categories', () => {

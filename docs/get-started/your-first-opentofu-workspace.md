@@ -114,7 +114,7 @@ you already created, import its ID instead of creating another.
 
 The configuration's `.tf` files define what the workspace executes. There is no management
 YAML object that registers this workspace. For a direct API client, use the JSON:API creation
-contract in the [API viewer](/api-reference); the provider is the repeatable configuration path
+contract in the [API viewer](/docs/api-reference/explorer); the provider is the repeatable configuration path
 shown here. There is no released Stackweaver CLI management example for this task.
 
 ## 3. Queue a plan

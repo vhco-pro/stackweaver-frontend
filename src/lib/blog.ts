@@ -14,6 +14,8 @@ export interface BlogArticle {
   body: string;
 }
 
+export type BlogArticleSummary = Omit<BlogArticle, 'body'>;
+
 function record(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
@@ -80,6 +82,6 @@ export function parseArticles(sources: Record<string, string>): BlogArticle[] {
   });
 }
 
-export function publishedArticles(articles: readonly BlogArticle[]): BlogArticle[] {
+export function publishedArticles<T extends Pick<BlogArticle, 'status'>>(articles: readonly T[]): T[] {
   return articles.filter(article => article.status === 'published');
 }

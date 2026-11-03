@@ -8,6 +8,7 @@ export default defineConfig({
     alias: {
       'virtual:public-pages': path.resolve(__dirname, './src/test/publicSiteFixture.ts'),
       'virtual:public-articles': path.resolve(__dirname, './src/test/publicSiteFixture.ts'),
+      'virtual:public-article-summaries': path.resolve(__dirname, './src/test/publicSiteFixture.ts'),
       '@': path.resolve(__dirname, './src'),
     },
   },

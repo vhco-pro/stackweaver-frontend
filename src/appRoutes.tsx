@@ -5,7 +5,7 @@ import { internalDocs } from '@/components/docs/docsCollection';
 import { deferredPage } from '@/components/routes/deferredPage';
 import { DocsShell } from '@/components/routes/DocsShell';
 import { PublicNotFound } from '@/components/blog/PublicNotFound';
-import Landing from './pages/Landing';
+const Landing = deferredPage(() => import('./pages/Landing'), 'Landing');
 
 const AnsiblePublic = deferredPage(() => import('./pages/Blog/Ansible'), 'AnsiblePublic');
 const Blog = deferredPage(() => import('./pages/Blog/Index'), 'Blog');
