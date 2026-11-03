@@ -5,6 +5,7 @@ covers:
   - "backend/internal/api/v2/handlers/organizations*"
   - "backend/internal/api/middleware/org_wall*"
   - "core/models/organization*"
+  - "core/repository/delete_storage.go"
 capabilities: [
   {
     "id": "organization-policies",
@@ -53,6 +54,20 @@ Create an organization token under **Settings > Organization Token** before movi
 
 > [!WARNING]
 > Force deletion removes workspace management records without destroying the infrastructure. Keep state and ownership recovery requirements in mind before granting that permission.
+
+## What a delete removes
+
+Deleting a workspace, project or organization also removes what it holds in object storage, once the delete has completed:
+
+| You delete | Removed from object storage |
+|---|---|
+| Workspace | State versions, run logs, saved plans and uploaded configurations. |
+| Project | The above for each of its workspaces, and the cached snapshots and stored content of its playbooks. |
+| Organization | The above for each of its projects, and its registry modules and providers. |
+
+A deleted object can only be recovered from a [backup](../get-started/self-hosting/backup-and-restore.md). Deleting a project keeps the organization's registry.
+
+If object storage cannot be reached, the delete still succeeds. The API logs a warning, and the objects it could not remove stay in the bucket.
 
 ## Pull-request behavior
 
