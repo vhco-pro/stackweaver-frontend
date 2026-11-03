@@ -56,41 +56,25 @@ export default function DocsViewer(props: CollectionProps) {
     queryKey: ['doc', collection.id, collection.indexFile, docsBase, docPath, location.pathname],
     enabled: (!!index || indexError) && !indexOnlyDirectory && !isDevPrototype,
     queryFn: async () => {
-      // Determine file path: try folder/README.md first, then fall back to path.md
-      let filePath: string;
-      let resolvedAsDirectory = true;
-      if (docPath === '' || docPath === 'README') {
-        filePath = 'README.md';
-      } else {
-        // First try as a folder with README.md
-        filePath = `${docPath}/README.md`;
+      const candidates = docPath === '' || docPath === 'README'
+        ? [{ path: 'README.md', directory: true }]
+        : [
+          { path: `${docPath}/README.md`, directory: true },
+          { path: `${docPath}/readme.md`, directory: true },
+          { path: `${docPath}.md`, directory: false },
+        ];
+      // Prefer known sources while retaining the legacy fallback for a stale or unavailable index.
+      const ordered = [
+        ...candidates.filter(candidate => index?.flat[candidate.path]),
+        ...candidates.filter(candidate => !index?.flat[candidate.path]),
+      ];
+      for (const candidate of ordered) {
+        const response = await fetch(assetUrl(`${docsBase}/${candidate.path}`));
+        if (response.ok && !isHtmlFallback(response)) {
+          return { content: await response.text(), isDirectoryPage: candidate.directory };
+        }
       }
-
-      let response = await fetch(assetUrl(`${docsBase}/${filePath}`));
-
-      // If README.md wasn't found, try lowercase readme.md (some directories use it)
-      if (docPath !== '' && docPath !== 'README' &&
-          (!response.ok || isHtmlFallback(response)) &&
-          filePath.endsWith('/README.md')) {
-        filePath = `${docPath}/readme.md`;
-        response = await fetch(assetUrl(`${docsBase}/${filePath}`));
-      }
-
-      // If the folder README still wasn't found, try as a regular .md file instead.
-      if (docPath !== '' && docPath !== 'README' &&
-          (!response.ok || isHtmlFallback(response))) {
-        filePath = `${docPath}.md`;
-        resolvedAsDirectory = false;
-        response = await fetch(assetUrl(`${docsBase}/${filePath}`));
-      }
-
-      // Validate the final response
-      if (!response.ok || isHtmlFallback(response)) {
-        throw new Error('Document not found');
-      }
-
-      const text = await response.text();
-      return { content: text, isDirectoryPage: resolvedAsDirectory };
+      throw new Error('Document not found');
     },
   });
 
