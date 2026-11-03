@@ -38,5 +38,9 @@
   {
     "commit": "a92f9d6ce20045a6b765adfebe5fb3d96f070294",
     "reason": "Developer tooling fix: scripts/compose-slot.sh creates a Compose slot's .env readable by the slot's containers. Only the development Compose slot tool and an internal lesson change; product runtime, APIs, deployment behavior and published customer capabilities are unchanged."
+  },
+  {
+    "id": "docs-audit-fences-internal",
+    "reason": "Preserves fenced examples using backticks or tildes, including quoted, listed and CRLF forms, and their source locations in the internal documentation auditor. This affects developer audit findings only and adds no customer-facing capability or release claim."
   }
 ]
