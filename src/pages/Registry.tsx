@@ -169,9 +169,9 @@ export default function Registry() {
         </select>
       </div>
 
-      <div className="flex gap-6">
+      <div className="flex flex-col gap-6 lg:flex-row">
         {/* Left Sidebar - Filters */}
-        <div className="w-64 space-y-6">
+        <div className="w-full space-y-6 lg:w-64 lg:shrink-0">
           <div>
             <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
               Filters
@@ -233,7 +233,7 @@ export default function Registry() {
         </div>
 
         {/* Main Content - Module List */}
-        <div className="flex-1">
+        <div className="min-w-0 flex-1">
           {loading ? (
             <div className="flex items-center justify-center py-12">
               <div className="text-muted-foreground">Loading modules...</div>
@@ -264,9 +264,9 @@ export default function Registry() {
                   onClick={() => { void navigate(`/app/${selectedOrg}/registry/modules/${module.name}/${module.provider}`); }}
                 >
                   <div className="flex items-start justify-between mb-3">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-2">
-                        <h3 className="text-lg font-semibold">{module.name}</h3>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-center gap-3 mb-2">
+                        <h3 className="min-w-0 break-words text-lg font-semibold">{module.name}</h3>
                         <Badge variant="outline" className="bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/20">
                           <Package className="h-3 w-3 mr-1" />
                           Private
@@ -294,7 +294,7 @@ export default function Registry() {
                         )}
                       </div>
                       {module.description && (
-                        <p className="text-sm text-muted-foreground mb-3">
+                        <p className="break-words text-sm text-muted-foreground mb-3">
                           {module.description}
                         </p>
                       )}
