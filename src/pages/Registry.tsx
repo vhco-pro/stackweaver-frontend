@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { useParams, useNavigate } from 'react-router-dom';
+import { Navigate, useParams, useNavigate } from 'react-router-dom';
 import { Package, Search, Plus, Clock, Download, GitBranch, ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { GradientButton } from '@/components/ui/gradient-button';
@@ -18,7 +18,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 export default function Registry() {
   const { orgName } = useParams<{ orgName: string }>();
   const navigate = useNavigate();
-  const [selectedOrg, setSelectedOrg] = useState<string>(orgName || '');
+  const selectedOrg = orgName || '';
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [publishTypeFilter, setPublishTypeFilter] = useState<string>('all');
@@ -29,14 +29,7 @@ export default function Registry() {
     queryKey: ['registry-organizations', orgName],
     queryFn: async () => {
       const res = await organizationsApi.list();
-      const orgs = res.data || [];
-      if (!orgName && orgs.length > 0) {
-        void navigate(`/app/${orgs[0].name}/registry`, { replace: true });
-        setSelectedOrg(orgs[0].name);
-      } else if (orgName) {
-        setSelectedOrg(orgName);
-      }
-      return orgs;
+      return res.data || [];
     },
   });
 
@@ -130,11 +123,7 @@ export default function Registry() {
   }
 
   if (!selectedOrg) {
-    return (
-      <div className="p-8">
-        <p className="text-muted-foreground">Please select an organization to view modules.</p>
-      </div>
-    );
+    return <Navigate to={`/app/${organizations[0].name}/registry`} replace />;
   }
 
   return (

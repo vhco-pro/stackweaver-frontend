@@ -1076,5 +1076,28 @@
       "frontend"
     ],
     "availability": []
+  },
+  {
+    "id": "registry-cached-organization-selection",
+    "title": "Registry follows the organization in the current route",
+    "area": "Registry",
+    "kind": "Fixed",
+    "reviewed": true,
+    "audience": "People browsing private modules and switching organizations.",
+    "before": "A cached organization list could leave the Registry landing route waiting for a selection, or show the previous organization after switching back.",
+    "after": "The Registry landing route selects the first available organization from cached or newly loaded data. Organization routes show modules for the organization named in the URL.",
+    "action": "No action is required.",
+    "details": [],
+    "guides": [
+      {
+        "title": "Organization settings",
+        "path": "/docs/user-guides/organization-settings"
+      }
+    ],
+    "sourceCommits": [],
+    "requiredComponents": [
+      "frontend"
+    ],
+    "availability": []
   }
 ]
