@@ -1147,5 +1147,30 @@
       "frontend"
     ],
     "availability": []
+  },
+  {
+    "id": "module-detail-cached-selection",
+    "title": "Module details show version metadata after returning",
+    "area": "Registry",
+    "kind": "Fixed",
+    "reviewed": true,
+    "audience": "People browsing private modules in the Registry.",
+    "before": "Returning to a recently opened module could show a version in the selector while its inputs, outputs and README were missing. An empty module could return to Inputs instead of Versions.",
+    "after": "Module pages show the first version's metadata when opened from cached or freshly loaded data. Modules without versions open on Versions.",
+    "action": "Update the frontend. No configuration change is required.",
+    "details": [
+      "Version choices and tabs remain stable on nonempty refreshes. Uploading or deleting a version resets the selection from the refreshed result."
+    ],
+    "guides": [
+      {
+        "title": "Configure organization settings",
+        "path": "/docs/user-guides/organization-settings"
+      }
+    ],
+    "sourceCommits": [],
+    "requiredComponents": [
+      "frontend"
+    ],
+    "availability": []
   }
 ]

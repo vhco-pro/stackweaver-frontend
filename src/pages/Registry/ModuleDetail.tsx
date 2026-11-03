@@ -287,19 +287,15 @@ export default function ModuleDetail() {
 
   const { isLoading: loading, data: moduleData, refetch: refetchModule } = useQuery({
     queryKey: ['moduleDetail', orgName, moduleName, provider],
+    // Each successful response is a selection boundary, including identical empty
+    // responses after a user has manually switched away from the Versions tab.
+    structuralSharing: false,
     queryFn: async () => {
       const [moduleRes, versionsData] = await Promise.all([
         registryApi.modules.get(orgName!, moduleName!, provider!),
         registryApi.modules.getVersions(orgName!, moduleName!, provider!).catch(() => []),
       ]);
       const versionsList = Array.isArray(versionsData) ? versionsData : [];
-      // Initialize UI selection state on first load
-      if (versionsList.length > 0) {
-        setSelectedVersion(prev => prev ?? versionsList[0]);
-      } else {
-        setSelectedVersion(null);
-        setActiveTab('versions');
-      }
       return { module: moduleRes, versions: versionsList };
     },
     enabled: !!orgName && !!moduleName && !!provider,
@@ -307,6 +303,19 @@ export default function ModuleDetail() {
 
   const module = moduleData?.module ?? null;
   const versions = moduleData?.versions ?? [];
+  const [selectionData, setSelectionData] = useState<typeof moduleData>();
+
+  // Observe cached and fetched results equally. Existing selections stay pinned
+  // until an empty response or the upload/delete handlers explicitly reset them.
+  if (moduleData && moduleData !== selectionData) {
+    setSelectionData(moduleData);
+    if (versions.length > 0) {
+      setSelectedVersion(prev => prev ?? versions[0]);
+    } else {
+      setSelectedVersion(null);
+      setActiveTab('versions');
+    }
+  }
 
   const handleUpload = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -326,7 +335,7 @@ export default function ModuleDetail() {
       setVersion('');
       setFile(null);
       // Refresh module data and versions via React Query
-      setSelectedVersion(null); // Reset so queryFn picks the latest version
+      setSelectedVersion(null); // Reset so the refreshed result selects its first version
       void refetchModule();
     } catch (err: unknown) {
       console.error('Failed to publish version:', err);
