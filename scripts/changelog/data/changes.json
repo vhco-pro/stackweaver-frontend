@@ -1,5 +1,30 @@
 [
   {
+    "id": "docs-loading-layout-stability",
+    "title": "Documentation stays stable while a guide loads",
+    "area": "Platform",
+    "kind": "Fixed",
+    "reviewed": true,
+    "audience": "People opening documentation in the frontend.",
+    "before": "Document navigation and the footer could briefly appear in the visible loading area, then move when the guide arrived.",
+    "after": "The loading placeholder reserves at least one viewport of space, keeping navigation and the footer below the initial viewport until content is available.",
+    "action": "Update the frontend image. No configuration change is required.",
+    "details": [
+      "Loaded guides keep their existing layout and shared code presentation."
+    ],
+    "guides": [
+      {
+        "title": "Public pages and search indexing",
+        "path": "/docs/get-started/self-hosting/public-site"
+      }
+    ],
+    "sourceCommits": [],
+    "requiredComponents": [
+      "frontend"
+    ],
+    "availability": []
+  },
+  {
     "id": "indexed-docs-source-loading",
     "title": "Documentation loads indexed source files directly",
     "area": "Platform",
