@@ -207,7 +207,7 @@ If the zitadel-init logs show an error like this:
    rpc error: code = InvalidArgument desc = Errors.Target.DeniedURL (COMMAND-NcJUKo)
 ```
 
-This means Zitadel is blocking the webhook target URL. Zitadel v4.x includes SSRF protection that denies requests to private/loopback IP addresses by default. The StackWeaver Helm chart disables this deny list in the Zitadel ConfigMap, because Zitadel needs to call the in-cluster API service. If your deployed ConfigMap does not include this setting, upgrade to the current chart version, then delete the Zitadel pod so it restarts with the updated config:
+This means Zitadel is blocking the webhook target URL. Zitadel v4.x includes SSRF protection that denies requests to private/loopback IP addresses by default. The StackWeaver Helm chart and the Docker Compose example's `zitadel-defaults.yaml` drop the private ranges from this deny list, because Zitadel needs to call the API service, and keep cloud-metadata addresses blocked. On Docker Compose, copy the current `zitadel-defaults.yaml` from the example and restart Zitadel. If your deployed ConfigMap does not include this setting, upgrade to the current chart version, then delete the Zitadel pod so it restarts with the updated config:
 
 ```bash
 helm upgrade stackweaver oci://ghcr.io/vhco-pro/charts/stackweaver \

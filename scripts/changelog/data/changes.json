@@ -1299,5 +1299,28 @@
       "api"
     ],
     "availability": []
+  },
+  {
+    "id": "zitadel-session-lifetime",
+    "title": "Abandoned sign-ins no longer leave Zitadel sessions behind",
+    "area": "Authentication",
+    "kind": "Security",
+    "reviewed": true,
+    "audience": "Operators and people reviewing their sessions under Settings > Sessions.",
+    "before": "Zitadel sessions created during sign-in had no expiry, so a sign-in that was abandoned or failed stayed in Zitadel indefinitely, including sessions that had passed a password check.",
+    "after": "Every Zitadel session Stackweaver creates or updates during sign-in expires 15 minutes after the browser-session absolute limit (12 hours 15 minutes by default), counted from its last sign-in step.",
+    "action": "No action is required. Zitadel sessions created before this release keep no expiry; end them in Zitadel or under Settings > Sessions if you want them gone.",
+    "details": [],
+    "guides": [
+      {
+        "title": "Browser sessions and confidential-client setup",
+        "path": "/docs/user-guides/authentication/zitadel-setup"
+      }
+    ],
+    "sourceCommits": [],
+    "requiredComponents": [
+      "api"
+    ],
+    "availability": []
   }
 ]

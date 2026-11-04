@@ -42,18 +42,11 @@ OIDC_REMOVE_FROM_NON_SSO_TEAMS=false
 Apply them with `docker compose up -d api`. Runtime defaults are `false`; the checked-in
 `sso.env.example` explicitly enables team sync, so inspect the file you actually deploy.
 
-The two Zitadel Actions targets must reach the API **from Zitadel's network**. For the
-bundled bridge-network Compose deployment, set this initializer environment override in
-your installed Compose configuration before creating targets:
-
-```yaml
-services:
-  zitadel-init:
-    environment:
-      ACTIONS_API_BASE_URL: http://api:8022
-```
-
-Use your deployment's real service address. A localhost address inside the Zitadel
+The two Zitadel Actions targets must reach the API **from Zitadel's network**. The Docker
+Compose example sets `ACTIONS_API_BASE_URL` to `http://api:8022` on the initializer and its
+`zitadel-api-urls` run, and its `zitadel-defaults.yaml` lets Zitadel call that private address.
+If your API has another address on Zitadel's network, set `ACTIONS_API_BASE_URL` to it in your
+installed Compose configuration. A localhost address inside the Zitadel
 container points to Zitadel itself. With the stack running, run
 `docker compose run --rm zitadel-init` and inspect the targets in Zitadel. While the API's
 host does not resolve, as on a first install where the API starts after the initializer, the

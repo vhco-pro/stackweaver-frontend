@@ -74,5 +74,9 @@
   {
     "commit": "f6c44dddc893f30940414fb0cd9e4ee744e8822e",
     "reason": "Internal shared-audit migration verification: inspect every registered effect before cutover, preserve typed retained absence, and reject pending or unknown state. No product runtime, API, deployment or customer capability changes."
+  },
+  {
+    "id": "otp-single-challenge-dev",
+    "reason": "React StrictMode mounts the OTP page twice only in the development build, which sent two SMS or email challenges; production builds mount once, so customers never received a voided code. The page now shares one challenge request across mounts."
   }
 ]
