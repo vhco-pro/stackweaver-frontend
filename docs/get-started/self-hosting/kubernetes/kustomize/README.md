@@ -25,8 +25,8 @@ the example pin is an example, not a promise that it is the latest release.
 
 ## Adapt the base and overlay
 
-Download the complete example. It includes a namespace base, production overlay, values file
-and an Azure Blob CSI static volume example:
+Download the complete example. It includes a namespace base, a production overlay and its
+values file:
 
 ::: code-explorer ./example
 :::
@@ -36,18 +36,23 @@ Change these inputs before a sync:
 - `overlays/production/kustomization.yaml`: reviewed chart version and release namespace.
 - `overlays/production/values.yaml`: app/auth hosts, ingress provider/class, TLS Secret names,
   image tags/digests and `global.imagePullSecrets` when needed.
-- `overlays/production/pv-pvc.yaml`: storage driver, volume identity and claim for your cluster.
-  The Azure-specific identifiers are placeholders, not portable storage defaults.
-- `runnerWorkspaces.existingClaim`: must match the runner claim, `runner-workspaces-pvc` in
-  this example. Replace the static volume resources with your storage path if different.
+- `launcher.clusterCIDRs` in `overlays/production/values.yaml`: replace the two ranges with
+  your cluster's pod and service CIDRs, so job pods reach the API and DNS but no other
+  in-cluster service. See [Launchers and job isolation](../README.md#launchers-and-job-isolation)
+  for the other `launcher.*` values.
 
 Keep search indexing disabled for private environments. If an overlay publishes public
 pages, configure `frontend.publicSite` in its chart values and follow the
 [public-site checks](../../public-site.md#helm) before submitting a sitemap.
 
-This example disables the persistent Galaxy cache, so a restarted Ansible runner downloads
-collections again. PostgreSQL and Garage still need durable storage; a runner scratch claim
-is not a database backup.
+The launchers keep no volume of their own: every job runs in a fresh pod with an ephemeral
+working directory, and everything a job keeps lives in the database and object storage. The
+PostgreSQL, Redis and Garage claims are the chart's only persistent volumes. They need
+durable storage, and a persistent volume is not a database backup.
+
+The example runs job pods in the release namespace, because the overlay's `namespace:` field
+moves every namespaced object the chart renders into `stackweaver`, including the Role,
+NetworkPolicy and pod template the launchers use in a separate job namespace.
 
 ```mermaid
 flowchart LR

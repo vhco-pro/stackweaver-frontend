@@ -95,7 +95,8 @@ separate from playbook sync. Normal disabled-template, dependency and concurrenc
 still apply to the launched job.
 
 > [!IMPORTANT]
-> Fresh mode fetches branch HEAD when the job starts; it does not pin the triggering commit.
+> Fresh mode captures branch HEAD in a snapshot sync before the job runs; it does not pin the
+> triggering commit.
 > In cached mode, a webhook launch can race a snapshot sync and use the older snapshot.
 > Verify the job's actual playbook source before treating it as a deployment of one commit.
 

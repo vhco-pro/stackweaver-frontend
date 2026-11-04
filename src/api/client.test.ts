@@ -497,7 +497,32 @@ describe('platform documents (Phase 3)', () => {
           meta: { pagination: { 'current-page': 2, 'page-size': 20, 'total-pages': 3, 'total-count': 41 } },
         },
       },
-      { body: { data: { type: 'platform-settings', id: 'platform', attributes: { 'organization-creation': 'platform-admins' } } } },
+      {
+        body: {
+          data: {
+            type: 'platform-settings',
+            id: 'platform',
+            attributes: {
+              'organization-creation': 'platform-admins',
+              deployment: {
+                'images-allowed-registries': ['ghcr.io/acme'],
+                'hosted-default-max-concurrent-jobs': 4,
+                'run-timeout-default': 7200,
+                'sync-timeout': 3600,
+                'job-log-max-bytes': 67108864,
+                'cache-size-limit': 53687091200,
+                'runner-rate-limit': { rps: 20, burst: 40 },
+                'job-rate-limit': { rps: 10, burst: 20 },
+                mirror: {
+                  'tofu-releases-url': 'https://mirror.internal/tofu',
+                  'galaxy-servers': [{ name: 'hub', url: 'https://hub.internal/', 'has-token': true }],
+                  'has-ca-certificates': true,
+                },
+              },
+            },
+          },
+        },
+      },
     );
 
     const orgs = await adminOrganizationsApi.list({ search: 'de', page: 2, pageSize: 20 });
@@ -514,7 +539,21 @@ describe('platform documents (Phase 3)', () => {
       workspace_count: 6,
     });
     expect(orgs.pagination?.['total-count']).toBe(41);
-    expect(settings).toEqual({ organization_creation: 'platform-admins' });
+    // The deployment's runner settings read back beside the creation policy (#933, D15).
+    expect(settings.organization_creation).toBe('platform-admins');
+    expect(settings.deployment).toMatchObject({
+      images_allowed_registries: ['ghcr.io/acme'],
+      hosted_default_max_concurrent_jobs: 4,
+      run_timeout_default: 7200,
+      cache_size_limit: 53687091200,
+      job_rate_limit: { rps: 10, burst: 20 },
+    });
+    expect(settings.deployment.mirror).toMatchObject({
+      tofu_releases_url: 'https://mirror.internal/tofu',
+      provider_network_mirror: '',
+      galaxy_servers: [{ name: 'hub', url: 'https://hub.internal/', has_token: true }],
+      has_ca_certificates: true,
+    });
   });
 
   it('vcsConnectionsApi.create sends a vcs-connections document with snake_case attributes', async () => {

@@ -79,7 +79,8 @@ az ad sp create --id 499b84ac-1321-427f-aa17-267ca6975798
 
 ### Docker Compose
 
-Save persistent credentials in `vcs.env`, beside the Compose file. Replace placeholders,
+The API and the orchestrator read these settings. Save persistent credentials in
+`vcs.env`, beside the Compose file, which Compose loads into both services. Replace placeholders,
 keep the file private and use a strong, independently generated webhook secret.
 
 ```dotenv
@@ -97,15 +98,14 @@ Use a different origin if your API has its own host. Never maintain these values
 auto-generated `.env`.
 
 ```bash
-docker compose up -d api orchestrator ansible-runner
+docker compose up -d api orchestrator
 docker compose logs api
 ```
 
 ### Kubernetes / Helm
 
 The chart's component `env` maps accept string values, not `valueFrom` objects. Merge the
-same settings into `api.env`, `orchestrator.env` and `ansibleRunner.env` in a protected
-values file. For example, the API portion is:
+same settings into `api.env` and `orchestrator.env` in a protected values file. For example, the API portion is:
 
 ```yaml
 api:
@@ -118,7 +118,7 @@ api:
     AZURE_DEVOPS_WEBHOOK_SECRET: "replace-with-strong-webhook-secret"
 ```
 
-Repeat under `orchestrator.env` and `ansibleRunner.env`. These values appear in Deployment
+Repeat under `orchestrator.env`. These values appear in Deployment
 specifications and Helm release data; restrict access and do not commit the file. Use your
 normal protected deployment process rather than pasting secrets into a shared terminal.
 
@@ -178,6 +178,10 @@ inventory registers hooks for that repository, including an Ansible-only reposit
 | Code pushed. | Queue matching workspace runs and sync tracked Ansible playbooks/inventories. |
 | Pull request created. | Queue eligible speculative plan-only runs. |
 | Pull request updated. | Refresh eligible PR plans after new commits. |
+
+Runs and jobs start from a snapshot of the repository and never receive the connection's
+token. The sync that captures a snapshot gets the repository URL and a refreshed OAuth2
+access token, hands the token to git as its credential and holds it only in memory.
 
 Matching includes the connected Azure DevOps organization as well as repository and branch.
 Identical project/repository names in another Azure DevOps organization do not identify
@@ -273,7 +277,7 @@ an expiry edit preserves the old secret.
 
 | Symptom | Check |
 |---|---|
-| Integration not configured. | Client ID/secret reached the API and workers after recreation. |
+| Integration not configured. | Client ID/secret reached the API and orchestrator after recreation. |
 | `AADSTS650052`. | Azure DevOps enterprise application exists in the intended Entra tenant. |
 | `AADSTS650053` for hooks scope. | Do not explicitly request separate hooks scopes; inspect app permissions and the actual authorization request. |
 | Redirect mismatch / `AADSTS50011`. | Exact public callback under the app's **Web** registration and deployment setting. |

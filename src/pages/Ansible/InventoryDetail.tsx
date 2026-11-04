@@ -89,6 +89,10 @@ import { RunCommandDialog } from '@/components/ansible/RunCommandDialog';
 import { getVcsProviderIcon, getVcsRepoUrl, getVcsFileUrl } from '@/lib/vcs';
 import { InventoryFileViewer } from '@/components/code/InventoryFileViewer';
 import { toast } from 'sonner';
+import { effectiveSettingsApi } from '@/api/runPlacement';
+import { IdentityBindingSelect, InheritedHint, RunImageSelect } from '@/components/settings/RunPlacementFields';
+import { useIdentityBindingOptions, useRunImages } from '@/hooks/useRunPlacement';
+import { bindingLabel, formatSeconds, runImageLabel } from '@/lib/runPlacement';
 import { dangerOutline } from '@/lib/surfaces';
 import { detectDynamicInventoryPlugin, type DynamicInventoryPlugin } from '@/utils/dynamic-inventory';
 import {
@@ -279,6 +283,14 @@ export default function InventoryDetail() {
   const [editSourceDialogOpen, setEditSourceDialogOpen] = useState(false);
   const [editingSource, setEditingSource] = useState(false);
   const [sourceToEdit, setSourceToEdit] = useState<AnsibleInventorySource | null>(null);
+  // What the source inherits where it sets nothing (#933, D0, D15).
+  const { data: sourceEffective } = useQuery({
+    queryKey: ['effectiveSettings', 'inventory-source', sourceToEdit?.id],
+    queryFn: () => effectiveSettingsApi.get('inventory-source', sourceToEdit!.id),
+    enabled: !!sourceToEdit && editSourceDialogOpen,
+  });
+  const { data: runImages } = useRunImages(orgName || '');
+  const { data: bindingOptions } = useIdentityBindingOptions(orgName || '');
   const [editSourceForm, setEditSourceForm] = useState<CreateInventorySourceInput>({
     name: '',
     description: '',
@@ -908,6 +920,9 @@ export default function InventoryDetail() {
       config: source.config || {},
       update_on_launch: source.update_on_launch,
       update_cache_timeout: source.update_cache_timeout,
+      sync_timeout: source.sync_timeout,
+      run_image_id: source.run_image_id ?? '',
+      identity_binding_id: source.identity_binding_id ?? '',
       overwrite: source.overwrite,
       overwrite_vars: source.overwrite_vars,
       verbosity: source.verbosity,
@@ -2460,6 +2475,19 @@ export default function InventoryDetail() {
                         </p>
                       </div>
                     )}
+                    <div className="space-y-2">
+                      <Label htmlFor="sync-timeout">Sync timeout (seconds)</Label>
+                      <Input
+                        id="sync-timeout"
+                        type="number"
+                        min={0}
+                        value={sourceForm.sync_timeout ?? 0}
+                        onChange={(e) => setSourceForm({ ...sourceForm, sync_timeout: Math.max(0, Number(e.target.value) || 0) })}
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Stop a sync that runs longer than this. 0 uses the project's run timeout, then the organization's, then the platform default.
+                      </p>
+                    </div>
                     <div className="flex items-center space-x-2">
                       <input
                         type="checkbox"
@@ -2973,6 +3001,64 @@ export default function InventoryDetail() {
                 </p>
               </div>
             )}
+            <div className="space-y-2">
+              <Label htmlFor="edit-sync-timeout">Sync timeout (seconds)</Label>
+              <Input
+                id="edit-sync-timeout"
+                type="number"
+                min={0}
+                value={editSourceForm.sync_timeout ?? 0}
+                onChange={(e) => setEditSourceForm({ ...editSourceForm, sync_timeout: Math.max(0, Number(e.target.value) || 0) })}
+              />
+              <p className="text-xs text-muted-foreground">
+                Stop a sync that runs longer than this. 0 uses the project's run timeout, then the organization's, then the platform default.
+              </p>
+              {!editSourceForm.sync_timeout && (
+                <InheritedHint
+                  setting={sourceEffective?.run_timeout}
+                  ownLevel="inventory-source"
+                  describe={formatSeconds}
+                  testId="source-timeout-inherited"
+                />
+              )}
+            </div>
+            {/* Placement (#933, D6, D8): the execution environment and identity a sync runs with. */}
+            <div className="space-y-4 rounded-xl border border-gray-200 dark:border-white/10 p-4">
+              <div>
+                <h4 className="text-sm font-semibold">Placement</h4>
+                <p className="text-xs text-muted-foreground">Where this source's syncs run. Leave a field to inherit it.</p>
+              </div>
+              <RunImageSelect
+                id="edit-source-run-image"
+                label="Execution environment"
+                orgName={orgName || ''}
+                kind="ansible"
+                value={editSourceForm.run_image_id ?? ''}
+                onChange={v => setEditSourceForm({ ...editSourceForm, run_image_id: v })}
+                hint={!editSourceForm.run_image_id && (
+                  <InheritedHint
+                    setting={sourceEffective?.run_image_id}
+                    ownLevel="inventory-source"
+                    describe={v => runImageLabel(runImages, v)}
+                    testId="source-run-image-inherited"
+                  />
+                )}
+              />
+              <IdentityBindingSelect
+                id="edit-source-identity-binding"
+                orgName={orgName || ''}
+                value={editSourceForm.identity_binding_id ?? ''}
+                onChange={v => setEditSourceForm({ ...editSourceForm, identity_binding_id: v })}
+                hint={!editSourceForm.identity_binding_id && (
+                  <InheritedHint
+                    setting={sourceEffective?.identity_binding_id}
+                    ownLevel="inventory-source"
+                    describe={v => bindingLabel(bindingOptions, v)}
+                    testId="source-identity-binding-inherited"
+                  />
+                )}
+              />
+            </div>
             <div className="flex items-center space-x-2">
               <input
                 type="checkbox"

@@ -21,6 +21,8 @@ import {
   type Runner,
 } from '@/api/client';
 import { OrgDefaultExecution } from '@/components/settings/OrgDefaultExecution';
+import { HostedCapacity } from '@/components/settings/HostedCapacity';
+import { networkModeLabel } from '@/lib/placement';
 import { toast } from 'sonner';
 import {
   Dialog,
@@ -38,6 +40,10 @@ import {
 } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { AgentPoolTokens } from '@/components/settings/AgentPoolTokens';
+import { AgentPoolIdentityBindings } from '@/components/settings/AgentPoolIdentityBindings';
+import { AgentPoolPullSecrets } from '@/components/settings/AgentPoolPullSecrets';
+import { DeploymentSettingsPanel, PoolSettingsSummary } from '@/components/settings/PoolPlacementSettings';
+import { formatBytes } from '@/lib/runPlacement';
 import { cn } from '@/lib/utils';
 import { dangerGhostIcon, glassSurface } from '@/lib/surfaces';
 
@@ -63,7 +69,16 @@ export default function AgentPools() {
     allowed_workspace_ids: string[];
     allowed_project_ids: string[];
     excluded_workspace_ids: string[];
-  }>({ name: '', organization_scoped: true, allowed_workspace_ids: [], allowed_project_ids: [], excluded_workspace_ids: [] });
+    // The native pool settings (#933, D4, D7): minutes a failed job is kept, limits, read-through.
+    keep_failed_minutes: string;
+    cpu_limit: string;
+    memory_limit: string;
+    limits_required: boolean;
+    local_readthrough: boolean;
+  }>({
+    name: '', organization_scoped: true, allowed_workspace_ids: [], allowed_project_ids: [], excluded_workspace_ids: [],
+    keep_failed_minutes: '', cpu_limit: '', memory_limit: '', limits_required: false, local_readthrough: true,
+  });
 
   const { data: pools = [], isLoading: loading, isError: loadFailed, refetch: refetchPools } = useQuery({
     queryKey: ['agentPools', orgName],
@@ -166,6 +181,11 @@ export default function AgentPools() {
       allowed_workspace_ids: pool.allowed_workspace_ids || [],
       allowed_project_ids: pool.allowed_project_ids || [],
       excluded_workspace_ids: pool.excluded_workspace_ids || [],
+      keep_failed_minutes: pool.keep_failed_jobs_for ? String(Math.round(pool.keep_failed_jobs_for / 60)) : '',
+      cpu_limit: pool.cpu_limit,
+      memory_limit: pool.memory_limit,
+      limits_required: pool.limits_required,
+      local_readthrough: pool.local_readthrough,
     });
   };
 
@@ -184,6 +204,11 @@ export default function AgentPools() {
         allowed_workspace_ids: editForm.allowed_workspace_ids,
         allowed_project_ids: editForm.allowed_project_ids,
         excluded_workspace_ids: editForm.excluded_workspace_ids,
+        keep_failed_jobs_for: Math.max(0, Math.round((Number(editForm.keep_failed_minutes) || 0) * 60)),
+        cpu_limit: editForm.cpu_limit.trim(),
+        memory_limit: editForm.memory_limit.trim(),
+        limits_required: editForm.limits_required,
+        local_readthrough: editForm.local_readthrough,
       });
       toast.success('Agent pool updated');
       setEditPool(null);
@@ -301,6 +326,9 @@ export default function AgentPools() {
         listState={listState}
       />
 
+      {/* The organization's hosted capacity, read-only (#933, AC51). */}
+      {orgName && <HostedCapacity orgName={orgName} />}
+
       {/* tfe_organization_default_settings: which pool workspaces default to, beside the pools. */}
       {orgName && <OrgDefaultExecution orgName={orgName} pools={pools} />}
 
@@ -409,6 +437,8 @@ export default function AgentPools() {
                   {/* Runners Table (expandable) */}
                   {isExpanded && (
                     <div className="border-t border-gray-300/70 dark:border-white/5">
+                      {/* The pool's settings and the deployment's, read-only here (#933, D15). */}
+                      <PoolSettingsSummary pool={pool} />
                       {isLoadingRunners ? (
                         <div className="flex items-center justify-center py-8">
                           <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
@@ -427,6 +457,9 @@ export default function AgentPools() {
                                 <th scope="col" className="text-left py-3 px-4 font-medium text-muted-foreground">Version</th>
                                 <th scope="col" className="text-left py-3 px-4 font-medium text-muted-foreground">ID</th>
                                 <th scope="col" className="text-left py-3 px-4 font-medium text-muted-foreground">IP Address</th>
+                                <th scope="col" className="text-left py-3 px-4 font-medium text-muted-foreground" title="Set by the launcher's installer; not changeable here">Driver</th>
+                                <th scope="col" className="text-left py-3 px-4 font-medium text-muted-foreground" title="Set by the launcher's installer; not changeable here">Network</th>
+                                <th scope="col" className="text-left py-3 px-4 font-medium text-muted-foreground" title="Set by the launcher's installer; not changeable here">Node cache</th>
                                 <th scope="col" className="text-left py-3 px-4 font-medium text-muted-foreground">Last Seen</th>
                               </tr>
                             </thead>
@@ -464,6 +497,19 @@ export default function AgentPools() {
                                   <td className="py-3 px-4 text-muted-foreground">
                                     {runner.ip_address || '-'}
                                   </td>
+                                  <td className="py-3 px-4 text-muted-foreground" data-testid="runner-driver">
+                                    {runner.driver || '-'}
+                                    {runner.hosted_strict && <span className="ml-1 text-xs">(strict)</span>}
+                                  </td>
+                                  <td className="py-3 px-4 text-muted-foreground" data-testid="runner-network-mode">
+                                    {networkModeLabel(runner.network_mode)}
+                                  </td>
+                                  <td className="py-3 px-4 text-muted-foreground" data-testid="runner-node-cache">
+                                    {runner.local_cache
+                                      ? (runner.local_cache_size_limit ? formatBytes(runner.local_cache_size_limit) : 'On')
+                                      : 'Off'}
+                                    {runner.cache_verification === 'offline' && <span className="ml-1 text-xs">(offline verification)</span>}
+                                  </td>
                                   <td className="py-3 px-4 text-muted-foreground">
                                     {runner.last_heartbeat_at
                                       ? formatTimeAgo(runner.last_heartbeat_at)
@@ -478,6 +524,17 @@ export default function AgentPools() {
                       {/* Agent tokens (tfe_agent_token): credentials agents present to register into this pool */}
                       <div className="border-t border-gray-300/70 dark:border-white/5">
                         <AgentPoolTokens poolId={pool.id} />
+                      </div>
+                      {/* Identity bindings (#933, D8): the cloud identities this pool's jobs may run as. */}
+                      <div className="border-t border-gray-300/70 dark:border-white/5">
+                        <AgentPoolIdentityBindings poolId={pool.id} />
+                      </div>
+                      {/* Registry pull Secrets (#933, D8): what this pool's job pods pull private run images with. */}
+                      <div className="border-t border-gray-300/70 dark:border-white/5">
+                        <AgentPoolPullSecrets poolId={pool.id} orgName={orgName ?? ''} />
+                      </div>
+                      <div className="border-t border-gray-300/70 dark:border-white/5">
+                        <DeploymentSettingsPanel />
                       </div>
                     </div>
                   )}
@@ -635,6 +692,41 @@ export default function AgentPools() {
                       </Badge>
                     );
                   })}
+                </div>
+              </div>
+              {/* The native pool settings (#933, D4, D7). */}
+              <div className="space-y-4 rounded-xl border border-gray-200 dark:border-white/10 p-4">
+                <div>
+                  <h4 className="text-sm font-semibold">Job placement</h4>
+                  <p className="text-xs text-muted-foreground">How this pool's launchers place each job.</p>
+                </div>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-cpu-limit">CPU limit</Label>
+                    <Input id="edit-cpu-limit" value={editForm.cpu_limit} placeholder="e.g. 1500m"
+                      onChange={(e) => setEditForm((p) => ({ ...p, cpu_limit: e.target.value }))} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-memory-limit">Memory limit</Label>
+                    <Input id="edit-memory-limit" value={editForm.memory_limit} placeholder="e.g. 2Gi"
+                      onChange={(e) => setEditForm((p) => ({ ...p, memory_limit: e.target.value }))} />
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Switch id="edit-limits-required" checked={editForm.limits_required}
+                    onCheckedChange={(v) => setEditForm((p) => ({ ...p, limits_required: v }))} />
+                  <Label htmlFor="edit-limits-required">Refuse a job whose limits the launcher cannot enforce</Label>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="edit-keep-failed">Keep a failed job for (minutes)</Label>
+                  <Input id="edit-keep-failed" type="number" min={0} inputMode="numeric" value={editForm.keep_failed_minutes} placeholder="0 removes it at once"
+                    onChange={(e) => setEditForm((p) => ({ ...p, keep_failed_minutes: e.target.value }))} />
+                  <p className="text-xs text-muted-foreground">Leaves a failed job's container or pod in place this long, to inspect it.</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Switch id="edit-local-readthrough" checked={editForm.local_readthrough}
+                    onCheckedChange={(v) => setEditForm((p) => ({ ...p, local_readthrough: v }))} />
+                  <Label htmlFor="edit-local-readthrough">Keep a node-local copy of the organization's cache</Label>
                 </div>
               </div>
               <DialogFooter>

@@ -87,11 +87,17 @@ secrets:
       secretKey: secret-key
   # Encryption key - 32-byte hex string
   # secrets-init generates a random key when secretName is empty.
-  # Used by API, runner, and ansible-runner for encrypting variables/credentials.
+  # Used by the API and the orchestrator for encrypting variables, credentials, state and plans.
   encryption:
     secretName: ""
     keys:
       key: encryption-key
+  # Hosted launcher registration secret, shared by the API and the launchers.
+  # secrets-init generates a tfe- token when secretName is empty.
+  hosted:
+    secretName: ""
+    keys:
+      secret: hosted-secret
   # Zitadel credentials
   # secrets-init generates the masterkey + admin password when empty.
   # After zitadel-init runs, it populates clientId, clientSecret, etc.
@@ -107,7 +113,7 @@ secrets:
       loginServiceUserToken: login-service-user-token
       webhookIdpSyncKey: webhook-idp-sync-key
       webhookComplementTokenKey: webhook-complement-token-key
-  # OIDC workload identity signing key (optional - for Azure OIDC / inventory sync)
+  # OIDC workload identity signing key, held by the API alone, which mints every job's tokens.
   # When secretName is empty, secrets-init generates an RSA-2048 private key.
   oidc:
     secretName: ""
@@ -194,13 +200,27 @@ orchestrator:
   githubApp:
     id: ""
     name: ""
-# -- OpenTofu Runner --
+# -- Launchers --
+# The OpenTofu and Ansible launchers place every job in a pod of its own.
+launcher:
+  driver: kubernetes
+  network: platform
+  # Job pods run in the release namespace. The overlay's `namespace:` rewrites every namespaced
+  # object, so a separate job namespace needs its objects excluded from that transformer.
+  jobNamespace: ""
+  # Your cluster's pod and service ranges: job pods may reach the API and DNS, nothing else in them.
+  clusterCIDRs:
+    - 10.244.0.0/16
+    - 10.96.0.0/12
+  keepFailedJobsFor: ""
+# -- OpenTofu launcher --
 runner:
   image:
     repository: ghcr.io/vhco-pro/stackweaver-opentofu-runner
     tag: latest
     pullPolicy: IfNotPresent
   replicas: 1
+  maxConcurrentJobs: 4
   resources:
     requests:
       cpu: 200m
@@ -213,13 +233,14 @@ runner:
   nodeSelector: {}
   tolerations: []
   affinity: {}
-# -- Ansible Runner --
+# -- Ansible launcher --
 ansibleRunner:
   image:
     repository: ghcr.io/vhco-pro/stackweaver-ansible-runner
     tag: latest
     pullPolicy: IfNotPresent
   replicas: 1
+  maxConcurrentJobs: 4
   resources:
     requests:
       cpu: 200m
@@ -232,21 +253,6 @@ ansibleRunner:
   nodeSelector: {}
   tolerations: []
   affinity: {}
-  # Size limit for the writable /tmp emptyDir (Ansible local/remote temp, SSH
-  # control sockets) under the read-only root filesystem.
-  tmpSizeLimit: 1Gi
-  # Per-job scratch (playbook checkout, inventory, staged credentials) runs on an
-  # ephemeral emptyDir isolated from the OpenTofu runner - it holds no run
-  # history, so nothing is lost when a pod reschedules. Bound its size here.
-  workspacesSizeLimit: 5Gi
-  # The Ansible Galaxy cache is a regenerable performance cache. This static-PV
-  # example keeps it on an ephemeral emptyDir (enabled: false) so it needs no
-  # extra pre-provisioned volume - collections simply re-download on a cold pod.
-  # To keep it warm across restarts, set enabled: true and point existingClaim at
-  # a pre-created PVC (and add it to pv-pvc.yaml).
-  galaxyCache:
-    enabled: false
-    sizeLimit: 5Gi
 # ── Storage ───────────────────────────────────────────────────────────────────
 # All data (state, configs, registry, logs, ansible artifacts) is stored in a
 # single S3-compatible bucket. Any S3-compatible service works: AWS S3, R2, B2,
@@ -263,14 +269,6 @@ storage:
   # Authentication: "credentials" (default) or "pod-identity" (IRSA/Workload Identity)
   auth: credentials
   serviceAccountAnnotations: {}
-# ── Runner Workspaces PVC ─────────────────────────────────────────────────────
-runnerWorkspaces:
-  size: 10Gi
-  storageClass: ""
-  accessMode: ReadWriteMany
-  # The statically provisioned claim defined in pv-pvc.yaml. Set to "" to let the chart create
-  # a claim from storageClass instead.
-  existingClaim: runner-workspaces-pvc
 # ── Dependencies ──────────────────────────────────────────────────────────────
 #
 # For each dependency, set enabled=true to deploy it in-cluster (bundled),

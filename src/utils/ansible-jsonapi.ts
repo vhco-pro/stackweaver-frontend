@@ -29,6 +29,7 @@ import type {
   ScheduleType,
   ScheduleStatus,
 } from '@/api/ansible';
+import { placementFromAttributes } from '@/lib/placement';
 
 import type { JsonApiResource } from './jsonapi';
 import { getAttribute, getRelationship, getRelationships } from './jsonapi';
@@ -86,6 +87,7 @@ export function getAnsibleJobFromJsonApi(resource: JsonApiResource): AnsibleJob 
       error: w.error ?? '',
       last_successful_sync_at: w['last-successful-sync-at'] ?? null,
     })),
+    placement: placementFromAttributes(getAttribute<unknown>(resource, 'placement')),
   };
 }
 
@@ -204,6 +206,8 @@ export function getAnsibleJobTemplateFromJsonApi(resource: JsonApiResource): Ans
     become_user: getAttribute<string>(resource, 'become-user'),
     enabled: getAttribute<boolean>(resource, 'enabled', true) ?? true,
     timeout_seconds: getAttribute<number>(resource, 'timeout-seconds', 0) || 0,
+    run_image_id: getAttribute<string | null>(resource, 'run-image-id', null) ?? null,
+    identity_binding_id: getAttribute<string | null>(resource, 'identity-binding-id', null) ?? null,
     allow_simultaneous: getAttribute<boolean>(resource, 'allow-simultaneous', false) || false,
     retention_days: getAttribute<number | null>(resource, 'retention-days', null),
     job_slice_count: getAttribute<number>(resource, 'job-slice-count', 1) || 1,
@@ -287,6 +291,9 @@ export function getAnsibleInventorySourceFromJsonApi(resource: JsonApiResource):
     config: getAttribute<Record<string, unknown>>(resource, 'config') || {},
     update_on_launch: getAttribute<boolean>(resource, 'update-on-launch', true) ?? true,
     update_cache_timeout: getAttribute<number>(resource, 'update-cache-timeout', 0) || 0,
+    sync_timeout: getAttribute<number>(resource, 'sync-timeout', 0) || 0,
+    run_image_id: getAttribute<string | null>(resource, 'run-image-id', null) ?? null,
+    identity_binding_id: getAttribute<string | null>(resource, 'identity-binding-id', null) ?? null,
     overwrite: getAttribute<boolean>(resource, 'overwrite', false) ?? false,
     overwrite_vars: getAttribute<boolean>(resource, 'overwrite-vars', false) ?? false,
     verbosity: getAttribute<number>(resource, 'verbosity', 0) || 0,

@@ -7,6 +7,7 @@ covers:
   - "frontend/src/components/runs/**"
   - "backend/internal/api/v2/handlers/terraform/runs.go"
   - "backend/cmd/runner/**"
+  - "backend/internal/executor/tofuexec/**"
   - "core/services/logbuffer/**"
 capabilities: [
   {
@@ -18,7 +19,7 @@ capabilities: [
     "evidence": [
       "core/plugins/opentofu/plugin.go",
       "backend/internal/api/v2/handlers/terraform/runs.go",
-      "backend/cmd/runner/agent_mode.go"
+      "backend/internal/executor/tofuexec/run.go"
     ]
   }
 ]
@@ -101,7 +102,9 @@ The [API explorer](/docs/api-reference/explorer) lists the full operation schema
 
 ## Stored output and troubleshooting
 
-Output is buffered while the run executes and persisted for later access. Stored logs
+The job's executor captures OpenTofu's stdout and stderr line by line and streams it to the
+API, which buffers it while the run executes and persists it for later access. This is the
+same wherever the run executes, on the hosted capacity or on a self-hosted runner. Stored logs
 remain subject to the run's availability and deployment storage/retention policies; this
 is not a promise that every log is kept forever.
 
@@ -110,7 +113,7 @@ is not a promise that every log is kept forever.
 | Plan is still running but the page shows no terminal. | Check your terminal-during-planning preference and the plan log endpoint. |
 | Log request is empty. | Check the run status, selected phase and byte offset. That phase may not have emitted output. |
 | Apply output is absent. | Confirm the run entered apply; plan-only runs never do. |
-| Output stops updating. | Check API connectivity and runner status before assuming the operation stopped. |
+| Output stops updating. | Check API connectivity and the status of the run's launcher before assuming the operation stopped. |
 | Run is failed or canceled. | Review the phase output and saved state before retrying; a partial apply can leave resources. |
 
 Use [Understanding runs](../../user-guides/understanding-opentofu-runs.md) for operation

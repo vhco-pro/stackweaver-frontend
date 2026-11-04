@@ -100,6 +100,10 @@ import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { dangerGhostIcon, dangerOutline } from '@/lib/surfaces';
 import { HostStatusCount } from '@/components/ansible/HostStatus';
+import { effectiveSettingsApi } from '@/api/runPlacement';
+import { IdentityBindingSelect, InheritedHint, RunImageSelect } from '@/components/settings/RunPlacementFields';
+import { useIdentityBindingOptions, useRunImages } from '@/hooks/useRunPlacement';
+import { bindingLabel, formatSeconds, runImageLabel } from '@/lib/runPlacement';
 import { ANSIBLE_HOST_STATUSES, hostStatusCount } from '@/components/ansible/hostStatus';
 
 // Helper functions for job display
@@ -234,6 +238,9 @@ export default function JobTemplateDetail() {
     agent_pool_id: '',
     enabled: true,
     timeout_seconds: 0,
+    // '' inherits from the project, the organization or the platform (#933, D0).
+    run_image_id: '',
+    identity_binding_id: '',
     allow_simultaneous: false,
     retention_days: '', // '' = inherit org setting
     job_slice_count: 1,
@@ -241,6 +248,13 @@ export default function JobTemplateDetail() {
     launch_on_webhook: false,
   });
   const [agentPools, setAgentPools] = useState<AgentPool[]>([]);
+  const { data: effective } = useQuery({
+    queryKey: ['effectiveSettings', 'job-template', templateId],
+    queryFn: () => effectiveSettingsApi.get('job-template', templateId!),
+    enabled: !!templateId && editDialogOpen,
+  });
+  const { data: runImages } = useRunImages(orgName || '');
+  const { data: bindingOptions } = useIdentityBindingOptions(orgName || '');
   const [editPlaybooks, setEditPlaybooks] = useState<AnsiblePlaybook[]>([]);
   const [editPlaybookSelection, setEditPlaybookSelection] = useState<PlaybookSelection>(null);
 
@@ -400,6 +414,8 @@ export default function JobTemplateDetail() {
         agent_pool_id: template.agent_pool_id || '',
         enabled: template.enabled,
         timeout_seconds: template.timeout_seconds || 0,
+        run_image_id: template.run_image_id ?? '',
+        identity_binding_id: template.identity_binding_id ?? '',
         allow_simultaneous: template.allow_simultaneous,
         retention_days: template.retention_days == null ? '' : String(template.retention_days),
         job_slice_count: template.job_slice_count || 1,
@@ -467,6 +483,8 @@ export default function JobTemplateDetail() {
         forks: editForm.forks,
         enabled: editForm.enabled,
         timeout_seconds: editForm.timeout_seconds,
+        run_image_id: editForm.run_image_id,
+        identity_binding_id: editForm.identity_binding_id,
         allow_simultaneous: editForm.allow_simultaneous,
         // '' = inherit org setting; the API clears the override on -1
         retention_days: editForm.retention_days === '' ? -1 : Number(editForm.retention_days),
@@ -1403,7 +1421,15 @@ export default function JobTemplateDetail() {
                   value={editForm.timeout_seconds}
                   onChange={(e) => setEditForm({ ...editForm, timeout_seconds: parseInt(e.target.value) || 0 })}
                 />
-                <p className="text-xs text-muted-foreground">0 = no timeout. Runs exceeding it are killed.</p>
+                <p className="text-xs text-muted-foreground">0 uses the project's, then the organization's, then the platform default. A job exceeding it is stopped.</p>
+                {editForm.timeout_seconds === 0 && (
+                  <InheritedHint
+                    setting={effective?.run_timeout}
+                    ownLevel="job-template"
+                    describe={formatSeconds}
+                    testId="template-timeout-inherited"
+                  />
+                )}
               </div>
               <div className="space-y-2">
                 <Label htmlFor="job_slice_count">Job slices</Label>
@@ -1551,6 +1577,37 @@ export default function JobTemplateDetail() {
                 Assign to a self-hosted runner pool for execution on your own infrastructure.
               </p>
             </div>
+            {/* Run image (an execution environment) and identity binding (#933, D6, D8). */}
+            <RunImageSelect
+              id="template-run-image"
+              label="Execution environment"
+              orgName={orgName || ''}
+              kind="ansible"
+              value={editForm.run_image_id}
+              onChange={v => setEditForm({ ...editForm, run_image_id: v })}
+              hint={!editForm.run_image_id && (
+                <InheritedHint
+                  setting={effective?.run_image_id}
+                  ownLevel="job-template"
+                  describe={v => runImageLabel(runImages, v)}
+                  testId="template-run-image-inherited"
+                />
+              )}
+            />
+            <IdentityBindingSelect
+              id="template-identity-binding"
+              orgName={orgName || ''}
+              value={editForm.identity_binding_id}
+              onChange={v => setEditForm({ ...editForm, identity_binding_id: v })}
+              hint={!editForm.identity_binding_id && (
+                <InheritedHint
+                  setting={effective?.identity_binding_id}
+                  ownLevel="job-template"
+                  describe={v => bindingLabel(bindingOptions, v)}
+                  testId="template-identity-binding-inherited"
+                />
+              )}
+            />
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setEditDialogOpen(false)}>

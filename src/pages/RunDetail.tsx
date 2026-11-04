@@ -11,7 +11,10 @@ import { ApplyOutputViewer } from '@/components/runs/ApplyOutputViewer';
 import { RunSourceDisplay } from '@/components/runs/RunSourceDisplay';
 import { UnifiedPhaseTimeline } from '@/components/runs/UnifiedPhaseTimeline';
 import { RunTaskStages } from '@/components/runs/RunTaskStages';
+import { PlacementRecord, QueueReasonNotice } from '@/components/runners/PlacementRecord';
 import { ErrorDisplay } from '@/components/runs/ErrorDisplay';
+import { LostApplyRequeue } from '@/components/runs/LostApplyRequeue';
+import { isLostApply } from '@/lib/lostApply';
 import { WarningDisplay } from '@/components/runs/WarningDisplay';
 import { useRunPolling } from '@/hooks/useRunPolling';
 import { useRunDisplayPreferences } from '@/contexts/RunDisplayPreferencesContext';
@@ -133,6 +136,16 @@ export default function RunDetail() {
       }
     },
     enabled: !!id && run?.status === 'applied' && run?.operation === 'plan-and-apply',
+  });
+
+  // Where the run's latest attempt ran, and why it waits on a hosted pool (#933, AC56, AC77). The
+  // record changes when a phase is placed, so it polls while the run is still moving.
+  const runSettled = ['applied', 'planned_and_finished', 'errored', 'failed', 'canceled', 'discarded', 'force_canceled'].includes(run?.status ?? '');
+  const { data: placement } = useQuery({
+    queryKey: ['run-placement', id],
+    queryFn: () => runsApi.getPlacement(id!),
+    enabled: !!id && !!run,
+    refetchInterval: runSettled ? false : 3000,
   });
 
   // Adjust polling frequency based on run status - poll faster (750ms) during the
@@ -571,6 +584,9 @@ export default function RunDetail() {
         {/* Run-task stage gates (renders nothing for runs without task stages) */}
         {id && <RunTaskStages runId={id} runStatus={run.status} />}
 
+        <QueueReasonNotice placement={placement} />
+        <PlacementRecord placement={placement} />
+
         <UnifiedPhaseTimeline
           run={run}
           planOutput={planOutput}
@@ -655,6 +671,8 @@ export default function RunDetail() {
                     <p className="text-sm">The {run.operation === 'destroy' ? 'destroy' : 'apply'} operation was cancelled during execution.</p>
                   </div>
                 )}
+                {/* A lost apply is re-queued by a person, never on its own (decision 16) */}
+                {id && isLostApply(run) && <LostApplyRequeue runId={id} onRequeued={() => { refetchRun(); }} />}
                 {/* Show errors if apply/destroy failed - when plan phase completed (has planned-at timestamp) */}
                 {run.status === 'failed' &&
                   run['status-timestamps']?.['planned-at'] &&

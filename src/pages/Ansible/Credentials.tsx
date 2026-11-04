@@ -65,6 +65,7 @@ import {
   Eye,
   EyeOff,
   KeyRound,
+  Package,
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -76,6 +77,7 @@ const CREDENTIAL_TYPES: { value: CredentialType; label: string; description: str
   { value: 'azure', label: 'Azure', description: 'Microsoft Azure credentials' },
   { value: 'gcp', label: 'GCP', description: 'Google Cloud Platform credentials' },
   { value: 'vmware', label: 'VMware', description: 'VMware vSphere credentials' },
+  { value: 'registry', label: 'Container registry', description: 'Username and password or token to pull a run image' },
 ];
 
 // normalizePrivateKey repairs a pasted SSH private key so it loads cleanly.
@@ -199,7 +201,8 @@ export default function Credentials() {
       return;
     }
 
-    const isMachineSsh = credentialToEdit.type === 'machine-ssh';
+    // A registry credential is a username and a password or token, edited like Machine SSH.
+    const isMachineSsh = credentialToEdit.type === 'machine-ssh' || credentialToEdit.type === 'registry';
     if (isMachineSsh && editForm.newPassword !== '') {
       if (editForm.newPassword !== editForm.confirmPassword) {
         toast.error('New password and confirm password do not match');
@@ -213,7 +216,7 @@ export default function Credentials() {
         name: editForm.name,
         description: editForm.description || undefined,
       };
-      const isSshOrMachineSsh = credentialToEdit.type === 'ssh' || credentialToEdit.type === 'machine-ssh';
+      const isSshOrMachineSsh = credentialToEdit.type === 'ssh' || isMachineSsh;
       if (isSshOrMachineSsh && editForm.username !== undefined) {
         payload.username = editForm.username;
       }
@@ -275,6 +278,8 @@ export default function Credentials() {
         return <Cloud className="h-4 w-4" />;
       case 'vmware':
         return <Server className="h-4 w-4" />;
+      case 'registry':
+        return <Package className="h-4 w-4" />;
       default:
         return <Shield className="h-4 w-4" />;
     }
@@ -295,6 +300,8 @@ export default function Credentials() {
         return 'bg-red-500/10 text-red-600 border-red-500/20';
       case 'vmware':
         return 'bg-cyan-500/10 text-cyan-600 border-cyan-500/20';
+      case 'registry':
+        return 'bg-indigo-500/10 text-indigo-600 border-indigo-500/20';
       default:
         return 'bg-gray-500/10 text-gray-600 border-gray-500/20';
     }
@@ -349,19 +356,20 @@ export default function Credentials() {
           </>
         );
       case 'machine-ssh':
+      case 'registry':
         return (
           <>
             <div className="space-y-2">
               <Label htmlFor="username">Username</Label>
               <Input
                 id="username"
-                placeholder="root"
+                placeholder={formData.type === 'registry' ? 'robot$pull' : 'root'}
                 value={formData.username || ''}
                 onChange={(e) => setFormData({ ...formData, username: e.target.value })}
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
+              <Label htmlFor="password">{formData.type === 'registry' ? 'Password or token' : 'Password'}</Label>
               <div className="relative">
                 <Input
                   id="password"
@@ -853,18 +861,18 @@ export default function Credentials() {
                 onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
               />
             </div>
-            {(credentialToEdit?.type === 'machine-ssh' || credentialToEdit?.type === 'ssh') && (
+            {(credentialToEdit?.type === 'machine-ssh' || credentialToEdit?.type === 'ssh' || credentialToEdit?.type === 'registry') && (
               <div className="space-y-2">
                 <Label htmlFor="edit-username">Username</Label>
                 <Input
                   id="edit-username"
                   value={editForm.username}
                   onChange={(e) => setEditForm({ ...editForm, username: e.target.value })}
-                  placeholder="SSH login user"
+                  placeholder={credentialToEdit.type === 'registry' ? 'Registry user' : 'SSH login user'}
                 />
               </div>
             )}
-            {credentialToEdit?.type === 'machine-ssh' && (
+            {(credentialToEdit?.type === 'machine-ssh' || credentialToEdit?.type === 'registry') && (
               <>
                 <div className="space-y-2">
                   <Label htmlFor="edit-new-password">New password (leave blank to keep current)</Label>

@@ -4,6 +4,7 @@ covers:
   - "deploy/oidc.env.example"
   - "core/services/oidc/**"
   - "backend/cmd/runner/**"
+  - "backend/internal/executor/identity/**"
   - "backend/internal/api/v2/handlers/**"
 capabilities: [
   {
@@ -16,8 +17,8 @@ capabilities: [
     "evidence": [
       "core/services/oidc/token.go",
       "core/services/oidc/token_test.go",
-      "backend/cmd/runner/main.go",
-      "backend/cmd/runner/agent_mode.go"
+      "backend/internal/api/v2/handlers/runner_agent_identity.go",
+      "backend/internal/executor/identity/azure_oidc.go"
     ]
   }
 ]
@@ -50,12 +51,13 @@ A direct [JSON:API example](#register-through-the-api) is also provided. There i
 
 ```mermaid
 sequenceDiagram
-    participant Runner as StackWeaver Runner
+    participant Runner as Job (executor)
     participant SW as StackWeaver API
     participant Cloud
 
     Note over SW: Exposes OIDC discovery + JWKS endpoints
-    Note over Runner,SW: Platform runner or API creates a phase-scoped JWT
+    Runner->>SW: Fetch the job's inputs with its job token
+    SW-->>Runner: Short-lived JWT (workspace + phase scoped) among the inputs
     Runner->>Cloud: Present JWT as a federated / web-identity credential
     Cloud->>SW: Fetch JWKS to verify signature
     Cloud-->>Runner: Cloud access token
@@ -68,7 +70,7 @@ sequenceDiagram
 1. **OIDC provider** - Stackweaver exposes a signing key at `/.well-known/jwks` and a discovery document at `/.well-known/openid-configuration`.
 2. **Cloud trust** - You configure your cloud to trust Stackweaver as an OIDC issuer (an Azure federated credential, an AWS IAM OIDC provider + role, or a GCP Workload Identity Pool provider).
 3. **Registration** - You register the cloud-side identifiers in Stackweaver using the TFE Terraform provider (one resource per cloud).
-4. **Run time** - The runner generates a short-lived JWT scoped to the specific workspace and run phase, and injects it alongside the cloud identifiers as environment variables. The target provider uses the injected credential. Ansible integrations have their own documented configuration.
+4. **Run time** - The API mints a short-lived JWT scoped to the specific workspace and run phase, and hands it to the job with the rest of its inputs; the job's executor sets it, alongside the cloud identifiers, as environment variables or token files. This works the same on the hosted capacity and on every self-hosted runner. The target provider uses the injected credential. Ansible integrations have their own documented configuration.
 
 </details>
 
@@ -111,11 +113,19 @@ For a UI-configured dynamic source using Stackweaver federation, `<name>` is the
 organization:<org-name>:project:<project-name>:job:<job-name>:run
 ```
 
+`<job-name>` stays the same across launches, so a cloud trust can name it exactly:
+
+| How the job was launched | `<job-name>` |
+|---|---|
+| From a job template, including a relaunch or a slice of it. | The template's name. |
+| As an ad hoc command, including a relaunch of it. | `adhoc-<module>`, such as `adhoc-shell`. |
+| Directly, or a relaunch of a direct launch. | The name you gave the job. |
+
 `<project-name>` is the StackWeaver project the resource belongs to, or `default` for org-scoped resources without a project.
 
 ### Pinning to immutable identifiers
 
-The subject uses organization, project and resource names. Renaming one can break an exact cloud trust match. Names containing a colon are rejected when minting a token so they cannot shift subject segments. Organization names remain reserved after deletion or rename; only the same organization can reuse its prior name.
+The subject uses organization, project and resource names. Renaming one can break an exact cloud trust match. A name containing a colon cannot be used in a token, because it would shift the subject's segments. A run or job whose configured identity cannot be read or minted fails before it starts, and its error names the reason; it never runs without that identity. To recover from a colon, rename the organization, project, workspace, template or job the error names, then update the cloud trust. Organization names remain reserved after deletion or rename; only the same organization can reuse its prior name.
 
 Where the target supports custom-claim conditions, pin the immutable `stackweaver_organization_id` as well as `sub`. Tokens also carry `stackweaver_project_id` and, for Terraform runs, `stackweaver_workspace_id`. Get the organization ID from its API response. Ansible tokens carry organization/project IDs rather than a Terraform workspace ID.
 
@@ -190,7 +200,7 @@ provider "azurerm" {
 }
 ```
 
-The runner injects these environment variables automatically:
+The job receives these environment variables automatically:
 
 | Variable | Description |
 |----------|-------------|
@@ -251,7 +261,7 @@ After apply, confirm the registration exists and its returned identifiers match 
 
 ### Step 4: Configure the aws Provider in Your Workspaces
 
-With no conflicting static credentials configured, the `aws` provider performs `AssumeRoleWithWebIdentity` automatically from the injected environment. The runner writes the token to a file and sets:
+With no conflicting static credentials configured, the `aws` provider performs `AssumeRoleWithWebIdentity` automatically from the injected environment. The job's executor writes the token to a file and sets:
 
 | Variable | Description |
 |----------|-------------|
@@ -316,7 +326,7 @@ After apply, confirm the registration exists and its returned identifiers match 
 
 ### Step 4: Configure the google Provider in Your Workspaces
 
-No provider block credentials are required - the `google` provider reads an external-account credential configuration automatically from the injected environment. The runner writes the token and a credential-config file and sets:
+No provider block credentials are required - the `google` provider reads an external-account credential configuration automatically from the injected environment. The job's executor writes the token and a credential-config file and sets:
 
 | Variable | Description |
 |----------|-------------|
@@ -333,7 +343,7 @@ Set the `project` (and `region`) in your `google` provider block as usual.
 ## Vault
 
 HashiCorp Vault differs from the cloud providers: instead of the provider exchanging a token, the
-**runner logs in to Vault** via the JWT auth method and exports a `VAULT_TOKEN` for the run. Point the
+**job's executor logs in to Vault** via the JWT auth method and exports a `VAULT_TOKEN` for the run. Point the
 Vault JWT auth method at Stackweaver as an OIDC issuer, then register the config. The token audience is
 `vault.workload.identity`.
 
@@ -390,7 +400,7 @@ After apply, confirm the registration exists and its returned identifiers match 
 
 ### Step 4: Use the vault Provider in Your Workspaces
 
-No provider block credentials are required - the runner logs in to Vault before the run and exports the
+No provider block credentials are required - the executor logs in to Vault before the run and exports the
 token. The `vault` provider (and any provider reading `VAULT_*`) picks it up automatically:
 
 | Variable | Description |
@@ -437,7 +447,7 @@ Use a test workspace and review a plan with the intended identity. Check that th
 
 ## Operator configuration
 
-Workload identity has its own issuer; it is separate from the Zitadel issuer used for user sign-in. Two variables control token signing and discovery for every target. On Docker Compose they live in `oidc.env` in your Compose directory (copied from `oidc.env.example` during installation). On Kubernetes, set the issuer with the `oidc.issuerUrl` Helm value; the chart generates the signing key into a Secret shared by the API and both runners, or uses your own Secret when you set `secrets.oidc.secretName`.
+Workload identity has its own issuer; it is separate from the Zitadel issuer used for user sign-in. Two variables control token signing and discovery for every target. On Docker Compose they live in `oidc.env` in your Compose directory (copied from `oidc.env.example` during installation). On Kubernetes, set the issuer with the `oidc.issuerUrl` Helm value; the chart generates the signing key into a Secret the API reads, or uses your own Secret when you set `secrets.oidc.secretName`.
 
 | Variable | Required | Description |
 |----------|----------|-------------|
@@ -446,9 +456,9 @@ Workload identity has its own issuer; it is separate from the Zitadel issuer use
 
 ### Share a persistent signing key
 
-Stackweaver runs two separate containers that participate in OIDC: the API (which serves the JWKS public key endpoint the cloud fetches) and the runner (which signs the workload identity token injected into each run). Both read the same `OIDC_SIGNING_KEY`, so the key the runner signs with is the key the API publishes. Without a valid configured key, secure API startup fails and platform runners cannot initialize workload identity. An ephemeral key is generated only when `DEV_INSECURE_KEY=1` is set, which is meant for local development: each container then mints its own key, the runner's token carries a `kid` the API's JWKS does not advertise, and the cloud rejects it (for example Azure's `AADSTS700211`).
+The API both signs every workload identity token and serves the JWKS public key endpoint the cloud fetches, and a deployment can run more than one API replica. Every replica must read the same `OIDC_SIGNING_KEY`, so a token one replica signed verifies against the keys any replica publishes. Without a valid configured key, secure API startup fails. Launchers and jobs never hold the key. An ephemeral key is generated only when `DEV_INSECURE_KEY=1` is set, which is meant for local development: each replica then mints its own key, a token can carry a `kid` the JWKS another replica serves does not advertise, and the cloud rejects it (for example Azure's `AADSTS700211`).
 
-On Docker Compose, set `OIDC_SIGNING_KEY` in `oidc.env`; the self-hosting bundle reads that file into the API and both runners. On Kubernetes the chart generates the key into a Secret and mounts it into the same three Deployments, or uses the Secret you name in `secrets.oidc.secretName`.
+On Docker Compose, set `OIDC_SIGNING_KEY` in `oidc.env`; the self-hosting bundle reads that file into the API. On Kubernetes the chart generates the key into a Secret and passes it to the API Deployment, or uses the Secret you name in `secrets.oidc.secretName`.
 
 ### Store the key on one line
 
@@ -467,10 +477,10 @@ After editing `oidc.env`, recreate the services that read it so they pick up the
 
 ```bash
 # Run in your Compose directory
-docker compose up -d api runner ansible-runner
+docker compose up -d api
 ```
 
-Keep the key private and shared by the components that sign or serve tokens. Do not regenerate it as routine troubleshooting; changing it affects existing trust and active tokens.
+Keep the key private and shared by every API replica. Do not regenerate it as routine troubleshooting; changing it affects existing trust and active tokens.
 
 On Kubernetes the chart generates the key for you. After changing `oidc.issuerUrl` in `my-values.yaml`, apply it with:
 
@@ -495,7 +505,7 @@ The issuer, subject, or audience in the token does not match your cloud-side tru
 
 ### Tokens are rejected only after a Stackweaver restart, or intermittently
 
-The containers are running with `DEV_INSECURE_KEY=1` and no `OIDC_SIGNING_KEY`, so each one generates its own RSA key pair on every start and the API and runner hold different keys. On Docker Compose, set a stable, shared `OIDC_SIGNING_KEY` in `oidc.env`, remove `DEV_INSECURE_KEY`, and recreate the services as described in [Generating the signing key](#generate-and-apply-the-signing-key). On Kubernetes, confirm that the API and runner Deployments reference the same OIDC Secret.
+The containers are running with `DEV_INSECURE_KEY=1` and no `OIDC_SIGNING_KEY`, so each API replica generates its own RSA key pair on every start and the replicas hold different keys. On Docker Compose, set a stable, shared `OIDC_SIGNING_KEY` in `oidc.env`, remove `DEV_INSECURE_KEY`, and recreate the services as described in [Generating the signing key](#generate-and-apply-the-signing-key). On Kubernetes, confirm that the API Deployment references the OIDC Secret.
 
 ### Azure: role-assignment authorization fails
 

@@ -1,7 +1,8 @@
 ---
-description: "Guide to organization-level settings and policies: admin contact, token access, force-delete policy, health assessments, and pull request status behavior"
+description: "Guide to organization-level settings and policies: admin contact, token access, force-delete policy, health assessments, pull request status behavior, and the run defaults"
 covers:
   - "frontend/src/pages/Settings/Organization.tsx"
+  - "frontend/src/components/settings/OrgRunDefaults.tsx"
   - "backend/internal/api/v2/handlers/organizations*"
   - "backend/internal/api/middleware/org_wall*"
   - "core/models/organization*"
@@ -24,7 +25,7 @@ capabilities: [
 
 # Configure organization settings
 
-Open **Settings > Organization** to change policies for an organization. These settings affect API access, workspace deletion, drift assessments and pull-request plans. Use an organization owner or an account with organization membership-management permission.
+Open **Settings > Organization** to change policies for an organization. These settings affect API access, workspace deletion, drift assessments, pull-request plans and the defaults of the organization's runs and jobs. Use an organization owner or an account with organization membership-management permission.
 
 ## Change a setting and confirm it
 
@@ -55,6 +56,20 @@ Create an organization token under **Settings > Organization Token** before movi
 > [!WARNING]
 > Force deletion removes workspace management records without destroying the infrastructure. Keep state and ownership recovery requirements in mind before granting that permission.
 
+## Run defaults
+
+The **Run Defaults** card sets what the organization's runs, jobs and syncs use when neither they nor their project set it.
+
+| Setting | Effect |
+|---|---|
+| Run timeout, in minutes. | The longest a run or job may take. |
+| OpenTofu run image. | The image the organization's OpenTofu runs execute in. |
+| Ansible execution environment. | The image the organization's Ansible jobs and dynamic inventory source syncs execute in. Snapshot captures, VCS inventory file syncs and constructed rebuilds always run in the platform image. |
+| Identity binding. | The identity binding the organization's runs and jobs use. |
+| Cache size limit, in GiB. | The most the organization's verified cache of OpenTofu releases, providers and Galaxy content may hold before its oldest entries are removed. |
+
+A field left empty uses the platform default, which the placeholder shows. [Run images and execution environments](./run-images-and-execution-environments.md#where-a-setting-comes-from) explains how these defaults are inherited. Over the API they are the `run-timeout` (seconds), `tofu-run-image-id`, `ansible-run-image-id`, `identity-binding-id` and `cache-size-limit` (bytes) attributes of `PATCH /api/v2/organizations/:name`. They are Stackweaver extensions with no `tfe_organization` equivalent.
+
 ## What a delete removes
 
 Deleting a workspace, project or organization also removes what it holds in object storage, once the delete has completed:
@@ -63,7 +78,7 @@ Deleting a workspace, project or organization also removes what it holds in obje
 |---|---|
 | Workspace | State versions, run logs, saved plans and uploaded configurations. |
 | Project | The above for each of its workspaces, and the cached snapshots and stored content of its playbooks. |
-| Organization | The above for each of its projects, and its registry modules and providers. |
+| Organization | The above for each of its projects, its verified cache, and its registry modules and providers. |
 
 A deleted object can only be recovered from a [backup](../get-started/self-hosting/backup-and-restore.md). Deleting a project keeps the organization's registry.
 
@@ -96,7 +111,7 @@ resource "stackweaver_organization" "platform" {
 }
 ```
 
-Review the plan, apply, then confirm the policy values on the organization page or API response. The compatible `tfe_organization` resource exposes the corresponding supported attributes as well.
+Review the plan, apply, then confirm the policy values on the organization page or API response. The compatible `tfe_organization` resource exposes the corresponding supported attributes as well. The run defaults have no provider attribute; set them in the UI or through the API.
 
 Do not set `session_timeout_minutes`, `session_remember_minutes`, `enforce_hyok`, `stacks_enabled`, `max_ttl_enabled` or `owners_team_saml_role_id` expecting a subsystem to be enabled. They have no backing behavior here; session settings are controlled by Zitadel and unsupported provider attributes can produce drift.
 

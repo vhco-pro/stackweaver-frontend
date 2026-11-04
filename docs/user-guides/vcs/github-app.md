@@ -110,9 +110,9 @@ PEM key at the host path mounted by that file; the repository deployment uses:
 cp ~/Downloads/your-app.private-key.pem ./github-app-private-key.pem
 ```
 
-The API, orchestrator and Ansible runner need to read that file through their configured
-read-only mount. Keep the deployment directory private and ensure the container user can
-read the key; the repository's containers use UID 1001.
+The API and the orchestrator need to read that file through their configured read-only
+mount; launchers and jobs never receive it. Keep the deployment directory private and
+ensure the container user can read the key; the repository's containers use UID 1001.
 
 Put the app settings in the persistent **`vcs.env`** file, not the generated `.env`:
 
@@ -129,12 +129,12 @@ escape each literal `$` as `$$`. An `environment:` entry in Compose overrides `e
 so do not add a blank app credential or webhook-secret override there.
 
 The repository Compose file already loads `vcs.env`, sets the private-key container path
-and mounts the key for those three services. For another Compose deployment, verify the
+and mounts the key for those two services. For another Compose deployment, verify the
 same wiring before applying. Keep the public frontend origin consistent with the
 [custom-domain procedure](../authentication/zitadel-custom-domain.md).
 
 ```bash
-docker compose up -d api orchestrator ansible-runner
+docker compose up -d api orchestrator
 docker compose logs --tail=100 api
 ```
 

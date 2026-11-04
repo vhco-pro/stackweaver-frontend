@@ -1,7 +1,9 @@
 ---
-description: "How Ansible execution works in Stackweaver: job lifecycle and launch gates, platform runner vs self-hosted agents, inventory syncs, workflows, ad hoc commands, and webhook triggers - with flow diagrams"
+description: "How Ansible execution works in Stackweaver: job lifecycle and launch gates, how launchers claim and place jobs on hosted capacity and agent pools, inventory syncs, workflows, ad hoc commands, and webhook triggers - with flow diagrams"
 covers:
   - "backend/cmd/ansible-runner/**"
+  - "backend/internal/launcher/**"
+  - "backend/internal/executor/**"
   - "core/services/ansible/**"
   - "core/repository/ansible_*"
   - "core/models/ansible_schedule*"
@@ -21,7 +23,7 @@ capabilities: [
       "core/services/ansible/inventory_slice_test.go",
       "frontend/src/pages/Ansible/run-viewer/adapter.test.ts",
       "backend/cmd/ansible-runner/main.go",
-      "backend/cmd/ansible-runner/agent_mode.go"
+      "backend/internal/executor/ansibleexec/run.go"
     ]
   },
   {
@@ -55,7 +57,7 @@ capabilities: [
     "summary": "Launch an opted-in job template from a GitHub or Azure DevOps push.",
     "area": "ansible",
     "availability": "available",
-    "limitations": "Fresh mode fetches branch HEAD at job execution; it does not pin the webhook commit. Cached mode can race snapshot synchronization.",
+    "limitations": "Fresh mode captures branch HEAD in a snapshot sync before the job runs; it does not pin the webhook commit. Cached mode can race snapshot synchronization.",
     "evidence": [
       "backend/internal/api/v2/handlers/vcs_app_installation.go",
       "backend/internal/api/v2/handlers/vcs_push_ansible_sync_test.go"
@@ -79,10 +81,10 @@ capabilities: [
     "summary": "Run jobs and ad hoc commands on agents that can reach your private hosts.",
     "area": "ansible",
     "availability": "available",
-    "limitations": "Choose the pool on the job template or ad hoc launch. Inventory syncs still execute on platform infrastructure.",
+    "limitations": "Choose the pool on the job template or ad hoc launch, or set a project or organization default. Snapshot syncs, VCS inventory syncs and constructed rebuilds execute on the hosted capacity.",
     "evidence": [
       "core/services/ansible/job.go",
-      "backend/cmd/ansible-runner/agent_mode.go",
+      "backend/internal/launcher/launcher.go",
       "backend/internal/api/v2/handlers/runner_agent.go"
     ]
   }
@@ -96,7 +98,7 @@ repository triggers. Use the diagrams below to locate the stage you need to inve
 
 ## Where the work runs
 
-Stackweaver's Ansible engine is built from a small number of cooperating services. The API owns all state and decisions; runners only execute. Two Redis lists connect them: `ansible_jobs` carries playbook runs and `ansible_sync` carries inventory and playbook syncs. Self-hosted agents do not use Redis at all - they poll the API over HTTPS.
+Stackweaver's Ansible engine is built from a small number of cooperating services. The API owns all state and decisions; launchers only claim work and place it. Every job and every sync is a row in PostgreSQL that waits for a launcher of its pool, which is either the organization's hosted pool, served by the installation's own launchers, or an agent pool whose launchers run in your network. Launchers reach the API over HTTPS only and hold no database, storage or Redis credential.
 
 ```mermaid
 flowchart LR
@@ -104,21 +106,24 @@ flowchart LR
     GH["GitHub / Azure DevOps webhooks"] --> API
     CB["Provisioned hosts (callbacks)"] --> API
     API --> PG[("PostgreSQL")]
-    API -->|"ansible_jobs / ansible_sync"| Redis[("Redis")]
-    Redis --> Runner["Platform ansible-runner"]
-    Agent["Self-hosted agent"] -->|"heartbeat + artifacts over HTTPS"| API
-    Runner --> PG
+    API -.->|"wakeups"| Redis[("Redis")]
+    Hosted["Hosted launcher"] -->|"heartbeat, claim, job token over HTTPS"| API
+    Agent["Launcher in an agent pool"] -->|"heartbeat, claim, job token over HTTPS"| API
+    Hosted --> E1["Executor in a job container or pod"]
+    Agent --> E2["Executor (in-process, container or pod)"]
+    E1 -->|"inputs, events, result"| API
+    E2 -->|"inputs, events, result"| API
     API -.->|"scheduler tick (30s)"| API
 ```
 
 <details>
 <summary><strong>Components (Legend)</strong></summary>
 
-1. **API server** - owns every decision: launch gates, RBAC, variable merging, workflow progression, notification dispatch. Runs the scheduler tick.
-2. **PostgreSQL** - jobs, events, inventories, sync history, workflow state. The platform runner reads and writes it directly; agents never touch it.
-3. **Redis** - two queues only: `ansible_jobs` (playbook runs) and `ansible_sync` (inventory/playbook syncs). Used exclusively by the platform runner.
-4. **Platform ansible-runner** - Stackweaver's own runner container. Dequeues from Redis, executes, writes events straight to the database.
-5. **Self-hosted agent** - the same runner binary in agent mode, running in your network. Outbound-only HTTPS: it heartbeats, picks up jobs assigned to its agent pool, downloads everything it needs as one artifacts bundle, and posts results back.
+1. **API server** - owns every decision: launch gates, RBAC, variable merging, workflow progression, notification dispatch. Runs the scheduler tick, and is the only service that reads and writes the database and object storage on a job's behalf.
+2. **PostgreSQL** - jobs, syncs, events, inventories, sync history, workflow state. A job or sync waiting for a launcher is a row with its pool, not a queue message.
+3. **Redis** - carries wakeups, so a launcher holding an open heartbeat is answered as soon as work for its pool appears. No launcher connects to it.
+4. **Launcher** - the `stackweaver-ansible-runner` image, on the hosted capacity or in an agent pool. It keeps one heartbeat open, is offered work for its pool up to its free capacity, claims a job atomically and asks the API for a token valid for that job alone.
+5. **Executor** - placed by the launcher's driver as a child process, a container or a pod. It fetches the job's inputs with the job token, installs Galaxy requirements, runs `ansible-playbook`, and posts events and the result back.
 6. **Scheduler tick** - a 30-second loop inside the API that runs schedules, releases held jobs, advances workflows, dispatches notifications, and cleans up expired jobs.
 
 </details>
@@ -146,9 +151,9 @@ flowchart TD
     CONC -->|no| DISPATCH
     SYNC --> TICK["Scheduler tick releases<br/>when syncs settle"]
     HOLD --> TICK
-    TICK --> DISPATCH{"Agent pool set?"}
-    DISPATCH -->|no| Q["Push to Redis ansible_jobs"]
-    DISPATCH -->|yes| POLL["Wait for agent heartbeat pickup"]
+    TICK --> DISPATCH{"Agent pool on the template,<br/>project or organization?"}
+    DISPATCH -->|no| HOSTED["Offer to the hosted pool's launchers"]
+    DISPATCH -->|yes| POLL["Offer to that pool's launchers"]
 ```
 
 <details>
@@ -158,7 +163,7 @@ flowchart TD
 2. **Variable merge** - platform variables, then variable sets, then template variables, then launch-time overrides; later layers win.
 3. **Dependency gate** - inventory sources with *update on launch* whose cache window lapsed are synced first; constructed inventories rebuild from their inputs. The job stays held until no dependency sync is running (a sync stuck longer than 30 minutes stops blocking).
 4. **Concurrency gate** - without *allow simultaneous*, one run per template at a time; the check-then-create runs under a per-template database lock so concurrent launches cannot both pass. Sliced jobs skip this gate by design.
-5. **Release** - the scheduler tick re-evaluates held jobs every 30 seconds and dispatches the ones whose gates cleared. A dependency sync that failed (or stopped blocking after 30 minutes) does not fail the job: it runs on the source's last successful hosts, and before it is dispatched the API records the source on the job (`inventory-sync-warnings`) and writes the notice as the job's first output event, which both runner paths continue after. See [Dynamic inventories](../../user-guides/dynamic-inventories.md#when-an-update-on-launch-sync-fails).
+5. **Release** - the scheduler tick re-evaluates held jobs every 30 seconds and dispatches the ones whose gates cleared. A dependency sync that failed (or stopped blocking after 30 minutes) does not fail the job: it runs on the source's last successful hosts, and before it is dispatched the API records the source on the job (`inventory-sync-warnings`) and writes the notice as the job's first output event, which the job's own output follows. See [Dynamic inventories](../../user-guides/dynamic-inventories.md#when-an-update-on-launch-sync-fails).
 
 </details>
 
@@ -270,80 +275,63 @@ ID. That query returns the group's slices together in slice order. There is no m
 YAML object that replaces template registration or a launch request. Your playbook YAML
 still defines what Ansible executes.
 
-## Choose platform or self-hosted execution
+<a id="choose-platform-or-self-hosted-execution" style="scroll-margin-top: 7rem"></a>
 
-Both paths run the same playbook with the same options - the difference is **how the work and its inputs reach the executor**. The platform runner is push-based and trusted with database access; the agent is pull-based and receives everything as a self-contained bundle, so it works from inside a private network with outbound-only connectivity and no credentials for Stackweaver's infrastructure.
+## Choose hosted or self-hosted execution
 
-| | Platform runner | Self-hosted agent |
+Every job takes the same path, whether its pool is the organization's hosted capacity or an agent pool in your network. What differs between pools is only where the launcher runs and which driver it uses.
+
+| | Hosted capacity | Agent pool |
 |---|---|---|
-| Transport | Redis queue (`ansible_jobs`) | Outbound HTTPS polling (heartbeat) |
-| Job assignment | Any platform runner takes the next queued job | Only jobs whose template targets the agent's pool, offered up to the agent's free capacity and claimed atomically on start so exactly one agent runs each job (or slice) |
-| Inputs | Reads playbook/inventory/credentials from the database and object storage itself | Downloads one artifacts bundle: rendered inventory, decrypted credentials and vault passwords, cloud auth environment, and the playbook source (the cached snapshot to download from the API, VCS clone info for a fresh playbook, or generated content for ad hoc). Galaxy requirements are installed on the agent host from the playbook's `requirements.yml` |
-| Results | Writes job events and status directly to the database | Posts events and status back over HTTPS |
+| Who runs the launchers | The installation (the `ansible-launcher` service on Docker Compose, the Ansible launcher Deployment on Kubernetes) | You, on your own hosts or cluster |
+| Which jobs it gets | Jobs whose template, project and organization name no agent pool, every snapshot capture, VCS inventory file sync and constructed rebuild, and dynamic source syncs without an agent pool default | Jobs whose template targets the pool, or whose project or organization defaults to it |
+| Driver | Container or Kubernetes | In-process, container or Kubernetes |
 | Network position | Inside the Stackweaver deployment | Anywhere with outbound HTTPS to the API |
 
-### Platform runner flow
+### Follow a job through a launcher
 
 ```mermaid
 sequenceDiagram
-    participant API
-    participant Redis
-    participant Runner as Platform runner
-    participant DB as PostgreSQL
-    API->>Redis: enqueue job message (job id + pre-resolved clone URL)
-    Runner->>Redis: dequeue
-    Runner->>DB: load job, template, credentials
-    Note over Runner: prepare playbook<br/>(cached snapshot / fresh clone /<br/>generated ad hoc playbook)
-    Note over Runner: render inventory (+ slice filter),<br/>write SSH keys, vault files,<br/>cloud + OIDC environment
-    Runner->>Runner: ansible-playbook (jsonl callback)
-    Runner->>DB: stream events, final status + stats
-```
-
-### Self-hosted agent flow
-
-```mermaid
-sequenceDiagram
-    participant Agent
+    participant Launcher
     participant API
     participant DB as PostgreSQL
-    loop every heartbeat
-        Agent->>API: heartbeat (pool, capacity)
-        API->>DB: pending released jobs for this pool (bounded by free capacity)
-        API-->>Agent: job id (if any)
+    participant Executor
+    loop long-poll heartbeat
+        Launcher->>API: heartbeat (pool, free capacity)
+        API->>DB: released jobs and syncs of this pool (bounded by free capacity)
+        API-->>Launcher: offers (when work appears, or the poll interval ends)
     end
-    Agent->>API: POST job start (atomic claim)
-    API-->>Agent: 200 claimed / 409 already taken → skip
-    Agent->>API: GET job artifacts<br/>(X-Stackweaver-Runner-Capabilities: playbook-snapshot)
-    API-->>Agent: inventory content (sliced), credentials,<br/>vault passwords, env vars, playbook source mode
-    alt cached playbook with a snapshot
-        Agent->>API: GET playbook snapshot
-        API-->>Agent: snapshot tarball (streamed from object storage)
-    else fresh playbook, or cached with no snapshot yet
-        Note over Agent: clone repo (VCS)
-    else ad hoc
-        Note over Agent: write shipped playbook content
-    end
-    Note over Agent: install requirements.yml<br/>(per-project Galaxy cache)
-    Agent->>API: POST source banner + Galaxy install events
-    Agent->>Agent: ansible-playbook
-    Agent->>API: POST events + final status
+    Launcher->>API: POST job start (atomic claim)
+    API-->>Launcher: 200 claimed / 409 already taken, skip
+    Launcher->>API: POST job token
+    API-->>Launcher: token valid for this job and attempt only
+    Launcher->>Executor: place (in-process, container or pod) with the job token
+    Executor->>API: GET job artifacts
+    API-->>Executor: inventory (sliced), credentials, vault passwords,<br/>env vars, per-run identity tokens, playbook source, cache descriptor
+    Executor->>API: GET playbook snapshot
+    API-->>Executor: snapshot tarball (streamed from object storage)
+    Note over Executor: install requirements.yml<br/>(from the organization's verified cache first)
+    Executor->>API: POST source banner + Galaxy install events
+    Executor->>Executor: ansible-playbook
+    Executor->>API: POST events + final status
 ```
 
 <details>
-<summary><strong>Why the difference matters (Legend)</strong></summary>
+<summary><strong>What the flow guarantees (Legend)</strong></summary>
 
-1. **Held jobs apply to both** - agents only see jobs that the gates have released, so concurrency limits and dependency syncs behave identically.
-2. **Credential handling** - agents receive decrypted job credentials and write temporary runtime files. Protect the runner host and its workspace; cleanup is not a guarantee against host access or an interrupted process.
-3. **Ad hoc on agents** - the transient playbook is generated server-side and shipped as content in the artifacts bundle, so no repository access is needed.
-4. **Job claiming** - the API limits offered work to free capacity and atomically claims a job on start. An agent that loses the claim skips it; this prevents that claim race from starting the same slice twice.
-5. **Choosing the path** - set an agent pool on the job template (or pick a runner in the Run Command dialog); leave it empty to run on platform runners.
-6. **Same playbook preparation on both paths** - a `cached` playbook runs its snapshot and a `fresh` one is cloned, and a repository's `requirements.yml` is installed before the play. An agent cannot reach object storage, so it downloads the snapshot through the API, and when a `cached` playbook has no snapshot yet the agent clones for that one run while the API queues a sync for the next. The agent announces that it can run snapshots in the `X-Stackweaver-Runner-Capabilities` header of the artifacts request; an agent that does not send it is given the clone URL for every VCS-backed playbook and clones.
+1. **Held jobs apply everywhere** - a launcher is only offered jobs that the gates have released, so concurrency limits and dependency syncs behave the same on every pool.
+2. **Credential handling** - the executor alone receives decrypted job credentials in the artifacts response. It writes them with owner-only permissions into a directory that exists for that job and removes them on every exit path, and the job token is refused once the job has finished. Protect the hosts your launchers run on; cleanup is not a guarantee against host access or an interrupted process.
+3. **Every job starts from a snapshot** - a `cached` playbook runs its last synced snapshot. A `fresh` playbook, and a `cached` one that has not been synced yet, is captured by a snapshot sync on the hosted capacity first, and the job waits for it. No job clones from your VCS provider, so launchers never need a route to it or a VCS credential.
+4. **Ad hoc commands** - the transient playbook is generated server-side and shipped as content in the artifacts, so no repository access is needed.
+5. **Job claiming** - the API limits offered work to each launcher's free capacity and atomically claims a job on start. A launcher that loses the claim skips it; this prevents that claim race from starting the same job or slice twice.
+6. **A lost launcher** - if a launcher disappears while a job runs, the job ends as errored with "runner lost during job", because a playbook may not be safe to run twice; relaunch it to run a new attempt. A sync is offered again as a new attempt. The token of an earlier attempt is refused.
+7. **Choosing the path** - set an agent pool on the job template (or pick one in the Run Command dialog), or a default on the project or organization; leave them all empty to run on the hosted capacity.
 
 </details>
 
 ## Follow an inventory sync
 
-Every way an inventory can refresh goes through the same queue and lands in the same sync history (the Syncs tab), each run with its captured output. Long syncs can be tailed live: the runner flushes output to the run's history row every couple of seconds while it executes, and the output dialog polls while a run is active. Use these read operations, with your inventory or sync ID:
+Every way an inventory can refresh becomes a sync that a launcher claims like a job, and lands in the same sync history (the Syncs tab), each run with its captured output. Long syncs can be tailed live: the sync's output is flushed to the run's history row every couple of seconds while it executes, and the output dialog polls while a run is active. Use these read operations, with your inventory or sync ID:
 
 | API operation | Result |
 |---|---|
@@ -352,15 +340,15 @@ Every way an inventory can refresh goes through the same queue and lands in the 
 
 ```mermaid
 flowchart TD
-    T1["Manual sync / Rebuild button"] --> Q["ansible_sync queue"]
+    T1["Manual sync / Rebuild button"] --> Q["Sync work item"]
     T2["Schedule"] --> Q
     T3["VCS push webhook"] --> Q
     T4["Update-on-launch (job launch)"] --> Q
     T5["Workflow sync node"] --> ENG["runs in API"]
-    Q --> R["ansible-runner"]
-    R --> B1["VCS file inventory:<br/>clone repo, parse file"]
-    R --> B2["Dynamic source:<br/>ansible-inventory with cloud plugin"]
-    R --> B3["Constructed inventory:<br/>export inputs, apply rules"]
+    Q --> R["Ansible launcher places it"]
+    R --> B1["VCS file inventory (hosted, platform image):<br/>clone repo, parse file"]
+    R --> B2["Dynamic source (its pool and image):<br/>ansible-inventory with cloud plugin"]
+    R --> B3["Constructed inventory (hosted, platform image):<br/>export inputs, apply rules"]
     B1 --> REC["Reconcile hosts/groups in DB"]
     B2 --> REC
     B3 --> REC
@@ -371,10 +359,11 @@ flowchart TD
 <summary><strong>Reconciliation semantics (Legend)</strong></summary>
 
 1. **Source ownership** - dynamic sources stamp the hosts and groups they discover. With *overwrite* on, a source prunes only its own rows when the provider stops reporting them; manual entries and other sources' rows are never touched.
-2. **A failed run reconciles nothing** - for a dynamic source sync and for a constructed inventory build, the runner tells `ansible-inventory` to exit non-zero when it cannot parse any one of the sources it was given (rejected credentials, an unreachable endpoint, a configuration the plugin refuses, an input it cannot read). Such a run is recorded as failed with the plugin's error in its output, and the rows stay as the last successful run left them. A run that succeeds with no hosts is a different outcome: with *overwrite* on it prunes everything the source owned.
-3. **Variable merging** - by default synced host variables merge into existing ones (your manual keys survive); *overwrite variables* switches to wholesale replacement.
-4. **Constructed inventories** - are derived-only: their hosts and groups come from the build alone, and every successful rebuild replaces the materialized set from the inputs and rules. The API refuses to add a host, a group or an inventory source to a constructed inventory, to add a host to one of its groups, or to move one of its groups under another, so every row a rebuild removes is one it derived. A host or group can still be deleted, and the next rebuild derives it again if the inputs and rules still produce it.
-5. **History and live tail** - each run records who triggered it (manual, schedule, launch, workflow, webhook), host/group counts, duration, and the full diagnostics; raise the source's verbosity for more detail.
+2. **Where syncs run** - a VCS inventory file sync and a constructed rebuild always run on the hosted capacity in the platform image, with the only clone credential held in that sync's memory. A dynamic source sync runs on the project's or organization's default agent pool when one is set, otherwise on the hosted capacity, in the execution environment and with the identity binding its source resolves, bounded by its sync timeout.
+3. **A failed run reconciles nothing** - for a dynamic source sync and for a constructed inventory build, the sync tells `ansible-inventory` to exit non-zero when it cannot parse any one of the sources it was given (rejected credentials, an unreachable endpoint, a configuration the plugin refuses, an input it cannot read). Such a run is recorded as failed with the plugin's error in its output, and the rows stay as the last successful run left them. A run that succeeds with no hosts is a different outcome: with *overwrite* on it prunes everything the source owned.
+4. **Variable merging** - by default synced host variables merge into existing ones (your manual keys survive); *overwrite variables* switches to wholesale replacement.
+5. **Constructed inventories** - are derived-only: their hosts and groups come from the build alone, and every successful rebuild replaces the materialized set from the inputs and rules. The API refuses to add a host, a group or an inventory source to a constructed inventory, to add a host to one of its groups, or to move one of its groups under another, so every row a rebuild removes is one it derived. A host or group can still be deleted, and the next rebuild derives it again if the inputs and rules still produce it.
+6. **History and live tail** - each run records who triggered it (manual, schedule, launch, workflow, webhook), host/group counts, duration, and the full diagnostics; raise the source's verbosity for more detail.
 
 </details>
 
@@ -447,7 +436,7 @@ for graph fields and validation. The graph is not a playbook YAML file.
 
 ## Run an ad hoc command
 
-Run Command executes a single module against an inventory without a playbook or template. The platform generates a one-task playbook from the module and arguments and pushes it through the normal job pipeline, so ad hoc runs get live output, events, and statistics like any job - on a platform runner or any agent pool.
+Run Command executes a single module against an inventory without a playbook or template. The platform generates a one-task playbook from the module and arguments and pushes it through the normal job pipeline, so ad hoc runs get live output, events, and statistics like any job, on the hosted capacity or any agent pool.
 
 ```mermaid
 flowchart LR
@@ -484,7 +473,7 @@ flowchart TD
     MATCH -->|no| CBDENY["400 rejected"]
 ```
 
-For *launch on webhook*, `fresh` source mode fetches the selected branch's HEAD when the job executes; it does not pin the job to the triggering commit. In `cached` mode a launch can race the snapshot sync and run the previous captured commit. Provisioning callbacks require the template to allow callbacks and the calling host to already exist in the template's inventory.
+For *launch on webhook*, `fresh` source mode captures the selected branch's HEAD in a snapshot sync before the job runs; it does not pin the job to the triggering commit. In `cached` mode a launch can race the snapshot sync and run the previous captured commit. Provisioning callbacks require the template to allow callbacks and the calling host to already exist in the template's inventory.
 
 ## Scheduled work and delayed transitions
 

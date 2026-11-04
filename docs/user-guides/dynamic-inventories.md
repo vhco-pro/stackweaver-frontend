@@ -2,6 +2,8 @@
 description: "Discover Ansible hosts from a repository or cloud source, verify sync results and control refresh before jobs."
 covers:
   - "core/services/ansible/**"
+  - "backend/internal/executor/syncexec/**"
+  - "backend/internal/api/v2/handlers/runner_agent_work_items.go"
   - "backend/internal/api/v2/handlers/ansible/**"
   - "frontend/src/pages/Ansible/**"
   - "frontend/src/components/ansible/**"
@@ -14,11 +16,11 @@ capabilities: [
     "summary": "Refresh hosts from cloud inventory plugins or a Git repository, with sync history and per-source merge controls.",
     "area": "ansible",
     "availability": "available",
-    "limitations": "Inventory syncs execute on platform infrastructure, not self-hosted agent pools. Azure sources can use federated identity.",
+    "limitations": "A VCS-backed inventory always syncs on the hosted capacity. A cloud source syncs on its project's or organization's default agent pool when one is set, and on the hosted capacity otherwise. Azure sources can use federated identity.",
     "evidence": [
       "core/services/ansible/inventory_source.go",
       "core/services/ansible/inventory_source_sync_test.go",
-      "backend/cmd/ansible-runner/main.go"
+      "backend/internal/executor/syncexec/run.go"
     ]
   },
   {
@@ -29,8 +31,8 @@ capabilities: [
     "availability": "available",
     "limitations": "Hosts and groups are derived from input inventories, not edited directly.",
     "evidence": [
-      "backend/cmd/ansible-runner/main.go",
-      "backend/cmd/ansible-runner/constructed_build_test.go"
+      "backend/internal/executor/syncexec/run.go",
+      "backend/internal/executor/syncexec/constructed_integration_test.go"
     ]
   },
   {
@@ -43,8 +45,7 @@ capabilities: [
     "evidence": [
       "core/services/ansible/job.go",
       "core/services/ansible/job_test.go",
-      "backend/cmd/ansible-runner/main.go",
-      "backend/cmd/ansible-runner/agent_mode.go"
+      "backend/internal/executor/ansibleexec/run.go"
     ]
   }
 ]
@@ -64,10 +65,12 @@ one. Creating a new inventory also requires organization Ansible management. Rea
 history requires organization Ansible read permission. A visible button alone does not
 establish that your account can perform the operation.
 
-The platform runner must reach the repository and cloud APIs and have the required
-Ansible inventory plugin and authentication available. Inventory discovery runs on
-**platform infrastructure**, even when the eventual job uses a self-hosted agent pool.
-Choose a credential or identity with read access to the resources you intend to discover.
+The sync must reach the repository and cloud APIs and have the required Ansible
+inventory plugin and authentication available where it runs. A VCS inventory always
+syncs on the organization's **hosted capacity**, even when the eventual job uses a
+self-hosted agent pool. A cloud source syncs on its project's or organization's default
+agent pool when one is set, and on the hosted capacity otherwise. Choose a credential or
+identity with read access to the resources you intend to discover.
 
 For the cloud examples below, scope that access to the resources you need:
 
@@ -116,7 +119,7 @@ flowchart LR
 <details>
 <summary>What each step does</summary>
 
-The platform runner reads the repository file or generates a plugin file from the cloud
+The sync reads the repository file or generates a plugin file from the cloud
 source configuration. It runs Ansible's inventory discovery and records the result.
 Jobs use the stored hosts and variables. Refreshing them is a separate operation, which
 can also run automatically before a job when update on launch is enabled.
@@ -138,10 +141,16 @@ can also run automatically before a job when update on launch is enabled.
 4. Check the completed sync and discovered hosts before selecting the inventory in a
    [job template](../get-started/your-first-ansible-job.md).
 
-Repository-backed discovery uses your file and the platform runner's environment for
-cloud authentication. Attaching a cloud credential to a separate dynamic source does
+Repository-backed discovery always syncs on the hosted capacity, in the platform Ansible
+image and with the platform identity, because the sync holds the repository's clone
+credential. It uses your file and that environment for cloud authentication. Attaching a cloud credential to a separate dynamic source does
 not authenticate a VCS inventory. For Azure, this path does not mint Stackweaver OIDC
 inventory tokens; arrange runtime identity or plugin authentication with your operator.
+A runtime identity from a cloud metadata service (Azure managed identity, Google
+Application Default Credentials from the metadata server, an AWS instance profile) reaches
+the sync only when your operator runs the hosted capacity's launchers in the
+`host-identity` network mode; in the default `platform` mode the sync cannot reach the
+metadata service, and a strict hosted deployment refuses `host-identity`.
 Keep secrets out of the repository.
 
 <a id="step-1-prepare-the-inventory-plugin-file" style="scroll-margin-top: 7rem"></a>
@@ -164,7 +173,7 @@ plugin references; use those references for additional options and dependencies.
 Save one of these files in your repository, replacing the example region, resource group
 or project with your own scope. The AWS example selects running production instances;
 Azure lists VMs in `rg-production`; GCP lists instances in the named project and zone.
-Authentication must already be available to the platform runner as described above.
+Authentication must already be available to a sync on the hosted capacity, as described above.
 
 ::: code-group
 ```yaml [AWS: inventory/production.aws_ec2.yml]
@@ -204,8 +213,9 @@ keyed_groups:
 
 For Azure managed identity, use `auth_source: msi` instead of `auto`. Give that identity
 read access to the target subscription/resource groups. For GCP, `application` uses
-Application Default Credentials available on the platform runtime; it does not attach a
-Stackweaver credential to a VCS inventory. After syncing, check **Hosts** and **Groups**
+Application Default Credentials from the sync's environment; it does not attach a
+Stackweaver credential to a VCS inventory. Both need the metadata service, which the sync
+reaches only in the `host-identity` network mode described above. After syncing, check **Hosts** and **Groups**
 for the intended scope before using it in a job.
 
 
@@ -231,6 +241,12 @@ an arbitrary path.
    need a `projects` list; the form cannot supply it.
 6. Select **Sync** on the source and verify the result under **Hosts** and **Syncs**.
 
+A cloud source syncs on its project's or organization's default agent pool when one is
+set, and on the hosted capacity otherwise. After creation, its edit dialog has a
+**Placement** section where it can select an execution environment and an identity
+binding, and a **Sync timeout (seconds)**; see
+[Run Images and Execution Environments](./run-images-and-execution-environments.md#where-a-setting-comes-from).
+
 ![Prepared Add Inventory Source form with an AWS credential selected. Scroll within the form for refresh settings.](./images/inventories-add-source.png)
 
 **Hostname Variable** and **Grouping Options** are visible in this form, but the current
@@ -238,8 +254,9 @@ cloud generators do not consume those generic controls. Set provider-specific ru
 VCS YAML or source API `config`.
 
 Credentials must belong to the inventory's organization and match the provider type.
-**None (use environment)** works only when a suitable identity is already available to
-the platform runner. It is not automatic federation for every provider.
+**None (use environment)** works only when a suitable identity is already available in
+the sync's environment on the pool it syncs on. It is not automatic federation for every
+provider.
 
 For a recurring source sync, create the source first, then use **Edit > Sync Schedule**
 and save. The schedule selected in the new-source form is not retained by creation.
@@ -255,15 +272,15 @@ file and runtime configuration instead.
 
 | Authentication method | Required setup |
 |---|---|
-| **Managed Identity** | A managed identity reachable through the platform runner's Azure metadata endpoint. For a user-assigned identity, supply its client ID. |
-| **Workload Identity** | An AKS runtime with a projected workload-identity token and the runner's workload identity enabled. |
-| **OIDC Federation** | Organization Azure OIDC configuration, signing/issuer setup, and a federated credential matching this source. Entra must reach the issuer's discovery and JWKS endpoints publicly with trusted TLS. |
-| **Cloud Credential** | An Azure service-principal credential attached to the source. Outbound authentication works without a public Stackweaver issuer. |
+| **OIDC Federation** | Organization Azure OIDC configuration, signing/issuer setup, and a federated credential matching this source. Entra must reach the issuer's discovery and JWKS endpoints publicly with trusted TLS. Works on every pool, the hosted capacity included, because Stackweaver mints the token for each sync. |
+| **Cloud Credential** | An Azure service-principal credential attached to the source. Outbound authentication works on every pool without a public Stackweaver issuer. |
+| **Managed Identity** | A managed identity the sync can reach through the Azure Instance Metadata Service. Job containers and pods in the default `platform` network mode cannot reach it, so this works only for a launcher on an Azure VM or node that runs syncs in-process, or a Kubernetes launcher with the `host-identity` network mode. For a user-assigned identity, supply its client ID. |
+| **Workload Identity** | An AKS agent pool whose Kubernetes launchers offer an `azure-workload-identity` [identity binding](./self-hosted-runners.md#identity-bindings) that the source selects in its Placement section. The cloud-specific setup of identity bindings is not yet documented as supported, so prefer OIDC Federation unless you operate that pool yourself. |
 
 OIDC Federation uses the subscription in the organization's Azure OIDC configuration.
 For the other source authentication modes, supply `subscription_id` through source API
-`config`. On a private deployment,
-use a runtime identity or a cloud credential when the Stackweaver issuer is not public.
+`config`. On a private deployment where the Stackweaver issuer is not public, use a cloud
+credential, or Managed Identity or Workload Identity on an agent pool you run inside Azure.
 Read [OIDC operator configuration](./oidc-configuration.md#operator-configuration) before
 choosing Stackweaver federation.
 
@@ -282,17 +299,19 @@ Use the **source name**, not the enclosing inventory name. Use the inventory's p
 name, or `default` for an organization-scoped inventory without a project. Renaming or
 changing this scope requires a matching identity configuration.
 
-This subject is not the authentication contract for a VCS inventory. For Azure VCS
-workload identity, the runner resolves the subscription from the file's `subscription_id`,
-then the organization's Azure OIDC configuration, then its inherited `AZURE_SUBSCRIPTION_ID`.
-The operator configures the runtime identity. The inventory file remains authoritative.
+This subject is not the authentication contract for a VCS inventory. A VCS inventory runs
+whatever `auth_source` its `azure_rm.yml` names, in a sync on the hosted capacity with the
+platform identity. When the file names no `subscription_id`, the sync uses the subscription
+of your organization's Azure OIDC configuration. The inventory file remains authoritative.
 
 
 <a id="cloud-credentials" style="scroll-margin-top: 7rem"></a>
 
 AWS sources can use an attached AWS credential or a runtime AWS identity. GCP sources use
-Application Default Credentials, from an attached service-account key or the platform's
-runtime identity. VMware sources need matching provider authentication. Do not store cloud
+Application Default Credentials, from an attached service-account key or the sync's
+environment. On Google Cloud the environment's credentials come from the metadata server,
+which job containers and pods in the default `platform` network mode cannot reach, so
+attach a credential unless the source syncs on a pool whose launchers allow that. VMware sources need matching provider authentication. Do not store cloud
 secrets in plugin YAML or copy them into sync logs.
 
 ## Configure a source through the API
@@ -407,7 +426,8 @@ settings to stored hosts. Set `sync-schedule` to an empty string to remove the s
 For an Azure or GCP source, create a separate source with `source-type: "azure"` or
 `"gcp"` and use the corresponding object below as its `config`. Attach a matching
 credential, or omit `credential-id` for a suitable runtime identity. The Azure example
-uses managed identity, so it has no attached credential.
+uses managed identity, so it has no attached credential, and it syncs successfully only on
+a pool where the metadata service is reachable, as the authentication table describes.
 
 ::: code-group
 ```json [Azure managed identity: config]
@@ -547,7 +567,7 @@ managing the same source through both Terraform and manual API updates.
 2. Open **Hosts** and check the count, names, `ansible_host` and variables against the intended
    machines. Open **Groups** if your playbook targets generated groups.
 3. Open **Syncs** and select the run. Check its trigger, counts, duration and captured output.
-   Source and constructed builds can stream output while running; VCS output appears at completion.
+   Every sync, VCS file syncs included, streams its output while it runs.
 4. Select the inventory in your job template only after the host set is appropriate.
 
 ![Sync output dialog with the source, discovered hosts and successful result.](./images/inventories-sync-output.png)
@@ -588,7 +608,7 @@ not guaranteed protection from later overwrite pruning.
 
 The warning names each affected source, the failure and last successful refresh, or says
 that it has never synced and contributed no hosts. It appears above the job's tabs and at
-the start of its output on platform and self-hosted runners.
+the start of its output, wherever the job runs.
 
 <details>
 <summary>Refresh warnings in the API and notifications</summary>
@@ -606,8 +626,8 @@ when you need to establish which inventory was used.
 ## Run an ad hoc command
 
 1. Select **Run Command** on the inventory, or the terminal action for one host.
-2. Choose a permitted module and arguments, the host limit, a machine credential and runner
-   destination. `command` and `shell` accept free-form arguments; other modules use key/value pairs.
+2. Choose a permitted module and arguments, the host limit, a machine credential and where
+   it runs: the hosted capacity or one of your self-hosted agent pools. `command` and `shell` accept free-form arguments; other modules use key/value pairs.
 3. Run it and check the normal job page for output, events and results.
 
 This requires ad hoc command permission, which is separate from template execution.
@@ -704,5 +724,5 @@ it does not show the UI confirmation.
 | Success with no hosts | Provider scope and filters. Set explicit GCP projects; no projects can produce a successful sync that contacts nothing. |
 | Hosts disappear after sync | Overwrite, successful empty results and overlapping host/group names. Review the source's output before retrying. |
 | A plugin warning appears | Read the captured output in **Syncs**. An amber indicator can accompany a successful result. Check options against the installed collection's documentation. |
-| `azure_cloud` is undefined | Ask the operator to check the custom runner image's Azure collection dependencies, including `azure-cli-core`. Rebuild the image with its required dependencies. |
+| `azure_cloud` is undefined | The image the sync runs in lacks the Azure collection's `azure-cli-core` dependency. If the source selects an execution environment of your own, add `azure-cli-core` to that image and rebuild it. |
 | Desired grouping, hostname or region control is absent or ineffective | Use VCS plugin YAML or source API `config`; the generic form fields do not configure those provider options. |

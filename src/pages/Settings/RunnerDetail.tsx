@@ -1,9 +1,9 @@
 // Copyright (c) 2025 VH & Co BV. Licensed under the Business Source License 1.1. See LICENSE for details.
 
 import { useState, useMemo } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery } from '@tanstack/react-query';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { Server, Activity, Clock, Cpu, Tag, Trash2, Edit2, Loader2, BarChart3 } from 'lucide-react';
+import { Server, Activity, Clock, Cpu, Tag, Trash2, Edit2, Loader2, BarChart3, PauseCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { GradientButton } from '@/components/ui/gradient-button';
 import { Page, PageDialogContent } from '@/components/layout/Page';
@@ -30,6 +30,7 @@ export default function RunnerDetail() {
   const navigate = useNavigate();
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [drainDialogOpen, setDrainDialogOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
   
@@ -80,6 +81,17 @@ export default function RunnerDetail() {
       setSaving(false);
     }
   };
+
+  // Drain (#933, D11): the launcher finishes its jobs, claims nothing more and deregisters.
+  const drain = useMutation({
+    mutationFn: () => runnersApi.drain(runnerId!),
+    onSuccess: () => {
+      toast.success('The runner will drain: it finishes its jobs and then deregisters');
+      setDrainDialogOpen(false);
+      void refetchRunner();
+    },
+    onError: (e: unknown) => { toast.error(e instanceof Error ? e.message : 'Failed to drain the runner'); },
+  });
 
   const handleDelete = async () => {
     if (!runner) return;
@@ -190,6 +202,11 @@ export default function RunnerDetail() {
               <Badge variant="outline" className={cn(getTypeColor(runner.runner_type))}>
                 {runner.runner_type}
               </Badge>
+              {runner.drain_requested_at && (
+                <Badge variant="outline" className="bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/20" data-testid="runner-draining">
+                  draining
+                </Badge>
+              )}
             </div>
             <p>{runner.description || 'No description'}</p>
           </div>
@@ -204,6 +221,15 @@ export default function RunnerDetail() {
             >
               <Edit2 className="h-4 w-4 mr-2 text-muted-foreground" />
               Edit
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setDrainDialogOpen(true)}
+              disabled={!!runner.drain_requested_at || runner.status === 'offline'}
+            >
+              <PauseCircle className="h-4 w-4 mr-2 text-muted-foreground" />
+              Drain
             </Button>
             <Button
               variant="outline"
@@ -501,6 +527,28 @@ export default function RunnerDetail() {
             <GradientButton ramp="app" className="w-auto px-4 py-2" onClick={() => { void handleSave(); }} disabled={saving}>
               {saving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
               Save
+            </GradientButton>
+          </DialogFooter>
+        </PageDialogContent>
+      </Dialog>
+
+      {/* Drain Confirmation */}
+      <Dialog open={drainDialogOpen} onOpenChange={setDrainDialogOpen}>
+        <PageDialogContent>
+          <DialogHeader>
+            <DialogTitle>Drain Runner</DialogTitle>
+            <DialogDescription>
+              The launcher of "{runner.name}" finishes the jobs it is running, takes no new ones and
+              then deregisters. Start it again to bring it back.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDrainDialogOpen(false)}>
+              Cancel
+            </Button>
+            <GradientButton ramp="app" className="w-auto px-4 py-2" onClick={() => { drain.mutate(); }} disabled={drain.isPending}>
+              {drain.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              Drain
             </GradientButton>
           </DialogFooter>
         </PageDialogContent>

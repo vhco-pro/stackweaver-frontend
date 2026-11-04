@@ -1,8 +1,10 @@
 ---
-description: "Configure workspace run timeouts and understand platform-runner, agent and external-check limits."
+description: "Configure OpenTofu run timeouts on a workspace, project or organization, and understand which limits apply to plans, applies, external checks and approval waits."
 covers:
   - "backend/cmd/runner/**"
   - "backend/cmd/orchestrator/**"
+  - "backend/internal/launcher/supervise.go"
+  - "core/settings/timeout.go"
   - "core/repository/run*"
   - "core/models/workspace.go"
   - "core/plugins/opentofu/**"
@@ -12,13 +14,13 @@ capabilities: [
   {
     "id": "run-timeouts",
     "name": "Run timeouts",
-    "summary": "Set a workspace timeout to limit long-running apply operations.",
+    "summary": "Stop OpenTofu plans and applies that run too long, with the limit inherited from the workspace, project, organization or platform default.",
     "area": "opentofu",
     "availability": "available",
-    "limitations": "Initial platform plans have a separate deadline. Agent commands and platform provider-error retries can continue after the run is marked failed.",
+    "limitations": "A timeout does not roll back infrastructure changes. External run-task stages and approval waits have their own limits.",
     "evidence": [
-      "backend/cmd/runner/main.go",
-      "backend/cmd/runner/agent_mode.go",
+      "backend/internal/launcher/supervise.go",
+      "core/settings/timeout.go",
       "core/models/workspace.go",
       "core/plugins/opentofu/plugin.go",
       "backend/internal/api/v2/handlers/terraform/workspaces.go",
@@ -34,26 +36,40 @@ capabilities: [
 
 # Configure run timeouts
 
-Set a workspace's **Run Timeout** to limit long-running OpenTofu applies. The default is
-**2 hours**. This setting does not give the entire run one shared deadline: plans,
-initialization, external checks and approval waits behave differently.
+Set a **Run Timeout** to stop OpenTofu plans and applies that run too long, so a run cannot
+hold a launcher and its workspace's state lock indefinitely. The platform default is
+**2 hours**. The timeout bounds the plan and the apply separately; external checks and
+approval waits have their own limits.
 
 > [!WARNING]
-> A timeout does not undo infrastructure changes. A failed run status does not prove the
-> command has stopped: self-hosted agent commands and platform provider-error retries can
-> continue running. Confirm execution has stopped before starting another run against the
+> A timeout does not undo infrastructure changes. Resources an apply created before it was
+> stopped remain. Check state and infrastructure before starting another run against the
 > same infrastructure.
+
+## Where the value comes from
+
+A run uses the first value it finds in this order: the workspace's own value, its project's,
+its organization's, then the platform default. An empty value, or `0`, at a level means
+inherit from the next one. Run images and identity bindings follow the same rule; see
+[Run images and execution environments](../../user-guides/run-images-and-execution-environments.md#where-a-setting-comes-from).
+
+The platform default is 2 hours (7200 seconds). An operator can change it for the whole
+installation with `STACKWEAVER_RUN_TIMEOUT_DEFAULT`; see
+[Runs, jobs and launchers](../../get-started/self-hosting/environment-variables.md#runs-jobs-and-launchers).
 
 ## Choose a configuration path
 
-You need permission to edit the workspace. Choose a positive value based on successful
-apply durations, with room for slow provider operations. Set it before launching work.
-Increasing a limit does not resolve an operation that is waiting indefinitely.
+You need permission to edit the workspace, project or organization. Choose a positive value
+based on successful plan and apply durations, with room for slow provider operations. Between
+30 minutes and 24 hours is a sensible range. Set it before launching work. Increasing a limit
+does not resolve an operation that is waiting indefinitely.
 
 | Interface | How to set it |
 |---|---|
-| Workspace UI | Enter hours in **Run Timeout**. The dialog also shows the equivalent seconds. |
-| Workspace API | Send the positive `run-timeout` attribute in seconds. For example, 3 hours is `10800`. |
+| Workspace UI | Enter hours in **Run Timeout**. The dialog also shows the equivalent seconds, and **Inherit** clears the workspace's own value. |
+| Project UI | Set the project's default in the **Edit project** dialog on the project page. |
+| Organization UI | Set the organization's default in the **Run Defaults** card of **Settings > Organization**. |
+| API | Send the `run-timeout` attribute in seconds on a workspace, project or organization. For example, 3 hours is `10800`, and `0` inherits. |
 | Terraform/OpenTofu provider | The current workspace resource does not expose this Stackweaver extension. Use the UI or API for this setting; other workspace arguments are covered in the [provider guide](../../user-guides/terraform-provider.md). |
 
 <a id="set-the-timeout"></a>
@@ -68,6 +84,10 @@ Increasing a limit does not resolve an operation that is waiting indefinitely.
 ![Configure Run Timeout dialog showing 3 hours as 10800 seconds](./images/workspace-run-timeout.png)
 
 *Example: 3 hours equals 10800 seconds. Choose a limit appropriate for your workspace.*
+
+When the workspace sets no value of its own, **Run Timeout** shows the value it uses and the
+level it is inherited from. To return a workspace to its inherited value, open the dialog
+and select **Inherit**.
 
 ## Set it through the API
 
@@ -84,50 +104,49 @@ curl --fail --silent --show-error --request PATCH \
   "$STACKWEAVER_API_URL/api/v2/workspaces/$WORKSPACE_ID"
 ```
 
-Check `data.attributes.run-timeout` in the response, then read the workspace again:
+Check `data.attributes.run-timeout` in the response, then read the value a run of the
+workspace uses and the level it came from:
 
 ```bash
 curl --fail --silent --show-error \
   --header "Authorization: Bearer $STACKWEAVER_TOKEN" \
-  "$STACKWEAVER_API_URL/api/v2/workspaces/$WORKSPACE_ID"
+  "$STACKWEAVER_API_URL/api/v2/workspaces/$WORKSPACE_ID/effective-settings"
 ```
 
-The stored `data.attributes.run-timeout` should be `10800`. Zero leaves the saved timeout
-unchanged; it does not disable execution limits. See the
-[API explorer](/docs/api-reference/explorer) for workspace operation schemas.
+The response's `run-timeout` should have `value` `10800` and `level` `workspace`. Send
+`"run-timeout":0` to make the workspace inherit again. Projects and organizations take the
+same `run-timeout` attribute on their own update operations. See the
+[API explorer](/docs/api-reference/explorer) for the operation schemas.
 
 ## Which limit applies?
 
 | Work or wait | Limit |
 |---|---|
-| Platform runner: apply | The workspace timeout, normally 2 hours. |
-| Platform runner: first plan attempt | Half the workspace timeout, with a minimum of 30 minutes. A 2-hour workspace value gives a 1-hour first-plan deadline. |
-| Platform runner: first initialization | 15 minutes, independent of the workspace value. |
-| Platform runner: automatic provider-error recovery | Retried initialization and planning do not receive the initial attempts' local deadlines. The periodic workspace timeout check still applies. |
-| Self-hosted agent: OpenTofu command | This setting supplies no local command deadline. The platform can mark overdue execution as failed while the command continues. |
+| Plan | The run timeout, normally 2 hours, counted from the moment the plan's job starts. |
+| Apply | The run timeout again, counted from the moment the apply's job starts. |
 | External run-task stage | Normally 10 minutes without progress or 60 minutes total. Operators can configure these limits separately. |
 | Apply confirmation or override of a failed mandatory check | Waits for a person's decision without an automatic deadline. |
 
-### The periodic timeout check
+The limit is the same on the hosted capacity and on self-hosted agent pools, because the
+launcher that placed the job enforces it.
 
-The platform checks overdue executing runs about once a minute. It compares the workspace
-limit with elapsed time since apply started, or otherwise since the run started. This check
-marks the run as failed; it does not stop its process.
+### What happens at the timeout
 
-For example, a workspace value below 30 minutes can produce a plan error before the first
-plan command reaches its 30-minute local deadline. A failed status and an error message
-mentioning cancellation are not proof that every process has exited.
+When a plan or an apply runs longer than its timeout, the launcher running it reports the
+run failed with "the job exceeded its timeout of ... and was stopped", then stops the run's
+container, pod or process. The output up to that point stays on the run.
+
+The platform also checks overdue executing runs about once a minute and marks them failed.
+It compares the run timeout with elapsed time since apply started, or otherwise since the
+run started.
 
 ## After a timeout
 
 1. **Find the affected phase.** Read the run error and output to identify where progress stopped.
-2. **Confirm execution has stopped.** Ask the runner operator to check for a remaining
-   OpenTofu process, especially on agents or after provider-error retries. Stop any remaining
-   execution before retrying against the same infrastructure.
-3. **Check state and infrastructure.** Open the workspace's **States** tab for the latest
-   recorded version. Inspect the actual infrastructure too: resources created before an
-   interruption can still exist.
-4. **Resolve the cause, then review a new plan.** Adjust the timeout if the duration was
+2. **Check state and infrastructure.** Open the workspace's **States** tab for the latest
+   recorded version. Inspect the actual infrastructure too: resources created before the
+   apply was stopped can still exist.
+3. **Resolve the cause, then review a new plan.** Adjust the timeout if the duration was
    legitimate. Check the new plan before applying again; increasing the limit is not a rollback.
 
 Use [run cancellation](./run-cancellation.md) to request a manual stop of an active run.

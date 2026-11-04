@@ -24,9 +24,10 @@ import { GradientButton } from '@/components/ui/gradient-button';
 import { Page } from '@/components/layout/Page';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { CreateWorkspaceDialog } from '@/components/workspace/CreateWorkspaceDialog';
+import { EditProjectDialog } from '@/components/project/EditProjectDialog';
 import { ProjectTags } from '@/components/project/ProjectTags';
 import { WorkspaceNotifications } from '@/components/workspace/WorkspaceNotifications';
-import { Plus, FolderKanban, Building2, Loader2, Server, FileCode, Layers, Workflow, Key, ChevronRight, ChevronDown } from 'lucide-react';
+import { Plus, FolderKanban, Building2, Loader2, Server, FileCode, Layers, Workflow, Key, ChevronRight, ChevronDown, Settings2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 export default function ProjectDetail() {
@@ -36,6 +37,7 @@ export default function ProjectDetail() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
     workspaces: true,
     inventories: false,
@@ -159,12 +161,34 @@ export default function ProjectDetail() {
           )
         }
         action={
-          <GradientButton ramp="app" onClick={() => setCreateDialogOpen(true)} className="w-auto px-4 py-2">
-            <Plus className="mr-2 h-4 w-4" />
-            Create Workspace
-          </GradientButton>
+          <div className="flex flex-wrap gap-2">
+            <Button variant="outline" onClick={() => setEditDialogOpen(true)} className="h-10">
+              <Settings2 className="mr-2 h-4 w-4" />
+              Edit project
+            </Button>
+            <GradientButton ramp="app" onClick={() => setCreateDialogOpen(true)} className="w-auto px-4 py-2">
+              <Plus className="mr-2 h-4 w-4" />
+              Create Workspace
+            </GradientButton>
+          </div>
         }
       />
+
+      {orgName && (
+        <EditProjectDialog
+          open={editDialogOpen}
+          onOpenChange={setEditDialogOpen}
+          orgName={orgName}
+          project={project}
+          onUpdated={(updated) => {
+            if (updated.name !== project.name) {
+              void navigate(`/app/${orgName}/projects/${encodeURIComponent(updated.name)}`, { replace: true });
+              return;
+            }
+            void refetchData();
+          }}
+        />
+      )}
 
       {orgName && (
         <CreateWorkspaceDialog

@@ -115,6 +115,11 @@ export const RAMPS = {
     title: 'from-pink-600 via-rose-600 to-pink-600 dark:from-pink-400 dark:via-rose-400 dark:to-pink-400',
     icon: 'text-pink-600 dark:text-pink-400',
   },
+  runImages: {
+    ring: [indigo, sky, indigo],
+    title: 'from-indigo-600 via-sky-600 to-indigo-600 dark:from-indigo-400 dark:via-sky-400 dark:to-indigo-400',
+    icon: 'text-indigo-600 dark:text-indigo-400',
+  },
   integrations: {
     ring: [blue, indigo, purple],
     title: 'from-blue-600 via-indigo-600 to-purple-600 dark:from-blue-400 dark:via-indigo-400 dark:to-purple-400',
@@ -144,6 +149,7 @@ export const SETTINGS_PAGE_RAMPS: Record<string, RampName> = {
   'Settings/PlatformOrganizations.tsx': 'platform',
   'Settings/Preferences.tsx': 'preferences',
   'Settings/Profile.tsx': 'account',
+  'Settings/RunImages.tsx': 'runImages',
   'Settings/RunTasks.tsx': 'runTasks',
   'Settings/RunnerDetail.tsx': 'runners',
   'Settings/Runners.tsx': 'runners',

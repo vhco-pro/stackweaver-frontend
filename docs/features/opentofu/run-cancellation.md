@@ -3,6 +3,8 @@ description: "Cancel eligible runs safely through the UI or API, distinguish dis
 covers:
   - "backend/internal/api/v2/handlers/terraform/runs.go"
   - "backend/cmd/runner/**"
+  - "backend/internal/launcher/supervise.go"
+  - "backend/internal/executor/tofuexec/**"
   - "frontend/src/pages/RunDetail.tsx"
   - "core/models/run.go"
 capabilities: [
@@ -16,7 +18,7 @@ capabilities: [
     "evidence": [
       "backend/internal/api/v2/handlers/terraform/runs.go",
       "backend/cmd/runner/main.go",
-      "backend/cmd/runner/agent_mode.go"
+      "backend/internal/launcher/supervise.go"
     ]
   }
 ]
@@ -25,7 +27,7 @@ capabilities: [
 # Cancel a run
 
 Cancel pending or executing work from its run page or the API. Cancellation stops further
-work when the runner observes it; it does not reverse infrastructure changes already made.
+work when the job running it observes it; it does not reverse infrastructure changes already made.
 
 > [!WARNING]
 > Canceling an apply can leave partially changed infrastructure. Check the output and the
@@ -95,10 +97,12 @@ cancellation without understanding whether execution has actually stopped.
 | Applying or destroying | Resources already changed remain. Compare phase output, the latest available state and actual infrastructure before a fresh plan. |
 | Waiting on run tasks | The run and outstanding checks become terminal. Check the run before responding to any delayed task result. |
 
-Both platform and self-hosted runners observe cancellation through their control path.
-There can be a delay between recording the request and a process stopping. If the result
-is uncertain, investigate the runner before starting overlapping work.
+On the hosted capacity and on self-hosted runners alike, the job running a canceled run
+stops OpenTofu within one status poll, and the launcher that placed it stops its container,
+pod or process and removes it, also on a pool that keeps failed jobs for inspection. There can be a delay between recording the request and a process stopping.
+If the result is uncertain, check the launcher before starting overlapping work.
 
-The [run-timeout guide](./run-timeout.md) explains automatic limits. Use
+The [run-timeout guide](./run-timeout.md) explains automatic limits: a run phase that
+exceeds its timeout is stopped as well, and the run ends as failed rather than canceled. Use
 [run output](./opentofu-streaming.md) and [troubleshooting](../../user-guides/troubleshooting-common-issues.md)
 for verification and recovery.

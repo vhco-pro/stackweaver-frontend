@@ -56,7 +56,9 @@ Automation uses `tfe-` API tokens; a Zitadel access token is not an API credenti
    from production runners, schedules, webhooks, SMTP and cloud targets.
 4. Pause incoming work and schedules, let active jobs/runs finish, and stop self-hosted
    runners for the maintenance window. Confirm no pending queue or update-on-launch sync
-   remains. Do not assume queued Redis work is part of a filesystem backup.
+   remains. Do not assume queued Redis work is part of a filesystem backup. The orchestrator
+   marks a run that stays pending for 30 minutes as failed, so queue any such run again after
+   the upgrade.
 
 > [!WARNING]
 > Changing image tags back does not reverse database migrations or identity changes. Keep

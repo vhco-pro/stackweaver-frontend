@@ -2,6 +2,7 @@
 
 import { type JsonApiResource, type JsonApiResponse, type JsonApiListResponse, type JsonApiResourceIdentifier, getRelationship, getRelationships } from '@/utils/jsonapi';
 import { fetchAllPages } from '@/lib/pagination';
+import { placementFromAttributes, type Placement } from '@/lib/placement';
 
 // Note: This file contains intentional uses of 'any' when accessing JsonApiResource.attributes
 // which is intentionally typed as Record<string, any> for JSON:API flexibility.
@@ -224,6 +225,13 @@ export interface Organization {
   default_execution_mode?: 'remote' | 'agent' | 'local';
   /** Only set when default_execution_mode is 'agent'. Carried as a JSON:API relationship, not an attribute. */
   default_agent_pool_id?: string | null;
+  /** The organization's level of the level rule (#933, D0): 0 or null inherits the deployment. */
+  run_timeout?: number;
+  tofu_run_image_id?: string | null;
+  ansible_run_image_id?: string | null;
+  identity_binding_id?: string | null;
+  /** Bytes; 0 uses the deployment's cache size limit (D7). */
+  cache_size_limit?: number;
   created_at: string;
   updated_at: string;
 }
@@ -283,8 +291,54 @@ export interface Project {
   organization_id: string;
   name: string;
   description?: string;
+  /** The project's default execution settings (tfe_project_settings) and its level of the level
+   * rule (#933, D0); present on get and update. */
+  default_execution_mode?: string;
+  default_agent_pool_id?: string | null;
+  settings_overwritten?: boolean;
+  tofu_version?: string;
+  run_timeout?: number;
+  tofu_run_image_id?: string | null;
+  ansible_run_image_id?: string | null;
+  identity_binding_id?: string | null;
   created_at: string;
   updated_at: string;
+}
+
+/** The writable project settings. Empty strings clear a run image, binding or version; 0 clears the
+ * timeout. */
+export interface ProjectSettingsInput {
+  name?: string;
+  description?: string;
+  default_execution_mode?: string;
+  default_agent_pool_id?: string;
+  settings_overwritten?: boolean;
+  tofu_version?: string;
+  run_timeout?: number;
+  tofu_run_image_id?: string;
+  ansible_run_image_id?: string;
+  identity_binding_id?: string;
+}
+
+function projectFromJsonApi(item: JsonApiResource): Project {
+  const a = item.attributes ?? {};
+  const overwrites = (a['setting-overwrites'] ?? {}) as Record<string, unknown>;
+  return {
+    id: item.id,
+    organization_id: getRelationship(item, 'organization')?.id || '',
+    name: a.name || '',
+    description: a.description,
+    default_execution_mode: typeof a['default-execution-mode'] === 'string' ? a['default-execution-mode'] : undefined,
+    default_agent_pool_id: getRelationship(item, 'default-agent-pool')?.id ?? null,
+    settings_overwritten: overwrites['default-execution-mode'] === true || overwrites['default-agent-pool'] === true,
+    tofu_version: typeof a['tofu-version'] === 'string' ? a['tofu-version'] : '',
+    run_timeout: Number(a['run-timeout']) || 0,
+    tofu_run_image_id: (a['tofu-run-image-id'] as string | null | undefined) ?? null,
+    ansible_run_image_id: (a['ansible-run-image-id'] as string | null | undefined) ?? null,
+    identity_binding_id: (a['identity-binding-id'] as string | null | undefined) ?? null,
+    created_at: a['created-at'] || '',
+    updated_at: a['updated-at'] || '',
+  };
 }
 
 export interface Workspace {
@@ -312,7 +366,10 @@ export interface Workspace {
   locked_at?: string;
   locked_reason?: string;
   force_delete?: boolean; // TFE: allows deletion even with active infrastructure
-  run_timeout?: number; // Custom extension: timeout in seconds (default: 7200 = 2 hours)
+  run_timeout?: number; // Custom extension: timeout in seconds; 0 inherits (project, organization, deployment)
+  /** The workspace's run image and identity binding (#933, D6, D8); null inherits. */
+  run_image_id?: string | null;
+  identity_binding_id?: string | null;
   created_at: string;
   updated_at: string;
   // Effective tags (own + inherited from project), populated when the list is fetched with
@@ -429,6 +486,11 @@ function organizationFromJsonApi(item: JsonApiResource): Organization {
     default_execution_mode: (item.attributes?.['default-execution-mode'] ?? 'remote') as Organization['default_execution_mode'],
     // The default agent pool is a relationship (matching go-tfe), absent when unset.
     default_agent_pool_id: (getRelationship(item, 'default-agent-pool')?.id ?? null),
+    run_timeout: Number(item.attributes?.['run-timeout']) || 0,
+    tofu_run_image_id: (item.attributes?.['tofu-run-image-id'] as string | null | undefined) ?? null,
+    ansible_run_image_id: (item.attributes?.['ansible-run-image-id'] as string | null | undefined) ?? null,
+    identity_binding_id: (item.attributes?.['identity-binding-id'] as string | null | undefined) ?? null,
+    cache_size_limit: Number(item.attributes?.['cache-size-limit']) || 0,
     created_at: (item.attributes?.['created-at'] ?? '') as string,
     updated_at: (item.attributes?.['updated-at'] ?? '') as string,
   };
@@ -551,20 +613,7 @@ export const projectsApi = {
       };
     }),
   get: (organizationName: string, projectName: string) =>
-    apiClient.get<{ data: JsonApiResource }>(`/organizations/${encodeURIComponent(organizationName)}/projects/${encodeURIComponent(projectName)}`).then(res => {
-      // Parse JSON:API format to flat Project object
-      const item = res.data;
-      const orgRel = getRelationship(item, 'organization');
-      const project: Project = {
-        id: item.id,
-        organization_id: orgRel?.id || '',
-        name: item.attributes?.name || '',
-        description: item.attributes?.description,
-        created_at: item.attributes?.['created-at'] || '',
-        updated_at: item.attributes?.['updated-at'] || '',
-      };
-      return project;
-    }),
+    apiClient.get<{ data: JsonApiResource }>(`/organizations/${encodeURIComponent(organizationName)}/projects/${encodeURIComponent(projectName)}`).then(res => projectFromJsonApi(res.data)),
   create: (organizationName: string, data: { name: string; description?: string }) =>
     apiClient.post<{ data: JsonApiResource }>(`/organizations/${encodeURIComponent(organizationName)}/projects`, {
       data: {
@@ -588,29 +637,26 @@ export const projectsApi = {
       };
       return project;
     }),
-  update: (organizationName: string, projectName: string, data: { name?: string; description?: string }) =>
+  update: (organizationName: string, projectName: string, data: ProjectSettingsInput) =>
     apiClient.patch<{ data: JsonApiResource }>(`/organizations/${encodeURIComponent(organizationName)}/projects/${encodeURIComponent(projectName)}`, {
       data: {
         type: 'projects',
         attributes: {
           ...(data.name !== undefined && { name: data.name }),
           ...(data.description !== undefined && { description: data.description }),
+          ...(data.default_execution_mode !== undefined && { 'default-execution-mode': data.default_execution_mode }),
+          ...(data.default_agent_pool_id !== undefined && { 'default-agent-pool-id': data.default_agent_pool_id }),
+          ...(data.settings_overwritten !== undefined && {
+            'setting-overwrites': { 'default-execution-mode': data.settings_overwritten, 'default-agent-pool': data.settings_overwritten },
+          }),
+          ...(data.tofu_version !== undefined && { 'tofu-version': data.tofu_version }),
+          ...(data.run_timeout !== undefined && { 'run-timeout': data.run_timeout }),
+          ...(data.tofu_run_image_id !== undefined && { 'tofu-run-image-id': data.tofu_run_image_id }),
+          ...(data.ansible_run_image_id !== undefined && { 'ansible-run-image-id': data.ansible_run_image_id }),
+          ...(data.identity_binding_id !== undefined && { 'identity-binding-id': data.identity_binding_id }),
         },
       },
-    }).then(res => {
-      // Parse JSON:API format to flat Project object
-      const item = res.data;
-      const orgRel = getRelationship(item, 'organization');
-      const project: Project = {
-        id: item.id,
-        organization_id: orgRel?.id || '',
-        name: item.attributes?.name || '',
-        description: item.attributes?.description,
-        created_at: item.attributes?.['created-at'] || '',
-        updated_at: item.attributes?.['updated-at'] || '',
-      };
-      return project;
-    }),
+    }).then(res => projectFromJsonApi(res.data)),
   delete: (organizationName: string, projectName: string) =>
     apiClient.delete(`/organizations/${encodeURIComponent(organizationName)}/projects/${encodeURIComponent(projectName)}`),
   // TFE tag bindings: a project's key/value tags (workspaces inherit these).
@@ -675,6 +721,8 @@ function workspaceFromJsonApi(item: JsonApiResource, included?: JsonApiResource[
     locked_reason: attrs['locked-reason'] ? String(attrs['locked-reason']) : undefined,
     force_delete: attrs['force-delete'] as boolean | undefined,
     run_timeout: attrs['run-timeout'] as number | undefined,
+    run_image_id: (attrs['run-image-id'] as string | null | undefined) ?? null,
+    identity_binding_id: (attrs['identity-binding-id'] as string | null | undefined) ?? null,
     created_at: String(attrs['created-at'] || ''),
     updated_at: String(attrs['updated-at'] || ''),
   };
@@ -738,6 +786,8 @@ export const workspacesApi = {
     execution_mode?: string;
     agent_pool_id?: string;
     'run-timeout'?: number; // Custom extension: timeout in seconds
+    run_image_id?: string;
+    identity_binding_id?: string;
   }) =>
     apiClient.post<{ data: JsonApiResource }>(`/organizations/${encodeURIComponent(organizationName)}/workspaces`, {
       data: {
@@ -757,6 +807,8 @@ export const workspacesApi = {
           'execution-mode': data.execution_mode,
           'agent-pool-id': data.agent_pool_id || undefined,
           'run-timeout': data['run-timeout'],
+          ...(data.run_image_id && { 'run-image-id': data.run_image_id }),
+          ...(data.identity_binding_id && { 'identity-binding-id': data.identity_binding_id }),
         },
       },
     }).then(res => workspaceFromJsonApi(res.data)),
@@ -775,6 +827,9 @@ export const workspacesApi = {
     agent_pool_id?: string | null;
     force_delete?: boolean;
     'run-timeout'?: number;
+    /** An empty string clears the run image or binding back to the inherited one. */
+    run_image_id?: string;
+    identity_binding_id?: string;
   }) =>
     apiClient.patch<{ data: JsonApiResource }>(`/organizations/${encodeURIComponent(organizationName)}/workspaces/${encodeURIComponent(workspaceName)}`, {
       data: {
@@ -794,6 +849,8 @@ export const workspacesApi = {
           ...(data.agent_pool_id !== undefined && { 'agent-pool-id': data.agent_pool_id }),
           ...(data.force_delete !== undefined && { 'force-delete': data.force_delete }),
           ...(data['run-timeout'] !== undefined && { 'run-timeout': data['run-timeout'] }),
+          ...(data.run_image_id !== undefined && { 'run-image-id': data.run_image_id }),
+          ...(data.identity_binding_id !== undefined && { 'identity-binding-id': data.identity_binding_id }),
         },
       },
     }).then(res => workspaceFromJsonApi(res.data)),
@@ -958,6 +1015,24 @@ export interface AgentPool {
   allowed_workspace_ids: string[];
   allowed_project_ids: string[];
   excluded_workspace_ids: string[];
+  /** customer or hosted. */
+  kind: string;
+  /** The native pool settings (#933, D4, D7): seconds a failed job's container or pod is kept, each
+   * job's limits, whether they are required, and the launchers' local read-through cache. */
+  keep_failed_jobs_for: number;
+  cpu_limit: string;
+  memory_limit: string;
+  limits_required: boolean;
+  local_readthrough: boolean;
+}
+
+/** The writable native settings of a pool. */
+export interface AgentPoolSettingsInput {
+  keep_failed_jobs_for?: number;
+  cpu_limit?: string;
+  memory_limit?: string;
+  limits_required?: boolean;
+  local_readthrough?: boolean;
 }
 
 function agentPoolFromJsonApi(item: JsonApiResource): AgentPool {
@@ -973,8 +1048,47 @@ function agentPoolFromJsonApi(item: JsonApiResource): AgentPool {
     allowed_workspace_ids: allowedWorkspaces.map(r => r.id),
     allowed_project_ids: allowedProjects.map(r => r.id),
     excluded_workspace_ids: excludedWorkspaces.map(r => r.id),
+    kind: (item.attributes?.['kind'] as string) || 'customer',
+    keep_failed_jobs_for: Number(item.attributes?.['keep-failed-jobs-for']) || 0,
+    cpu_limit: (item.attributes?.['cpu-limit'] as string) ?? '',
+    memory_limit: (item.attributes?.['memory-limit'] as string) ?? '',
+    limits_required: item.attributes?.['limits-required'] === true,
+    local_readthrough: item.attributes?.['local-readthrough'] !== false,
   };
 }
+
+/**
+ * An organization's hosted pool as its members see it (#933, D9, AC51): read-only counts, since
+ * the hosted launchers are not the organization's and only a platform administrator sets the cap.
+ */
+export interface HostedCapacity {
+  pool_id: string;
+  /** 0 means unlimited. */
+  max_concurrent_jobs: number;
+  placement_group: string;
+  in_flight: number;
+  queued: number;
+  launchers_online: number;
+  queue_reason: string;
+}
+
+export const hostedCapacityApi = {
+  get: (organizationName: string): Promise<HostedCapacity> =>
+    apiClient
+      .get<{ data: JsonApiResource }>(`/organizations/${encodeURIComponent(organizationName)}/hosted-capacity`)
+      .then(res => {
+        const a = res.data?.attributes || {};
+        return {
+          pool_id: String(a['pool-id'] || ''),
+          max_concurrent_jobs: Number(a['max-concurrent-jobs']) || 0,
+          placement_group: String(a['placement-group'] || ''),
+          in_flight: Number(a['in-flight']) || 0,
+          queued: Number(a['queued']) || 0,
+          launchers_online: Number(a['launchers-online']) || 0,
+          queue_reason: String(a['queue-reason'] || ''),
+        };
+      }),
+};
 
 export const agentPoolsApi = {
   list: (organizationName: string, opts?: { page?: number; pageSize?: number; q?: string; sort?: string }) => {
@@ -1035,16 +1149,20 @@ export const agentPoolsApi = {
       allowed_workspace_ids?: string[];
       allowed_project_ids?: string[];
       excluded_workspace_ids?: string[];
-    }
+    } & AgentPoolSettingsInput
   ) => {
     const body: { data: { type: string; id: string; attributes?: Record<string, unknown>; relationships?: Record<string, { data: Array<{ id: string; type: string }> }> } } = {
       data: { type: 'agent-pools', id },
     };
-    if (data.name !== undefined || data.organization_scoped !== undefined) {
-      body.data.attributes = {};
-      if (data.name !== undefined) body.data.attributes.name = data.name;
-      if (data.organization_scoped !== undefined) body.data.attributes['organization-scoped'] = data.organization_scoped;
-    }
+    const attrs: Record<string, unknown> = {};
+    if (data.name !== undefined) attrs.name = data.name;
+    if (data.organization_scoped !== undefined) attrs['organization-scoped'] = data.organization_scoped;
+    if (data.keep_failed_jobs_for !== undefined) attrs['keep-failed-jobs-for'] = data.keep_failed_jobs_for;
+    if (data.cpu_limit !== undefined) attrs['cpu-limit'] = data.cpu_limit;
+    if (data.memory_limit !== undefined) attrs['memory-limit'] = data.memory_limit;
+    if (data.limits_required !== undefined) attrs['limits-required'] = data.limits_required;
+    if (data.local_readthrough !== undefined) attrs['local-readthrough'] = data.local_readthrough;
+    if (Object.keys(attrs).length > 0) body.data.attributes = attrs;
     if (
       data.allowed_workspace_ids !== undefined ||
       data.allowed_project_ids !== undefined ||
@@ -1427,6 +1545,16 @@ export interface Runner {
   registered_at: string;
   created_at: string;
   recent_jobs?: RunnerJobHistory[];
+  /** What the runner's launcher reported at registration, read-only (#933, D4, D5). */
+  driver: string;
+  network_mode: string;
+  /** The launcher's hosted.strict, cache verification mode and node cache (#933, D0, D15). */
+  hosted_strict: boolean;
+  cache_verification: string;
+  local_cache: boolean;
+  local_cache_size_limit: number;
+  /** When the runner was asked to drain; null while it is not (#933, D11). */
+  drain_requested_at: string | null;
 }
 
 function runnerFromJsonApi(item: JsonApiResource): Runner {
@@ -1454,6 +1582,13 @@ function runnerFromJsonApi(item: JsonApiResource): Runner {
     registered_at: String(attrs['registered-at'] || ''),
     created_at: String(attrs['created-at'] || attrs['registered-at'] || ''),
     recent_jobs: Array.isArray(attrs['recent_jobs']) ? (attrs['recent_jobs'] as RunnerJobHistory[]) : undefined,
+    driver: String(attrs['driver'] || ''),
+    network_mode: String(attrs['network-mode'] || ''),
+    hosted_strict: attrs['hosted-strict'] === true,
+    cache_verification: String(attrs['cache-verification'] || ''),
+    local_cache: attrs['local-cache'] === true,
+    local_cache_size_limit: Number(attrs['local-cache-size-limit']) || 0,
+    drain_requested_at: attrs['drain-requested-at'] ? String(attrs['drain-requested-at']) : null,
   };
 }
 
@@ -1491,6 +1626,9 @@ export const runnersApi = {
     return apiClient.patch<{ data: JsonApiResource }>(`/runners/${id}`, body).then(res => runnerFromJsonApi(res.data));
   },
   delete: (id: string) => apiClient.delete(`/runners/${id}`),
+  /** Asks the runner's launcher to finish its jobs, claim nothing more and deregister. */
+  drain: (id: string) =>
+    apiClient.post<{ data: JsonApiResource }>(`/runners/${id}/actions/drain`, {}).then(res => runnerFromJsonApi(res.data)),
   getStats: (organizationName: string) =>
     apiClient.get<{ data: { type: string; attributes: { total: number; online: number; offline: number } } }>(`/organizations/${encodeURIComponent(organizationName)}/runners/stats`)
       .then(res => res.data.attributes),
@@ -2006,6 +2144,12 @@ export const runsApi = {
   // Returns JSON:API format directly - pages should use helper functions
   get: (id: string) =>
     apiClient.get<JsonApiResponse<JsonApiResource>>(`/runs/${id}`),
+  // Native: where the run's latest attempt ran, and why it waits on a hosted pool (#933, AC56, AC77).
+  // Its own resource, because the run resource is the TFE wire contract.
+  getPlacement: (id: string): Promise<Placement | undefined> =>
+    apiClient
+      .get<{ data: JsonApiResource }>(`/runs/${encodeURIComponent(id)}/placement`)
+      .then(res => placementFromAttributes(res.data?.attributes)),
   // TFE-compatible: Create run (not workspace-scoped in URL; the workspace is a relationship).
   //
   // The body is the document go-tfe marshals for RunCreateOptions and nothing else: the endpoint
@@ -3109,16 +3253,92 @@ export const adminOrganizationsApi = {
 /** Who may create organizations on this installation (`STACKWEAVER_ORGANIZATION_CREATION`). */
 export type OrganizationCreationPolicy = 'everyone' | 'platform-admins';
 
+/** The deployment's mirror block, without its secrets (#933, D2). */
+export interface DeploymentMirror {
+  tofu_releases_url: string;
+  tofu_version_index_url: string;
+  provider_network_mirror: string;
+  galaxy_servers: { name: string; url: string; has_token: boolean }[];
+  pip_index_url: string;
+  pip_trusted_host: string;
+  http_proxy: string;
+  https_proxy: string;
+  no_proxy: string;
+  has_ca_certificates: boolean;
+}
+
+/** The deployment-wide runner settings, set in the chart or env files and read-only here (D0). */
+export interface DeploymentSettings {
+  images_allowed_registries: string[];
+  hosted_default_max_concurrent_jobs: number;
+  run_timeout_default: number;
+  sync_timeout: number;
+  job_log_max_bytes: number;
+  cache_size_limit: number;
+  runner_rate_limit: { rps: number; burst: number };
+  job_rate_limit: { rps: number; burst: number };
+  mirror: DeploymentMirror | null;
+}
+
 export interface PlatformSettings {
   organization_creation: OrganizationCreationPolicy;
+  deployment: DeploymentSettings;
+}
+
+function record(v: unknown): Record<string, unknown> {
+  return v && typeof v === 'object' ? (v as Record<string, unknown>) : {};
+}
+
+function budget(v: unknown): { rps: number; burst: number } {
+  const b = record(v);
+  return { rps: Number(b['rps']) || 0, burst: Number(b['burst']) || 0 };
+}
+
+function deploymentMirrorFrom(v: unknown): DeploymentMirror | null {
+  if (!v || typeof v !== 'object') return null;
+  const m = record(v);
+  const text = (k: string) => (typeof m[k] === 'string' ? m[k] : '');
+  return {
+    tofu_releases_url: text('tofu-releases-url'),
+    tofu_version_index_url: text('tofu-version-index-url'),
+    provider_network_mirror: text('provider-network-mirror'),
+    galaxy_servers: (Array.isArray(m['galaxy-servers']) ? (m['galaxy-servers'] as unknown[]) : []).map(g => {
+      const r = record(g);
+      return { name: typeof r['name'] === 'string' ? r['name'] : '', url: typeof r['url'] === 'string' ? r['url'] : '', has_token: r['has-token'] === true };
+    }),
+    pip_index_url: text('pip-index-url'),
+    pip_trusted_host: text('pip-trusted-host'),
+    http_proxy: text('http-proxy'),
+    https_proxy: text('https-proxy'),
+    no_proxy: text('no-proxy'),
+    has_ca_certificates: m['has-ca-certificates'] === true,
+  };
+}
+
+export function deploymentSettingsFrom(v: unknown): DeploymentSettings {
+  const d = record(v);
+  return {
+    images_allowed_registries: Array.isArray(d['images-allowed-registries']) ? (d['images-allowed-registries'] as unknown[]).map(String) : [],
+    hosted_default_max_concurrent_jobs: Number(d['hosted-default-max-concurrent-jobs']) || 0,
+    run_timeout_default: Number(d['run-timeout-default']) || 0,
+    sync_timeout: Number(d['sync-timeout']) || 0,
+    job_log_max_bytes: Number(d['job-log-max-bytes']) || 0,
+    cache_size_limit: Number(d['cache-size-limit']) || 0,
+    runner_rate_limit: budget(d['runner-rate-limit']),
+    job_rate_limit: budget(d['job-rate-limit']),
+    mirror: deploymentMirrorFrom(d['mirror']),
+  };
 }
 
 /** The deployment's install-wide settings: read-only, readable by every signed-in identity. */
 export const platformSettingsApi = {
   get: async (): Promise<PlatformSettings> => {
-    const res = await apiClient.get<{ data: { attributes?: { 'organization-creation'?: string } } }>('/platform/settings');
+    const res = await apiClient.get<{ data: { attributes?: Record<string, unknown> } }>('/platform/settings');
     const value = res.data?.attributes?.['organization-creation'];
-    return { organization_creation: value === 'platform-admins' ? 'platform-admins' : 'everyone' };
+    return {
+      organization_creation: value === 'platform-admins' ? 'platform-admins' : 'everyone',
+      deployment: deploymentSettingsFrom(res.data?.attributes?.['deployment']),
+    };
   },
 };
 
