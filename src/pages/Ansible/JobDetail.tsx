@@ -57,6 +57,7 @@ import { HostStatusCount } from '@/components/ansible/HostStatus';
 import { InventorySyncWarningsAlert } from '@/components/ansible/InventorySyncWarningsAlert';
 import { JobPlaybookLabel } from '@/components/ansible/JobPlaybookLabel';
 import { canRelaunchJob, jobPlaybookState } from '@/components/ansible/jobPlaybook';
+import { PlacementRecord, QueueReasonNotice } from '@/components/runners/PlacementRecord';
 import { ANSIBLE_HOST_STATUSES, type HostStatus } from '@/components/ansible/hostStatus';
 
 // Date formatting helpers
@@ -774,6 +775,10 @@ export default function JobDetail() {
 
       {/* Ran on inventory its update-on-launch syncs did not refresh */}
       <InventorySyncWarningsAlert warnings={job.inventory_sync_warnings ?? []} />
+
+      {/* Why the job waits on its hosted pool, and where its latest attempt ran (#933, AC56, AC77) */}
+      <QueueReasonNotice placement={job.placement} />
+      <PlacementRecord placement={job.placement} />
 
       {/* Warnings Banner (collapsible) */}
       {parsedWarnings.length > 0 && (

@@ -6,6 +6,7 @@ covers:
   - "core/models/ansible_*"
   - "core/models/fk_delete_rules.go"
   - "backend/cmd/ansible-runner/**"
+  - "backend/internal/executor/ansibleexec/**"
   - "backend/internal/api/v2/handlers/ansible/**"
   - "backend/internal/api/v2/routes/ansible_routes.go"
   - "backend/internal/services/rbac/**"
@@ -22,7 +23,7 @@ capabilities: [
       "core/services/ansible/credential.go",
       "core/repository/ansible_playbook.go",
       "backend/cmd/ansible-runner/main.go",
-      "backend/cmd/ansible-runner/agent_mode.go"
+      "backend/internal/executor/ansibleexec/run.go"
     ]
   },
   {
@@ -53,7 +54,9 @@ reference does not promise future delivery dates.
 The job page offers a host-by-task matrix, timeline and chronological stream over the same
 recorded events. Status filters, host/task search and a shared detail drawer let you move
 from a failed host to its task result. Output that cannot be structured remains in the stream.
-The page polls during execution; it is not a WebSocket feed.
+The page polls during execution; it is not a WebSocket feed. The executor writes its event
+callback into every job, so events are recorded line by line in any image, execution
+environments included.
 
 For programmatic reads, set the API origin, token and job ID. This example reads one page
 of failed results for a host:
@@ -92,22 +95,23 @@ Use the event counter to retrieve the full event when those details matter.
 
 ## Credentials and inventory boundaries
 
-Credential types are `ssh`, `machine-ssh`, `vault`, `aws`, `azure`, `gcp` and `vmware`.
-Unknown types and the unsupported `scm` type are rejected. Configure repository access through a VCS connection, not an Ansible SCM credential. Responses expose presence flags for SSH keys, passwords,
+Credential types are `ssh`, `machine-ssh`, `vault`, `aws`, `azure`, `gcp`, `vmware` and
+`registry`. A `registry` credential holds the username and password or token a launcher
+pulls a private run image with. Unknown types and the unsupported `scm` type are rejected. Configure repository access through a VCS connection, not an Ansible SCM credential. Responses expose presence flags for SSH keys, passwords,
 vault passwords and become passwords, not the secret values themselves.
 
 ### GCP job authentication
 
 Attach a GCP service-account credential to the job template when its Google Cloud tasks
 should use that identity. Tasks that omit authentication use the attached account through
-Application Default Credentials. The runner supplies `GCP_AUTH_KIND=application` and a
+Application Default Credentials. The job supplies `GCP_AUTH_KIND=application` and a
 job-local file named by `GOOGLE_APPLICATION_CREDENTIALS`; do not hard-code that temporary
 path into a playbook. A task that explicitly selects its own authentication keeps that
 choice. The target project's permissions still come from the chosen Google identity.
 
-This applies to platform and current self-hosted runners. Upgrade self-hosted agents to
-the runner release carrying this behavior; changing only the platform does not update an
-agent. If the runner cannot write the credential file, the job fails instead of continuing
+This applies on the hosted capacity and on self-hosted runners. Upgrade self-hosted
+launchers to the release carrying this behavior; changing only the platform does not update
+a launcher. If the job cannot write the credential file, the job fails instead of continuing
 without its attached identity. Never print the key or credential file to verify access;
 use a read-only Google Cloud operation against a dedicated test resource.
 
@@ -306,6 +310,10 @@ proof of fresh inventory. See [inventory sync failures](../../user-guides/dynami
 - **Visual workflow graph editor:** create graph nodes and edges through the API.
 - **Push-based job output:** the job page polls recorded events.
 
-For repository dependencies, use [Galaxy collections](./galaxy-collections.md). For webhook
-launching and runner selection, use [Execution flows](./execution-flows.md). Organization
+For repository dependencies and the organization's verified cache, use
+[Galaxy collections](./galaxy-collections.md). To run jobs in an image of your own, including
+an AWX execution environment built with `ansible-builder`, use
+[Run images and execution environments](../../user-guides/run-images-and-execution-environments.md).
+For webhook launching and choosing the pool a job runs on, use
+[Execution flows](./execution-flows.md) and [Self-hosted runners](../../user-guides/self-hosted-runners.md). Organization
 activity is covered by [Usage and analytics](../../user-guides/usage-analytics.md).

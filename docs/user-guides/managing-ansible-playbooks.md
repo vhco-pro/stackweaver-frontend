@@ -14,15 +14,14 @@ capabilities: [
   {
     "id": "ansible-playbooks",
     "name": "Playbook registration and sync",
-    "summary": "Register a playbook or bulk-import a repository, then choose a cached snapshot or fresh checkout for execution.",
+    "summary": "Register a playbook or bulk-import a repository, then choose the synced snapshot or a fresh capture at launch for execution.",
     "area": "ansible",
     "availability": "available",
-    "limitations": "Cached mode can still clone on a snapshot miss or an older agent. Fresh mode fetches branch HEAD at execution, not a pinned webhook commit.",
+    "limitations": "A playbook without a snapshot is synced before its job runs. Fresh mode captures branch HEAD at launch, not a pinned webhook commit.",
     "evidence": [
       "backend/internal/api/v2/handlers/ansible/playbook_discovery.go",
       "core/services/ansible/playbook_sync.go",
       "backend/cmd/ansible-runner/main.go",
-      "backend/cmd/ansible-runner/agent_mode.go",
       "backend/internal/api/v2/handlers/runner_agent.go"
     ]
   }
@@ -32,7 +31,8 @@ capabilities: [
 # Managing Ansible playbooks
 
 Register a repository file so you can use it in a job template. Choose a source mode to
-control whether jobs use a synced snapshot or fetch the branch when they start.
+control whether jobs use the last synced snapshot or a snapshot of the branch captured
+when they launch.
 
 ![Playbooks page with search and filters above registrations showing their repository, file path, branch and sync status.](./images/playbooks-overview.png "Example playbooks. Use New Playbook for one file or Import from repository for several.")
 
@@ -63,7 +63,7 @@ to verify repository loading, commit this as `site.yml` on the branch you will r
         msg: Repository playbook loaded
 ```
 
-This example runs on the runner and changes no managed hosts. A successful task verifies
+This example runs in the job itself and changes no managed hosts. A successful task verifies
 that the file loaded; it does not test connectivity or permissions on your target hosts.
 Use your own playbook for the actual work. Collection dependencies belong in repository
 `requirements.yml`; see [Galaxy collections](../features/ansible/galaxy-collections.md).
@@ -80,24 +80,24 @@ Use your own playbook for the actual work. Collection dependencies belong in rep
 
 | Source mode | What runs |
 |---|---|
-| **Cached snapshot** (default) | Content captured by the last successful sync. Once a usable snapshot exists, snapshot-capable runners do not need to clone the playbook repository. |
-| **Fresh from remote** / **Fresh from VCS at runtime** | The selected branch's HEAD at job execution time. This requires repository access for every job. |
+| **Cached snapshot** (default) | Content captured by the last successful sync. A job keeps running from it when the VCS provider is unreachable. |
+| **Fresh from remote** / **Fresh from VCS at runtime** | The selected branch's HEAD when the job is launched. Each launch captures a new snapshot first and the job waits for it, so every launch needs repository access. |
 
 Fresh mode does not pin a job to the commit that triggered a webhook. Cached mode can
 use an older snapshot while a new sync is still in progress. Check the intended commit
 before launching work that depends on a particular revision.
 
-Older self-hosted agents still clone in cached mode. Before relying on execution while
-VCS is unavailable, [verify snapshot support on your runner](#find-a-playbook-or-recover-a-failed-sync).
-
 Galaxy dependencies and playbook tasks can still need network access in either mode.
 
 <details>
-<summary>Cached mode on platform and self-hosted runners</summary>
+<summary>Snapshots on the hosted capacity and self-hosted pools</summary>
 
-If a cached playbook has no snapshot, the platform runner fetches and captures one before
-execution. A current self-hosted agent clones for that job while a snapshot sync is queued
-for later jobs. Older agents without snapshot support clone even when cached mode is selected.
+Every job starts from a snapshot, wherever it runs. Snapshots are captured by a sync on the
+hosted capacity, so a job never clones from your VCS provider, and a self-hosted launcher
+needs neither a route to it nor a VCS credential. If a cached playbook has no snapshot yet,
+its launch requests a sync and the job waits for it. If the job still finds no snapshot
+when it starts, for example because that sync failed, it fails with that reason; launch it
+again once a sync succeeds.
 
 </details>
 
@@ -162,15 +162,11 @@ whole list, not just the current page. Use **Clear filters** to reset the view.
 
 An older cached snapshot can remain usable after a failed sync. A green result from an
 import or an existing registration alone does not establish which revision a job ran.
-For cached execution, the job's **Playbook source** event identifies the snapshot commit
-and capture time. To verify a self-hosted runner before relying on cached execution, sync
-the playbook and run a non-changing test playbook in cached mode. Check for that source
-event. If it is absent, treat snapshot support as unverified and ask the runner operator
-to check the installed image.
-
-Fresh jobs do not emit that cached-snapshot banner. Checking branch HEAD before launch
-does not establish which revision was fetched later. When a recorded revision is required,
-use cached mode, wait for a successful sync and verify the job's snapshot source event.
+The job's **Playbook source** event identifies the revision it ran. For a cached job it
+names the snapshot commit and capture time. For a fresh job it names the commit captured
+from the branch head when the job was launched. Checking branch HEAD yourself before launch
+does not establish which revision the job ran, so check that event when a recorded revision
+is required.
 
 <a id="how-playbook-discovery-filters-files" style="scroll-margin-top: 7rem"></a>
 

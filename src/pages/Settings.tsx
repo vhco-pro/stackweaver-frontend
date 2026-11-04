@@ -2,7 +2,7 @@
 
 import { Link, useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { User, Bell, Shield, Key, Globe, ArrowRight, GitBranch, Layers, Monitor, KeyRound, KeySquare, Webhook, Users, Cpu, Server, FileText, Tag, Cloud, ClipboardList, Zap, Building2, ShieldCheck, Settings as SettingsIcon, type LucideIcon } from 'lucide-react';
+import { Box, User, Bell, Shield, Key, Globe, ArrowRight, GitBranch, Layers, Monitor, KeyRound, KeySquare, Webhook, Users, Cpu, Server, FileText, Tag, Cloud, ClipboardList, Zap, Building2, ShieldCheck, Settings as SettingsIcon, type LucideIcon } from 'lucide-react';
 import { Page } from '@/components/layout/Page';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { usePermissions } from '@/hooks/usePermissions';
@@ -162,6 +162,13 @@ const orgSettingsSections: SettingsSection[] = [
     icon: Cpu,
     gradient: 'from-teal-500 to-cyan-500',
     path: '/app/:orgName/settings/agent-pools',
+  },
+  {
+    title: 'Run Images',
+    description: 'Images your OpenTofu runs and Ansible jobs run in, with their registry credentials',
+    icon: Box,
+    gradient: 'from-indigo-500 to-sky-500',
+    path: '/app/:orgName/settings/run-images',
   },
   {
     title: 'Runners',

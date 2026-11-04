@@ -16,8 +16,10 @@ cloud infrastructure or configuring a cloud provider.
 
 ## Before you start
 
-You need an account with permission to create a workspace in an organization, a connected VCS
-repository, and a platform runner or agent that can execute OpenTofu. Use a separate example
+You need an account with permission to create a workspace in an organization and a connected VCS
+repository. A workspace in the default `remote` execution mode runs on the installation's hosted
+capacity; in `agent` mode it needs an OpenTofu launcher online in its agent pool (see
+[Set up self-hosted runners](../user-guides/self-hosted-runners.md)). Use a separate example
 workspace and a branch you control. Planning still executes configuration code; only use code
 you trust.
 
@@ -146,7 +148,7 @@ cannot be converted into an apply.
 > [!WARNING]
 > Auto-apply removes the manual apply checkpoint, including for destroy runs. A plan is not
 > a sandbox: provider reads, external programs and other planning-time actions still use
-> the runner's available permissions.
+> the run's identity and network access.
 
 The example's successful apply should leave `greeting` equal to `Hello from Stackweaver`.
 For real infrastructure, verify the target system as well as run status. An errored apply
@@ -158,7 +160,7 @@ can leave partial changes; inspect state and output before retrying.
 |---|---|
 | Repository cannot be selected or cloned | Connection access, installation/repository permissions and branch. |
 | No configuration files found | The working directory is relative and contains the committed `main.tf`. |
-| Run remains queued | Execution mode and runner/agent capacity. |
+| Run remains queued | Execution mode; in `agent` mode, an online launcher in the pool; the run's queue reason. |
 | Unexpected inputs or cloud access requested | The selected commit/directory is the tutorial configuration. |
 | No apply action | Whether the run was plan-only, has errors or checks, or auto-applied already. |
 

@@ -193,6 +193,7 @@ beforeEach(() => {
     data: [{
       id: 'pool-1', name: 'edge-pool', organization_scoped: true, agent_count: 1, created_at: '',
       allowed_workspace_ids: [], allowed_project_ids: [], excluded_workspace_ids: [],
+      kind: 'customer', keep_failed_jobs_for: 0, cpu_limit: '', memory_limit: '', limits_required: false, local_readthrough: true,
     }],
     meta: { pagination: { 'current-page': 1, 'page-size': 20, 'total-count': 1 } },
   });

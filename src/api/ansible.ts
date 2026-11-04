@@ -2,6 +2,7 @@
 
 import { apiClient } from './client';
 import type { JsonApiResource, JsonApiResponse, JsonApiListResponse } from '@/utils/jsonapi';
+import type { Placement } from '@/lib/placement';
 
 // ============================================================================
 // Types - These are the FLAT interfaces for use in components after parsing
@@ -14,7 +15,8 @@ export type CredentialType =
   | 'aws' 
   | 'azure' 
   | 'gcp' 
-  | 'vmware';
+  | 'vmware'
+  | 'registry';
 
 export type InventoryType = 'static' | 'dynamic' | 'vcs' | 'constructed';
 
@@ -170,6 +172,9 @@ export interface AnsibleJobTemplate {
   become_user?: string;
   enabled: boolean;
   timeout_seconds: number;
+  /** The template's run image and identity binding (#933, D6, D8); null inherits. */
+  run_image_id: string | null;
+  identity_binding_id: string | null;
   allow_simultaneous: boolean;
   retention_days?: number | null;
   job_slice_count: number;
@@ -198,6 +203,9 @@ export interface CreateJobTemplateInput {
   become_user?: string;
   enabled?: boolean;
   timeout_seconds?: number;
+  /** An empty string clears the run image or binding back to the inherited one. */
+  run_image_id?: string;
+  identity_binding_id?: string;
   allow_simultaneous?: boolean;
   /** null/undefined = leave unchanged; -1 clears the override (inherit org). */
   retention_days?: number;
@@ -258,6 +266,8 @@ export interface AnsibleJob {
   slice_count?: number;
   /** Update-on-launch sources whose sync did not refresh the inventory before the job ran. */
   inventory_sync_warnings?: AnsibleJobInventorySyncWarning[];
+  /** Where the job's latest attempt ran, and why it waits on a hosted pool (#933, AC56, AC77). */
+  placement?: Placement;
 }
 
 /**
@@ -890,6 +900,8 @@ export const ansibleJobTemplatesApi = {
             'become-enabled': data.become,
             enabled: data.enabled,
             'timeout-seconds': data.timeout_seconds,
+            'run-image-id': data.run_image_id,
+            'identity-binding-id': data.identity_binding_id,
             'allow-simultaneous': data.allow_simultaneous,
             'retention-days': data.retention_days,
             'job-slice-count': data.job_slice_count,
@@ -1206,6 +1218,11 @@ export interface AnsibleInventorySource {
   config: Record<string, unknown>;
   update_on_launch: boolean;
   update_cache_timeout: number;
+  /** Seconds a sync of this source may take; 0 uses the project's, then the organization's limit (#933). */
+  sync_timeout: number;
+  /** The source's run image and identity binding (#933, D6, D8); null inherits. */
+  run_image_id: string | null;
+  identity_binding_id: string | null;
   overwrite: boolean;
   overwrite_vars: boolean;
   verbosity: number;
@@ -1236,6 +1253,10 @@ export interface CreateInventorySourceInput {
   config?: Record<string, unknown>;
   update_on_launch?: boolean;
   update_cache_timeout?: number;
+  sync_timeout?: number;
+  /** An empty string clears the run image or binding back to the inherited one. */
+  run_image_id?: string;
+  identity_binding_id?: string;
   overwrite?: boolean;
   overwrite_vars?: boolean;
   verbosity?: number;
@@ -1328,6 +1349,9 @@ export const ansibleInventorySourcesApi = {
             config: data.config || {},
             'update-on-launch': data.update_on_launch ?? true,
             'update-cache-timeout': data.update_cache_timeout ?? 0,
+            'sync-timeout': data.sync_timeout ?? 0,
+            ...(data.run_image_id ? { 'run-image-id': data.run_image_id } : {}),
+            ...(data.identity_binding_id ? { 'identity-binding-id': data.identity_binding_id } : {}),
             overwrite: data.overwrite ?? false,
             'overwrite-vars': data.overwrite_vars ?? false,
             verbosity: data.verbosity ?? 0,
@@ -1357,6 +1381,9 @@ export const ansibleInventorySourcesApi = {
             config: data.config,
             'update-on-launch': data.update_on_launch,
             'update-cache-timeout': data.update_cache_timeout,
+            'sync-timeout': data.sync_timeout,
+            'run-image-id': data.run_image_id,
+            'identity-binding-id': data.identity_binding_id,
             overwrite: data.overwrite,
             'overwrite-vars': data.overwrite_vars,
             verbosity: data.verbosity,

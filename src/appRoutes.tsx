@@ -49,6 +49,7 @@ const VCSConnections = deferredPage(() => import('./pages/Settings/VCSConnection
 const Webhooks = deferredPage(() => import('./pages/Settings/Webhooks'), 'Webhooks');
 const VariableSets = deferredPage(() => import('./pages/Settings/VariableSets'), 'VariableSets');
 const AgentPools = deferredPage(() => import('./pages/Settings/AgentPools'), 'AgentPools');
+const RunImages = deferredPage(() => import('./pages/Settings/RunImages'), 'RunImages');
 const OIDCConfigurations = deferredPage(() => import('./pages/Settings/OIDCConfigurations'), 'OIDCConfigurations');
 const TofuVersions = deferredPage(() => import('./pages/Settings/TofuVersions'), 'TofuVersions');
 const PlatformAdministrators = deferredPage(() => import('./pages/Settings/PlatformAdministrators'), 'PlatformAdministrators');
@@ -631,6 +632,18 @@ export const appRoutes = createRoutesFromElements(<>
                   <OrganizationGuard>
                     <Layout>
                       <AgentPools />
+                    </Layout>
+                  </OrganizationGuard>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/app/:orgName/settings/run-images"
+              element={
+                <ProtectedRoute>
+                  <OrganizationGuard>
+                    <Layout>
+                      <RunImages />
                     </Layout>
                   </OrganizationGuard>
                 </ProtectedRoute>

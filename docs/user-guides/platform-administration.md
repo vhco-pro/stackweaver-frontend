@@ -9,6 +9,8 @@ covers:
   - "backend/internal/api/v2/handlers/admin_organizations.go"
   - "backend/internal/api/v2/handlers/admin_tofu_versions.go"
   - "backend/internal/api/v2/handlers/platform_settings.go"
+  - "backend/internal/api/v2/handlers/platform_settings_deployment.go"
+  - "backend/internal/api/v2/handlers/agent_pools.go"
   - "backend/internal/api/v2/handlers/account.go"
   - "backend/internal/api/v2/handlers/tokens.go"
   - "backend/internal/services/apikey/scopes.go"
@@ -45,6 +47,7 @@ configures the deployment; it does not replace organization membership or API re
 | Add, enable, disable and delete catalogue versions, subject to deletion restrictions. | Membership and permissions in the target organization. |
 | Grant and remove other platform administrators. | An existing owner to add you to the `owners` team when owner access is needed. |
 | See each organization's admin email, member/workspace counts and creation date. | Membership before its directory row opens workspaces. Other rows say **Not a member**. |
+| Set how much of the installation's hosted capacity each organization may use at once, and which placement group serves it. | Membership for anything else about that organization's runs and pools. |
 
 Being an organization owner does not grant the platform role. Organization owners select
 their own default OpenTofu version from the catalogue under
@@ -250,9 +253,10 @@ POST   /api/v2/admin/users/:id/actions/revoke_admin
 GET    /api/v2/admin/organizations
 GET    /api/v2/admin/organizations/:name
        /api/v2/admin/terraform-versions
+PATCH  /api/v2/agent-pools/:id
 ```
 
-The last route supports catalogue operations; check the API reference for their methods
+The terraform-versions route supports catalogue operations; check the API reference for their methods
 and schemas.
 
 | Operation | Purpose or failure behavior |
@@ -261,12 +265,18 @@ and schemas.
 | Grant | An already-granted administrator returns 400. A declared administrator stays unchanged. |
 | Revoke | A non-admin returns 400; a deployment-declared administrator returns 422. |
 | Organization list or read | Returns summaries without member lists, settings or tokens. |
+| Hosted pool settings | `PATCH /api/v2/agent-pools/:id` on an organization's hosted pool sets `max-concurrent-jobs`, the jobs of that organization the hosted capacity runs at once (while it is unset, `STACKWEAVER_HOSTED_DEFAULT_MAX_CONCURRENT_JOBS` applies), and `placement-group`, the group of hosted launchers that serves it. The pool's ID is the `pool-id` of `GET /api/v2/organizations/:name/hosted-capacity`. An organization admin's request for those fields returns 403, and a hosted pool has no other writable setting. See [Self-hosted runners](./self-hosted-runners.md#hosted-capacity). |
 
 For authenticated callers, missing platform standing or a missing platform-admin token
 scope returns 404. `GET /api/v2/account/details` and `GET /api/v2/platform/settings` are
 available to signed-in callers without that role. Account details report `is-site-admin`,
 `platform-admin-declared` and `permissions.can-create-organizations`; platform settings
-report `organization-creation`. See the [API reference](/docs/api-reference/explorer) for operation schemas.
+report `organization-creation` and a read-only `deployment` attribute with the settings the
+installer gave runs and jobs: the allowed image registries, the default run and sync
+timeouts, the job log cap, the cache size limit, the hosted default concurrency cap, the
+launcher and job rate budgets, and the job mirrors, proxy and CA (never a token). The
+[Environment variables reference](../get-started/self-hosting/environment-variables.md#runs-jobs-and-launchers)
+lists where each comes from. See the [API reference](/docs/api-reference/explorer) for operation schemas.
 
 ## Manage catalogue versions with Terraform or OpenTofu
 

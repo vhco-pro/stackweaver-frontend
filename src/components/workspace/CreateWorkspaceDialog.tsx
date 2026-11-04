@@ -32,6 +32,7 @@ import { VCSProviderSelector } from '@/components/vcs/VCSProviderSelector';
 import { VCSProjectSelect } from '@/components/vcs/VCSProjectSelect';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
+import { IdentityBindingSelect, RunImageSelect } from '@/components/settings/RunPlacementFields';
 import { autoFillWorkspaceName, resolveBranch, resolveProjectId } from './CreateWorkspaceDialog.helpers';
 import { dedupeVcsConnections } from './EditWorkspaceDialog.helpers';
 
@@ -69,6 +70,9 @@ export function CreateWorkspaceDialog({
   const [allowDestroyPlan, setAllowDestroyPlan] = useState(true);
   const [executionMode, setExecutionMode] = useState('remote');
   const [agentPoolId, setAgentPoolId] = useState('');
+  // '' inherits from the project, the organization or the platform (#933, D0).
+  const [runImageId, setRunImageId] = useState('');
+  const [identityBindingId, setIdentityBindingId] = useState('');
 
   const [repositorySearch, setRepositorySearch] = useState<string>('');
   const [repositorySelectOpen, setRepositorySelectOpen] = useState(false);
@@ -197,6 +201,8 @@ export function CreateWorkspaceDialog({
         allow_destroy_plan: allowDestroyPlan,
         execution_mode: executionMode,
         agent_pool_id: executionMode === 'agent' && agentPoolId ? agentPoolId : undefined,
+        run_image_id: runImageId || undefined,
+        identity_binding_id: identityBindingId || undefined,
       });
 
       toast.success('Workspace created successfully');
@@ -214,6 +220,8 @@ export function CreateWorkspaceDialog({
       setAutoApply(false);
       setAllowDestroyPlan(true);
       setExecutionMode('remote');
+      setRunImageId('');
+      setIdentityBindingId('');
 
       // Navigate to workspace detail page
       void navigate(`/app/${orgName}/workspaces/${workspace.name}`);
@@ -607,6 +615,10 @@ export function CreateWorkspaceDialog({
               )}
             </div>
           )}
+
+          {/* Run image and identity binding (#933, D6, D8): empty inherits from the project. */}
+          <RunImageSelect id="run-image" orgName={orgName} kind="tofu" value={runImageId} onChange={setRunImageId} inheritLabel="Inherit from the project" />
+          <IdentityBindingSelect id="identity-binding" orgName={orgName} value={identityBindingId} onChange={setIdentityBindingId} inheritLabel="Inherit from the project" />
 
           <DialogFooter className={cn("pt-6 pb-2", repositorySelectOpen && "pb-6")}>
             <Button

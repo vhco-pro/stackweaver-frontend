@@ -55,11 +55,12 @@ The maintained example uses synthetic data. No settings are saved during capture
 | Auto-apply | Can apply successful plans without a manual approval. |
 | Allow destroy plans | Permits destroy operations to be queued; turning it off does not disable other run types. |
 | Allow force delete | Permits deleting the workspace despite active infrastructure. This does not destroy that infrastructure. |
-| Execution mode and agent pool | Choose remote, local or agent execution; confirm the selected runner has the required access. |
+| Execution mode and agent pool | Choose remote execution on the organization's hosted capacity, local execution, or agent execution on an agent pool of your own; confirm the pool's launchers have the required access. |
+| Run image and identity binding | Choose the image the workspace's runs execute in and the identity binding they use, or inherit them from the project, organization or platform. See [Run images and execution environments](../../user-guides/run-images-and-execution-environments.md). |
 | Run timeout | Set separately with **Run Timeout > Edit**. UI uses hours; the API stores seconds. |
 
 Changing settings does not retroactively rewrite the configuration of work already running.
-Avoid overlapping execution while switching a workspace's source or runner.
+Avoid overlapping execution while switching a workspace's source, pool or run image.
 
 ## Manage settings with Terraform
 
@@ -141,7 +142,7 @@ replace these platform settings.
 
 ## Verify the next run
 
-Check that the next run used the intended repository revision, directory, engine and
-runner. Review the resource changes and verify auto-apply/destroy policies before applying.
+Check that the next run used the intended repository revision, directory, engine, run image and
+pool. Review the resource changes and verify auto-apply/destroy policies before applying.
 If the result is unexpected, stop further automatic work, correct the settings and inspect
 state before another attempt. A source warning does not automatically migrate or repair state.

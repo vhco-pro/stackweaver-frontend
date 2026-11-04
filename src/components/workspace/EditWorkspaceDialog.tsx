@@ -31,6 +31,10 @@ import { VCSProviderSelector } from '@/components/vcs/VCSProviderSelector';
 import { VCSProjectSelect } from '@/components/vcs/VCSProjectSelect';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
+import { effectiveSettingsApi } from '@/api/runPlacement';
+import { IdentityBindingSelect, InheritedHint, RunImageSelect } from '@/components/settings/RunPlacementFields';
+import { useIdentityBindingOptions, useRunImages } from '@/hooks/useRunPlacement';
+import { bindingLabel, runImageLabel } from '@/lib/runPlacement';
 import {
   dedupeVcsConnections,
   vcsConnectionExists,
@@ -121,6 +125,15 @@ function EditWorkspaceFormBody({
   const [executionMode, setExecutionMode] = useState(workspace.execution_mode || 'remote');
   const [agentPoolId, setAgentPoolId] = useState(workspace.agent_pool_id || '');
   const [forceDelete, setForceDelete] = useState(workspace.force_delete || false);
+  // '' inherits from the project, the organization or the platform (#933, D0).
+  const [runImageId, setRunImageId] = useState(workspace.run_image_id ?? '');
+  const [identityBindingId, setIdentityBindingId] = useState(workspace.identity_binding_id ?? '');
+  const { data: effective } = useQuery({
+    queryKey: ['effectiveSettings', 'workspace', workspace.id],
+    queryFn: () => effectiveSettingsApi.get('workspace', workspace.id),
+  });
+  const { data: runImages } = useRunImages(orgName);
+  const { data: bindingOptions } = useIdentityBindingOptions(orgName);
   const [repositorySearch, setRepositorySearch] = useState<string>('');
   const [repositorySelectOpen, setRepositorySelectOpen] = useState(false);
   const repositorySearchInputRef = useRef<HTMLInputElement>(null);
@@ -242,6 +255,8 @@ function EditWorkspaceFormBody({
         execution_mode: executionMode,
         agent_pool_id: executionMode === 'agent' && agentPoolId ? agentPoolId : null,
         force_delete: forceDelete,
+        run_image_id: runImageId,
+        identity_binding_id: identityBindingId,
       });
 
       toast.success('Workspace updated successfully');
@@ -568,6 +583,14 @@ function EditWorkspaceFormBody({
               ))}
             </SelectContent>
           </Select>
+          {!terraformVersion && (
+            <InheritedHint
+              setting={effective?.tofu_version}
+              ownLevel="workspace"
+              describe={v => v || 'the newest version available'}
+              testId="edit-tofu-version-inherited"
+            />
+          )}
         </div>
 
         {/* Execution Mode */}
@@ -608,6 +631,37 @@ function EditWorkspaceFormBody({
             )}
           </div>
         )}
+
+        {/* Run image and identity binding (#933, D6, D8): empty inherits. */}
+        <RunImageSelect
+          id="edit-run-image"
+          orgName={orgName}
+          kind="tofu"
+          value={runImageId}
+          onChange={setRunImageId}
+          hint={!runImageId && (
+            <InheritedHint
+              setting={effective?.run_image_id}
+              ownLevel="workspace"
+              describe={v => runImageLabel(runImages, v)}
+              testId="edit-run-image-inherited"
+            />
+          )}
+        />
+        <IdentityBindingSelect
+          id="edit-identity-binding"
+          orgName={orgName}
+          value={identityBindingId}
+          onChange={setIdentityBindingId}
+          hint={!identityBindingId && (
+            <InheritedHint
+              setting={effective?.identity_binding_id}
+              ownLevel="workspace"
+              describe={v => bindingLabel(bindingOptions, v)}
+              testId="edit-identity-binding-inherited"
+            />
+          )}
+        />
 
         {/* Auto Queue Runs */}
         {vcsConnectionId && (

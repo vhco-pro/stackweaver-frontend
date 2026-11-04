@@ -24,9 +24,12 @@ volumes:
   postgres_data:
   garage_data:
   garage_meta:
-  runner-workspaces:
-  ansible-workspaces:  # isolated from the OpenTofu runner so neither can read the other's staged credentials
   zitadel-pat:
+  # The launchers' node-local cache copies, named so the job containers they start can mount them.
+  stackweaver-launcher-cache:
+    name: stackweaver-launcher-cache
+  stackweaver-ansible-launcher-cache:
+    name: stackweaver-ansible-launcher-cache
 
 services:
 
@@ -247,9 +250,11 @@ services:
       # missing file is fatal by design.
       LOG_LEVEL: ${LOG_LEVEL:-info}
       # Compose fixes this container's environment when `docker compose up` starts, before
-      # zitadel-init has generated the client IDs and the login service token. The API therefore
-      # reads .env itself when it starts, by which time zitadel-init has finished (see depends_on),
-      # and the values in the file win. That is what makes a single `docker compose up -d` enough.
+      # zitadel-init has generated the client IDs, the login service token and the hosted
+      # registration secret. The API therefore reads those generated values from .env itself when
+      # it starts, by which time zitadel-init has finished (see depends_on), and they win; any other
+      # entry in .env reaches the API when Compose creates it. That is what makes a single
+      # `docker compose up -d` enough, for the first start and for an upgrade.
       STACKWEAVER_ENV_FILE: /config/stackweaver/.env
       # Database. These must track the postgres service's own POSTGRES_* values - with no config
       # file in play, environment variables are the API's only source for them.
@@ -404,97 +409,104 @@ services:
         condition: service_started
     networks: [stackweaver]
 
-  runner:
+  # The OpenTofu launcher. It registers as the deployment's hosted launcher with
+  # STACKWEAVER_HOSTED_SECRET (generated into .env by zitadel-init), holds one long-poll heartbeat
+  # and places every job it claims in a fresh, hardened job container through the Docker socket.
+  # It holds no database, storage, Redis or platform secret: the executor in the job container
+  # fetches what its job needs from the API with a token for that job alone. The socket is
+  # root-equivalent on this host, which is why the launcher itself never runs user code.
+  launcher:
     image: ghcr.io/vhco-pro/stackweaver-opentofu-runner:latest
-    container_name: runner
+    container_name: launcher
     restart: unless-stopped
-    env_file:
-      - ./.env
-      - ./oidc.env
+    user: root  # reaches the Docker socket; job containers run as the image's non-root user
     environment:
-      # Neither binary reads a config file, so no CONFIG_PATH here; the database credentials
-      # below must track the postgres service's own POSTGRES_* values.
-      DATABASE_HOST: postgres
-      DATABASE_USER: ${POSTGRES_USER:-iac}
-      DATABASE_PASSWORD: ${POSTGRES_PASSWORD:-iac_password}
-      DATABASE_NAME: ${POSTGRES_DB:-iac_platform}
-      REDIS_HOST: redis
-      REDIS_PORT: "6379"
-      REDIS_PASSWORD: ""
-      REDIS_DB: "0"
-      # Storage (Garage S3-compatible)
-      STORAGE_BACKEND: s3
-      STORAGE_ENDPOINT: garage:3900
-      STORAGE_ACCESS_KEY: ${STORAGE_ACCESS_KEY:-GK000000000000000000000000}
-      STORAGE_SECRET_KEY: ${STORAGE_SECRET_KEY:-abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789}
-      STORAGE_BUCKET: stackweaver
-      STORAGE_REGION: garage
-      STORAGE_USE_SSL: "false"
-      STORAGE_FORCE_PATH_STYLE: "true"
-      ENCRYPTION_KEY: ${ENCRYPTION_KEY:-00000000000000000000000000000000}
+      STACKWEAVER_SERVER: http://host.docker.internal:8022
+      STACKWEAVER_HOSTED: "1"
+      # zitadel-init generates STACKWEAVER_HOSTED_SECRET into .env after Compose has fixed this
+      # container's environment, so the launcher reads that one value from the file at start
+      # and nothing else of it.
+      STACKWEAVER_ENV_FILE: /config/stackweaver/.env
+      RUNNER_NAME: launcher
+      RUNNER_MAX_CONCURRENT_JOBS: "4"
+      RUNNER_DRIVER: container
+      RUNNER_IMAGE: ghcr.io/vhco-pro/stackweaver-opentofu-runner:latest
+      # The node-local, read-only copy of the organizations' caches: a named volume, so
+      # job containers mount their organization's subpath of it read-only.
+      RUNNER_CACHE_DIR: /var/cache/stackweaver-launcher
+      RUNNER_CACHE_VOLUME: stackweaver-launcher-cache
+      RUNNER_NETWORK: stackweaver-jobs
+      RUNNER_EXTRA_HOSTS: host.docker.internal:host-gateway
+    extra_hosts:
+      - host.docker.internal:host-gateway
     volumes:
-      - runner-workspaces:/home/stackweaver/workspaces
+      - /var/run/docker.sock:/var/run/docker.sock
+      - stackweaver-launcher-cache:/var/cache/stackweaver-launcher
+      # Only the generated .env, never the install directory beside it, whose sso, vcs and oidc
+      # files and GitHub App key a launcher must not hold. zitadel-init replaces .env by
+      # a rename, so this single-file mount holds the file as it was when the launcher started,
+      # which is after zitadel-init completed (depends_on).
+      - ./.env:/config/stackweaver/.env:ro
+    healthcheck:
+      test: ["CMD", "/usr/local/bin/runner", "healthcheck"]
+      interval: 15s
+      timeout: 5s
+      retries: 8
+      start_period: 30s
     depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-      garage-init:
-        condition: service_completed_successfully
-      orchestrator:
-        condition: service_started
-    networks: [stackweaver]
-
-  ansible-runner:
-    image: ghcr.io/vhco-pro/stackweaver-ansible-runner:latest
-    container_name: ansible-runner
-    restart: unless-stopped
-    env_file:
-      - ./.env
-      - ./vcs.env
-      - ./oidc.env
-    environment:
-      REDIS_HOST: redis
-      REDIS_PORT: "6379"
-      REDIS_PASSWORD: ""
-      DATABASE_HOST: postgres
-      DATABASE_PORT: "5432"
-      DATABASE_USER: ${POSTGRES_USER:-iac}
-      DATABASE_PASSWORD: ${POSTGRES_PASSWORD:-iac_password}
-      DATABASE_NAME: ${POSTGRES_DB:-iac_platform}
-      # Storage (Garage S3-compatible)
-      STORAGE_BACKEND: s3
-      STORAGE_ENDPOINT: garage:3900
-      STORAGE_ACCESS_KEY: ${STORAGE_ACCESS_KEY:-GK000000000000000000000000}
-      STORAGE_SECRET_KEY: ${STORAGE_SECRET_KEY:-abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789}
-      STORAGE_BUCKET: stackweaver
-      STORAGE_REGION: garage
-      STORAGE_USE_SSL: "false"
-      STORAGE_FORCE_PATH_STYLE: "true"
-      # Required: the runner refuses to start with a missing or all-zero key.
-      # Compose fails fast here until ENCRYPTION_KEY is set in .env.
-      ANSIBLE_ENCRYPTION_KEY: "${ENCRYPTION_KEY:?set ENCRYPTION_KEY in .env - generate one with openssl rand -hex 32}"
-      WORKSPACES_DIR: /home/stackweaver/workspaces
-      # Clean each job's scratch dir (SSH keys, vault passwords, inventory
-      # secrets) on completion. Set to "true" only for short-lived debugging.
-      ANSIBLE_RUNNER_KEEP_WORKSPACE: "false"
-    volumes:
-      - ansible-workspaces:/home/stackweaver/workspaces
-    # Defense-in-depth: the runner needs no Linux capabilities (Ansible privilege
-    # escalation happens on the target host over SSH, not in this container), and
-    # a PID cap blunts fork-bomb / runaway-playbook resource exhaustion.
-    cap_drop:
-      - ALL
-    security_opt:
-      - no-new-privileges:true
-    pids_limit: 512
-    depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-      garage-init:
-        condition: service_completed_successfully
       api:
         condition: service_started
+      zitadel-init:
+        condition: service_completed_successfully
+    networks: [stackweaver]
+
+  # The Ansible launcher, which also runs the syncs (playbook and configuration snapshots, inventory syncs). It registers as the deployment's hosted launcher with
+  # STACKWEAVER_HOSTED_SECRET (generated into .env by zitadel-init), holds one long-poll heartbeat
+  # and places every job it claims in a fresh, hardened job container through the Docker socket.
+  # It holds no database, storage, Redis or platform secret: the executor in the job container
+  # fetches what its job needs from the API with a token for that job alone. The socket is
+  # root-equivalent on this host, which is why the launcher itself never runs user code.
+  ansible-launcher:
+    image: ghcr.io/vhco-pro/stackweaver-ansible-runner:latest
+    container_name: ansible-launcher
+    restart: unless-stopped
+    user: root  # reaches the Docker socket; job containers run as the image's non-root user
+    environment:
+      STACKWEAVER_SERVER: http://host.docker.internal:8022
+      STACKWEAVER_HOSTED: "1"
+      # zitadel-init generates STACKWEAVER_HOSTED_SECRET into .env after Compose has fixed this
+      # container's environment, so the launcher reads that one value from the file at start
+      # and nothing else of it.
+      STACKWEAVER_ENV_FILE: /config/stackweaver/.env
+      RUNNER_NAME: ansible-launcher
+      RUNNER_MAX_CONCURRENT_JOBS: "4"
+      RUNNER_DRIVER: container
+      RUNNER_IMAGE: ghcr.io/vhco-pro/stackweaver-ansible-runner:latest
+      # The node-local, read-only copy of the organizations' caches: a named volume, so
+      # job containers mount their organization's subpath of it read-only.
+      RUNNER_CACHE_DIR: /var/cache/stackweaver-launcher
+      RUNNER_CACHE_VOLUME: stackweaver-ansible-launcher-cache
+      RUNNER_NETWORK: stackweaver-jobs
+      RUNNER_EXTRA_HOSTS: host.docker.internal:host-gateway
+    extra_hosts:
+      - host.docker.internal:host-gateway
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - stackweaver-ansible-launcher-cache:/var/cache/stackweaver-launcher
+      # Only the generated .env, never the install directory beside it, whose sso, vcs and oidc
+      # files and GitHub App key a launcher must not hold. zitadel-init replaces .env by
+      # a rename, so this single-file mount holds the file as it was when the launcher started,
+      # which is after zitadel-init completed (depends_on).
+      - ./.env:/config/stackweaver/.env:ro
+    healthcheck:
+      test: ["CMD", "/usr/local/bin/ansible-runner", "healthcheck"]
+      interval: 15s
+      timeout: 5s
+      retries: 8
+      start_period: 30s
+    depends_on:
+      api:
+        condition: service_started
+      zitadel-init:
+        condition: service_completed_successfully
     networks: [stackweaver]

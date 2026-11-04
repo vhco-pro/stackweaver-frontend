@@ -78,6 +78,9 @@ import { cn } from '@/lib/utils';
 import { dangerGhostIcon, dangerOutline } from '@/lib/surfaces';
 import { getVcsProviderIcon, getVcsRepoUrl, getVcsCommitUrl } from '@/lib/vcs';
 import { toast } from 'sonner';
+import { effectiveSettingsApi } from '@/api/runPlacement';
+import { InheritedHint } from '@/components/settings/RunPlacementFields';
+import { formatSeconds } from '@/lib/runPlacement';
 import {
   Dialog,
   DialogContent,
@@ -471,6 +474,12 @@ export default function WorkspaceDetail() {
 
   // Derive fetched data from the query result
   const workspace = workspaceData?.workspace ?? null;
+  // The run timeout the workspace inherits when it sets none (#933, D0).
+  const { data: effectiveSettings } = useQuery({
+    queryKey: ['effectiveSettings', 'workspace', workspace?.id, workspace?.run_timeout],
+    queryFn: () => effectiveSettingsApi.get('workspace', workspace!.id),
+    enabled: !!workspace?.id,
+  });
   const runs = workspaceData?.runs ?? [];
   const stateVersions = workspaceData?.stateVersions ?? [];
   const variables = workspaceData?.variables ?? [];
@@ -1575,7 +1584,7 @@ export default function WorkspaceDetail() {
                     variant="ghost"
                     size="sm"
                     onClick={() => {
-                      setTimeoutValue(workspace.run_timeout || 7200);
+                      setTimeoutValue(workspace.run_timeout || effectiveSettings?.run_timeout?.value || 7200);
                       setTimeoutDialogOpen(true);
                     }}
                     className="h-6 px-2 text-xs"
@@ -1586,9 +1595,19 @@ export default function WorkspaceDetail() {
                     Edit
                   </Button>
                 </div>
-                <div className="font-medium">
-                  {workspace.run_timeout ? formatTimeout(workspace.run_timeout) : '2 hours (default)'}
+                <div className="font-medium" data-testid="workspace-run-timeout">
+                  {workspace.run_timeout
+                    ? formatTimeout(workspace.run_timeout)
+                    : effectiveSettings?.run_timeout ? formatSeconds(effectiveSettings.run_timeout.value) : 'Inherited'}
                 </div>
+                {!workspace.run_timeout && (
+                  <InheritedHint
+                    setting={effectiveSettings?.run_timeout}
+                    ownLevel="workspace"
+                    describe={formatSeconds}
+                    testId="workspace-run-timeout-inherited"
+                  />
+                )}
                 <div className="text-xs text-muted-foreground mt-1">
                   Applies will be automatically cancelled after this duration
                 </div>
@@ -1667,6 +1686,31 @@ export default function WorkspaceDetail() {
                 >
                   Cancel
                 </Button>
+                {!!workspace?.run_timeout && (
+                  <Button
+                    variant="outline"
+                    disabled={savingTimeout}
+                    onClick={() => {
+                      void (async () => {
+                        if (!orgName || !workspaceName) return;
+                        setSavingTimeout(true);
+                        try {
+                          // 0 defers to the project, the organization and the platform default.
+                          await workspacesApi.update(orgName, workspaceName, { 'run-timeout': 0 });
+                          void refetchData();
+                          setTimeoutDialogOpen(false);
+                          toast.success('The workspace now inherits its run timeout');
+                        } catch (error) {
+                          toast.error(error instanceof Error ? error.message : 'Failed to update timeout');
+                        } finally {
+                          setSavingTimeout(false);
+                        }
+                      })();
+                    }}
+                  >
+                    Inherit
+                  </Button>
+                )}
                 <GradientButton
                   ramp="app"
                   className="w-auto px-4 py-2"

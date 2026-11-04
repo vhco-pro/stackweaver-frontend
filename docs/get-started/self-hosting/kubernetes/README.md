@@ -3,6 +3,9 @@ description: "Kubernetes Helm chart deployment guide with secrets, ingress, SSO,
 covers:
   - "deploy/helm/**"
   - "scripts/zitadel-init/**"
+  - "backend/internal/launcher/**"
+  - "core/runnerdriver/kubernetes/**"
+  - "core/models/**"
 ---
 
 # Install Stackweaver with Helm
@@ -13,10 +16,10 @@ procedure; use [Kustomize and GitOps](./kustomize/README.md) for declarative rec
 
 ## Before you start
 
-- Kubernetes 1.27+ APIs and Helm 3.12+ as documented by the chart. Use a maintained cluster
+- Kubernetes 1.27+ APIs (job pods use scheduling gates) and Helm 3.12+ as documented by the chart. Use a maintained cluster
   version supported by your operator, with Helm available on the deployment runner.
 - An ingress controller, app and auth DNS names, and TLS certificates for both hosts.
-- Persistent storage suitable for PostgreSQL, Garage and runner/cache claims.
+- Persistent storage suitable for PostgreSQL and Garage.
 - Access to all image packages; create the [GHCR pull Secret](./kubernetes-pull-secret-ghcr.md)
   in the release namespace before installation when private images need it.
 - Permission to create the workloads and bootstrap Job/RBAC in that namespace.
@@ -63,14 +66,16 @@ flowchart LR
     A --> P[("PostgreSQL")]
     A --> R[("Redis")]
     A --> G[("Garage / S3")]
-    R --> W["Platform runners"]
+    L["Launchers"] --> A
+    L --> J["Job pods"]
+    J --> A
 ```
 
 ### Choose storage before installing
 
-The default OpenTofu runner workspace claim requests **ReadWriteMany**. Check that your
-provisioner supports it; a default block-storage class may support only ReadWriteOnce.
-For example, merge the following into `my-values.yaml`, replacing the class names:
+PostgreSQL and Garage each request a ReadWriteOnce claim. Launchers and job pods use no
+persistent claim. To choose the storage class, merge the following into `my-values.yaml`,
+replacing the class names:
 
 ```yaml
 postgresql:
@@ -79,21 +84,10 @@ postgresql:
 garage:
   storage:
     storageClass: block-storage-class
-runnerWorkspaces:
-  storageClass: shared-filesystem-class
-  accessMode: ReadWriteMany
-ansibleRunner:
-  galaxyCache:
-    storageClass: block-storage-class
-    accessMode: ReadWriteOnce
 ```
 
 Use `kubectl get storageclass` to inspect available classes. You can instead provide existing
-claims through `postgresql.storage.existingClaim`, `garage.storage.existingClaim`,
-`runnerWorkspaces.existingClaim` and `ansibleRunner.galaxyCache.existingClaim`. For an install
-with one OpenTofu runner, a deliberately chosen `runnerWorkspaces.accessMode: ReadWriteOnce`
-can suit block storage; review node/rollout attachment behavior before scaling it. Multiple
-Ansible runner replicas sharing a persistent Galaxy cache need an RWX cache too.
+claims through `postgresql.storage.existingClaim` and `garage.storage.existingClaim`.
 
 ## 2. Install and check bootstrap
 
@@ -107,7 +101,7 @@ kubectl logs --namespace stackweaver job/stackweaver-secrets-init
 kubectl logs --namespace stackweaver deployment/stackweaver-zitadel -c zitadel-init
 ```
 
-The default secret bootstrap creates missing passwords and encryption/signing keys. The
+The default secret bootstrap creates missing passwords, encryption/signing keys and the hosted launcher registration secret. The
 bundled Zitadel initializer then creates the identity applications and service users, patches
 the identity Secret and restarts consumers. Existing initialized credentials are preserved.
 The frontend receives runtime configuration; a domain change does not require building a new image.
@@ -220,6 +214,11 @@ kubectl create secret generic my-encryption-secret \
   --namespace $NAMESPACE \
   --from-literal=encryption-key="$(openssl rand -hex 32)"
 
+# Hosted launcher registration secret (tfe- followed by 64 hex characters)
+kubectl create secret generic my-hosted-secret \
+  --namespace $NAMESPACE \
+  --from-literal=hosted-secret="tfe-$(openssl rand -hex 32)"
+
 # OIDC workload-identity signing key
 openssl genrsa 2048 > oidc-signing-key.pem
 kubectl create secret generic my-oidc-secret \
@@ -251,6 +250,8 @@ secrets:
     secretName: my-storage-secret
   encryption:
     secretName: my-encryption-secret
+  hosted:
+    secretName: my-hosted-secret
   zitadel:
     secretName: my-zitadel-secret
   oidc:
@@ -261,7 +262,7 @@ secrets:
 
 The chart's rendered manifests do not contain generated credential values, but values you
 supply directly to env overrides can still appear there. Treat rendered output accordingly.
-When all five credential Secret names are supplied **and bundled Garage is disabled**, the
+When all six credential Secret names are supplied **and bundled Garage is disabled**, the
 bootstrap Job and its RBAC are omitted. Bundled Garage still needs its own bootstrap Secret.
 Mirror `secretsInit.image.repository` when operating an internal registry.
 
@@ -298,6 +299,7 @@ kubectl create secret generic my-zitadel-secret \
 | PostgreSQL | `password` | `secrets.postgresql` |
 | S3 credentials | `access-key`, `secret-key` | `secrets.storage` |
 | Platform encryption | `encryption-key` | `secrets.encryption` |
+| Hosted launcher registration | `hosted-secret` | `secrets.hosted` |
 | Workload identity | `signing-key` (RSA private PEM) | `secrets.oidc` |
 | Bundled Zitadel | `masterkey`, `admin-password`; initializer fills derived keys | `secrets.zitadel` |
 | External Zitadel | `client-id`, `client-secret`, `bff-client-id`, `bff-client-secret`, `login-service-user-token`; configure webhook keys when used | `secrets.zitadel` |
@@ -306,24 +308,84 @@ Override `secrets.<component>.keys.*` if your existing Secret uses different nam
 required keys can prevent pods from starting; inspect pod events rather than assuming an
 empty value was accepted.
 
-## Runner security and isolation
+<a id="runner-security-and-isolation"></a>
 
-Runner containers use a non-root user, read-only root filesystem, dropped capabilities,
-no privilege escalation and the default seccomp profile. Ansible `become` executes on the
-managed target, not inside the runner container. These controls do not turn untrusted IaC
-into a sandbox or remove the permissions granted to its cloud identity.
+## Launchers and job isolation
 
-The processes a runner starts for a run (OpenTofu and its providers, `ansible-playbook`, `ansible-inventory`, `ansible-galaxy`) are not handed the runner's own environment, which carries the database, Redis and storage credentials, the encryption key and the workload identity signing key. They receive the run's own variables plus a fixed allowlist of the runner's (path, locale, proxy and CA settings, pod-level cloud identity variables, and a few OpenTofu and Ansible settings), listed in [Runner variables that reach runs](../environment-variables.md#runner-variables-that-reach-runs). To give runs another variable you set in `runner.env` or `ansibleRunner.env`, add its name to `runner.runEnvPassthrough` or `ansibleRunner.runEnvPassthrough`; for example, an `AZURE_SUBSCRIPTION_ID` in `ansibleRunner.env` reaches inventory syncs without it, but a custom `HTTP_PROXY_USER` needs the corresponding
-`ansibleRunner.runEnvPassthrough` entry.
+The OpenTofu and Ansible deployments are launchers. A launcher registers with the API as the
+installation's hosted launcher, using the hosted registration Secret, and places every run,
+job and sync it claims in a pod of its own in the job namespace. A launcher holds no database,
+Redis or storage credential, no encryption key and no signing key, and it never runs user
+code. The job pod fetches what its job needs from the API with a token valid for that one
+job, held in a Secret the pod owns, and the pod is removed when the job ends. Run output,
+status and history live in PostgreSQL and object storage, so nothing you see in the UI
+depends on a pod.
 
-The Ansible runner's per-job working directory - which briefly holds SSH keys, vault passwords, and inventory secrets while a job runs - lives on an ephemeral volume that is isolated from the OpenTofu runner and is removed when the job finishes. It deliberately does not share the OpenTofu runner's workspace volume, so a compromised run in one runner cannot read the other's staged credentials. Because run output, status, and history are persisted to PostgreSQL and object storage rather than this scratch volume, nothing you see in the UI is lost when a runner pod is rescheduled.
+Every job pod satisfies the restricted Pod Security Standard: it runs as a non-root user with
+a read-only root filesystem and writable `/tmp` and working directories, drops all Linux
+capabilities, forbids privilege escalation and runs under the default seccomp profile. It
+never uses the host network, PID or IPC namespace, mounts no host path, and carries no
+ServiceAccount token unless its identity needs one. To have the cluster enforce the profile,
+run jobs in a namespace of their own with `launcher.jobNamespace` and
+`launcher.createJobNamespace: true`, which labels the namespace
+`pod-security.kubernetes.io/enforce: restricted`. `launcher.runtimeClassName` runs job pods
+under a sandboxed runtime such as gVisor or Kata. Ansible `become` executes on the managed
+target, not inside the job pod. These controls do not turn untrusted IaC into a sandbox or
+remove the permissions granted to its cloud identity.
 
-The Ansible runner keeps a per-project Ansible Galaxy collection cache on a dedicated PersistentVolumeClaim (`ansibleRunner.galaxyCache`, enabled by default). The cache is namespaced per project so one tenant's collections are never served to another, and a background janitor evicts any project cache that has been idle longer than `GALAXY_CACHE_TTL_DAYS` (14 days by default; set to `0` to disable) so it cannot grow without bound. The cache is purely a download optimization - set `ansibleRunner.galaxyCache.enabled` to `false` to use an ephemeral cache instead, at the cost of re-downloading collections after a pod restart. For more than one Ansible runner replica, set `ansibleRunner.galaxyCache.accessMode` to `ReadWriteMany`.
+The chart renders a NetworkPolicy for job pods. They take no inbound traffic and reach DNS,
+the API and the internet, but not the cluster's pod and service ranges you list in
+`launcher.clusterCIDRs`, the node's cloud metadata endpoints or Azure's platform address
+`168.63.129.16`, so a job cannot borrow the node's identity. `launcher.clusterCIDRs` takes IPv4
+and IPv6 ranges. Jobs resolve names through the cluster's DNS service. A NetworkPolicy needs a network plugin that enforces it. To let jobs use
+the node's identity, set `launcher.network: host-identity`, which leaves the metadata
+endpoints open and keeps `168.63.129.16` closed. Jobs otherwise authenticate to clouds with the per-run identity token the
+platform mints, or with an identity binding a pool offers (see
+[Self-hosted runners](../../../user-guides/self-hosted-runners.md#identity-bindings)).
 
-Keep the platform encryption key consistent across API, orchestrator and runners. The chart
-creates a strong key by default; a BYO key is a 64-character hex representation of 32 bytes.
-Keep it with recovery backups. Self-hosted agents use the API artifact path instead of these
-platform database credentials.
+The launchers serve every organization's hosted capacity: runs and jobs in remote execution
+mode, and every sync that captures a snapshot from a VCS provider. `runner.replicas`,
+`ansibleRunner.replicas`, `runner.maxConcurrentJobs` and `ansibleRunner.maxConcurrentJobs`
+(4 by default) size it. Each launcher runs under its own ServiceAccount, bound to a Role in
+the job namespace. The Role lets the launcher read, create, patch and delete job pods and their
+Secrets and ServiceAccounts, and read pod logs and ConfigMaps. It grants no exec and no
+NetworkPolicy changes, because the chart manages the job namespace's NetworkPolicies itself.
+The launcher holds nothing cluster-scoped. It serves `/healthz` and `/readyz` on
+`launcher.healthPort`, which the chart probes. `launcher.hostedGroup` names the placement
+group the launchers serve, and `launcher.hostedStrict: true` makes them refuse the in-process
+driver and the `host-identity` network. Job pods read the organizations' cache entries
+through the API, because a pod under the restricted profile cannot mount a node directory.
+
+A job pod receives the run's own variables, the mirror, proxy and CA settings the API hands
+it, and a fixed allowlist of the launcher's environment (path, locale, proxy and CA settings
+and a few OpenTofu and Ansible settings), listed in
+[Runner variables that reach runs](../environment-variables.md#runner-variables-that-reach-runs).
+A variable you set in `runner.env` or `ansibleRunner.env` and name in
+`runner.runEnvPassthrough` or `ansibleRunner.runEnvPassthrough` is passed into the job pod,
+where the job's processes receive it when it is also on that allowlist; give runs any other
+setting through workspace or variable-set variables. Settings for runs and jobs across the
+installation, such as the default run timeout, the run image registry allowlist and the job
+mirrors, are read by the API: set them in `api.env`, as listed under
+[Runs, jobs and launchers](../environment-variables.md#runs-jobs-and-launchers).
+
+For an air-gapped cluster, point the job mirrors at your own (see
+[Job mirrors, proxy and CA](../environment-variables.md#job-mirrors-proxy-and-ca)). The job
+NetworkPolicy blocks the ranges in `launcher.clusterCIDRs`, so a mirror or registry inside the
+cluster must be opened to job pods: list it in `launcher.extraJobEgress`, whose entries are
+NetworkPolicy egress rules (`to` and `ports`) appended to the job policy as given, or add a
+NetworkPolicy of your own in the job namespace that selects pods labelled
+`stackweaver.io/role: job`. NetworkPolicies add up, so either opens that destination without
+widening anything else.
+
+`launcher.keepFailedJobsFor` keeps a failed job's pod for inspection for that long, for
+example `30m`; the job has already removed every credential it wrote before the pod is kept.
+`launcher.podTemplate` adds labels, annotations, a node selector, tolerations and a priority
+class to every job pod. To run work inside your own network as well, add agent pools and
+start launchers in them; see [Self-Hosted Runners](../../../user-guides/self-hosted-runners.md).
+
+Keep the platform encryption key consistent across the API and orchestrator; launchers and
+job pods never hold it. The chart creates a strong key by default; a BYO key is a
+64-character hex representation of 32 bytes. Keep it with recovery backups.
 
 
 ## Using External Dependencies
@@ -403,7 +465,11 @@ customCA:
 In all cases the certificate is mounted at `/etc/ssl/certs/custom-ca.crt` using `subPath`, so the system certificate directory is not replaced.
 The Go services include the mounted Linux certificate directory in their trust roots. Test the failing connection again after rollout; a CA mount does not bypass hostname verification.
 
-The certificate is mounted into the API, Orchestrator, OpenTofu Runner, and Ansible Runner containers.
+The certificate is mounted into the API, orchestrator and both launcher containers. Job pods
+mount nothing of the chart's, so the chart also sets `STACKWEAVER_JOB_CA_FILE` on the API,
+which hands the certificate to every job; the job adds it to the system roots, so a private
+registry or mirror behind that CA works from job pods too. A `STACKWEAVER_JOB_CA_FILE` you
+set in `api.env` takes precedence.
 
 
 ## SSO Configuration
@@ -508,7 +574,38 @@ For a small settings-only change, pin the **installed** version and use `--reuse
 with the specific override file. Do not combine an incidental settings change with an
 unreviewed chart upgrade. ConfigMap checksum changes roll affected pods; check init and
 reconcile Jobs as well as workload readiness. Bootstrap skips existing Secrets rather than
-adding or rotating keys; follow release-specific schema migration instructions when needed.
+adding or rotating keys, and creates any whole Secret a new chart version adds; follow
+release-specific schema migration instructions when needed.
+
+### Upgrading to the chart version with launchers
+
+> [!IMPORTANT]
+> Back up PostgreSQL and the object storage bucket before you upgrade to the chart version
+> that introduces the launchers. The upgrade is forward-only: the database cannot be
+> downgraded in place afterwards, and rolling back is a restore of both backups with the
+> previous chart version, not a `helm rollback`.
+
+Finish the upgrade within 30 minutes of the old runners stopping. The orchestrator marks a run
+that stays pending for 30 minutes as failed, so queue any such run again after the upgrade.
+
+Before you run `helm upgrade`, remove `runnerWorkspaces`, `ansibleRunner.galaxyCache`,
+`ansibleRunner.workloadIdentity`, `ansibleRunner.tmpSizeLimit` and
+`ansibleRunner.workspacesSizeLimit` from your values: this chart version has none of them.
+Set `launcher.clusterCIDRs` to your cluster's pod and service ranges so job pods cannot reach
+in-cluster services, and set `launcher.jobNamespace` with `launcher.createJobNamespace: true`
+if job pods should run in a namespace of their own. Remove `RUNNER_MODE` from `runner.env`
+and `ansibleRunner.env` if you set it.
+
+The upgrade adds the hosted launcher registration Secret, which the bootstrap Job generates
+unless you name your own with `secrets.hosted.secretName`. The per-project Galaxy cache is
+replaced by each organization's verified cache in object storage, which fills again as jobs
+run. `helm upgrade` removes the runner workspaces and Galaxy cache PersistentVolumeClaims the
+chart created. A claim you supplied through `existingClaim`, such as the statically
+provisioned `runner-workspaces-pvc` and its PersistentVolume of the Kustomize example, stays;
+delete it yourself once the upgrade works, since nothing mounts it. An Ansible inventory sync
+that used AKS workload identity through `ansibleRunner.workloadIdentity` uses an identity
+binding of an agent pool instead (see
+[Dynamic inventories](../../../user-guides/dynamic-inventories.md#choose-azure-source-authentication)).
 
 ### Upgrading to server-side browser sessions
 
@@ -551,8 +648,7 @@ helm uninstall stackweaver --namespace stackweaver
 ```
 
 This removes the release, not necessarily all its data. Generated Secrets and PostgreSQL/Garage
-StatefulSet claims remain. Chart-owned runner workspace and Galaxy cache claims are removed
-unless you supplied existing claims. Back up the database, object data, encryption/signing
+StatefulSet claims remain. Back up the database, object data, encryption/signing
 keys and complete Zitadel Secret before retiring the installation. In a protected recovery
 directory, export the identity key material:
 
@@ -577,6 +673,7 @@ Use an explicit reviewed inventory instead of a broad label-delete command.
 | Pull denied | Namespace-local pull Secret, package permissions and exact image/tag. |
 | Sign-in succeeds but returns to a wrong host | App URL, runtime config, issuer and registered redirect agree. |
 | SMTP settings did not apply | The post-install/post-upgrade reconcile Job and provider delivery logs. |
+| The orchestrator logs `Waiting for the API to migrate the database` | The API migrates the schema when it starts, and the orchestrator waits for it after an upgrade. Check that the new API pods start and become ready: `kubectl logs --namespace stackweaver deployment/stackweaver-api`. |
 
 For bundled identity, the initial administrator PAT file is transient. Later restarts use
 the persisted `admin-pat` key in the identity Secret when that file is absent. A missing

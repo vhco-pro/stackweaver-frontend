@@ -36,7 +36,10 @@ flowchart TB
 | Identity bootstrap material | `zitadel-pat` and generated `.env` | Preserve the configured identity and initializer credentials. |
 | Encryption and signing keys | `.env`, `oidc.env`, configured key files | Losing the encryption key can make retained credentials unreadable. Changing the workload identity key changes its published signing identity. |
 | Deployment configuration | Complete installed bundle, including hidden files | Image pins, Zitadel master key, SSO/VCS settings, proxy/issuer configuration, certificates and GitHub App keys. |
-| Runner volumes | `runner-workspaces` and `ansible-workspaces` | Preserve retained local content; these can contain sensitive material. |
+
+The launchers' cache volumes, `stackweaver-launcher-cache` and `stackweaver-ansible-launcher-cache`,
+need no backup. They hold a node-local copy of each organization's verified cache, which lives in
+object storage, and the launchers fill them again as jobs run.
 
 Redis in the supplied bundle is ephemeral. Finish or cancel queued work before backing
 up; this procedure does not promise queue recovery or continuation of in-flight runs.
@@ -105,12 +108,10 @@ postgres postgres /var/lib/postgresql/data
 garage-data garage /var/lib/garage/data
 garage-meta garage /var/lib/garage/meta
 identity zitadel /pat
-runner runner /home/stackweaver/workspaces
-ansible ansible-runner /home/stackweaver/workspaces
 VOLUMES
 ```
 
-Expect six archives and six manifest rows. The manifest records **source** volume names;
+Expect four archives and four manifest rows. The manifest records **source** volume names;
 never use those names as restore destinations on a host that still holds the source.
 This loop covers the supplied bundle. Review extra mounts and any non-volume storage
 before calling a customized deployment's backup complete.
@@ -219,7 +220,7 @@ Keep the original installation and backup intact until these checks pass:
    then start the workers needed for a harmless test:
 
    ```bash
-   docker compose up -d --no-deps orchestrator runner ansible-runner
+   docker compose up -d --no-deps orchestrator launcher ansible-launcher
    ```
 
    Check runner connectivity and use dedicated targets explicitly permitted by the

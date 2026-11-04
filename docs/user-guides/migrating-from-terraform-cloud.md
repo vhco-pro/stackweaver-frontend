@@ -4,6 +4,8 @@ covers:
   - "scripts/tfe-compat/**"
   - "backend/internal/services/apikey/**"
   - "backend/internal/services/auth/**"
+  - "backend/internal/api/v2/handlers/agent_pools.go"
+  - "backend/internal/api/v2/handlers/agent_tokens.go"
 ---
 
 # Migrate from Terraform Cloud or Enterprise
@@ -20,6 +22,12 @@ Move a workspace's configuration, inputs and state to a Stackweaver host, then r
 | Recreate API credentials on Stackweaver. | Source-platform tokens do not become Stackweaver tokens. |
 
 Use [the provider guide](./terraform-provider.md) for destination resource configuration and the evidence table below to assess your TFE resources. A state transfer does not transfer variables or VCS settings.
+
+## Execution modes
+
+Execution modes keep their meaning. A workspace in `remote` execution mode runs on the organization's hosted capacity, the installation's own launchers, and one in `agent` mode runs on the agent pool it names. `tfe_agent_pool`, `tfe_agent_token` and a workspace's `agent_pool_id` work with `terraform-provider-tfe` as they do against Terraform Cloud.
+
+To run an agent pool's work, start launchers registered with an agent token of that pool; see [Self-hosted runners](./self-hosted-runners.md). The hosted capacity is not an agent pool on the TFE API: it does not appear in the agent pools list and cannot be assigned through `agent-pool-id`, and a run waiting for a free hosted slot stays `pending`.
 
 ## Connect your CLI
 

@@ -63,6 +63,7 @@
   {"path": "/app/:orgName/settings/api-keys","wrappers": [{"name": "ProtectedRoute"},{"name": "OrganizationGuard"},{"name": "Layout"},{"name": "ApiKeysSettings"}]},
   {"path": "/app/:orgName/settings/authentication-token","wrappers": [{"name": "ProtectedRoute"},{"name": "OrganizationGuard"},{"name": "Layout"},{"name": "OrganizationTokenSettings"}]},
   {"path": "/app/:orgName/settings/agent-pools","wrappers": [{"name": "ProtectedRoute"},{"name": "OrganizationGuard"},{"name": "Layout"},{"name": "AgentPools"}]},
+  {"path": "/app/:orgName/settings/run-images","wrappers": [{"name": "ProtectedRoute"},{"name": "OrganizationGuard"},{"name": "Layout"},{"name": "RunImages"}]},
   {"path": "/app/:orgName/settings/oidc","wrappers": [{"name": "ProtectedRoute"},{"name": "OrganizationGuard"},{"name": "Layout"},{"name": "OIDCConfigurations"}]},
   {"path": "/app/:orgName/settings/terraform-versions","wrappers": [{"name": "Navigate"}]},
   {"path": "/app/:orgName/settings/teams/:teamId","wrappers": [{"name": "ProtectedRoute"},{"name": "OrganizationGuard"},{"name": "Layout"},{"name": "TeamDetail"}]},

@@ -1322,5 +1322,51 @@
       "api"
     ],
     "availability": []
+  },
+  {
+    "id": "runner-launchers",
+    "title": "Launchers replace the queue runners and agent mode",
+    "area": "Runners",
+    "kind": "Changed",
+    "reviewed": true,
+    "audience": "Everyone who runs OpenTofu runs or Ansible jobs, self-hosted agent pool operators, and operators who install Stackweaver with Helm or Docker Compose.",
+    "before": "Platform runners took work from a Redis queue and held the database, object storage and Redis credentials, self-hosted agents ran a separate agent mode, and the Helm chart kept runner and Galaxy cache volumes.",
+    "after": "Every run, job and sync runs through a launcher that claims it from the API and places an executor with a token for that job alone: in its own process, in a container, or in a Kubernetes pod. Launchers hold no database, storage or Redis credential. Hosted capacity, agent pools, run images and execution environments, identity bindings, registry pull Secrets and the organization's verified cache work the same way on every driver.",
+    "action": "Back up PostgreSQL and the object storage before upgrading, because the upgrade is forward-only and rolling back is a restore. On Helm, remove the runner and Galaxy cache values the upgrade guide lists and set the launcher network ranges before helm upgrade. On Docker Compose, replace docker-compose.yml with the new release's file, which replaces the runner services with launchers. Upgrade self-hosted agents to the launcher image. The API and the orchestrator must share ENCRYPTION_KEY: existing plan JSON is encrypted in the background at the first API start. Job pods use scheduling gates, which need Kubernetes 1.27 or later. If an Ansible job uses a workload identity, update its cloud trust to the job's new subject: a template job and its relaunches use the template's name and an ad hoc command uses adhoc-<module>. Rename any organization, project, workspace, template or job whose name contains a colon, because a run or job with a configured identity now fails when that identity cannot be minted.",
+    "details": [
+      "A lost launcher's running plan or sync is offered again, while a lost apply or Ansible job ends for a person to re-queue, so an apply never runs twice.",
+      "A job launched from a template without a pool runs on the project's or organization's agent-mode default pool, as its effective settings show.",
+      "Private registry modules install in jobs with a token the job receives for the registry host, and git sources in requirements.yml are cached by the commit their branch or tag resolves to.",
+      "Jobs on the container and Kubernetes drivers never reach Azure's platform address 168.63.129.16, in any network mode, and on rootful Podman the jobs network is firewalled through nftables, so the firewall image needs nft.",
+      "Ansible jobs receive the Azure, AWS, GCP and Vault per-run identities, under a subject that stays the same across launches, and any run or job fails with the reason when an identity its organization configured cannot be minted."
+    ],
+    "guides": [
+      {
+        "title": "Self-hosted runners",
+        "path": "/docs/user-guides/self-hosted-runners"
+      },
+      {
+        "title": "Upgrade a Kubernetes install",
+        "path": "/docs/get-started/self-hosting/kubernetes"
+      },
+      {
+        "title": "Upgrade a Docker Compose install",
+        "path": "/docs/get-started/self-hosting/docker-compose"
+      },
+      {
+        "title": "Configure workload identity",
+        "path": "/docs/user-guides/oidc-configuration"
+      }
+    ],
+    "sourceCommits": [],
+    "requiredComponents": [
+      "api",
+      "frontend",
+      "opentofu-runner",
+      "ansible-runner",
+      "zitadel-init",
+      "helm"
+    ],
+    "availability": []
   }
 ]

@@ -33,6 +33,7 @@ export const SWEPT_PAGES: string[] = [
   'pages/RunDetail.tsx',
   'pages/Settings.tsx',
   'pages/Settings/AgentPools.tsx',
+  'pages/Settings/RunImages.tsx',
   'pages/Settings/AnsibleConfig.tsx',
   'pages/Settings/ApiKeys.tsx',
   'pages/Settings/ChangeRequests.tsx',

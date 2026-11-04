@@ -21,7 +21,7 @@ capabilities: [
 
 # Run your first Ansible job
 
-Run a small playbook that prints a message on the runner. You will register a repository
+Run a small playbook that prints a message from the job itself. You will register a repository
 playbook and inventory, create a reusable job template, launch it and inspect its result.
 This example uses no cloud resources and needs no target SSH credential.
 
@@ -36,9 +36,10 @@ The organization-level creation screens use the organization's project selection
 check where the created objects appear. The Terraform alternative below supplies `project_id`
 explicitly.
 
-The `localhost` in this example is the **runner**, not your laptop. Keep the sample task
-read-only. To manage another host later, the chosen runner needs network access and the
-appropriate SSH/cloud credentials.
+The `localhost` in this example is the **job's own container or pod** (or the launcher host,
+for an in-process launcher), not your laptop. Keep the sample task read-only. To manage
+another host later, the job needs network access to it and the appropriate SSH/cloud
+credentials.
 
 ## 1. Commit a playbook and inventory
 
@@ -81,10 +82,11 @@ committing them does not register platform objects by itself.
 ![The real playbook registration form with synthetic repository, branch and path values.](../user-guides/images/playbooks-register.png)
 
 The image shows example values; use your repository and `hello.yml` path. Cached mode runs
-from a captured snapshot. Fresh mode clones at execution time and needs VCS availability.
-Platform and self-hosted runner fallback behavior can differ when a snapshot is missing;
-see [Manage playbooks](../user-guides/managing-ansible-playbooks.md#choose-what-a-job-runs)
-before relying on that case.
+from a snapshot captured when the playbook syncs; the first run with no snapshot yet syncs one
+automatically and then runs from it. Fresh mode captures a new snapshot of the repository at
+each launch, before the job starts, so it needs VCS availability at launch time. See
+[Manage playbooks](../user-guides/managing-ansible-playbooks.md#choose-what-a-job-runs) for
+both modes.
 
 ## 3. Register and sync the inventory
 
@@ -263,7 +265,7 @@ Use the legend as a status filter and the search for host, task or result text. 
 focus search. Drag a task-column edge to read a long name and double-click to reset its width.
 The copy control beside search copies raw output.
 
-For remote-host work, attach an SSH credential and ensure the runner can reach each host.
+For remote-host work, attach an SSH credential and ensure the job can reach each host.
 Use a vault credential for encrypted playbook data, and cloud credentials for provider access.
 Credential access is permission-controlled; inventory variables are not a substitute for a
 secret store. A sudo task also needs target-side privilege escalation configured.
@@ -273,7 +275,7 @@ secret store. A sudo task also needs target-side privilege escalation configured
 | Symptom | Check |
 |---|---|
 | No hosts matched | `demo` exists in the synced inventory and matches the playbook; no launch limit excludes it. |
-| Job stays queued | The template's selected platform runner or agent pool has available execution capacity. |
+| Job stays queued | A launcher of the hosted capacity or of the template's agent pool is online and has a free slot. |
 | Playbook missing | Repository, branch, path and sync/snapshot status. |
 | Remote host unreachable | Host address, routing/firewall, SSH port and selected credential. |
 | Permission denied | SSH user/key and target sudo rights; do not add `become` to the local tutorial to mask a problem. |

@@ -4,6 +4,7 @@ description: "Read a Key Vault secret from an Ansible job using an existing Azur
 covers:
   - "backend/cmd/ansible-runner/**"
   - "backend/internal/api/v2/handlers/**"
+  - "backend/internal/executor/ansibleexec/**"
   - "core/services/oidc/**"
   - "core/services/ansible/run_env.go"
   - "frontend/src/pages/Settings/OIDCConfigurations.tsx"
@@ -18,7 +19,7 @@ capabilities: [
     "limitations": "An attached Azure credential takes precedence over organization OIDC. Azure role assignments are still required.",
     "evidence": [
       "backend/cmd/ansible-runner/main.go",
-      "backend/cmd/ansible-runner/agent_mode.go",
+      "backend/internal/executor/ansibleexec/run.go",
       "backend/internal/api/v2/handlers/runner_agent.go"
     ]
   }
@@ -28,39 +29,39 @@ capabilities: [
 # Read Azure Key Vault secrets from a playbook
 
 Read a secret during an Ansible job, verify it without printing its value, and make it
-available to later tasks. This example runs on the runner with `hosts: localhost`; your
+available to later tasks. This example runs in the job itself with `hosts: localhost`; your
 managed hosts do not need Azure credentials for the lookup.
 
 ## Before you begin
 
 You need an existing vault, an enabled secret and an Azure identity allowed to read it.
-The runner must reach the vault and Azure sign-in endpoints, including any private-endpoint
+The job must reach the vault and Azure sign-in endpoints, including any private-endpoint
 DNS and network configuration your vault requires. Its execution environment needs
 `azure.azcollection` and the collection's Python dependencies.
 
 | Maintain this | In this place |
 |---|---|
 | Secret retrieval and use | Your repository's Ansible playbook YAML. |
-| Collection version | Your repository's `requirements.yml`; Python dependencies belong in the runner image. |
+| Collection version | Your repository's `requirements.yml`; Python dependencies belong in the job's image. |
 | Stackweaver's organization identity | The UI or the Terraform/OpenTofu provider example below. |
 | Azure trust and vault access | Your Azure identity and role configuration. Saving an identity in Stackweaver does not grant vault access. |
 
 The [Galaxy collections guide](../features/ansible/galaxy-collections.md) explains repository
-dependency installation and runner image requirements.
+dependency installation and image requirements.
 
 <a id="how-authentication-reaches-your-playbook"></a>
 
-## 1. Choose the runner's Azure identity
+## 1. Choose the job's Azure identity
 
 Stackweaver supplies credentials to the playbook's environment. An attached Azure credential
-takes precedence over organization federation; the runner's AKS identity is another option
+takes precedence over organization federation; the job pod's AKS identity is another option
 when neither supplies the job identity.
 
 | Method | Configure this |
 |---|---|
 | Attached service principal | Attach an Azure credential to the job template. Use the identity's vault permissions, not the permissions of the person launching the job. |
-| Organization federation | Save the organization's Azure application identifiers and configure the application's trust for Stackweaver's issuer, audience and job subject. Both platform and self-hosted runners receive a job token. |
-| AKS Entra Workload ID | Configure the runner pod's workload identity and projected token. The playbook uses that pod identity, not a Stackweaver job federation subject. |
+| Organization federation | Save the organization's Azure application identifiers and configure the application's trust for Stackweaver's issuer, audience and job subject. Jobs on the hosted capacity and on self-hosted runners receive the same federation token, because the API mints it and hands it to the job with its other inputs. |
+| AKS Entra Workload ID | Run the job in a pod that has Workload ID: a job that a Kubernetes launcher in an agent pool runs with an `azure-workload-identity` [identity binding](./self-hosted-runners.md#identity-bindings), or a job of an in-process launcher whose own pod has Workload ID. The playbook uses that pod identity, not a Stackweaver job federation subject. The cloud-specific setup of these options is not yet documented as supported. |
 
 If you already have a working attached credential or AKS identity, continue to
 [grant vault access](#azure-setup). Otherwise, configure organization federation through
@@ -136,10 +137,12 @@ The application's federated credential must trust your Stackweaver issuer and au
 organization:<org>:project:<project>:job:<job-name>:run
 ```
 
-Match the organization, project and job names in the job's token. This is the job subject,
-not an OpenTofu workspace or inventory-source subject. Follow
-[OIDC configuration](./oidc-configuration.md) for issuer and Azure trust setup. Stackweaver
-supplies the token environment; do not paste token values into YAML.
+`<job-name>` is the job template's name for a template job and its relaunches, and
+`adhoc-<module>` for an ad hoc command. For a job launched directly it is the name you gave the
+job, so name the job when you launch it. This is the job subject, not an OpenTofu workspace or
+inventory-source subject. A job whose identity cannot be minted fails before it starts, with the
+reason in its error. Follow [OIDC configuration](./oidc-configuration.md) for issuer and Azure
+trust setup. Stackweaver supplies the token environment; do not paste token values into YAML.
 
 <a id="azure-setup"></a>
 <a id="1-allow-the-identity-to-read-secrets"></a>
@@ -165,7 +168,7 @@ collections:
 ```
 
 OIDC token and token-file support require `azure.azcollection` 3.17.0 or later. Use a
-reviewed version compatible with your runner image's Python dependencies; installing the
+reviewed version compatible with your job image's Python dependencies; installing the
 collection does not install those dependencies. The
 [module authentication reference](https://docs.ansible.com/projects/ansible/latest/collections/azure/azcollection/azure_rm_keyvaultsecret_info_module.html#parameters)
 lists the supported environment variables. Collection dependencies belong in the repository,
@@ -209,7 +212,7 @@ using the identity above. Replace the vault URI and secret name with your own.
       no_log: true
 ```
 
-`auth_source: env` uses the runner's supplied identity environment instead of falling back
+`auth_source: env` uses the identity environment Stackweaver supplies to the job instead of falling back
 to a local Azure CLI login or credentials file. `version: current` reads the current secret
 version; choose a specific version if the play must use a fixed value.
 
@@ -223,10 +226,10 @@ stored as a Stackweaver credential.
 
 | Symptom | Check |
 |---|---|
-| Module not found or a Python import error | Check the installed collection and its Python dependencies in the runner's execution environment. |
+| Module not found or a Python import error | Check the installed collection and its Python dependencies in the job's image or execution environment. |
 | Authentication fails | Check the effective identity and collection version. For federation, compare issuer, audience and job subject with the Azure trust. For AKS, check the pod identity and projected token. |
 | Access denied | Check the effective identity's secret data-plane permission, secret enabled state and vault firewall rules. A management role alone is insufficient. |
-| Connection timeout or DNS failure | Check connectivity and private-endpoint DNS from the runner, where the module executes. |
+| Connection timeout or DNS failure | Check connectivity and private-endpoint DNS from the network the job runs on, where the module executes. |
 | The assertion fails | Check the vault URI, secret name and whether the current version contains a non-empty value. Keep secret output hidden while investigating. |
 
 ## Timeouts and long plays

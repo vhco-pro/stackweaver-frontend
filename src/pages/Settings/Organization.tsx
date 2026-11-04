@@ -27,6 +27,7 @@ import {
 } from '@/components/ui/select';
 import { organizationsApi, terraformVersionsApi, type Organization } from '@/api/client';
 import { compareVersionsDesc } from '@/lib/semver';
+import { OrgRunDefaults } from '@/components/settings/OrgRunDefaults';
 import { toast } from 'sonner';
 
 // Settings → Organization: the org-level TFE-compatible settings (tfe_organization). Every toggle
@@ -322,6 +323,9 @@ export default function OrganizationSettings() {
           />
         </CardContent>
       </Card>
+
+      {/* The organization's level of the level rule (#933, D0, D15). */}
+      {orgName && <OrgRunDefaults orgName={orgName} org={org} />}
 
       {/* Pull request statuses */}
       <Card>

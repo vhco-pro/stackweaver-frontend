@@ -220,12 +220,11 @@ export default function Runners() {
   const copyCommand = (type: 'ansible' | 'terraform') => {
     const serverUrl = window.location.origin.replace('http://', 'https://');
     const cmd = `docker run -d --restart unless-stopped \\
-  -e RUNNER_MODE=agent \\
   -e RUNNER_AGENT_POOL_ID=${selectedPool || '<pool-uuid>'} \\
   -e STACKWEAVER_TOKEN=<your-api-key> \\
   -e STACKWEAVER_SERVER=${serverUrl} \\
-  -e RUNNER_NAME=my-${type}-runner \\
-  stackweaver/runner-${type}:latest`;
+  -e RUNNER_NAME=my-${type === 'ansible' ? 'ansible' : 'tofu'}-launcher \\
+  ghcr.io/vhco-pro/stackweaver-${type === 'ansible' ? 'ansible' : 'opentofu'}-runner:latest`;
     void navigator.clipboard.writeText(cmd);
     setCopiedCmd(type);
     toast.success(`${type === 'ansible' ? 'Ansible' : 'OpenTofu'} runner command copied`);
@@ -538,12 +537,11 @@ export default function Runners() {
                   </div>
                   <pre className="bg-muted p-3 rounded-lg text-xs overflow-x-auto">
 {`docker run -d --restart unless-stopped \\
-  -e RUNNER_MODE=agent \\
   -e RUNNER_AGENT_POOL_ID=${selectedPool || '<pool-uuid>'} \\
   -e STACKWEAVER_TOKEN=<your-api-key> \\
   -e STACKWEAVER_SERVER=${window.location.origin.replace('http://', 'https://')} \\
-  -e RUNNER_NAME=my-ansible-runner \\
-  stackweaver/runner-ansible:latest`}
+  -e RUNNER_NAME=my-ansible-launcher \\
+  ghcr.io/vhco-pro/stackweaver-ansible-runner:latest`}
                   </pre>
                 </div>
                 <div>
@@ -566,12 +564,11 @@ export default function Runners() {
                   </div>
                   <pre className="bg-muted p-3 rounded-lg text-xs overflow-x-auto">
 {`docker run -d --restart unless-stopped \\
-  -e RUNNER_MODE=agent \\
   -e RUNNER_AGENT_POOL_ID=${selectedPool || '<pool-uuid>'} \\
   -e STACKWEAVER_TOKEN=<your-api-key> \\
   -e STACKWEAVER_SERVER=${window.location.origin.replace('http://', 'https://')} \\
-  -e RUNNER_NAME=my-terraform-runner \\
-  stackweaver/runner-terraform:latest`}
+  -e RUNNER_NAME=my-tofu-launcher \\
+  ghcr.io/vhco-pro/stackweaver-opentofu-runner:latest`}
                   </pre>
                 </div>
               </div>

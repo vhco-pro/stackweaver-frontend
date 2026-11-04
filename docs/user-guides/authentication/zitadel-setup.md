@@ -61,9 +61,10 @@ The bundled local development configuration uses `admin@ZITADEL.localhost`, pass
 
 The initializer creates or reconciles **Stackweaver BFF**, preserves its stored client secret,
 adds configured callback/logout URIs, and deactivates the old public frontend application.
-It writes client IDs, the BFF and API client secrets, the login service user token/ID, issuer, external host, TLS mode and webhook keys to `.env`. The names include:
+It writes client IDs, the BFF and API client secrets, the login service user token/ID, issuer, external host, TLS mode, webhook keys and the hosted launchers' registration secret to `.env`. The names include:
 
 ```env
+STACKWEAVER_HOSTED_SECRET=<hosted-launcher-registration-secret>
 ZITADEL_BFF_CLIENT_ID=<confidential-client-id>
 ZITADEL_BFF_CLIENT_SECRET=<confidential-client-secret>
 ZITADEL_API_CLIENT_ID=<api-client-id>
@@ -77,7 +78,7 @@ ZITADEL_WEBHOOK_IDP_SYNC_KEY=<webhook-key>
 ZITADEL_WEBHOOK_COMPLEMENT_TOKEN_KEY=<webhook-key>
 ```
 
-These are output names for diagnosis, not values to paste into a hand-maintained `.env`. See [Email and sign-up](../../get-started/self-hosting/email.md) for SMTP, self-registration and notification-mode inputs.
+These are output names for diagnosis, not values to paste into a hand-maintained `.env`. `STACKWEAVER_HOSTED_SECRET` is the secret the `launcher` and `ansible-launcher` services register with as the installation's hosted launchers. `zitadel-init` generates it on its first run and keeps the existing value on every later run. See [Email and sign-up](../../get-started/self-hosting/email.md) for SMTP, self-registration and notification-mode inputs.
 
 ## Kubernetes and Helm
 

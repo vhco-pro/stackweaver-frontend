@@ -80,7 +80,14 @@ describe('PlatformAdministrators', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.mocked(adminUsersApi.lookupAdmins).mockResolvedValue({ data: [declared, granted], pagination });
-    vi.mocked(platformSettingsApi.get).mockResolvedValue({ organization_creation: 'platform-admins' });
+    vi.mocked(platformSettingsApi.get).mockResolvedValue({
+      organization_creation: 'platform-admins',
+      deployment: {
+        images_allowed_registries: [], hosted_default_max_concurrent_jobs: 0, run_timeout_default: 7200,
+        sync_timeout: 3600, job_log_max_bytes: 0, cache_size_limit: 0,
+        runner_rate_limit: { rps: 20, burst: 40 }, job_rate_limit: { rps: 20, burst: 40 }, mirror: null,
+      },
+    });
   });
 
   it('badges the declared administrator and offers it no remove action', async () => {

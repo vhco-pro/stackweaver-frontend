@@ -416,7 +416,7 @@ export default function ApiKeysSettings() {
               {scopeType === 'runner' && (
                 <p className="text-sm text-muted-foreground">
                   This key allows self-hosted runners to register with this organization.
-                  Use this key when starting runner agents with <code className="px-1 py-0.5 rounded-sm bg-muted">STACKWEAVER_TOKEN</code>.
+                  Use this key when starting a launcher with <code className="px-1 py-0.5 rounded-sm bg-muted">STACKWEAVER_TOKEN</code>.
                 </p>
               )}
 
