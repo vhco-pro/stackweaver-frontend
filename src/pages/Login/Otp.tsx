@@ -36,14 +36,19 @@ export default function Otp() {
   const isTotp = method === 'totp';
   const methodLabel = isTotp ? 'authenticator app' : method === 'email' ? 'email' : 'SMS';
 
+  // Each challenge makes Zitadel send a new code and void the previous one, so a visit sends one.
+  // StrictMode mounts the page twice in development; the ref survives that, and both mounts await
+  // the same request.
+  const challengeRef = useRef<ReturnType<typeof updateSession> | null>(null);
+
   // For Email/SMS OTP: trigger the challenge on mount to send the code
   useMountEffect(() => {
     if (isTotp || !sessionId) return; // TOTP doesn't need a challenge trigger
 
     let cancelled = false;
+    const challengeKey = method === 'email' ? 'otpEmail' : 'otpSms';
     const triggerChallenge = async () => {
       try {
-        const challengeKey = method === 'email' ? 'otpEmail' : 'otpSms';
         // Zitadel v4 changed the OTP challenge oneof shape: `returnCode`
         // is no longer a boolean, it's an empty message (`{}`). v3 and
         // earlier accepted `returnCode: true` - sending that to v4 now
@@ -51,11 +56,12 @@ export default function Otp() {
         // Caught Wave 14 (2026-05-11) when wiring up F16 email-OTP.
         // The proxy strips this field in `email` notification mode so
         // Zitadel sends via SMTP; in `return_code` mode it forwards as-is.
-        const resp = await updateSession(sessionId, {
+        challengeRef.current ??= updateSession(sessionId, {
           challenges: {
             [challengeKey]: { returnCode: {} },
           },
         });
+        const resp = await challengeRef.current;
 
         if (cancelled) return;
 

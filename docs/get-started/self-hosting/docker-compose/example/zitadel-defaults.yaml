@@ -22,6 +22,20 @@ Database:
       SSL:
         Mode: disable
 
+# Zitadel calls the Stackweaver API for SSO group sync (Actions targets) and back-channel logout.
+# On the Compose network the API has a private address, which Zitadel's default HTTPClient.DenyList
+# blocks. This list drops the private and loopback ranges and keeps the cloud-metadata and other
+# special ranges blocked, the same trade-off the Helm chart makes. Only Zitadel administrators can
+# point Zitadel at a URL.
+HTTPClient:
+  DenyList:
+    - "0.0.0.0/8"       # Unspecified IPv4
+    - "100.64.0.0/10"   # Carrier-grade NAT
+    - "169.254.0.0/16"  # Link-local, including cloud metadata endpoints
+    - "198.18.0.0/15"   # Benchmark ranges
+    - "::/128"          # Unspecified IPv6
+    - "fe80::/10"       # IPv6 link-local
+
 DefaultInstance:
   LoginPolicy:
     AllowUsernamePassword: true

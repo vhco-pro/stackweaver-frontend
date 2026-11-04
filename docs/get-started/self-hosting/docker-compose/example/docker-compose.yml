@@ -190,11 +190,41 @@ services:
       ZITADEL_PAT_PATH: /pat/admin.pat
       ZITADEL_PAT: ${ZITADEL_PAT:-}
       ZITADEL_CUSTOM_DOMAINS: ${ZITADEL_CUSTOM_DOMAINS:-}
+      # The API as Zitadel reaches it on this network, for SSO group sync and back-channel logout.
+      ACTIONS_API_BASE_URL: ${ACTIONS_API_BASE_URL:-http://api:8022}
+      ZITADEL_BFF_BACKCHANNEL_LOGOUT_URI: ${ZITADEL_BFF_BACKCHANNEL_LOGOUT_URI:-http://api:8022/auth/oidc/end-session}
     volumes:
       - .:/config/deploy
       - zitadel-pat:/pat:ro
     depends_on:
       zitadel:
+        condition: service_started
+    restart: "no"
+    networks: [stackweaver]
+
+  # Registers the two Zitadel settings that name the API once the api container exists. Zitadel
+  # checks that a URL's host resolves when it saves it, and the API starts after zitadel-init, so
+  # on a fresh install zitadel-init leaves them out and this run adds them. The host resolves as
+  # soon as the container has started, so this run does not wait for the API to be healthy.
+  zitadel-api-urls:
+    image: ghcr.io/vhco-pro/stackweaver-zitadel-init:latest
+    container_name: zitadel-api-urls
+    user: "${UID:-1000}:${GID:-1000}"
+    env_file:
+      - ./.env
+      - ./sso.env
+    environment:
+      ZITADEL_INIT_MODE: api-urls
+      ZITADEL_INTERNAL_ADDR: zitadel:8080
+      ZITADEL_DOMAIN: ${ZITADEL_EXTERNAL_HOST:-localhost}
+      ZITADEL_PAT_PATH: /pat/admin.pat
+      ZITADEL_PAT: ${ZITADEL_PAT:-}
+      ACTIONS_API_BASE_URL: ${ACTIONS_API_BASE_URL:-http://api:8022}
+      ZITADEL_BFF_BACKCHANNEL_LOGOUT_URI: ${ZITADEL_BFF_BACKCHANNEL_LOGOUT_URI:-http://api:8022/auth/oidc/end-session}
+    volumes:
+      - zitadel-pat:/pat:ro
+    depends_on:
+      api:
         condition: service_started
     restart: "no"
     networks: [stackweaver]
