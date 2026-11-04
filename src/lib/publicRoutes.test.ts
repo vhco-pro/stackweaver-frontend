@@ -1,5 +1,9 @@
 // Copyright (c) 2026 VH & Co BV. Licensed under the Business Source License 1.1. See LICENSE for details.
 import { describe,it,expect } from 'vitest';
+import { spawnSync } from 'node:child_process';
+import { execPath } from 'node:process';
+import { pathToFileURL } from 'node:url';
+import { resolve } from 'node:path';
 import { buildPublicRoutes, pageMetadata, cleanBasePath } from './publicRoutes';
 import type { DocsIndex } from '@/components/docs/docsCollection';
 const index: DocsIndex={generated:'',tree:[{type:'directory',name:'guides',path:'guides',children:[]}],flat:{'README.md':{type:'file',name:'README.md',path:'README.md',title:'Documentation'},'guides/README.md':{type:'file',name:'README.md',path:'guides/README.md',title:'Guides'},'guides/run.md':{type:'file',name:'run.md',path:'guides/run.md',title:'Run a playbook',description:'Launch and inspect a job.'}}};
@@ -17,6 +21,26 @@ describe('one public route catalogue',()=>{
   expect(buildPublicRoutes(index,[article]).some(r=>r.path===article.canonical)).toBe(false);
   expect(()=>buildPublicRoutes(index,[{...article,status:'published'}, {...article,status:'published'}])).toThrow(/duplicate/i);
  });
+ it.each(['/blog/valid-path', '/blog/v1.2_under-score/', '/blog/a/b/c'])('preserves supported article paths: %s',canonical=>{
+  const article={title:'A workflow',description:'A real workflow',canonical,author:'Michiel VH',status:'published' as const,updated:'2026-10-27',topics:[],body:'Test'};
+  expect(buildPublicRoutes(index,[article]).find(page=>page.path===canonical)?.kind).toBe('article');
+ });
+ it.each(['/blog//article', '/blog/article?query', '/blog/article#fragment', '/blog/a\\b', '/blog/a b'])('rejects malformed article paths: %s',canonical=>{
+  const article={title:'A workflow',description:'A real workflow',canonical,author:'Michiel VH',status:'published' as const,updated:'2026-10-27',topics:[],body:'Test'};
+  expect(()=>buildPublicRoutes(index,[article])).toThrow('Invalid public metadata:');
+ });
+ it('rejects a long malformed path without stalling the build',()=>{
+  // Bound the child process so a regression cannot hang the test worker.
+  const moduleUrl=pathToFileURL(resolve('src/lib/publicRoutes.ts')).href;
+  const article={title:'A workflow',description:'A real workflow',canonical:'/blog/'+'-'.repeat(64)+'!',author:'Michiel VH',status:'published',updated:'2026-10-27',topics:[],body:'Test'};
+  const script=`import { buildPublicRoutes } from ${JSON.stringify(moduleUrl)};
+    try { buildPublicRoutes(${JSON.stringify(index)}, [${JSON.stringify(article)}]); process.exitCode=1; }
+    catch(error) { if(error instanceof Error && error.message.startsWith('Invalid public metadata:')) process.stdout.write('rejected'); else throw error; }`;
+  const result=spawnSync(execPath,['--input-type=module','--eval',script],{encoding:'utf8',timeout:3000});
+  expect(result.error).toBeUndefined();
+  expect(result.status,result.stderr).toBe(0);
+  expect(result.stdout).toBe('rejected');
+ },10000);
  it('includes an absolute branded preview image in initial HTML without assuming the founder domain',()=>{
   const page=buildPublicRoutes(index,[]).find(r=>r.path==='/blog')!;
   const html=pageMetadata(page);

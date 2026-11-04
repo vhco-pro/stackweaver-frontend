@@ -45,7 +45,7 @@ export function buildPublicRoutes(index:DocsIndex, articles:readonly BlogArticle
  for(const page of pages) {
   if(seen.has(page.path)) throw new Error(`Duplicate public route: ${page.path}`);
   seen.add(page.path);
-  if(!page.title.trim()||!page.description.trim()||!/^\/(?:[a-zA-Z0-9_.-]+\/?)*$/.test(page.path)) throw new Error(`Invalid public metadata: ${page.path}`);
+  if(!page.title.trim()||!page.description.trim()||!/^\/(?:[a-zA-Z0-9_.-]+\/)*[a-zA-Z0-9_.-]*$/.test(page.path)) throw new Error(`Invalid public metadata: ${page.path}`);
  }
  return pages.sort((a,b)=>a.path.localeCompare(b.path));
 }

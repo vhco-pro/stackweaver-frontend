@@ -1,5 +1,9 @@
 [
   {
+    "id": "public-route-validation-bounded",
+    "reason": "Build and development catalogue validation rejects malformed paths without excessive regular-expression backtracking. The accepted route language, generated public pages, deployment configuration and customer workflows are unchanged. This is not a request-handler or browser performance fix."
+  },
+  {
     "id": "193e4cde4fb65d12b97efa69ba68e16faac42cfc",
     "reason": "Internal removal of an unread process-local revocation map and accessor. The existing session-existence check already governed refresh rejection. Browser-session user impact is recorded under browser-sessions-bff; this cleanup does not itself introduce logout enforcement."
   },
