@@ -170,7 +170,57 @@ Warning: Applied changes may be incomplete
     it('parses JSON error logs', () => {
       const logs = `{"@level":"error","@message":"Error: required field is not set","@timestamp":"2024-01-01T00:00:00Z"}`;
       const result = parseTerraformErrors(logs);
-      expect(result.errors.length).toBeGreaterThanOrEqual(1);
+      expect(result.errors).toEqual([{ message: 'Error: required field is not set' }]);
+    });
+
+    it.each([
+      ['quoted', 'Error: Missing required argument "hostnames".'],
+      ['long', `Error: Invalid value ${'x'.repeat(150)} with its complete suffix.`],
+      ['multiline', 'Error: Invalid value\nKeep the quoted "name" detail.\nAnd this detail.'],
+      ['embedded Error', 'Provider failed: Error: disconnected'],
+    ])('keeps one complete %s JSON message', (_name, message) => {
+      const logs = JSON.stringify({ '@level': 'error', '@message': message });
+      const result = parseTerraformErrors(logs);
+      expect(result.errors).toEqual([{ message }]);
+      expect(result.fullTrace).toBe(logs);
+    });
+
+    it('retains distinct primary errors and fallback-only events together', () => {
+      const messages = [
+        'Error: Invalid resource alpha',
+        'Error: Invalid resource beta',
+        'Provider says Error: disconnected',
+      ];
+      const logs = messages.map(message => JSON.stringify({ '@level': 'error', '@message': message })).join('\n');
+      expect(parseTerraformErrors(logs).errors).toEqual([
+        { message: messages[0] },
+        { message: messages[1] },
+        { message: 'disconnected' },
+      ]);
+    });
+
+    it('deduplicates repeated primary JSON events', () => {
+      const entry = JSON.stringify({ '@level': 'error', '@message': 'Error: Invalid value' });
+      expect(parseTerraformErrors(`${entry}\n${entry}`).errors).toEqual([{ message: 'Error: Invalid value' }]);
+    });
+
+    it('preserves warnings and trace metadata alongside JSON errors', () => {
+      const logs = [
+        'Warning: Keep version',
+        JSON.stringify({ '@level': 'error', '@message': 'Error: Invalid value' }),
+        JSON.stringify({ '@level': 'trace', '@message': 'trace output' }),
+      ].join('\n');
+      expect(parseTerraformErrors(logs)).toEqual({
+        errors: [{ message: 'Error: Invalid value' }],
+        warnings: [{ type: 'warning', message: 'Keep version', file: undefined, line: undefined, resource: undefined }],
+        fullTrace: logs,
+        hasTrace: true,
+      });
+    });
+
+    it('retains existing fallback acceptance when primary filtering rejects an event', () => {
+      const logs = JSON.stringify({ '@level': 'error', '@message': 'Error: diagnostic failed' });
+      expect(parseTerraformErrors(logs).errors).toEqual([{ message: 'diagnostic failed' }]);
     });
 
     it('ignores non-error JSON logs', () => {
