@@ -114,5 +114,17 @@
   {
     "id": "go-interface-scan-lexing",
     "reason": "Developer report repair: Go comments and literals do not create interface declarations or hide unused methods. This advisory command is not invoked by product builds or copied into final runtime images. Product APIs, deployment behavior and customer capabilities are unchanged."
+  },
+  {
+    "commit": "e02b5b83b43373c807622f40d8d0376b2972287a",
+    "reason": "Internal developer-workflow migration to shared vh-adlc documentation impact. Records the portable checker route, retained project policy, compatibility wrapper and migration verification."
+  },
+  {
+    "commit": "303f0d3d52d7bacd5584da26ee548fe0f7c54825",
+    "reason": "Internal developer-tool correction: retain excluded documentation metadata diagnostics for direct callers while preserving quiet advisory-hook output."
+  },
+  {
+    "id": "documentation-impact-literal-paths",
+    "reason": "Internal compatibility-entry correction: preserve literal filename bytes in line and Git-quoted input rather than aliasing another source path."
   }
 ]
