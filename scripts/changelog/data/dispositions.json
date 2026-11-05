@@ -110,5 +110,9 @@
   {
     "id": "satellite-sync-launcher-packages",
     "reason": "Release-pipeline repair: the satellite sync workflows now copy the backend/internal executor and launcher packages that the runner and API commands import, so their satellite Release builds compile again. Product code, APIs, chart behavior and published customer content are unchanged; the launcher capability itself is recorded with its own change."
+  },
+  {
+    "id": "go-interface-scan-lexing",
+    "reason": "Developer report repair: Go comments and literals do not create interface declarations or hide unused methods. This advisory command is not invoked by product builds or copied into final runtime images. Product APIs, deployment behavior and customer capabilities are unchanged."
   }
 ]
