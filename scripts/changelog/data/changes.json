@@ -1672,5 +1672,28 @@
       "frontend"
     ],
     "availability": []
+  },
+  {
+    "id": "vcs-browse-path-escaping",
+    "title": "GitHub browse links preserve branch and file names",
+    "area": "Platform",
+    "kind": "Fixed",
+    "reviewed": true,
+    "audience": "People opening GitHub branch or file links from Stackweaver.",
+    "before": "A literal # in a GitHub branch or file name became a URL fragment, truncating the path opened by the link.",
+    "after": "GitHub browse links encode branch and file names while preserving directory separators and literal percent sequences.",
+    "action": "Update the frontend. No configuration change is required.",
+    "details": [],
+    "guides": [
+      {
+        "title": "Manage Ansible playbooks",
+        "path": "/docs/user-guides/managing-ansible-playbooks"
+      }
+    ],
+    "sourceCommits": [],
+    "requiredComponents": [
+      "frontend"
+    ],
+    "availability": []
   }
 ]

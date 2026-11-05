@@ -93,16 +93,20 @@ export function getVcsRepoUrl(provider: VcsProvider, repo: string, accountName?:
   }
 }
 
+function encodeVcsPath(path: string): string {
+  return path.split('/').map(encodeURIComponent).join('/');
+}
+
 /** Branch browse URL. */
 export function getVcsBranchUrl(provider: VcsProvider, repo: string, branch: string, accountName?: string | null): string | null {
   if (!repo || !branch) return null;
   switch (provider) {
     case 'github':
-      return `https://github.com/${repo}/tree/${branch}`;
+      return `https://github.com/${repo}/tree/${encodeVcsPath(branch)}`;
     case 'gitlab':
-      return `https://gitlab.com/${repo}/-/tree/${branch}`;
+      return `https://gitlab.com/${repo}/-/tree/${encodeVcsPath(branch)}`;
     case 'bitbucket':
-      return `https://bitbucket.org/${repo}/src/${branch}`;
+      return `https://bitbucket.org/${repo}/src/${encodeVcsPath(branch)}`;
     case 'azure_devops': {
       const parts = parseADOParts(repo, accountName);
       if (!parts) return null;
@@ -119,11 +123,11 @@ export function getVcsFileUrl(provider: VcsProvider, repo: string, branch: strin
   const br = branch || 'main';
   switch (provider) {
     case 'github':
-      return `https://github.com/${repo}/blob/${br}/${filePath}`;
+      return `https://github.com/${repo}/blob/${encodeVcsPath(br)}/${encodeVcsPath(filePath)}`;
     case 'gitlab':
-      return `https://gitlab.com/${repo}/-/blob/${br}/${filePath}`;
+      return `https://gitlab.com/${repo}/-/blob/${encodeVcsPath(br)}/${encodeVcsPath(filePath)}`;
     case 'bitbucket':
-      return `https://bitbucket.org/${repo}/src/${br}/${filePath}`;
+      return `https://bitbucket.org/${repo}/src/${encodeVcsPath(br)}/${encodeVcsPath(filePath)}`;
     case 'azure_devops': {
       const parts = parseADOParts(repo, accountName);
       if (!parts) return null;
