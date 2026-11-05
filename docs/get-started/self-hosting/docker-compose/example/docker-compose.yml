@@ -31,6 +31,13 @@ volumes:
   stackweaver-ansible-launcher-cache:
     name: stackweaver-ansible-launcher-cache
 
+# How long Compose waits for a launcher to stop before it kills it, on `docker compose stop`,
+# `down`, a restart or an upgrade. A launcher told to stop drains: it waits up to its drain grace
+# (RUNNER_DRAIN_GRACE, 5 minutes) for its jobs, stops what is left with a 60 s kill grace, and
+# deregisters. Compose's default of 10 s killed it first, and a running Ansible job ended as lost.
+# Raise it when you raise RUNNER_DRAIN_GRACE.
+x-launcher-stop-grace: &launcher-stop-grace 6m30s
+
 services:
 
   # ── Infrastructure ──────────────────────────────────────────────────
@@ -416,6 +423,7 @@ services:
   # fetches what its job needs from the API with a token for that job alone. The socket is
   # root-equivalent on this host, which is why the launcher itself never runs user code.
   launcher:
+    stop_grace_period: *launcher-stop-grace
     image: ghcr.io/vhco-pro/stackweaver-opentofu-runner:latest
     container_name: launcher
     restart: unless-stopped
@@ -467,6 +475,7 @@ services:
   # fetches what its job needs from the API with a token for that job alone. The socket is
   # root-equivalent on this host, which is why the launcher itself never runs user code.
   ansible-launcher:
+    stop_grace_period: *launcher-stop-grace
     image: ghcr.io/vhco-pro/stackweaver-ansible-runner:latest
     container_name: ansible-launcher
     restart: unless-stopped

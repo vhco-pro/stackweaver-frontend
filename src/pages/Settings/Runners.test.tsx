@@ -132,4 +132,18 @@ describe('Runners bulk operations', () => {
     expect(runnersApi.update).toHaveBeenCalledTimes(1);
     expect(runnersApi.update).toHaveBeenCalledWith('r2', { labels: ['gpu'] });
   });
+
+  it('gives the add-runner command the API server and a container-driver option', async () => {
+    const user = userEvent.setup();
+    renderPage();
+    await user.click(await screen.findByRole('button', { name: /Add runner/ }));
+    const tofu = await screen.findByTestId('launcher-command-tofu');
+    expect(tofu.textContent).toContain('STACKWEAVER_TOKEN=<registration-token>');
+    expect(tofu.textContent).toContain('STACKWEAVER_SERVER=http://localhost:8022');
+    expect(tofu.textContent).not.toContain('RUNNER_DRIVER');
+    await user.click(screen.getByRole('combobox', { name: 'Launcher driver' }));
+    await user.click(await screen.findByRole('option', { name: /A fresh container per job/ }));
+    expect(screen.getByTestId('launcher-command-tofu').textContent).toContain('RUNNER_DRIVER=container');
+    expect(screen.getByTestId('launcher-command-ansible').textContent).toContain('-v /var/run/docker.sock:/var/run/docker.sock');
+  });
 });

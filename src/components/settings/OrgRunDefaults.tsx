@@ -10,7 +10,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { GradientButton } from '@/components/ui/gradient-button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { formatBytes, formatSeconds } from '@/lib/runPlacement';
+import { formatBytes, formatSeconds, parseGiB } from '@/lib/runPlacement';
+import { MAX_RUN_TIMEOUT_MINUTES, minutesText, parseTimeoutMinutes } from '@/lib/runTimeout';
 
 const GIB = 1024 ** 3;
 
@@ -24,18 +25,12 @@ interface Form {
 
 function formFrom(org: Organization): Form {
   return {
-    timeoutMinutes: org.run_timeout ? String(Math.round(org.run_timeout / 60)) : '',
+    timeoutMinutes: minutesText(org.run_timeout),
     tofuImage: org.tofu_run_image_id ?? '',
     ansibleImage: org.ansible_run_image_id ?? '',
     bindingId: org.identity_binding_id ?? '',
     cacheGiB: org.cache_size_limit ? String(Math.round((org.cache_size_limit / GIB) * 10) / 10) : '',
   };
-}
-
-/** A non-negative whole number from a text field, or 0 for empty or unreadable. */
-function whole(text: string, factor: number): number {
-  const n = Number(text);
-  return text.trim() === '' || !Number.isFinite(n) || n < 0 ? 0 : Math.round(n * factor);
 }
 
 /**
@@ -57,17 +52,21 @@ export function OrgRunDefaults({ orgName, org }: { orgName: string; org: Organiz
     queryFn: () => platformSettingsApi.get(),
   });
 
+  const timeout = parseTimeoutMinutes(form.timeoutMinutes);
+  const cache = parseGiB(form.cacheGiB);
+  const deploymentCache = platform?.deployment?.cache_size_limit;
+
   const save = useMutation({
     mutationFn: () =>
       organizationsApi.update(orgName, {
         data: {
           type: 'organizations',
           attributes: {
-            'run-timeout': whole(form.timeoutMinutes, 60),
+            'run-timeout': timeout.seconds ?? 0,
             'tofu-run-image-id': form.tofuImage,
             'ansible-run-image-id': form.ansibleImage,
             'identity-binding-id': form.bindingId,
-            'cache-size-limit': whole(form.cacheGiB, GIB),
+            'cache-size-limit': cache.bytes ?? 0,
           },
         },
       }),
@@ -101,11 +100,15 @@ export function OrgRunDefaults({ orgName, org }: { orgName: string; org: Organiz
               id="org-run-timeout"
               type="number"
               min={0}
-              inputMode="numeric"
+              max={MAX_RUN_TIMEOUT_MINUTES}
+              step="any"
+              inputMode="decimal"
+              aria-invalid={!!timeout.error}
               value={form.timeoutMinutes}
               onChange={e => { set({ timeoutMinutes: e.target.value }); }}
               placeholder={deployment ? `Platform default: ${formatSeconds(deployment.run_timeout_default)}` : 'Platform default'}
             />
+            {timeout.error && <p data-testid="org-run-timeout-error" className="text-xs text-red-600 dark:text-red-400">{timeout.error}</p>}
           </div>
           <div className="space-y-2">
             <Label htmlFor="org-cache-size-limit">Cache size limit (GiB)</Label>
@@ -113,6 +116,7 @@ export function OrgRunDefaults({ orgName, org }: { orgName: string; org: Organiz
               id="org-cache-size-limit"
               type="number"
               min={0}
+              aria-invalid={!!cache.error}
               step="0.5"
               inputMode="decimal"
               value={form.cacheGiB}
@@ -121,7 +125,9 @@ export function OrgRunDefaults({ orgName, org }: { orgName: string; org: Organiz
             />
             <p className="text-xs text-muted-foreground">
               The most the organization's cache of providers, OpenTofu releases and collections may hold. The oldest entries go first.
+              {deploymentCache ? ` Above ${formatBytes(deploymentCache)}, only a platform administrator can set it.` : ''}
             </p>
+            {cache.error && <p data-testid="org-cache-size-limit-error" className="text-xs text-red-600 dark:text-red-400">{cache.error}</p>}
           </div>
           <RunImageSelect
             id="org-tofu-run-image"
@@ -154,7 +160,7 @@ export function OrgRunDefaults({ orgName, org }: { orgName: string; org: Organiz
             ramp="app"
             className="w-auto px-4 py-2"
             onClick={() => { save.mutate(); }}
-            disabled={!dirty || save.isPending}
+            disabled={!dirty || !!timeout.error || !!cache.error || save.isPending}
           >
             {save.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
             Save run defaults

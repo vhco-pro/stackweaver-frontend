@@ -45,6 +45,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { isRunSettled } from '@/lib/runSettled';
 
 export default function RunDetail() {
   const { runId, orgName, workspaceName } = useParams<{
@@ -131,7 +132,8 @@ export default function RunDetail() {
       try {
         return await runsApi.getOutputs(id!);
       } catch (e: unknown) {
-        if ((e as { status?: number })?.status === 404) return undefined;
+        // A run whose apply saved no state has no outputs. React Query refuses undefined data.
+        if ((e as { status?: number })?.status === 404) return null;
         throw e;
       }
     },
@@ -140,7 +142,7 @@ export default function RunDetail() {
 
   // Where the run's latest attempt ran, and why it waits on a hosted pool (#933, AC56, AC77). The
   // record changes when a phase is placed, so it polls while the run is still moving.
-  const runSettled = ['applied', 'planned_and_finished', 'errored', 'failed', 'canceled', 'discarded', 'force_canceled'].includes(run?.status ?? '');
+  const runSettled = isRunSettled(run);
   const { data: placement } = useQuery({
     queryKey: ['run-placement', id],
     queryFn: () => runsApi.getPlacement(id!),
@@ -691,7 +693,7 @@ export default function RunDetail() {
                     isFailed={run.status === 'failed' && run['status-timestamps']?.['applying-at'] !== undefined}
                     applyState={polledApplyState || undefined}
                     runId={id || undefined}
-                    runOutputs={runOutputs}
+                    runOutputs={runOutputs ?? undefined}
                     isDestroyRun={run.operation === 'destroy'}
                   />
                 ) : (

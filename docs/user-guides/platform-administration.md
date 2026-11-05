@@ -274,7 +274,7 @@ available to signed-in callers without that role. Account details report `is-sit
 report `organization-creation` and a read-only `deployment` attribute with the settings the
 installer gave runs and jobs: the allowed image registries, the default run and sync
 timeouts, the job log cap, the cache size limit, the hosted default concurrency cap, the
-launcher and job rate budgets, and the job mirrors, proxy and CA (never a token). The
+launcher and job request limits, and the job mirrors, proxy and CA (never a token). The
 [Environment variables reference](../get-started/self-hosting/environment-variables.md#runs-jobs-and-launchers)
 lists where each comes from. See the [API reference](/docs/api-reference/explorer) for operation schemas.
 

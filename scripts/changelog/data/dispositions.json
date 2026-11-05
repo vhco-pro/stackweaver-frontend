@@ -130,5 +130,13 @@
   {
     "commit": "009a1c5f4d1761d28fb4bc896a9450823f3fc642",
     "reason": "Internal developer-workflow migration: adopt the shared documentation-impact checker and retain Stackweaver site, visual, plan and publication rules. No product runtime, API, deployment or customer-facing documentation change."
+  },
+  {
+    "id": "refused-token-log-context",
+    "reason": "Operator log content only: a refused API token's warning line also names the route, client address and User-Agent. No API response, product behavior or customer setting changes."
+  },
+  {
+    "id": "demo-fleet-jobs-network",
+    "reason": "Developer tooling for the source checkout: the dev stack's demo SSH fleet publishes its SSH ports and the dev Ansible launcher allows them, and the bootstrap script and E2E targets use them. No published component, chart or customer capability changes."
   }
 ]

@@ -1406,7 +1406,8 @@
     "after": "The state OpenTofu saves when an apply is cancelled becomes the workspace's current state version, the apply log keeps OpenTofu's interrupt output and ends with a cancel marker, and the run stays canceled.",
     "action": "Deploy the updated API. No configuration change is required. For a run cancelled during its apply before this version, check the workspace against the real resources before the next run.",
     "details": [
-      "Only the cancelled attempt's final state, log and completion are accepted; every other request for that run is still refused."
+      "Only the cancelled attempt's final state, log and completion are accepted; every other request for that run is still refused.",
+      "A canceled Ansible job keeps its last output and its log ends with a cancel marker, in the same way."
     ],
     "guides": [
       {
@@ -1489,6 +1490,156 @@
       {
         "title": "Get started",
         "path": "/docs/get-started"
+      }
+    ],
+    "sourceCommits": [],
+    "requiredComponents": [
+      "frontend"
+    ],
+    "availability": []
+  },
+  {
+    "id": "run-page-platform-errors",
+    "title": "Run pages show platform errors and stop polling finished runs",
+    "area": "OpenTofu",
+    "kind": "Fixed",
+    "reviewed": true,
+    "audience": "Everyone who reads OpenTofu run pages.",
+    "before": "A run that failed before OpenTofu ran, such as a job that could not be placed, showed \"Unable to parse error details\". A finished plan-only run kept requesting its placement every three seconds, and a run whose apply saved no state logged a client error.",
+    "after": "The run page shows the platform's error message as reported. Placement polling stops once a run has finished, plan-only runs included, and a run without state outputs takes its outputs from the apply log without an error.",
+    "action": "No action is required.",
+    "details": [],
+    "guides": [
+      {
+        "title": "Read OpenTofu runs",
+        "path": "/docs/user-guides/understanding-opentofu-runs"
+      }
+    ],
+    "sourceCommits": [],
+    "requiredComponents": [
+      "frontend"
+    ],
+    "availability": []
+  },
+  {
+    "id": "settings-validated-on-save",
+    "title": "Run, pool and identity settings are checked when they are saved",
+    "area": "Platform",
+    "kind": "Fixed",
+    "reviewed": true,
+    "audience": "Organization owners, agent pool administrators and Terraform provider users who configure run defaults, agent pools and identity bindings.",
+    "before": "Several settings were accepted on save and failed only when a job used them: CPU and memory limits in any form, an identity binding of another pool, identity bindings without their mechanism's annotation, negative or unbounded run timeouts, and an organization cache limit of any size. A pool named after the hosted pool failed with a server error.",
+    "after": "Each is refused with 422 on save, with the reason: CPU and memory limits in the forms both drivers read, an identity binding only from the pool the workspace or job template runs on, a binding name of letters, digits, '.', '_' and '-' with its mechanism's required annotation, and run timeouts of zero to 24 hours. An organization owner sets the cache limit up to the deployment's limit, and only a platform administrator above it. A duplicate pool name answers 409.",
+    "action": "No action is required for existing values; they are checked again only when changed.",
+    "details": [
+      "The identity binding pickers offer only the bindings of the pool the object chooses, and the forms name a negative or over-long timeout and a malformed annotation line instead of saving them.",
+      "The job template's timeout is entered in minutes, like the project's and the organization's."
+    ],
+    "guides": [
+      {
+        "title": "Self-hosted runners",
+        "path": "/docs/user-guides/self-hosted-runners"
+      },
+      {
+        "title": "Organization settings",
+        "path": "/docs/user-guides/organization-settings"
+      }
+    ],
+    "sourceCommits": [],
+    "requiredComponents": [
+      "api",
+      "frontend"
+    ],
+    "availability": []
+  },
+  {
+    "id": "streamed-log-blank-lines",
+    "title": "Streamed logs no longer add a blank line after each line",
+    "area": "Platform",
+    "kind": "Fixed",
+    "reviewed": true,
+    "audience": "Everyone who reads live run or job output.",
+    "before": "Each streamed output line was followed by an empty line in the raw log and the terminal view.",
+    "after": "Streamed output keeps each line's own line break and adds none.",
+    "action": "No action is required.",
+    "details": [],
+    "guides": [
+      {
+        "title": "Read OpenTofu runs",
+        "path": "/docs/user-guides/understanding-opentofu-runs"
+      }
+    ],
+    "sourceCommits": [],
+    "requiredComponents": [
+      "api"
+    ],
+    "availability": []
+  },
+  {
+    "id": "launcher-drain-and-cache",
+    "title": "Launchers drain before a restart and verify pinned Python packages",
+    "area": "Runners",
+    "kind": "Fixed",
+    "reviewed": true,
+    "audience": "Operators who run launchers with Docker Compose, Helm or docker run, and users of hash-pinned Python requirements.",
+    "before": "Compose and Kubernetes stopped a launcher after 10 and 30 seconds, before it had drained, so an upgrade or restart with jobs in flight ended running Ansible jobs as lost. The cache populator could not verify pinned Python packages, because the launcher images have no pip, and recorded each attempt as a poisoning. A launcher stopped while starting could leave a firewall container behind.",
+    "after": "Launchers get time to drain: the Compose files stop them with a 6 minute 30 second grace and the chart gives launcher pods a 390-second termination grace. The populator verifies a pinned package from the package index's published hashes without pip. Firewall containers a stopped launcher left behind are removed.",
+    "action": "On Docker Compose, replace docker-compose.yml with this release's file. On Helm, nothing is required; raise launcher.terminationGracePeriodSeconds if you raise RUNNER_DRAIN_GRACE. Start docker run launchers with --stop-timeout 390.",
+    "details": [
+      "A failed ansible-playbook with no error output reports its exit code without a trailing colon."
+    ],
+    "guides": [
+      {
+        "title": "Self-hosted runners",
+        "path": "/docs/user-guides/self-hosted-runners"
+      }
+    ],
+    "sourceCommits": [],
+    "requiredComponents": [
+      "opentofu-runner",
+      "ansible-runner",
+      "helm"
+    ],
+    "availability": []
+  },
+  {
+    "id": "org-delete-removes-cache",
+    "title": "Deleting an organization removes its cache records",
+    "area": "Platform",
+    "kind": "Fixed",
+    "reviewed": true,
+    "audience": "Platform administrators and organization owners who delete organizations.",
+    "before": "Deleting an organization removed its cached objects but left the database records that described them.",
+    "after": "The records go with the organization, and the cache janitor removes records an earlier delete left behind.",
+    "action": "No action is required.",
+    "details": [],
+    "guides": [
+      {
+        "title": "Self-hosted runners",
+        "path": "/docs/user-guides/self-hosted-runners"
+      }
+    ],
+    "sourceCommits": [],
+    "requiredComponents": [
+      "api"
+    ],
+    "availability": []
+  },
+  {
+    "id": "runner-settings-wording",
+    "title": "Clearer add-runner dialog and pool settings",
+    "area": "Runners",
+    "kind": "Fixed",
+    "reviewed": true,
+    "audience": "Agent pool administrators who add launchers or read pool settings.",
+    "before": "The add-runner dialog asked for an API key, offered only the in-process command and filled in the app's address, which a split deployment does not serve the API on. Pool rows overlapped at phone width, and pool settings used internal names.",
+    "after": "The dialog asks for a registration token, offers the container driver, and fills in the API's own address. Pool rows stack at phone width, the pull Secret section says which driver uses it, and the deployment panel shows request limits.",
+    "action": "No action is required.",
+    "details": [],
+    "guides": [
+      {
+        "title": "Self-hosted runners",
+        "path": "/docs/user-guides/self-hosted-runners"
       }
     ],
     "sourceCommits": [],

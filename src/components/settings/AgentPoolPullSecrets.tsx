@@ -111,7 +111,7 @@ export function AgentPoolPullSecrets({ poolId, orgName }: { poolId: string; orgN
         <div className="flex items-center gap-2">
           <KeyRound className="h-4 w-4 text-muted-foreground" />
           <h4 className="text-sm font-semibold">Registry pull Secrets</h4>
-          <span className="text-xs text-muted-foreground">- what this pool's job pods pull private run images with</span>
+          <span className="text-xs text-muted-foreground">- what the Kubernetes driver's job pods pull private run images with; the container driver pulls with the run image's registry credential</span>
         </div>
         <GradientButton
           ramp="app"
@@ -133,15 +133,15 @@ export function AgentPoolPullSecrets({ poolId, orgName }: { poolId: string; orgN
           <Button variant="outline" size="sm" onClick={() => { void refetch(); }}>Retry</Button>
         </div>
       ) : secrets.length === 0 ? (
-        <p className="text-sm text-muted-foreground">No pull Secrets. A private run image is pulled with a Secret written for each job.</p>
+        <p className="text-sm text-muted-foreground">No pull Secrets. On the Kubernetes driver, a private run image is pulled with a Secret written for each job.</p>
       ) : (
         <ul className="space-y-2" aria-label="Registry pull Secrets">
           {secrets.map(p => (
-            <li key={p.id} className="flex items-center justify-between gap-4 rounded-lg border border-slate-900/10 dark:border-white/5 bg-slate-900/[0.03] dark:bg-black/10 px-3 py-2">
+            <li key={p.id} className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-4 rounded-lg border border-slate-900/10 dark:border-white/5 bg-slate-900/[0.03] dark:bg-black/10 px-3 py-2">
               <div className="min-w-0 space-y-1">
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="text-sm font-medium truncate">{p.name}</span>
-                  <Badge variant="outline" className="text-xs font-mono">{p.registry}</Badge>
+                  <Badge variant="outline" className="max-w-full min-w-0 truncate text-xs font-mono">{p.registry}</Badge>
                   {p.declared_externally && (
                     <Badge variant="outline" className="text-xs bg-sky-500/10 text-sky-700 dark:text-sky-300 border-sky-500/20">
                       Managed by {p.external_manager || 'GitOps'}
@@ -157,7 +157,7 @@ export function AgentPoolPullSecrets({ poolId, orgName }: { poolId: string; orgN
                   {p.secret_name}{p.reference ? ' (referenced)' : ` (from ${credentialName(p.registry_credential_id) ?? 'a registry credential'})`}
                 </div>
               </div>
-              <div className="flex items-center gap-1 shrink-0">
+              <div className="flex items-center justify-end gap-1 shrink-0">
                 {/* A Secret another manager declares keeps its Kubernetes fields; it can only be renamed there. */}
                 {!p.declared_externally && (
                   <Button variant="ghost" size="sm" className="gap-1.5" onClick={() => { setForm(formFrom(p)); setDialog({ mode: 'edit', secret: p }); }}

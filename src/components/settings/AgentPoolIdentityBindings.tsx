@@ -17,7 +17,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
 import { dangerOutline } from '@/lib/surfaces';
-import { formatAnnotations, parseAnnotations } from '@/lib/runPlacement';
+import { annotationProblem, formatAnnotations, parseAnnotations } from '@/lib/runPlacement';
 
 const MECHANISMS: { value: string; label: string; hint: string }[] = [
   { value: 'aws-irsa', label: 'AWS IRSA', hint: 'eks.amazonaws.com/role-arn on the service account' },
@@ -46,6 +46,9 @@ interface Form {
   annotations: string;
   mode: AccountMode;
 }
+
+/** A binding's name: letters, digits, '.', '_' and '-', starting with a letter or digit (the API's rule). */
+const BINDING_NAME = /^[A-Za-z0-9][A-Za-z0-9._-]{0,99}$/;
 
 const EMPTY: Form = { name: '', mechanism: 'aws-irsa', serviceAccount: '', annotations: '', mode: 'create' };
 
@@ -114,7 +117,11 @@ export function AgentPoolIdentityBindings({ poolId }: { poolId: string }) {
     onError: (e: unknown) => { toast.error(e instanceof Error ? e.message : 'Failed to delete the identity binding'); },
   });
 
-  const canSave = form.name.trim() !== '' && form.serviceAccount.trim() !== '' && !save.isPending;
+  const nameProblem = form.name.trim() !== '' && !BINDING_NAME.test(form.name.trim())
+    ? "Use letters, digits, '.', '_' or '-', starting with a letter or digit."
+    : undefined;
+  const annotationsProblem = annotationProblem(form.annotations);
+  const canSave = form.name.trim() !== '' && !nameProblem && form.serviceAccount.trim() !== '' && !annotationsProblem && !save.isPending;
   const hint = MECHANISMS.find(m => m.value === form.mechanism)?.hint;
 
   return (
@@ -149,11 +156,11 @@ export function AgentPoolIdentityBindings({ poolId }: { poolId: string }) {
       ) : (
         <ul className="space-y-2" aria-label="Identity bindings">
           {bindings.map(b => (
-            <li key={b.id} className="flex items-center justify-between gap-4 rounded-lg border border-slate-900/10 dark:border-white/5 bg-slate-900/[0.03] dark:bg-black/10 px-3 py-2">
+            <li key={b.id} className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-4 rounded-lg border border-slate-900/10 dark:border-white/5 bg-slate-900/[0.03] dark:bg-black/10 px-3 py-2">
               <div className="min-w-0 space-y-1">
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="text-sm font-medium truncate">{b.name}</span>
-                  <Badge variant="outline" className="text-xs">{mechanismLabel(b.mechanism)}</Badge>
+                  <Badge variant="outline" className="max-w-full min-w-0 truncate text-xs">{mechanismLabel(b.mechanism)}</Badge>
                   {b.declared_externally && (
                     <Badge variant="outline" className="text-xs bg-sky-500/10 text-sky-700 dark:text-sky-300 border-sky-500/20">
                       Managed by {b.external_manager || 'GitOps'}
@@ -169,7 +176,7 @@ export function AgentPoolIdentityBindings({ poolId }: { poolId: string }) {
                   {b.service_account}{b.reference ? ' (referenced)' : b.per_job_sa ? ' (created per job)' : ''}
                 </div>
               </div>
-              <div className="flex items-center gap-1 shrink-0">
+              <div className="flex items-center justify-end gap-1 shrink-0">
                   {/* A binding another manager declares keeps its Kubernetes fields; it can only be removed. */}
                   {!b.declared_externally && (
                     <Button variant="ghost" size="sm" className="gap-1.5" onClick={() => { setForm(formFrom(b)); setDialog({ mode: 'edit', binding: b }); }}
@@ -198,7 +205,8 @@ export function AgentPoolIdentityBindings({ poolId }: { poolId: string }) {
           <form onSubmit={e => { e.preventDefault(); if (canSave) save.mutate(); }} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="binding-name">Name</Label>
-              <Input id="binding-name" value={form.name} onChange={e => { setForm(f => ({ ...f, name: e.target.value })); }} placeholder="deploy-prod" />
+              <Input id="binding-name" value={form.name} onChange={e => { setForm(f => ({ ...f, name: e.target.value })); }} placeholder="deploy-prod" aria-invalid={!!nameProblem} />
+              {nameProblem && <p data-testid="binding-name-error" className="text-xs text-red-600 dark:text-red-400">{nameProblem}</p>}
             </div>
             <div className="space-y-2">
               <Label htmlFor="binding-mechanism">Mechanism</Label>
@@ -222,8 +230,10 @@ export function AgentPoolIdentityBindings({ poolId }: { poolId: string }) {
                 onChange={e => { setForm(f => ({ ...f, annotations: e.target.value })); }}
                 placeholder="eks.amazonaws.com/role-arn=arn:aws:iam::123456789012:role/deploy"
                 className="font-mono text-xs"
+                aria-invalid={!!annotationsProblem}
               />
               <p className="text-xs text-muted-foreground">One key=value per line.</p>
+              {annotationsProblem && <p data-testid="binding-annotations-error" className="text-xs text-red-600 dark:text-red-400">{annotationsProblem}</p>}
             </div>
             <div className="space-y-2">
               <Label htmlFor="binding-mode">Service account</Label>

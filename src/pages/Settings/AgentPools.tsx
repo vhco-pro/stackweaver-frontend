@@ -705,11 +705,13 @@ export default function AgentPools() {
                     <Label htmlFor="edit-cpu-limit">CPU limit</Label>
                     <Input id="edit-cpu-limit" value={editForm.cpu_limit} placeholder="e.g. 1500m"
                       onChange={(e) => setEditForm((p) => ({ ...p, cpu_limit: e.target.value }))} />
+                    <p className="text-xs text-muted-foreground">Cores (0.5, 2) or millicores (500m), at least 10m.</p>
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="edit-memory-limit">Memory limit</Label>
                     <Input id="edit-memory-limit" value={editForm.memory_limit} placeholder="e.g. 2Gi"
                       onChange={(e) => setEditForm((p) => ({ ...p, memory_limit: e.target.value }))} />
+                    <p className="text-xs text-muted-foreground">Bytes, or a number with Mi or Gi (512Mi, 2Gi), at least 6Mi.</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">

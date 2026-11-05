@@ -64,4 +64,22 @@ describe('EditProjectDialog', () => {
     });
     expect(onUpdated).toHaveBeenCalled();
   });
+
+  it('refuses a negative or over-long timeout instead of saving it as inherit', async () => {
+    const user = userEvent.setup();
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    render(
+      <QueryClientProvider client={client}>
+        <EditProjectDialog open onOpenChange={() => undefined} orgName="acme" project={project} onUpdated={vi.fn()} />
+      </QueryClientProvider>,
+    );
+    const field = screen.getByLabelText('Run timeout (minutes)');
+    for (const bad of ['-10', '100000']) {
+      await user.clear(field);
+      await user.type(field, bad);
+      expect(screen.getByTestId('project-run-timeout-error')).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled();
+    }
+    expect(projectsApi.update).not.toHaveBeenCalled();
+  });
 });

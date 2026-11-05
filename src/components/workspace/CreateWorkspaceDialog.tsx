@@ -244,7 +244,7 @@ export function CreateWorkspaceDialog({
         <DialogHeader>
           <DialogTitle>Create Workspace</DialogTitle>
           <DialogDescription>
-            Create a new Terraform workspace. Connect a VCS repository to enable automatic runs.
+            Create a new OpenTofu workspace. Connect a VCS repository to enable automatic runs.
           </DialogDescription>
         </DialogHeader>
 
@@ -618,7 +618,7 @@ export function CreateWorkspaceDialog({
 
           {/* Run image and identity binding (#933, D6, D8): empty inherits from the project. */}
           <RunImageSelect id="run-image" orgName={orgName} kind="tofu" value={runImageId} onChange={setRunImageId} inheritLabel="Inherit from the project" />
-          <IdentityBindingSelect id="identity-binding" orgName={orgName} value={identityBindingId} onChange={setIdentityBindingId} inheritLabel="Inherit from the project" />
+          <IdentityBindingSelect id="identity-binding" orgName={orgName} poolId={executionMode === 'agent' && agentPoolId ? agentPoolId : undefined} value={identityBindingId} onChange={setIdentityBindingId} inheritLabel="Inherit from the project" />
 
           <DialogFooter className={cn("pt-6 pb-2", repositorySelectOpen && "pb-6")}>
             <Button

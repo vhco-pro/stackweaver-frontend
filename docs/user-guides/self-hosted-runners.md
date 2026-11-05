@@ -158,7 +158,7 @@ The simplest launcher runs each job as a child process of its own container and 
 
 ::: code-group
 ```bash [OpenTofu launcher]
-docker run -d --restart unless-stopped \
+docker run -d --restart unless-stopped --stop-timeout 390 \
   -e RUNNER_AGENT_POOL_ID="<pool-uuid>" \
   -e STACKWEAVER_TOKEN="<your-token>" \
   -e STACKWEAVER_SERVER=https://your-stackweaver.example.com \
@@ -166,7 +166,7 @@ docker run -d --restart unless-stopped \
   ghcr.io/vhco-pro/stackweaver-opentofu-runner:latest
 ```
 ```bash [Ansible launcher]
-docker run -d --restart unless-stopped \
+docker run -d --restart unless-stopped --stop-timeout 390 \
   -e RUNNER_AGENT_POOL_ID="<pool-uuid>" \
   -e STACKWEAVER_TOKEN="<your-token>" \
   -e STACKWEAVER_SERVER=https://your-stackweaver.example.com \
@@ -175,14 +175,14 @@ docker run -d --restart unless-stopped \
 ```
 :::
 
-An in-process launcher runs one job at a time unless you raise `RUNNER_MAX_CONCURRENT_JOBS`. Its jobs share the launcher's filesystem, user and network, and they run only in the platform image. Use the container driver when jobs need isolation from one another or a [run image](./run-images-and-execution-environments.md) of their own.
+`--stop-timeout 390` gives a stopping launcher time to let its jobs finish (see [Drivers and isolation](#drivers-and-isolation)); Docker's default of 10 seconds would kill it first. An in-process launcher runs one job at a time unless you raise `RUNNER_MAX_CONCURRENT_JOBS`. Its jobs share the launcher's filesystem, user and network, and they run only in the platform image. Use the container driver when jobs need isolation from one another or a [run image](./run-images-and-execution-environments.md) of their own.
 
 ### Docker or Podman, container driver
 
 With the container driver, the launcher creates a fresh, hardened container for every job through the engine's socket. Each job container runs as a non-root user with a read-only root filesystem and a writable `/tmp`, drops every Linux capability, forbids privilege escalation and is removed when the job ends. The socket is root-equivalent on the host, which is why the launcher itself never runs user code.
 
 ```bash
-docker run -d --restart unless-stopped --user root \
+docker run -d --restart unless-stopped --stop-timeout 390 --user root \
   -v /var/run/docker.sock:/var/run/docker.sock \
   -v stackweaver-launcher-cache:/var/cache/stackweaver-launcher \
   -e RUNNER_AGENT_POOL_ID="<pool-uuid>" \
@@ -386,7 +386,7 @@ The jobs a launcher places do not inherit its environment, which holds its regis
 After the launcher starts, it registers with the API and appears under **Settings > Runners** with status **Online** once its heartbeat is answered. You can open it from the list to see details, labels, and recent jobs.
 
 > [!NOTE]
-> The **Add runner** dialog in Settings > Runners shows Docker commands with your pool ID and server URL filled in. Use the copy button there as a starting point, then replace `<your-api-key>` with your actual token. For Kubernetes, use the Docker commands as a reference for the environment variables to include in your manifest.
+> The **Add runner** dialog in Settings > Runners shows Docker commands with your pool ID and the API's address filled in, for the in-process driver or the container driver. Use the copy button there as a starting point, then replace `<registration-token>` with your agent token or organization key. For Kubernetes, use the Docker commands as a reference for the environment variables to include in your manifest.
 
 ---
 
@@ -449,7 +449,7 @@ Jobs run in the platform Ansible image unless they select an execution environme
 
 On every driver the executor writes the credentials a job needs (inventory secrets, SSH keys, vault passwords, cloud token files, CLI configuration) with owner-only permissions into a directory that exists for that job, and removes it on every exit path before a failed container or pod is kept for inspection. A container or Kubernetes job image must run as a non-root user; a launcher on the container driver accepts a root image only with `RUNNER_ALLOW_ROOT=true`.
 
-When a launcher stops (`SIGTERM`), it stops claiming, lets its jobs finish for up to `RUNNER_DRAIN_GRACE` and then deregisters. If a launcher disappears in the middle of a job, Stackweaver handles the job by what is safe to repeat: a plan or a sync is offered again as a new attempt, while an apply ends as failed with the message "runner lost during apply" (its apply reported as errored to Terraform clients) and an Ansible job ends as errored with "runner lost during job". Neither is retried on its own: **Re-queue apply** on the run page (or `POST /api/v2/runs/:id/actions/apply`) applies the run's saved plan as a new attempt, and is refused if the workspace state moved meanwhile; relaunch the job to run it again. Each attempt has its own job token, and the token of an earlier attempt is refused, so an orphaned job can neither finish nor upload state. A restarted launcher reattaches to the job containers or pods it still owns.
+When a launcher stops (`SIGTERM`), it stops claiming, lets its jobs finish for up to `RUNNER_DRAIN_GRACE` (5 minutes), stops what is left with a 60-second grace and then deregisters. Whatever stops it must wait that long: the Compose files set `stop_grace_period: 6m30s` on every launcher service, the chart sets `terminationGracePeriodSeconds: 390` on the launcher pods (`launcher.terminationGracePeriodSeconds`), and a `docker run` launcher needs `--stop-timeout 390`. Raise these when you raise `RUNNER_DRAIN_GRACE`. A launcher killed before it drains leaves its jobs to the rule below. If a launcher disappears in the middle of a job, Stackweaver handles the job by what is safe to repeat: a plan or a sync is offered again as a new attempt, while an apply ends as failed with the message "runner lost during apply" (its apply reported as errored to Terraform clients) and an Ansible job ends as errored with "runner lost during job". Neither is retried on its own: **Re-queue apply** on the run page (or `POST /api/v2/runs/:id/actions/apply`) applies the run's saved plan as a new attempt, and is refused if the workspace state moved meanwhile; relaunch the job to run it again. Each attempt has its own job token, and the token of an earlier attempt is refused, so an orphaned job can neither finish nor upload state. A restarted launcher reattaches to the job containers or pods it still owns.
 
 ## Network modes
 
@@ -481,7 +481,7 @@ The pool's edit dialog on **Settings > Agent Pools** has a **Job placement** sec
 | **Keep a failed job for (minutes)** | Leaves a failed job's container or pod in place this long for inspection. The executor has already removed every credential it wrote. A canceled job is not a failure and is removed at once. When unset, the launcher's `RUNNER_KEEP_FAILED_FOR` applies. |
 | **Keep a node-local copy of the organization's cache** | On by default. Turn it off to have every job read its cache entries through the API. |
 
-The expanded row also has a read-only **Deployment settings** panel with the values the installer set for the whole installation: the allowed image registries, the default run timeout, the sync timeout, the job log cap, the cache size limit, the hosted default cap, the rate budgets of launchers and jobs, and the mirrors, proxy and extra CA certificates jobs use. The same values are the `deployment` attribute of `GET /api/v2/platform/settings`.
+The expanded row also has a read-only **Deployment settings** panel with the values the installer set for the whole installation: the allowed image registries, the default run timeout, the sync timeout, the job log cap, the cache size limit, the hosted default cap, the request limits of launchers and jobs, and the mirrors, proxy and extra CA certificates jobs use. The same values are the `deployment` attribute of `GET /api/v2/platform/settings`.
 
 ## Identity bindings
 
