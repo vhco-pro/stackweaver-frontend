@@ -1394,5 +1394,30 @@
       "frontend"
     ],
     "availability": []
+  },
+  {
+    "id": "cancel-keeps-apply-state",
+    "title": "Cancelling an apply keeps the state it saved",
+    "area": "OpenTofu",
+    "kind": "Fixed",
+    "reviewed": true,
+    "audience": "Anyone who cancels an OpenTofu run while it applies.",
+    "before": "Cancelling a run during its apply interrupted OpenTofu, but the platform refused the state it saved on interrupt and the final log. Resources the apply had already created, changed or destroyed were missing from the workspace's state, and the log ended without saying the run was canceled.",
+    "after": "The state OpenTofu saves when an apply is cancelled becomes the workspace's current state version, the apply log keeps OpenTofu's interrupt output and ends with a cancel marker, and the run stays canceled.",
+    "action": "Deploy the updated API. No configuration change is required. For a run cancelled during its apply before this version, check the workspace against the real resources before the next run.",
+    "details": [
+      "Only the cancelled attempt's final state, log and completion are accepted; every other request for that run is still refused."
+    ],
+    "guides": [
+      {
+        "title": "Cancel a run",
+        "path": "/docs/features/opentofu/run-cancellation"
+      }
+    ],
+    "sourceCommits": [],
+    "requiredComponents": [
+      "api"
+    ],
+    "availability": []
   }
 ]

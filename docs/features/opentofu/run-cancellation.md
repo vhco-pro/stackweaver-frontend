@@ -28,6 +28,9 @@ capabilities: [
 
 Cancel pending or executing work from its run page or the API. Cancellation stops further
 work when the job running it observes it; it does not reverse infrastructure changes already made.
+A canceled apply interrupts OpenTofu, which saves the state of the resources it already changed,
+and that state becomes the workspace's current state version. The apply log keeps OpenTofu's
+interrupt output and ends with `Stackweaver: the run was canceled.`
 
 > [!WARNING]
 > Canceling an apply can leave partially changed infrastructure. Check the output and the
