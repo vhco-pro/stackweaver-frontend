@@ -39,6 +39,24 @@ export function ErrorDisplay({ logs, title = 'Error', className }: ErrorDisplayP
   // Only show errors here - warnings are displayed in the top-level banner in RunDetail
   // If no errors found (only warnings, or nothing), don't show the error panel at all
   if (errors.length === 0) {
+    // Not an OpenTofu diagnostic: an error the platform reported (a placement refusal, a lost
+    // runner) is shown as it was given.
+    const platformMessage = logs.trim();
+    if (warnings.length === 0 && platformMessage !== '') {
+      return (
+        <div className={`border border-red-500/50 rounded-lg p-4 bg-red-500/10 ${className || ''}`}>
+          <div className="flex items-start gap-3">
+            <XCircle className="h-5 w-5 text-red-700 dark:text-red-400 shrink-0 mt-0.5" />
+            <div className="flex-1 min-w-0">
+              <h3 className="font-semibold text-red-700 dark:text-red-400 mb-2">{title}</h3>
+              <p className="text-red-800 dark:text-red-300 text-sm whitespace-pre-wrap break-words" data-testid="platform-error">
+                {platformMessage}
+              </p>
+            </div>
+          </div>
+        </div>
+      );
+    }
     // If there are no warnings either, show the fallback "unable to parse" message
     if (warnings.length === 0) {
       return (

@@ -72,4 +72,23 @@ describe('AgentPoolIdentityBindings', () => {
       });
     });
   });
+
+  it('refuses a name or an annotation line the API would refuse or drop', async () => {
+    const user = userEvent.setup();
+    renderRow();
+    await screen.findByRole('list', { name: 'Identity bindings' });
+    await user.click(screen.getByRole('button', { name: /New binding/ }));
+    await user.type(screen.getByLabelText('Name'), 'Bad Name!!');
+    await user.type(screen.getByLabelText('Service account name'), 'sw-deploy');
+    await user.click(screen.getByLabelText('Annotations'));
+    await user.paste('eks.amazonaws.com/role-arn=arn:aws:iam::1:role/deploy\nrole arn');
+    expect(screen.getByTestId('binding-name-error')).toBeInTheDocument();
+    expect(screen.getByTestId('binding-annotations-error')).toHaveTextContent('line 2');
+    expect(screen.getByRole('button', { name: 'Create' })).toBeDisabled();
+    await user.clear(screen.getByLabelText('Name'));
+    await user.type(screen.getByLabelText('Name'), 'deploy-prod');
+    expect(screen.queryByTestId('binding-name-error')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Create' })).toBeDisabled();
+    expect(identityBindingsApi.create).not.toHaveBeenCalled();
+  });
 });

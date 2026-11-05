@@ -6,6 +6,7 @@
 import { describe, expect, it } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { InheritedHint } from './RunPlacementFields';
+import { bindingsForPool } from '@/lib/runPlacement';
 import { formatSeconds } from '@/lib/runPlacement';
 
 describe('InheritedHint', () => {
@@ -22,5 +23,18 @@ describe('InheritedHint', () => {
   it('shows nothing when the object sets the value itself', () => {
     const { container } = render(<InheritedHint setting={{ value: 60, level: 'workspace' }} ownLevel="workspace" describe={formatSeconds} />);
     expect(container).toBeEmptyDOMElement();
+  });
+});
+
+describe('bindingsForPool', () => {
+  const opt = (id: string, pool: string) => ({ binding: { id, name: id, agent_pool_id: pool }, poolName: pool });
+  const options = [opt('a', 'pool-1'), opt('b', 'pool-2'), opt('c', 'pool-1')];
+
+  it('offers only the bindings of the pool the object runs on', () => {
+    expect(bindingsForPool(options, 'pool-1').map(o => o.binding.id)).toEqual(['a', 'c']);
+  });
+
+  it('offers every binding while the pool is not chosen here (inherited)', () => {
+    expect(bindingsForPool(options, undefined)).toHaveLength(3);
   });
 });

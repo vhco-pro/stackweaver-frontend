@@ -8,6 +8,8 @@ import { GradientButton } from '@/components/ui/gradient-button';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Cpu, Loader2 } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { glassSurface } from '@/lib/surfaces';
 import { toast } from 'sonner';
 
 type Mode = 'remote' | 'agent' | 'local';
@@ -59,7 +61,7 @@ export function OrgDefaultExecution({ orgName, pools }: { orgName: string; pools
   const changed = dirty !== null && (dirty.mode !== saved.mode || dirty.poolId !== saved.poolId);
 
   return (
-    <div className="rounded-2xl border border-white/10 bg-white/5 dark:bg-black/10 backdrop-blur-sm p-6 space-y-4">
+    <div className={cn(glassSurface, 'p-6 space-y-4')}>
       <div className="flex items-center gap-2">
         <Cpu className="h-5 w-5 text-teal-500" />
         <div>

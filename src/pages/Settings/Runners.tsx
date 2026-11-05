@@ -45,6 +45,8 @@ import {
 } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
+import { config } from '@/config';
+import { launcherCommand, launcherServer, type LauncherDriver } from '@/lib/runnerCommand';
 import { dangerGhostIcon, dangerOutline, glassSurface } from '@/lib/surfaces';
 
 export default function Runners() {
@@ -56,6 +58,7 @@ export default function Runners() {
   const [deleting, setDeleting] = useState(false);
   const [selectedPool, setSelectedPool] = useState<string>('');
   const [copiedCmd, setCopiedCmd] = useState<'ansible' | 'terraform' | null>(null);
+  const [driver, setDriver] = useState<LauncherDriver>('in-process');
 
   const { data: runnersData, isLoading: loading, isError: loadFailed, refetch: refetchRunners } = useQuery({
     queryKey: ['runners', orgName],
@@ -217,15 +220,11 @@ export default function Runners() {
     setEditForm((prev) => ({ ...prev, labels: prev.labels.filter((l) => l !== label) }));
   };
 
+  const launcherFor = (type: 'ansible' | 'terraform') =>
+    launcherCommand({ engine: type === 'ansible' ? 'ansible' : 'tofu', driver, poolId: selectedPool, server: launcherServer(config.apiUrl, window.location.origin) });
+
   const copyCommand = (type: 'ansible' | 'terraform') => {
-    const serverUrl = window.location.origin.replace('http://', 'https://');
-    const cmd = `docker run -d --restart unless-stopped \\
-  -e RUNNER_AGENT_POOL_ID=${selectedPool || '<pool-uuid>'} \\
-  -e STACKWEAVER_TOKEN=<your-api-key> \\
-  -e STACKWEAVER_SERVER=${serverUrl} \\
-  -e RUNNER_NAME=my-${type === 'ansible' ? 'ansible' : 'tofu'}-launcher \\
-  ghcr.io/vhco-pro/stackweaver-${type === 'ansible' ? 'ansible' : 'opentofu'}-runner:latest`;
-    void navigator.clipboard.writeText(cmd);
+    void navigator.clipboard.writeText(launcherFor(type));
     setCopiedCmd(type);
     toast.success(`${type === 'ansible' ? 'Ansible' : 'OpenTofu'} runner command copied`);
     setTimeout(() => setCopiedCmd(null), 2000);
@@ -481,15 +480,17 @@ export default function Runners() {
           <DialogHeader>
             <DialogTitle>Register a Self-Hosted Runner</DialogTitle>
             <DialogDescription>
-              Run the runner container on your infrastructure to register it.
+              Start a launcher on your infrastructure. It registers with the pool you choose and runs that pool's jobs.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-6">
             <div className="space-y-2">
-              <Label>1. Create an API Key</Label>
+              <Label>1. Create a registration token</Label>
               <p className="text-sm text-muted-foreground">
-                Go to <Link to={`/app/${orgName}/settings/api-keys`} className="text-primary hover:underline">Settings → API Keys</Link> and 
-                create a key with <code className="bg-muted px-1 rounded-sm">runner:register</code> scope.
+                Create an agent token on the pool in <Link to={`/app/${orgName}/settings/agent-pools`} className="text-primary hover:underline">Agent Pools</Link>,
+                {' '}or an organization key with the <code className="bg-muted px-1 rounded-sm">runner:register</code> scope
+                in <Link to={`/app/${orgName}/settings/api-keys`} className="text-primary hover:underline">API Keys</Link>. Its value replaces
+                {' '}<code className="bg-muted px-1 rounded-sm">&lt;registration-token&gt;</code> below.
               </p>
             </div>
 
@@ -515,7 +516,23 @@ export default function Runners() {
             </div>
 
             <div className="space-y-2">
-              <Label>3. Run the Docker Command</Label>
+              <Label htmlFor="launcher-driver">3. Choose how jobs run</Label>
+              <Select value={driver} onValueChange={(v) => { setDriver(v === 'container' ? 'container' : 'in-process'); }}>
+                <SelectTrigger id="launcher-driver" aria-label="Launcher driver"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="in-process">In the launcher&apos;s own container (in-process)</SelectItem>
+                  <SelectItem value="container">A fresh container per job (Docker or Podman)</SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-sm text-muted-foreground">
+                {driver === 'container'
+                  ? 'Each job runs in its own hardened container through the engine socket, with the run image it selects. Jobs reach the API at the server address, so use one a container can resolve.'
+                  : 'Jobs run one at a time as child processes of the launcher, sharing its filesystem and network, in the platform image only.'}
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <Label>4. Run the Docker command</Label>
               <div className="space-y-3">
                 <div>
                   <div className="flex items-center justify-between mb-1">
@@ -535,14 +552,7 @@ export default function Runners() {
                       )}
                     </Button>
                   </div>
-                  <pre className="bg-muted p-3 rounded-lg text-xs overflow-x-auto">
-{`docker run -d --restart unless-stopped \\
-  -e RUNNER_AGENT_POOL_ID=${selectedPool || '<pool-uuid>'} \\
-  -e STACKWEAVER_TOKEN=<your-api-key> \\
-  -e STACKWEAVER_SERVER=${window.location.origin.replace('http://', 'https://')} \\
-  -e RUNNER_NAME=my-ansible-launcher \\
-  ghcr.io/vhco-pro/stackweaver-ansible-runner:latest`}
-                  </pre>
+                  <pre data-testid="launcher-command-ansible" className="bg-muted p-3 rounded-lg text-xs overflow-x-auto">{launcherFor('ansible')}</pre>
                 </div>
                 <div>
                   <div className="flex items-center justify-between mb-1">
@@ -562,14 +572,7 @@ export default function Runners() {
                       )}
                     </Button>
                   </div>
-                  <pre className="bg-muted p-3 rounded-lg text-xs overflow-x-auto">
-{`docker run -d --restart unless-stopped \\
-  -e RUNNER_AGENT_POOL_ID=${selectedPool || '<pool-uuid>'} \\
-  -e STACKWEAVER_TOKEN=<your-api-key> \\
-  -e STACKWEAVER_SERVER=${window.location.origin.replace('http://', 'https://')} \\
-  -e RUNNER_NAME=my-tofu-launcher \\
-  ghcr.io/vhco-pro/stackweaver-opentofu-runner:latest`}
-                  </pre>
+                  <pre data-testid="launcher-command-tofu" className="bg-muted p-3 rounded-lg text-xs overflow-x-auto">{launcherFor('terraform')}</pre>
                 </div>
               </div>
             </div>

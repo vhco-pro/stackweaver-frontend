@@ -67,8 +67,8 @@ export function DeploymentSettingsPanel() {
             <Row label="Job log cap" value={formatBytes(d.job_log_max_bytes)} />
             <Row label="Cache size limit" value={formatBytes(d.cache_size_limit)} />
             <Row label="Hosted default cap" value={d.hosted_default_max_concurrent_jobs ? String(d.hosted_default_max_concurrent_jobs) : 'Unlimited'} />
-            <Row label="Runner rate budget" value={`${d.runner_rate_limit.rps}/s, burst ${d.runner_rate_limit.burst}`} />
-            <Row label="Job rate budget" value={`${d.job_rate_limit.rps}/s, burst ${d.job_rate_limit.burst}`} />
+            <Row label="Runner request limit" value={`${d.runner_rate_limit.rps} per second, bursts of ${d.runner_rate_limit.burst}`} />
+            <Row label="Job request limit" value={`${d.job_rate_limit.rps} per second, bursts of ${d.job_rate_limit.burst}`} />
             <Row label="OpenTofu releases" value={d.mirror?.tofu_releases_url || 'Public'} />
             <Row label="Provider mirror" value={d.mirror?.provider_network_mirror || 'Public registry'} />
             <Row label="Galaxy servers" value={d.mirror?.galaxy_servers.length ? d.mirror.galaxy_servers.map(g => g.name).join(', ') : 'Public Galaxy'} />

@@ -703,7 +703,7 @@ export default function JobDetail() {
                     {job.runner_name ? (
                       <>
                         {job.runner_name}
-                        {job.agent_pool_name && <span className="text-muted-foreground ml-1">({job.agent_pool_name})</span>}
+                        {job.agent_pool_name && <>{' '}<span className="text-muted-foreground">({job.agent_pool_name})</span></>}
                       </>
                     ) : (
                       job.agent_pool_name

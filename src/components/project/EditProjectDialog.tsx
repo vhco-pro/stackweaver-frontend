@@ -14,6 +14,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
+import { MAX_RUN_TIMEOUT_MINUTES, minutesText, parseTimeoutMinutes } from '@/lib/runTimeout';
 
 /** The execution mode select value that means "inherit the organization's defaults". */
 const INHERIT_MODE = '__inherit__';
@@ -54,10 +55,12 @@ function EditProjectForm({ orgName, project, onOpenChange, onUpdated }: Omit<Edi
   const [description, setDescription] = useState(project.description ?? '');
   const [mode, setMode] = useState(project.settings_overwritten ? (project.default_execution_mode ?? 'remote') : INHERIT_MODE);
   const [poolId, setPoolId] = useState(project.default_agent_pool_id ?? '');
-  const [timeoutMinutes, setTimeoutMinutes] = useState(project.run_timeout ? String(Math.round(project.run_timeout / 60)) : '');
+  const [timeoutMinutes, setTimeoutMinutes] = useState(minutesText(project.run_timeout));
   const [tofuImage, setTofuImage] = useState(project.tofu_run_image_id ?? '');
   const [ansibleImage, setAnsibleImage] = useState(project.ansible_run_image_id ?? '');
   const [bindingId, setBindingId] = useState(project.identity_binding_id ?? '');
+
+  const timeout = parseTimeoutMinutes(timeoutMinutes);
 
   const { data: pools = [] } = useQuery({
     queryKey: ['agentPools', orgName],
@@ -67,14 +70,13 @@ function EditProjectForm({ orgName, project, onOpenChange, onUpdated }: Omit<Edi
 
   const save = useMutation({
     mutationFn: () => {
-      const minutes = Number(timeoutMinutes);
       return projectsApi.update(orgName, project.name, {
         name: name.trim(),
         description: description.trim(),
         ...(mode === INHERIT_MODE
           ? { settings_overwritten: false }
           : { default_execution_mode: mode, default_agent_pool_id: mode === 'agent' ? poolId : '' }),
-        run_timeout: timeoutMinutes.trim() === '' || !Number.isFinite(minutes) ? 0 : Math.max(0, Math.round(minutes * 60)),
+        run_timeout: timeout.seconds ?? 0,
         tofu_run_image_id: tofuImage,
         ansible_run_image_id: ansibleImage,
         identity_binding_id: bindingId,
@@ -89,7 +91,7 @@ function EditProjectForm({ orgName, project, onOpenChange, onUpdated }: Omit<Edi
   });
 
   const needsPool = mode === 'agent' && !poolId;
-  const canSave = name.trim() !== '' && !needsPool && !save.isPending;
+  const canSave = name.trim() !== '' && !needsPool && !timeout.error && !save.isPending;
 
   return (
     <form onSubmit={e => { e.preventDefault(); if (canSave) save.mutate(); }} className="space-y-4">
@@ -133,12 +135,16 @@ function EditProjectForm({ orgName, project, onOpenChange, onUpdated }: Omit<Edi
           id="project-run-timeout"
           type="number"
           min={0}
+          max={MAX_RUN_TIMEOUT_MINUTES}
+          step="any"
+          aria-invalid={!!timeout.error}
           inputMode="numeric"
           value={timeoutMinutes}
           onChange={e => { setTimeoutMinutes(e.target.value); }}
           placeholder="Inherit from the organization"
         />
         <p className="text-xs text-muted-foreground">Empty or 0 inherits the organization's, then the platform default.</p>
+        {timeout.error && <p data-testid="project-run-timeout-error" className="text-xs text-red-600 dark:text-red-400">{timeout.error}</p>}
       </div>
       <RunImageSelect
         id="project-tofu-run-image"

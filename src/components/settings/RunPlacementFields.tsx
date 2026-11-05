@@ -4,7 +4,7 @@ import type { ReactNode } from 'react';
 import { Layers } from 'lucide-react';
 import type { EffectiveSetting, RunImageKind, SettingLevel } from '@/api/runPlacement';
 import { useIdentityBindingOptions, useRunImages } from '@/hooks/useRunPlacement';
-import { INHERIT } from '@/lib/runPlacement';
+import { INHERIT, bindingsForPool } from '@/lib/runPlacement';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
@@ -91,6 +91,8 @@ export function RunImageSelect({ id, orgName, kind, value, onChange, label = 'Ru
 interface IdentityBindingSelectProps {
   id: string;
   orgName: string;
+  /** The pool the object runs on when it chooses one itself; only that pool's bindings are offered. */
+  poolId?: string;
   /** The selected binding id, or '' to inherit. */
   value: string;
   onChange: (value: string) => void;
@@ -99,8 +101,9 @@ interface IdentityBindingSelectProps {
 }
 
 /** IdentityBindingSelect picks an identity binding one of the organization's pools offers, or inherits. */
-export function IdentityBindingSelect({ id, orgName, value, onChange, hint, inheritLabel = 'Inherit' }: IdentityBindingSelectProps) {
-  const { data: options = [], isLoading } = useIdentityBindingOptions(orgName);
+export function IdentityBindingSelect({ id, orgName, poolId, value, onChange, hint, inheritLabel = 'Inherit' }: IdentityBindingSelectProps) {
+  const { data: all = [], isLoading } = useIdentityBindingOptions(orgName);
+  const options = bindingsForPool(all, poolId);
   return (
     <div className="space-y-2">
       <Label htmlFor={id}>Identity binding</Label>

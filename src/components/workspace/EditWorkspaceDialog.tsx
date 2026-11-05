@@ -651,6 +651,7 @@ function EditWorkspaceFormBody({
         <IdentityBindingSelect
           id="edit-identity-binding"
           orgName={orgName}
+          poolId={executionMode === 'agent' && agentPoolId ? agentPoolId : undefined}
           value={identityBindingId}
           onChange={setIdentityBindingId}
           hint={!identityBindingId && (

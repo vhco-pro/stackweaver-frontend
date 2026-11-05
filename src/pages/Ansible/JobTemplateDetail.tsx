@@ -104,6 +104,7 @@ import { effectiveSettingsApi } from '@/api/runPlacement';
 import { IdentityBindingSelect, InheritedHint, RunImageSelect } from '@/components/settings/RunPlacementFields';
 import { useIdentityBindingOptions, useRunImages } from '@/hooks/useRunPlacement';
 import { bindingLabel, formatSeconds, runImageLabel } from '@/lib/runPlacement';
+import { MAX_RUN_TIMEOUT_MINUTES, minutesText, parseTimeoutMinutes } from '@/lib/runTimeout';
 import { ANSIBLE_HOST_STATUSES, hostStatusCount } from '@/components/ansible/hostStatus';
 
 // Helper functions for job display
@@ -237,7 +238,8 @@ export default function JobTemplateDetail() {
     inventory_id: '',
     agent_pool_id: '',
     enabled: true,
-    timeout_seconds: 0,
+    // Minutes as entered, like the project's and the organization's; '' inherits.
+    timeout_minutes: '',
     // '' inherits from the project, the organization or the platform (#933, D0).
     run_image_id: '',
     identity_binding_id: '',
@@ -247,6 +249,7 @@ export default function JobTemplateDetail() {
     allow_callbacks: false,
     launch_on_webhook: false,
   });
+  const editTimeout = parseTimeoutMinutes(editForm.timeout_minutes);
   const [agentPools, setAgentPools] = useState<AgentPool[]>([]);
   const { data: effective } = useQuery({
     queryKey: ['effectiveSettings', 'job-template', templateId],
@@ -413,7 +416,7 @@ export default function JobTemplateDetail() {
         inventory_id: template.inventory_id || '',
         agent_pool_id: template.agent_pool_id || '',
         enabled: template.enabled,
-        timeout_seconds: template.timeout_seconds || 0,
+        timeout_minutes: minutesText(template.timeout_seconds),
         run_image_id: template.run_image_id ?? '',
         identity_binding_id: template.identity_binding_id ?? '',
         allow_simultaneous: template.allow_simultaneous,
@@ -469,6 +472,11 @@ export default function JobTemplateDetail() {
       return;
     }
 
+    if (editTimeout.error) {
+      toast.error(editTimeout.error);
+      return;
+    }
+
     setSaving(true);
     try {
       // A repository-file selection registers the playbook now (find-or-create).
@@ -482,7 +490,7 @@ export default function JobTemplateDetail() {
         verbosity: editForm.verbosity,
         forks: editForm.forks,
         enabled: editForm.enabled,
-        timeout_seconds: editForm.timeout_seconds,
+        timeout_seconds: editTimeout.seconds ?? 0,
         run_image_id: editForm.run_image_id,
         identity_binding_id: editForm.identity_binding_id,
         allow_simultaneous: editForm.allow_simultaneous,
@@ -1413,16 +1421,22 @@ export default function JobTemplateDetail() {
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="timeout_seconds">Timeout (seconds)</Label>
+                <Label htmlFor="timeout_minutes">Timeout (minutes)</Label>
                 <Input
-                  id="timeout_seconds"
+                  id="timeout_minutes"
                   type="number"
-                  min="0"
-                  value={editForm.timeout_seconds}
-                  onChange={(e) => setEditForm({ ...editForm, timeout_seconds: parseInt(e.target.value) || 0 })}
+                  min={0}
+                  max={MAX_RUN_TIMEOUT_MINUTES}
+                  step="any"
+                  inputMode="decimal"
+                  aria-invalid={!!editTimeout.error}
+                  value={editForm.timeout_minutes}
+                  onChange={(e) => setEditForm({ ...editForm, timeout_minutes: e.target.value })}
+                  placeholder="Inherit"
                 />
-                <p className="text-xs text-muted-foreground">0 uses the project's, then the organization's, then the platform default. A job exceeding it is stopped.</p>
-                {editForm.timeout_seconds === 0 && (
+                <p className="text-xs text-muted-foreground">Empty or 0 uses the project's, then the organization's, then the platform default. A job exceeding it is stopped.</p>
+                {editTimeout.error && <p data-testid="template-timeout-error" className="text-xs text-red-600 dark:text-red-400">{editTimeout.error}</p>}
+                {!editTimeout.error && !editTimeout.seconds && (
                   <InheritedHint
                     setting={effective?.run_timeout}
                     ownLevel="job-template"
@@ -1597,6 +1611,7 @@ export default function JobTemplateDetail() {
             <IdentityBindingSelect
               id="template-identity-binding"
               orgName={orgName || ''}
+              poolId={editForm.agent_pool_id || undefined}
               value={editForm.identity_binding_id}
               onChange={v => setEditForm({ ...editForm, identity_binding_id: v })}
               hint={!editForm.identity_binding_id && (
@@ -1613,7 +1628,7 @@ export default function JobTemplateDetail() {
             <Button variant="outline" onClick={() => setEditDialogOpen(false)}>
               Cancel
             </Button>
-            <GradientButton ramp="app" className="w-auto px-4 py-2" onClick={() => { void handleUpdate(); }} disabled={saving}>
+            <GradientButton ramp="app" className="w-auto px-4 py-2" onClick={() => { void handleUpdate(); }} disabled={saving || !!editTimeout.error}>
               {saving && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
               Save Changes
             </GradientButton>
