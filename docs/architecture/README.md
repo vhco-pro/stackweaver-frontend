@@ -80,7 +80,7 @@ belongs in the [self-hosting guides](../get-started/self-hosting/README.md).
 | API | Enforces access and manages organizations, projects, workspaces and jobs. | Automation clients and every launcher and executor connect here. |
 | Zitadel | Handles user identity and issues sign-in tokens. | Issuer and callback URLs must match the deployment's public addresses. |
 | Orchestrator | Routes runs to their pool, requests configuration snapshots and releases stuck work. | It uses the database and Redis; it runs no infrastructure tools. |
-| Launchers and executors | Claim runs, jobs and syncs and run each one in an in-process, container or Kubernetes executor. | Executors need access to the API, providers, collections and target hosts their work uses. The hosted launchers also capture configuration and playbook snapshots, so they need access to your VCS provider. |
+| Launchers and executors | Claim runs, jobs and syncs and run each one in an in-process, container or Kubernetes executor. | Executors need access to the API, providers, collections and target hosts their work uses. Configuration and playbook snapshots are captured on the hosted capacity, so its executors also need access to your VCS provider. |
 | PostgreSQL | Stores resource metadata, permissions and execution records. | Include its data in your backup and recovery plan. |
 | Redis | Carries launcher wakeups and buffers live output. | Keep it reachable by the API and the orchestrator. |
 | S3-compatible storage | Holds configuration snapshots, state files and artifacts. | Preserve it alongside the database. Garage is the bundled option; an external compatible service can be used. |
@@ -131,7 +131,7 @@ in your browser does not mean an executor can reach a private target.
 
 | Execution location | Use it when | Connections to plan for |
 |---|---|---|
-| Hosted capacity | The installation's execution environment can reach your targets and has the required tools. | The hosted launchers and their executors connect only to the API. They also need access to the repositories, dependencies and targets their work uses, and the hosted launchers capture snapshots from your VCS provider. |
+| Hosted capacity | The installation's execution environment can reach your targets and has the required tools. | The hosted launchers and their executors reach Stackweaver only through the API. Executors also need access to the dependencies and targets their work uses, and the snapshot syncs on the hosted capacity reach your VCS provider. |
 | Agent pools (self-hosted) | Work must execute within another network or on hosts you control. | Launchers request work and report results through the API. Executors also need access to their dependencies and targets. They do not need access to the platform database, Redis or your VCS provider. |
 
 Keep each launcher's credentials limited to the work it performs. The API coordinates

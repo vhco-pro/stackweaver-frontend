@@ -82,5 +82,17 @@
   {
     "id": "otp-single-challenge-dev",
     "reason": "React StrictMode mounts the OTP page twice only in the development build, which sent two SMS or email challenges; production builds mount once, so customers never received a voided code. The page now shares one challenge request across mounts."
+  },
+  {
+    "commit": "7240eb9cf4e07a574c204eec3b5f7daf4ebee1db",
+    "reason": "Applied upstream commit 17acec2b to the dev host's serving checkout. It adds no change of its own: the cookie preferences component it carries is already on main under that commit, and the merged result equals main's file."
+  },
+  {
+    "commit": "1ec9c67ef28c704e0c14ce76eeced466a2a16c96",
+    "reason": "Applied upstream commit 13be962b to the dev host's serving checkout. It adds no change of its own: the cookie close-button placement it carries is already on main under that commit, and the merged result equals main's file."
+  },
+  {
+    "commit": "28e359a92c603e070b7a8a091a65e952c0f03d14",
+    "reason": "Merge commit that brought main into the dev host's serving checkout so its eight local commits could land. It adds no change of its own beyond resolving three conflicts in main's favour or by keeping both sections; the cookie commits it carries are recorded separately."
   }
 ]

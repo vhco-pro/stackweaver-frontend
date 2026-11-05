@@ -275,7 +275,7 @@ secret store. A sudo task also needs target-side privilege escalation configured
 | Symptom | Check |
 |---|---|
 | No hosts matched | `demo` exists in the synced inventory and matches the playbook; no launch limit excludes it. |
-| Job stays queued | A launcher of the hosted capacity or of the template's agent pool is online and has a free slot. |
+| Job stays queued | A launcher of the hosted capacity or of the job's agent pool is online and has a free slot. On the hosted capacity, the job page shows why it waits, such as **Waiting for hosted capacity** with the slots in use. |
 | Playbook missing | Repository, branch, path and sync/snapshot status. |
 | Remote host unreachable | Host address, routing/firewall, SSH port and selected credential. |
 | Permission denied | SSH user/key and target sudo rights; do not add `become` to the local tutorial to mask a problem. |

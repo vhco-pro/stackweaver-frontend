@@ -62,11 +62,11 @@ The **Run Defaults** card sets what the organization's runs, jobs and syncs use 
 
 | Setting | Effect |
 |---|---|
-| Run timeout, in minutes. | The longest a run or job may take. |
-| OpenTofu run image. | The image the organization's OpenTofu runs execute in. |
-| Ansible execution environment. | The image the organization's Ansible jobs and dynamic inventory source syncs execute in. Snapshot captures, VCS inventory file syncs and constructed rebuilds always run in the platform image. |
-| Identity binding. | The identity binding the organization's runs and jobs use. |
-| Cache size limit, in GiB. | The most the organization's verified cache of OpenTofu releases, providers and Galaxy content may hold before its oldest entries are removed. |
+| **Run timeout (minutes)** | The longest a run or job may take. |
+| **OpenTofu run image** | The image the organization's OpenTofu runs execute in. |
+| **Ansible execution environment** | The image the organization's Ansible jobs and dynamic inventory source syncs execute in. Snapshot captures, VCS inventory file syncs and constructed rebuilds always run in the platform image. |
+| **Identity binding** | The identity binding the organization's runs and jobs use. |
+| **Cache size limit (GiB)** | The most the organization's verified cache of OpenTofu releases, providers and Galaxy content may hold before its oldest entries are removed. |
 
 A field left empty uses the platform default, which the placeholder shows. [Run images and execution environments](./run-images-and-execution-environments.md#where-a-setting-comes-from) explains how these defaults are inherited. Over the API they are the `run-timeout` (seconds), `tofu-run-image-id`, `ansible-run-image-id`, `identity-binding-id` and `cache-size-limit` (bytes) attributes of `PATCH /api/v2/organizations/:name`. They are Stackweaver extensions with no `tfe_organization` equivalent.
 

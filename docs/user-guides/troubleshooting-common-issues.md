@@ -53,7 +53,7 @@ or bypass lineage/serial checks. Follow the guarded
 
 | Symptom | Check first | Next action |
 |---|---|---|
-| Host unreachable. | Inventory hostname/IP, the job's network path, SSH port and attached credential. On the container driver, the Docker Compose hosted capacity included, jobs run on a firewalled jobs network that reaches the internet and the API but not the installation's own services; on Kubernetes the job NetworkPolicy blocks the ranges in `launcher.clusterCIDRs`. | Test reachability from the network the jobs run on; private targets may need a self-hosted runner. |
+| Host unreachable. | Inventory hostname/IP, the job's network path, SSH port and attached credential. Jobs on the container driver, including the Docker Compose hosted capacity, run on a firewalled jobs network that reaches the internet and the API but not the installation's own services. On Kubernetes, the job NetworkPolicy blocks the ranges in `launcher.clusterCIDRs`. | Test reachability from the network the jobs run on; private targets may need a self-hosted runner. |
 | Permission denied or become failure. | Remote user, key selection, sudo/become policy and file permissions. | Correct the target's required permission; do not broadly disable host security. |
 | Playbook not found. | Registration, repository-relative path, branch and last sync. | Use [playbook management](./managing-ansible-playbooks.md) to inspect the snapshot and selected revision. |
 | Job hangs or times out. | Last task output, network waits, target load and forks. | Diagnose the stalled task before increasing the timeout on the job template, or the default run timeout of the project or organization the template inherits it from; split work or bound task runtime if appropriate. |
@@ -81,11 +81,13 @@ docker compose logs --tail=100 api orchestrator launcher ansible-launcher
 ```
 
 For Kubernetes, replace these names and namespace with the installed release's actual
-Deployments:
+Deployments. Job pods run in the release namespace, or in `launcher.jobNamespace` when it is
+set:
 
 ```bash
 kubectl get pods --namespace stackweaver
 kubectl logs deployment/stackweaver-runner --namespace stackweaver --tail=100
+kubectl logs deployment/stackweaver-ansible-runner --namespace stackweaver --tail=100
 kubectl logs deployment/stackweaver-orchestrator --namespace stackweaver --tail=100
 ```
 

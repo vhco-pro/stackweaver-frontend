@@ -128,9 +128,12 @@ Single-quoted env-file values preserve literal `$` characters. If you use unquot
 escape each literal `$` as `$$`. An `environment:` entry in Compose overrides `env_file`,
 so do not add a blank app credential or webhook-secret override there.
 
-The repository Compose file already loads `vcs.env`, sets the private-key container path
-and mounts the key for those two services. For another Compose deployment, verify the
-same wiring before applying. Keep the public frontend origin consistent with the
+Both services must load `vcs.env`, set `GITHUB_APP_PRIVATE_KEY_PATH` and mount the key.
+The self-hosting bundle's `docker-compose.yml` loads `vcs.env` for both but ships the key
+wiring commented out: in the `api` and `orchestrator` services, uncomment the
+`GITHUB_APP_PRIVATE_KEY_PATH` line and the key's volume mount. Leave the commented
+`GITHUB_APP_ID` and `GITHUB_APP_NAME` lines as they are, because `vcs.env` already
+supplies them. For another Compose deployment, verify the same wiring before applying. Keep the public frontend origin consistent with the
 [custom-domain procedure](../authentication/zitadel-custom-domain.md).
 
 ```bash

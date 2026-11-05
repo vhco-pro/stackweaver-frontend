@@ -285,7 +285,7 @@ Every job takes the same path, whether its pool is the organization's hosted cap
 |---|---|---|
 | Who runs the launchers | The installation (the `ansible-launcher` service on Docker Compose, the Ansible launcher Deployment on Kubernetes) | You, on your own hosts or cluster |
 | Which jobs it gets | Jobs whose template, project and organization name no agent pool, every snapshot capture, VCS inventory file sync and constructed rebuild, and dynamic source syncs without an agent pool default | Jobs whose template targets the pool, or whose project or organization defaults to it |
-| Driver | Container or Kubernetes | In-process, container or Kubernetes |
+| Driver | Container or Kubernetes. An operator can choose in-process instead, which a strict hosted deployment refuses. | In-process, container or Kubernetes |
 | Network position | Inside the Stackweaver deployment | Anywhere with outbound HTTPS to the API |
 
 ### Follow a job through a launcher

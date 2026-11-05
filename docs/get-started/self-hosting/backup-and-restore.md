@@ -41,14 +41,14 @@ The launchers' cache volumes, `stackweaver-launcher-cache` and `stackweaver-ansi
 need no backup. They hold a node-local copy of each organization's verified cache, which lives in
 object storage, and the launchers fill them again as jobs run.
 
-Redis in the supplied bundle is ephemeral. Finish or cancel queued work before backing
-up; this procedure does not promise queue recovery or continuation of in-flight runs.
+Queued runs and jobs are database rows, but Redis in the supplied bundle is ephemeral and a
+restore does not continue in-flight work. Finish or cancel queued work before backing up.
 Include any extra mounts or external secret sources you added to the bundle.
 
 ## 1. Prepare the recovery set
 
 1. Reserve a maintenance window. Pause schedules and incoming webhooks, stop new launches,
-   and let active jobs, runs and syncs finish. Stop self-hosted agents separately.
+   and let active jobs, runs and syncs finish. Stop self-hosted launchers separately.
 2. Record your image pins and retain access to those exact images. Physical PostgreSQL
    recovery needs the same major version; this procedure uses the exact saved image.
 3. Choose a new, protected backup directory **outside** the installed bundle. Allow room
@@ -129,8 +129,8 @@ docker compose up -d
 docker compose ps -a
 ```
 
-Expect every checksum to pass. Copy the encrypted recovery set off-host. Resume external
-agents and triggers only after checking the source deployment is healthy. Checksums detect
+Expect every checksum to pass. Copy the encrypted recovery set off-host. Resume self-hosted
+launchers and triggers only after checking the source deployment is healthy. Checksums detect
 corruption; they do not prove that the set can restore successfully.
 
 ## 3. Restore into an empty destination
@@ -146,7 +146,7 @@ rules before proceeding; Docker-published traffic needs Docker-aware firewall co
 The supplied bundle uses
 fixed container names and public host ports: changing only the Compose project name does
 not isolate a second live copy on the same daemon. Do not expose a recovery copy to real
-cloud targets, production agents, webhooks, email or users while rehearsing.
+cloud targets, production launchers, webhooks, email or users while rehearsing.
 
 Bring the complete recovery set to the new host. Use the same architecture and exact image
 versions. Define `BACKUP_DIR` again, verify all checksums, then extract into an empty directory:
@@ -224,7 +224,7 @@ Keep the original installation and backup intact until these checks pass:
    ```
 
    Check runner connectivity and use dedicated targets explicitly permitted by the
-   rehearsal network policy. Keep unrelated self-hosted agents stopped.
+   rehearsal network policy. Keep unrelated self-hosted launchers stopped.
 5. Record the recovery duration, recovered data timestamp, exact image references and any
    manual changes. Repeat the drill after changes to storage, keys or identity.
 
