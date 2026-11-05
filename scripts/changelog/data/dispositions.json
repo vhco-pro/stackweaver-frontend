@@ -106,5 +106,9 @@
   {
     "id": "license-header-bom-preservation",
     "reason": "Manual developer-tool repair: preserve a leading UTF-8 byte-order mark when inserting a source license header, so valid Go source remains compilable. Licensing terms, product runtime, APIs, deployment behavior and published customer content are unchanged."
+  },
+  {
+    "id": "satellite-sync-launcher-packages",
+    "reason": "Release-pipeline repair: the satellite sync workflows now copy the backend/internal executor and launcher packages that the runner and API commands import, so their satellite Release builds compile again. Product code, APIs, chart behavior and published customer content are unchanged; the launcher capability itself is recorded with its own change."
   }
 ]
