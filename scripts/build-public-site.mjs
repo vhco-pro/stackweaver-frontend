@@ -7,6 +7,7 @@ import ts from 'typescript';
 import { parseArticles, publishedArticles } from '../src/lib/blog.ts';
 import { buildPublicRoutes, pageMetadata, escapeHtml } from '../src/lib/publicRoutes.ts';
 import { publicDocument } from './public-document.mjs';
+import { publicDocsBootstrapMarkup } from '../src/lib/publicDocsBootstrap.ts';
 import { siteSettings } from './site-settings.mjs';
 
 const frontend=resolve(dirname(fileURLToPath(import.meta.url)),'..');
@@ -29,13 +30,13 @@ function styles(key,seen=new Set()) {
  if(!key||seen.has(key)) return [];seen.add(key); const chunk=manifest[key]; if(!chunk) return [];
  return [...(chunk.css??[]),...(chunk.imports??[]).flatMap(next=>styles(next,seen))];
 }
-function html(content,head,kind) {
+function html(content,head,kind,bootstrap='') {
  const css=[...new Set(styles(modules[kind]??modules.blog))].map(path=>`<link rel="stylesheet" href="__SW_BASE_PATH__/${escapeHtml(path)}">`).join('\n');
  const route=manifest[modules[kind]];
  const preload=route?`<link rel="modulepreload" href="__SW_BASE_PATH__/${escapeHtml(route.file)}">`:'';
  content=content.replace(/(href|src)="\/(?!\/)/g,'$1="__SW_BASE_PATH__/');
  const fallback='<noscript><style>html{background:#f8fafc!important} [style*="opacity:0"]{opacity:1!important} [style*="visibility:hidden"]{visibility:visible!important} [data-stage]{height:auto!important}</style></noscript>';
- return publicDocument(template,{content,head,styles:preload+'\n'+css,fallback});
+ return publicDocument(template,{content,head,styles:preload+'\n'+css,fallback,bootstrap});
 }
 const files={};
 const docsRoot=join(dist,'docs');
@@ -63,7 +64,7 @@ try {
   const markup=renderPublicPage(page,{index,content,articles,files});
   if(!markup.includes('<h1')||markup.includes('<!--$!-->')) throw new Error(`Incomplete public output: ${page.path}`);
   const target=join(output,page.path==='/'?'index.html':page.path.slice(1)+'.html'); mkdirSync(dirname(target),{recursive:true});
-  writeFileSync(target,html(markup,pageMetadata(page),page.kind));
+  writeFileSync(target,html(markup,pageMetadata(page),page.kind,publicDocsBootstrapMarkup(page,{index,content})));
  }
  writeFileSync(join(dist,'404.html'),html(renderPublicNotFound(),'<title>Page not found | Stackweaver</title><meta name="robots" content="noindex" data-sw-meta>','blog'));
 } finally {globalThis.fetch=originalFetch;}

@@ -6,6 +6,14 @@ import { describe, expect, it, vi } from 'vitest';
 import { deferredPage } from './deferredPage';
 
 describe('deferred page navigation', () => {
+  it('renders a preloaded initial page immediately without replacing it with a fallback', async () => {
+    const Destination = deferredPage(() => Promise.resolve({ default: () => <h1>Readable initial guide</h1> }));
+    await Destination.preload();
+    render(<MemoryRouter><Destination /></MemoryRouter>);
+    expect(screen.getByRole('heading', { name: 'Readable initial guide' })).toBeInTheDocument();
+    expect(screen.queryByRole('status')).not.toBeInTheDocument();
+  });
+
   it('shows a new destination loading inside the existing chrome during router transitions', async () => {
     let finish: (value: { default: () => React.JSX.Element }) => void = () => undefined;
     const load = vi.fn(() => new Promise<{ default: () => React.JSX.Element }>((resolve) => { finish = resolve; }));

@@ -2,7 +2,8 @@
 import { PageMetadata } from '@/components/blog/PageMetadata';
 import { DocsEnvironmentContext } from '@/components/docs/DocsEnvironment';
 import { BrowserRouter, matchRoutes, useLocation, useRoutes } from 'react-router-dom';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { QueryClientProvider } from '@tanstack/react-query';
+import { queryClient } from '@/lib/queryClient';
 import { config } from '@/config';
 import { Toaster } from '@/components/ui/toaster';
 import { AuthProvider } from '@/contexts/AuthContext';
@@ -37,16 +38,6 @@ function AppContent() {
     </BrowserRouter>
   );
 }
-
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      staleTime: 30_000,
-      retry: 1,
-      refetchOnWindowFocus: false,
-    },
-  },
-});
 
 function App() {
   return (
