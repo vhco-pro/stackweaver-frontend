@@ -33,7 +33,7 @@ Open **Settings > Organization** to change policies for an organization. These s
 2. Edit the admin contact/authentication policy and choose **Save**, or change an individual policy switch. Switches save immediately.
 3. Wait for the result, then reopen the page to confirm the persisted value. Check affected automation before changing another access policy.
 
-![Organization settings with general fields and workspace, pull-request and token policies.](./images/organization-policies.png "Synthetic organization. No settings were changed during capture.")
+![Organization settings with general fields, workspace policies and run defaults.](./images/organization-policies.png "Synthetic organization. No settings were changed during capture.")
 
 ## General and access policies
 
