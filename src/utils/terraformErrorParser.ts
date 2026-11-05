@@ -431,7 +431,7 @@ function finishWarning(
 /**
  * Fallback: extract errors from JSON logs that contain error messages
  */
-function extractErrorsFromJsonLogs(logs: string): ParsedError[] {
+function extractErrorsFromJsonLogs(logs: string, parsedMessages: ReadonlySet<string>): ParsedError[] {
   const errors: ParsedError[] = [];
   const lines = logs.split('\n');
   
@@ -450,7 +450,7 @@ function extractErrorsFromJsonLogs(logs: string): ParsedError[] {
       
       // Look for error-level logs that contain actual Terraform errors
        
-      if (level === 'error' && typeof message === 'string' && message.includes('Error:')) {
+      if (level === 'error' && typeof message === 'string' && message.includes('Error:') && !parsedMessages.has(message)) {
         // Try to extract the error message from the JSON log message
         const errorMatch = String(message).match(/Error:\s*(.+?)(?:\n|$)/);
         if (errorMatch) {
@@ -504,7 +504,7 @@ export function parseTerraformErrors(logs: string): ErrorParseResult {
   
   // Fallback: try JSON log parsing if no plain text errors found
   const jsonErrors = parseJsonLogErrors(logs);
-  const fallbackErrors = extractErrorsFromJsonLogs(logs);
+  const fallbackErrors = extractErrorsFromJsonLogs(logs, new Set(jsonErrors.map(error => error.message)));
   
   // Combine and deduplicate errors
   const allErrors = [...jsonErrors, ...fallbackErrors];

@@ -1647,5 +1647,30 @@
       "frontend"
     ],
     "availability": []
+  },
+  {
+    "id": "terraform-json-error-deduplication",
+    "title": "JSON run errors appear once",
+    "area": "OpenTofu runs",
+    "kind": "Fixed",
+    "reviewed": true,
+    "audience": "Users reading errors from Terraform or OpenTofu JSON output.",
+    "before": "The same JSON error could appear as two error cards and increase the displayed error count.",
+    "after": "An error already extracted from a JSON message is shown once. Its complete message and existing plain-text error handling are preserved.",
+    "action": "No action is required.",
+    "details": [
+      "Fallback extraction remains available for messages that the primary JSON parser does not recognize."
+    ],
+    "guides": [
+      {
+        "title": "Read OpenTofu runs",
+        "path": "/docs/user-guides/understanding-opentofu-runs"
+      }
+    ],
+    "sourceCommits": [],
+    "requiredComponents": [
+      "frontend"
+    ],
+    "availability": []
   }
 ]
