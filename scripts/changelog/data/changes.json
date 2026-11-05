@@ -1419,5 +1419,56 @@
       "api"
     ],
     "availability": []
+  },
+  {
+    "id": "ansible-cloud-inventory-file-candidates",
+    "title": "Cloud inventory files stay out of playbook choices",
+    "area": "Ansible",
+    "kind": "Fixed",
+    "reviewed": true,
+    "audience": "Users selecting repository files while registering playbooks or choosing a job template source.",
+    "before": "Cloud inventory configurations with names such as prod-aws_ec2.yml, prod_azure_rm.yaml or prodgcp_compute.yml could also appear as playbook candidates.",
+    "after": "The existing aws_ec2, azure_rm and gcp_compute filename suffixes identify cloud inventory configurations with any prefix, while inventory file choices remain available.",
+    "action": "Update the API and reload the repository file list. Existing registrations are unchanged; review any inventory configurations previously registered as playbooks.",
+    "details": [
+      "Bare and dot-prefixed names, repository directory filters, supported extensions and ordinary YAML file choices retain their existing behavior.",
+      "This affects repository discovery only. It does not run inventories, change plugin versions or add other filename aliases."
+    ],
+    "guides": [
+      {
+        "title": "Managing Ansible playbooks",
+        "path": "/docs/user-guides/managing-ansible-playbooks"
+      }
+    ],
+    "sourceCommits": [],
+    "requiredComponents": [
+      "api"
+    ],
+    "availability": []
+  },
+  {
+    "id": "ansible-import-short-list-selection",
+    "title": "Short playbook import lists stay selectable",
+    "area": "Ansible",
+    "kind": "Fixed",
+    "reviewed": true,
+    "audience": "Users selecting playbooks to import on a phone or short viewport.",
+    "before": "A list containing at most three files could collapse inside the import dialog, preventing individual file selection.",
+    "after": "Short lists retain their row height so each file remains selectable. Longer lists keep their existing scrolling behavior.",
+    "action": "No action is required.",
+    "details": [
+      "Directory filters and registered-file selection behavior are preserved."
+    ],
+    "guides": [
+      {
+        "title": "Managing Ansible playbooks",
+        "path": "/docs/user-guides/managing-ansible-playbooks"
+      }
+    ],
+    "sourceCommits": [],
+    "requiredComponents": [
+      "frontend"
+    ],
+    "availability": []
   }
 ]
