@@ -482,10 +482,11 @@ docker compose up -d api
 
 Keep the key private and shared by every API replica. Do not regenerate it as routine troubleshooting; changing it affects existing trust and active tokens.
 
-On Kubernetes the chart generates the key for you. After changing `oidc.issuerUrl` in `my-values.yaml`, apply it with:
+On Kubernetes the chart generates the key for you. After changing `oidc.issuerUrl` in `my-values.yaml`, set `STACKWEAVER_CHART_VERSION` to the installed version from `helm list` and apply it, so the settings change does not also upgrade the chart:
 
 ```bash
 helm upgrade stackweaver oci://ghcr.io/vhco-pro/charts/stackweaver \
+  --version "${STACKWEAVER_CHART_VERSION:?Set the installed chart version}" \
   --namespace stackweaver --values my-values.yaml
 ```
 

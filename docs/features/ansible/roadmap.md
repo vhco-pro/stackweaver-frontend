@@ -109,9 +109,9 @@ job-local file named by `GOOGLE_APPLICATION_CREDENTIALS`; do not hard-code that 
 path into a playbook. A task that explicitly selects its own authentication keeps that
 choice. The target project's permissions still come from the chosen Google identity.
 
-This applies on the hosted capacity and on self-hosted runners. Upgrade self-hosted
-launchers to the release carrying this behavior; changing only the platform does not update
-a launcher. If the job cannot write the credential file, the job fails instead of continuing
+This applies on the hosted capacity and on self-hosted runners. A job's executor comes
+from its launcher, so keep self-hosted launchers on the same release as the platform;
+upgrading only the platform does not update them. If the job cannot write the credential file, the job fails instead of continuing
 without its attached identity. Never print the key or credential file to verify access;
 use a read-only Google Cloud operation against a dedicated test resource.
 

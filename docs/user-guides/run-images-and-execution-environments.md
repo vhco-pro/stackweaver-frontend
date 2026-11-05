@@ -16,13 +16,13 @@ covers:
   - "runner-images/**"
 ---
 
-# Run Images and Execution Environments
+# Run images and execution environments
 
 Every OpenTofu run and Ansible job runs in an image. Unless you choose otherwise it is the platform image of its engine, the same `stackweaver-opentofu-runner` or `stackweaver-ansible-runner` image the launcher runs. A **run image** is an image of your own that a workspace, job template, inventory source, project or organization selects instead: an image with cloud CLIs or provisioning tools, a toolchain pinned for compliance, or an Ansible execution environment you already use with AWX.
 
-## How a Run Image Runs
+## How a run image runs
 
-StackWeaver does not need anything of its own inside your image. When a job resolves a run image, the launcher's driver adds the executor to the job's container or pod from the platform image and starts it as the entrypoint, so the image's own `ENTRYPOINT` and `CMD` are not used. The executor then fetches the job from the API, runs `tofu` or `ansible-playbook` from your image, and reports the result.
+Stackweaver needs nothing of its own inside your image. When a job resolves a run image, the launcher's driver adds the executor to the job's container or pod from the platform image and starts it as the entrypoint, so the image's own `ENTRYPOINT` and `CMD` are not used. The executor then fetches the job from the API, runs `tofu` or `ansible-playbook` from your image, and reports the result.
 
 What an image needs depends on the engine.
 
@@ -33,9 +33,9 @@ What an image needs depends on the engine.
 
 The image must run as a non-root user. A container-driver launcher refuses an image whose user is root unless it was started with `RUNNER_ALLOW_ROOT=true`. On the Kubernetes driver, a job pod runs as the image's user when it is numeric and as the launcher's `RUNNER_JOB_UID` otherwise.
 
-Run images need a launcher that places jobs in containers or pods. A launcher with the in-process driver runs every job in its own image, so a job that resolves any other image fails on that pool with an event that says so. The hosted capacity of a Docker Compose or Helm installation uses the container and Kubernetes drivers, so its jobs can use run images.
+Run images need a launcher that places jobs in containers or pods. A launcher with the in-process driver runs every job in its own image, so a job that resolves any other image fails on that pool with an event that says so. The hosted capacity of a Docker Compose installation uses the container driver, and a Helm installation uses the Kubernetes driver unless `launcher.driver` is `inprocess`, so their jobs can use run images.
 
-## Adding a Run Image
+## Add a run image
 
 Run images belong to an organization and are managed under **Settings > Run Images**.
 
@@ -47,7 +47,7 @@ Run images belong to an organization and are managed under **Settings > Run Imag
 6. Choose a **Registry credential** for a private registry, or **None** for a public image.
 7. Add a **Description** and save.
 
-The same resource is available over the API at `GET` and `POST /api/v2/organizations/:name/run-images` and at `GET`, `PATCH` and `DELETE /api/v2/run-images/:id`, with the attributes `name`, `kind` (`tofu` or `ansible`), `image`, `digest`, `registry-credential-id` and `description`. Deleting a run image clears it from every workspace, template, inventory source, project and organization that selected it, and they then inherit their image as described under [Where a Setting Comes From](#where-a-setting-comes-from).
+The same resource is available over the API at `GET` and `POST /api/v2/organizations/:name/run-images` and at `GET`, `PATCH` and `DELETE /api/v2/run-images/:id`, with the attributes `name`, `kind` (`tofu` or `ansible`), `image`, `digest`, `registry-credential-id` and `description`. Deleting a run image clears it from every workspace, template, inventory source, project and organization that selected it, and they then inherit their image as described under [Where a setting comes from](#where-a-setting-comes-from).
 
 ### Registry credentials
 
@@ -59,22 +59,22 @@ Only the launcher that places the job uses the credential. A container-driver la
 
 The installation can restrict where run images come from with `IMAGES_ALLOWED_REGISTRIES` on the API, a comma-separated list of registries or registry paths such as `ghcr.io/acme,registry.example.com`. When the list is set, saving a run image from a registry outside it is refused, and a job whose resolved image is outside it fails before it starts. An image without a registry host counts as `docker.io`. When the list is empty, which is the default, any registry is allowed. The allowlist is shown read-only on the Agent Pools page under **Deployment settings**.
 
-## Ansible Execution Environments
+## Ansible execution environments
 
-The default Ansible path is the platform Ansible image plus the project's `requirements.yml`, installed from the organization's verified cache before every job (see [Galaxy Collections](../features/ansible/galaxy-collections.md)). That covers collections and roles, which is what most execution environments are built for, and it needs no image of your own.
+The default Ansible path is the platform Ansible image plus the project's `requirements.yml`, installed from the organization's verified cache before every job (see [Galaxy collections](../features/ansible/galaxy-collections.md)). That covers collections and roles, which is what most execution environments are built for, and it needs no image of your own.
 
-An execution environment built with `ansible-builder` for AWX is an optional compatibility path. It runs as it is, as a run image of the Ansible engine: StackWeaver injects its executor and event callback, so nothing needs to be rebuilt. What an execution environment adds beyond collections, such as a pinned `ansible-core`, Python packages or system packages, belongs in your own image: either your existing execution environment, or a small Dockerfile on top of the platform Ansible image.
+An execution environment built with `ansible-builder` for AWX is an optional compatibility path. It runs unchanged as a run image of the Ansible engine: Stackweaver injects its executor and event callback, so nothing needs to be rebuilt. What an execution environment adds beyond collections, such as a pinned `ansible-core`, Python packages or system packages, belongs in your own image: either your existing execution environment, or a small Dockerfile on top of the platform Ansible image.
 
 | What the AWX EE contains | Do this on Stackweaver |
 |---|---|
 | Only collections and roles (a `galaxy` section) | Drop the EE; commit the same list as `requirements.yml` in the project; the platform image installs it from the verified cache |
-| Python packages, system packages, or a pinned ansible-core | Keep it as a custom run image (`RunImage` of kind `ansible`); the executor is injected, nothing is rebuilt |
+| Python packages, system packages, or a pinned ansible-core | Keep it as a run image of the Ansible engine; the executor is injected, nothing is rebuilt |
 | Anything above plus collections | Keep the image for the packages; collections may stay in the image or move to `requirements.yml`, both work |
-| A need to pin ansible-core without any image at all | Not available: a job runs the `ansible-core` its image ships. Choosing an `ansible-core` version per job template is not available yet |
+| A need to pin ansible-core without any image at all | Not supported: a job runs the `ansible-core` its image ships, and a job template cannot choose an `ansible-core` version |
 
 An execution environment applies to the jobs of the templates that select it and to the dynamic inventory source syncs that select it. Syncs that capture a snapshot from your VCS provider, rebuild a constructed inventory or read an inventory file from a repository always run in the platform image, because they run no code from your repositories.
 
-## Where a Setting Comes From
+## Where a setting comes from
 
 A run image, an identity binding and a run timeout can each be set at more than one level, and every one of them is resolved by the same rule: the most specific level that sets a value wins. The order is the launching object (the workspace for an OpenTofu run, the job template for an Ansible job, the inventory source for its dynamic syncs), then its project, then its organization, then the platform default. A level left empty defers to the next one.
 
@@ -91,7 +91,7 @@ When a control is left to inherit, a hint under it says where the value comes fr
 
 A sync of the platform's own kind (a snapshot capture, a VCS inventory file sync or a constructed rebuild) has no launching object and is bounded by the installation's `STACKWEAVER_SYNC_TIMEOUT` (one hour unless set) instead.
 
-### Reading the effective settings
+### Read the effective settings
 
 The resolved values, each with the level it came from, are available over the API at `GET /api/v2/workspaces/:id/effective-settings`, `GET /api/v2/ansible/job-templates/:id/effective-settings` and `GET /api/v2/ansible/inventory-sources/:id/effective-settings`. Each attribute of the `effective-settings` resource has a `value` and a `level` (`workspace`, `job-template`, `inventory-source`, `project`, `organization` or `deployment`). A workspace's settings include `execution-mode`, `agent-pool-id`, `tofu-version`, `run-timeout`, `run-image-id` and `identity-binding-id`. A `run-image-id` of `null` at the `deployment` level is the platform image, and an `identity-binding-id` of `null` is the platform identity.
 
@@ -99,10 +99,9 @@ The image a job actually ran in is recorded on the job. The **Placement** panel 
 
 ## Troubleshooting
 
-**A job fails because of its image on an in-process pool.** The job resolved a run image and the pool's launchers use the in-process driver, which runs only the platform image. Run that pool's launchers with the container or Kubernetes driver, or clear the run image at the level that set it; the inherited hint shows which one.
-
-**A job fails because its image runs as root.** Set a non-root `USER` in the image. A launcher on the container driver accepts root images only when started with `RUNNER_ALLOW_ROOT=true`.
-
-**Saving a run image is refused with a message about `images.allowed_registries`.** The installation restricts run images to the registries the message lists. Push the image to one of them, or ask your installation's administrator to add the registry to `IMAGES_ALLOWED_REGISTRIES`.
-
-**The image cannot be pulled.** Check that the run image names a Container registry credential with a valid password or token, and that the launcher host or cluster can reach the registry.
+| Symptom | Cause | Fix |
+|---|---|---|
+| A job fails because of its image on an in-process pool. | The job resolved a run image, and the pool's launchers use the in-process driver, which runs only the platform image. | Run that pool's launchers with the container or Kubernetes driver, or clear the run image at the level that set it. The inherited hint shows which level that is. |
+| A job fails because its image runs as root. | The image's user is root. | Set a non-root `USER` in the image. A launcher on the container driver accepts root images only when started with `RUNNER_ALLOW_ROOT=true`. |
+| Saving a run image is refused with a message about `images.allowed_registries`. | The installation restricts run images to the registries the message lists. | Push the image to one of them, or ask your installation's administrator to add the registry to `IMAGES_ALLOWED_REGISTRIES`. |
+| The image cannot be pulled. | The registry credential is missing or invalid, or the registry is unreachable. | Check that the run image names a Container registry credential with a valid password or token, and that the launcher host or cluster can reach the registry. |

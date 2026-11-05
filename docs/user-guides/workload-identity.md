@@ -69,6 +69,9 @@ The in-process driver does not isolate the network: a job of an in-process launc
 
 ## Other Identity Options
 
-Two further options exist for launchers you run yourself on Kubernetes. A pool can offer **identity bindings**, which run its job pods as a ServiceAccount that a cloud's pod identity mechanism trusts (`aws-irsa`, `aws-pod-identity`, `gcp-workload-identity` or `azure-workload-identity`), and a launcher's installer can set the `host-identity` network mode, which leaves the metadata endpoints open so jobs use the node's own identity. [Self-Hosted Runners](./self-hosted-runners.md#identity-bindings) describes how bindings are created and selected.
+Two further options exist for launchers you run yourself:
 
-The cloud-specific setup of these options is not yet documented as supported. Until it is, use the platform identity described above, which works the same for every cloud, every driver and the hosted capacity.
+- An agent pool whose launchers use the Kubernetes driver can offer **identity bindings**. A binding runs the pool's job pods as a ServiceAccount that a cloud's pod identity mechanism trusts (`aws-irsa`, `aws-pod-identity`, `gcp-workload-identity` or `azure-workload-identity`). The hosted capacity offers no bindings. [Self-Hosted Runners](./self-hosted-runners.md#identity-bindings) describes how bindings are created and selected.
+- Whoever installs a launcher can set the `host-identity` network mode on its container or Kubernetes driver. It leaves the metadata endpoints open, so jobs use the node's own identity. A strict hosted deployment refuses this mode.
+
+Stackweaver does not document the cloud-side setup of these options as a supported configuration. Use the platform identity described above, which works the same for every cloud, every driver and the hosted capacity.

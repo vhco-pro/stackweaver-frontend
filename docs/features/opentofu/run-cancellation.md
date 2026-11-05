@@ -98,9 +98,10 @@ cancellation without understanding whether execution has actually stopped.
 | Waiting on run tasks | The run and outstanding checks become terminal. Check the run before responding to any delayed task result. |
 
 On the hosted capacity and on self-hosted runners alike, the job running a canceled run
-stops OpenTofu within one status poll, and the launcher that placed it stops its container,
-pod or process and removes it, also on a pool that keeps failed jobs for inspection. There can be a delay between recording the request and a process stopping.
-If the result is uncertain, check the launcher before starting overlapping work.
+stops OpenTofu within one status poll. The launcher that placed it then stops and removes its
+container, pod or process, even on a pool that keeps failed jobs for inspection. The process
+can take a moment to stop after the request is recorded. If the result is uncertain, check
+the launcher before starting overlapping work.
 
 The [run-timeout guide](./run-timeout.md) explains automatic limits: a run phase that
 exceeds its timeout is stopped as well, and the run ends as failed rather than canceled. Use

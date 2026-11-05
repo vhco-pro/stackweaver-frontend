@@ -330,7 +330,7 @@ On Docker Compose, the `launcher` and `ansible-launcher` services set these in t
 |---|---|---|
 | `RUNNER_DRIVER` | `inprocess`, `container` or `kubernetes`. Chart value `launcher.driver`. | `inprocess` (chart: `kubernetes`) |
 | `RUNNER_IMAGE` | Platform image the executor comes from, and the image of every job that selects no run image. Required by the container and Kubernetes drivers. | (none) |
-| `RUNNER_NETWORK_MODE` | `platform` blocks the cloud metadata endpoints from jobs; `host-identity` leaves them open on the Kubernetes driver. Chart value `launcher.network`. | `platform` |
+| `RUNNER_NETWORK_MODE` | `platform` blocks the cloud metadata endpoints from jobs; `host-identity` leaves them open on the container and Kubernetes drivers. Chart value `launcher.network`. | `platform` |
 | `RUNNER_KEEP_FAILED_FOR` | How long a failed job's container or pod is kept for inspection, as a duration, when its pool sets nothing. Chart value `launcher.keepFailedJobsFor`. | (none) |
 | `RUNNER_DOCKER_SOCKET` | Docker or Podman API socket of the container driver. | `/var/run/docker.sock` |
 | `RUNNER_NETWORK` | Jobs network of the container driver. The launcher creates it and, on a rootful engine, firewalls it. | (none) |

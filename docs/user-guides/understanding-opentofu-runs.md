@@ -134,7 +134,7 @@ Do not invent a repository YAML definition for reviewing a run.
 
 | Where it stopped | Start here |
 |---|---|
-| Queued. | Runner availability, routing and workspace lock. |
+| Queued. | The waiting notice on the run page, whether a launcher of the run's pool is online, and the workspace lock. |
 | Initialization or plan. | Raw output, selected configuration, provider/version and credentials. |
 | Waiting for confirmation/checks. | Plan review, run-task findings and the required permission. |
 | Apply. | First meaningful provider/resource error and any partial changes. |

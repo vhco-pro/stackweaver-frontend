@@ -136,8 +136,8 @@ package. Common examples are `amazon.aws`, `azure.azcollection`, `google.cloud`,
 versions depend on the image a job runs in; inspect that image instead of relying on a
 second hand-maintained version list.
 
-From the deployment's Compose directory (`deploy/` in this repository), read the
-installed set and engine version:
+On Docker Compose, read the installed set and engine version from the directory that
+holds your `docker-compose.yml`:
 
 ```bash
 docker compose exec ansible-launcher ansible-galaxy collection list
@@ -202,7 +202,7 @@ collections:
 
 Use a tested commit/tag instead of a moving branch when you need a fixed Git dependency.
 The job, on the hosted capacity or on your own launchers, must reach the source.
-Stackweaver passes no credential to `ansible-galaxy`: a private Git source must be
+Stackweaver passes no Git credential to `ansible-galaxy`: a private Git source must be
 reachable without one, and a Stackweaver VCS connection used for the playbook does not
 authenticate Galaxy or Git requirements.
 

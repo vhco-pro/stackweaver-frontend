@@ -255,9 +255,11 @@ docker compose run --rm --no-deps zitadel-init
 docker compose up -d
 ```
 
-A plain container restart does not reload Compose's `env_file` values. The API also reads its
-configured env output file with precedence over container environment; a one-command shell
-override is not a reliable way to replace a generated value.
+A plain container restart does not reload Compose's `env_file` values. When it starts, the
+API reads the values `zitadel-init` generates (the client IDs and secrets and
+`STACKWEAVER_HOSTED_SECRET`) from `.env`, and the launchers read `STACKWEAVER_HOSTED_SECRET`
+the same way. Those values win over the container environment, so a shell override on the
+command line cannot replace a generated value.
 
 For GitHub, use the [complete GitHub App guide](../../../user-guides/vcs/github-app.md), including
 the private-key mount for the API and orchestrator. See the
@@ -327,33 +329,36 @@ provide its BFF credentials before upgrading. Follow [the confidential-client se
 > upgrade is forward-only: the database cannot be downgraded in place afterwards, and rolling
 > back is a restore of both backups together with the previous `docker-compose.yml`.
 
-Start the new release within 30 minutes of stopping the old runners. The orchestrator marks a run
-that stays pending for 30 minutes as failed, so queue any such run again after the upgrade.
+1. Replace your `docker-compose.yml` with the one of the new release. It replaces the
+   `runner` and `ansible-runner` services with `launcher` and `ansible-launcher`, which mount
+   the Docker socket, and adds the two cache volumes. Take the two launcher services from the
+   example as they are, including their read-only mount of `.env`.
+2. Pull the images, start the stack and remove the containers of the services that are gone:
 
-Replace your `docker-compose.yml` with the one of the new release. It replaces the `runner`
-and `ansible-runner` services with `launcher` and `ansible-launcher`, which mount the Docker
-socket, and adds the two cache volumes. Then apply it and remove the containers of the
-services that are gone:
+   ```bash
+   docker compose pull
+   docker compose up -d --remove-orphans
+   ```
 
-```bash
-docker compose pull
-docker compose up -d --remove-orphans
-```
-
-`zitadel-init` adds `STACKWEAVER_HOSTED_SECRET` to `.env` on this run. The API and the two
-launchers start after `zitadel-init` completes and read it from `.env` through
-`STACKWEAVER_ENV_FILE`, so the same `up` starts working hosted launchers. The launchers read that
-one value, which is why the upgraded Compose file mounts `.env`, and only that file, read-only
-into both of them. Take the `launcher` and `ansible-launcher` services from the
-example Compose file as they are, including that mount.
-
-The `runner-workspaces` and `ansible-workspaces` volumes are not used by this release, and
-each organization's verified cache in object storage takes the place of the per-project
-Galaxy cache they held; it fills again as jobs run. Once the upgrade works, find their
-prefixed names with `docker volume ls` and delete them with
-`docker volume rm <project>_runner-workspaces <project>_ansible-workspaces`. If you ran
-self-hosted runners with `RUNNER_MODE=agent`, drop that variable: every runner image starts
-as a launcher.
+   `zitadel-init` adds `STACKWEAVER_HOSTED_SECRET` to `.env` on this run. The API and the
+   launchers start after it completes and read that value from `.env` through
+   `STACKWEAVER_ENV_FILE`, so the same command starts working hosted launchers.
+3. Queue again any OpenTofu run that failed with `Run was pending for too long and was
+   automatically cancelled`. The orchestrator fails a run that is still pending 30 minutes
+   after it was created, so keep the time between stopping the old runners and starting the
+   launchers short.
+4. Upgrade the launchers of your agent pools to the same release and remove `RUNNER_MODE`
+   from their environment. A job's executor comes from its launcher's image; see
+   [Self-hosted runners](../../../user-guides/self-hosted-runners.md#operate-and-troubleshoot).
+5. If a cloud trust matches an Ansible job's subject exactly, update it to the job name in
+   [the token subject](../../../user-guides/oidc-configuration.md#the-token-subject-shared-across-clouds).
+   Rename any organization, project, workspace, template or job whose name contains a colon:
+   a run or job whose configured identity cannot be minted fails before it starts.
+6. Once the upgrade works, delete the `runner-workspaces` and `ansible-workspaces` volumes,
+   which nothing mounts. Find their prefixed names with `docker volume ls`, then run
+   `docker volume rm <project>_runner-workspaces <project>_ansible-workspaces`. Each
+   organization's verified cache in object storage takes the place of the per-project Galaxy
+   cache they held, and fills again as jobs run.
 
 ### Apply the selected images
 

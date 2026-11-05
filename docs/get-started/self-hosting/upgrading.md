@@ -30,10 +30,10 @@ not every commit or an exhaustive compatibility matrix.
 
 | Record | Why it matters |
 |---|---|
-| Current and target component tags or digests | API, frontend, orchestrator, runners and initializer publish independently. A matching version number across them is not required. |
+| Current and target component tags or digests | API, frontend, orchestrator, the two runner (launcher) images and the initializer publish independently. A matching version number across them is not required. |
 | Chart version and complete values, for Helm | A chart version selects templates and defaults; image overrides can select different containers. |
 | Identity and storage arrangement | Bundled Zitadel/Garage and external services have different recovery owners. |
-| Self-hosted runner versions | Upgrading the platform does not upgrade agents running elsewhere. Check each affected change's runner scope. |
+| Self-hosted launcher versions | Upgrading the platform does not upgrade launchers running elsewhere. Upgrade them with the platform, because a job's executor comes from its launcher's image. |
 
 **Confirmed available by** in the feed establishes that a change is present in the listed
 component releases. It is not the first release containing the change, a minimum supported
@@ -55,14 +55,14 @@ Automation uses `tfe-` API tokens; a Zitadel access token is not an API credenti
 3. Restore into an isolated environment and test the target versions there. Keep it away
    from production runners, schedules, webhooks, SMTP and cloud targets.
 4. Pause incoming work and schedules, let active jobs/runs finish, and stop self-hosted
-   runners for the maintenance window. Confirm no pending queue or update-on-launch sync
-   remains. Do not assume queued Redis work is part of a filesystem backup. The orchestrator
-   marks a run that stays pending for 30 minutes as failed, so queue any such run again after
-   the upgrade.
+   runners for the maintenance window. Confirm no pending run, job or update-on-launch sync
+   remains. The orchestrator fails an OpenTofu run that is still pending 30 minutes after it
+   was created, so queue any such run again after the upgrade.
 
 > [!WARNING]
-> Changing image tags back does not reverse database migrations or identity changes. Keep
-> a tested, matching pre-upgrade recovery set. Never use `docker compose down -v` as an
+> Upgrades are forward-only. Changing image tags back does not reverse database migrations
+> or identity changes: rolling back is a restore of the pre-upgrade backup with the previous
+> versions. Keep a tested, matching pre-upgrade recovery set. Never use `docker compose down -v` as an
 > upgrade step or delete Kubernetes Secrets/PVCs to make a rollout proceed.
 
 ## 3. Apply the selected deployment procedure
@@ -92,7 +92,9 @@ docker compose -f docker-compose.yml -f images.yaml ps -a
 ```
 
 Follow [Compose upgrade preparation](./docker-compose/README.md#prepare-the-browser-session-upgrade)
-for a browser-session transition and the [Compose upgrade procedure](./docker-compose/README.md#apply-the-selected-images).
+for a browser-session transition, [the launcher upgrade](./docker-compose/README.md#upgrade-to-the-release-with-launchers)
+when you move from the `runner` services to launchers, and the
+[Compose upgrade procedure](./docker-compose/README.md#apply-the-selected-images).
 Preserve generated `.env` and the persistent `sso.env`, `vcs.env`, `oidc.env`, keys and
 configuration. Do not regenerate them or copy first-install examples over them. Container
 environment changes require recreation with `up -d`; a bare restart retains old values.
@@ -102,6 +104,8 @@ environment changes require recreation with `up -d`; a bare restart retains old 
 Read [Helm upgrade preparation](./kubernetes/README.md#upgrading) first. In particular, the
 browser-session transition with bundled Zitadel has a specific initializer ordering and
 must not use `--wait` or `--atomic`. External Zitadel's BFF credentials must already exist.
+An upgrade from a chart version before 0.16.1 also follows
+[the launcher upgrade](./kubernetes/README.md#upgrading-to-the-chart-version-with-launchers).
 
 Record the installed release before changing it. The example uses release and namespace
 `stackweaver`; replace them if yours differ. Values can contain secrets, so save them in a
@@ -142,7 +146,7 @@ Use a dedicated test workspace/inventory and harmless targets for execution chec
 | API token | A `tfe-` token can read a resource it is authorized to read; a denied cross-organization read stays denied. |
 | Saved data and object storage | A known workspace, state version and prior job output are readable. |
 | Stored credentials and identity | A dedicated test credential remains usable; sign-in and configured SSO still work. |
-| Runner connectivity | Platform and retained self-hosted agents report healthy. A controlled plan or harmless playbook produces output. Do not apply production changes as a smoke test. |
+| Runner connectivity | **Settings > Agent Pools** shows hosted launchers online under **Hosted capacity**, and your self-hosted launchers online in their pools. A controlled plan or harmless playbook produces output. Do not apply production changes as a smoke test. |
 
 If a check fails, keep maintenance in place, collect redacted logs, and compare the target
 configuration to the saved record. Use the linked deployment troubleshooting guidance.

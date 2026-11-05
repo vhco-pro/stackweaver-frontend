@@ -200,7 +200,28 @@ docker run -d --restart unless-stopped --user root \
 
 `RUNNER_IMAGE` is the platform image the executor comes from, normally the launcher's own image. `RUNNER_NETWORK` names the jobs network the launcher creates and firewalls (see [Network modes](#network-modes)); leave it out and jobs run on the engine's default network without the firewall. `RUNNER_CACHE_DIR` and `RUNNER_CACHE_VOLUME` give the launcher a node-local copy of the organization's cache that job containers mount read-only (see [The node-local cache](#the-node-local-cache)). For an Ansible launcher, use the Ansible image in both places.
 
-The driver speaks the Docker Engine API, which Podman also serves, so the same launcher works against Podman. Start Podman's API socket with `systemctl enable --now podman.socket` for rootful Podman (`/run/podman/podman.sock`) or `systemctl --user enable --now podman.socket` for rootless Podman (`$XDG_RUNTIME_DIR/podman/podman.sock`), mount that socket into the launcher, and set `RUNNER_DOCKER_SOCKET` to its path inside the launcher container when it is not `/var/run/docker.sock`. A rootful Podman socket must be readable by the user the launcher runs as, and the firewall image needs `nft`. On a host that also runs Docker, Docker's `FORWARD` drop policy blocks rootful Podman containers: allow the jobs subnet in `DOCKER-USER`, or run one engine per host. Rootless Podman cannot program the host firewall, so the jobs network has no firewall there; instead every executor checks at start whether a cloud metadata endpoint answers from its network and refuses to run if one does. CPU and memory limits are applied on engines with cgroup v2; on an engine that cannot enforce them the job runs without them, unless the pool requires limits. On Docker 26 or later (Engine API 1.45), each job mounts its organization's part of the node-local cache volume. Podman's API cannot mount part of a volume, so on Podman, and on older Docker, the launcher mounts that part from the volume's directory on the host instead, which needs the `local` volume driver. Where neither works, jobs fetch every cache entry through the API. The cache is mounted read-only with the shared SELinux container label, so jobs can read it on hosts that enforce SELinux, such as Fedora with Podman.
+Jobs reach the API at the address in `STACKWEAVER_SERVER`, from the jobs network. Use an address a job container can resolve, never `localhost`. When the API runs on the same host, use `http://host.docker.internal:<api-port>`, and add `--add-host host.docker.internal:host-gateway` and `-e RUNNER_EXTRA_HOSTS=host.docker.internal:host-gateway` to the command above so the launcher and its jobs both resolve that name.
+
+#### Use Podman instead of Docker
+
+The driver speaks the Docker Engine API, which Podman also serves.
+
+1. Start Podman's API socket: `sudo systemctl enable --now podman.socket` for rootful Podman (`/run/podman/podman.sock`), or `systemctl --user enable --now podman.socket` for rootless Podman (`$XDG_RUNTIME_DIR/podman/podman.sock`).
+2. Mount that socket into the launcher. When the path inside the launcher container is not `/var/run/docker.sock`, set `RUNNER_DOCKER_SOCKET` to it. A rootful socket must be readable by the user the launcher runs as.
+3. On a host that also runs Docker, let rootful Podman's jobs network past Docker's `FORWARD` drop policy, or run one engine per host. Start the launcher once so it creates the network, read the subnet from `podman network inspect stackweaver-jobs`, and add it to Docker's `DOCKER-USER` chain:
+
+   ```bash
+   sudo iptables -I DOCKER-USER -s <jobs subnet> -j ACCEPT
+   sudo iptables -I DOCKER-USER -d <jobs subnet> -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
+   ```
+
+   These rules last until the next reboot; save them with your distribution's firewall tooling.
+
+On rootful Podman the launcher firewalls the jobs network with an nftables table, so the firewall image (`RUNNER_FIREWALL_IMAGE`, the platform image by default) needs `nft`. Rootless Podman cannot program the host firewall, so the jobs network has no firewall there. Every executor then checks at start whether a cloud metadata endpoint answers from its network, and refuses to run if one does.
+
+CPU and memory limits are applied on engines with cgroup v2. On an engine that cannot enforce them, the job runs without them, unless the pool requires limits.
+
+On Docker 26 or later (Engine API 1.45), each job mounts its organization's part of the node-local cache volume. Podman's API cannot mount part of a volume, so on Podman and on older Docker the launcher mounts that part from the volume's directory on the host instead, which needs the `local` volume driver. Where neither works, jobs fetch every cache entry through the API. The cache is mounted read-only with the shared SELinux container label, so jobs can read it on hosts that enforce SELinux, such as Fedora with Podman.
 
 ### Kubernetes
 
@@ -273,10 +294,73 @@ spec:
 
 Apply the manifest with `kubectl apply -f launcher.yaml`. The pod starts, registers with the API, and appears in **Settings > Runners**. Confirm its pool and **Online** status before routing work. `/healthz` answers while the process is up, and `/readyz` answers once the launcher is registered, its heartbeat is fresh and its driver can place jobs.
 
-To give every job a pod of its own, set `RUNNER_DRIVER=kubernetes` and `RUNNER_IMAGE` to the launcher's image. The launcher then needs a ServiceAccount bound to a Role in the job namespace that allows `get`, `list`, `create`, `patch` and `delete` on `pods`, `secrets` and `serviceaccounts`, and `get` on `pods/log` and `configmaps`. If the launcher also manages the job namespace's NetworkPolicies, which it does unless `RUNNER_MANAGE_NETWORK_POLICY=false`, the Role must also allow `get`, `create` and `patch` on `networkpolicies` in the `networking.k8s.io` group. Nothing cluster-scoped is needed. The Helm chart manages the NetworkPolicies itself and sets `RUNNER_MANAGE_NETWORK_POLICY=false`, so its launcher Role grants only the first set of permissions. Jobs run in the launcher's namespace, or in the one `RUNNER_JOB_NAMESPACE` names. Each job pod satisfies the restricted Pod Security Standard, runs under `RUNNER_JOB_UID` when its image's user is not numeric, and carries no ServiceAccount token unless its identity needs one. `RUNNER_RUNTIME_CLASS` runs job pods under a sandboxed runtime such as gVisor or Kata. At start the launcher applies a NetworkPolicy to the job namespace that blocks the cluster ranges you list in `RUNNER_CLUSTER_CIDRS` and the cloud metadata ranges; set `RUNNER_MANAGE_NETWORK_POLICY=false` when you manage that policy yourself.
-
 > [!TIP]
 > Use `RUNNER_NAME` with `fieldRef: metadata.name` so each pod gets a distinct registration name. A Deployment replacement changes the pod name and can leave an old offline row. For stable fleet identities, use a deployment model with stable names and verify registrations after replacement.
+
+#### Step 3c: Run every job in a pod of its own
+
+The Kubernetes driver gives every job a fresh pod. The launcher then needs a ServiceAccount and a Role in the job namespace. Save the following as `launcher-rbac.yaml` and replace `<runner-namespace>`:
+
+```yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: stackweaver-launcher
+  namespace: <runner-namespace>
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: stackweaver-launcher
+  namespace: <runner-namespace>
+rules:
+  - apiGroups: [""]
+    resources: ["pods", "secrets", "serviceaccounts"]
+    verbs: ["get", "list", "create", "patch", "delete"]
+  - apiGroups: [""]
+    resources: ["pods/log", "configmaps"]
+    verbs: ["get"]
+  # Only while the launcher manages the job NetworkPolicy (RUNNER_MANAGE_NETWORK_POLICY unset).
+  - apiGroups: ["networking.k8s.io"]
+    resources: ["networkpolicies"]
+    verbs: ["get", "create", "patch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: stackweaver-launcher
+  namespace: <runner-namespace>
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: stackweaver-launcher
+subjects:
+  - kind: ServiceAccount
+    name: stackweaver-launcher
+    namespace: <runner-namespace>
+```
+
+The Role grants no `exec` and nothing cluster-scoped. If you manage the job namespace's NetworkPolicy yourself, set `RUNNER_MANAGE_NETWORK_POLICY=false` and remove the `networkpolicies` rule; the Helm chart does this for its own launchers.
+
+Then change `launcher.yaml`:
+
+1. Add `serviceAccountName: stackweaver-launcher` to the pod `spec`.
+2. Add these entries to the container's `env`, with your cluster's pod and service ranges:
+
+   ```yaml
+   - name: RUNNER_DRIVER
+     value: kubernetes
+   - name: RUNNER_IMAGE
+     value: ghcr.io/vhco-pro/stackweaver-opentofu-runner:latest
+   - name: RUNNER_CLUSTER_CIDRS
+     value: "10.244.0.0/16,10.96.0.0/12"
+   ```
+
+3. Check that `STACKWEAVER_SERVER` resolves from a job pod. Job pods reach the API at the same address as the launcher.
+
+Apply both files with `kubectl apply -f launcher-rbac.yaml -f launcher.yaml`.
+
+Jobs run in the launcher's namespace, or in the one `RUNNER_JOB_NAMESPACE` names. For a separate job namespace, create the Role and RoleBinding there, keep the RoleBinding's subject in the launcher's namespace, and use a namespace-qualified API address such as `http://stackweaver-api.stackweaver.svc:8022`. Each job pod satisfies the restricted Pod Security Standard, runs under `RUNNER_JOB_UID` when its image's user is not numeric, and carries no ServiceAccount token unless its identity needs one. `RUNNER_RUNTIME_CLASS` runs job pods under a sandboxed runtime such as gVisor or Kata. At start the launcher applies a NetworkPolicy to the job namespace that blocks the cluster ranges in `RUNNER_CLUSTER_CIDRS` and the cloud metadata ranges.
 
 ### Launcher environment variables
 
@@ -374,7 +458,7 @@ The installer sets a launcher's network mode with `RUNNER_NETWORK_MODE` (chart v
 | Mode | What jobs can reach |
 |------|---------------------|
 | `platform` (default) | The API, DNS and the internet. Inbound traffic, the cloud metadata ranges (`169.254.0.0/16`, `fd00:ec2::/64`, `fd20:ce::/64`), the other networks on the engine and, on Kubernetes, the cluster ranges in `RUNNER_CLUSTER_CIDRS` are blocked. Jobs get cloud access from the platform identity or an identity binding, never from the node. |
-| `host-identity` | The same, plus the cloud metadata endpoints, so jobs can use the node's or VM's own identity. On the container driver every executor still refuses to run while a metadata endpoint answers, so this mode takes effect on the Kubernetes driver. A launcher started with `STACKWEAVER_HOSTED_STRICT` refuses this mode. |
+| `host-identity` | The same, plus the cloud metadata endpoints, so jobs can use the node's or VM's own identity. It applies to the container and Kubernetes drivers; on the container driver the executor skips its metadata check in this mode. A launcher started with `STACKWEAVER_HOSTED_STRICT` refuses this mode. |
 
 On the container driver, the launcher creates the network `RUNNER_NETWORK` names and, on a rootful engine, programs the host firewall for it through a short-lived container from the platform image: a chain under Docker's `DOCKER-USER` on Docker, and an nftables table of its own on Podman and on Docker's nftables backend. Jobs never reach `168.63.129.16`, Azure's platform address, in any network mode; they resolve names through the engine's resolver. Jobs on the network cannot reach each other, the engine's gateway or any port the host publishes, except the API, whether it listens on the host or runs in a container behind a port the host publishes. `RUNNER_DENY_CIDRS` adds ranges no job may reach, such as your database's subnet. `RUNNER_ALLOW_TCP` lists `host:port` endpoints, or `http` and `https` URLs, that jobs may reach even inside a denied range, which is how jobs on an air-gapped install reach mirrors on the same host or network; the launcher resolves each name when it starts. On the Kubernetes driver, `RUNNER_ALLOW_TCP` adds the same endpoints as allowed peers of the job NetworkPolicy the launcher manages. On rootful Podman it creates the network through Podman's own API, without Podman's isolation between networks, so a job reaches an allowed endpoint that a container on another Podman network publishes; the nftables table refuses everything else.
 
@@ -405,7 +489,7 @@ A job always receives the platform identity: for each cloud the organization has
 
 A pool can also offer identity bindings, which run its job pods as a Kubernetes ServiceAccount that a cloud's pod identity mechanism trusts. Add them in the **Identity bindings** section of the pool's expanded row. A binding has a name, a mechanism (`aws-irsa`, `aws-pod-identity`, `gcp-workload-identity` or `azure-workload-identity`), a ServiceAccount name with the annotations the mechanism reads, and one of three ways of handling the ServiceAccount: **Create it**, where the launcher creates the account with those annotations; **Create one per job**, where the launcher creates a copy of it for every job and removes it with the pod; or **Reference an existing one**, where the account is declared elsewhere and the launcher never writes it. When the launcher finds that something other than Stackweaver manages a ServiceAccount, for example a GitOps controller, the binding is marked as declared outside Stackweaver and becomes read-only.
 
-A workspace, job template or inventory source selects a binding in its **Identity binding** control, and a project or organization can set a default (see [Run Images and Execution Environments](./run-images-and-execution-environments.md#where-a-setting-comes-from)). A job whose resolved binding belongs to a pool other than the one it runs on is refused, and hosted pools offer no bindings. Bindings apply to jobs placed by a launcher on the Kubernetes driver. The cloud-specific procedures for each mechanism are not yet documented as supported; see [Workload Identity](./workload-identity.md).
+A workspace, job template or inventory source selects a binding in its **Identity binding** control, and a project or organization can set a default (see [Run Images and Execution Environments](./run-images-and-execution-environments.md#where-a-setting-comes-from)). A job whose resolved binding belongs to a pool other than the one it runs on is refused, and hosted pools offer no bindings. Bindings apply to jobs placed by a launcher on the Kubernetes driver. This guide does not cover the cloud-side setup of each mechanism; [Workload Identity](./workload-identity.md) describes the platform identity, which needs none.
 
 ## Registry pull Secrets
 
@@ -514,6 +598,7 @@ Record the returned pool ID and verify its access scope. List pools before retry
 | Launcher is online but work waits. | Check workload type, pool assignment/access, labels and available capacity. A launcher runs at most `RUNNER_MAX_CONCURRENT_JOBS` jobs at once. Work on the hosted capacity may be waiting on the organization's hosted cap. |
 | All launchers in a pool are offline. | Restore capacity or explicitly change execution routing after reviewing its trust/network implications. There is no automatic fallback. |
 | A job fails with an error about its image on an in-process pool. | The job resolved a run image other than the platform image, and an in-process launcher runs only its own image. Run the pool's launchers with the container or Kubernetes driver, or select no run image for that workspace, template or project. |
+| Upgrade the platform. | Upgrade your launchers to the platform's release at the same time, because a job's executor comes from its launcher's image. A launcher ignores `RUNNER_MODE`; remove it from older runner deployments. |
 | Upgrade a launcher. | Pull a reviewed image, replace the container with the same intended name/pool and a valid registration credential, then confirm registration and a test job. A stopping launcher finishes its jobs first, for up to `RUNNER_DRAIN_GRACE`. Same-name registration in the same organization reuses the runner record and refreshes its runner token. Do not run two instances with the same name. |
 | Run both workload types. | Deploy the documented OpenTofu and Ansible images separately; each image runs one engine. They can join the same pool with the same registration credential. |
 | Remove a launcher. | Stop the container as well as deleting its registration. A running container with valid registration credentials can register again. |

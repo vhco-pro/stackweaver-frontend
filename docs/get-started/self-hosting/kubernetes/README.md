@@ -579,33 +579,45 @@ release-specific schema migration instructions when needed.
 
 ### Upgrading to the chart version with launchers
 
+Chart version 0.16.1 is the first with launchers.
+
 > [!IMPORTANT]
-> Back up PostgreSQL and the object storage bucket before you upgrade to the chart version
-> that introduces the launchers. The upgrade is forward-only: the database cannot be
-> downgraded in place afterwards, and rolling back is a restore of both backups with the
-> previous chart version, not a `helm rollback`.
+> Back up PostgreSQL and the object storage bucket before you upgrade from an earlier chart
+> version. The upgrade is forward-only: the database cannot be downgraded in place
+> afterwards, and rolling back is a restore of both backups with the previous chart version,
+> not a `helm rollback`.
 
-Finish the upgrade within 30 minutes of the old runners stopping. The orchestrator marks a run
-that stays pending for 30 minutes as failed, so queue any such run again after the upgrade.
+1. Remove `runnerWorkspaces`, `ansibleRunner.galaxyCache`, `ansibleRunner.workloadIdentity`,
+   `ansibleRunner.tmpSizeLimit` and `ansibleRunner.workspacesSizeLimit` from your values.
+   The chart has none of them. Remove `RUNNER_MODE` from `runner.env` and
+   `ansibleRunner.env` if you set it.
+2. Set `launcher.clusterCIDRs` to your cluster's pod and service ranges, so job pods cannot
+   reach in-cluster services. To run job pods in a namespace of their own, also set
+   `launcher.jobNamespace` with `launcher.createJobNamespace: true`.
+3. Run `helm upgrade` with the new chart version, as in [Upgrading](#upgrading). The upgrade
+   adds the hosted launcher registration Secret, which the bootstrap Job generates unless you
+   name your own with `secrets.hosted.secretName`. It also removes the runner workspaces and
+   Galaxy cache PersistentVolumeClaims the chart created.
+4. Queue again any OpenTofu run that failed with `Run was pending for too long and was
+   automatically cancelled`. The orchestrator fails a run that is still pending 30 minutes
+   after it was created, so finish the upgrade promptly once the old runners stop.
+5. Upgrade the launchers of your agent pools to the same release and remove `RUNNER_MODE`
+   from their environment. A job's executor comes from its launcher's image; see
+   [Self-hosted runners](../../../user-guides/self-hosted-runners.md#operate-and-troubleshoot).
+   A launcher you run with the Kubernetes driver outside the chart needs the Role described
+   under [Run every job in a pod of its own](../../../user-guides/self-hosted-runners.md#step-3c-run-every-job-in-a-pod-of-its-own).
+6. If a cloud trust matches an Ansible job's subject exactly, update it to the job name in
+   [the token subject](../../../user-guides/oidc-configuration.md#the-token-subject-shared-across-clouds).
+   Rename any organization, project, workspace, template or job whose name contains a colon:
+   a run or job whose configured identity cannot be minted fails before it starts.
+7. Once the upgrade works, delete any claim you supplied through `existingClaim`, such as the
+   statically provisioned `runner-workspaces-pvc` and its PersistentVolume of the Kustomize
+   example. Helm leaves those in place, and nothing mounts them.
 
-Before you run `helm upgrade`, remove `runnerWorkspaces`, `ansibleRunner.galaxyCache`,
-`ansibleRunner.workloadIdentity`, `ansibleRunner.tmpSizeLimit` and
-`ansibleRunner.workspacesSizeLimit` from your values: this chart version has none of them.
-Set `launcher.clusterCIDRs` to your cluster's pod and service ranges so job pods cannot reach
-in-cluster services, and set `launcher.jobNamespace` with `launcher.createJobNamespace: true`
-if job pods should run in a namespace of their own. Remove `RUNNER_MODE` from `runner.env`
-and `ansibleRunner.env` if you set it.
-
-The upgrade adds the hosted launcher registration Secret, which the bootstrap Job generates
-unless you name your own with `secrets.hosted.secretName`. The per-project Galaxy cache is
-replaced by each organization's verified cache in object storage, which fills again as jobs
-run. `helm upgrade` removes the runner workspaces and Galaxy cache PersistentVolumeClaims the
-chart created. A claim you supplied through `existingClaim`, such as the statically
-provisioned `runner-workspaces-pvc` and its PersistentVolume of the Kustomize example, stays;
-delete it yourself once the upgrade works, since nothing mounts it. An Ansible inventory sync
-that used AKS workload identity through `ansibleRunner.workloadIdentity` uses an identity
-binding of an agent pool instead (see
-[Dynamic inventories](../../../user-guides/dynamic-inventories.md#choose-azure-source-authentication)).
+Each organization's verified cache in object storage takes the place of the per-project Galaxy
+cache, and fills again as jobs run. An Ansible inventory sync that used AKS workload identity
+through `ansibleRunner.workloadIdentity` uses an identity binding of an agent pool instead; see
+[Dynamic inventories](../../../user-guides/dynamic-inventories.md#choose-azure-source-authentication).
 
 ### Upgrading to server-side browser sessions
 

@@ -28,7 +28,7 @@ capabilities: [
 # Read live run output
 
 Open a run to follow plan and apply progress, then return to the same run to inspect its
-stored output. This guide covers platform-managed remote runs and self-hosted agent runs.
+stored output. This guide covers remote runs on the hosted capacity and agent runs on self-hosted pools.
 Local-mode execution keeps output with its local CLI; these API log endpoints can return
 an empty response for local runs.
 
