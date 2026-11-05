@@ -5,9 +5,10 @@ import { RouteBoundary } from './RouteBoundary';
 /** One boundary per destination: a new page shows feedback even inside router transitions. */
 export function deferredPage<P extends object>(loader: () => Promise<{ default: ComponentType<P> }>, name = 'Page', options: { publicDocs?: boolean } = {}) {
   let pending: ReturnType<typeof loader> | undefined;
+  let ready: ComponentType<P> | undefined;
   const preload = () => {
     if (!pending) {
-      try { pending = loader(); }
+      try { pending = loader().then(module => { ready = module.default; return module; }); }
       catch (error) { pending = Promise.reject(error instanceof Error ? error : new Error('Loading route module', { cause: error })); }
     }
     return pending;
@@ -23,7 +24,9 @@ export function deferredPage<P extends object>(loader: () => Promise<{ default: 
   };
   const Page = lazy(() => { adopted = true; return preload(); });
   function DeferredPage(props: P) {
-    return <RouteBoundary publicDocs={options.publicDocs}><Page {...props} /></RouteBoundary>;
+    // Once React adopts the lazy page, keep that identity across later renders.
+    const Destination = !adopted && ready ? ready : Page;
+    return <RouteBoundary publicDocs={options.publicDocs}><Destination {...props} /></RouteBoundary>;
   }
   DeferredPage.preload = preload;
   DeferredPage.prefetch = prefetch;

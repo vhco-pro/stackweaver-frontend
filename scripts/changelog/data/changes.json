@@ -1470,5 +1470,31 @@
       "frontend"
     ],
     "availability": []
+  },
+  {
+    "id": "public-docs-startup-continuity",
+    "title": "Public guides stay readable during startup",
+    "area": "Documentation",
+    "kind": "Fixed",
+    "reviewed": true,
+    "audience": "Readers opening public documentation directly, including on slow connections and customer domains.",
+    "before": "The browser replaced the generated article with a loading view while downloading its route code and fetching the documentation index and Markdown again.",
+    "after": "The matching public guide starts from the data included with its HTML and waits for its route code before mounting the interactive viewer.",
+    "action": "Update the frontend. No configuration change is required.",
+    "details": [
+      "Only the current public documentation page warms its matching cache. Other routes, redirect resolution and customer base paths retain their existing behavior.",
+      "Failed route imports retain the reload action; older pages without startup data retain normal source loading."
+    ],
+    "guides": [
+      {
+        "title": "Get started",
+        "path": "/docs/get-started"
+      }
+    ],
+    "sourceCommits": [],
+    "requiredComponents": [
+      "frontend"
+    ],
+    "availability": []
   }
 ]
