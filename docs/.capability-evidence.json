@@ -29,7 +29,7 @@
       "evidence": [
         {
           "path": "backend/internal/api/v2/handlers/runner_agent.go",
-          "sha256": "b6f8c3368bcb552de2f954340401ae762bc14a713f571c5471203301d2a906aa"
+          "sha256": "dbb54de2e5709a21f0eea1234fbf3e57c170ec24fb450574056a38286aaa7133"
         },
         {
           "path": "backend/internal/launcher/launcher.go",
@@ -53,7 +53,7 @@
         },
         {
           "path": "backend/internal/api/v2/handlers/runner_agent.go",
-          "sha256": "b6f8c3368bcb552de2f954340401ae762bc14a713f571c5471203301d2a906aa"
+          "sha256": "dbb54de2e5709a21f0eea1234fbf3e57c170ec24fb450574056a38286aaa7133"
         },
         {
           "path": "backend/internal/executor/ansibleexec/run.go",
@@ -193,7 +193,7 @@
         },
         {
           "path": "backend/internal/api/v2/handlers/runner_agent.go",
-          "sha256": "b6f8c3368bcb552de2f954340401ae762bc14a713f571c5471203301d2a906aa"
+          "sha256": "dbb54de2e5709a21f0eea1234fbf3e57c170ec24fb450574056a38286aaa7133"
         },
         {
           "path": "core/services/ansible/playbook_sync.go",
@@ -392,7 +392,7 @@
     {
       "id": "run-cancellation",
       "guide": "features/opentofu/run-cancellation.md",
-      "guideHash": "6343a7ce25900db58d03084b5b6c32077a7e85de308318d0ea136a6a18a1f64e",
+      "guideHash": "69646e0c472819a54cfa30af834b50df34a5af511e6afb5d3ccf957d96f448f7",
       "metadataHash": "4d37ab7b7948688feaf8bf988a9fc5fbc284168ce89074f34669d8dedbb9ca8b",
       "evidence": [
         {
