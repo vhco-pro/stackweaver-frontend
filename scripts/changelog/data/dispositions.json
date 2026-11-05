@@ -102,5 +102,9 @@
   {
     "commit": "792d1bc0a6824ce549b9bd7c4e8d369af01c7beb",
     "reason": "Developer tooling for the source checkout: the manual make fresh and fresh-backend commands check generated environment values before refreshing the development Compose stack. No published component, chart, API or customer capability changes."
+  },
+  {
+    "id": "license-header-bom-preservation",
+    "reason": "Manual developer-tool repair: preserve a leading UTF-8 byte-order mark when inserting a source license header, so valid Go source remains compilable. Licensing terms, product runtime, APIs, deployment behavior and published customer content are unchanged."
   }
 ]
