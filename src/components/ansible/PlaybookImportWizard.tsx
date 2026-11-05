@@ -220,9 +220,9 @@ export function PlaybookImportWizard({ open, onOpenChange, organizationName, pla
                       Loading playbook files...
                     </div>
                   ) : (
-                    // min-h keeps the list usable when the flex column is squeezed on
-                    // short viewports; skipped for short lists so the box hugs its rows.
-                    <div className={cn('border rounded-md overflow-y-auto divide-y', files.length > 3 && 'min-h-32')}>
+                    // Keep short lists at their row height when the flex column is squeezed.
+                    // Longer lists retain their scrollable minimum height.
+                    <div className={cn('border rounded-md overflow-y-auto divide-y', files.length > 3 ? 'min-h-32' : 'shrink-0')}>
                       {files.length === 0 ? (
                         <p className="p-3 text-sm text-muted-foreground">
                           No playbook files found. YAML files inside conventional non-playbook
