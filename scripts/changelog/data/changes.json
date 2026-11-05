@@ -1368,5 +1368,31 @@
       "helm"
     ],
     "availability": []
+  },
+  {
+    "id": "docs-highlight-reader-state",
+    "title": "Documentation keeps open sections and keyboard focus",
+    "area": "Documentation",
+    "kind": "Fixed",
+    "reviewed": true,
+    "audience": "Readers of documentation and articles containing highlighted code.",
+    "before": "Completing code highlighting, showing copy feedback or changing theme could replace the document and reset open sections or keyboard focus.",
+    "after": "Code blocks update without replacing the surrounding document. Open sections and keyboard focus survive those updates.",
+    "action": "No action is required.",
+    "details": [
+      "Existing code-block styling, language labels, copy text and theme-aware highlighting are preserved.",
+      "Code blocks keep their shared frame and copy button while highlighting refreshes."
+    ],
+    "guides": [
+      {
+        "title": "Read OpenTofu runs",
+        "path": "/docs/user-guides/understanding-opentofu-runs"
+      }
+    ],
+    "sourceCommits": [],
+    "requiredComponents": [
+      "frontend"
+    ],
+    "availability": []
   }
 ]

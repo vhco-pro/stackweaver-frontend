@@ -1,7 +1,7 @@
 // Copyright (c) 2025 VH & Co BV. Licensed under the Business Source License 1.1. See LICENSE for details.
 
 import { useDocsEnvironment } from './DocsEnvironment';
-import { Children, isValidElement, useState, useRef, useMemo, type ReactNode, type KeyboardEvent } from 'react';
+import { Children, createContext, isValidElement, useCallback, useContext, useEffect, useState, useRef, useMemo, type ReactNode, type KeyboardEvent } from 'react';
 import { useMountEffect } from '@/hooks/useMountEffect';
 import { useNavigate, useLocation } from 'react-router-dom';
 import ReactMarkdown from 'react-markdown';
@@ -659,6 +659,183 @@ function getStatusStyle(status: string) {
   return STATUS_STYLES[key] ?? { bg: 'bg-muted/60', text: 'text-muted-foreground', border: 'border-border/40' };
 }
 
+interface CodeRenderState {
+  highlightedCode: Record<string, string>;
+  copiedCodeId: string | null;
+  setCopiedCodeId: (value: string | null) => void;
+  enableMermaid: boolean;
+  requestHighlight: (request: { hash: string; code: string; lang: string }) => void;
+}
+
+const CodeRenderContext = createContext<CodeRenderState | null>(null);
+
+function HighlightRequest({ hash, code, lang }: { hash: string; code: string; lang: string }) {
+  const state = useContext(CodeRenderContext);
+  if (!state) throw new Error('Highlight requests require MarkdownRenderer');
+  const { highlightedCode, requestHighlight } = state;
+  // The formatter follows changing code and cache/theme resets, not just mount.
+  useEffect(() => {
+    if (code && !highlightedCode[hash]) requestHighlight({ hash, code, lang });
+  }, [hash, code, lang, highlightedCode, requestHighlight]);
+  return null;
+}
+
+// Only code blocks subscribe to asynchronous highlighting and copy feedback.
+function MarkdownPre({ children, ...props }: MarkdownPreProps) {
+  const state = useContext(CodeRenderContext);
+  if (!state) throw new Error('Code blocks require MarkdownRenderer');
+  const { highlightedCode, copiedCodeId, setCopiedCodeId, enableMermaid } = state;
+  // ReactMarkdown wraps code blocks as <pre><code>...</code></pre>
+  // Extract code text and language to look up highlighted version
+  // children can be a single React element (code) or an array
+
+  // Handle single child (most common case)
+  let child: ReactNode = children;
+  if (Array.isArray(children) && children.length === 1) {
+    child = children[0] as ReactNode;
+  }
+
+  // Helper to check if node is a React element-like object
+  const isReactElement = (node: ReactNode): boolean => {
+    return typeof node === 'object' && node !== null;
+  };
+
+  if (isReactElement(child)) {
+    const childElement = child as unknown as ReactElementLike;
+    // If child is already a shiki-wrapper div, return it directly (no pre wrapper)
+    const childType = typeof childElement.type === 'string' ? childElement.type :
+                     (typeof childElement.type === 'object' && childElement.type !== null && 'name' in childElement.type ? childElement.type.name : '');
+    const childClassName = typeof childElement.props?.className === 'string' ? childElement.props.className : '';
+
+    if (childType === 'div' && childClassName.includes('shiki-wrapper')) {
+      return child;
+    }
+
+    // Check if child is a code element (single child or array element)
+    // child.type could be the string 'code' or the React component function
+    const isCodeElement = childType === 'code' ||
+      (typeof childElement.type === 'function' && childElement.type.name === 'code') ||
+      childClassName.includes('language-') ||
+      (isRecord(childElement.props?.node) && childElement.props.node.tagName === 'code');
+
+    if (isCodeElement) {
+      // Extract code text from children
+      const extractCodeText = (node: ReactNode): string => {
+        if (typeof node === 'string') {
+          return node;
+        }
+        if (Array.isArray(node)) {
+          return node.map(extractCodeText).join('');
+        }
+        if (typeof node === 'object' && node !== null && 'props' in node) {
+          const nodeProps = node.props as { children?: ReactNode };
+          return extractCodeText(nodeProps.children || '');
+        }
+        // Handle primitive types safely - avoid String() on objects
+        if (node == null) {
+          return '';
+        }
+        return typeof node === 'string' || typeof node === 'number' || typeof node === 'boolean'
+          ? String(node)
+          : '';
+      };
+
+      const codeText = extractCodeText(childElement.props?.children);
+      const codeTextTrimmed = codeText.trim();
+
+      // Extract language from className
+      const className = typeof childElement.props?.className === 'string' ? childElement.props.className :
+                       Array.isArray(childElement.props?.className) ? childElement.props.className.join(' ') :
+                       String(childElement.props?.className || '');
+      let lang = className.replace('language-', '').split(' ')[0] || 'text';
+      // Map common language aliases to Shiki language identifiers
+      if (lang === 'env') {
+        lang = 'dotenv';
+      }
+
+      // For Mermaid, render diagram (do not use Shiki)
+      if (lang === 'mermaid' && enableMermaid) {
+        return <MermaidDiagram code={codeTextTrimmed} />;
+      }
+
+      // For tree / filetree, render interactive file tree visualization
+      if (lang === 'tree' || lang === 'filetree') {
+        return <FileTreeViewer content={codeTextTrimmed} />;
+      }
+
+      // Calculate hash for copy functionality
+      const codeHash = hashCode(`${lang}-${codeTextTrimmed}`);
+
+      // Display language label (use original lang before mapping for display)
+      const displayLang = lang === 'dotenv' ? 'env' : lang;
+
+      // For JSON/JSONC, use our existing JsonSyntaxHighlighter instead of Shiki
+      if (lang === 'json' || lang === 'jsonc') {
+        const codeId = `code-json-${codeHash}`;
+        const handleCopy = async () => {
+          try {
+            await navigator.clipboard.writeText(codeTextTrimmed);
+            setCopiedCodeId(codeId);
+            setTimeout(() => setCopiedCodeId(null), 2000);
+          } catch (err) {
+            console.error('Failed to copy code:', err);
+          }
+        };
+
+        return (
+          <DocsCodeBlock language={displayLang} copied={copiedCodeId === codeId} onCopy={handleCopy}>
+            <JsonSyntaxHighlighter
+              json={codeTextTrimmed}
+              maxHeight="none"
+              className="border-0 bg-transparent"
+              stringColor="green"
+            />
+          </DocsCodeBlock>
+        );
+      }
+
+      // For other languages, use Shiki
+      // Check for shiki marker in className OR check highlightedCode state directly
+      const hasShikiMarker = className.includes('shiki-code-render');
+      const dataShikiHtml = (childElement.props?.['data-shiki-html'] as string | undefined);
+      const html = hasShikiMarker ? (dataShikiHtml || highlightedCode[codeHash]) : highlightedCode[codeHash];
+
+      const codeId = `code-${codeHash}`;
+      const handleCopy = async () => {
+        try {
+          await navigator.clipboard.writeText(codeTextTrimmed);
+          setCopiedCodeId(codeId);
+          setTimeout(() => setCopiedCodeId(null), 2000);
+        } catch (err) {
+          console.error('Failed to copy code:', err);
+        }
+      };
+
+      // Only a code child of pre is a block. Inline code never enters
+      // this path, including when react-markdown omits the inline prop.
+      const codeProps = { ...childElement.props };
+      delete codeProps.node;
+      return (
+        <DocsCodeBlock language={lang === 'text' ? '' : displayLang} copied={copiedCodeId === codeId} onCopy={handleCopy}>
+          {html && typeof html === 'string' && html.length > 0 ? (
+            <div dangerouslySetInnerHTML={{ __html: html }} />
+          ) : (
+            <>
+              <HighlightRequest hash={codeHash} code={codeTextTrimmed} lang={lang} />
+              <pre {...props}>
+                <code {...codeProps} className={`language-${lang} ${className}`}>{childElement.props?.children}</code>
+              </pre>
+            </>
+          )}
+        </DocsCodeBlock>
+      );
+    }
+  }
+
+  // Regular pre (not a code block with shiki) - render normally
+  return <pre {...props}>{children}</pre>;
+}
+
 export function MarkdownRenderer({
   content,
   className,
@@ -679,14 +856,14 @@ export function MarkdownRenderer({
   const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
   const [lightboxAlt, setLightboxAlt] = useState<string>('');
 
-  // Collect code blocks that need highlighting during render, flush via
-  // a deferred microtask (no useEffect needed). Each push schedules a single
-  // flush; the flush drains all items accumulated during that render pass.
+  // Collect requests from mounted code blocks and batch them in one microtask.
   const pendingHighlightsRef = useRef<Array<{ hash: string; code: string; lang: string }>>([]);
   const flushScheduledRef = useRef(false);
 
-  const scheduleHighlightFlush = useRef(() => {
-    if (staticRender || flushScheduledRef.current) return;
+  const requestHighlight = useCallback((request: { hash: string; code: string; lang: string }) => {
+    if (staticRender) return;
+    pendingHighlightsRef.current.push(request);
+    if (flushScheduledRef.current) return;
     flushScheduledRef.current = true;
     queueMicrotask(() => {
       flushScheduledRef.current = false;
@@ -724,7 +901,7 @@ export function MarkdownRenderer({
         }
       })();
     });
-  }).current;
+  }, [staticRender]);
 
   // Parse frontmatter from content
   const { meta, body: markdownBody } = useMemo(() => parseFrontmatter(content), [content]);
@@ -755,7 +932,7 @@ export function MarkdownRenderer({
     return lastSlash >= 0 ? docPath.substring(0, lastSlash) : '';
   })();
 
-  // Memoize components to ensure they update when highlightedCode changes
+  // Keep component types stable while code consumers receive fresh context.
   const markdownComponents = useMemo(() => {
     const extractTextFromChildren = (children: ReactNode): string => {
       if (typeof children === 'string' || typeof children === 'number') {
@@ -910,164 +1087,7 @@ export function MarkdownRenderer({
         const url = (props['data-url'] as string) ?? '';
         return <GitHubSnippet url={url} docsBase={docsBase} />;
       },
-      // Pre wrapper - handles shiki highlighted code
-      pre: ({ children, ...props }: MarkdownPreProps) => {
-        // ReactMarkdown wraps code blocks as <pre><code>...</code></pre>
-        // Extract code text and language to look up highlighted version
-        // children can be a single React element (code) or an array
-        
-        // Handle single child (most common case)
-        let child: ReactNode = children;
-        if (Array.isArray(children) && children.length === 1) {
-          child = children[0] as ReactNode;
-        }
-        
-        // Helper to check if node is a React element-like object
-        const isReactElement = (node: ReactNode): boolean => {
-          return typeof node === 'object' && node !== null;
-        };
-        
-        if (isReactElement(child)) {
-          const childElement = child as unknown as ReactElementLike;
-          // If child is already a shiki-wrapper div, return it directly (no pre wrapper)
-          const childType = typeof childElement.type === 'string' ? childElement.type : 
-                           (typeof childElement.type === 'object' && childElement.type !== null && 'name' in childElement.type ? childElement.type.name : '');
-          const childClassName = typeof childElement.props?.className === 'string' ? childElement.props.className : '';
-          
-          if (childType === 'div' && childClassName.includes('shiki-wrapper')) {
-            return child;
-          }
-          
-          // Check if child is a code element (single child or array element)
-          // child.type could be the string 'code' or the React component function
-          const isCodeElement = childType === 'code' || 
-            (typeof childElement.type === 'function' && childElement.type.name === 'code') ||
-            childClassName.includes('language-') ||
-            (isRecord(childElement.props?.node) && childElement.props.node.tagName === 'code');
-          
-          if (isCodeElement) {
-            // Extract code text from children
-            const extractCodeText = (node: ReactNode): string => {
-              if (typeof node === 'string') {
-                return node;
-              }
-              if (Array.isArray(node)) {
-                return node.map(extractCodeText).join('');
-              }
-              if (typeof node === 'object' && node !== null && 'props' in node) {
-                const nodeProps = node.props as { children?: ReactNode };
-                return extractCodeText(nodeProps.children || '');
-              }
-              // Handle primitive types safely - avoid String() on objects
-              if (node == null) {
-                return '';
-              }
-              return typeof node === 'string' || typeof node === 'number' || typeof node === 'boolean' 
-                ? String(node) 
-                : '';
-            };
-            
-            const codeText = extractCodeText(childElement.props?.children);
-            const codeTextTrimmed = codeText.trim();
-            
-            // Extract language from className
-            const className = typeof childElement.props?.className === 'string' ? childElement.props.className : 
-                             Array.isArray(childElement.props?.className) ? childElement.props.className.join(' ') : 
-                             String(childElement.props?.className || '');
-            let lang = className.replace('language-', '').split(' ')[0] || 'text';
-            // Map common language aliases to Shiki language identifiers
-            if (lang === 'env') {
-              lang = 'dotenv';
-            }
-            
-            // For Mermaid, render diagram (do not use Shiki)
-            if (lang === 'mermaid' && enableMermaid) {
-              return <MermaidDiagram code={codeTextTrimmed} />;
-            }
-
-            // For tree / filetree, render interactive file tree visualization
-            if (lang === 'tree' || lang === 'filetree') {
-              return <FileTreeViewer content={codeTextTrimmed} />;
-            }
-            
-            // Calculate hash for copy functionality
-            const codeHash = hashCode(`${lang}-${codeTextTrimmed}`);
-            
-            // Display language label (use original lang before mapping for display)
-            const displayLang = lang === 'dotenv' ? 'env' : lang;
-            
-            // For JSON/JSONC, use our existing JsonSyntaxHighlighter instead of Shiki
-            if (lang === 'json' || lang === 'jsonc') {
-              const codeId = `code-json-${codeHash}`;
-              const handleCopy = async () => {
-                try {
-                  await navigator.clipboard.writeText(codeTextTrimmed);
-                  setCopiedCodeId(codeId);
-                  setTimeout(() => setCopiedCodeId(null), 2000);
-                } catch (err) {
-                  console.error('Failed to copy code:', err);
-                }
-              };
-
-              return (
-                <DocsCodeBlock language={displayLang} copied={copiedCodeId === codeId} onCopy={handleCopy}>
-                  <JsonSyntaxHighlighter 
-                    json={codeTextTrimmed} 
-                    maxHeight="none"
-                    className="border-0 bg-transparent"
-                    stringColor="green"
-                  />
-                </DocsCodeBlock>
-              );
-            }
-            
-            // For other languages, use Shiki
-            // Check for shiki marker in className OR check highlightedCode state directly
-            const hasShikiMarker = className.includes('shiki-code-render');
-            const dataShikiHtml = (childElement.props?.['data-shiki-html'] as string | undefined);
-            const html = hasShikiMarker ? (dataShikiHtml || highlightedCode[codeHash]) : highlightedCode[codeHash];
-            
-            if (html && typeof html === 'string' && html.length > 0) {
-              const codeId = `code-${codeHash}`;
-              const handleCopy = async () => {
-                try {
-                  await navigator.clipboard.writeText(codeTextTrimmed);
-                  setCopiedCodeId(codeId);
-                  setTimeout(() => setCopiedCodeId(null), 2000);
-                } catch (err) {
-                  console.error('Failed to copy code:', err);
-                }
-              };
-
-              // Display language label (use original lang before mapping for display)
-              const displayLang = lang === 'text' ? '' : (lang === 'dotenv' ? 'env' : lang);
-
-              return (
-                <DocsCodeBlock language={displayLang} copied={copiedCodeId === codeId} onCopy={handleCopy}>
-                  <div dangerouslySetInnerHTML={{ __html: html }} />
-                </DocsCodeBlock>
-              );
-            }
-
-            // Only a code child of pre is a block. Inline code never enters
-            // this path, including when react-markdown omits the inline prop.
-            if (codeTextTrimmed) {
-              pendingHighlightsRef.current.push({ hash: codeHash, code: codeTextTrimmed, lang });
-              scheduleHighlightFlush();
-            }
-            const codeProps = { ...childElement.props };
-            delete codeProps.node;
-            return (
-              <pre {...props}>
-                <code {...codeProps} className={`language-${lang} ${className}`}>{childElement.props?.children}</code>
-              </pre>
-            );
-          }
-        }
-        
-        // Regular pre (not a code block with shiki) - render normally
-        return <pre {...props}>{children}</pre>;
-      },
+      pre: MarkdownPre,
       // Fenced code is handled structurally by pre; remaining code is inline.
       code: ({ className, children, ...props }: MarkdownCodeProps) => {
         // The syntax tree node is renderer metadata, not an HTML attribute.
@@ -1190,13 +1210,32 @@ export function MarkdownRenderer({
         </div>
       ),
     };
-  }, [assetUrl, location.pathname, highlightedCode, docPath, docsBase, navigate, copiedCodeId, hideTitle, enableCallouts, enableCodeGroups, enableMermaid, onLinkClick, currentDir, scheduleHighlightFlush]);
+  }, [assetUrl, location.pathname, docPath, docsBase, navigate, hideTitle, enableCallouts, enableCodeGroups, onLinkClick, currentDir]);
 
-  // Create a key based on highlighted code blocks to force ReactMarkdown to re-render
-  // when highlighting completes. ReactMarkdown only re-processes when content changes,
-  // so we need a key that changes when highlighting state updates.
-  const highlightedKeys = Object.keys(highlightedCode).sort().join(',');
-  const markdownKey = `markdown-${highlightedKeys}`;
+  const codeRenderState = useMemo<CodeRenderState>(() => ({
+    highlightedCode, copiedCodeId, setCopiedCodeId, enableMermaid,
+    requestHighlight,
+  }), [highlightedCode, copiedCodeId, setCopiedCodeId, enableMermaid, requestHighlight]);
+
+  const renderedMarkdown = useMemo(() => (
+    <ReactMarkdown
+      remarkPlugins={remarkGfm ? [remarkGfm, remarkCodeGroup] : [remarkCodeGroup]}
+      remarkRehypeOptions={
+        {
+          handlers: {
+            codeGroup: (_state: unknown, node: unknown) => codeGroupToHast(node),
+            codeExplorer: (_state: unknown, node: unknown) => codeExplorerToHast(node),
+            codeSnippet: (_state: unknown, node: unknown) => codeSnippetToHast(node),
+          },
+        } as unknown as Record<string, unknown>
+      }
+      rehypePlugins={[rehypeRaw]}
+      // @ts-expect-error - react-markdown component types are complex and our custom components work correctly
+      components={markdownComponents}
+    >
+      {markdownBody}
+    </ReactMarkdown>
+  ), [markdownBody, markdownComponents]);
 
   // Frontmatter metadata table - only rendered for internal docs (plans, analyses, etc.)
   // User-facing docs use frontmatter for search/indexing only, not for display.
@@ -1309,24 +1348,9 @@ export function MarkdownRenderer({
   return (
     <div className={cn('markdown-content', className)}>
       {metaHeader}
-      <ReactMarkdown
-        key={markdownKey}
-        remarkPlugins={remarkGfm ? [remarkGfm, remarkCodeGroup] : [remarkCodeGroup]}
-        remarkRehypeOptions={
-          {
-            handlers: {
-              codeGroup: (_state: unknown, node: unknown) => codeGroupToHast(node),
-              codeExplorer: (_state: unknown, node: unknown) => codeExplorerToHast(node),
-              codeSnippet: (_state: unknown, node: unknown) => codeSnippetToHast(node),
-            },
-          } as unknown as Record<string, unknown>
-        }
-        rehypePlugins={[rehypeRaw]}
-        // @ts-expect-error - react-markdown component types are complex and our custom components work correctly
-        components={markdownComponents}
-      >
-        {markdownBody}
-      </ReactMarkdown>
+      <CodeRenderContext.Provider value={codeRenderState}>
+        {renderedMarkdown}
+      </CodeRenderContext.Provider>
 
       <Dialog open={lightboxSrc !== null} onOpenChange={() => { setLightboxSrc(null); }}>
         <DialogContent aria-describedby={undefined} className="max-w-[90vw] max-h-[90vh] p-2 flex items-center justify-center bg-background/95 backdrop-blur-xs">
