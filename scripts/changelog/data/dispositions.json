@@ -126,5 +126,9 @@
   {
     "id": "documentation-impact-literal-paths",
     "reason": "Internal compatibility-entry correction: preserve literal filename bytes in line and Git-quoted input rather than aliasing another source path."
+  },
+  {
+    "commit": "009a1c5f4d1761d28fb4bc896a9450823f3fc642",
+    "reason": "Internal developer-workflow migration: adopt the shared documentation-impact checker and retain Stackweaver site, visual, plan and publication rules. No product runtime, API, deployment or customer-facing documentation change."
   }
 ]
