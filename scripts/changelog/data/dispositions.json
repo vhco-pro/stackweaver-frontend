@@ -138,5 +138,13 @@
   {
     "id": "demo-fleet-jobs-network",
     "reason": "Developer tooling for the source checkout: the dev stack's demo SSH fleet publishes its SSH ports and the dev Ansible launcher allows them, and the bootstrap script and E2E targets use them. No published component, chart or customer capability changes."
+  },
+  {
+    "commit": "ef9a0bbb9a1de92dab145456eaa299f3d245abe9",
+    "reason": "Uses maintained upstream fixes for the E2E-only Nodemailer and development-only fallow dependencies and the Go networking dependency. Existing application APIs and operator configuration are preserved; no new customer workflow is introduced. The selected parser security paths and required checks remain documented in the maintenance evidence, without claiming that all security findings or delivery are complete."
+  },
+  {
+    "id": "maintenance-kind-validation",
+    "reason": "Source-checkout maintenance validation only: seed credential-free local kind fixtures separately from optional GitHub fixtures, exercise controlled documentation requests and browser-resolved preview URLs, disable optional registry audit/fund requests in historical test builds, and refresh maintained captures and current internal instructions. Restore the documented manual-CI candidate secret scan with a checksum-pinned scanner, validated complete comparison ranges, merge-resolution coverage, redacted artifacts and real positive/negative controls, with independent actual Git completion/error accounting even when the scanner reports success; historical matches remain separately tracked. Existing application APIs, runtime behavior and customer configuration are preserved; no released security outcome is claimed."
   }
 ]
