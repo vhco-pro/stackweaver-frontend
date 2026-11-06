@@ -1,5 +1,30 @@
 [
   {
+    "id": "ansible-product-screenshot-loading",
+    "title": "The Ansible product page loads only the visible screenshot",
+    "area": "Ansible",
+    "kind": "Performance",
+    "reviewed": true,
+    "audience": "People browsing the public Ansible page.",
+    "before": "The page requested both light and dark screenshots as soon as it opened.",
+    "after": "With JavaScript enabled, the browser loads the visible screenshot near the viewport and requests the other image when the reader switches themes.",
+    "action": "Update the frontend image. No configuration change is required.",
+    "details": [
+      "The page reserves space for the screenshot while it loads."
+    ],
+    "guides": [
+      {
+        "title": "Ansible automation",
+        "path": "/docs/features/ansible"
+      }
+    ],
+    "sourceCommits": [],
+    "requiredComponents": [
+      "frontend"
+    ],
+    "availability": []
+  },
+  {
     "id": "docs-loading-layout-stability",
     "title": "Documentation stays stable while a guide loads",
     "area": "Platform",
