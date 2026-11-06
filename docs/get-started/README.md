@@ -10,7 +10,7 @@ covers: []
 
 ## Set up your installation
 
-Deploy with [Docker Compose](./self-hosting/docker-compose/) or [Kubernetes](./self-hosting/kubernetes/), then [configure Zitadel](../user-guides/authentication/zitadel-setup.md). If you use a public sign-in hostname, follow the [custom-domain guide](../user-guides/authentication/zitadel-custom-domain.md).
+Deploy with [Docker Compose](./self-hosting/docker-compose/README.md) or [Kubernetes](./self-hosting/kubernetes/README.md), then [configure Zitadel](../user-guides/authentication/zitadel-setup.md). If you use a public sign-in hostname, follow the [custom-domain guide](../user-guides/authentication/zitadel-custom-domain.md).
 
 Connect a [GitHub App](../user-guides/vcs/github-app.md) or [Azure DevOps](../user-guides/vcs/azure-devops.md) before creating a repository-backed workspace or job. The first-run guides above take you through the remaining steps.
 
