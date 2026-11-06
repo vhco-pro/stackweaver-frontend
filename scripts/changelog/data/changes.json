@@ -1,5 +1,38 @@
 [
   {
+    "id": "homepage-install-card-guidance",
+    "title": "Homepage install cards follow the setup guides",
+    "area": "Platform",
+    "kind": "Fixed",
+    "reviewed": true,
+    "audience": "Anyone choosing a self-hosted installation from the homepage.",
+    "before": "The short examples missed required setup, and guide links could leave a prefixed installation.",
+    "after": "The cards point to their prerequisites, show a pinned Helm install or a Kustomize render, and open guides within the configured public path.",
+    "action": "Follow the guide for your deployment method before running the example.",
+    "details": [
+      "The Compose command assumes the bundle has been configured. The Kustomize command renders a file for review."
+    ],
+    "guides": [
+      {
+        "title": "Docker Compose",
+        "path": "/docs/get-started/self-hosting/docker-compose"
+      },
+      {
+        "title": "Helm",
+        "path": "/docs/get-started/self-hosting/kubernetes"
+      },
+      {
+        "title": "Kustomize",
+        "path": "/docs/get-started/self-hosting/kubernetes/kustomize"
+      }
+    ],
+    "sourceCommits": [],
+    "requiredComponents": [
+      "frontend"
+    ],
+    "availability": []
+  },
+  {
     "id": "blog-startup-continuity",
     "title": "Blog articles stay readable while the page loads",
     "area": "Platform",

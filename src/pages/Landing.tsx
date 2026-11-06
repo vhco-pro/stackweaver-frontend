@@ -210,12 +210,13 @@ function InstallSection() {
       subtitle: 'Recommended for production - deploy with the official Helm chart',
       icon: Cloud,
       recommended: true,
-      commands: `helm install stackweaver oci://ghcr.io/vhco-pro/charts/stackweaver \\
+      commands: `# Choose CHART_VERSION and prepare my-values.yaml using the guide.
+helm install stackweaver oci://ghcr.io/vhco-pro/charts/stackweaver \\
+  --version "$CHART_VERSION" \\
   --namespace stackweaver --create-namespace \\
-  --set ingress.hosts.app=stackweaver.example.com \\
-  --set ingress.hosts.auth=auth.stackweaver.example.com`,
+  --values my-values.yaml`,
       links: [
-        { label: 'Setup Guide', href: '/docs/get-started/self-hosting/kubernetes', external: false },
+        { label: 'Helm setup guide', href: '/docs/get-started/self-hosting/kubernetes', external: false },
         { label: 'View on GHCR', href: 'https://github.com/vhco-pro/stackweaver-helm/pkgs/container/charts%2Fstackweaver', external: true },
       ],
     },
@@ -224,11 +225,10 @@ function InstallSection() {
       title: 'Docker Compose',
       subtitle: 'Single-machine deployment for evaluation or small-scale use',
       icon: Container,
-      commands: `# Download the bundle from the guide, extract it, then:
-cp .env.example .env
+      commands: `# Run from the extracted bundle after completing the guide's first-install setup.
 docker compose up -d`,
       links: [
-        { label: 'Download Bundle & Guide', href: '/docs/get-started/self-hosting/docker-compose', external: false },
+        { label: 'Docker Compose guide', href: '/docs/get-started/self-hosting/docker-compose', external: false },
       ],
     },
     {
@@ -236,10 +236,10 @@ docker compose up -d`,
       title: 'Kustomize (GitOps)',
       subtitle: 'Declarative deployment with Argo CD or Flux CD',
       icon: GitBranch,
-      commands: `# Download the overlay bundle, commit to Git, then:
-kubectl apply -k overlays/production`,
+      commands: `# Adapt the downloaded overlay using the guide before rendering.
+kustomize build overlays/production --enable-helm > rendered.yaml`,
       links: [
-        { label: 'Download Bundle & Guide', href: '/docs/get-started/self-hosting/kubernetes/kustomize', external: false },
+        { label: 'Kustomize guide', href: '/docs/get-started/self-hosting/kubernetes/kustomize', external: false },
       ],
     },
   ];
@@ -251,12 +251,12 @@ kubectl apply -k overlays/production`,
           Install Stackweaver
         </h2>
         <p className="text-center text-slate-800 dark:text-gray-400 mb-8 md:mb-16 max-w-2xl mx-auto">
-          Choose your preferred installation method. Deploy to production on Kubernetes with the official Helm chart, run a single-machine stack with Docker Compose, or manage a GitOps workflow with Kustomize. Each guide includes a downloadable deployment bundle.
+          Choose Helm for Kubernetes, Docker Compose for a single machine, or Kustomize for GitOps. The Docker Compose and Kustomize guides include downloadable deployment bundles.
         </p>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {installMethods.map((method, index) => (
-            <div
+            <article
               key={method.id}
               className={`relative rounded-2xl backdrop-blur-md border transition-all duration-300 overflow-hidden ${
                 method.recommended ? 'md:col-span-2' : ''
@@ -293,18 +293,20 @@ kubectl apply -k overlays/production`,
                     
                     {/* Links - Aligned right on large screens */}
                     <div className="flex flex-wrap gap-2 lg:ml-auto">
-                      {method.links.map((link) => (
-                        <a
-                          key={link.label}
-                          href={link.href}
-                          target={link.external ? '_blank' : undefined}
-                          rel={link.external ? 'noopener noreferrer' : undefined}
-                          className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-blue-100 dark:bg-blue-500/20 border border-blue-200 dark:border-blue-400/30 text-sm font-medium text-blue-700 dark:text-blue-300 hover:bg-blue-200 dark:hover:bg-blue-500/30 hover:border-blue-300 dark:hover:border-blue-400/50 transition-all"
-                        >
-                          {link.external ? <ExternalLink className="h-3.5 w-3.5" /> : <ArrowRight className="h-3.5 w-3.5" />}
-                          {link.label}
-                        </a>
-                      ))}
+                      {method.links.map((link) => {
+                        const className = 'inline-flex min-h-11 items-center gap-1.5 px-4 py-2 rounded-lg bg-blue-100 dark:bg-blue-500/20 border border-blue-200 dark:border-blue-400/30 text-sm font-medium text-blue-700 dark:text-blue-300 hover:bg-blue-200 dark:hover:bg-blue-500/30 hover:border-blue-300 dark:hover:border-blue-400/50 transition-all';
+                        return link.external ? (
+                          <a key={link.label} href={link.href} target="_blank" rel="noopener noreferrer" className={className}>
+                            <ExternalLink aria-hidden="true" className="h-3.5 w-3.5" />
+                            {link.label}
+                          </a>
+                        ) : (
+                          <Link key={link.label} to={link.href} reloadDocument className={className}>
+                            <ArrowRight aria-hidden="true" className="h-3.5 w-3.5" />
+                            {link.label}
+                          </Link>
+                        );
+                      })}
                     </div>
                   </div>
 
@@ -341,7 +343,7 @@ kubectl apply -k overlays/production`,
                   </div>
                 </div>
               </div>
-            </div>
+            </article>
           ))}
         </div>
       </div>
