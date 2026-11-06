@@ -12,7 +12,7 @@ WORKDIR /frontend
 
 # Copy package files first for caching
 COPY ${BUILD_ROOT}/package*.json ./
-RUN npm ci
+RUN npm ci --no-audit --no-fund
 
 # Copy frontend source, scripts, and docs to their expected locations
 COPY ${BUILD_ROOT}/ .

@@ -1852,5 +1852,31 @@
       "api"
     ],
     "availability": []
+  },
+  {
+    "id": "ansible-asn1-security-update",
+    "title": "Ansible image includes ASN.1 decoder security fixes",
+    "area": "Ansible",
+    "kind": "Security",
+    "reviewed": true,
+    "audience": "Operators using the bundled Ansible execution image and its cloud identity dependencies.",
+    "before": "The bundled ASN.1 decoder had known resource-exhaustion issues when parsing some crafted values.",
+    "after": "The bundled image includes the maintained decoder fixes for constructed strings, binary real values and schemaless tag tracking.",
+    "action": "Update the Ansible execution image when this change is published. No configuration change is required. Custom execution images need their own dependency updates.",
+    "details": [
+      "The dependency update preserves existing playbook and inventory configuration.",
+      "This entry does not establish publication or absence of other dependency findings."
+    ],
+    "guides": [
+      {
+        "title": "Run images and execution environments",
+        "path": "/docs/user-guides/run-images-and-execution-environments"
+      }
+    ],
+    "sourceCommits": [],
+    "requiredComponents": [
+      "ansible-runner"
+    ],
+    "availability": []
   }
 ]
