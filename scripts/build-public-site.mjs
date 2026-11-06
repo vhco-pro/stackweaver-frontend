@@ -64,7 +64,10 @@ try {
   const markup=renderPublicPage(page,{index,content,articles,files});
   if(!markup.includes('<h1')||markup.includes('<!--$!-->')) throw new Error(`Incomplete public output: ${page.path}`);
   const target=join(output,page.path==='/'?'index.html':page.path.slice(1)+'.html'); mkdirSync(dirname(target),{recursive:true});
-  writeFileSync(target,html(markup,pageMetadata(page),page.kind,publicDocsBootstrapMarkup(page,{index,content})));
+  const readingPath = page.kind === 'blog' || page.kind === 'article'
+   ? `<meta name="sw-public-reading-path" content="__SW_BASE_PATH__${escapeHtml(page.path)}">`
+   : '';
+  writeFileSync(target,html(markup,pageMetadata(page)+readingPath,page.kind,publicDocsBootstrapMarkup(page,{index,content})));
  }
  writeFileSync(join(dist,'404.html'),html(renderPublicNotFound(),'<title>Page not found | Stackweaver</title><meta name="robots" content="noindex" data-sw-meta>','blog'));
 } finally {globalThis.fetch=originalFetch;}

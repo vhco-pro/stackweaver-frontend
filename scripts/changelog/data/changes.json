@@ -1,5 +1,28 @@
 [
   {
+    "id": "blog-startup-continuity",
+    "title": "Blog articles stay readable while the page loads",
+    "area": "Platform",
+    "kind": "Fixed",
+    "reviewed": true,
+    "audience": "Readers opening the blog index or a published article, including comparisons.",
+    "before": "The page could briefly replace visible text with a loading screen while its interactive controls downloaded.",
+    "after": "The text stays visible while the interactive page downloads.",
+    "action": "Update the frontend image. No configuration change is required.",
+    "details": [],
+    "guides": [
+      {
+        "title": "Public pages and search indexing",
+        "path": "/docs/get-started/self-hosting/public-site"
+      }
+    ],
+    "sourceCommits": [],
+    "requiredComponents": [
+      "frontend"
+    ],
+    "availability": []
+  },
+  {
     "id": "ansible-product-screenshot-loading",
     "title": "The Ansible product page loads only the visible screenshot",
     "area": "Ansible",
