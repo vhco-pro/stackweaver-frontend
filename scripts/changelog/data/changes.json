@@ -1771,5 +1771,30 @@
       "api"
     ],
     "availability": []
+  },
+  {
+    "id": "registry-root-resource-scope",
+    "title": "Registry resource metadata stays within its module",
+    "area": "Registry",
+    "kind": "Fixed",
+    "reviewed": true,
+    "audience": "People publishing Terraform modules with examples or nested directories.",
+    "before": "Resources declared in example or other nested directories could appear in the selected module version metadata.",
+    "after": "Newly published version metadata lists resource declarations from the selected module directory, without adding resources from unrelated nested directories.",
+    "action": "Update the API before publishing new module versions. Existing stored version metadata is unchanged.",
+    "details": [
+      "Resources in nested modules are not added to their parent's declaration list."
+    ],
+    "guides": [
+      {
+        "title": "Using the API",
+        "path": "/docs/architecture/using-the-api"
+      }
+    ],
+    "sourceCommits": [],
+    "requiredComponents": [
+      "api"
+    ],
+    "availability": []
   }
 ]
