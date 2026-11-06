@@ -20,11 +20,12 @@ function start() {
 }
 
 const initialDocs = readPublicDocsBootstrap(document, window.location.pathname, config.basePath)
-if (initialDocs) {
-  // Keep the existing readable HTML until the matching route can render its warm data.
+const readingPath = document.querySelector<HTMLMetaElement>('meta[name="sw-public-reading-path"]')?.content
+if (initialDocs || readingPath === window.location.pathname) {
+  // Keep the generated HTML visible until the matching route can render.
   const matches = matchRoutes(appRoutes, window.location, config.basePath) ?? []
   void Promise.all(matches.map(match => preloadRoute(match.route.element))).then(() => {
-    seedPublicDocsBootstrap(queryClient, initialDocs)
+    if (initialDocs) seedPublicDocsBootstrap(queryClient, initialDocs)
     start()
   })
 } else {
