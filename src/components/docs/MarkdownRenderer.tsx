@@ -1,7 +1,7 @@
 // Copyright (c) 2025 VH & Co BV. Licensed under the Business Source License 1.1. See LICENSE for details.
 
 import { useDocsEnvironment } from './DocsEnvironment';
-import { Children, createContext, isValidElement, useCallback, useContext, useEffect, useState, useRef, useMemo, type ReactNode, type KeyboardEvent } from 'react';
+import { Children, createContext, isValidElement, useCallback, useContext, useEffect, useState, useRef, useMemo, type ReactNode, type KeyboardEvent, type RefObject } from 'react';
 import { useMountEffect } from '@/hooks/useMountEffect';
 import { useNavigate, useLocation } from 'react-router-dom';
 import ReactMarkdown from 'react-markdown';
@@ -669,14 +669,28 @@ interface CodeRenderState {
 
 const CodeRenderContext = createContext<CodeRenderState | null>(null);
 
-function HighlightRequest({ hash, code, lang }: { hash: string; code: string; lang: string }) {
+function HighlightRequest({ hash, code, lang, target }: { hash: string; code: string; lang: string; target: RefObject<HTMLDivElement | null> }) {
   const state = useContext(CodeRenderContext);
   if (!state) throw new Error('Highlight requests require MarkdownRenderer');
+  const { staticRender } = useDocsEnvironment();
+  const [nearViewport, setNearViewport] = useState(false);
   const { highlightedCode, requestHighlight } = state;
+
+  useMountEffect(() => {
+    const element = target.current;
+    if (staticRender || !element || typeof IntersectionObserver === 'undefined') return;
+    const observer = new IntersectionObserver(entries => {
+      const entry = entries.at(-1);
+      setNearViewport(!!entry?.isIntersecting && entry.intersectionRect.width > 0 && entry.intersectionRect.height > 0);
+    }, { rootMargin: '200px 0px', threshold: [0, 0.001] });
+    observer.observe(element);
+    return () => observer.disconnect();
+  });
+
   // The formatter follows changing code and cache/theme resets, not just mount.
   useEffect(() => {
-    if (code && !highlightedCode[hash]) requestHighlight({ hash, code, lang });
-  }, [hash, code, lang, highlightedCode, requestHighlight]);
+    if (nearViewport && code && !highlightedCode[hash]) requestHighlight({ hash, code, lang });
+  }, [nearViewport, hash, code, lang, highlightedCode, requestHighlight]);
   return null;
 }
 
@@ -685,6 +699,7 @@ function MarkdownPre({ children, ...props }: MarkdownPreProps) {
   const state = useContext(CodeRenderContext);
   if (!state) throw new Error('Code blocks require MarkdownRenderer');
   const { highlightedCode, copiedCodeId, setCopiedCodeId, enableMermaid } = state;
+  const scrollPane = useRef<HTMLDivElement>(null);
   // ReactMarkdown wraps code blocks as <pre><code>...</code></pre>
   // Extract code text and language to look up highlighted version
   // children can be a single React element (code) or an array
@@ -763,15 +778,12 @@ function MarkdownPre({ children, ...props }: MarkdownPreProps) {
         return <FileTreeViewer content={codeTextTrimmed} />;
       }
 
-      // Calculate hash for copy functionality
-      const codeHash = hashCode(`${lang}-${codeTextTrimmed}`);
-
       // Display language label (use original lang before mapping for display)
       const displayLang = lang === 'dotenv' ? 'env' : lang;
 
       // For JSON/JSONC, use our existing JsonSyntaxHighlighter instead of Shiki
       if (lang === 'json' || lang === 'jsonc') {
-        const codeId = `code-json-${codeHash}`;
+        const codeId = `code-json-${hashCode(`${lang}-${codeTextTrimmed}`)}`;
         const handleCopy = async () => {
           try {
             await navigator.clipboard.writeText(codeTextTrimmed);
@@ -795,6 +807,10 @@ function MarkdownPre({ children, ...props }: MarkdownPreProps) {
       }
 
       // For other languages, use Shiki
+      // Ordinary fences pass the same whitespace to plain text and Shiki.
+      const plainChildren = childElement.props?.children;
+      const displayCode = typeof plainChildren === 'string' ? plainChildren : codeTextTrimmed;
+      const codeHash = hashCode(`${lang}-${displayCode}`);
       // Check for shiki marker in className OR check highlightedCode state directly
       const hasShikiMarker = className.includes('shiki-code-render');
       const dataShikiHtml = (childElement.props?.['data-shiki-html'] as string | undefined);
@@ -817,16 +833,18 @@ function MarkdownPre({ children, ...props }: MarkdownPreProps) {
       delete codeProps.node;
       return (
         <DocsCodeBlock language={lang === 'text' ? '' : displayLang} copied={copiedCodeId === codeId} onCopy={handleCopy}>
-          {html && typeof html === 'string' && html.length > 0 ? (
-            <div dangerouslySetInnerHTML={{ __html: html }} />
-          ) : (
-            <>
-              <HighlightRequest hash={codeHash} code={codeTextTrimmed} lang={lang} />
-              <pre {...props}>
-                <code {...codeProps} className={`language-${lang} ${className}`}>{childElement.props?.children}</code>
-              </pre>
-            </>
-          )}
+          <div ref={scrollPane} className="docs-code-scroll" tabIndex={0}>
+            {html && typeof html === 'string' && html.length > 0 ? (
+              <div dangerouslySetInnerHTML={{ __html: html }} />
+            ) : (
+              <>
+                <HighlightRequest hash={codeHash} code={displayCode} lang={lang} target={scrollPane} />
+                <pre {...props} className={cn(typeof props.className === 'string' ? props.className : undefined, 'docs-code-fallback')}>
+                  <code {...codeProps} className={`language-${lang} ${className}`}>{plainChildren}</code>
+                </pre>
+              </>
+            )}
+          </div>
         </DocsCodeBlock>
       );
     }
@@ -882,11 +900,11 @@ export function MarkdownRenderer({
           for (const { hash, code, lang } of pending) {
             const highlightLang = lang === 'text' ? 'plaintext' : lang;
             try {
-              results[hash] = await codeToHtml(code, { lang: highlightLang, theme });
+              results[hash] = await codeToHtml(code, { lang: highlightLang, theme, tabindex: false });
             } catch (langError: unknown) {
               if (isUnknownLanguageError(langError) && highlightLang !== 'plaintext') {
                 try {
-                  results[hash] = await codeToHtml(code, { lang: 'plaintext', theme });
+                  results[hash] = await codeToHtml(code, { lang: 'plaintext', theme, tabindex: false });
                 } catch {
                   // Ignore - will render as plain text
                 }

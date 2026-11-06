@@ -1473,6 +1473,32 @@
     "availability": []
   },
   {
+    "id": "docs-code-viewport-highlighting",
+    "title": "Code stays in place while syntax colors load",
+    "area": "Documentation",
+    "kind": "Fixed",
+    "reviewed": true,
+    "audience": "Readers of guides and articles with code examples.",
+    "before": "Opening a guide could load syntax highlighting for code well below the viewport, and code blocks changed height when colors appeared.",
+    "after": "Ordinary code fences request highlighting as you approach them and keep their size and scroll position when colors appear. You can read and copy plain code while the colors load.",
+    "action": "Update the frontend. No configuration change is required.",
+    "details": [],
+    "guides": [
+      {
+        "title": "Get started",
+        "path": "/docs/get-started"
+      }
+    ],
+    "sourceCommits": [],
+    "draftCommits": [
+      "977c2f466544078953a54c0079ce0ddedd2329e9"
+    ],
+    "requiredComponents": [
+      "frontend"
+    ],
+    "availability": []
+  },
+  {
     "id": "public-docs-startup-continuity",
     "title": "Public guides stay readable during startup",
     "area": "Documentation",

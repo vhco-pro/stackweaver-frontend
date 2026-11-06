@@ -5,6 +5,7 @@ import { MemoryRouter } from 'react-router-dom';
 import { ThemeProvider } from '@/contexts/ThemeContext';
 import { codeToHtml } from '@/lib/highlighter';
 import { MarkdownRenderer } from './MarkdownRenderer';
+import { stubFenceViewport } from '@/test/stubFenceViewport';
 
 vi.mock('mermaid', () => ({ default: { initialize: vi.fn(), run: vi.fn() } }));
 vi.mock('@/lib/highlighter', () => ({ codeToHtml: vi.fn(), isUnknownLanguageError: () => false }));
@@ -14,10 +15,12 @@ const html = '<pre class="shiki"><code>printf hello</code></pre>';
 const viewFor = (text: string) => <MemoryRouter><ThemeProvider><MarkdownRenderer content={text} /></ThemeProvider></MemoryRouter>;
 
 beforeEach(() => {
+  stubFenceViewport();
   document.documentElement.classList.remove('dark');
   vi.mocked(codeToHtml).mockReset().mockResolvedValue(html);
 });
-afterEach(() => { document.documentElement.classList.remove('dark'); });
+afterEach(() => {
+  vi.unstubAllGlobals(); document.documentElement.classList.remove('dark'); });
 
 it.each(['summary', 'link'] as const)('keeps open sections and focused %s when highlighting finishes', async target => {
   let finish: (value: string) => void = () => { throw new Error('Highlight has not started'); };
@@ -79,7 +82,7 @@ it.each(['summary', 'copy'] as const)('refreshes highlighting without replacing 
     document.documentElement.classList.add('dark');
     await Promise.resolve(); // Flush the MutationObserver before checking highlighting.
   });
-  await waitFor(() => { expect(codeToHtml).toHaveBeenLastCalledWith('printf hello', { lang: 'sh', theme: 'github-dark' }); });
+  await waitFor(() => { expect(codeToHtml).toHaveBeenLastCalledWith('printf hello\n', { lang: 'sh', theme: 'github-dark', tabindex: false }); });
   expect(view.container.querySelector('.shiki')).toBeNull();
   expect(focus).toBeInTheDocument();
   expect(document.activeElement).toBe(focus);
