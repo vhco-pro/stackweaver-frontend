@@ -1695,5 +1695,30 @@
       "frontend"
     ],
     "availability": []
+  },
+  {
+    "id": "registry-submodule-source-detection",
+    "title": "Registry metadata excludes false submodule entries",
+    "area": "Registry",
+    "kind": "Fixed",
+    "reviewed": true,
+    "audience": "People publishing Terraform modules to the private registry.",
+    "before": "A directory whose name ended in .tf could make its parent appear as a nonempty submodule even when the parent contained no Terraform source files.",
+    "after": "A .tf directory name alone does not create a submodule in newly published version metadata. Terraform files and genuine nested modules are still detected.",
+    "action": "Update the API before publishing new module versions. Existing module-version metadata is unchanged.",
+    "details": [
+      "This change does not rewrite existing published versions."
+    ],
+    "guides": [
+      {
+        "title": "Using the API",
+        "path": "/docs/architecture/using-the-api"
+      }
+    ],
+    "sourceCommits": [],
+    "requiredComponents": [
+      "api"
+    ],
+    "availability": []
   }
 ]
