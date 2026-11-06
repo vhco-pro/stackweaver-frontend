@@ -1,16 +1,36 @@
 // Copyright (c) 2026 VH & Co BV. Licensed under the Business Source License 1.1. See LICENSE for details.
-import { expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { act, fireEvent, render, waitFor, within } from '@testing-library/react';
+import { renderToStaticMarkup } from 'react-dom/server';
 import { MemoryRouter } from 'react-router-dom';
 import { ThemeProvider } from '@/contexts/ThemeContext';
 import { MarkdownRenderer } from './MarkdownRenderer';
+import { DocsEnvironmentContext } from './DocsEnvironment';
 import { codeToHtml } from '@/lib/highlighter';
+import { stubFenceViewport } from '@/test/stubFenceViewport';
 
 vi.mock('mermaid', () => ({ default: { initialize: vi.fn(), run: vi.fn() } }));
 vi.mock('@/lib/highlighter', () => ({
   codeToHtml: vi.fn((code: string) => Promise.resolve(`<pre><code>${code}</code></pre>`)),
   isUnknownLanguageError: () => false,
 }));
+
+beforeEach(() => { stubFenceViewport(); });
+afterEach(() => { vi.unstubAllGlobals(); });
+
+it('waits for a fence to approach the viewport and preserves its whitespace', async () => {
+  const setNear = stubFenceViewport(false);
+  const command = '    key: value  \u00a0\n\n';
+  const article = <MarkdownRenderer content={'```yaml\n' + command + '```'} />;
+  const staticHtml = renderToStaticMarkup(<MemoryRouter><ThemeProvider><DocsEnvironmentContext.Provider value={{ basePath: '', staticRender: true }}>{article}</DocsEnvironmentContext.Provider></ThemeProvider></MemoryRouter>);
+  expect(staticHtml).toContain(command);
+  const view = render(<MemoryRouter><ThemeProvider>{article}</ThemeProvider></MemoryRouter>);
+  await act(async () => { await vi.dynamicImportSettled(); });
+  expect(view.container.querySelector('pre code')?.textContent).toBe(command);
+  expect(codeToHtml).not.toHaveBeenCalled();
+  act(() => { setNear(true); });
+  await waitFor(() => { expect(codeToHtml).toHaveBeenCalledExactlyOnceWith(command, expect.objectContaining({ lang: 'yaml' })); });
+});
 
 it('keeps an inline-only article mounted without requesting block highlighting', async () => {
   const view = render(<MemoryRouter><ThemeProvider><MarkdownRenderer content={'# Inline article\n\nUse `stackweaver` and [read more](https://example.com).'} /></ThemeProvider></MemoryRouter>);
@@ -27,13 +47,13 @@ it('keeps an inline-only article mounted without requesting block highlighting',
 it('highlights only the fenced command in a document containing inline code', async () => {
   const view = render(<MemoryRouter><ThemeProvider><MarkdownRenderer content={'Use `inline-command`.\n\n```sh\nprintf hello\n```'} /></ThemeProvider></MemoryRouter>);
   await waitFor(() => { expect(view.container.querySelector('.shiki-wrapper pre')).toHaveTextContent('printf hello'); });
-  expect(codeToHtml).toHaveBeenCalledExactlyOnceWith('printf hello', expect.objectContaining({ lang: 'sh' }));
+  expect(codeToHtml).toHaveBeenCalledExactlyOnceWith('printf hello\n', expect.objectContaining({ lang: 'sh' }));
   expect(view.getByText('inline-command').tagName).toBe('CODE');
 });
 
 it('preserves unlabelled and empty fences and the JSON renderer', async () => {
   const view = render(<MemoryRouter><ThemeProvider><MarkdownRenderer content={'```\nplain command\n```\n\n```\n```\n\n```json\n{"ready":true}\n```'} /></ThemeProvider></MemoryRouter>);
-  await waitFor(() => { expect(codeToHtml).toHaveBeenCalledExactlyOnceWith('plain command', expect.objectContaining({ lang: 'plaintext' })); });
+  await waitFor(() => { expect(codeToHtml).toHaveBeenCalledExactlyOnceWith('plain command\n', expect.objectContaining({ lang: 'plaintext' })); });
   expect(view.container.querySelector('pre code:empty')).not.toBeNull();
   expect(view.getByText('"ready"')).toBeInTheDocument();
 });
@@ -58,7 +78,7 @@ it('displays and copies distinct commands whose first 100 characters match', asy
     await waitFor(() => {
       const blocks = container.querySelectorAll('.shiki-wrapper pre');
       expect(blocks).toHaveLength(2);
-      commands.forEach((code, index) => { expect(blocks[index].textContent).toBe(code); });
+      commands.forEach((code, index) => { expect(blocks[index].textContent).toBe(code + '\n'); });
     });
     for (let index = 0; index < commands.length; index++) {
       const wrapper = container.querySelectorAll<HTMLElement>('.shiki-wrapper')[index];
