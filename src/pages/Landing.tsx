@@ -14,6 +14,7 @@ import { CookieConsent } from '@/components/gdpr/CookieConsent';
 import { Stage } from '@/components/landing/Stage';
 import { Compatibility } from '@/components/landing/Compatibility';
 import { LicenseSecurity } from '@/components/landing/LicenseSecurity';
+import { FrequentlyAskedQuestions } from '@/components/landing/FrequentlyAskedQuestions';
 import { Footer } from '@/components/layout/Footer';
 
 
@@ -121,6 +122,7 @@ export default function Landing() {
       </section>
 
       <LicenseSecurity />
+      <FrequentlyAskedQuestions />
 
       {/* CTA Section */}
       <section className="pt-12 pb-24 px-4 md:px-6 relative">
