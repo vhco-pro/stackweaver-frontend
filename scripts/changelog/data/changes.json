@@ -1,5 +1,30 @@
 [
   {
+    "id": "homepage-frequently-asked-questions",
+    "title": "The homepage answers common Stackweaver questions",
+    "area": "Platform",
+    "kind": "Added",
+    "reviewed": true,
+    "audience": "People evaluating Stackweaver for their team.",
+    "before": "Setup, compatibility, licensing and help were described on separate pages.",
+    "after": "The homepage groups five answers with links to setup guides, compatibility details, the license and consultancy.",
+    "action": "Open Frequently asked questions on the homepage.",
+    "details": [
+      "Use a mouse, touch or keyboard to expand an answer."
+    ],
+    "guides": [
+      {
+        "title": "Self-hosting",
+        "path": "/docs/get-started/self-hosting"
+      }
+    ],
+    "sourceCommits": [],
+    "requiredComponents": [
+      "frontend"
+    ],
+    "availability": []
+  },
+  {
     "id": "homepage-install-card-guidance",
     "title": "Homepage install cards follow the setup guides",
     "area": "Platform",
