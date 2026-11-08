@@ -61,7 +61,10 @@ describe('AgentPoolIdentityBindings', () => {
     await user.click(screen.getByRole('button', { name: /New binding/ }));
     await user.type(screen.getByLabelText('Name'), 'deploy-prod');
     await user.type(screen.getByLabelText('Service account name'), 'sw-deploy');
-    await user.type(screen.getByLabelText('Annotations'), 'eks.amazonaws.com/role-arn=arn:aws:iam::1:role/deploy');
+    // Pasted, not typed: the test is about the binding it creates, and typing 55 characters one
+    // re-render at a time pushed it past the timeout on a loaded host.
+    await user.click(screen.getByLabelText('Annotations'));
+    await user.paste('eks.amazonaws.com/role-arn=arn:aws:iam::1:role/deploy');
     await user.click(screen.getByRole('combobox', { name: 'Service account mode' }));
     await user.click(await screen.findByRole('option', { name: 'Create one per job' }));
     await user.click(screen.getByRole('button', { name: 'Create' }));
