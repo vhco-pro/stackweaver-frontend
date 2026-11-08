@@ -124,7 +124,7 @@ flowchart LR
 3. **Redis** - carries wakeups, so a launcher holding an open heartbeat is answered as soon as work for its pool appears. No launcher connects to it.
 4. **Launcher** - the `stackweaver-ansible-runner` image, on the hosted capacity or in an agent pool. It keeps one heartbeat open, is offered work for its pool up to its free capacity, claims a job atomically and asks the API for a token valid for that job alone.
 5. **Executor** - placed by the launcher's driver as a child process, a container or a pod. It fetches the job's inputs with the job token, installs Galaxy requirements, runs `ansible-playbook`, and posts events and the result back.
-6. **Scheduler tick** - a 30-second loop inside the API that runs schedules, releases held jobs, advances workflows, dispatches notifications, and cleans up expired jobs.
+6. **Scheduler tick** - a 30-second loop inside the API that fires schedules on their cron, releases held jobs, advances workflows, records what each schedule's sync became, dispatches notifications, and cleans up expired jobs. Every API replica runs it and one replica at a time does each tick's work, so no schedule fires twice and no notification is sent twice. `ANSIBLE_SCHEDULER_ENABLED=false` stops only the cron firing; the rest of the tick runs either way.
 
 </details>
 
@@ -344,7 +344,7 @@ flowchart TD
     T2["Schedule"] --> Q
     T3["VCS push webhook"] --> Q
     T4["Update-on-launch (job launch)"] --> Q
-    T5["Workflow sync node"] --> ENG["runs in API"]
+    T5["Workflow sync node"] --> Q
     Q --> R["Ansible launcher places it"]
     R --> B1["VCS file inventory (hosted, platform image):<br/>clone repo, parse file"]
     R --> B2["Dynamic source (its pool and image):<br/>ansible-inventory with cloud plugin"]
@@ -364,6 +364,7 @@ flowchart TD
 4. **Variable merging** - by default synced host variables merge into existing ones (your manual keys survive); *overwrite variables* switches to wholesale replacement.
 5. **Constructed inventories** - are derived-only: their hosts and groups come from the build alone, and every successful rebuild replaces the materialized set from the inputs and rules. The API refuses to add a host, a group or an inventory source to a constructed inventory, to add a host to one of its groups, or to move one of its groups under another, so every row a rebuild removes is one it derived. A host or group can still be deleted, and the next rebuild derives it again if the inputs and rules still produce it.
 6. **History and live tail** - each run records who triggered it (manual, schedule, launch, workflow, webhook), host/group counts, duration, and the full diagnostics; raise the source's verbosity for more detail.
+7. **One path for every trigger** - the API never runs `ansible-inventory` itself. A schedule and a workflow sync node request the same sync as the **Sync** button, and follow it: the schedule records its run as `pending` and then as what the sync became, and the workflow node finishes when its sync does. A disabled source is refused before a sync is requested.
 
 </details>
 
@@ -385,7 +386,7 @@ flowchart TD
     START --> KIND{"Node type"}
     KIND -->|job template| JOB["Launch job (full gates)"]
     KIND -->|approval| APPR["Wait for approve/deny<br/>(timeout denies)"]
-    KIND -->|inventory sync| ISYNC["Sync the source"]
+    KIND -->|inventory sync| ISYNC["Request the source's sync<br/>(a launcher runs it)"]
     JOB --> TICKLOOP
     APPR --> TICKLOOP
     ISYNC --> TICKLOOP
@@ -400,6 +401,7 @@ flowchart TD
 3. **Skipped paths** - when an edge condition is not met, the unreachable subtree is marked skipped rather than left dangling.
 4. **Approvals** - pending approvals surface in the run dialog with Approve/Deny; an optional timeout auto-denies.
 5. **Organization boundary** - a node starts only when everything it names belongs to the workflow's organization. A node that names anything else fails without starting a job or a sync, and the run follows its failure edges.
+6. **Lost starts** - a running job-template or inventory sync node that recorded no job or sync five minutes after it started (its API process stopped while starting it) fails, and the run follows its failure edges. A node whose job or sync no longer exists fails the same way.
 
 </details>
 
@@ -477,20 +479,21 @@ For *launch on webhook*, `fresh` source mode captures the selected branch's HEAD
 
 ## Scheduled work and delayed transitions
 
-A single 30-second loop in the API drives everything time-based. Knowing what it owns explains most "why did this happen a few seconds later" questions:
+A single 30-second loop in the API drives everything time-based. Every API replica runs it, and one replica at a time does each tick's work. Knowing what it owns explains most "why did this happen a few seconds later" questions:
 
-1. **Schedules** - due cron schedules launch their job template, inventory source sync, or workflow. A due `playbook_sync` schedule records a run and queues no sync.
-2. **Held-job release** - re-evaluates jobs held by the concurrency or dependency gates and dispatches the ones whose conditions cleared.
-3. **Workflow progression** - advances running workflow runs node by node.
-4. **Notification dispatch** - finds job/workflow transitions and delivers configured webhook, email and Microsoft Teams messages. Treat the notification as a signal to inspect the run, not as a transaction proving a remote receiver acted exactly once.
-5. **Retention cleanup** - once a day, deletes finished jobs older than the organization's retention window (template overrides apply; each template's most recent job is always kept).
+1. **Schedules** - due cron schedules launch their job template or workflow, or request their inventory source's sync. A due `playbook_sync` schedule records a run and queues no sync. With `ANSIBLE_SCHEDULER_ENABLED=false` no schedule fires on its cron; run now and the duties below still run.
+2. **Schedule outcomes** - an inventory source schedule's last run follows its sync: **Queued** while it waits for a launcher, then running, then successful or failed.
+3. **Held-job release** - re-evaluates jobs held by the concurrency or dependency gates and dispatches the ones whose conditions cleared.
+4. **Workflow progression** - advances running workflow runs node by node.
+5. **Notification dispatch** - finds job/workflow transitions and delivers configured webhook, email and Microsoft Teams messages. Treat the notification as a signal to inspect the run, not as a transaction proving a remote receiver acted exactly once.
+6. **Retention cleanup** - once a day, deletes finished jobs older than the organization's retention window (template overrides apply; each template's most recent job is always kept).
 
 ### Configure schedules
 
 | `schedule-type` | Target attribute | Behavior |
 |---|---|---|
 | `job_template` | `job-template-id` | Launch the template through normal gates. |
-| `inventory_source` | `inventory-source-id` | Refresh that source. |
+| `inventory_source` | `inventory-source-id` | Request that source's sync, which a launcher of its pool runs; the run is recorded as queued and then as the sync's outcome. |
 | `workflow` | `workflow-id` | Launch the workflow. |
 | `playbook_sync` | `playbook-id` | Accepted as a target type but does not queue a playbook sync; do not use for recurring sync. |
 
@@ -505,8 +508,11 @@ cron/timezone values are validated again.
 - **Enable** recalculates the next run without launching immediately. A schedule can be
   enabled even if its template is disabled; each refused due launch records a failed run.
 - **Disable** stops recurring launches.
-- **Run now** executes without waiting for cron. A disabled job template returns `409`
-  without a launch.
+- **Run now** executes without waiting for cron and answers once the job is launched or the
+  sync requested. A disabled job template or a disabled inventory source returns `409` without
+  a launch or a sync. For an inventory source schedule the answer carries `last-run-status`
+  `pending` and a `last-work-item` relationship naming the sync's work item, which
+  `GET /api/v2/work-items/{id}` reads.
 - A target missing from the schedule's organization at execution time records a failure.
 
 The enable, disable and run-now actions return the resulting schedule. Use the

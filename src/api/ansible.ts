@@ -1621,6 +1621,8 @@ export interface CreateWorkflowNodeInput {
   job_template_id?: string;
   inventory_id?: string;
   credential_id?: string;
+  /** The source an inventory_sync node syncs; required for that node type, refused for others. */
+  inventory_source_id?: string;
   node_type: WorkflowNodeType;
   identifier?: string;
   position_x: number;
@@ -1836,6 +1838,9 @@ export const ansibleWorkflowsApi = {
             'job-template': data.job_template_id ? { data: { id: data.job_template_id } } : undefined,
             inventory: data.inventory_id ? { data: { id: data.inventory_id } } : undefined,
             credential: data.credential_id ? { data: { id: data.credential_id } } : undefined,
+            'inventory-source': data.inventory_source_id
+              ? { data: { type: 'inventory-sources', id: data.inventory_source_id } }
+              : undefined,
           },
         },
       }
@@ -1857,6 +1862,9 @@ export const ansibleWorkflowsApi = {
             verbosity: data.verbosity,
             'all-parents-must-converge': data.all_parents_must_converge,
           },
+          relationships: data.inventory_source_id
+            ? { 'inventory-source': { data: { type: 'inventory-sources', id: data.inventory_source_id } } }
+            : undefined,
         },
       }
     ),

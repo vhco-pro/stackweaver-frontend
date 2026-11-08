@@ -1929,5 +1929,62 @@
       "ansible-runner"
     ],
     "availability": []
+  },
+  {
+    "id": "inventory-sync-triggers-through-launcher",
+    "title": "Scheduled and workflow inventory syncs run on a launcher",
+    "area": "Ansible",
+    "kind": "Fixed",
+    "reviewed": true,
+    "audience": "Teams that sync dynamic inventory sources from schedules or workflows, and operators who set ANSIBLE_SCHEDULER_ENABLED or run more than one API replica.",
+    "before": "An inventory source schedule, its Run now and a workflow's inventory sync node ran the inventory plugin inside the API, which ships no Ansible, so those syncs failed on production images. With ANSIBLE_SCHEDULER_ENABLED=false a launched workflow did not advance past its first job template node.",
+    "after": "Every sync of a dynamic source, whatever triggered it, runs on a launcher of the pool its source resolves to. A schedule shows its sync as Queued and then as the sync's outcome, and a workflow sync node finishes when its sync does. ANSIBLE_SCHEDULER_ENABLED=false stops only schedules firing on their cron; workflows, held jobs, schedule outcomes and notifications advance either way, and one API replica at a time does each scheduler tick's work.",
+    "action": "No configuration change is required. Make sure the pool your inventory sources resolve to has an Ansible launcher online, as it needs for manual syncs.",
+    "details": [
+      "Run now on a schedule of a disabled inventory source answers 409 with the reason.",
+      "A running workflow node that recorded no job or sync five minutes after it started fails, and the run follows its failure edges.",
+      "A manual sync keeps showing the source's last host count while it runs."
+    ],
+    "guides": [
+      {
+        "title": "Understand Ansible execution",
+        "path": "/docs/features/ansible/execution-flows"
+      },
+      {
+        "title": "Dynamic inventories",
+        "path": "/docs/user-guides/dynamic-inventories"
+      }
+    ],
+    "sourceCommits": [],
+    "requiredComponents": [
+      "api",
+      "frontend"
+    ],
+    "availability": []
+  },
+  {
+    "id": "workflow-sync-node-source",
+    "title": "Workflow inventory sync nodes name the source they sync",
+    "area": "Ansible",
+    "kind": "Fixed",
+    "reviewed": true,
+    "audience": "Teams that build Ansible workflows through the API.",
+    "before": "An inventory_sync workflow node could not be given its inventory source through the API, so such a node failed when its workflow reached it.",
+    "after": "Create and update a node with the inventory-source relationship. An inventory_sync node requires one, other node types refuse one, and the source must belong to the workflow's organization and to the node's inventory when it names one.",
+    "action": "Give each existing inventory_sync node its source with a node update.",
+    "details": [
+      "The node read returns the inventory-source relationship."
+    ],
+    "guides": [
+      {
+        "title": "Ansible integration reference",
+        "path": "/docs/features/ansible/roadmap"
+      }
+    ],
+    "sourceCommits": [],
+    "requiredComponents": [
+      "api"
+    ],
+    "availability": []
   }
 ]

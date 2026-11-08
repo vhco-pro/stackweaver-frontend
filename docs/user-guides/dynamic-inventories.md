@@ -242,7 +242,9 @@ an arbitrary path.
 6. Select **Sync** on the source and verify the result under **Hosts** and **Syncs**.
 
 A cloud source syncs on its project's or organization's default agent pool when one is
-set, and on the hosted capacity otherwise. After creation, its edit dialog has a
+set, and on the hosted capacity otherwise. Every sync of the source runs there, on a launcher
+of that pool, whatever started it: **Sync**, update on launch, a workflow's inventory sync node,
+or an inventory source schedule on the **Schedules** page. After creation, its edit dialog has a
 **Placement** section where it can select an execution environment and an identity
 binding, and a **Sync timeout (seconds)**; see
 [Run Images and Execution Environments](./run-images-and-execution-environments.md#where-a-setting-comes-from).

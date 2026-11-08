@@ -246,7 +246,7 @@ Checksum verification runs against your mirror's own `SHA256SUMS` file and canno
 | `CORS_EXTRA_ORIGINS` | Further browser origins the API trusts with credentials (comma-separated), on top of the origin of `STACKWEAVER_APP_URL`, which is always trusted. Needed only when the SPA is served from an origin other than `STACKWEAVER_APP_URL`. Every state-changing browser request must come from a trusted origin, so a missing origin here refuses all browser writes from it with `403` | (none) |
 | `STACKWEAVER_BASE_URL` | Base URL for API-generated links | (derived) |
 | `STACKWEAVER_WEBHOOK_BASE_URL` | Webhook callback base URL | (derived) |
-| `ANSIBLE_SCHEDULER_ENABLED` | Enable Ansible job scheduler | `true` |
+| `ANSIBLE_SCHEDULER_ENABLED` | Fire Ansible schedules on their cron. Set `false` to stop cron firing; run now, held-job release, workflow progression, schedule outcomes and notifications continue either way. Any number of API replicas can leave it on: one replica at a time does each scheduler tick's work, so no schedule fires twice. | `true` |
 | `TERRAFORM_DRIFT_DETECTION_ENABLED` | Enable drift detection | `true` |
 | `RUNNER_MONITOR_ENABLED` | Enable runner health monitoring | `true` |
 | `STACKWEAVER_NOTIFICATIONS_ALLOW_PRIVATE` | Allow workspace notification webhooks to deliver to internal/private/loopback addresses. Off by default, so notification delivery cannot reach the cloud metadata endpoint or internal services (SSRF guard). Set to `true` only if your notification collectors run on an internal network. Applies to both the API (test deliveries) and the orchestrator (run-event deliveries). | `false` |
