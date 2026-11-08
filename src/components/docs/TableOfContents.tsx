@@ -16,9 +16,11 @@ interface TableOfContentsProps {
   className?: string;
   /** Control seated on the "On this page" row: the desktop pane's collapse button. */
   headerAction?: React.ReactNode;
+  /** Leave out the "On this page" row, for a container that titles the outline itself (the phone drawer). */
+  hideHeader?: boolean;
 }
 
-export function TableOfContents({ content, className, headerAction }: TableOfContentsProps) {
+export function TableOfContents({ content, className, headerAction, hideHeader = false }: TableOfContentsProps) {
   const location = useLocation();
   const [headings, setHeadings] = useState<Heading[]>([]);
   const [activeId, setActiveId] = useState<string>('');
@@ -75,38 +77,49 @@ export function TableOfContents({ content, className, headerAction }: TableOfCon
     };
   }, [content, location.pathname]);
 
+  // The current section is the last heading that has scrolled up to the reading line, a
+  // quarter of the way down the viewport (or just below the fixed navigation, when that sits
+  // lower). It is measured rather than waited for, so an outline that mounts mid-page, like the
+  // phone drawer's, marks the section in view as soon as it opens.
   useEffect(() => {
     if (headings.length === 0) return;
 
-    const observer = new IntersectionObserver(
-      (entries) => {
-        // Don't update if user just manually clicked a TOC item
-        if (isManualScroll) return;
-        
-        // Find the first heading that's in view
-        for (const entry of entries) {
-          if (entry.isIntersecting && entry.intersectionRatio > 0.5) {
-            setActiveId(entry.target.id);
-            break;
-          }
-        }
-      },
-      {
-        rootMargin: '-20% 0px -60% 0px',
-        threshold: [0, 0.5, 1],
-      }
-    );
+    const measure = () => {
+      const elements = headings
+        .map((heading) => document.getElementById(heading.id))
+        .filter((element): element is HTMLElement => element !== null);
+      if (elements.length === 0) return;
 
-    // Observe all headings
-    headings.forEach((heading) => {
-      const element = document.getElementById(heading.id);
-      if (element) {
-        observer.observe(element);
-      }
-    });
+      const scrollMargin = Number.parseFloat(getComputedStyle(elements[0]).scrollMarginTop) || 0;
+      const line = Math.max(window.innerHeight * 0.25, scrollMargin + 16);
+      const atBottom = window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 2;
 
+      let current = elements[0];
+      for (const element of elements) {
+        const top = element.getBoundingClientRect().top;
+        // At the bottom of the page the last sections can never reach the line, so the
+        // last heading on screen wins instead.
+        if (top <= line || (atBottom && top < window.innerHeight)) current = element;
+      }
+      setActiveId(current.id);
+    };
+
+    let frame = 0;
+    const onScroll = () => {
+      if (isManualScroll || frame) return;
+      frame = requestAnimationFrame(() => {
+        frame = 0;
+        measure();
+      });
+    };
+
+    if (!isManualScroll) measure();
+    window.addEventListener('scroll', onScroll, { passive: true });
+    window.addEventListener('resize', onScroll);
     return () => {
-      observer.disconnect();
+      window.removeEventListener('scroll', onScroll);
+      window.removeEventListener('resize', onScroll);
+      if (frame) cancelAnimationFrame(frame);
     };
   }, [headings, isManualScroll]);
 
@@ -135,15 +148,17 @@ export function TableOfContents({ content, className, headerAction }: TableOfCon
   }
 
   return (
-    <nav className={cn('px-4 pb-4', className)}>
+    <nav aria-label="On this page" className={cn('px-4 pb-4', className)}>
       {/* Pinned while a long outline scrolls. */}
-      <div className="sticky top-0 z-10 -mx-4 flex items-center gap-2 bg-background px-4 pb-3 pt-4">
-        <h2 className="flex min-h-9 min-w-0 flex-1 items-center gap-2 px-3 text-sm font-semibold text-foreground">
-          <Menu className="h-4 w-4 shrink-0 text-muted-foreground" />
-          <span className="truncate">On this page</span>
-        </h2>
-        {headerAction}
-      </div>
+      {!hideHeader && (
+        <div className="sticky top-0 z-10 -mx-4 flex items-center gap-2 bg-background px-4 pb-3 pt-4">
+          <h2 className="flex min-h-9 min-w-0 flex-1 items-center gap-2 px-3 text-sm font-semibold text-foreground">
+            <Menu className="h-4 w-4 shrink-0 text-muted-foreground" />
+            <span className="truncate">On this page</span>
+          </h2>
+          {headerAction}
+        </div>
+      )}
       <ul className="space-y-1 pl-3">
         {headings.map((heading) => {
           const isActive = activeId === heading.id;
@@ -160,6 +175,7 @@ export function TableOfContents({ content, className, headerAction }: TableOfCon
             <li key={heading.id}>
               <button
                 onClick={() => scrollToHeading(heading.id)}
+                aria-current={isActive ? 'location' : undefined}
                 className={cn(
                   'w-full text-left text-sm py-1.5 rounded-md transition-colors',
                   'text-muted-foreground hover:text-foreground',

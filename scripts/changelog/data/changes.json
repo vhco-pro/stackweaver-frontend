@@ -1,5 +1,28 @@
 [
   {
+    "id": "docs-toc-drawer-and-code-header",
+    "title": "The phone outline marks the section you are reading, and code block title bars are slimmer",
+    "area": "Documentation",
+    "kind": "Fixed",
+    "reviewed": true,
+    "audience": "People reading Stackweaver documentation, blog articles and module READMEs in the frontend.",
+    "before": "On a phone or narrow window, the On this page drawer opened with no section marked, and it showed its title twice. The title bar of a framed code block was taller than the copy button it holds.",
+    "after": "The On this page drawer marks the section you are reading as soon as it opens and shows its title once. A framed code block's title bar is as tall as its copy button.",
+    "action": "Update the frontend image. No configuration change is required.",
+    "details": [],
+    "guides": [
+      {
+        "title": "Run your first Ansible job",
+        "path": "/docs/get-started/your-first-ansible-job"
+      }
+    ],
+    "sourceCommits": [],
+    "requiredComponents": [
+      "frontend"
+    ],
+    "availability": []
+  },
+  {
     "id": "docs-reading-layout-and-code-frames",
     "title": "Documentation reads comfortably on every screen, with framed code blocks",
     "area": "Documentation",

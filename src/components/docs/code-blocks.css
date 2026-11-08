@@ -22,7 +22,7 @@
   --docs-frame-highlight: rgba(255, 255, 255, 0.6);
   --docs-frame-dot-ring: rgba(0, 0, 0, 0.16);
   --docs-frame-dots: inline-flex;
-  --docs-frame-head-padding: 0.375rem 0.9rem;
+  --docs-frame-head-padding: 0 0.9rem;
   --docs-frame-code-padding: 0.9rem 1rem;
   --docs-frame-line-height: 1.6;
   --docs-frame-scrollbar-width: thin;
