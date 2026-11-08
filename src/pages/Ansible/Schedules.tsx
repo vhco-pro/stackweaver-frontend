@@ -28,6 +28,8 @@ import { PageHeader } from '@/components/layout/PageHeader';
 import { PageEmptyState } from '@/components/layout/PageEmptyState';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { RAMPS } from '@/lib/ramps';
+import { cn } from '@/lib/utils';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import {
@@ -261,7 +263,9 @@ export default function Schedules() {
     setRunningId(scheduleId);
     try {
       await ansibleSchedulesApi.runNow(scheduleId);
-      toast.success('Schedule triggered - job started');
+      // Run now answers once the run is requested: a job launched (it may be held) or a sync
+      // queued for a launcher. The row shows which, and what it became.
+      toast.success('Schedule triggered');
       void refetchSchedules();
     } catch (err: unknown) {
       console.error('Failed to run schedule:', err);
@@ -322,6 +326,16 @@ export default function Schedules() {
         return <Badge variant="destructive"><AlertCircle className="h-3 w-3 mr-1" />Failed</Badge>;
       case 'running':
         return <Badge variant="secondary"><Loader2 className="h-3 w-3 mr-1 animate-spin" />Running</Badge>;
+      case 'pending':
+        // An inventory source schedule's sync, requested and waiting for a launcher.
+        return (
+          <Badge
+            variant="outline"
+            className="border-violet-500/30 bg-violet-500/10 text-violet-700 dark:border-violet-400/30 dark:bg-violet-400/10 dark:text-violet-300"
+          >
+            <Clock className={cn('h-3 w-3 mr-1', RAMPS.app.icon)} />Queued
+          </Badge>
+        );
       default:
         return <Badge variant="outline">{status}</Badge>;
     }

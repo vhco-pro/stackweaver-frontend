@@ -152,14 +152,15 @@ and can pause for approval. Node overrides win when merged with workflow variabl
 | Configuration | Accepted values and rules |
 |---|---|
 | Node type | `job_template`, `workflow`, `inventory_sync`, `approval`. Nested workflow execution is unsupported even though the type can be stored. |
+| Inventory sync node source | An `inventory_sync` node needs the `inventory-source` relationship (`{"data": {"type": "inventory-sources", "id": "..."}}`) on create, and a PATCH can replace it but not clear it. Other node types cannot name a source. When the node also names an inventory, the source must belong to it. |
 | Edge condition | `on_success`, `on_failure`, `always`. |
 | Configuration `extra-vars` | A JSON object encoded as a string. Nonempty invalid JSON and arrays are rejected. Launch-time overrides instead use an object in the launch document. |
 | Workflow/node PATCH | Supplied fields change; explicit empty string, `false` or `0` are stored. Empty `extra-vars` clears variables. |
 | Name | Required; an empty name is rejected. |
 | Relationships | UUIDs in the same organization. Invalid IDs, missing/foreign references or edges outside the selected graph are refused without storing a change. |
 
-The workflow's project/inventory, node job template/inventory/credential and both edge
-endpoints must satisfy those boundaries. Approval nodes support approve/deny and an optional
+The workflow's project/inventory, node job template/inventory/credential/inventory source and
+both edge endpoints must satisfy those boundaries. Approval nodes support approve/deny and an optional
 timeout that denies. Graph edits after launch do not rewrite the running graph snapshot.
 
 | Task | API operation |
