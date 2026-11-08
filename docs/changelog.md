@@ -18,13 +18,41 @@ Confirmed available by is the date of the latest required component publication 
 - API and integrations: [Explore the API through one generated reference](#change-generated-api-reference)
 - Accounts: [Keep the verified email while a new address awaits verification](#change-verified-profile-email)
 - Administration: [Separate install-wide administration from organization ownership](#change-platform-admin-access)
-- Ansible: [Configure Ansible repository access through VCS connections](#change-ansible-vcs-credential-boundary) · [Constructed inventories accept derived hosts and groups only](#change-constructed-derived-only) · [Failed inventory syncs preserve the last successful inventory](#change-failed-inventory-sync) · [Jobs warn when inventory refresh did not succeed](#change-inventory-refresh-warning)
+- Ansible: [Ansible image includes locking and OAuth dependency security fixes](#change-ansible-locking-oauth-security-update) · [Configure Ansible repository access through VCS connections](#change-ansible-vcs-credential-boundary) · [Constructed inventories accept derived hosts and groups only](#change-constructed-derived-only) · [Failed inventory syncs preserve the last successful inventory](#change-failed-inventory-sync) · [Jobs warn when inventory refresh did not succeed](#change-inventory-refresh-warning)
 - Authentication: [Browser sign-in uses a server-side session](#change-browser-sessions-bff)
 - Documentation: [Read verified component changes in the central changelog](#change-changelog-independent-release-evidence) · [Read product changes and upgrade actions in one changelog](#change-docs-quality-changelog) · [Browse documentation from a generated homepage](#change-generated-docs-homepages) · [Find guides through generated documentation overviews](#change-generated-docs-overviews) · [Clearer guides with maintained visuals and generated references](#change-public-docs-quality-workflow)
 - OpenTofu: [Encrypt saved plans when encryption at rest is configured](#change-saved-plan-storage)
 - Platform: [Prepare frequently visited application screens after the dashboard loads](#change-application-navigation-warmup) · [Show distinct documentation commands correctly](#change-docs-code-block-cache-identity) · [Load public pages independently of application screens](#change-landing-route-loading)
 - Runners: [Require explicit registration scopes and confirmed runner bindings](#change-runner-registration-boundaries)
 - VCS: [Reject unsupported VCS providers when creating connections](#change-supported-vcs-connections)
+
+## Confirmed available by 2026-11-08
+
+<a id="change-ansible-locking-oauth-security-update" style="scroll-margin-top: 7rem"></a>
+
+### Ansible image includes locking and OAuth dependency security fixes
+
+Ansible · Security
+
+**For:** Operators using the platform Ansible image or custom images based on it or its dependency lockfile.
+
+The Ansible image includes the maintained upstream fixes in Filelock 4.2.1 and OAuthlib 4.0.1.
+
+**Action:** Update the platform Ansible image to the version listed here. Rebuild derived images with that base, or rebuild lockfile-based images with the updated dependency lockfile.
+
+**Confirmed in:** [ansible runner 0.6.132](https://github.com/vhco-pro/stackweaver-ansible-runner/releases/tag/0.6.132)
+
+<details>
+<summary>Previous behavior and scope</summary>
+
+**Before:** The Ansible image included Filelock and OAuthlib versions affected by known security advisories.
+
+- The OAuthlib update validates device-code authorization before issuing a token.
+- The Filelock update supplies the maintained fixes for the known locking advisories.
+
+</details>
+
+[Run images and execution environments](/docs/user-guides/run-images-and-execution-environments)
 
 ## Confirmed available by 2026-10-27
 

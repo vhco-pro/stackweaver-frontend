@@ -2007,13 +2007,17 @@
         "path": "/docs/user-guides/run-images-and-execution-environments"
       }
     ],
-    "sourceCommits": [],
+    "sourceCommits": [
+      "464b72825277396d8ff734cd27669d8684652a71"
+    ],
     "draftCommits": [
       "464b72825277396d8ff734cd27669d8684652a71"
     ],
     "requiredComponents": [
       "ansible-runner"
     ],
-    "availability": []
+    "availability": [
+      "ansible-runner@0.6.132"
+    ]
   }
 ]
