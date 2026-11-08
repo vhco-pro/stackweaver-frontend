@@ -349,5 +349,47 @@
       "9d34155aa0334fe3e3d8608f8de0de8be4a68980",
       "e36648aa46b5215702a54fb810c99e827f60db1a"
     ]
+  },
+  {
+    "id": "ansible-runner@0.6.132",
+    "component": "ansible-runner",
+    "repository": "vhco-pro/stackweaver-ansible-runner",
+    "tag": "0.6.132",
+    "tagCommit": "fbf70b2698b12a4c7b3fca9914b9a7d3bd1de61b",
+    "publishedAt": "2026-11-08T11:22:31Z",
+    "url": "https://github.com/vhco-pro/stackweaver-ansible-runner/releases/tag/0.6.132",
+    "sourceCommit": "afc6a393346f580a353f58ce63bdf7289b135988",
+    "sync": {
+      "url": "https://github.com/vhco-pro/stackweaver-ansible-runner/pull/183",
+      "mergeCommit": "fbf70b2698b12a4c7b3fca9914b9a7d3bd1de61b"
+    },
+    "workflow": {
+      "url": "https://github.com/vhco-pro/stackweaver-ansible-runner/actions/runs/42474033580",
+      "conclusion": "success",
+      "headSha": "fbf70b2698b12a4c7b3fca9914b9a7d3bd1de61b"
+    },
+    "artifact": {
+      "name": "ghcr.io/vhco-pro/stackweaver-ansible-runner",
+      "digest": "sha256:871fe5fa64555e3af485ce528508128bf80d947b28cec93f59580dd9cec1fdad",
+      "provenanceUrl": "https://github.com/vhco-pro/stackweaver-ansible-runner/releases/download/0.6.132/provenance.intoto.jsonl"
+    },
+    "includedCommits": [
+      "288785854453f54bfe7a99e05e09697b6cd1a43a",
+      "40f05486def016c947885f5122067a0e7d8d2965",
+      "43bd9323e9079c81f0111e6eb5ab2e5bef0f539c",
+      "464b72825277396d8ff734cd27669d8684652a71",
+      "4ff254703dcce9468a7bfe559f1e46c6e5e4cb1a",
+      "680cffb61298f2bd88a5ff9a6f15cc08eb694eec",
+      "75d24fe5ae06b8a5c73fb8c63c42565bad622ac2",
+      "978e921cec6593401c8f7feb9d4500f78d035900",
+      "9fea74ea5366024af997a9f677f8973d210fab73",
+      "a3ebafa3d258edca67897dcf98e9e4838a64c2ff",
+      "aab8fa2c5d8bf5b9e3a796efa959d8484d6ceea2",
+      "ad21e58bd47b20725674fe1ab679e39d039ac18a",
+      "ada57b274a7b6f19b4c354769351be739291acd2",
+      "b605e5b66387c0ede5fa189d196088ce772cae5b",
+      "d7d437b6582350eb3e51616513e90eaace7b342d",
+      "ed0977d194226dee1fe2b3e5287ad5d836234d11"
+    ]
   }
 ]
