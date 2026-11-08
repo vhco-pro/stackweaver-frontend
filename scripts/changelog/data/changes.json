@@ -1986,5 +1986,34 @@
       "api"
     ],
     "availability": []
+  },
+  {
+    "id": "ansible-locking-oauth-security-update",
+    "title": "Ansible image includes locking and OAuth dependency security fixes",
+    "area": "Ansible",
+    "kind": "Security",
+    "reviewed": true,
+    "audience": "Operators using the platform Ansible image or custom images based on it or its dependency lockfile.",
+    "before": "The Ansible image included Filelock and OAuthlib versions affected by known security advisories.",
+    "after": "The Ansible image includes the maintained upstream fixes in Filelock 4.2.1 and OAuthlib 4.0.1.",
+    "action": "Update the platform Ansible image to the version listed here. Rebuild derived images with that base, or rebuild lockfile-based images with the updated dependency lockfile.",
+    "details": [
+      "The OAuthlib update validates device-code authorization before issuing a token.",
+      "The Filelock update supplies the maintained fixes for the known locking advisories."
+    ],
+    "guides": [
+      {
+        "title": "Run images and execution environments",
+        "path": "/docs/user-guides/run-images-and-execution-environments"
+      }
+    ],
+    "sourceCommits": [],
+    "draftCommits": [
+      "464b72825277396d8ff734cd27669d8684652a71"
+    ],
+    "requiredComponents": [
+      "ansible-runner"
+    ],
+    "availability": []
   }
 ]
