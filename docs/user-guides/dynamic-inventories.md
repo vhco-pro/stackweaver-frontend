@@ -7,7 +7,7 @@ covers:
   - "backend/internal/api/v2/handlers/ansible/**"
   - "frontend/src/pages/Ansible/**"
   - "frontend/src/components/ansible/**"
-  - "backend/cmd/ansible-runner/**"
+  - "backend/cmd/launcher/**"
   - "backend/internal/api/v2/handlers/runner_agent.go"
 capabilities: [
   {

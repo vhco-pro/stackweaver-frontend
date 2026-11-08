@@ -18,6 +18,10 @@
       "repository": "vhco-pro/stackweaver-opentofu-runner",
       "artifact": "ghcr.io/vhco-pro/stackweaver-opentofu-runner"
     },
+    "launcher": {
+      "repository": "vhco-pro/stackweaver-launcher",
+      "artifact": "ghcr.io/vhco-pro/stackweaver-launcher"
+    },
     "zitadel-init": {
       "repository": "vhco-pro/stackweaver-zitadel-init",
       "artifact": "ghcr.io/vhco-pro/stackweaver-zitadel-init"

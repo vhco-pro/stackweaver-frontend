@@ -1,7 +1,7 @@
 ---
 description: "How Ansible execution works in Stackweaver: job lifecycle and launch gates, how launchers claim and place jobs on hosted capacity and agent pools, inventory syncs, workflows, ad hoc commands, and webhook triggers - with flow diagrams"
 covers:
-  - "backend/cmd/ansible-runner/**"
+  - "backend/cmd/launcher/**"
   - "backend/internal/launcher/**"
   - "backend/internal/executor/**"
   - "core/services/ansible/**"
@@ -22,7 +22,7 @@ capabilities: [
       "core/services/ansible/job.go",
       "core/services/ansible/inventory_slice_test.go",
       "frontend/src/pages/Ansible/run-viewer/adapter.test.ts",
-      "backend/cmd/ansible-runner/main.go",
+      "backend/cmd/launcher/main.go",
       "backend/internal/executor/ansibleexec/run.go"
     ]
   },

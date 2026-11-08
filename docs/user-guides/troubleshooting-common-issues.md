@@ -3,8 +3,7 @@ description: "Locate the failing execution stage, inspect read-only evidence and
 covers:
   - "backend/internal/api/v2/handlers/**"
   - "backend/cmd/orchestrator/**"
-  - "backend/cmd/runner/**"
-  - "backend/cmd/ansible-runner/**"
+  - "backend/cmd/launcher/**"
   - "core/services/ansible/**"
 ---
 

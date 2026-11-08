@@ -1744,7 +1744,9 @@
     "after": "Launchers get time to drain: the Compose files stop them with a 6 minute 30 second grace and the chart gives launcher pods a 390-second termination grace. The populator verifies a pinned package from the package index's published hashes without pip. Firewall containers a stopped launcher left behind are removed.",
     "action": "On Docker Compose, replace docker-compose.yml with this release's file. On Helm, nothing is required; raise launcher.terminationGracePeriodSeconds if you raise RUNNER_DRAIN_GRACE. Start docker run launchers with --stop-timeout 390.",
     "details": [
-      "A failed ansible-playbook with no error output reports its exit code without a trailing colon."
+      "A failed ansible-playbook with no error output reports its exit code without a trailing colon.",
+      "A launcher told to stop sends no new claim and finishes placing and running a job it had already claimed, so a stop or upgrade that arrives as a run is claimed waits for that run instead of ending it as runner lost.",
+      "A container launcher replaces the host firewall rules another jobs network left on the same subnet, in either firewall form, before it writes its own, so jobs reach the endpoints their own launcher allows after a launcher stopped without removing its rules and the engine handed its subnet to a new network."
     ],
     "guides": [
       {
@@ -2019,5 +2021,38 @@
     "availability": [
       "ansible-runner@0.6.132"
     ]
+  },
+  {
+    "id": "one-launcher-binary",
+    "title": "One launcher binary serves OpenTofu and Ansible",
+    "area": "Runners",
+    "kind": "Changed",
+    "reviewed": true,
+    "audience": "Operators who run launchers for Hosted capacity or for an agent pool.",
+    "before": "The OpenTofu and Ansible job images each carried their own launcher binary, which served only that image's engine and placed its jobs in the image named by RUNNER_IMAGE.",
+    "after": "Both job images and the new stackweaver-launcher image carry one launcher binary that serves both engines. An in-process launcher serves the engines whose toolchain answers on its host, and a container or Kubernetes launcher serves both, placing each job in its engine's job image (RUNNER_TOFU_IMAGE, RUNNER_ANSIBLE_IMAGE). RUNNER_ENGINES restricts a launcher to the engines it names, and RUNNER_JOB_IMAGE_PULL decides when job images are pulled.",
+    "action": "No action is required. A launcher started with only RUNNER_IMAGE keeps serving its image's engine and pulling its job image as before, and logs a deprecation warning. A Kubernetes install that pins runner.image.tag or ansibleRunner.image.tag needs every node to reach and be allowed to pull those images.",
+    "details": [
+      "An in-process launcher with neither tofu nor ansible on its PATH refuses to start and names both version probes.",
+      "Job images are pulled on every placement by default, unless the launcher sets only RUNNER_IMAGE. When the registry cannot be reached, a container launcher runs a cached default job image with a warning in the job's output; a run image never runs from the cache.",
+      "A Kubernetes job pod that cannot pull its image fails after RUNNER_PLACEMENT_TIMEOUT, five minutes by default, with the kubelet's reason.",
+      "A container or Kubernetes launcher reports no OpenTofu or Ansible version, since its jobs run in the job images."
+    ],
+    "guides": [
+      {
+        "title": "Set up self-hosted runners",
+        "path": "/docs/user-guides/self-hosted-runners"
+      }
+    ],
+    "sourceCommits": [],
+    "draftCommits": [
+      "0230e3ebddf5e95bbdb7289f0ff3d3810e0e4d9b"
+    ],
+    "requiredComponents": [
+      "opentofu-runner",
+      "ansible-runner",
+      "launcher"
+    ],
+    "availability": []
   }
 ]

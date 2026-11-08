@@ -6,7 +6,7 @@ covers:
   - "frontend/src/contexts/RunDisplayPreferencesContext.tsx"
   - "frontend/src/components/runs/**"
   - "backend/internal/api/v2/handlers/terraform/runs.go"
-  - "backend/cmd/runner/**"
+  - "backend/cmd/launcher/**"
   - "backend/internal/executor/tofuexec/**"
   - "core/services/logbuffer/**"
 capabilities: [

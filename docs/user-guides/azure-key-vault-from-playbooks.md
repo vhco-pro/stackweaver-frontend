@@ -2,7 +2,7 @@
 title: "Read Azure Key Vault secrets"
 description: "Read a Key Vault secret from an Ansible job using an existing Azure identity, without exposing the value in job output."
 covers:
-  - "backend/cmd/ansible-runner/**"
+  - "backend/cmd/launcher/**"
   - "backend/internal/api/v2/handlers/**"
   - "backend/internal/executor/ansibleexec/**"
   - "core/services/oidc/**"
@@ -18,7 +18,7 @@ capabilities: [
     "availability": "available",
     "limitations": "An attached Azure credential takes precedence over organization OIDC. Azure role assignments are still required.",
     "evidence": [
-      "backend/cmd/ansible-runner/main.go",
+      "backend/cmd/launcher/main.go",
       "backend/internal/executor/ansibleexec/run.go",
       "backend/internal/api/v2/handlers/runner_agent.go"
     ]

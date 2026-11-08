@@ -190,7 +190,8 @@ host, so the launchers run as `root` only to reach it and never run user code th
 | Launcher setting | Purpose | Example file value |
 |---|---|---|
 | `RUNNER_MAX_CONCURRENT_JOBS` | Jobs one launcher runs at once. | `4` |
-| `RUNNER_IMAGE` | Image of the job containers. | The launcher's own image |
+| `RUNNER_TOFU_IMAGE`, `RUNNER_ANSIBLE_IMAGE` | Job image of each engine: OpenTofu runs run in the first, Ansible jobs and syncs in the second. | The two launcher images |
+| `RUNNER_JOB_IMAGE_PULL` | When a launcher pulls a job image: `always`, `missing` or `never`. | `missing` |
 | `RUNNER_DENY_CIDRS` | Further ranges jobs must not reach. | (none) |
 | `RUNNER_ALLOW_TCP` | Endpoints jobs must reach inside a denied range, such as an air-gapped installation's mirrors. | (none) |
 | `RUNNER_CACHE_DIR`, `RUNNER_CACHE_VOLUME` | Location and volume of the node-local cache: `stackweaver-launcher-cache` and `stackweaver-ansible-launcher-cache`. | Set per launcher |

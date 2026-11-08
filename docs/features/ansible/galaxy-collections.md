@@ -1,7 +1,7 @@
 ---
 description: "Declare repository requirements, verify installs, understand cache/search behavior and configure private Ansible content."
 covers:
-  - "backend/cmd/ansible-runner/**"
+  - "backend/cmd/launcher/**"
   - "backend/internal/executor/**"
   - "backend/internal/launcher/cache/**"
   - "backend/internal/api/v2/handlers/runner_agent_cache*"
@@ -19,7 +19,7 @@ capabilities: [
       "backend/internal/executor/ansibleexec/galaxy_cache.go",
       "backend/internal/executor/ansibleexec/galaxy_test.go",
       "backend/internal/api/v2/handlers/runner_agent_cache.go",
-      "backend/cmd/ansible-runner/main.go"
+      "backend/cmd/launcher/main.go"
     ]
   }
 ]

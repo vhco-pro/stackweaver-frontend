@@ -577,6 +577,21 @@ reconcile Jobs as well as workload readiness. Bootstrap skips existing Secrets r
 adding or rotating keys, and creates any whole Secret a new chart version adds; follow
 release-specific schema migration instructions when needed.
 
+### Job image pulls
+
+The launchers pull the job image of every job each time they place it: `runner.image` for
+OpenTofu runs and `ansibleRunner.image` for Ansible jobs and syncs, pinned tags included.
+
+- Before you upgrade an installation that pins `runner.image.tag` or `ansibleRunner.image.tag`,
+  make sure every node can reach the registry and is allowed to pull those images. The kubelet
+  pulls them even when the node holds a copy.
+- Job pods do not use `global.imagePullSecrets`. A private job image, such as
+  `ghcr.io/vhco-pro/stackweaver-opentofu-runner`, needs a pull credential configured on the
+  nodes, for example a kubelet credential provider or the container runtime's registry
+  configuration.
+- A job pod that cannot pull its image fails after five minutes, with the kubelet's reason in
+  the run or job's error.
+
 ### Upgrading to the chart version with launchers
 
 Chart version 0.16.1 is the first with launchers.

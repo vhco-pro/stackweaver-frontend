@@ -82,22 +82,22 @@ make every use of the token safe automatically.
 > on that result. This check is not an enforced fourth gate. Do not rely on the warning to
 > prevent approval or substitute it for GitHub permission and repository-rule checks.
 
-The eight public satellites use the same checked auto-approval workflow. Workflow edits
+The nine public satellites use the same checked auto-approval workflow. Workflow edits
 need explicit maintainer scrutiny, including whether the final approval and merge steps
 are prevented from running. Matching text in a workflow is not proof of that control flow.
 
 ## What repository protection enforces
 
 A review requirement and required status checks are separate settings. The protection
-snapshot checked on 26 October 2026 shows:
+snapshots checked on 26 October 2026, and on 6 November 2026 for the launcher, show:
 
 | Satellites | Approving reviews | Required status check | Dismiss stale reviews |
 |---|---|---|---|
 | API, Frontend, Orchestrator, Ansible runner, Zitadel init, Secrets init | 1 | Component CodeQL analysis | Yes |
-| OpenTofu runner | 1 | Go CodeQL analysis | No |
+| OpenTofu runner, Launcher | 1 | Go CodeQL analysis | No |
 | Helm | 1 | None configured in branch protection | Yes |
 
-All eight checked protections apply to administrators and disable force pushes and branch
+All nine checked protections apply to administrators and disable force pushes and branch
 deletion. These observations describe the checked configuration, not an immutable promise.
 Read the current rules for the repository you are assessing; do not assume that every lint,
 test or release scan is a required merge check, or that settings are identical across satellites.
@@ -111,7 +111,8 @@ publication work; it is not a guarantee of a fixed release time.
 
 With GitHub CLI access to public repositories, choose the satellite you want to inspect.
 The [repository map](../architecture/repositories.md) lists the components; the OpenTofu
-runner is `vhco-pro/stackweaver-opentofu-runner`.
+runner is `vhco-pro/stackweaver-opentofu-runner` and the launcher is
+`vhco-pro/stackweaver-launcher`.
 
 ```bash
 REPO=vhco-pro/stackweaver-api
