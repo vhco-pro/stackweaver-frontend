@@ -84,11 +84,11 @@ export function CalloutBox({ type, title, children, className }: CalloutBoxProps
         <>
           <div className="flex items-start gap-3">
             <Icon className="h-5 w-5 shrink-0 mt-0.5" />
-            <span className="font-semibold text-sm leading-5">{title}</span>
+            <span className="docs-callout-title font-semibold text-sm leading-5">{title}</span>
           </div>
           <div
             className={cn(
-              'text-sm mt-1 ml-8 [&>p]:mb-2 [&>p:last-child]:mb-0 [&>ul]:mb-2 [&>ol]:mb-2 [&>ul]:ml-4 [&>ol]:ml-4 [&>ul]:list-disc [&>ol]:list-decimal [&>p]:opacity-90 [&_*]:text-current [&_code]:px-1 [&_code]:py-0.5 [&_code]:rounded-sm',
+              'docs-callout-body text-sm mt-1 ml-8 [&>p]:mb-2 [&>p:last-child]:mb-0 [&>ul]:mb-2 [&>ol]:mb-2 [&>ul]:ml-4 [&>ol]:ml-4 [&>ul]:list-disc [&>ol]:list-decimal [&>p]:opacity-90 [&_*]:text-current [&_code]:px-1 [&_code]:py-0.5 [&_code]:rounded-sm',
               config.codeBg,
               config.codeFg,
               config.markStyles
@@ -102,7 +102,7 @@ export function CalloutBox({ type, title, children, className }: CalloutBoxProps
           <Icon className="h-5 w-5 shrink-0 mt-0.5" />
           <div
             className={cn(
-              'flex-1 min-w-0 text-sm [&>p]:mb-2 [&>p:last-child]:mb-0 [&>ul]:mb-2 [&>ol]:mb-2 [&>ul]:ml-4 [&>ol]:ml-4 [&>ul]:list-disc [&>ol]:list-decimal [&>p]:opacity-90 [&_*]:text-current [&_code]:px-1 [&_code]:py-0.5 [&_code]:rounded-sm',
+              'docs-callout-body flex-1 min-w-0 text-sm [&>p]:mb-2 [&>p:last-child]:mb-0 [&>ul]:mb-2 [&>ol]:mb-2 [&>ul]:ml-4 [&>ol]:ml-4 [&>ul]:list-disc [&>ol]:list-decimal [&>p]:opacity-90 [&_*]:text-current [&_code]:px-1 [&_code]:py-0.5 [&_code]:rounded-sm',
               config.codeBg,
               config.codeFg,
               config.markStyles

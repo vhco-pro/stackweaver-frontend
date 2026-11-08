@@ -3,6 +3,7 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "./components/docs/code-blocks.css";
+@import "./components/docs/reading-layout.css";
 
 @theme inline {
   --radius-lg: var(--radius);
@@ -592,38 +593,38 @@ html:not(.dark) .markdown-content .shiki-wrapper[data-language="json"] code span
   @apply text-primary underline hover:text-primary/80;
 }
 
-.markdown-content table {
+/* Tables outside a Markdown table wrapper, such as the internal docs' frontmatter metadata table,
+   keep these rules. Markdown tables carry `.docs-table` and are styled by reading-layout.css. */
+.markdown-content :not(.docs-table) > table {
   @apply min-w-full border-collapse mb-4 my-4 overflow-hidden rounded-lg border border-border/30;
   display: table;
 }
 
-.markdown-content thead {
+.markdown-content :not(.docs-table) > table thead {
   @apply bg-muted/50;
 }
 
-.markdown-content tbody tr {
+.markdown-content :not(.docs-table) > table tbody tr {
   @apply border-b border-border/30 transition-colors;
 }
 
-.markdown-content tbody tr:hover {
+.markdown-content :not(.docs-table) > table tbody tr:hover {
   @apply bg-muted/30;
 }
 
-.markdown-content th,
-.markdown-content td {
+.markdown-content :not(.docs-table) > table :is(th, td) {
   @apply border-r border-border/30 px-4 py-3 text-left;
 }
 
-.markdown-content th:last-child,
-.markdown-content td:last-child {
+.markdown-content :not(.docs-table) > table :is(th, td):last-child {
   @apply border-r-0;
 }
 
-.markdown-content th {
+.markdown-content :not(.docs-table) > table th {
   @apply font-semibold text-sm;
 }
 
-.markdown-content td {
+.markdown-content :not(.docs-table) > table td {
   @apply text-sm;
 }
 

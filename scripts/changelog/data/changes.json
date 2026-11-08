@@ -1,5 +1,31 @@
 [
   {
+    "id": "docs-reading-layout-and-code-frames",
+    "title": "Documentation reads comfortably on every screen, with framed code blocks",
+    "area": "Documentation",
+    "kind": "Changed",
+    "reviewed": true,
+    "audience": "People reading Stackweaver documentation, blog articles and module READMEs in the frontend.",
+    "before": "Guide text ran the full width of the content column, so lines grew very long on wide screens. Code blocks had a transparent body, tables drew a line between every column, and the selected page in the docs sidebar used a flat grey.",
+    "after": "Guide text sits in a centred column that widens with the space available, from about 74 characters per line on a laptop to about 120 on a wide display, and code blocks, tables and diagrams grow beyond it when their content needs the room. Code blocks have a framed look with a tinted title bar, and blocks without a language show window dots. Tables use row lines and a tinted header, and the selected sidebar page and the search box use the same faint tint.",
+    "action": "Update the frontend image. No configuration change is required.",
+    "details": [
+      "Collapsing or narrowing a docs sidebar pane gives the text longer lines.",
+      "Code inside a numbered step stays at the step's width and scrolls when a line is longer."
+    ],
+    "guides": [
+      {
+        "title": "Run your first Ansible job",
+        "path": "/docs/get-started/your-first-ansible-job"
+      }
+    ],
+    "sourceCommits": [],
+    "requiredComponents": [
+      "frontend"
+    ],
+    "availability": []
+  },
+  {
     "id": "homepage-frequently-asked-questions",
     "title": "The homepage answers common Stackweaver questions",
     "area": "Platform",

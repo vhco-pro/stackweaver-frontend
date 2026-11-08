@@ -136,6 +136,7 @@ export default function DocsViewer(props: CollectionProps) {
   return (
     <DocsLayout collection={collection}>
       <MarkdownRenderer
+        className="docs-article"
         content={content}
         docPath={docPath}
         docsBase={docsBase}

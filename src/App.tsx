@@ -1,6 +1,7 @@
 // Copyright (c) 2025 VH & Co BV. Licensed under the Business Source License 1.1. See LICENSE for details.
 import { PageMetadata } from '@/components/blog/PageMetadata';
 import { DocsEnvironmentContext } from '@/components/docs/DocsEnvironment';
+import { stackweaverDocsCodeBlocks } from '@/lib/docsPresentation';
 import { BrowserRouter, matchRoutes, useLocation, useRoutes } from 'react-router-dom';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { queryClient } from '@/lib/queryClient';
@@ -43,7 +44,7 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
-        <DocsEnvironmentContext.Provider value={{basePath:config.basePath,staticRender:false}}>
+        <DocsEnvironmentContext.Provider value={{basePath:config.basePath,staticRender:false,codeBlocks:stackweaverDocsCodeBlocks}}>
         <AuthProvider>
           <NotificationProvider>
             <RunDisplayPreferencesProvider>

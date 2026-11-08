@@ -90,3 +90,18 @@ it('displays and copies distinct commands whose first 100 characters match', asy
     else Reflect.deleteProperty(navigator, 'clipboard');
   }
 });
+
+it('writes the host code block presentation onto the renderer root and nothing without one', () => {
+  const article = <MarkdownRenderer content={'Text\n\n```yaml\nkey: value\n```'} />;
+  const bare = render(<MemoryRouter><ThemeProvider><DocsEnvironmentContext.Provider value={{ basePath: '', staticRender: false }}>{article}</DocsEnvironmentContext.Provider></ThemeProvider></MemoryRouter>);
+  const bareRoot = bare.container.querySelector('.markdown-content');
+  expect(bareRoot).not.toHaveAttribute('data-docs-code-style');
+  expect(bareRoot).not.toHaveAttribute('data-docs-code-tone');
+  bare.unmount();
+
+  const hosted = render(<MemoryRouter><ThemeProvider><DocsEnvironmentContext.Provider value={{ basePath: '', staticRender: false, codeBlocks: { style: 'classic', tone: 'deep' } }}>{article}</DocsEnvironmentContext.Provider></ThemeProvider></MemoryRouter>);
+  const root = hosted.container.querySelector('.markdown-content');
+  expect(root).toHaveAttribute('data-docs-code-style', 'classic');
+  expect(root).toHaveAttribute('data-docs-code-tone', 'deep');
+  expect(root?.querySelectorAll('[data-docs-code-tone], [data-docs-code-style]')).toHaveLength(0);
+});

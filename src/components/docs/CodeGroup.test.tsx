@@ -5,12 +5,13 @@
 // contract that depends on codeBlocks - tab extraction, labels, and switching.
 
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { CodeGroup } from './CodeGroup';
 
 // Highlighting is async + irrelevant to the tab structure under test; stub it.
 vi.mock('shiki', () => ({ codeToHtml: vi.fn().mockResolvedValue('<pre>highlighted</pre>') }));
+vi.mock('@/lib/highlighter', () => ({ codeToHtml: vi.fn().mockResolvedValue('<pre>highlighted</pre>'), isUnknownLanguageError: () => false }));
 
 describe('CodeGroup', () => {
   it('renders one tab per code block with its language label and switches active tab', async () => {
@@ -41,5 +42,30 @@ describe('CodeGroup', () => {
     );
     expect(screen.getByText('not a code block')).toBeInTheDocument();
     expect(screen.queryByRole('tab')).not.toBeInTheDocument();
+  });
+
+  it('frames tabbed and single-block groups with the shared code frame classes', async () => {
+    const tabbed = render(
+      <CodeGroup languages={['Bash', 'YAML']}>
+        <code className="language-bash">echo hi</code>
+        <code className="language-yaml">key: value</code>
+      </CodeGroup>,
+    );
+    const group = tabbed.container.querySelector('.docs-code-group');
+    expect(group?.querySelector('.docs-code-group-head')).not.toBeNull();
+    expect(group?.querySelector('[role="tabpanel"]')).toHaveClass('docs-code-group-body');
+    tabbed.unmount();
+
+    const single = render(
+      <CodeGroup languages={['Bash']}>
+        <code className="language-bash">echo hi</code>
+      </CodeGroup>,
+    );
+    // A single block is an ordinary code frame: the same header (label and copy) and body.
+    const frame = single.container.querySelector('.docs-code-block');
+    expect(frame).not.toBeNull();
+    expect(frame?.querySelector('.docs-code-header .docs-code-language')?.textContent).toBe('Bash');
+    expect(screen.getByRole('button', { name: 'Copy code' })).toBeVisible();
+    await waitFor(() => { expect(frame?.querySelector('.docs-code-scroll pre')?.textContent).toContain('echo hi'); });
   });
 });

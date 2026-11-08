@@ -1,26 +1,97 @@
 /* Copyright (c) 2026 VH & Co BV. Licensed under the Business Source License 1.1. See LICENSE for details. */
 /* Portable docs code presentation. No Tailwind compilation or application CSS is required. */
+
+/*
+ * Frame tokens. The framed style with the default tone applies when nothing selects otherwise.
+ * An element carrying data-docs-code-style ("framed" | "classic") or data-docs-code-tone
+ * ("default" | "deep") sets the whole token set for everything inside it, so frames inherit the
+ * nearest selection and an inner root overrides an outer one. MarkdownRenderer writes both
+ * attributes onto its root from the host's DocsEnvironment. The deep tone darkens only the fills
+ * in dark mode and never the edges, which are what define a frame on screens that cannot show
+ * near-black steps. Blur stays off unless a host that paints a backdrop sets --docs-frame-blur.
+ *
+ * Rule order matters for an element carrying both attributes: style, then tone, then classic last,
+ * so classic's transparent fills win over a tone.
+ */
+:root,
+[data-docs-code-style='framed'] {
+  --docs-frame-edge: rgba(148, 163, 184, 0.38);
+  --docs-frame-head: rgba(241, 245, 249, 0.9);
+  --docs-frame-head-line: rgba(148, 163, 184, 0.25);
+  --docs-frame-body: #f8fafc;
+  --docs-frame-highlight: rgba(255, 255, 255, 0.6);
+  --docs-frame-dot-ring: rgba(0, 0, 0, 0.16);
+  --docs-frame-dots: inline-flex;
+  --docs-frame-head-padding: 0.375rem 0.9rem;
+  --docs-frame-code-padding: 0.9rem 1rem;
+  --docs-frame-line-height: 1.6;
+  --docs-frame-scrollbar-width: thin;
+  --docs-frame-scrollbar-color: rgba(100, 116, 139, 0.45) transparent;
+}
+
+.dark,
+.dark [data-docs-code-style='framed'] {
+  --docs-frame-edge: rgba(148, 163, 184, 0.13);
+  --docs-frame-head: rgba(30, 41, 59, 0.32);
+  --docs-frame-head-line: rgba(148, 163, 184, 0.09);
+  --docs-frame-body: rgba(15, 23, 42, 0.42);
+  --docs-frame-highlight: rgba(255, 255, 255, 0.025);
+  --docs-frame-dot-ring: rgba(255, 255, 255, 0.1);
+}
+
+[data-docs-code-tone='default'] {
+  --docs-frame-head: rgba(241, 245, 249, 0.9);
+  --docs-frame-body: #f8fafc;
+}
+
+.dark [data-docs-code-tone='default'] {
+  --docs-frame-head: rgba(30, 41, 59, 0.32);
+  --docs-frame-body: rgba(15, 23, 42, 0.42);
+}
+
+.dark [data-docs-code-tone='deep'] {
+  --docs-frame-head: rgba(30, 41, 59, 0.22);
+  --docs-frame-body: rgba(15, 23, 42, 0.28);
+}
+
+/* Classic: the original transparent frame. Listed with and without .dark so it outranks a tone. */
+[data-docs-code-style='classic'],
+.dark [data-docs-code-style='classic'] {
+  --docs-frame-edge: rgba(148, 163, 184, 0.4);
+  --docs-frame-head: transparent;
+  --docs-frame-head-line: color-mix(in srgb, hsl(214.3 31.8% 91.4%) 20%, transparent);
+  --docs-frame-body: transparent;
+  --docs-frame-highlight: transparent;
+  --docs-frame-dots: none;
+  --docs-frame-head-padding: 0.375rem 0.75rem;
+  --docs-frame-code-padding: 0.75rem;
+  --docs-frame-line-height: 1.5;
+  --docs-frame-scrollbar-width: auto;
+  --docs-frame-scrollbar-color: auto;
+}
+
+.dark [data-docs-code-style='classic'] {
+  --docs-frame-edge: rgba(203, 213, 225, 0.25);
+  --docs-frame-head-line: color-mix(in srgb, hsl(217.2 32.6% 17.5%) 20%, transparent);
+}
+
 .shiki-wrapper {
   margin: 1rem 0;
+  border: 1px solid var(--docs-frame-edge);
   border-radius: 0.5rem;
   overflow: hidden;
-}
-
-.dark .shiki-wrapper {
-  border: 1px solid rgba(203, 213, 225, 0.25);
-}
-
-html:not(.dark) .shiki-wrapper {
-  border: 1px solid rgba(148, 163, 184, 0.4);
+  background: var(--docs-frame-body);
+  box-shadow: inset 0 1px 0 var(--docs-frame-highlight);
+  backdrop-filter: var(--docs-frame-blur, none);
 }
 
 .markdown-content .shiki-wrapper pre:is(.docs-code-fallback, [class*='shiki']),
 .markdown-content pre[class*='shiki'] {
   margin: 0;
-  padding: 0.75rem !important;
+  padding: var(--docs-frame-code-padding, 0.75rem) !important;
   font-family: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace !important;
   font-size: 0.875rem !important;
-  line-height: 1.5 !important;
+  line-height: var(--docs-frame-line-height, 1.5) !important;
   overflow-x: auto;
   background-color: transparent !important;
   background-image: none !important;
@@ -76,6 +147,19 @@ html:not(.dark) .markdown-content .shiki-wrapper pre:is(.docs-code-fallback, [cl
   outline-offset: -2px;
 }
 
+/* A thin, muted scrollbar inside framed code; classic keeps the platform scrollbar. */
+.shiki-wrapper :is(.docs-code-scroll, pre),
+.docs-code-group .docs-code-group-body > div {
+  scrollbar-width: var(--docs-frame-scrollbar-width, thin);
+  scrollbar-color: var(--docs-frame-scrollbar-color, auto);
+}
+
+/* JSON fences render through JsonSyntaxHighlighter, whose pre sets its spacing inline. */
+.shiki-wrapper .docs-code-json pre {
+  padding: var(--docs-frame-code-padding, 0.75rem) !important;
+  line-height: var(--docs-frame-line-height, 1.5) !important;
+}
+
 /* Build-time dual palettes and the viewer's single palette share the same shell. */
 .markdown-content .shiki [style*='--shiki-light'] {
   color: var(--shiki-light);
@@ -85,13 +169,15 @@ html:not(.dark) .markdown-content .shiki-wrapper pre:is(.docs-code-fallback, [cl
   color: var(--shiki-dark);
 }
 
-.docs-code-block {
+.docs-code-block,
+.docs-code-group {
   --docs-code-muted: var(--muted-foreground, hsl(215.4 16.3% 46.9%));
   --docs-code-foreground: var(--foreground, hsl(222.2 84% 4.9%));
   --docs-code-divider: var(--border, hsl(214.3 31.8% 91.4%));
 }
 
-.dark .docs-code-block {
+.dark .docs-code-block,
+.dark .docs-code-group {
   --docs-code-muted: var(--muted-foreground, hsl(215 20.2% 65.1%));
   --docs-code-foreground: var(--foreground, hsl(210 40% 98%));
   --docs-code-divider: var(--border, hsl(217.2 32.6% 17.5%));
@@ -101,9 +187,9 @@ html:not(.dark) .markdown-content .shiki-wrapper pre:is(.docs-code-fallback, [cl
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0.375rem 0.75rem;
-  border-bottom: 1px solid color-mix(in srgb, var(--docs-code-divider) 20%, transparent);
-  background: transparent;
+  padding: var(--docs-frame-head-padding, 0.375rem 0.75rem);
+  border-bottom: 1px solid var(--docs-frame-head-line);
+  background: var(--docs-frame-head);
   color: var(--docs-code-muted);
   font-size: 0.875rem;
   line-height: 1.25rem;
@@ -112,6 +198,32 @@ html:not(.dark) .markdown-content .shiki-wrapper pre:is(.docs-code-fallback, [cl
 .docs-code-language {
   font-family: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace;
   text-transform: lowercase;
+}
+
+/* Window dots mark a block that has no language label. Decorative; hidden from assistive tech. */
+.docs-code-dots {
+  display: var(--docs-frame-dots, inline-flex);
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.docs-code-dots > span {
+  width: 0.75rem;
+  height: 0.75rem;
+  border-radius: 9999px;
+  box-shadow: inset 0 0 0 0.5px var(--docs-frame-dot-ring);
+}
+
+.docs-code-dots > span:nth-child(1) {
+  background: #ff5f57;
+}
+
+.docs-code-dots > span:nth-child(2) {
+  background: #febc2e;
+}
+
+.docs-code-dots > span:nth-child(3) {
+  background: #28c840;
 }
 
 .docs-code-copy {
@@ -145,4 +257,22 @@ html:not(.dark) .markdown-content .shiki-wrapper pre:is(.docs-code-fallback, [cl
   width: 1rem;
   height: 1rem;
   flex-shrink: 0;
+}
+
+/* The tabbed code group shares the frame tokens; a single-block group renders as a DocsCodeBlock. */
+.docs-code-group-head {
+  border: 1px solid var(--docs-frame-edge);
+  border-bottom-color: var(--docs-frame-head-line);
+  border-radius: 0.5rem 0.5rem 0 0;
+  background: var(--docs-frame-head);
+  box-shadow: inset 0 1px 0 var(--docs-frame-highlight);
+  backdrop-filter: var(--docs-frame-blur, none);
+}
+
+.docs-code-group-body {
+  border: 1px solid var(--docs-frame-edge);
+  border-top: 0;
+  border-radius: 0 0 0.5rem 0.5rem;
+  overflow: hidden;
+  background: var(--docs-frame-body);
 }

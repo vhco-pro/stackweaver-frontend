@@ -14,7 +14,11 @@ export function DocsCodeBlock({ language, copied = false, onCopy, children }: Do
   return (
     <div className="shiki-wrapper docs-code-block" data-language={language}>
       <div className="docs-code-header">
-        {language && <span className="docs-code-language">{language}</span>}
+        {language ? (
+          <span className="docs-code-language">{language}</span>
+        ) : (
+          <span className="docs-code-dots" aria-hidden="true"><span /><span /><span /></span>
+        )}
         <button type="button" className="docs-code-copy" data-copy-code onClick={() => { void onCopy?.(); }}>
           {copied ? <Check aria-hidden="true" /> : <Copy aria-hidden="true" />}
           <span aria-live="polite">{copied ? 'Copied' : 'Copy code'}</span>

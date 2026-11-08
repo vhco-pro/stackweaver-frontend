@@ -125,7 +125,7 @@ export function DocNavigation({ index, docsBase = '/docs' }: DocNavigationProps)
   }
 
   return (
-    <div className="mt-12 pt-8 border-t border-border/40">
+    <div className="docs-page-nav mt-12 pt-8 border-t border-border/40">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* Previous */}
         {prevDoc ? (

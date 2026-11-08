@@ -4,6 +4,7 @@ import { StaticRouter, Routes, Route } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ThemeProvider } from '@/contexts/ThemeContext';
 import { DocsEnvironmentContext } from '@/components/docs/DocsEnvironment';
+import { stackweaverDocsCodeBlocks } from '@/lib/docsPresentation';
 import { PublicNav } from '@/components/navigation/PublicNav';
 import { Footer } from '@/components/layout/Footer';
 import { BlogIndex } from '@/components/blog/BlogIndex';
@@ -30,7 +31,7 @@ export function renderPublicPage(page:PublicPage,input:PublicRenderInput):string
  const article=input.articles.find(article=>article.canonical===page.path);
  const body=page.kind==='home'?<Landing/>:page.kind==='privacy'?<Privacy/>:page.kind==='terms'?<Terms/>:page.kind==='blog'?<BlogIndex articles={input.articles}/>:page.kind==='article'&&article?<ArticleView article={article} related={input.articles}/>:page.kind==='ansible'?<AnsiblePage/>:page.path==='/docs'?<DocsIndexPage/>:page.kind==='docs-index'&&!page.source?<DocsIndexPage folderPath={page.folder}/>:<Routes><Route path="/docs/*" element={<DocsViewer/>}/></Routes>;
  try {
-  return renderToString(<StaticRouter location={page.path}><QueryClientProvider client={client}><ThemeProvider><DocsEnvironmentContext.Provider value={{basePath:'',staticRender:true,files:input.files}}>{page.kind!=='home'&&<PublicNav activeLink={page.kind==='docs'||page.kind==='docs-index'?'docs':'blog'}/>} {body}{!['home','docs','docs-index'].includes(page.kind)&&<Footer/>}</DocsEnvironmentContext.Provider></ThemeProvider></QueryClientProvider></StaticRouter>);
+  return renderToString(<StaticRouter location={page.path}><QueryClientProvider client={client}><ThemeProvider><DocsEnvironmentContext.Provider value={{basePath:'',staticRender:true,files:input.files,codeBlocks:stackweaverDocsCodeBlocks}}>{page.kind!=='home'&&<PublicNav activeLink={page.kind==='docs'||page.kind==='docs-index'?'docs':'blog'}/>} {body}{!['home','docs','docs-index'].includes(page.kind)&&<Footer/>}</DocsEnvironmentContext.Provider></ThemeProvider></QueryClientProvider></StaticRouter>);
  } finally { client.clear(); }
 }
 
