@@ -153,7 +153,7 @@ export function DocsLayout({ children, docsBase: legacyBase, indexFile: legacyIn
             <SheetTitle className="text-sm font-semibold">On this page</SheetTitle>
           </SheetHeader>
           <div className="overflow-y-auto h-[calc(100vh-4rem)]">
-            <TableOfContents key={location.pathname} />
+            <TableOfContents key={location.pathname} hideHeader />
           </div>
         </SheetContent>
       </Sheet>
