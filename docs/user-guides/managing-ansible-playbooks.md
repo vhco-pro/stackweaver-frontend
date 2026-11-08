@@ -6,7 +6,7 @@ covers:
   - "core/services/vcs/**"
   - "frontend/src/pages/Ansible/**"
   - "frontend/src/components/ansible/**"
-  - "backend/cmd/ansible-runner/**"
+  - "backend/cmd/launcher/**"
   - "backend/internal/api/v2/handlers/runner_agent.go"
   - "backend/internal/services/ansiblefiles/**"
   - "core/services/ansible/playbook_sync.go"
@@ -21,7 +21,7 @@ capabilities: [
     "evidence": [
       "backend/internal/api/v2/handlers/ansible/playbook_discovery.go",
       "core/services/ansible/playbook_sync.go",
-      "backend/cmd/ansible-runner/main.go",
+      "backend/cmd/launcher/main.go",
       "backend/internal/api/v2/handlers/runner_agent.go"
     ]
   }

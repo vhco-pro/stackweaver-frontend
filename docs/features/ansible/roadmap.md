@@ -5,7 +5,7 @@ covers:
   - "core/repository/ansible_*"
   - "core/models/ansible_*"
   - "core/models/fk_delete_rules.go"
-  - "backend/cmd/ansible-runner/**"
+  - "backend/cmd/launcher/**"
   - "backend/internal/executor/ansibleexec/**"
   - "backend/internal/api/v2/handlers/ansible/**"
   - "backend/internal/api/v2/routes/ansible_routes.go"
@@ -22,7 +22,7 @@ capabilities: [
     "evidence": [
       "core/services/ansible/credential.go",
       "core/repository/ansible_playbook.go",
-      "backend/cmd/ansible-runner/main.go",
+      "backend/cmd/launcher/main.go",
       "backend/internal/executor/ansibleexec/run.go"
     ]
   },

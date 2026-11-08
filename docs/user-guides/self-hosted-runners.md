@@ -1,8 +1,7 @@
 ---
 description: "Guide for running OpenTofu and Ansible work on your own infrastructure: launchers, drivers, network modes, agent pools and hosted capacity, identity bindings, pool settings and the node-local cache"
 covers:
-  - "backend/cmd/runner/**"
-  - "backend/cmd/ansible-runner/**"
+  - "backend/cmd/launcher/**"
   - "backend/internal/launcher/**"
   - "core/runnerdriver/**"
   - "core/runnercontract/**"
@@ -375,7 +374,9 @@ These variables work with Docker, Podman and Kubernetes. The [environment variab
 | `RUNNER_LABELS` | Comma-separated labels reported with the launcher (e.g. `production,gpu`). | (none) |
 | `RUNNER_MAX_CONCURRENT_JOBS` | Jobs the launcher runs at once. | `1` |
 | `RUNNER_DRIVER` | `inprocess`, `container` or `kubernetes`. | `inprocess` |
-| `RUNNER_IMAGE` | Platform image the executor comes from; required by the container and Kubernetes drivers. | (none) |
+| `RUNNER_TOFU_IMAGE`, `RUNNER_ANSIBLE_IMAGE` | Job image of each engine, which jobs without a run image run in and custom run images get the executor from. | The published OpenTofu and Ansible images, `latest` |
+| `RUNNER_JOB_IMAGE_PULL` | When job images are pulled: `always`, `missing` or `never`. | `always`; with only `RUNNER_IMAGE` set, no policy: pulled when missing on the container driver, the cluster's default on Kubernetes |
+| `RUNNER_IMAGE` | Deprecated: the one image of every job, used when neither job image is set. Set the job images instead. | (none) |
 | `RUNNER_NETWORK` | Jobs network of the container driver. | (none) |
 | `RUNNER_NETWORK_MODE` | `platform` or `host-identity` (see [Network modes](#network-modes)). | `platform` |
 | `RUNNER_DRAIN_GRACE` | How long a stopping launcher waits for its jobs to finish. | `5m` |
@@ -460,7 +461,7 @@ The installer sets a launcher's network mode with `RUNNER_NETWORK_MODE` (chart v
 | `platform` (default) | The API, DNS and the internet. Inbound traffic, the cloud metadata ranges (`169.254.0.0/16`, `fd00:ec2::/64`, `fd20:ce::/64`), the other networks on the engine and, on Kubernetes, the cluster ranges in `RUNNER_CLUSTER_CIDRS` are blocked. Jobs get cloud access from the platform identity or an identity binding, never from the node. |
 | `host-identity` | The same, plus the cloud metadata endpoints, so jobs can use the node's or VM's own identity. It applies to the container and Kubernetes drivers; on the container driver the executor skips its metadata check in this mode. A launcher started with `STACKWEAVER_HOSTED_STRICT` refuses this mode. |
 
-On the container driver, the launcher creates the network `RUNNER_NETWORK` names and, on a rootful engine, programs the host firewall for it through a short-lived container from the platform image: a chain under Docker's `DOCKER-USER` on Docker, and an nftables table of its own on Podman and on Docker's nftables backend. Jobs never reach `168.63.129.16`, Azure's platform address, in any network mode; they resolve names through the engine's resolver. Jobs on the network cannot reach each other, the engine's gateway or any port the host publishes, except the API, whether it listens on the host or runs in a container behind a port the host publishes. `RUNNER_DENY_CIDRS` adds ranges no job may reach, such as your database's subnet. `RUNNER_ALLOW_TCP` lists `host:port` endpoints, or `http` and `https` URLs, that jobs may reach even inside a denied range, which is how jobs on an air-gapped install reach mirrors on the same host or network; the launcher resolves each name when it starts. On the Kubernetes driver, `RUNNER_ALLOW_TCP` adds the same endpoints as allowed peers of the job NetworkPolicy the launcher manages. On rootful Podman it creates the network through Podman's own API, without Podman's isolation between networks, so a job reaches an allowed endpoint that a container on another Podman network publishes; the nftables table refuses everything else.
+On the container driver, the launcher creates the network `RUNNER_NETWORK` names and, on a rootful engine, programs the host firewall for it through a short-lived container from the platform image: a chain under Docker's `DOCKER-USER` on Docker, and an nftables table of its own on Podman and on Docker's nftables backend. Before it writes them, it removes any rules for the same subnet that another jobs network left behind, for example when a launcher stopped without removing its own. Rules you add yourself, such as a `DOCKER-USER` allowance for Podman's jobs network, stay. Jobs never reach `168.63.129.16`, Azure's platform address, in any network mode; they resolve names through the engine's resolver. Jobs on the network cannot reach each other, the engine's gateway or any port the host publishes, except the API, whether it listens on the host or runs in a container behind a port the host publishes. `RUNNER_DENY_CIDRS` adds ranges no job may reach, such as your database's subnet. `RUNNER_ALLOW_TCP` lists `host:port` endpoints, or `http` and `https` URLs, that jobs may reach even inside a denied range, which is how jobs on an air-gapped install reach mirrors on the same host or network; the launcher resolves each name when it starts. On the Kubernetes driver, `RUNNER_ALLOW_TCP` adds the same endpoints as allowed peers of the job NetworkPolicy the launcher manages. On rootful Podman it creates the network through Podman's own API, without Podman's isolation between networks, so a job reaches an allowed endpoint that a container on another Podman network publishes; the nftables table refuses everything else.
 
 The in-process driver has no network isolation: its jobs reach whatever the launcher can reach, including the metadata endpoint of the host.
 

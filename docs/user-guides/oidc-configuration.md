@@ -3,7 +3,7 @@ description: "Guide for configuring keyless OIDC workload identity authenticatio
 covers:
   - "deploy/oidc.env.example"
   - "core/services/oidc/**"
-  - "backend/cmd/runner/**"
+  - "backend/cmd/launcher/**"
   - "backend/internal/executor/identity/**"
   - "backend/internal/api/v2/handlers/**"
 capabilities: [

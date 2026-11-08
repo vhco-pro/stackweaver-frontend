@@ -1,7 +1,7 @@
 ---
 description: "Configure OpenTofu run timeouts on a workspace, project or organization, and understand which limits apply to plans, applies, external checks and approval waits."
 covers:
-  - "backend/cmd/runner/**"
+  - "backend/cmd/launcher/**"
   - "backend/cmd/orchestrator/**"
   - "backend/internal/launcher/supervise.go"
   - "core/settings/timeout.go"

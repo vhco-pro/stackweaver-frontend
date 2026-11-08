@@ -1,6 +1,6 @@
 ---
 status: stable
-status_description: "Map of upstream development and eight public component distribution repositories, with verified repository/license links."
+status_description: "Map of upstream development and nine public component distribution repositories, with verified repository/license links."
 description: "Find public component source and releases, understand upstream synchronization and choose where to report an issue."
 author: "Michiel VH"
 created: 2026-05-23
@@ -28,6 +28,7 @@ repositories by automated sync pull requests.
 | Orchestrator | [stackweaver-orchestrator](https://github.com/vhco-pro/stackweaver-orchestrator) | Dispatch queued infrastructure work. |
 | OpenTofu runner | [stackweaver-opentofu-runner](https://github.com/vhco-pro/stackweaver-opentofu-runner) | Execute plan/apply work and provide runner images. |
 | Ansible runner | [stackweaver-ansible-runner](https://github.com/vhco-pro/stackweaver-ansible-runner) | Execute playbooks and platform inventory syncs. |
+| Launcher | [stackweaver-launcher](https://github.com/vhco-pro/stackweaver-launcher) | The launcher image and binaries, which register with an agent pool or as hosted capacity and start each run, job and sync in its job image. |
 | Frontend | [stackweaver-frontend](https://github.com/vhco-pro/stackweaver-frontend) | Web application and public documentation. |
 | Helm chart | [stackweaver-helm](https://github.com/vhco-pro/stackweaver-helm) | Kubernetes installation and configuration. |
 | Identity initializer | [stackweaver-zitadel-init](https://github.com/vhco-pro/stackweaver-zitadel-init) | Configure the bundled Zitadel integration. |
@@ -43,7 +44,7 @@ files and reusable workflows. The upstream development repository also contains 
 flowchart TD
     U["Upstream development source"] --> S["Automated component sync pull requests"]
     S --> A["API and orchestrator"]
-    S --> R["OpenTofu and Ansible runners"]
+    S --> R["OpenTofu and Ansible runners, and the launcher"]
     S --> F["Frontend and public docs"]
     S --> D["Helm and deployment initializers"]
     A --> P["Component releases and artifacts"]
@@ -72,9 +73,9 @@ artifact signatures and provenance.
 
 ## Check the component's license
 
-Read the `LICENSE` at the tag or commit you use. The runner repositories and Helm chart
-publish Apache 2.0 licenses. API, orchestrator, frontend and initializer repositories
-publish BSL 1.1 licenses. Runner `NOTICE` files also describe the shared `core` linkage.
+Read the `LICENSE` at the tag or commit you use. The runner and launcher repositories and the
+Helm chart publish Apache 2.0 licenses. API, orchestrator, frontend and initializer repositories
+publish BSL 1.1 licenses. Runner and launcher `NOTICE` files also describe the shared `core` linkage.
 Repository descriptions are not a substitute for those files.
 
 The [OSPS evidence guide](../security/osps-baseline-compliance.md#argued-deviations)

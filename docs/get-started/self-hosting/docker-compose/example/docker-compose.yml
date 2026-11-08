@@ -418,8 +418,8 @@ services:
 
   # The OpenTofu launcher. It registers as the deployment's hosted launcher with
   # STACKWEAVER_HOSTED_SECRET (generated into .env by zitadel-init), holds one long-poll heartbeat
-  # and places every job it claims in a fresh, hardened job container through the Docker socket.
-  # It holds no database, storage, Redis or platform secret: the executor in the job container
+  # and places every job it claims in a fresh, hardened container of its engine's job image
+  # through the Docker socket. It holds no database, storage, Redis or platform secret: the executor in the job container
   # fetches what its job needs from the API with a token for that job alone. The socket is
   # root-equivalent on this host, which is why the launcher itself never runs user code.
   launcher:
@@ -438,7 +438,11 @@ services:
       RUNNER_NAME: launcher
       RUNNER_MAX_CONCURRENT_JOBS: "4"
       RUNNER_DRIVER: container
-      RUNNER_IMAGE: ghcr.io/vhco-pro/stackweaver-opentofu-runner:latest
+      # Each engine's job image. Compose pulls both as the launchers' own images, so a placement
+      # uses the copy on this host and pulls an image only when it is missing.
+      RUNNER_TOFU_IMAGE: ghcr.io/vhco-pro/stackweaver-opentofu-runner:latest
+      RUNNER_ANSIBLE_IMAGE: ghcr.io/vhco-pro/stackweaver-ansible-runner:latest
+      RUNNER_JOB_IMAGE_PULL: missing
       # The node-local, read-only copy of the organizations' caches: a named volume, so
       # job containers mount their organization's subpath of it read-only.
       RUNNER_CACHE_DIR: /var/cache/stackweaver-launcher
@@ -470,8 +474,8 @@ services:
 
   # The Ansible launcher, which also runs the syncs (playbook and configuration snapshots, inventory syncs). It registers as the deployment's hosted launcher with
   # STACKWEAVER_HOSTED_SECRET (generated into .env by zitadel-init), holds one long-poll heartbeat
-  # and places every job it claims in a fresh, hardened job container through the Docker socket.
-  # It holds no database, storage, Redis or platform secret: the executor in the job container
+  # and places every job it claims in a fresh, hardened container of its engine's job image
+  # through the Docker socket. It holds no database, storage, Redis or platform secret: the executor in the job container
   # fetches what its job needs from the API with a token for that job alone. The socket is
   # root-equivalent on this host, which is why the launcher itself never runs user code.
   ansible-launcher:
@@ -490,7 +494,11 @@ services:
       RUNNER_NAME: ansible-launcher
       RUNNER_MAX_CONCURRENT_JOBS: "4"
       RUNNER_DRIVER: container
-      RUNNER_IMAGE: ghcr.io/vhco-pro/stackweaver-ansible-runner:latest
+      # Each engine's job image. Compose pulls both as the launchers' own images, so a placement
+      # uses the copy on this host and pulls an image only when it is missing.
+      RUNNER_TOFU_IMAGE: ghcr.io/vhco-pro/stackweaver-opentofu-runner:latest
+      RUNNER_ANSIBLE_IMAGE: ghcr.io/vhco-pro/stackweaver-ansible-runner:latest
+      RUNNER_JOB_IMAGE_PULL: missing
       # The node-local, read-only copy of the organizations' caches: a named volume, so
       # job containers mount their organization's subpath of it read-only.
       RUNNER_CACHE_DIR: /var/cache/stackweaver-launcher

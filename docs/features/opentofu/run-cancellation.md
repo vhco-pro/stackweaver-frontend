@@ -2,7 +2,7 @@
 description: "Cancel eligible runs safely through the UI or API, distinguish discard and verify partial infrastructure changes."
 covers:
   - "backend/internal/api/v2/handlers/terraform/runs.go"
-  - "backend/cmd/runner/**"
+  - "backend/cmd/launcher/**"
   - "backend/internal/launcher/supervise.go"
   - "backend/internal/executor/tofuexec/**"
   - "frontend/src/pages/RunDetail.tsx"
@@ -17,7 +17,7 @@ capabilities: [
     "limitations": "Cancellation does not roll back infrastructure changes already made.",
     "evidence": [
       "backend/internal/api/v2/handlers/terraform/runs.go",
-      "backend/cmd/runner/main.go",
+      "backend/cmd/launcher/main.go",
       "backend/internal/launcher/supervise.go"
     ]
   }

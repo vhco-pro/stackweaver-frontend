@@ -2,9 +2,8 @@
 description: "Comprehensive reference for all environment variables across every service"
 covers:
   - "backend/cmd/api/**"
-  - "backend/cmd/runner/**"
+  - "backend/cmd/launcher/**"
   - "backend/cmd/orchestrator/**"
-  - "backend/cmd/ansible-runner/**"
   - "backend/internal/launcher/**"
   - "backend/internal/api/middleware/runner_rate_limit.go"
   - "core/settings/**"
@@ -329,14 +328,19 @@ On Docker Compose, the `launcher` and `ansible-launcher` services set these in t
 | Variable | Description | Default |
 |---|---|---|
 | `RUNNER_DRIVER` | `inprocess`, `container` or `kubernetes`. Chart value `launcher.driver`. | `inprocess` (chart: `kubernetes`) |
-| `RUNNER_IMAGE` | Platform image the executor comes from, and the image of every job that selects no run image. Required by the container and Kubernetes drivers. | (none) |
+| `RUNNER_ENGINES` | Engines the launcher serves: `tofu`, `ansible` or both, comma separated. An in-process launcher otherwise serves each engine whose toolchain it finds on its `PATH` and refuses to start with neither; the container and Kubernetes drivers otherwise serve both. | Found on `PATH` (in-process), both (container and Kubernetes) |
+| `RUNNER_TOFU_IMAGE` | Job image of OpenTofu runs: a run that selects no run image runs in it, and a custom run image gets the executor from it. | `ghcr.io/vhco-pro/stackweaver-opentofu-runner:latest` |
+| `RUNNER_ANSIBLE_IMAGE` | Job image of Ansible jobs and syncs, used the same way. | `ghcr.io/vhco-pro/stackweaver-ansible-runner:latest` |
+| `RUNNER_JOB_IMAGE_PULL` | When the launcher pulls a job image: `always`, `missing` or `never`. When the registry cannot be reached, a cached job image still runs and the job shows a warning. | `always`; with only `RUNNER_IMAGE` set, no policy: pulled when missing on the container driver, the cluster's default on Kubernetes |
+| `RUNNER_PLACEMENT_TIMEOUT` | How long a Kubernetes job pod may fail to pull its image before the job fails with the kubelet's reason. | `5m` |
+| `RUNNER_IMAGE` | Deprecated: set `RUNNER_TOFU_IMAGE` and `RUNNER_ANSIBLE_IMAGE` instead. Alone, it is the image of every job, and the launcher logs a warning; it is ignored for an engine whose job image is set. | (none) |
 | `RUNNER_NETWORK_MODE` | `platform` blocks the cloud metadata endpoints from jobs; `host-identity` leaves them open on the container and Kubernetes drivers. Chart value `launcher.network`. | `platform` |
 | `RUNNER_KEEP_FAILED_FOR` | How long a failed job's container or pod is kept for inspection, as a duration, when its pool sets nothing. Chart value `launcher.keepFailedJobsFor`. | (none) |
 | `RUNNER_DOCKER_SOCKET` | Docker or Podman API socket of the container driver. | `/var/run/docker.sock` |
 | `RUNNER_NETWORK` | Jobs network of the container driver. The launcher creates it and, on a rootful engine, firewalls it. | (none) |
 | `RUNNER_DENY_CIDRS` | Comma-separated ranges no job on the jobs network may reach, in addition to the cloud metadata ranges and the engine's other networks, such as the subnet of a database outside Docker. | (none) |
 | `RUNNER_ALLOW_TCP` | Comma-separated `host:port` endpoints, or `http` and `https` URLs, that jobs reach beside the API even inside a denied range: an air-gapped installation's mirrors. Names are resolved when the launcher starts. On the container driver they are accepted by the jobs network's firewall; on the Kubernetes driver they are added as allowed peers of the job NetworkPolicy the launcher manages. | (none) |
-| `RUNNER_FIREWALL_IMAGE` | Image of the short-lived container that programs the jobs network's firewall; it needs `iptables` on Docker and `nft` on Podman or Docker's nftables backend. | `RUNNER_IMAGE` |
+| `RUNNER_FIREWALL_IMAGE` | Image of the short-lived container that programs the jobs network's firewall; it needs `iptables` on Docker and `nft` on Podman or Docker's nftables backend. | `RUNNER_TOFU_IMAGE` |
 | `RUNNER_EXTRA_HOSTS` | Comma-separated `host:address` entries added to every job container's hosts file, such as `host.docker.internal:host-gateway`. | (none) |
 | `RUNNER_JOB_USER` | User job containers run as, instead of the image's user. | The image's user |
 | `RUNNER_ALLOW_ROOT` | `true` lets the container driver run an image whose user is root. | `false` |
