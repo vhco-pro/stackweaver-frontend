@@ -17,6 +17,18 @@ interface MermaidDiagramProps {
 }
 
 /**
+ * The width Mermaid drew a diagram at: its inline max-width, or else its viewBox width. Mermaid
+ * emits a percentage-wide SVG, which has no intrinsic width a fit-content box could use, so the
+ * reading layout gives a breaking-out diagram this width explicitly.
+ */
+function svgNaturalWidth(svg: string): number | null {
+  const maxWidth = /max-width:\s*([\d.]+)px/.exec(svg);
+  if (maxWidth) return Number(maxWidth[1]);
+  const viewBox = /viewBox="[\d.-]+ [\d.-]+ ([\d.]+) [\d.]+"/.exec(svg);
+  return viewBox ? Number(viewBox[1]) : null;
+}
+
+/**
  * Renders Mermaid diagram syntax as an SVG diagram using the mermaid library.
  * Used by DocsViewer for ```mermaid code blocks.
  * In inline mode: click to open an enlarged view in a modal.
@@ -41,6 +53,7 @@ export function MermaidDiagram({ code, className = '' }: MermaidDiagramProps) {
     retry: false,
   });
   const error = renderError ? (renderError instanceof Error ? renderError.message : String(renderError)) : null;
+  const naturalWidth = svg ? svgNaturalWidth(svg) : null;
 
   if (staticRender) return <figure className="my-4"><figcaption>Diagram definition</figcaption><pre className="overflow-auto"><code>{code}</code></pre></figure>;
 
@@ -66,8 +79,8 @@ export function MermaidDiagram({ code, className = '' }: MermaidDiagramProps) {
         aria-label="Click to enlarge diagram"
         onClick={() => { setExpandOpen(true); }}
         onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setExpandOpen(true); } }}
-        className={`group relative my-4 cursor-pointer rounded-lg border border-border/50 bg-muted/30 p-4 transition-colors hover:border-primary/40 hover:bg-muted/50 ${className}`}
-        style={{ minHeight: 60 }}
+        className={`docs-diagram group relative my-4 cursor-pointer rounded-lg border border-border/50 bg-muted/30 p-4 transition-colors hover:border-primary/40 hover:bg-muted/50 ${className}`}
+        style={{ minHeight: 60, ...(naturalWidth ? { '--docs-diagram-width': `${naturalWidth}px` } : {}) }}
       >
         {loading || !svg ? (
           <div className="flex min-h-[60px] items-center justify-center text-muted-foreground">

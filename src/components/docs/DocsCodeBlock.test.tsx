@@ -22,3 +22,28 @@ it('preserves highlighted children and permits an unlabeled plain text fence', (
   expect(container.querySelector('pre')?.textContent).toBe('echo hello\n');
   expect(screen.getByRole('button', { name: 'Copy code' })).toHaveAttribute('type', 'button');
 });
+
+it('marks a block without a language with three decorative window dots and no label', () => {
+  for (const language of ['', undefined]) {
+    const { container, unmount } = render(<DocsCodeBlock language={language}><pre><code>echo hello</code></pre></DocsCodeBlock>);
+    const dots = container.querySelector('.docs-code-dots');
+    expect(dots).not.toBeNull();
+    expect(dots).toHaveAttribute('aria-hidden', 'true');
+    expect(dots?.children).toHaveLength(3);
+    expect(container.querySelector('.docs-code-language')).toBeNull();
+    unmount();
+  }
+});
+
+it('shows the language label and no dots when a language is given', () => {
+  const { container } = render(<DocsCodeBlock language="yaml"><pre><code>key: value</code></pre></DocsCodeBlock>);
+  expect(container.querySelector('.docs-code-language')?.textContent).toBe('yaml');
+  expect(container.querySelector('.docs-code-dots')).toBeNull();
+});
+
+it('imports nothing beyond the standalone preview allow-list', async () => {
+  const { default: source } = await import('./DocsCodeBlock.tsx?raw');
+  const modules = [...source.matchAll(/^import[^'"]*['"]([^'"]+)['"]/gm)].map(match => match[1]);
+  expect(modules.length).toBeGreaterThan(0);
+  for (const name of modules) expect(['react', 'react/jsx-runtime', 'lucide-react']).toContain(name);
+});

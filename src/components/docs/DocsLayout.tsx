@@ -168,13 +168,14 @@ export function DocsLayout({ children, docsBase: legacyBase, indexFile: legacyIn
           )}
         </DocsPane>
 
-        {/* Center - Main Content. It takes every pixel the panes leave, so narrowing
-            or collapsing a pane widens the page instead of growing the margins. The
-            ceiling only bites on very wide displays, where it keeps the column centred. */}
-        <main className="docs-main flex-1 min-w-0 px-4 md:px-8 py-4 pt-12 lg:pt-4 max-w-[100rem] mx-auto">
+        {/* Center - Main Content. It takes every pixel the panes leave at every width, so
+            narrowing or collapsing a pane widens the page instead of growing the margins.
+            An article centres its own text column inside it (reading-layout.css), and its
+            code, tables and diagrams can use the rest. */}
+        <main className="docs-main flex-1 min-w-0 px-4 md:px-8 py-4 pt-12 lg:pt-4">
           {/* Breadcrumb Navigation - Only show in subfolders */}
           {breadcrumbs && (
-            <div className="mb-6 pb-4 overflow-x-auto">
+            <div className="docs-breadcrumb mb-6 pb-4 overflow-x-auto">
               <div className="flex items-center gap-2 text-sm text-muted-foreground whitespace-nowrap">
                 {breadcrumbs.map((crumb, index) => {
                   const isLast = index === breadcrumbs.length - 1;

@@ -5,6 +5,7 @@ import { Children, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { useMountEffect } from '@/hooks/useMountEffect';
 import { Check, Copy } from 'lucide-react';
 import { getLanguageIcon } from './fileTypeIcons';
+import { DocsCodeBlock } from './DocsCodeBlock';
 
 interface CodeGroupProps {
   children: React.ReactNode;
@@ -132,20 +133,6 @@ export function CodeGroup({ children, languages, defaultTab = 0 }: CodeGroupProp
     return <>{children}</>;
   }
 
-  if (codeBlocks.length === 1) {
-    // Single code block - no tabs needed
-    const html = highlightedBlocks[0];
-    if (html) {
-      return (
-        <div
-          className="my-4 rounded-lg overflow-hidden border border-border"
-          dangerouslySetInnerHTML={{ __html: html }}
-        />
-      );
-    }
-    return <>{codeBlocks[0]}</>;
-  }
-
   const handleCopy = async () => {
     try {
       await navigator.clipboard.writeText(activeCodeText);
@@ -156,10 +143,28 @@ export function CodeGroup({ children, languages, defaultTab = 0 }: CodeGroupProp
     }
   };
 
+  if (codeBlocks.length === 1) {
+    // A single block needs no tabs: it is an ordinary code frame, header included, so it
+    // matches every other block in each style and tone.
+    const html = highlightedBlocks[0];
+    return (
+      <DocsCodeBlock language={getLabel(0)} copied={copied} onCopy={handleCopy}>
+        {html ? (
+          <div className="docs-code-scroll" tabIndex={0} dangerouslySetInnerHTML={{ __html: html }} />
+        ) : (
+          <div className="docs-code-scroll" tabIndex={0}>
+            <pre className="docs-code-fallback"><code>{activeCodeText}</code></pre>
+          </div>
+        )}
+      </DocsCodeBlock>
+    );
+  }
+
   return (
-    <div className="my-4 min-w-0 max-w-full">
-      {/* Tab header - plain HTML to avoid shadcn TabsList h-10 override issues */}
-      <div className="flex min-w-0 items-center justify-between gap-2 rounded-t-lg border border-[rgba(203,213,225,0.25)] bg-muted/30 px-2 py-1">
+    <div className="docs-code-group my-4 min-w-0 max-w-full">
+      {/* Tab header - plain HTML to avoid shadcn TabsList h-10 override issues. Frame colours come
+          from the code frame tokens in code-blocks.css, so a group matches a single block. */}
+      <div className="docs-code-group-head flex min-w-0 items-center justify-between gap-2 px-2 py-1">
         <div className="flex min-w-0 flex-1 items-center gap-0.5 overflow-x-auto" role="tablist">
           {codeBlocks.map((_, index) => {
             const displayLang = getLabel(index);
@@ -207,7 +212,7 @@ export function CodeGroup({ children, languages, defaultTab = 0 }: CodeGroupProp
           <div
             key={index}
             role="tabpanel"
-            className="overflow-hidden rounded-b-lg border border-t-0 border-[rgba(203,213,225,0.25)]"
+            className="docs-code-group-body"
           >
             {html ? (
               <div

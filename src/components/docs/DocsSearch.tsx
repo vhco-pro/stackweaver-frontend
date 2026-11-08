@@ -290,7 +290,7 @@ function SearchSession({ docsBase = '/docs', searchIndexFile = '/docs-search-ind
       <button
         type="button"
         onClick={() => { handleOpenChange(true); }}
-        className={`@container flex min-h-11 items-center w-full gap-2 rounded-lg border border-border/60 bg-muted/30 px-3 text-sm text-muted-foreground hover:bg-muted/60 hover:border-border transition-colors ${prominent ? 'py-5' : 'py-2'}`}
+        className={`docs-nav-tint @container flex min-h-11 items-center w-full gap-2 rounded-lg px-3 text-sm text-muted-foreground transition-colors ${prominent ? 'py-5' : 'py-2'}`}
       >
         <Search className="h-4 w-4 shrink-0" />
         <span className="min-w-0 flex-1 truncate text-left">Search docs…</span>

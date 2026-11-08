@@ -799,7 +799,7 @@ function MarkdownPre({ children, ...props }: MarkdownPreProps) {
             <JsonSyntaxHighlighter
               json={codeTextTrimmed}
               maxHeight="none"
-              className="border-0 bg-transparent"
+              className="docs-code-json border-0 bg-transparent"
               stringColor="green"
             />
           </DocsCodeBlock>
@@ -868,7 +868,7 @@ export function MarkdownRenderer({
 }: MarkdownRendererProps) {
   const navigate = useNavigate();
   const location = useLocation();
-  const { staticRender, assetUrl } = useDocsEnvironment();
+  const { staticRender, assetUrl, codeBlocks } = useDocsEnvironment();
   const [highlightedCode, setHighlightedCode] = useState<Record<string, string>>({});
   const [copiedCodeId, setCopiedCodeId] = useState<string | null>(null);
   const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
@@ -1223,7 +1223,7 @@ export function MarkdownRenderer({
         />
       ),
       table: ({ children, ...props }: React.HTMLAttributes<HTMLTableElement>) => (
-        <div className="overflow-x-auto">
+        <div className="docs-table">
           <table {...props}>{children}</table>
         </div>
       ),
@@ -1364,7 +1364,9 @@ export function MarkdownRenderer({
   })() : null;
 
   return (
-    <div className={cn('markdown-content', className)}>
+    // Code frame presentation is CSS only: frames read it from these attributes, so frames
+    // stay free of context and prerendered pages carry the host's choice too.
+    <div className={cn('markdown-content', className)} data-docs-code-style={codeBlocks?.style} data-docs-code-tone={codeBlocks?.tone}>
       {metaHeader}
       <CodeRenderContext.Provider value={codeRenderState}>
         {renderedMarkdown}

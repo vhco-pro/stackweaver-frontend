@@ -1,0 +1,224 @@
+/* Copyright (c) 2026 VH & Co BV. Licensed under the Business Source License 1.1. See LICENSE for details. */
+/*
+ * Portable docs reading layout, tables and navigation tint. No Tailwind compilation or
+ * application CSS is required. The design and its acceptance criteria are in
+ * docs/internal/plans/docs-framework/reading-layout-and-code-frames-plan.md.
+ */
+
+/*
+ * Two registered lengths carry the reading column. Registered, they compute to pixels where they
+ * are declared and inherit as pixels, so every element that aligns to the column (breadcrumb,
+ * article blocks, page navigation) and every size tied to the body (inline code, table cells,
+ * callouts) reads the same value whatever its own font size. Outside the docs viewer they keep
+ * their initial values, so a table cell there stays 14px.
+ */
+/* An initial value must be computationally independent, so it is in px, never rem or em. */
+@property --docs-measure {
+  syntax: '<length>';
+  inherits: true;
+  initial-value: 544px;
+}
+
+@property --docs-body-size {
+  syntax: '<length>';
+  inherits: true;
+  initial-value: 16px;
+}
+
+/* ---------- Tables (every Markdown table, in every MarkdownRenderer host) ---------- */
+
+.docs-table {
+  --docs-table-edge: rgba(148, 163, 184, 0.38);
+  --docs-table-line: rgba(148, 163, 184, 0.25);
+  --docs-table-header: rgba(15, 23, 42, 0.04);
+  --docs-table-heading: #0f172a;
+  margin: 1rem 0 1.25rem;
+  overflow-x: auto;
+  border: 1px solid var(--docs-table-edge);
+  border-radius: 10px;
+  backdrop-filter: var(--docs-frame-blur, none);
+}
+
+.dark .docs-table {
+  --docs-table-edge: rgba(148, 163, 184, 0.13);
+  --docs-table-line: rgba(148, 163, 184, 0.13);
+  --docs-table-header: rgba(248, 250, 252, 0.04);
+  --docs-table-heading: #f8fafc;
+}
+
+.docs-table table {
+  width: 100%;
+  margin: 0;
+  border-collapse: collapse;
+}
+
+.docs-table :is(th, td) {
+  padding: 0.6em 0.85em;
+  border: 0;
+  border-bottom: 1px solid var(--docs-table-line);
+  font-size: calc(var(--docs-body-size) * 0.875);
+  text-align: left;
+  vertical-align: top;
+}
+
+.docs-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.docs-table th {
+  background: var(--docs-table-header);
+  color: var(--docs-table-heading);
+  font-weight: 600;
+}
+
+/* ---------- Navigation tint: the selected sidebar page and the search triggers ---------- */
+
+.docs-nav-tint {
+  background-color: rgba(2, 8, 23, 0.06);
+  box-shadow: inset 0 0 0 1px rgba(2, 8, 23, 0.08);
+  backdrop-filter: var(--docs-frame-blur, none);
+}
+
+.dark .docs-nav-tint {
+  background-color: rgba(248, 250, 252, 0.06);
+  box-shadow: inset 0 0 0 1px rgba(248, 250, 252, 0.08);
+}
+
+button.docs-nav-tint:hover {
+  background-color: rgba(2, 8, 23, 0.09);
+}
+
+.dark button.docs-nav-tint:hover {
+  background-color: rgba(248, 250, 252, 0.09);
+}
+
+/* ---------- Reading column (docs article pages) ---------- */
+
+/*
+ * The column follows the content column, not the viewport: collapsing or narrowing a pane gives
+ * the text longer lines. Container query units resolve against the nearest ancestor container,
+ * never the element itself, so the lengths are declared on .docs-main's children.
+ *
+ * Tuned against .docs-main's content box with both panes at their default 256px: 864px at a
+ * 1440px viewport (about 34.8em of text, 74 characters), 1344px at 1920 (about 45em), 1984px
+ * at 2560 (about 55em at about 17px). Lines never pass 57em; the body never passes 18px.
+ */
+.docs-main {
+  container-type: inline-size;
+}
+
+/* Only an article page takes the fluid lengths; overviews and the homepage keep the initial
+   values, so their tables stay at 14px whatever the screen width. */
+.docs-main:has(.docs-article) > * {
+  --docs-body-size: clamp(16px, calc(13.69px + 0.172cqi), 18px);
+  --docs-measure: clamp(calc(var(--docs-body-size) * 34), calc(261.2px + 34.21cqi), calc(var(--docs-body-size) * 57));
+}
+
+/* The breadcrumb and the previous/next links align with the article's text column. */
+.docs-main:has(.docs-article) > :is(.docs-breadcrumb, .docs-page-nav) {
+  width: min(100%, var(--docs-measure));
+  margin-inline: auto;
+}
+
+/* A centred text track between two flexible gutters. */
+.markdown-content.docs-article {
+  display: grid;
+  grid-template-columns: [full-start] minmax(0, 1fr) [text-start] min(100%, var(--docs-measure)) [text-end] minmax(0, 1fr) [full-end];
+  font-size: var(--docs-body-size);
+}
+
+/*
+ * Grid items keep their margins apart instead of collapsing them, so blocks drop their top
+ * margin and headings keep only what today's collapsed margin added beyond a block's 1rem.
+ */
+.markdown-content.docs-article > * {
+  grid-column: text;
+  min-width: 0;
+  margin-top: 0;
+}
+
+.markdown-content.docs-article > h2 {
+  margin-top: 0.5rem;
+}
+
+.markdown-content.docs-article > h3 {
+  margin-top: 0.25rem;
+}
+
+/*
+ * Wide objects break out symmetrically: at least the text column wide, as wide as their content
+ * needs, never wider than the content column. Only top-level objects do: one nested in a list
+ * item, callout or disclosure keeps its container's width and scrolls there.
+ */
+.markdown-content.docs-article > :is(.docs-code-block, .docs-code-group, .docs-table, .docs-diagram) {
+  grid-column: full;
+  justify-self: center;
+  width: fit-content;
+  min-width: min(100%, var(--docs-measure));
+  max-width: 100%;
+}
+
+/*
+ * A diagram's SVG is percentage-wide, so it has no intrinsic width; MermaidDiagram passes the
+ * width Mermaid drew it at, plus the wrapper's padding and border. A diagram narrower than the
+ * text column stays at the text column's width with its SVG centred inside.
+ */
+.markdown-content.docs-article > .docs-diagram {
+  width: calc(var(--docs-diagram-width, 0px) + 2rem + 2px);
+}
+
+/* Body text and its proportions. At a 16px body every size equals today's. */
+.markdown-content.docs-article :is(p, li) {
+  line-height: 1.75;
+}
+
+.markdown-content.docs-article h1 {
+  font-size: calc(var(--docs-body-size) * 1.875);
+  line-height: calc(var(--docs-body-size) * 2.25);
+}
+
+.markdown-content.docs-article h2 {
+  font-size: calc(var(--docs-body-size) * 1.5);
+  line-height: calc(var(--docs-body-size) * 2);
+}
+
+.markdown-content.docs-article h3 {
+  font-size: calc(var(--docs-body-size) * 1.25);
+  line-height: calc(var(--docs-body-size) * 1.75);
+}
+
+.markdown-content.docs-article h4 {
+  font-size: calc(var(--docs-body-size) * 1.125);
+  line-height: calc(var(--docs-body-size) * 1.75);
+}
+
+.markdown-content.docs-article h5 {
+  font-size: var(--docs-body-size);
+  line-height: 1.5;
+}
+
+.markdown-content.docs-article h6 {
+  font-size: calc(var(--docs-body-size) * 0.875);
+  line-height: calc(var(--docs-body-size) * 1.25);
+}
+
+/* Inline code tracks the body, never its parent, so code in a heading or callout stays 14px at 16px. */
+.markdown-content.docs-article :not(pre) > code {
+  font-size: calc(var(--docs-body-size) * 0.875);
+}
+
+/*
+ * On a narrow content column a long inline code span would otherwise push the page sideways,
+ * because inline code does not wrap. There it may wrap, and breaks inside a token only when the
+ * token cannot fit a line on its own.
+ */
+@container (max-width: 40rem) {
+  .markdown-content.docs-article :not(pre) > code {
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+}
+
+.markdown-content.docs-article [role='alert'] :is(.docs-callout-title, .docs-callout-body) {
+  font-size: calc(var(--docs-body-size) * 0.875);
+}
