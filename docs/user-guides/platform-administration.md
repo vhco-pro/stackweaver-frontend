@@ -265,7 +265,7 @@ and schemas.
 | Grant | An already-granted administrator returns 400. A declared administrator stays unchanged. |
 | Revoke | A non-admin returns 400; a deployment-declared administrator returns 422. |
 | Organization list or read | Returns summaries without member lists, settings or tokens. |
-| Hosted pool settings | `PATCH /api/v2/agent-pools/:id` on an organization's hosted pool sets `max-concurrent-jobs`, the jobs of that organization the hosted capacity runs at once (while it is unset, `STACKWEAVER_HOSTED_DEFAULT_MAX_CONCURRENT_JOBS` applies), and `placement-group`, the group of hosted launchers that serves it. The pool's ID is the `pool-id` of `GET /api/v2/organizations/:name/hosted-capacity`. An organization admin's request for those fields returns 403, and a hosted pool has no other writable setting. See [Self-hosted runners](./self-hosted-runners.md#hosted-capacity). |
+| Hosted capacity settings | `PATCH /api/v2/agent-pools/:id` on an organization's hosted capacity sets `max-concurrent-jobs`, the jobs of that organization the hosted capacity runs at once (while it is unset, `STACKWEAVER_HOSTED_DEFAULT_MAX_CONCURRENT_JOBS` applies), and `placement-group`, the group of hosted launchers that serves it. The pool's ID is the `pool-id` of `GET /api/v2/organizations/:name/hosted-capacity`. An organization admin's request for those fields returns 403, and hosted capacity has no other writable setting. See [Set up launchers](./self-hosted-runners.md#hosted-capacity). |
 
 For authenticated callers, missing platform standing or a missing platform-admin token
 scope returns 404. `GET /api/v2/account/details` and `GET /api/v2/platform/settings` are
@@ -307,7 +307,7 @@ resource "stackweaver_terraform_version" "approved" {
 ```
 
 Supply the version, Linux/amd64 archive URL and its verified SHA-256 from the release you
-intend to offer. For other runner architectures, configure the provider's `archs` entries
+intend to offer. For other CPU architectures, configure the provider's `archs` entries
 as described in its resource reference. Do not use a dummy checksum or an untrusted binary.
 
 Review the plan before applying:

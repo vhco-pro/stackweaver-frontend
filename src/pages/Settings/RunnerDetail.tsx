@@ -23,6 +23,7 @@ import {
 import { runnersApi } from '@/api/client';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import { engineLabel } from '@/lib/launcherEngines';
 import { dangerOutline } from '@/lib/surfaces';
 
 export default function RunnerDetail() {
@@ -71,12 +72,12 @@ export default function RunnerDetail() {
         labels,
       });
       
-      toast.success('Runner updated');
+      toast.success('Launcher updated');
       setEditDialogOpen(false);
       void refetchRunner();
     } catch (err) {
-      console.error('Failed to update runner:', err);
-      toast.error('Failed to update runner');
+      console.error('Failed to update launcher:', err);
+      toast.error('Failed to update launcher');
     } finally {
       setSaving(false);
     }
@@ -86,11 +87,11 @@ export default function RunnerDetail() {
   const drain = useMutation({
     mutationFn: () => runnersApi.drain(runnerId!),
     onSuccess: () => {
-      toast.success('The runner will drain: it finishes its jobs and then deregisters');
+      toast.success('The launcher will drain: it finishes its jobs and then deregisters');
       setDrainDialogOpen(false);
       void refetchRunner();
     },
-    onError: (e: unknown) => { toast.error(e instanceof Error ? e.message : 'Failed to drain the runner'); },
+    onError: (e: unknown) => { toast.error(e instanceof Error ? e.message : 'Failed to drain the launcher'); },
   });
 
   const handleDelete = async () => {
@@ -99,11 +100,11 @@ export default function RunnerDetail() {
     try {
       setDeleting(true);
       await runnersApi.delete(runner.id);
-      toast.success('Runner deleted');
+      toast.success('Launcher deleted');
       void navigate(`/app/${orgName}/settings/runners`);
     } catch (err) {
-      console.error('Failed to delete runner:', err);
-      toast.error('Failed to delete runner');
+      console.error('Failed to delete launcher:', err);
+      toast.error('Failed to delete launcher');
     } finally {
       setDeleting(false);
       setDeleteDialogOpen(false);
@@ -180,9 +181,9 @@ export default function RunnerDetail() {
     return (
       <div className="flex flex-col items-center justify-center min-h-[400px] gap-4">
         <Server className="h-16 w-16 text-muted-foreground/50" />
-        <p className="text-muted-foreground">Runner not found</p>
+        <p className="text-muted-foreground">Launcher not found</p>
         <Link to={`/app/${orgName}/settings/runners`}>
-          <Button variant="outline">Back to Runners</Button>
+          <Button variant="outline">Back to Launchers</Button>
         </Link>
       </div>
     );
@@ -200,7 +201,7 @@ export default function RunnerDetail() {
                 {runner.status}
               </Badge>
               <Badge variant="outline" className={cn(getTypeColor(runner.runner_type))}>
-                {runner.runner_type}
+                {engineLabel(runner.runner_type)}
               </Badge>
               {runner.drain_requested_at && (
                 <Badge variant="outline" className="bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/20" data-testid="runner-draining">
@@ -211,7 +212,7 @@ export default function RunnerDetail() {
             <p>{runner.description || 'No description'}</p>
           </div>
         }
-        backTo={{ to: `/app/${orgName}/settings/runners`, label: 'Back to Runners' }}
+        backTo={{ to: `/app/${orgName}/settings/runners`, label: 'Back to Launchers' }}
         actions={
           <>
             <Button
@@ -268,7 +269,7 @@ export default function RunnerDetail() {
               <span>{runner.os_type} {runner.os_version}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-muted-foreground">Agent Version</span>
+              <span className="text-muted-foreground">Launcher version</span>
               <span>{runner.agent_version || '-'}</span>
             </div>
           </CardContent>
@@ -435,7 +436,7 @@ export default function RunnerDetail() {
             Recent Jobs
           </CardTitle>
           <CardDescription>
-            Jobs executed by this runner
+            Jobs this launcher started
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -492,9 +493,9 @@ export default function RunnerDetail() {
       <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
         <PageDialogContent>
           <DialogHeader>
-            <DialogTitle>Edit Runner</DialogTitle>
+            <DialogTitle>Edit launcher</DialogTitle>
             <DialogDescription>
-              Update runner description and labels
+              Update the launcher description and labels
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
@@ -504,7 +505,7 @@ export default function RunnerDetail() {
                 id="description"
                 value={editForm.description}
                 onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
-                placeholder="Runner description..."
+                placeholder="Launcher description..."
               />
             </div>
             <div className="space-y-2">
@@ -536,9 +537,9 @@ export default function RunnerDetail() {
       <Dialog open={drainDialogOpen} onOpenChange={setDrainDialogOpen}>
         <PageDialogContent>
           <DialogHeader>
-            <DialogTitle>Drain Runner</DialogTitle>
+            <DialogTitle>Drain launcher</DialogTitle>
             <DialogDescription>
-              The launcher of "{runner.name}" finishes the jobs it is running, takes no new ones and
+              The launcher "{runner.name}" finishes the jobs it is running, takes no new ones and
               then deregisters. Start it again to bring it back.
             </DialogDescription>
           </DialogHeader>
@@ -558,9 +559,9 @@ export default function RunnerDetail() {
       <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <PageDialogContent>
           <DialogHeader>
-            <DialogTitle>Delete Runner</DialogTitle>
+            <DialogTitle>Delete launcher</DialogTitle>
             <DialogDescription>
-              Are you sure you want to delete runner "{runner.name}"? This action cannot be undone.
+              Are you sure you want to delete the launcher "{runner.name}"? This action cannot be undone.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>

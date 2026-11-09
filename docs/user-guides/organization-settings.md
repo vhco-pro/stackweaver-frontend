@@ -64,7 +64,7 @@ The **Run Defaults** card sets what the organization's runs, jobs and syncs use 
 |---|---|
 | **Run timeout (minutes)** | The longest a run or job may take. |
 | **OpenTofu run image** | The image the organization's OpenTofu runs execute in. |
-| **Ansible execution environment** | The image the organization's Ansible jobs and dynamic inventory source syncs execute in. Snapshot captures, VCS inventory file syncs and constructed rebuilds always run in the platform image. |
+| **Ansible execution environment** | The image the organization's Ansible jobs and dynamic inventory source syncs execute in. Snapshot captures, VCS inventory file syncs and constructed rebuilds always run in the Ansible job image. |
 | **Identity binding** | The identity binding the organization's runs and jobs use. |
 | **Cache size limit (GiB)** | The most the organization's verified cache of OpenTofu releases, providers and Galaxy content may hold before its oldest entries are removed. |
 

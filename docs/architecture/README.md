@@ -19,8 +19,8 @@ covers:
 # Architecture overview
 
 Stackweaver coordinates OpenTofu runs and Ansible jobs through an API and separate execution
-services. The API manages resources and access; launchers place each run or job in an
-executor that runs the tools that change your infrastructure. You choose whether those
+services. The API manages resources and access; launchers place each run or job in a
+job process that runs the tools that change your infrastructure. You choose whether those
 launchers operate alongside the platform or inside your own network.
 
 <a id="system-architecture"></a>
@@ -38,11 +38,11 @@ flowchart TB
     Orchestrator["Orchestrator"] --> Database
     Orchestrator --> Redis
     Hosted["Hosted launchers<br/>(hosted capacity)"] -->|"Register, claim, job token, artifacts, output"| API
-    Agent["Self-hosted launchers<br/>(agent pools)"] -->|"Register, claim, job token, artifacts, output"| API
-    Hosted --> Executor["Executors<br/>One per job: in-process, container or pod"]
-    Agent --> Executor
-    Executor -->|"Job token"| API
-    Executor --> Targets["Your infrastructure"]
+    Agent["Your own launchers<br/>(agent pools)"] -->|"Register, claim, job token, artifacts, output"| API
+    Hosted --> Job["Job processes<br/>One per job: in-process, container or pod"]
+    Agent --> Job
+    Job -->|"Job token"| API
+    Job --> Targets["Your infrastructure"]
 ```
 
 <details>
@@ -52,15 +52,15 @@ flowchart TB
 - **API** checks access and manages resources. PostgreSQL holds records; object storage holds configuration, state and artifacts.
 - **Orchestrator** routes each run to its pool, requests configuration snapshots for VCS-backed runs and releases stuck work.
 - **Redis** carries the wakeups that tell a pool's launchers work is waiting, and buffers live output. Launchers and jobs never connect to it.
-- **Launchers** register with the installation's hosted capacity or with an agent pool, keep one heartbeat open to the API and claim work. Their driver places an **executor** for each run, job or sync.
-- **Executors** fetch that job's inputs from the API with a token valid for that job alone, run OpenTofu or Ansible against your infrastructure, and report output, state and results through the API.
+- **Launchers** register with the installation's hosted capacity or with an agent pool, keep one heartbeat open to the API and claim work. Their driver places a **job process** for each run, job or sync.
+- **Job processes** fetch that job's inputs from the API with a token valid for that job alone, run OpenTofu or Ansible against your infrastructure, and report output, state and results through the API.
 
 The arrows show communication between services. They do not represent every request or a required network route for every execution mode.
 
 </details>
 
 The API handles authentication, permissions and resource operations. Launchers and their
-executors run the infrastructure tools and report their results through the API, and they
+job processes run the infrastructure tools and report their results through the API, and they
 hold no database, object storage or Redis credential. The browser reads status and output
 through the API; it does not connect directly to the database or Redis.
 
@@ -76,10 +76,10 @@ belongs in the [self-hosting guides](../get-started/self-hosting/README.md).
 | Component | Responsibility | What matters when operating it |
 |---|---|---|
 | Frontend | Displays resources, run output and documentation. | Users need access to its URL and the API and sign-in endpoints. |
-| API | Enforces access and manages organizations, projects, workspaces and jobs. | Automation clients and every launcher and executor connect here. |
+| API | Enforces access and manages organizations, projects, workspaces and jobs. | Automation clients, every launcher and every job process connect here. |
 | Zitadel | Handles user identity and issues sign-in tokens. | Issuer and callback URLs must match the deployment's public addresses. |
 | Orchestrator | Routes runs to their pool, requests configuration snapshots and releases stuck work. | It uses the database and Redis; it runs no infrastructure tools. |
-| Launchers and executors | Claim runs, jobs and syncs and run each one in an in-process, container or Kubernetes executor. | Executors need access to the API, providers, collections and target hosts their work uses. Configuration and playbook snapshots are captured on the hosted capacity, so its executors also need access to your VCS provider. |
+| Launchers and job processes | Claim runs, jobs and syncs and run each one as an in-process, container or Kubernetes job process. | Job processes need access to the API, providers, collections and target hosts their work uses. Configuration and playbook snapshots are captured on the hosted capacity, so its job processes also need access to your VCS provider. |
 | PostgreSQL | Stores resource metadata, permissions and execution records. | Include its data in your backup and recovery plan. |
 | Redis | Carries launcher wakeups and buffers live output. | Keep it reachable by the API and the orchestrator. |
 | S3-compatible storage | Holds configuration snapshots, state files and artifacts. | Preserve it alongside the database. Garage is the bundled option; an external compatible service can be used. |
@@ -93,7 +93,7 @@ flowchart TB
     Launch["Launch a run or job"] --> Checks["Check permissions and launch conditions"]
     Checks --> Pending["Route the work to its pool"]
     Pending --> Claim["A launcher of the pool claims it"]
-    Claim --> Execute["An executor runs the selected configuration"]
+    Claim --> Execute["A job process runs the selected configuration"]
     Execute --> Result["Record status, output and artifacts"]
     Result --> Inspect["Inspect the result in the UI or API"]
 ```
@@ -102,9 +102,9 @@ flowchart TB
 <summary>Diagram legend: launch and execution</summary>
 
 1. You launch a run or job through the UI, an API client or an enabled trigger.
-2. Stackweaver checks permissions and launch conditions before releasing work for execution, and stamps it with its pool: the agent pool its settings select, or the organization's hosted pool.
+2. Stackweaver checks permissions and launch conditions before releasing work for execution, and stamps it with its pool: the agent pool its settings select, or the organization's hosted capacity.
 3. The pool's launchers are woken, and one claims the work atomically and receives a token valid for that run or job alone.
-4. The launcher's driver places an executor, which fetches the inputs with that token and executes the selected configuration with that run or job's settings and credentials.
+4. The launcher's driver places a job process, which fetches the inputs with that token and executes the selected configuration with that run or job's settings and credentials.
 5. Status, output and artifacts are recorded so you can inspect the result through the UI or API.
 
 Some launches wait for an inventory refresh, a configuration or playbook snapshot, approval or available execution capacity. The linked execution guides explain those paths and their failure behavior.
@@ -118,24 +118,24 @@ are stored in object storage, with their metadata in PostgreSQL. See [Understand
 
 For Ansible, a job template supplies the playbook, inventory and execution settings. Launch
 conditions can include inventory refreshes and concurrency limits. Workflows can add approval
-steps. The executor runs the playbook from a snapshot of its repository, installs its
+steps. The job process runs the playbook from a snapshot of its repository, installs its
 requirements from the organization's verified cache, and reports host and task results. See
 [Ansible execution flows](../features/ansible/execution-flows.md) for the detailed paths,
-including workflows and self-hosted runners.
+including workflows and agent pools.
 
 ## Choose where execution runs
 
-The executor's network determines what a run or job can reach. Being able to open Stackweaver
-in your browser does not mean an executor can reach a private target.
+The job process's network determines what a run or job can reach. Being able to open Stackweaver
+in your browser does not mean a job can reach a private target.
 
 | Execution location | Use it when | Connections to plan for |
 |---|---|---|
-| Hosted capacity | The installation's execution environment can reach your targets and has the required tools. | The hosted launchers and their executors reach Stackweaver only through the API. Executors also need access to the dependencies and targets their work uses, and the snapshot syncs on the hosted capacity reach your VCS provider. |
-| Agent pools (self-hosted) | Work must execute within another network or on hosts you control. | Launchers request work and report results through the API. Executors also need access to their dependencies and targets. They do not need access to the platform database, Redis or your VCS provider. |
+| Hosted capacity | The installation's execution environment can reach your targets and has the required tools. | The hosted launchers and their job processes reach Stackweaver only through the API. Job processes also need access to the dependencies and targets their work uses, and the snapshot syncs on the hosted capacity reach your VCS provider. |
+| Agent pools (self-hosted) | Work must execute within another network or on hosts you control. | Launchers request work and report results through the API. Job processes also need access to their dependencies and targets. They do not need access to the platform database, Redis or your VCS provider. |
 
 Keep each launcher's credentials limited to the work it performs. The API coordinates
-execution; it does not provide the executor's network access to target hosts. See
-[Self-hosted runners](../user-guides/self-hosted-runners.md) to configure agent pools, start
+execution; it does not provide the job process's network access to target hosts. See
+[Set up launchers](../user-guides/self-hosted-runners.md) to configure agent pools, start
 launchers and choose how isolated their jobs are.
 
 <a id="security-architecture"></a>
@@ -155,7 +155,7 @@ controls install-wide operations without granting membership inside organization
 Automation authenticates with `tfe-` API tokens, not Zitadel access tokens. See [Using the API](./using-the-api.md) for
 integration guidance and the [API explorer](/docs/api-reference/explorer) for endpoint details.
 
-Each executor fetches only its own job's inputs, with a token valid for that job alone that
+Each job process fetches only its own job's inputs, with a token valid for that job alone that
 is refused once the job has finished. On the container and Kubernetes drivers it runs in a
 fresh, non-root container or pod that cannot reach the cloud metadata endpoints or Azure's
 platform address `168.63.129.16`. The API

@@ -1,8 +1,8 @@
 // Copyright (c) 2025 VH & Co BV. Licensed under the Business Source License 1.1. See LICENSE for details.
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { Cpu, Plus, Trash2, Loader2, Settings2, ChevronDown, ChevronUp, Server, Circle, Copy, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { GradientButton } from '@/components/ui/gradient-button';
@@ -42,7 +42,7 @@ import { Badge } from '@/components/ui/badge';
 import { AgentPoolTokens } from '@/components/settings/AgentPoolTokens';
 import { AgentPoolIdentityBindings } from '@/components/settings/AgentPoolIdentityBindings';
 import { AgentPoolPullSecrets } from '@/components/settings/AgentPoolPullSecrets';
-import { DeploymentSettingsPanel, PoolSettingsSummary } from '@/components/settings/PoolPlacementSettings';
+import { DeploymentSettingsPanel, LauncherDriver, PoolSettingsSummary } from '@/components/settings/PoolPlacementSettings';
 import { formatBytes } from '@/lib/runPlacement';
 import { cn } from '@/lib/utils';
 import { dangerGhostIcon, glassSurface } from '@/lib/surfaces';
@@ -58,7 +58,11 @@ export default function AgentPools() {
 
   // Runners per pool (keyed by pool ID)
   const [poolRunners, setPoolRunners] = useState<Record<string, Runner[]>>({});
-  const [expandedPools, setExpandedPools] = useState<Set<string>>(new Set());
+  // ?pool=<id> opens that pool on arrival (the Add a launcher dialog links its Agent tokens section).
+  const [searchParams] = useSearchParams();
+  const focusPool = searchParams.get('pool');
+  const [expandedPools, setExpandedPools] = useState<Set<string>>(() => new Set(focusPool ? [focusPool] : []));
+  const focusedOnce = useRef(false);
   const [loadingRunners, setLoadingRunners] = useState<Set<string>>(new Set());
   const [copiedPoolId, setCopiedPoolId] = useState<string | null>(null);
 
@@ -320,7 +324,7 @@ export default function AgentPools() {
       <PageHeader
         icon={Cpu}
         title="Agent Pools"
-        subtitle="Manage agent pools for self-hosted runners (TFE-compatible)"
+        subtitle="Manage the agent pools your own launchers register with (TFE-compatible)"
         backTo={{ to: orgName ? `/app/${orgName}/settings` : '/settings', label: 'Back to Settings' }}
         action={addPoolAction}
         listState={listState}
@@ -342,7 +346,7 @@ export default function AgentPools() {
             <PageEmptyState
               icon={Cpu}
               title="No agent pools yet"
-              description="Create one to scope self-hosted runners."
+              description="Create one to register your own launchers."
               action={loadFailed ? undefined : addPoolAction}
             />
           ) : (
@@ -401,7 +405,7 @@ export default function AgentPools() {
                             {pool.organization_scoped ? 'Organization-scoped' : 'Restricted'}
                           </Badge>
                           <Badge variant="outline" className="bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/20">
-                            {pool.agent_count} agent{pool.agent_count !== 1 ? 's' : ''}
+                            {pool.agent_count} launcher{pool.agent_count !== 1 ? 's' : ''}
                           </Badge>
                           {pool.allowed_workspace_ids.length > 0 && (
                             <Badge variant="outline" className="bg-green-500/10 text-green-600 dark:text-green-400 border-green-500/20">
@@ -446,14 +450,14 @@ export default function AgentPools() {
                       ) : runners.length === 0 ? (
                         <div className="flex flex-col items-center justify-center py-8 text-center">
                           <Server className="h-8 w-8 text-muted-foreground/50 mb-2" />
-                          <p className="text-sm text-muted-foreground">No agents in this pool</p>
+                          <p className="text-sm text-muted-foreground">No launchers in this pool</p>
                         </div>
                       ) : (
                         <div className="overflow-x-auto">
                           <table className="w-full text-sm">
                             <thead>
                               <tr className="border-b border-gray-300/70 dark:border-white/5 bg-muted/30">
-                                <th scope="col" className="text-left py-3 px-4 font-medium text-muted-foreground">Agent Name</th>
+                                <th scope="col" className="text-left py-3 px-4 font-medium text-muted-foreground">Launcher</th>
                                 <th scope="col" className="text-left py-3 px-4 font-medium text-muted-foreground">Version</th>
                                 <th scope="col" className="text-left py-3 px-4 font-medium text-muted-foreground">ID</th>
                                 <th scope="col" className="text-left py-3 px-4 font-medium text-muted-foreground">IP Address</th>
@@ -498,8 +502,7 @@ export default function AgentPools() {
                                     {runner.ip_address || '-'}
                                   </td>
                                   <td className="py-3 px-4 text-muted-foreground" data-testid="runner-driver">
-                                    {runner.driver || '-'}
-                                    {runner.hosted_strict && <span className="ml-1 text-xs">(strict)</span>}
+                                    <LauncherDriver driver={runner.driver} hostedStrict={runner.hosted_strict} />
                                   </td>
                                   <td className="py-3 px-4 text-muted-foreground" data-testid="runner-network-mode">
                                     {networkModeLabel(runner.network_mode)}
@@ -521,8 +524,18 @@ export default function AgentPools() {
                           </table>
                         </div>
                       )}
-                      {/* Agent tokens (tfe_agent_token): credentials agents present to register into this pool */}
-                      <div className="border-t border-gray-300/70 dark:border-white/5">
+                      {/* Agent tokens (tfe_agent_token): credentials launchers present to register into this pool */}
+                      <div
+                        className="border-t border-gray-300/70 dark:border-white/5 scroll-mt-24"
+                        id={pool.id === focusPool ? 'agent-tokens' : undefined}
+                        ref={pool.id === focusPool ? (el) => {
+                          // The linked pool arrives open: load its launchers and bring its tokens into view, once.
+                          if (!el || focusedOnce.current) return;
+                          focusedOnce.current = true;
+                          if (!poolRunners[pool.id]) void fetchPoolRunners(pool.id);
+                          el.scrollIntoView({ block: 'start' });
+                        } : undefined}
+                      >
                         <AgentPoolTokens poolId={pool.id} />
                       </div>
                       {/* Identity bindings (#933, D8): the cloud identities this pool's jobs may run as. */}
@@ -550,7 +563,7 @@ export default function AgentPools() {
         <PageDialogContent>
           <DialogHeader>
             <DialogTitle>Create agent pool</DialogTitle>
-            <DialogDescription>Pools group runners and scope which workspaces can use them.</DialogDescription>
+            <DialogDescription>Pools group launchers and scope which workspaces can use them.</DialogDescription>
           </DialogHeader>
           <form onSubmit={(e) => { void handleCreate(e); }} className="space-y-4">
             <div className="space-y-2">
@@ -752,7 +765,7 @@ export default function AgentPools() {
             <DialogTitle>Delete agent pool</DialogTitle>
             <DialogDescription>
               {deletePool && (
-                <>Delete &quot;{deletePool.name}&quot;? This cannot be undone. Runners in this pool will need to re-register.</>
+                <>Delete &quot;{deletePool.name}&quot;? This cannot be undone. Launchers in this pool will need to re-register.</>
               )}
             </DialogDescription>
           </DialogHeader>

@@ -21,7 +21,7 @@ function renderInPage(ui: React.ReactNode, ramp: Parameters<typeof Page>[0]['ram
   );
 }
 
-const action = <button type="button">New Runner</button>;
+const action = <button type="button">New launcher</button>;
 
 describe('Page', () => {
   it('sets the three ring properties of its ramp on its own element', () => {
@@ -48,8 +48,8 @@ describe('Page', () => {
     renderInPage(
       <Dialog open>
         <PageDialogContent>
-          <DialogTitle>Create runner</DialogTitle>
-          <DialogDescription>Register a runner.</DialogDescription>
+          <DialogTitle>Add a launcher</DialogTitle>
+          <DialogDescription>Register a launcher.</DialogDescription>
         </PageDialogContent>
       </Dialog>,
       'runners'
@@ -70,7 +70,7 @@ describe('PageHeader', () => {
   });
 
   it('pairs the title gradient and the icon for light and dark from the page ramp', () => {
-    renderInPage(<PageHeader icon={Server} title="Self-Hosted Runners" />, 'runners');
+    renderInPage(<PageHeader icon={Server} title="Launchers" />, 'runners');
     const heading = screen.getByRole('heading', { level: 1 });
     for (const cls of RAMPS.runners.title.split(' ')) expect(heading).toHaveClass(cls);
     const icon = heading.querySelector('svg') as SVGElement;
@@ -82,7 +82,7 @@ describe('PageHeader', () => {
     expect(screen.queryByRole('link', { name: /back to/i })).toBeNull();
     unmount();
     renderInPage(
-      <PageHeader icon={Server} title="Self-Hosted Runners" backTo={{ to: '/app/demo/settings', label: 'Back to Settings' }} />
+      <PageHeader icon={Server} title="Launchers" backTo={{ to: '/app/demo/settings', label: 'Back to Settings' }} />
     );
     expect(screen.getByRole('link', { name: 'Back to Settings' })).toHaveAttribute('href', '/app/demo/settings');
   });
@@ -96,31 +96,31 @@ describe('PageHeader', () => {
 
   it('renders the stats row and secondary actions when given', () => {
     renderInPage(
-      <PageHeader icon={Server} title="Runners" stats={<span>3 total</span>} actions={<button type="button">Edit</button>} action={action} />
+      <PageHeader icon={Server} title="Launchers" stats={<span>3 total</span>} actions={<button type="button">Edit</button>} action={action} />
     );
     expect(screen.getByText('3 total')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Edit' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'New Runner' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'New launcher' })).toBeInTheDocument();
   });
 
   it('does not render the primary action while the list is known to be empty', () => {
-    renderInPage(<PageHeader icon={Server} title="Runners" action={action} listState="empty" />);
-    expect(screen.queryByRole('button', { name: 'New Runner' })).toBeNull();
+    renderInPage(<PageHeader icon={Server} title="Launchers" action={action} listState="empty" />);
+    expect(screen.queryByRole('button', { name: 'New launcher' })).toBeNull();
   });
 
   it('holds the action place with a skeleton while the first load is pending', () => {
-    renderInPage(<PageHeader icon={Server} title="Runners" action={action} listState="loading" />);
-    expect(screen.queryByRole('button', { name: 'New Runner' })).toBeNull();
+    renderInPage(<PageHeader icon={Server} title="Launchers" action={action} listState="loading" />);
+    expect(screen.queryByRole('button', { name: 'New launcher' })).toBeNull();
     expect(screen.getByTestId('page-header-action-skeleton')).toBeInTheDocument();
   });
 
   it('shows the action when the load failed, since emptiness is unknown', () => {
-    renderInPage(<PageHeader icon={Server} title="Runners" action={action} listState="error" />);
-    expect(screen.getByRole('button', { name: 'New Runner' })).toBeInTheDocument();
+    renderInPage(<PageHeader icon={Server} title="Launchers" action={action} listState="error" />);
+    expect(screen.getByRole('button', { name: 'New launcher' })).toBeInTheDocument();
   });
 
   it('renders no action, and no skeleton, for a user who may not create', () => {
-    renderInPage(<PageHeader icon={Server} title="Runners" listState="loading" />);
+    renderInPage(<PageHeader icon={Server} title="Launchers" listState="loading" />);
     expect(screen.queryByTestId('page-header-action-skeleton')).toBeNull();
   });
 });

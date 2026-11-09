@@ -70,6 +70,10 @@ cp sso.env.example sso.env
 cp vcs.env.example vcs.env
 cp oidc.env.example oidc.env
 
+# The launcher's registry credential for private job images. Leave it empty when the
+# job images are public to you; see "Private job images" below.
+cp registry-auth.json.example registry-auth.json
+
 # Generate the workload identity signing key. This is required: the API refuses
 # to start without OIDC_SIGNING_KEY, even when you do not use workload identity.
 sed -i.bak "s|^OIDC_SIGNING_KEY=.*|OIDC_SIGNING_KEY=$(openssl genrsa 2048 | openssl base64 -A)|" oidc.env
@@ -106,11 +110,10 @@ account with a verified address; see [Sign-in email and sign-up](../email.md).
 ## 3. Check the network path
 
 Containers use Docker service names internally. PostgreSQL, Redis and Garage are not published
-to the host; API, frontend and Zitadel are. The orchestrator and the two launchers,
-`launcher` (OpenTofu) and `ansible-launcher` (Ansible jobs and syncs), publish no ports. The
-launchers hold no database, Redis or storage credential: they reach the API at
+to the host; API, frontend and Zitadel are. The orchestrator and the `launcher` publish no
+ports. The launcher holds no database, Redis or storage credential: it reaches the API at
 `http://host.docker.internal:8022`, the API's published port, and every run, job and sync
-they claim runs in a container of its own on a separate jobs network (see
+it claims runs in a container of its own on a separate jobs network (see
 [Launchers and job containers](#launchers-and-job-containers)).
 
 | Address on the host | Purpose |
@@ -168,15 +171,16 @@ How long a sign-in lasts is set in `.env` with `STACKWEAVER_SESSION_IDLE_TIMEOUT
 
 ## Launchers and job containers
 
-The `launcher` (OpenTofu) and `ansible-launcher` (Ansible jobs and syncs) services are the
-installation's hosted launchers. They serve every organization's hosted capacity: runs and
-jobs in remote execution mode, and every sync that captures a snapshot from a VCS provider.
-They register with `STACKWEAVER_HOSTED_SECRET`, which `zitadel-init` generates into `.env`
-once and keeps on later runs.
+The `launcher` service is the installation's hosted launcher. It runs the
+`ghcr.io/vhco-pro/stackweaver-launcher` image and serves every organization's hosted capacity:
+OpenTofu runs and Ansible jobs in remote execution mode, and every sync that captures a snapshot
+from a VCS provider. It registers with `STACKWEAVER_HOSTED_SECRET`, which `zitadel-init`
+generates into `.env` once and keeps on later runs.
 
-Both launchers use the container driver. They mount the host's Docker socket and start a
-fresh container for every job from their own image. The socket is root-equivalent on the
-host, so the launchers run as `root` only to reach it and never run user code themselves.
+The launcher uses the container driver. It mounts the host's Docker socket and starts a fresh
+container for every job from that engine's job image: `stackweaver-opentofu-runner` for OpenTofu
+runs, `stackweaver-ansible-runner` for Ansible jobs and syncs. The socket is root-equivalent on
+the host, so the launcher runs as `root` only to reach it and never runs user code itself.
 
 | Job container property | Behavior |
 |---|---|
@@ -189,13 +193,32 @@ host, so the launchers run as `root` only to reach it and never run user code th
 
 | Launcher setting | Purpose | Example file value |
 |---|---|---|
-| `RUNNER_MAX_CONCURRENT_JOBS` | Jobs one launcher runs at once. | `4` |
-| `RUNNER_TOFU_IMAGE`, `RUNNER_ANSIBLE_IMAGE` | Job image of each engine: OpenTofu runs run in the first, Ansible jobs and syncs in the second. | The two launcher images |
-| `RUNNER_JOB_IMAGE_PULL` | When a launcher pulls a job image: `always`, `missing` or `never`. | `missing` |
+| `RUNNER_MAX_CONCURRENT_JOBS` | Jobs the launcher runs at once, OpenTofu runs, Ansible jobs and syncs together. | `8` |
+| `RUNNER_TOFU_IMAGE`, `RUNNER_ANSIBLE_IMAGE` | Job image of each engine: OpenTofu runs run in the first, Ansible jobs and syncs in the second. | The two published job images |
+| `RUNNER_JOB_IMAGE_PULL` | When the launcher pulls a job image: `always`, `missing` or `never`. | `always` (default) |
+| `RUNNER_DOCKER_CONFIG` | The launcher's registry credential for private job images, the `registry-auth` secret. | `/run/secrets/registry-auth` |
+| `RUNNER_FIREWALL_IMAGE` | Image the jobs network's firewall rules are written from. | The launcher image |
 | `RUNNER_DENY_CIDRS` | Further ranges jobs must not reach. | (none) |
 | `RUNNER_ALLOW_TCP` | Endpoints jobs must reach inside a denied range, such as an air-gapped installation's mirrors. | (none) |
-| `RUNNER_CACHE_DIR`, `RUNNER_CACHE_VOLUME` | Location and volume of the node-local cache: `stackweaver-launcher-cache` and `stackweaver-ansible-launcher-cache`. | Set per launcher |
+| `RUNNER_CACHE_DIR`, `RUNNER_CACHE_VOLUME` | Location and volume of the node-local cache, `stackweaver-launcher-cache`. | Set on the launcher |
 | `RUNNER_CACHE_LOCAL_SIZE_LIMIT` | Size bound of the node-local cache. | `20Gi` (default) |
+
+### Private job images
+
+The launcher pulls the job images itself, on every placement, so a host keeps running the
+current image after a tag moves. `docker compose pull` does not pull them. For a job image your
+host must log in to pull, put the credential in `registry-auth.json`, which Compose hands the
+launcher alone as the `registry-auth` secret:
+
+```json
+{ "auths": { "ghcr.io": { "auth": "<base64 of username:token>" } } }
+```
+
+Use an inline `auth`, or a `username` and `password`, entry. Credential helpers (`credsStore`,
+`credHelpers`) are not supported, and the launcher warns about them at start. The credential
+pulls the job images and nothing else: a run image is pulled with its own credential. When the
+registry cannot be reached, a job whose default job image is already on the host runs that copy,
+with a warning in its output.
 
 The [environment reference](../environment-variables.md#launchers) lists every launcher
 variable. Installation-wide settings for runs and jobs, such as the default run timeout, the
@@ -204,7 +227,7 @@ service's `environment:` block; see
 [Runs, jobs and launchers](../environment-variables.md#runs-jobs-and-launchers).
 
 To run work inside your own network as well, add agent pools and start launchers in them;
-see [Self-hosted runners](../../../user-guides/self-hosted-runners.md).
+see [Set up launchers](../../../user-guides/self-hosted-runners.md).
 
 ### Run on Podman
 
@@ -214,8 +237,8 @@ The launchers speak the Docker Engine API, which Podman also serves. To run the 
 1. Enable Podman's API socket: `systemctl enable --now podman.socket` for rootful Podman
    (`/run/podman/podman.sock`), or `systemctl --user enable --now podman.socket` for
    rootless Podman (`$XDG_RUNTIME_DIR/podman/podman.sock`).
-2. Mount that socket into both launcher services at `/var/run/docker.sock` in place of the
-   Docker socket. A rootful socket must be reachable by the user the launchers run as.
+2. Mount that socket into the launcher service at `/var/run/docker.sock` in place of the
+   Docker socket. A rootful socket must be reachable by the user the launcher runs as.
 
 On rootful Podman the launcher creates the jobs network through Podman's own API, without
 Podman's isolation between networks: the launcher's nftables table is that network's policy, and
@@ -230,7 +253,7 @@ sudo iptables -I DOCKER-USER -d <jobs subnet> -m conntrack --ctstate RELATED,EST
 ```
 
 Rootless Podman cannot program the host firewall, so the jobs network has no firewall and
-the launcher logs a warning. Every executor then checks whether a cloud metadata endpoint
+the launcher logs a warning. Every job then checks whether a cloud metadata endpoint
 answers from its network and refuses to run if one does, so such a host fails closed. A
 pool's CPU and memory limits apply on cgroup v2 hosts with delegation; elsewhere jobs run
 without them unless the pool requires them. On Podman, each job's part of the node-local
@@ -271,8 +294,8 @@ the private-key mount for the API and orchestrator. See the
 A job container starts with the run's own variables, the mirror, proxy and CA settings the
 API hands it, and a fixed allowlist of the launcher's environment (path, locale, proxy and CA
 settings, cloud identity variables and a few OpenTofu and Ansible settings), listed in
-[Runner variables that reach runs](../environment-variables.md#runner-variables-that-reach-runs).
-The launcher's registration secret and runner token never reach it. Give runs further
+[Launcher variables that reach runs](../environment-variables.md#launcher-variables-that-reach-runs).
+The launcher's registration secret and launcher token never reach it. Give runs further
 settings through workspace and variable-set variables rather than the launcher's environment.
 
 ## Preserve data and upgrade
@@ -286,8 +309,7 @@ versions and check the result. The commands below provide deployment-specific de
 | `postgres_data` | Database (all application state) | Yes; back up regularly |
 | `garage_data` | Object storage (OpenTofu state, configs, registry) | Yes; back up regularly |
 | `garage_meta` | Garage metadata (the index of the objects in `garage_data`) | Yes; back up together with `garage_data` |
-| `stackweaver-launcher-cache` | The OpenTofu launcher's node-local copy of the organizations' cache entries | No; refilled from object storage |
-| `stackweaver-ansible-launcher-cache` | The Ansible launcher's node-local copy of the organizations' cache entries | No; refilled from object storage |
+| `stackweaver-launcher-cache` | The launcher's node-local copy of the organizations' cache entries | No; refilled from object storage |
 | `zitadel-pat` | Zitadel admin PAT (shared with init job) | Preserve with the configured identity and generated `.env` |
 
 
@@ -314,13 +336,46 @@ Before you upgrade, check two settings in `.env` if you run Stackweaver on an ad
 - Set `STACKWEAVER_APP_URL` to the app's public URL. The API builds the sign-in redirect from it, so it must match the `/auth/callback` URL registered in `zitadel-init.yaml`. If you had set `VITE_ZITADEL_REDIRECT_URI`, set `STACKWEAVER_APP_URL` to the same origin; `VITE_ZITADEL_REDIRECT_URI` is not read and can be removed.
 - Serve the app over HTTPS, as described in [HTTPS and Browser Sessions](#https-and-browser-sessions).
 
-After the upgrade, each browser signs in once and returns to the page it had open. API tokens, the Terraform CLI and runners keep working without any change. A script that called the API with a Zitadel access token must use an API token instead, created under **Settings > API Tokens**.
+After the upgrade, each browser signs in once and returns to the page it had open. API tokens, the Terraform CLI and launchers keep working without any change. A script that called the API with a Zitadel access token must use an API token instead, created under **Settings > API Tokens**.
 
 If you go back to a release from before server-side browser sessions by setting the StackWeaver image tags in `docker-compose.yml` to an older version, browsers cannot sign in until you reactivate the public frontend app, because the older `zitadel-init` signs browsers in with it and never reactivates it. Sign in to the Zitadel console as the administrator, open the `IAC Platform Project` project in the `IAC Platform` organization, select the `IAC Platform Frontend` application, and reactivate it. A later upgrade deactivates it again.
 
 If you operate an external Zitadel without this initializer, create **Stackweaver BFF** and
 provide its BFF credentials before upgrading. Follow [the confidential-client setup](../../../user-guides/authentication/zitadel-setup.md#using-an-external-zitadel).
 
+
+### Upgrade to the release with one launcher
+
+One `launcher` service, from the `stackweaver-launcher` image, replaces the `launcher` and
+`ansible-launcher` services.
+
+1. Stop the old Ansible launcher with a timeout above its drain grace, so its running jobs
+   finish:
+
+   ```bash
+   docker compose stop --timeout 390 ansible-launcher
+   ```
+
+   A launcher waits up to `RUNNER_DRAIN_GRACE` (5 minutes by default) for its jobs, then stops
+   the ones still running. To let longer jobs finish, raise `RUNNER_DRAIN_GRACE` on the
+   launchers and the timeout above it, plus 60 seconds.
+2. Replace your `docker-compose.yml` with the one of the new release, and copy
+   `registry-auth.json.example` to `registry-auth.json` beside it. Add the credential for any
+   private job image, as [Private job images](#private-job-images) describes.
+3. Pull the images, start the stack and remove the container of the service that is gone:
+
+   ```bash
+   docker compose pull
+   docker compose up -d --remove-orphans
+   ```
+
+   Without `--remove-orphans` the old `ansible-launcher` container keeps running its old image
+   beside the new launcher, and nothing updates it again. The new launcher's
+   `stop_grace_period` lets the old `launcher` container drain its jobs before Compose replaces
+   it.
+4. Once the upgrade works, you can remove the old Ansible launcher's cache volume, which nothing
+   mounts: `docker volume rm stackweaver-ansible-launcher-cache`. Its entries are copies of
+   object storage.
 
 ### Upgrade to the release with launchers
 
@@ -346,11 +401,11 @@ provide its BFF credentials before upgrading. Follow [the confidential-client se
    `STACKWEAVER_ENV_FILE`, so the same command starts working hosted launchers.
 3. Queue again any OpenTofu run that failed with `Run was pending for too long and was
    automatically cancelled`. The orchestrator fails a run that is still pending 30 minutes
-   after it was created, so keep the time between stopping the old runners and starting the
+   after it was created, so keep the time between stopping the old services and starting the
    launchers short.
 4. Upgrade the launchers of your agent pools to the same release and remove `RUNNER_MODE`
-   from their environment. A job's executor comes from its launcher's image; see
-   [Self-hosted runners](../../../user-guides/self-hosted-runners.md#operate-and-troubleshoot).
+   from their environment. The program that runs each job comes from its launcher's image; see
+   [Set up launchers](../../../user-guides/self-hosted-runners.md#operate-and-troubleshoot).
 5. If a cloud trust matches an Ansible job's subject exactly, update it to the job name in
    [the token subject](../../../user-guides/oidc-configuration.md#the-token-subject-shared-across-clouds).
    Rename any organization, project, workspace, template or job whose name contains a colon:
@@ -386,17 +441,17 @@ Use `docker compose down` to stop the stack while retaining named volumes.
 
 | Symptom | Read/check |
 |---|---|
-| Image pull denied | Package access, GHCR login and the exact image/tag. |
+| Image pull denied | Package access, GHCR login and the exact image/tag. A job that fails pulling its job image needs the credential in `registry-auth.json` (see [Private job images](#private-job-images)). |
 | A published port is unavailable | `docker compose ps` and the host's listening ports. |
 | Identity initialization failed | `docker compose logs zitadel-init` and `docker compose logs zitadel`; reconcile after correcting inputs. |
 | API cannot reach PostgreSQL | Database health and matching credentials; `docker compose ps postgres` should report healthy. |
 | Blank page or wrong API address | Browser console, frontend logs and same-origin `VITE_API_URL`; reapply configuration and reload. |
-| A run or job stays pending | `docker compose logs launcher` and `docker compose logs ansible-launcher`. A launcher that says a hosted launcher needs `STACKWEAVER_HOSTED_SECRET` cannot read `.env`: check that its service sets `STACKWEAVER_ENV_FILE` and mounts `.env` as in the example Compose file, and that `zitadel-init` completed. A launcher that cannot reach the API retries, and `docker compose ps` shows it unhealthy until it is registered. |
+| A run or job stays pending | `docker compose logs launcher`. A launcher that says a hosted launcher needs `STACKWEAVER_HOSTED_SECRET` cannot read `.env`: check that its service sets `STACKWEAVER_ENV_FILE` and mounts `.env` as in the example Compose file, and that `zitadel-init` completed. A launcher that cannot reach the API retries, and `docker compose ps` shows it unhealthy until it is registered. |
 | The orchestrator logs `Waiting for the API to migrate the database` | The API migrates the schema when it starts, and the orchestrator waits for it after an upgrade. Read `docker compose logs api` for the reason the API has not finished starting. |
-| A job fails because a cloud metadata endpoint is reachable | The jobs network is not firewalled on this host, which happens on rootless engines, and the executor refuses to run a job that could reach the node's identity. Run the launchers against a rootful engine, or block the metadata ranges in the host's own firewall. |
+| A job fails because a cloud metadata endpoint is reachable | The jobs network is not firewalled on this host, which happens on rootless engines, and Stackweaver refuses to run a job that could reach the node's identity. Run the launcher against a rootful engine, or block the metadata ranges in the host's own firewall. |
 
-Use `docker compose logs api`, `docker compose logs orchestrator`, `docker compose logs launcher`
-or `docker compose logs ansible-launcher` to narrow the failing service. Do not share initializer
+Use `docker compose logs api`, `docker compose logs orchestrator` or `docker compose logs launcher`
+to narrow the failing service. Do not share initializer
 logs without checking them for credentials. To inspect PostgreSQL interactively:
 
 ```bash

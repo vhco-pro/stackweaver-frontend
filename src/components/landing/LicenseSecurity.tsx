@@ -33,7 +33,7 @@ const CARDS: TrustCard[] = [
   {
     icon: Database,
     title: 'Data that stays put',
-    text: 'State, secrets and logs live in your database and your bucket. Runners work inside your network and reach your clouds with short-lived credentials.',
+    text: 'State, secrets and logs live in your database and your bucket. Launchers work inside your network and reach your clouds with short-lived credentials.',
     link: 'Security overview',
     href: '/docs/security',
   },

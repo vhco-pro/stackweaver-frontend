@@ -19,7 +19,7 @@ cloud infrastructure or configuring a cloud provider.
 You need an account with permission to create a workspace in an organization and a connected VCS
 repository. A workspace in the default `remote` execution mode runs on the installation's hosted
 capacity; in `agent` mode it needs an OpenTofu launcher online in its agent pool (see
-[Set up self-hosted runners](../user-guides/self-hosted-runners.md)). Use a separate example
+[Set up launchers](../user-guides/self-hosted-runners.md)). Use a separate example
 workspace and a branch you control. Planning still executes configuration code; only use code
 you trust.
 

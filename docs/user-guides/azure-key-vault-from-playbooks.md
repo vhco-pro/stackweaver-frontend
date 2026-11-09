@@ -13,7 +13,7 @@ capabilities: [
   {
     "id": "ansible-azure-identity",
     "name": "Azure identity for playbooks",
-    "summary": "Read Azure resources using an attached credential, organization federation or AKS Workload ID on a self-hosted pool.",
+    "summary": "Read Azure resources using an attached credential, organization federation or AKS Workload ID on an agent pool.",
     "area": "ansible",
     "availability": "available",
     "limitations": "An attached Azure credential takes precedence over organization OIDC. Azure role assignments are still required.",
@@ -60,7 +60,7 @@ when neither supplies the job identity.
 | Method | Configure this |
 |---|---|
 | Attached service principal | Attach an Azure credential to the job template. Use the identity's vault permissions, not the permissions of the person launching the job. |
-| Organization federation | Save the organization's Azure application identifiers and configure the application's trust for Stackweaver's issuer, audience and job subject. Jobs on the hosted capacity and on self-hosted runners receive the same federation token, because the API mints it and hands it to the job with its other inputs. |
+| Organization federation | Save the organization's Azure application identifiers and configure the application's trust for Stackweaver's issuer, audience and job subject. Jobs on the hosted capacity and on agent pools receive the same federation token, because the API mints it and hands it to the job with its other inputs. |
 | AKS Entra Workload ID | Run the job in a pod that has Workload ID: a job that a Kubernetes launcher in an agent pool runs with an `azure-workload-identity` [identity binding](./self-hosted-runners.md#identity-bindings), or a job of an in-process launcher whose own pod has Workload ID. The playbook uses that pod identity, not a Stackweaver job federation subject. Stackweaver does not document the Azure-side setup of these options as a supported configuration. |
 
 If you already have a working attached credential or AKS identity, continue to

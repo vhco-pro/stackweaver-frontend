@@ -169,13 +169,13 @@ export function RunCommandDialog({ open, onOpenChange, inventoryId, orgName, pro
             </Select>
           </div>
           <div className="space-y-2">
-            <Label htmlFor="adhoc-pool">Runner</Label>
-            <Select value={form.agent_pool_id || 'platform'} onValueChange={(v) => { setForm({ ...form, agent_pool_id: v === 'platform' ? '' : v }); }}>
+            <Label htmlFor="adhoc-pool">Runs on</Label>
+            <Select value={form.agent_pool_id || 'hosted'} onValueChange={(v) => { setForm({ ...form, agent_pool_id: v === 'hosted' ? '' : v }); }}>
               <SelectTrigger id="adhoc-pool">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="platform">Platform runner</SelectItem>
+                <SelectItem value="hosted">Hosted capacity</SelectItem>
                 {agentPools.map((p) => (
                   <SelectItem key={p.id} value={p.id}>{p.name} (agent pool)</SelectItem>
                 ))}

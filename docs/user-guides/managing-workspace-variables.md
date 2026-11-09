@@ -109,7 +109,7 @@ For conflicts among sets, priority sets are considered before ordinary sets; glo
 Terraform-category values are written to `stackweaver.auto.tfvars`. Your repository's `terraform.tfvars` is retained. Terraform/OpenTofu loads auto variable files after `terraform.tfvars`; other auto files and explicit CLI arguments can also affect the final input.
 
 > [!IMPORTANT]
-> Do not maintain `stackweaver.auto.tfvars` in your repository. The runner creates it for each run. Put declarations in `.tf` files and repository defaults in a file you control.
+> Do not maintain `stackweaver.auto.tfvars` in your repository. Stackweaver creates it for each run. Put declarations in `.tf` files and repository defaults in a file you control.
 
 ## Configure variables as code
 
@@ -190,9 +190,9 @@ Expect a `vars` resource with an ID. Read the collection back before retrying an
 
 ## Read platform context from a run
 
-The runner supplies `TF_WORKSPACE_ID`, `TF_WORKSPACE_NAME`, `TF_PROJECT_ID`, `TF_PROJECT_NAME`, `TF_ORGANIZATION_ID` and `TF_ORGANIZATION_NAME` as environment variables. They are not undeclared Terraform inputs. User-defined environment variables can override these values, so keep the names reserved in your configuration.
+Stackweaver supplies `TF_WORKSPACE_ID`, `TF_WORKSPACE_NAME`, `TF_PROJECT_ID`, `TF_PROJECT_NAME`, `TF_ORGANIZATION_ID` and `TF_ORGANIZATION_NAME` as environment variables. They are not undeclared Terraform inputs. User-defined environment variables can override these values, so keep the names reserved in your configuration.
 
-Terraform/OpenTofu expressions do not have an `env()` function. If you need this context in expressions, use the external data source with a program that emits valid JSON. For example, with `jq` installed on your runner, save `get-platform-env.sh` next to your `.tf` files:
+Terraform/OpenTofu expressions do not have an `env()` function. If you need this context in expressions, use the external data source with a program that emits valid JSON. For example, with `jq` installed in the job image, save `get-platform-env.sh` next to your `.tf` files:
 
 ```bash
 #!/bin/sh
@@ -237,7 +237,7 @@ resource "null_resource" "example" {
 }
 ```
 
-These external/null examples require their respective providers. The stock OpenTofu runner does not promise `jq`; use a reviewed runner image containing it for these examples.
+These external/null examples require their respective providers. The stock OpenTofu job image does not promise `jq`; use a reviewed run image containing it for these examples.
 
 ## Troubleshooting
 

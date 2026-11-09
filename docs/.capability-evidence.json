@@ -9,7 +9,7 @@
       "evidence": [
         {
           "path": "backend/internal/executor/ansibleexec/run.go",
-          "sha256": "32650246abf58c04e5a9849113577550e6c591933918d42c19e5ae506a6b782f"
+          "sha256": "a6039fa9ccdd10eb52794831c27f316d4a6f6bf3e352ccd67c37bd157efc5c83"
         },
         {
           "path": "core/services/ansible/job.go",
@@ -24,16 +24,16 @@
     {
       "id": "ansible-agent-pools",
       "guide": "features/ansible/execution-flows.md",
-      "guideHash": "f649323660fc9311f216a583c2430a020fa1be8148db50fa909e71cbd13a1637",
+      "guideHash": "e2234b9541f2ecd8a891e05cef3c6ef337d37d7838bd3392b7a3fed4dc491b8a",
       "metadataHash": "b3c5e26e14ce0e577b69d4aaf1e2ea3c080b42723d5171a413ed022e23815127",
       "evidence": [
         {
           "path": "backend/internal/api/v2/handlers/runner_agent.go",
-          "sha256": "6f2da15f645921f3bf206a05c0f1f23065729b8cfda0f953e941f7a014066670"
+          "sha256": "6fababc3d52549752374098c56af49453d56d7d30af2c657d423566419d39d0d"
         },
         {
           "path": "backend/internal/launcher/launcher.go",
-          "sha256": "b51442dfa4f3f5e634ea964fd74d4b95c517f66c38e5237aa51e6f061166baaa"
+          "sha256": "6f541f0f4c25cbad40dd23b88670d01dee9bb61dcd13b08fc274a8657f39bdaf"
         },
         {
           "path": "core/services/ansible/job.go",
@@ -44,8 +44,8 @@
     {
       "id": "ansible-azure-identity",
       "guide": "user-guides/azure-key-vault-from-playbooks.md",
-      "guideHash": "4fe3b74b0a940ba117d7864cd8204a9a4f3d56ee2259ef1310821387e73161e9",
-      "metadataHash": "2dc8ed18fabf795dfe9e74042ef48d6d269030a4ec4a76897292e77e19e8d672",
+      "guideHash": "d77b38b62df936a608bc1fa34f9ce9202bda1f64cbdf570ad8ca3d209399ed31",
+      "metadataHash": "53a9695893099c8801bb3357ffe0d8484dc34b7d2150e7a0eb210591d3aedf49",
       "evidence": [
         {
           "path": "backend/cmd/launcher/main.go",
@@ -53,18 +53,18 @@
         },
         {
           "path": "backend/internal/api/v2/handlers/runner_agent.go",
-          "sha256": "6f2da15f645921f3bf206a05c0f1f23065729b8cfda0f953e941f7a014066670"
+          "sha256": "6fababc3d52549752374098c56af49453d56d7d30af2c657d423566419d39d0d"
         },
         {
           "path": "backend/internal/executor/ansibleexec/run.go",
-          "sha256": "32650246abf58c04e5a9849113577550e6c591933918d42c19e5ae506a6b782f"
+          "sha256": "a6039fa9ccdd10eb52794831c27f316d4a6f6bf3e352ccd67c37bd157efc5c83"
         }
       ]
     },
     {
       "id": "ansible-callbacks",
       "guide": "features/ansible/execution-flows.md",
-      "guideHash": "f649323660fc9311f216a583c2430a020fa1be8148db50fa909e71cbd13a1637",
+      "guideHash": "e2234b9541f2ecd8a891e05cef3c6ef337d37d7838bd3392b7a3fed4dc491b8a",
       "metadataHash": "26721c8f9ba767aa99002890f3af09f351240b71f34f101334cd345363c3b3f1",
       "evidence": [
         {
@@ -80,7 +80,7 @@
     {
       "id": "ansible-credentials",
       "guide": "features/ansible/roadmap.md",
-      "guideHash": "a7537834fba66736ba0946373ab91d972d69d65a4fbf77809063f1560057a36b",
+      "guideHash": "e4a6b646cc034ce88f87fd30324c80bfed91c405588f53df2d79860ffeb99062",
       "metadataHash": "783e425cea8c262b05555e82f8428367e22fabd205ebe0322d5ab7ed2a803e6d",
       "evidence": [
         {
@@ -89,7 +89,7 @@
         },
         {
           "path": "backend/internal/executor/ansibleexec/run.go",
-          "sha256": "32650246abf58c04e5a9849113577550e6c591933918d42c19e5ae506a6b782f"
+          "sha256": "a6039fa9ccdd10eb52794831c27f316d4a6f6bf3e352ccd67c37bd157efc5c83"
         },
         {
           "path": "core/repository/ansible_playbook.go",
@@ -104,8 +104,8 @@
     {
       "id": "ansible-galaxy",
       "guide": "features/ansible/galaxy-collections.md",
-      "guideHash": "bf405dea26bd7a92ab68930682501d9f41a24128bd1dc7e844f8865ea15a3b8d",
-      "metadataHash": "3fdf86e25cae9644bf1ab90117b987c99689076449797fe1b2a3e560f4ec602d",
+      "guideHash": "118b32cfc144f79172474a6150a4a7f9575876f349dcc76d63a4297098abab11",
+      "metadataHash": "4592ed872577bcf5f73ee0c6be6b69cd03aa43198eaa60edf5e8075b774629a1",
       "evidence": [
         {
           "path": "backend/cmd/launcher/main.go",
@@ -113,7 +113,7 @@
         },
         {
           "path": "backend/internal/api/v2/handlers/runner_agent_cache.go",
-          "sha256": "178fdfdf5f6cc7a8caa1b3742b9d70a833d5f7aedbf499fed8d94aae94e7cf1a"
+          "sha256": "78afb47ec494d43bd88f9daf69beb2cf4c3c4c738a8ab575d1df5b5e2e776462"
         },
         {
           "path": "backend/internal/executor/ansibleexec/galaxy.go",
@@ -132,7 +132,7 @@
     {
       "id": "ansible-job-execution",
       "guide": "features/ansible/execution-flows.md",
-      "guideHash": "f649323660fc9311f216a583c2430a020fa1be8148db50fa909e71cbd13a1637",
+      "guideHash": "e2234b9541f2ecd8a891e05cef3c6ef337d37d7838bd3392b7a3fed4dc491b8a",
       "metadataHash": "2ca8fd5b262a7ddc078664836c2207d868c3523cb18c60b7bf4a39ff5e907b4b",
       "evidence": [
         {
@@ -141,7 +141,7 @@
         },
         {
           "path": "backend/internal/executor/ansibleexec/run.go",
-          "sha256": "32650246abf58c04e5a9849113577550e6c591933918d42c19e5ae506a6b782f"
+          "sha256": "a6039fa9ccdd10eb52794831c27f316d4a6f6bf3e352ccd67c37bd157efc5c83"
         },
         {
           "path": "core/services/ansible/inventory_slice_test.go",
@@ -160,7 +160,7 @@
     {
       "id": "ansible-notifications",
       "guide": "features/ansible/roadmap.md",
-      "guideHash": "a7537834fba66736ba0946373ab91d972d69d65a4fbf77809063f1560057a36b",
+      "guideHash": "e4a6b646cc034ce88f87fd30324c80bfed91c405588f53df2d79860ffeb99062",
       "metadataHash": "fbb5784f344b7236a3f07fdd23e9af2f61e50c7e2362a1be23dfc8c2228f6e93",
       "evidence": [
         {
@@ -180,7 +180,7 @@
     {
       "id": "ansible-playbooks",
       "guide": "user-guides/managing-ansible-playbooks.md",
-      "guideHash": "d03e7a554d762f158fc0861b5860a3891def2176e898a3588595c4d5b725cc72",
+      "guideHash": "60c9a14190416bd79eb3226ff8e20f7a0520f384d22c671323e58a6e734f5c41",
       "metadataHash": "d8d844453864216b22b7e90fa3fa3b7407ffdb2860d8083275eed278a68b1742",
       "evidence": [
         {
@@ -193,7 +193,7 @@
         },
         {
           "path": "backend/internal/api/v2/handlers/runner_agent.go",
-          "sha256": "6f2da15f645921f3bf206a05c0f1f23065729b8cfda0f953e941f7a014066670"
+          "sha256": "6fababc3d52549752374098c56af49453d56d7d30af2c657d423566419d39d0d"
         },
         {
           "path": "core/services/ansible/playbook_sync.go",
@@ -204,7 +204,7 @@
     {
       "id": "ansible-schedules",
       "guide": "features/ansible/execution-flows.md",
-      "guideHash": "f649323660fc9311f216a583c2430a020fa1be8148db50fa909e71cbd13a1637",
+      "guideHash": "e2234b9541f2ecd8a891e05cef3c6ef337d37d7838bd3392b7a3fed4dc491b8a",
       "metadataHash": "54789f92dbf8b8df283ccc90fd3ef7eaf6cc470ee10fe789d5e58c812c132881",
       "evidence": [
         {
@@ -220,7 +220,7 @@
     {
       "id": "ansible-webhook-launches",
       "guide": "features/ansible/execution-flows.md",
-      "guideHash": "f649323660fc9311f216a583c2430a020fa1be8148db50fa909e71cbd13a1637",
+      "guideHash": "e2234b9541f2ecd8a891e05cef3c6ef337d37d7838bd3392b7a3fed4dc491b8a",
       "metadataHash": "16ec619025fa07fb7850dea60ae670377f50857406cb28e349de1712bc2bda4c",
       "evidence": [
         {
@@ -236,7 +236,7 @@
     {
       "id": "ansible-workflows",
       "guide": "features/ansible/execution-flows.md",
-      "guideHash": "f649323660fc9311f216a583c2430a020fa1be8148db50fa909e71cbd13a1637",
+      "guideHash": "e2234b9541f2ecd8a891e05cef3c6ef337d37d7838bd3392b7a3fed4dc491b8a",
       "metadataHash": "c033f353314396c2c02d39dd8ab3cd395127b2d184c6dac62fc6ae4283e6b0a0",
       "evidence": [
         {
@@ -261,11 +261,11 @@
       "evidence": [
         {
           "path": "backend/internal/executor/syncexec/run.go",
-          "sha256": "e9fa881148a9a1a5a3128c9923a142ee75d30de6e474fa196b79de7f5cf6c012"
+          "sha256": "2b04dab9750df49b669acddaffb2f009f4d40a7a2b5db9910cbba87cc75dc6a9"
         },
         {
           "path": "core/services/ansible/inventory_source.go",
-          "sha256": "dbafd7c796b9c3a55aebac60fd6bd50622ea06189e0adb0953ce8d89a07032d6"
+          "sha256": "b9c0463b2b97261f586e5328f44229d084e67f6a105f26cedb9d6e09ba690e42"
         },
         {
           "path": "core/services/ansible/inventory_source_sync_test.go",
@@ -285,19 +285,19 @@
         },
         {
           "path": "backend/internal/executor/syncexec/run.go",
-          "sha256": "e9fa881148a9a1a5a3128c9923a142ee75d30de6e474fa196b79de7f5cf6c012"
+          "sha256": "2b04dab9750df49b669acddaffb2f009f4d40a7a2b5db9910cbba87cc75dc6a9"
         }
       ]
     },
     {
       "id": "dashboard",
       "guide": "user-guides/reading-the-dashboard.md",
-      "guideHash": "9407b846c4b2e95de8b648e7ac0b485a203d2860b4e0583fe15518e4a64be67d",
-      "metadataHash": "48674add474002047c804bcc71b2c6206cb9cfd2d55bc83e714beab73bb806a2",
+      "guideHash": "acb92d90c85da82ec1660f2cb5bd575d0bf5c82cae7bb49b425322448a580c6c",
+      "metadataHash": "ae940e4240d2a662718826712a9527a51eb93d27d2c40393f585964eaed43f12",
       "evidence": [
         {
           "path": "backend/internal/api/v2/handlers/dashboard.go",
-          "sha256": "69e7dad84c7ae4d8d50f7b647fc2a8cec78afec6d32552e57a418758ccb6c574"
+          "sha256": "9f50387301052b29150051a018e1f0cf8abc3985e5a7265240571508c4450491"
         },
         {
           "path": "core/repository/dashboard.go",
@@ -317,7 +317,7 @@
         },
         {
           "path": "frontend/src/pages/Dashboard/attention.ts",
-          "sha256": "7391da560e81956fe773d3dd7331a4ed45556fd7b6fa394e9dc82edc3ba7d20c"
+          "sha256": "063dc6095adf61a7d7dede05f91dcc9c1766fbc4c1f61e1c342e486c5274c1b1"
         },
         {
           "path": "frontend/src/pages/Dashboard/index.tsx",
@@ -356,7 +356,7 @@
     {
       "id": "organization-policies",
       "guide": "user-guides/organization-settings.md",
-      "guideHash": "ba8f8cd7c1fce4f3f47bc2636bbc756db49faa2b5a6f2fb489216e1ceca79913",
+      "guideHash": "0ae3fc500ab68521742e916345d976818e42c5ac58ddaedef9c79b9c985d6b06",
       "metadataHash": "e16a93190b38c2aa1076607956a2222a3b192085c73b22d08d2c30d2fde9309d",
       "evidence": [
         {
@@ -392,7 +392,7 @@
     {
       "id": "run-cancellation",
       "guide": "features/opentofu/run-cancellation.md",
-      "guideHash": "76b757d33f0cd03f576ab898c71032e9ac875d626eae7ea5fac8b1bacc825aa3",
+      "guideHash": "54cc6716c025ec9ae612f070d8702319367c943edab16eb925b18a95506c5021",
       "metadataHash": "c4773adb535397f5e1c6a9f5663a1c8f31572a4d185791103d22c0d3e7ec6436",
       "evidence": [
         {
@@ -405,14 +405,14 @@
         },
         {
           "path": "backend/internal/launcher/supervise.go",
-          "sha256": "674f14e9347ff72777f7d1880367412602eb50fcce65c358069df14546a5ce5c"
+          "sha256": "76703c15c1ea48d5ecb98782c9a93db72cd2b13fb7fae3d30288fdf4cc5a0215"
         }
       ]
     },
     {
       "id": "run-output",
       "guide": "features/opentofu/opentofu-streaming.md",
-      "guideHash": "f9ae7bcfc296fefb094b4fbb0ffe26212d41a11e3a11214cba080b868348e636",
+      "guideHash": "a3acd2c43b32159798b4b077e11440596167042d46d22ec4c6e49d98fca3ed0f",
       "metadataHash": "af71251efbb2123b2f9459df3ba6445b0ebee0dc20429cb4846b788b5cfb376b",
       "evidence": [
         {
@@ -469,7 +469,7 @@
         },
         {
           "path": "backend/internal/launcher/supervise.go",
-          "sha256": "674f14e9347ff72777f7d1880367412602eb50fcce65c358069df14546a5ce5c"
+          "sha256": "76703c15c1ea48d5ecb98782c9a93db72cd2b13fb7fae3d30288fdf4cc5a0215"
         },
         {
           "path": "core/models/workspace.go",
@@ -500,7 +500,7 @@
     {
       "id": "static-inventories",
       "guide": "get-started/your-first-ansible-job.md",
-      "guideHash": "f5ec883980e3759047a70ebeb1108e31fd2db9495318230c68c2eb0c120faab3",
+      "guideHash": "d3d65740cb951ce9a2c0e5510dac6765117c9b8c6918048430bb92b12cd118ca",
       "metadataHash": "10d8b72a352e14dbc34729d41351234db0d866c7a9a02df5e0c5acb111a23933",
       "evidence": [
         {
@@ -536,7 +536,7 @@
     {
       "id": "workload-identity",
       "guide": "user-guides/oidc-configuration.md",
-      "guideHash": "9127e4dbdf60a9ac151147c35a24eb8026c24eb3aedcc0f43d1c8359367dd1bb",
+      "guideHash": "60bf6799e470d0e1325c6c6e5f02c8574c1e326f32ac375c6d25861911585879",
       "metadataHash": "f883e77c516cacae6bb134352fa12a7d2345aa1f53ee189974bcdff3f6061c2c",
       "evidence": [
         {
@@ -628,7 +628,7 @@
     {
       "id": "workspace-variables",
       "guide": "user-guides/managing-workspace-variables.md",
-      "guideHash": "5fb406598df38fe98a8a62c0dc3d15adc3a880e0b4d10ad9a2608b9ffdd52e80",
+      "guideHash": "d1b5e91b24c6c3e6a100d337714b80ee15eb8de524a76d19759568f9cfce0676",
       "metadataHash": "d079290387638e4f82ef6e6d88d6fc5bc72bfb563a09c46fa85fd6a25eb85add",
       "evidence": [
         {

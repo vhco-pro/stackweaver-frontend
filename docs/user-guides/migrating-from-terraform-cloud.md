@@ -27,7 +27,7 @@ Use [the provider guide](./terraform-provider.md) for destination resource confi
 
 Execution modes mean the same as in Terraform Cloud. A workspace in `remote` execution mode runs on the organization's hosted capacity, which is the installation's own launchers. A workspace in `agent` mode runs on the agent pool it names. `tfe_agent_pool`, `tfe_agent_token` and a workspace's `agent_pool_id` work with `terraform-provider-tfe` as they do against Terraform Cloud.
 
-To run an agent pool's work, start launchers registered with an agent token of that pool; see [Self-hosted runners](./self-hosted-runners.md). The hosted capacity is not an agent pool on the TFE API: it does not appear in the agent pools list and cannot be assigned through `agent-pool-id`, and a run waiting for a free hosted slot stays `pending`.
+To run an agent pool's work, start launchers registered with an agent token of that pool; see [Set up launchers](./self-hosted-runners.md). The hosted capacity is not an agent pool on the TFE API: it does not appear in the agent pools list and cannot be assigned through `agent-pool-id`, and a run waiting for a free hosted slot stays `pending`.
 
 ## Connect your CLI
 

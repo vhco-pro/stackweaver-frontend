@@ -10,7 +10,7 @@ capabilities: [
   {
     "id": "ansible-galaxy",
     "name": "Galaxy collections and roles",
-    "summary": "Install repository requirements before jobs, from the organization's verified cache first, on the hosted capacity and self-hosted pools.",
+    "summary": "Install repository requirements before jobs, from the organization's verified cache first, on the hosted capacity and agent pools.",
     "area": "ansible",
     "availability": "available",
     "limitations": "An installation failure is reported but the play still runs. Private servers require network access from the job and configuration.",
@@ -136,15 +136,16 @@ package. Common examples are `amazon.aws`, `azure.azcollection`, `google.cloud`,
 versions depend on the image a job runs in; inspect that image instead of relying on a
 second hand-maintained version list.
 
-On Docker Compose, read the installed set and engine version from the directory that
-holds your `docker-compose.yml`:
+Hosted jobs run in the Ansible job image the launcher names in `RUNNER_ANSIBLE_IMAGE`, by
+default `ghcr.io/vhco-pro/stackweaver-ansible-runner:latest`. Read its installed set and engine
+version from that image:
 
 ```bash
-docker compose exec ansible-launcher ansible-galaxy collection list
-docker compose exec ansible-launcher ansible --version
+docker run --rm --entrypoint ansible-galaxy ghcr.io/vhco-pro/stackweaver-ansible-runner:latest collection list
+docker run --rm --entrypoint ansible ghcr.io/vhco-pro/stackweaver-ansible-runner:latest --version
 ```
 
-For a job that runs in an execution environment or on a self-hosted pool, run the
+For a job that runs in an execution environment or on an agent pool, run the
 equivalent read-only commands in that image. Inspecting one container does not prove what
 another image contains.
 
@@ -241,7 +242,7 @@ private server for the whole installation, set `STACKWEAVER_GALAXY_SERVERS` and 
 A job whose `ansible.cfg` names its own server list keeps it. If using an
 `ANSIBLE_GALAXY_SERVER_*` environment variable on a launcher, name it in
 `STACKWEAVER_RUN_ENV_PASSTHROUGH` so it can reach `ansible-galaxy`. See
-[Runner variables that reach runs](../../get-started/self-hosting/environment-variables.md#runner-variables-that-reach-runs).
+[Launcher variables that reach runs](../../get-started/self-hosting/environment-variables.md#launcher-variables-that-reach-runs).
 Keep tokens out of committed requirements and logs.
 
 ## Build an image with additional content

@@ -17,7 +17,7 @@ the cause or repeat real changes.
 
 | Symptom | Check first | Next action |
 |---|---|---|
-| Run stays queued. | Workspace lock, execution mode, whether a launcher of the run's pool is online and orchestrator status. A run stays pending until a launcher of its pool is online. | For remote execution, check the OpenTofu launcher's logs. For agent execution, check that a launcher of the workspace's agent pool shows as **Online** under **Settings > Runners**. See [self-hosted runners](./self-hosted-runners.md). |
+| Run stays queued. | Workspace lock, execution mode, whether a launcher of the run's pool is online and orchestrator status. A run stays pending until a launcher of its pool is online. | For remote execution, check the hosted launcher's logs. For agent execution, check that a launcher of the workspace's agent pool shows as **Online** under **Settings > Launchers**. See [Set up launchers](./self-hosted-runners.md). |
 | Run fails before planning. | Repository access, branch/commit, working directory and initialization output. | Correct the specific connection or path; preserve the existing connection while diagnosing. |
 | Unexpected deletion or replacement. | Selected commit, variables, state version and provider lock file. | Stop before apply. Compare with a known successful run and investigate drift deliberately. |
 | Provider authentication/permission error. | Credential expiry, workload-identity trust, target account/region and operation permission. | Correct the narrow failing permission or credential. See [workload identity](./oidc-configuration.md). |
@@ -52,7 +52,7 @@ or bypass lineage/serial checks. Follow the guarded
 
 | Symptom | Check first | Next action |
 |---|---|---|
-| Host unreachable. | Inventory hostname/IP, the job's network path, SSH port and attached credential. Jobs on the container driver, including the Docker Compose hosted capacity, run on a firewalled jobs network that reaches the internet and the API but not the installation's own services. On Kubernetes, the job NetworkPolicy blocks the ranges in `launcher.clusterCIDRs`. | Test reachability from the network the jobs run on; private targets may need a self-hosted runner. |
+| Host unreachable. | Inventory hostname/IP, the job's network path, SSH port and attached credential. Jobs on the container driver, including the Docker Compose hosted capacity, run on a firewalled jobs network that reaches the internet and the API but not the installation's own services. On Kubernetes, the job NetworkPolicy blocks the ranges in `launcher.clusterCIDRs`. | Test reachability from the network the jobs run on; private targets may need a launcher of an agent pool inside their network. |
 | Permission denied or become failure. | Remote user, key selection, sudo/become policy and file permissions. | Correct the target's required permission; do not broadly disable host security. |
 | Playbook not found. | Registration, repository-relative path, branch and last sync. | Use [playbook management](./managing-ansible-playbooks.md) to inspect the snapshot and selected revision. |
 | Job hangs or times out. | Last task output, network waits, target load and forks. | Diagnose the stalled task before increasing the timeout on the job template, or the default run timeout of the project or organization the template inherits it from; split work or bound task runtime if appropriate. |
@@ -76,7 +76,7 @@ In a Compose deployment, run from the directory containing `docker-compose.yml`:
 
 ```bash
 docker compose ps
-docker compose logs --tail=100 api orchestrator launcher ansible-launcher
+docker compose logs --tail=100 api orchestrator launcher
 ```
 
 For Kubernetes, replace these names and namespace with the installed release's actual
@@ -85,8 +85,7 @@ set:
 
 ```bash
 kubectl get pods --namespace stackweaver
-kubectl logs deployment/stackweaver-runner --namespace stackweaver --tail=100
-kubectl logs deployment/stackweaver-ansible-runner --namespace stackweaver --tail=100
+kubectl logs deployment/stackweaver-launcher --namespace stackweaver --tail=100
 kubectl logs deployment/stackweaver-orchestrator --namespace stackweaver --tail=100
 ```
 

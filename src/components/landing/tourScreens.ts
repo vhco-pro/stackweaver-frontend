@@ -54,7 +54,7 @@ export const TOUR_SCREENS: TourScreen[] = [
     icon: LayoutDashboard,
     title: 'The dashboard you land on',
     description:
-      'One page across every organization you belong to. It opens with what needs you: a run waiting for someone to apply, a failing job template, an offline runner and open change requests.',
+      'One page across every organization you belong to. It opens with what needs you: a run waiting for someone to apply, a failing job template, an offline launcher and open change requests.',
     image: { dark: dashboardDark, light: dashboardLight },
   },
   {
@@ -108,10 +108,10 @@ export const TOUR_SCREENS: TourScreen[] = [
   {
     id: 'runners',
     url: capturedPath('runners'),
-    label: 'Runners',
+    label: 'Launchers',
     icon: Server,
-    title: 'Runners you host yourself',
-    description: 'Self-hosted runners grouped into agent pools. OpenTofu and Ansible workloads share the same fleet, inside your own network.',
+    title: 'Launchers you host yourself',
+    description: 'Your own launchers, grouped into agent pools. OpenTofu runs and Ansible jobs share the same fleet, inside your own network.',
     image: { dark: runnersDark, light: runnersLight },
   },
 ];

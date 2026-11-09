@@ -470,3 +470,16 @@ describe('CreateWorkspaceDialog: repositories and branches follow the selection'
     expect(screen.queryByRole('option', { name: /other-org\/billing/ })).toBeNull();
   });
 });
+
+// The execution mode names where runs execute with the standard names (one-launcher spec, AC28).
+describe('CreateWorkspaceDialog execution mode', () => {
+  it('names the remote mode Hosted capacity and the agent mode Agent pool', async () => {
+    const { user } = await openDialog();
+    const mode = screen.getByRole('combobox', { name: 'Execution Mode' });
+    expect(mode).toHaveTextContent('Remote (Hosted capacity)');
+    await user.click(mode);
+    expect(await screen.findByRole('option', { name: 'Remote (Hosted capacity)' })).toBeInTheDocument();
+    expect(screen.getByRole('option', { name: 'Agent (Agent pool)' })).toBeInTheDocument();
+    expect(document.body.textContent).not.toMatch(/platform managed|custom runner pool/i);
+  });
+});

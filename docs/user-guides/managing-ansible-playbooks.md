@@ -90,10 +90,10 @@ before launching work that depends on a particular revision.
 Galaxy dependencies and playbook tasks can still need network access in either mode.
 
 <details>
-<summary>Snapshots on the hosted capacity and self-hosted pools</summary>
+<summary>Snapshots on the hosted capacity and agent pools</summary>
 
 Every job starts from a snapshot, wherever it runs. Snapshots are captured by a sync on the
-hosted capacity, so a job never clones from your VCS provider, and a self-hosted launcher
+hosted capacity, so a job never clones from your VCS provider, and a launcher of an agent pool
 needs neither a route to it nor a VCS credential. If a cached playbook has no snapshot yet,
 its launch requests a sync and the job waits for it. If the job still finds no snapshot
 when it starts, for example because that sync failed, it fails with that reason; launch it

@@ -13,12 +13,12 @@ A playbook is easier to hand over when the next person can find its inputs and s
 I want someone else to be able to run the job and understand its result.
 
 For a first run, keep the automation small.
-This example prints a message on the Ansible runner, then puts the same job behind a schedule.
-Your production servers can wait until you know which runner executes the job and where its output goes.
+This example prints a message where the job runs, then puts the same job behind a schedule.
+Your production servers can wait until you know which launcher starts the job and where its output goes.
 
 ## Techstack
 
-- Stackweaver, with an available Ansible runner.
+- Stackweaver, with a launcher online that runs Ansible jobs.
 - A Git repository connected to your Stackweaver organization.
 - An Ansible playbook and YAML inventory.
 
@@ -56,7 +56,7 @@ all:
           ansible_connection: local
 ```
 
-Here, `localhost` means the Ansible runner.
+Here, `localhost` means the place the job runs: its own container, or the launcher's host for an in-process launcher.
 It does not mean your laptop or the machine where your browser is open.
 The task needs no target SSH or cloud credential, but Stackweaver still needs access to the repository.
 
@@ -92,12 +92,12 @@ A launch accepted by the API means a job was created; it does not mean the playb
 Check the terminal result and inspect the task output for `Hello from Stackweaver`.
 The recap should show one successful task on `localhost`, with no changed, failed or unreachable hosts.
 
-![Selected fields from the tested job show the greeting and a successful localhost recap.](/blog/images/ansible-hello-output.svg "Illustrated excerpt of the recorded runner result: the greeting and host totals give you specific checks before scheduling.")
+![Selected fields from the tested job show the greeting and a successful localhost recap.](/blog/images/ansible-hello-output.svg "Illustrated excerpt of the recorded job result: the greeting and host totals give you specific checks before scheduling.")
 
 > I want to see one successful manual run before I leave a schedule enabled.
 
 If the job fails, keep working on that manual run.
-An empty inventory, a missing runner or a repository problem will not improve because the same job runs every morning.
+An empty inventory, a missing launcher or a repository problem will not improve because the same job runs every morning.
 The [execution guide](/docs/features/ansible/execution-flows) explains the launch paths and job results.
 
 ## Schedule the same job
@@ -126,7 +126,7 @@ Keep recurring work enabled when you intend it to run and know who is responsibl
 
 You now have a small example whose repository files, execution result and schedule you can inspect.
 The next step is a playbook that does useful work in your environment.
-Use a runner that can reach those hosts and give the job the credentials it needs.
+Use a launcher that can reach those hosts and give the job the credentials it needs.
 
 Keep the manual-run check when you make that change.
 It is a much easier place to investigate a failure than a recurring job someone else discovers the next morning.

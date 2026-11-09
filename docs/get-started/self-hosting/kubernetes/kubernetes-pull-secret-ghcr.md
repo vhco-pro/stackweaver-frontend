@@ -12,8 +12,9 @@ establish access to its container package.
 
 ## 1. Confirm package access
 
-The deployment currently needs private API, frontend, orchestrator, OpenTofu runner and
-Zitadel-init images under `ghcr.io/vhco-pro`. The Ansible runner and secrets-init images are
+The deployment currently needs private API, frontend, orchestrator, OpenTofu job
+(`stackweaver-opentofu-runner`) and Zitadel-init images under `ghcr.io/vhco-pro`. The launcher
+(`stackweaver-launcher`), Ansible job (`stackweaver-ansible-runner`) and secrets-init images are
 public. Check the exact package and tag you will deploy if a pull is denied.
 
 Request package access from `support@stackweaver.co`, including the GitHub username that

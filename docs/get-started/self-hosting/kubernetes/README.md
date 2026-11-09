@@ -17,7 +17,7 @@ procedure; use [Kustomize and GitOps](./kustomize/README.md) for declarative rec
 ## Before you start
 
 - Kubernetes 1.27+ APIs (job pods use scheduling gates) and Helm 3.12+ as documented by the chart. Use a maintained cluster
-  version supported by your operator, with Helm available on the deployment runner.
+  version supported by your operator, with Helm available on the machine that runs the deployment.
 - An ingress controller, app and auth DNS names, and TLS certificates for both hosts.
 - Persistent storage suitable for PostgreSQL and Garage.
 - Access to all image packages; create the [GHCR pull Secret](./kubernetes-pull-secret-ghcr.md)
@@ -312,9 +312,11 @@ empty value was accepted.
 
 ## Launchers and job isolation
 
-The OpenTofu and Ansible deployments are launchers. A launcher registers with the API as the
-installation's hosted launcher, using the hosted registration Secret, and places every run,
-job and sync it claims in a pod of its own in the job namespace. A launcher holds no database,
+The launcher Deployment, `<release>-launcher`, runs the `stackweaver-launcher` image. A launcher
+registers with the API as the installation's hosted launcher, using the hosted registration
+Secret, and places every OpenTofu run, Ansible job and sync it claims in a pod of its own in the
+job namespace. Each pod runs that engine's job image: `launcher.jobImages.opentofu` for runs and
+`launcher.jobImages.ansible` for jobs and syncs. A launcher holds no database,
 Redis or storage credential, no encryption key and no signing key, and it never runs user
 code. The job pod fetches what its job needs from the API with a token valid for that one
 job, held in a Secret the pod owns, and the pod is removed when the job ends. Run output,
@@ -341,27 +343,31 @@ and IPv6 ranges. Jobs resolve names through the cluster's DNS service. A Network
 the node's identity, set `launcher.network: host-identity`, which leaves the metadata
 endpoints open and keeps `168.63.129.16` closed. Jobs otherwise authenticate to clouds with the per-run identity token the
 platform mints, or with an identity binding a pool offers (see
-[Self-hosted runners](../../../user-guides/self-hosted-runners.md#identity-bindings)).
+[Set up launchers](../../../user-guides/self-hosted-runners.md#identity-bindings)).
 
 The launchers serve every organization's hosted capacity: runs and jobs in remote execution
-mode, and every sync that captures a snapshot from a VCS provider. `runner.replicas`,
-`ansibleRunner.replicas`, `runner.maxConcurrentJobs` and `ansibleRunner.maxConcurrentJobs`
-(4 by default) size it. Each launcher runs under its own ServiceAccount, bound to a Role in
-the job namespace. The Role lets the launcher read, create, patch and delete job pods and their
+mode, and every sync that captures a snapshot from a VCS provider. `launcher.replicas` and
+`launcher.maxConcurrentJobs` (8 by default, shared by both engines) size it. Each launcher runs
+under its own ServiceAccount, bound to a Role in the job namespace. The Role lets the launcher read, create, patch and delete job pods and their
 Secrets and ServiceAccounts, and read pod logs and ConfigMaps. It grants no exec and no
 NetworkPolicy changes, because the chart manages the job namespace's NetworkPolicies itself.
 The launcher holds nothing cluster-scoped. It serves `/healthz` and `/readyz` on
 `launcher.healthPort`, which the chart probes. `launcher.hostedGroup` names the placement
 group the launchers serve, and `launcher.hostedStrict: true` makes them refuse the in-process
-driver and the `host-identity` network. Job pods read the organizations' cache entries
+driver and the `host-identity` network. With `launcher.driver: inprocess` each job runs inside a
+launcher pod instead, so the chart renders one launcher Deployment per engine from that engine's
+job image, `<release>-launcher-opentofu` and `<release>-launcher-ansible`;
+`launcher.inprocess.opentofu` and `launcher.inprocess.ansible` set their `replicas`, `resources`,
+`nodeSelector`, `tolerations` and `affinity`, and anything they leave unset comes from the shared
+`launcher` values. Job pods read the organizations' cache entries
 through the API, because a pod under the restricted profile cannot mount a node directory.
 
 A job pod receives the run's own variables, the mirror, proxy and CA settings the API hands
 it, and a fixed allowlist of the launcher's environment (path, locale, proxy and CA settings
 and a few OpenTofu and Ansible settings), listed in
-[Runner variables that reach runs](../environment-variables.md#runner-variables-that-reach-runs).
-A variable you set in `runner.env` or `ansibleRunner.env` and name in
-`runner.runEnvPassthrough` or `ansibleRunner.runEnvPassthrough` is passed into the job pod,
+[Launcher variables that reach runs](../environment-variables.md#launcher-variables-that-reach-runs).
+A variable you set in `launcher.env` and name in `launcher.runEnvPassthrough` is passed into
+the job pod,
 where the job's processes receive it when it is also on that allowlist; give runs any other
 setting through workspace or variable-set variables. Settings for runs and jobs across the
 installation, such as the default run timeout, the run image registry allowlist and the job
@@ -381,7 +387,7 @@ widening anything else.
 example `30m`; the job has already removed every credential it wrote before the pod is kept.
 `launcher.podTemplate` adds labels, annotations, a node selector, tolerations and a priority
 class to every job pod. To run work inside your own network as well, add agent pools and
-start launchers in them; see [Self-Hosted Runners](../../../user-guides/self-hosted-runners.md).
+start launchers in them; see [Set up launchers](../../../user-guides/self-hosted-runners.md).
 
 Keep the platform encryption key consistent across the API and orchestrator; launchers and
 job pods never hold it. The chart creates a strong key by default; a BYO key is a
@@ -465,7 +471,7 @@ customCA:
 In all cases the certificate is mounted at `/etc/ssl/certs/custom-ca.crt` using `subPath`, so the system certificate directory is not replaced.
 The Go services include the mounted Linux certificate directory in their trust roots. Test the failing connection again after rollout; a CA mount does not bypass hostname verification.
 
-The certificate is mounted into the API, orchestrator and both launcher containers. Job pods
+The certificate is mounted into the API, orchestrator and launcher containers. Job pods
 mount nothing of the chart's, so the chart also sets `STACKWEAVER_JOB_CA_FILE` on the API,
 which hands the certificate to every job; the job adds it to the system roots, so a private
 registry or mirror behind that CA works from job pods too. A `STACKWEAVER_JOB_CA_FILE` you
@@ -579,18 +585,38 @@ release-specific schema migration instructions when needed.
 
 ### Job image pulls
 
-The launchers pull the job image of every job each time they place it: `runner.image` for
-OpenTofu runs and `ansibleRunner.image` for Ansible jobs and syncs, pinned tags included.
+Job pods pull their job image as `launcher.jobImages.pullPolicy` says: `Always` by default,
+pinned tags included, so a moved tag runs its current image. `IfNotPresent` and `Never` are the
+alternatives.
 
-- Before you upgrade an installation that pins `runner.image.tag` or `ansibleRunner.image.tag`,
-  make sure every node can reach the registry and is allowed to pull those images. The kubelet
-  pulls them even when the node holds a copy.
-- Job pods do not use `global.imagePullSecrets`. A private job image, such as
-  `ghcr.io/vhco-pro/stackweaver-opentofu-runner`, needs a pull credential configured on the
-  nodes, for example a kubelet credential provider or the container runtime's registry
-  configuration.
-- A job pod that cannot pull its image fails after five minutes, with the kubelet's reason in
-  the run or job's error.
+- Every node must reach the registry of the job images. The kubelet pulls them even when the node
+  holds a copy.
+- For a private job image, such as `ghcr.io/vhco-pro/stackweaver-opentofu-runner`, list its
+  dockerconfigjson Secret in `launcher.jobImages.pullSecrets`, or leave that empty to use
+  `global.imagePullSecrets`. The chart mounts those Secrets into the launcher pod, and the
+  launcher copies the matching registry's credential into a pull Secret of each job's own in the
+  job namespace, keyed by the job image's repository so that no run image receives it. Use an
+  `auth`, or a `username` and `password`, entry: an `identitytoken` entry cannot reach a job pod.
+- A job pod that cannot pull its image fails after `RUNNER_PLACEMENT_TIMEOUT` (five minutes by
+  default), with the kubelet's reason in the run or job's error.
+
+### Upgrading to the chart version with one launcher
+
+One launcher Deployment, `<release>-launcher`, replaces the OpenTofu and Ansible launcher
+Deployments, `<release>-runner` and `<release>-ansible-runner`.
+
+1. Upgrade to chart 0.16.2 (Stackweaver 5.109.17) first, if you run an earlier chart. That
+   release gives the old launcher pods a termination grace above their drain grace, and the
+   upgrade to one launcher relies on it: Helm deletes the two old Deployments, and their pods
+   stop with their own spec. Skipping that release stops the old pods after 30 seconds, and the
+   Ansible jobs and applies running at that moment are lost.
+2. Move your `runner.*` and `ansibleRunner.*` values under `launcher`, as the table under
+   "Deprecated launcher values" in the chart README lists. For two minor releases the chart
+   translates them and lists each translated value in the install notes.
+3. Run `helm upgrade`. A launcher drains for up to `RUNNER_DRAIN_GRACE` (5 minutes by default)
+   and then stops the jobs still running. To let longer jobs finish, raise `RUNNER_DRAIN_GRACE`
+   in `launcher.env` and raise `launcher.terminationGracePeriodSeconds` above it, plus the
+   60-second kill grace.
 
 ### Upgrading to the chart version with launchers
 
@@ -611,14 +637,14 @@ Chart version 0.16.1 is the first with launchers.
    `launcher.jobNamespace` with `launcher.createJobNamespace: true`.
 3. Run `helm upgrade` with the new chart version, as in [Upgrading](#upgrading). The upgrade
    adds the hosted launcher registration Secret, which the bootstrap Job generates unless you
-   name your own with `secrets.hosted.secretName`. It also removes the runner workspaces and
+   name your own with `secrets.hosted.secretName`. It also removes the launchers' workspace and
    Galaxy cache PersistentVolumeClaims the chart created.
 4. Queue again any OpenTofu run that failed with `Run was pending for too long and was
    automatically cancelled`. The orchestrator fails a run that is still pending 30 minutes
-   after it was created, so finish the upgrade promptly once the old runners stop.
+   after it was created, so finish the upgrade promptly once the old launchers stop.
 5. Upgrade the launchers of your agent pools to the same release and remove `RUNNER_MODE`
-   from their environment. A job's executor comes from its launcher's image; see
-   [Self-hosted runners](../../../user-guides/self-hosted-runners.md#operate-and-troubleshoot).
+   from their environment. The program that runs each job comes from its launcher's image; see
+   [Set up launchers](../../../user-guides/self-hosted-runners.md#operate-and-troubleshoot).
    A launcher you run with the Kubernetes driver outside the chart needs the Role described
    under [Run every job in a pod of its own](../../../user-guides/self-hosted-runners.md#step-3c-run-every-job-in-a-pod-of-its-own).
 6. If a cloud trust matches an Ansible job's subject exactly, update it to the job name in
@@ -658,13 +684,13 @@ If your release signs browsers in with the public frontend app, the chart versio
      --namespace stackweaver
    ```
 
-Browser sign-in is unavailable from the upgrade until the API rollout finishes, usually about a minute; the previous API pod keeps serving API tokens and runners throughout.
+Browser sign-in is unavailable from the upgrade until the API rollout finishes, usually about a minute; the previous API pod keeps serving API tokens and launchers throughout.
 
 The chart does not read `frontend.env.VITE_ZITADEL_REDIRECT_URI`. The sign-in redirect is always the app URL followed by `/auth/callback`, and the chart builds the app URL from `ingress.hosts.app`, with `https` when `ingress.tls.enabled` is true and `http` otherwise. If you had set `VITE_ZITADEL_REDIRECT_URI`, set `ingress.hosts.app` and `ingress.tls.enabled` so that they produce the same callback URL, and remove `VITE_ZITADEL_REDIRECT_URI` from `frontend.env`.
 
 With an external Zitadel (`zitadel.bundled: false`), create the browser sign-in app and add `bff-client-id` and `bff-client-secret` to your Zitadel Secret **before** you upgrade, as described in [Using an External Zitadel](../../../user-guides/authentication/zitadel-setup.md#using-an-external-zitadel).
 
-After the upgrade, each browser signs in once and returns to the page it had open, and a sign-in then lasts across browser restarts up to `api.session.maxLifetime`. API tokens, the Terraform CLI and runners are unaffected. A script that called the API with a Zitadel access token must use an API token instead, created under **Settings > API Tokens**.
+After the upgrade, each browser signs in once and returns to the page it had open, and a sign-in then lasts across browser restarts up to `api.session.maxLifetime`. API tokens, the Terraform CLI and launchers are unaffected. A script that called the API with a Zitadel access token must use an API token instead, created under **Settings > API Tokens**.
 
 If you roll back to a chart version from before server-side browser sessions, with `helm rollback` or by pinning older image tags, browsers cannot sign in until you reactivate the public frontend app, because the older zitadel-init signs browsers in with it and never reactivates it. Sign in to the Zitadel console as the administrator, open the `IAC Platform Project` project in the `IAC Platform` organization, select the `IAC Platform Frontend` application, and reactivate it. A later upgrade deactivates it again.
 

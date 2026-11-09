@@ -260,7 +260,7 @@ terminal status; inspect both the job status and recap.
 
 Click a cell for the module result, output and diff; a host name shows its task history, and
 a task column shows results across the fleet. **Timeline** explains duration; **Stream** shows
-chronological events with expandable raw data. Its **Raw** toggle shows runner output.
+chronological events with expandable raw data. Its **Raw** toggle shows the Ansible output verbatim.
 Use the legend as a status filter and the search for host, task or result text. Press `/` to
 focus search. Drag a task-column edge to read a long name and double-click to reset its width.
 The copy control beside search copies raw output.

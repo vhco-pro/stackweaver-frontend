@@ -111,7 +111,7 @@ publication work; it is not a guarantee of a fixed release time.
 
 With GitHub CLI access to public repositories, choose the satellite you want to inspect.
 The [repository map](../architecture/repositories.md) lists the components; the OpenTofu
-runner is `vhco-pro/stackweaver-opentofu-runner` and the launcher is
+job image is `vhco-pro/stackweaver-opentofu-runner` and the launcher is
 `vhco-pro/stackweaver-launcher`.
 
 ```bash

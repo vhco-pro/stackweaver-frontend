@@ -46,8 +46,18 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { config } from '@/config';
-import { launcherCommand, launcherServer, type LauncherDriver } from '@/lib/runnerCommand';
+import { containerLauncherCommand, inProcessLauncherCommand, launcherServer } from '@/lib/runnerCommand';
+import { engineLabel } from '@/lib/launcherEngines';
 import { dangerGhostIcon, dangerOutline, glassSurface } from '@/lib/surfaces';
+
+/** The commands the Add a launcher dialog offers: the container driver, or in-process per engine. */
+type LauncherCommandKind = 'container' | 'tofu' | 'ansible';
+
+const COMMAND_LABELS: Record<LauncherCommandKind, string> = {
+  container: 'container launcher command',
+  tofu: 'OpenTofu in-process launcher command',
+  ansible: 'Ansible in-process launcher command',
+};
 
 export default function Runners() {
   const { orgName } = useParams<{ orgName: string }>();
@@ -57,8 +67,7 @@ export default function Runners() {
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [selectedPool, setSelectedPool] = useState<string>('');
-  const [copiedCmd, setCopiedCmd] = useState<'ansible' | 'terraform' | null>(null);
-  const [driver, setDriver] = useState<LauncherDriver>('in-process');
+  const [copiedCmd, setCopiedCmd] = useState<LauncherCommandKind | null>(null);
 
   const { data: runnersData, isLoading: loading, isError: loadFailed, refetch: refetchRunners } = useQuery({
     queryKey: ['runners', orgName],
@@ -108,13 +117,13 @@ export default function Runners() {
     setBulkAction(action);
   };
 
-  // reportBulk toasts the outcome. After a partial failure only the failed runners stay selected,
+  // reportBulk toasts the outcome. After a partial failure only the failed launchers stay selected,
   // so a retry targets exactly what did not go through.
   const reportBulk = (result: BulkResult, verb: string) => {
     const n = result.succeeded.length;
-    if (n > 0) toast.success(`${verb} ${n} runner${n === 1 ? '' : 's'}`);
+    if (n > 0) toast.success(`${verb} ${n} launcher${n === 1 ? '' : 's'}`);
     if (result.failed.length > 0) {
-      toast.error(`${result.failed.length} runner${result.failed.length === 1 ? '' : 's'} failed: ${result.failed[0].error}`);
+      toast.error(`${result.failed.length} launcher${result.failed.length === 1 ? '' : 's'} failed: ${result.failed[0].error}`);
       setSelected(new Set(result.failed.map((f) => f.id)));
     }
   };
@@ -139,7 +148,7 @@ export default function Runners() {
     // Only runners whose label set actually changes are patched.
     const targets = selectedRunners.filter((r) => r.labels.includes(label) !== adding);
     if (targets.length === 0) {
-      toast.success(adding ? `Every selected runner already has "${label}"` : `No selected runner has "${label}"`);
+      toast.success(adding ? `Every selected launcher already has "${label}"` : `No selected launcher has "${label}"`);
       setBulkAction(null);
       return;
     }
@@ -182,11 +191,11 @@ export default function Runners() {
         description: editForm.description,
         labels: editForm.labels,
       });
-      toast.success('Runner updated');
+      toast.success('Launcher updated');
       setEditRunner(null);
       void refetchRunners();
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Failed to update runner');
+      toast.error(err instanceof Error ? err.message : 'Failed to update launcher');
     } finally {
       setSaving(false);
     }
@@ -197,11 +206,11 @@ export default function Runners() {
     setDeleting(true);
     try {
       await runnersApi.delete(deleteRunner.id);
-      toast.success('Runner deleted');
+      toast.success('Launcher deleted');
       setDeleteRunner(null);
       void refetchRunners();
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Failed to delete runner');
+      toast.error(err instanceof Error ? err.message : 'Failed to delete launcher');
     } finally {
       setDeleting(false);
     }
@@ -220,15 +229,40 @@ export default function Runners() {
     setEditForm((prev) => ({ ...prev, labels: prev.labels.filter((l) => l !== label) }));
   };
 
-  const launcherFor = (type: 'ansible' | 'terraform') =>
-    launcherCommand({ engine: type === 'ansible' ? 'ansible' : 'tofu', driver, poolId: selectedPool, server: launcherServer(config.apiUrl, window.location.origin) });
+  // Launchers register with the API's own address, which is not the app's origin when the API is
+  // served on a host of its own (tunnel mode).
+  const server = launcherServer(config.apiUrl, window.location.origin);
+  const commandFor = (kind: LauncherCommandKind) =>
+    kind === 'container'
+      ? containerLauncherCommand({ poolId: selectedPool, server })
+      : inProcessLauncherCommand({ engine: kind, poolId: selectedPool, server });
 
-  const copyCommand = (type: 'ansible' | 'terraform') => {
-    void navigator.clipboard.writeText(launcherFor(type));
-    setCopiedCmd(type);
-    toast.success(`${type === 'ansible' ? 'Ansible' : 'OpenTofu'} runner command copied`);
+  const copyCommand = (kind: LauncherCommandKind) => {
+    void navigator.clipboard.writeText(commandFor(kind));
+    setCopiedCmd(kind);
+    const label = COMMAND_LABELS[kind];
+    toast.success(`${label.charAt(0).toUpperCase()}${label.slice(1)} copied`);
     setTimeout(() => setCopiedCmd(null), 2000);
   };
+
+  const commandBlock = (kind: LauncherCommandKind, title: string) => (
+    <div>
+      <div className="flex items-center justify-between mb-1">
+        <span className="text-sm font-medium">{title}</span>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-9 w-9"
+          aria-label={`Copy ${COMMAND_LABELS[kind]}`}
+          onClick={() => copyCommand(kind)}
+          disabled={!selectedPool}
+        >
+          {copiedCmd === kind ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
+        </Button>
+      </div>
+      <pre data-testid={`launcher-command-${kind}`} className="bg-muted p-3 rounded-lg text-xs overflow-x-auto">{commandFor(kind)}</pre>
+    </div>
+  );
 
   const formatTimeAgo = (dateStr: string | null) => {
     if (!dateStr) return 'Never';
@@ -292,7 +326,7 @@ export default function Runners() {
   const addRunnerAction = (
     <GradientButton ramp="app" onClick={() => setAddOpen(true)} className="w-auto px-4 py-2">
       <Terminal className="h-4 w-4 mr-2" />
-      Add runner
+      Add a launcher
     </GradientButton>
   );
   const listState = loading ? 'loading' : loadFailed ? 'error' : runners.length === 0 ? 'empty' : 'ready';
@@ -301,8 +335,8 @@ export default function Runners() {
     <Page ramp="runners" className="space-y-8">
       <PageHeader
         icon={Server}
-        title="Self-Hosted Runners"
-        subtitle="Manage self-hosted runners for OpenTofu and Ansible workloads"
+        title="Launchers"
+        subtitle="Manage the launchers that start your agent pools' OpenTofu runs and Ansible jobs"
         backTo={{ to: orgName ? `/app/${orgName}/settings` : '/settings', label: 'Back to Settings' }}
         stats={
           stats && (
@@ -332,8 +366,8 @@ export default function Runners() {
           {runners.length === 0 ? (
             <PageEmptyState
               icon={Server}
-              title="No runners registered yet"
-              description="Register a runner by running the agent on your infrastructure."
+              title="No launchers registered yet"
+              description="Start a launcher on your own infrastructure to run an agent pool's jobs."
               action={loadFailed ? undefined : addRunnerAction}
             />
           ) : (
@@ -342,13 +376,13 @@ export default function Runners() {
             <div
               className={cn(glassSurface, 'px-4 sm:px-6 py-3 flex flex-wrap items-center gap-3')}
               role="toolbar"
-              aria-label="Bulk runner actions"
+              aria-label="Bulk launcher actions"
             >
               <label className="flex items-center gap-3 min-h-[44px] cursor-pointer text-sm">
                 <Checkbox
                   checked={selectAllState === 'all' ? true : selectAllState === 'some' ? 'indeterminate' : false}
                   onCheckedChange={() => { setSelected((prev) => toggleAll(prev, runnerIds)); }}
-                  aria-label="Select all runners"
+                  aria-label="Select all launchers"
                 />
                 <span className="text-muted-foreground">
                   {selectedRunners.length > 0
@@ -395,7 +429,7 @@ export default function Runners() {
                     className="mt-1.5"
                     checked={selected.has(runner.id)}
                     onCheckedChange={() => { setSelected((prev) => toggleOne(prev, runner.id)); }}
-                    aria-label={`Select runner ${runner.name}`}
+                    aria-label={`Select launcher ${runner.name}`}
                   />
                   <div className="flex-1">
                     <div className="flex items-center gap-3 mb-2">
@@ -412,7 +446,7 @@ export default function Runners() {
                         {runner.status}
                       </Badge>
                       <Badge variant="outline" className={getRunnerTypeBadgeClass(runner.runner_type)}>
-                        {runner.runner_type}
+                        {engineLabel(runner.runner_type)}
                       </Badge>
                       {runner.agent_pool_name && (
                         <Badge variant="outline" className="bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20">
@@ -461,7 +495,7 @@ export default function Runners() {
                       size="icon"
                       className={cn(dangerGhostIcon, 'h-9 w-9')}
                       onClick={() => setDeleteRunner(runner)}
-                      aria-label={`Delete runner ${runner.name}`}
+                      aria-label={`Delete launcher ${runner.name}`}
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>
@@ -474,30 +508,20 @@ export default function Runners() {
         </div>
       )}
 
-      {/* Add Runner dialog */}
+      {/* Add a launcher dialog: taller than a laptop screen with its three commands, so it scrolls. */}
       <Dialog open={addOpen} onOpenChange={setAddOpen}>
-        <PageDialogContent className="max-w-2xl">
+        <PageDialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Register a Self-Hosted Runner</DialogTitle>
+            <DialogTitle>Add a launcher</DialogTitle>
             <DialogDescription>
-              Start a launcher on your infrastructure. It registers with the pool you choose and runs that pool's jobs.
+              A launcher registers with an agent pool and starts that pool&apos;s jobs. Start one on your own infrastructure.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-6">
             <div className="space-y-2">
-              <Label>1. Create a registration token</Label>
-              <p className="text-sm text-muted-foreground">
-                Create an agent token on the pool in <Link to={`/app/${orgName}/settings/agent-pools`} className="text-primary hover:underline">Agent Pools</Link>,
-                {' '}or an organization key with the <code className="bg-muted px-1 rounded-sm">runner:register</code> scope
-                in <Link to={`/app/${orgName}/settings/api-keys`} className="text-primary hover:underline">API Keys</Link>. Its value replaces
-                {' '}<code className="bg-muted px-1 rounded-sm">&lt;registration-token&gt;</code> below.
-              </p>
-            </div>
-
-            <div className="space-y-2">
-              <Label>2. Select Agent Pool</Label>
+              <Label htmlFor="launcher-pool">1. Choose the agent pool</Label>
               <Select value={selectedPool} onValueChange={setSelectedPool}>
-                <SelectTrigger>
+                <SelectTrigger id="launcher-pool" aria-label="Agent pool">
                   <SelectValue placeholder="Select a pool..." />
                 </SelectTrigger>
                 <SelectContent>
@@ -516,64 +540,42 @@ export default function Runners() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="launcher-driver">3. Choose how jobs run</Label>
-              <Select value={driver} onValueChange={(v) => { setDriver(v === 'container' ? 'container' : 'in-process'); }}>
-                <SelectTrigger id="launcher-driver" aria-label="Launcher driver"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="in-process">In the launcher&apos;s own container (in-process)</SelectItem>
-                  <SelectItem value="container">A fresh container per job (Docker or Podman)</SelectItem>
-                </SelectContent>
-              </Select>
+              <Label>2. Create a registration credential</Label>
               <p className="text-sm text-muted-foreground">
-                {driver === 'container'
-                  ? 'Each job runs in its own hardened container through the engine socket, with the run image it selects. Jobs reach the API at the server address, so use one a container can resolve.'
-                  : 'Jobs run one at a time as child processes of the launcher, sharing its filesystem and network, in the platform image only.'}
+                <span className="font-medium text-foreground">Recommended:</span> create an{' '}
+                <Link
+                  to={selectedPool ? `/app/${orgName}/settings/agent-pools?pool=${selectedPool}#agent-tokens` : `/app/${orgName}/settings/agent-pools`}
+                  className="text-primary hover:underline"
+                >
+                  agent token
+                </Link>
+                {' '}in the pool&apos;s Agent tokens section. It registers launchers into that pool only.
+              </p>
+              <p className="text-sm text-muted-foreground">
+                Or create an organization key with the <strong>Launcher registration</strong> scope in{' '}
+                <Link to={`/app/${orgName}/settings/api-keys`} className="text-primary hover:underline">API Keys</Link>.
+                {' '}The credential replaces <code className="bg-muted px-1 rounded-sm">&lt;registration-token&gt;</code> below.
               </p>
             </div>
 
-            <div className="space-y-2">
-              <Label>4. Run the Docker command</Label>
-              <div className="space-y-3">
-                <div>
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="text-sm font-medium">Ansible Runner</span>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-9 w-9"
-                      aria-label="Copy Ansible runner command"
-                      onClick={() => copyCommand('ansible')}
-                      disabled={!selectedPool}
-                    >
-                      {copiedCmd === 'ansible' ? (
-                        <Check className="h-4 w-4 text-green-500" />
-                      ) : (
-                        <Copy className="h-4 w-4" />
-                      )}
-                    </Button>
-                  </div>
-                  <pre data-testid="launcher-command-ansible" className="bg-muted p-3 rounded-lg text-xs overflow-x-auto">{launcherFor('ansible')}</pre>
-                </div>
-                <div>
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="text-sm font-medium">OpenTofu Runner</span>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-9 w-9"
-                      aria-label="Copy OpenTofu runner command"
-                      onClick={() => copyCommand('terraform')}
-                      disabled={!selectedPool}
-                    >
-                      {copiedCmd === 'terraform' ? (
-                        <Check className="h-4 w-4 text-green-500" />
-                      ) : (
-                        <Copy className="h-4 w-4" />
-                      )}
-                    </Button>
-                  </div>
-                  <pre data-testid="launcher-command-tofu" className="bg-muted p-3 rounded-lg text-xs overflow-x-auto">{launcherFor('terraform')}</pre>
-                </div>
+            <div className="space-y-4">
+              <Label>3. Start the launcher</Label>
+              <div className="space-y-2">
+                <p className="text-sm text-muted-foreground">
+                  The launcher image serves both engines. It places each OpenTofu run and Ansible job in a fresh, hardened
+                  container from that engine&apos;s job image, through the Docker or Podman socket. Jobs reach the API at the
+                  server address, so use one a container can resolve, and put the credential for private job images in
+                  registry-auth.json.
+                </p>
+                {commandBlock('container', 'Container driver, both engines')}
+              </div>
+              <div className="space-y-2">
+                <p className="text-sm text-muted-foreground">
+                  An engine&apos;s job image runs as an in-process launcher for that engine only. Each job runs as a child
+                  process of the launcher&apos;s container and shares its filesystem and network.
+                </p>
+                {commandBlock('tofu', 'In-process, OpenTofu')}
+                {commandBlock('ansible', 'In-process, Ansible')}
               </div>
             </div>
           </div>
@@ -589,7 +591,7 @@ export default function Runners() {
       <Dialog open={!!editRunner} onOpenChange={(open) => { if (!open) setEditRunner(null); }}>
         <PageDialogContent>
           <DialogHeader>
-            <DialogTitle>Edit runner</DialogTitle>
+            <DialogTitle>Edit launcher</DialogTitle>
             <DialogDescription>Update description and labels for &quot;{editRunner?.name}&quot;</DialogDescription>
           </DialogHeader>
           {editRunner && (
@@ -654,10 +656,10 @@ export default function Runners() {
       <Dialog open={!!deleteRunner} onOpenChange={(open) => { if (!open) setDeleteRunner(null); }}>
         <PageDialogContent>
           <DialogHeader>
-            <DialogTitle>Delete runner</DialogTitle>
+            <DialogTitle>Delete launcher</DialogTitle>
             <DialogDescription>
               {deleteRunner && (
-                <>Delete &quot;{deleteRunner.name}&quot;? The runner will need to re-register to appear again.</>
+                <>Delete &quot;{deleteRunner.name}&quot;? The launcher will need to re-register to appear again.</>
               )}
             </DialogDescription>
           </DialogHeader>
@@ -676,13 +678,13 @@ export default function Runners() {
         <PageDialogContent>
           <DialogHeader>
             <DialogTitle>
-              Delete {selectedRunners.length} runner{selectedRunners.length === 1 ? '' : 's'}
+              Delete {selectedRunners.length} launcher{selectedRunners.length === 1 ? '' : 's'}
             </DialogTitle>
             <DialogDescription>
-              These runners are removed and stop receiving jobs. Each one needs to register again to appear here.
+              These launchers are removed and stop receiving jobs. Each one needs to register again to appear here.
             </DialogDescription>
           </DialogHeader>
-          <ul className="max-h-48 overflow-y-auto space-y-1 text-sm" aria-label="Runners to delete">
+          <ul className="max-h-48 overflow-y-auto space-y-1 text-sm" aria-label="Launchers to delete">
             {selectedRunners.map((r) => (
               <li key={r.id} className="flex items-center gap-2">
                 <div className={cn('w-2 h-2 rounded-full shrink-0', getStatusColor(r.status))} />
@@ -694,7 +696,7 @@ export default function Runners() {
             <Button variant="outline" onClick={() => setBulkAction(null)} disabled={bulkBusy}>Cancel</Button>
             <Button variant="destructive" onClick={() => { void handleBulkDelete(); }} disabled={bulkBusy || selectedRunners.length === 0}>
               {bulkBusy ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-              Delete {selectedRunners.length} runner{selectedRunners.length === 1 ? '' : 's'}
+              Delete {selectedRunners.length} launcher{selectedRunners.length === 1 ? '' : 's'}
             </Button>
           </DialogFooter>
         </PageDialogContent>
@@ -710,7 +712,7 @@ export default function Runners() {
             <DialogTitle>{bulkAction === 'add-label' ? 'Add label' : 'Remove label'}</DialogTitle>
             <DialogDescription>
               {bulkAction === 'add-label' ? 'Add a label to' : 'Remove a label from'} the {selectedRunners.length} selected
-              runner{selectedRunners.length === 1 ? '' : 's'}. Other labels are left as they are.
+              launcher{selectedRunners.length === 1 ? '' : 's'}. Other labels are left as they are.
             </DialogDescription>
           </DialogHeader>
           <form

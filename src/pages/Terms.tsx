@@ -88,7 +88,7 @@ const CLAUSES: Clause[] = [
       </p>
       <p>
         Some components and related projects are published under other licenses, stated in their own repositories. At
-        the time of writing the runner images, the Helm chart and the registry are published under the Apache License,
+        the time of writing the launcher image, the job images, the Helm chart and the registry are published under the Apache License,
         Version 2.0. Those licenses apply to them.
       </p>
       <p>

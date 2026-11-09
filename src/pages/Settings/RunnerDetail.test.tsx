@@ -79,3 +79,52 @@ describe('RunnerDetail drain', () => {
     expect(screen.getByRole('button', { name: /^drain$/i })).toBeDisabled();
   });
 });
+
+// The launcher detail page names its subject with the standard names (one-launcher spec, B5, AC26):
+// a launcher, never a runner, and its engines in words rather than the raw runner_type.
+describe('RunnerDetail standard names', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('names the launcher, its engines and its dialogs', async () => {
+    vi.mocked(runnersApi.get).mockResolvedValue(runner({ runner_type: 'combined', agent_version: '5.110.0' }));
+    const user = userEvent.setup();
+    renderPage();
+
+    expect(await screen.findByText('OpenTofu and Ansible')).toBeInTheDocument();
+    expect(screen.queryByText('combined')).not.toBeInTheDocument();
+    expect(screen.getByText('Jobs this launcher started')).toBeInTheDocument();
+    expect(screen.getByText('Launcher version')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /Back to Launchers/ })).toBeInTheDocument();
+    expect(document.body.textContent).not.toMatch(/\brunners?\b/i);
+
+    await user.click(screen.getByRole('button', { name: /^edit$/i }));
+    let dialog = await screen.findByRole('dialog', { name: 'Edit launcher' });
+    expect(within(dialog).getByText('Update the launcher description and labels')).toBeInTheDocument();
+    expect(within(dialog).getByPlaceholderText('Launcher description...')).toBeInTheDocument();
+    await user.click(within(dialog).getByRole('button', { name: 'Cancel' }));
+
+    await user.click(screen.getByRole('button', { name: /^drain$/i }));
+    dialog = await screen.findByRole('dialog', { name: 'Drain launcher' });
+    await user.click(within(dialog).getByRole('button', { name: 'Cancel' }));
+
+    await user.click(screen.getByRole('button', { name: /^delete$/i }));
+    dialog = await screen.findByRole('dialog', { name: 'Delete launcher' });
+    expect(within(dialog).getByText(/delete the launcher "edge-launcher"/)).toBeInTheDocument();
+  });
+
+  it('labels a single-engine launcher by its engine', async () => {
+    vi.mocked(runnersApi.get).mockResolvedValue(runner({ runner_type: 'ansible' }));
+    renderPage();
+    expect(await screen.findByText('Ansible')).toBeInTheDocument();
+    expect(screen.queryByText('ansible')).not.toBeInTheDocument();
+  });
+
+  it('says the launcher was not found', async () => {
+    vi.mocked(runnersApi.get).mockRejectedValue(Object.assign(new Error('not found'), { status: 404 }));
+    renderPage();
+    expect(await screen.findByText('Launcher not found')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Back to Launchers' })).toBeInTheDocument();
+  });
+});
