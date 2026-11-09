@@ -7,6 +7,7 @@ covers:
   - "backend/internal/launcher/**"
   - "backend/internal/api/middleware/runner_rate_limit.go"
   - "core/settings/**"
+  - "core/dbconn/**"
   - "core/security/runenv/**"
   - "scripts/zitadel-init/**"
   - "deploy/sso.env.example"
@@ -62,6 +63,11 @@ The API is the primary Go backend serving the REST API, managing authentication,
 | `DATABASE_PASSWORD` | PostgreSQL password | `iac_password` (from config.yaml) |
 | `DATABASE_NAME` | Database name | `iac_platform` (from config.yaml) |
 | `DATABASE_SSLMODE` | SSL mode (`disable`, `require`, `verify-full`) | `disable` (from config.yaml) |
+
+Timestamps do not depend on `TZ` or on the host's time zone. The database connection always
+uses the UTC session time zone, the platform stores every timestamp as an instant, and the
+API writes each timestamp attribute in UTC as RFC 3339 with whole seconds, for example
+`2026-10-17T18:04:05Z`.
 
 ### Authentication (Zitadel)
 

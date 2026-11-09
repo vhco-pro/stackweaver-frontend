@@ -216,3 +216,26 @@ describe('JobDetail placement', () => {
     expect(screen.queryByText('Runner', { selector: 'dt' })).not.toBeInTheDocument();
   });
 });
+
+// A running job's duration counts from the API's started-at, the UTC instant ending in Z, to now,
+// and is never negative. It went negative (-7197s) when the API wrote the local wall clock
+// followed by a Z, which named an instant two hours in the future (utc-timestamps spec, AC4).
+describe('JobDetail running job duration', () => {
+  beforeEach(() => {
+    vi.mocked(ansibleJobsApi.getEvents).mockResolvedValue({ data: [] });
+  });
+
+  it('counts a running job from its UTC start to now', async () => {
+    const startedAt = new Date(Date.now() - 90_000).toISOString().replace(/\.\d{3}Z$/, 'Z');
+    vi.mocked(ansibleJobsApi.get).mockResolvedValue({
+      data: finishedJob({ status: 'running', 'started-at': startedAt, 'finished-at': null }),
+    });
+
+    renderPage();
+
+    const duration = await screen.findByText(/^\d+m \d+s$/);
+    const [minutes, seconds] = (duration.textContent ?? '').split(' ').map(part => Number.parseInt(part, 10));
+    expect(minutes * 60 + seconds).toBeGreaterThanOrEqual(89);
+    expect(screen.queryByText(/^-\d/)).not.toBeInTheDocument();
+  });
+});

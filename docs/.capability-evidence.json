@@ -297,7 +297,7 @@
       "evidence": [
         {
           "path": "backend/internal/api/v2/handlers/dashboard.go",
-          "sha256": "9f50387301052b29150051a018e1f0cf8abc3985e5a7265240571508c4450491"
+          "sha256": "7129f804750a7439f28c3f70b4433af51295541f00d41234ed606cd891cdd5a4"
         },
         {
           "path": "core/repository/dashboard.go",
@@ -341,7 +341,7 @@
       "evidence": [
         {
           "path": "backend/internal/api/v2/handlers/terraform/runs.go",
-          "sha256": "76d46955f6fc26085d7115990cc5ed181215c839eb607ec642a822a458773911"
+          "sha256": "1d58824e4b79d9dd5961299e9f2550aed75be1bb5723706fb1b4aa81004132b4"
         },
         {
           "path": "core/plugins/opentofu/plugin.go",
@@ -365,7 +365,7 @@
         },
         {
           "path": "backend/internal/api/v2/handlers/organizations.go",
-          "sha256": "cd9a63cf595a4e99b53e5264f93d0f880051384d78742ca4e018df7f890fa94e"
+          "sha256": "a3b1b0d6a7f6f3cc7a135c57c22c12d818dacc78aa094aa37fdc4ce609ee39c3"
         },
         {
           "path": "frontend/src/pages/Settings/Organization.tsx",
@@ -401,7 +401,7 @@
         },
         {
           "path": "backend/internal/api/v2/handlers/terraform/runs.go",
-          "sha256": "76d46955f6fc26085d7115990cc5ed181215c839eb607ec642a822a458773911"
+          "sha256": "1d58824e4b79d9dd5961299e9f2550aed75be1bb5723706fb1b4aa81004132b4"
         },
         {
           "path": "backend/internal/launcher/supervise.go",
@@ -417,7 +417,7 @@
       "evidence": [
         {
           "path": "backend/internal/api/v2/handlers/terraform/runs.go",
-          "sha256": "76d46955f6fc26085d7115990cc5ed181215c839eb607ec642a822a458773911"
+          "sha256": "1d58824e4b79d9dd5961299e9f2550aed75be1bb5723706fb1b4aa81004132b4"
         },
         {
           "path": "backend/internal/executor/tofuexec/run.go",
@@ -437,7 +437,7 @@
       "evidence": [
         {
           "path": "backend/internal/api/v2/handlers/terraform/run_tasks.go",
-          "sha256": "ed3d5d725402b9194ce459fceef427549915bd719772ceccf85f2fb166e02049"
+          "sha256": "592372b1a644cf46bf106ac720f09e5d97cfe639fe2f3bc211159f951315f2c3"
         },
         {
           "path": "core/services/runtask/flow.go",
@@ -461,11 +461,11 @@
         },
         {
           "path": "backend/cmd/orchestrator/task_stages.go",
-          "sha256": "128717683948cdd04337e8bf2f14924263c0b90be0c31b33bb1d79327deb81fc"
+          "sha256": "062b91501ca6f229e98fe17ba0a196234b66d7d21985d5d70ce93bfeaa3e8896"
         },
         {
           "path": "backend/internal/api/v2/handlers/terraform/workspaces.go",
-          "sha256": "c850ef06ccf2c038caae729cdb49a1f1b5ee4efc7158415940f19f4acb075a80"
+          "sha256": "0ea858a0bd044472454174223b69276ac902f914c8b50f59e03f099e65169135"
         },
         {
           "path": "backend/internal/launcher/supervise.go",
@@ -565,7 +565,7 @@
       "evidence": [
         {
           "path": "backend/internal/api/v2/handlers/terraform/change_requests.go",
-          "sha256": "81d3bff08714681f34ec90979421df844a161c33d70de83e44d46f77fc17c9d9"
+          "sha256": "fd1b6f4b6923dddf37a3f90c9fa27b2e313dcf7119bac742f02a42729a32e2d6"
         },
         {
           "path": "backend/internal/api/v2/handlers/terraform/change_requests_test.go",
@@ -617,7 +617,7 @@
         },
         {
           "path": "backend/internal/api/v2/handlers/terraform/workspaces.go",
-          "sha256": "c850ef06ccf2c038caae729cdb49a1f1b5ee4efc7158415940f19f4acb075a80"
+          "sha256": "0ea858a0bd044472454174223b69276ac902f914c8b50f59e03f099e65169135"
         },
         {
           "path": "frontend/src/pages/WorkspaceDetail.tsx",
