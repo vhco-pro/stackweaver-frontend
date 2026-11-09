@@ -2183,5 +2183,31 @@
       "launcher"
     ],
     "availability": []
+  },
+  {
+    "id": "utc-timestamps",
+    "title": "Timestamps are stored and returned in UTC whatever the server's time zone",
+    "area": "API and integrations",
+    "kind": "Fixed",
+    "reviewed": true,
+    "audience": "Operators who run Stackweaver with TZ set, or on a host whose time zone is not UTC, and API clients that read timestamps.",
+    "before": "An API process outside UTC wrote many timestamps as its local wall clock followed by Z, which named a different instant, and wrote others with its local offset. Runner heartbeats, job execution times, API key last use and expiry, and VCS token expiry were stored as the writing process's wall clock.",
+    "after": "Every timestamp the API writes is the UTC instant in RFC 3339 with whole seconds, ending in Z, whatever the process time zone. The database connection uses UTC, and all six affected columns store an instant.",
+    "action": "No action is required for an install whose processes always ran in UTC, which is the default for the published images. If you ran a Stackweaver process in another time zone, follow the upgrade guide to correct the values that process stored.",
+    "details": [
+      "Timestamp attributes that carried microseconds now carry whole seconds. Terraform refreshes these computed attributes once without planning a change.",
+      "The first start after the upgrade changes six columns to timestamp with time zone. On PostgreSQL 12 or later with the session in UTC this changes only the catalog, so no table is rewritten."
+    ],
+    "guides": [
+      {
+        "title": "Upgrading",
+        "path": "/docs/get-started/self-hosting/upgrading"
+      }
+    ],
+    "sourceCommits": [],
+    "requiredComponents": [
+      "api"
+    ],
+    "availability": []
   }
 ]

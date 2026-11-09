@@ -3,6 +3,7 @@ description: "Choose component versions, prepare recovery, upgrade with Compose 
 nav_order: 40
 covers:
   - "deploy/**"
+  - "core/models/migrate.go"
   - "scripts/changelog/**"
   - "scripts/zitadel-init/**"
 ---
@@ -156,3 +157,92 @@ old binaries at a migrated database without a release-specific recovery procedur
 Resume schedules, launchers and incoming triggers deliberately, then watch the first normal
 runs and jobs. Keep the recovery set until the upgraded installation has passed your
 retention and acceptance policy.
+
+## 5. Release-specific instructions
+
+### Correct timestamps written outside UTC
+
+Stackweaver stores and returns timestamps in UTC whatever time zone its services run in. On
+its first start, the upgraded API changes six database columns to `timestamp with time
+zone`. Each value in them is read as UTC. Values written by a process running in UTC keep
+their instant; the published images run in UTC.
+
+Follow this procedure only if the API or the orchestrator ever ran with `TZ` set to another
+zone, or on a host whose time zone is not UTC. Values that process wrote are off by its UTC
+offset:
+
+| Column | What it holds | Effect of a wrong value |
+|---|---|---|
+| `api_keys.expires_at` | When an API token expires | The token stops working early or late. |
+| `api_keys.last_used_at` | When an API token was last used | Display only. |
+| `vcs_connections.token_expires_at` | When the stored VCS access token expires | The token is refreshed early or late. |
+| `runners.last_heartbeat_at` | A launcher's latest heartbeat | Overwritten within a minute while the launcher runs. |
+| `runner_job_executions.started_at` | When a launcher started an execution | History only. |
+| `runner_job_executions.finished_at` | When a launcher finished an execution | History only. |
+
+1. Find the offset the process ran at. Run `date +%z` on that host, or read the `TZ` you set:
+   `+0200` is `2 hours`, `-0500` is `-5 hours`.
+2. Find the window: when that process started running in that zone, and when you upgraded.
+   If the window crosses a daylight-saving change, split it into two windows, each with its
+   own offset.
+3. After the upgraded API has started once, connect to the database with `psql` and start a
+   transaction with `BEGIN;`.
+4. For each column and window, replace the placeholders and count the rows first, then run the
+   update with the same values. Each update must report the same number of rows as its count.
+   Use the statements for the column:
+
+   - **The four columns stamped when they are written** (`api_keys.last_used_at`,
+     `runners.last_heartbeat_at`, `runner_job_executions.started_at` and `finished_at`). A
+     value the process wrote inside the window now sits shifted by the offset:
+
+     ```sql
+     SELECT count(*) FROM <table>
+     WHERE <column> BETWEEN '<window start>'::timestamptz + interval '<offset>'
+                        AND '<window end>'::timestamptz + interval '<offset>';
+
+     UPDATE <table> SET <column> = <column> - interval '<offset>'
+     WHERE <column> BETWEEN '<window start>'::timestamptz + interval '<offset>'
+                        AND '<window end>'::timestamptz + interval '<offset>';
+     ```
+
+   - **`vcs_connections.token_expires_at`.** The connection is rewritten whenever its token
+     refreshes, so its row says nothing about when the expiry was written. Stackweaver stores an
+     expiry only for Azure DevOps connections, from Microsoft's sign-in tokens, which last at
+     most 90 minutes. Extend the window end by those 90 minutes:
+
+     ```sql
+     SELECT count(*) FROM vcs_connections
+     WHERE token_expires_at BETWEEN '<window start>'::timestamptz + interval '<offset>'
+                                AND '<window end>'::timestamptz + interval '90 minutes' + interval '<offset>';
+
+     UPDATE vcs_connections SET token_expires_at = token_expires_at - interval '<offset>'
+     WHERE token_expires_at BETWEEN '<window start>'::timestamptz + interval '<offset>'
+                                AND '<window end>'::timestamptz + interval '90 minutes' + interval '<offset>';
+     ```
+
+     Run it soon after the upgrade. A token the upgraded API stored in its first 90 minutes can
+     match as well and is shifted too. For an offset east of UTC that only makes Stackweaver
+     refresh the token early.
+
+5. When every column and window is done, `COMMIT;`. If a count looks wrong, `ROLLBACK;`
+   instead.
+
+For example, an API that ran at `+0200` from 1 April to 1 October 2026 needs, for
+`api_keys.last_used_at`:
+
+```sql
+UPDATE api_keys SET last_used_at = last_used_at - interval '2 hours'
+WHERE last_used_at BETWEEN '2026-04-01T00:00:00Z'::timestamptz + interval '2 hours'
+                       AND '2026-10-01T00:00:00Z'::timestamptz + interval '2 hours';
+```
+
+`api_keys.expires_at` has no repair statement. Launcher tokens renew their expiry on every
+heartbeat, so a running launcher's token corrects itself after the upgrade. A job token lasts only
+as long as its job, and registration and rotation tokens were always stored in UTC. A user, team or
+organization token created with an explicit expiry may expire off by the UTC offset that expiry was
+given in. Check the expiry date shown for each such token, and reissue any whose expiry matters.
+
+> [!WARNING]
+> Run each update once. A second run shifts the same rows again. A value written by a UTC
+> process can match the statements too, and it is shifted as well. For an offset east of UTC, a
+> wrongly shifted VCS token expiry only brings its next refresh forward.

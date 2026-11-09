@@ -504,7 +504,7 @@
     "frontend/src/pages/Ansible/Inventories.tsx": "e585c0786e2b0a3d93aab1c663ecccad252f2bbe83b8cb788f297464882b7477",
     "frontend/src/pages/Ansible/InventoryDetail.test.tsx": "1fdee78f4839a57b3eabf6aee8fe7664bf928c533f15693e5e5243c04b4c16d7",
     "frontend/src/pages/Ansible/InventoryDetail.tsx": "3a778d38b3b859d345dffd536b7ba5fe506e7b6805b9d00d54aecd825dfa2125",
-    "frontend/src/pages/Ansible/JobDetail.test.tsx": "d1a423165a868ddc614ccd045e2c0e1b9dac11b0681603610ae12e7a90dfa9fc",
+    "frontend/src/pages/Ansible/JobDetail.test.tsx": "c5d8aa98564ccb46af728b0dba1593f66b6fead1ac2b954c02c331b68b80b2c2",
     "frontend/src/pages/Ansible/JobDetail.tsx": "1b09c29506fac013095a9bbfa5f74b6c4bb1c342aeac313c5b7945ffd2a1ea56",
     "frontend/src/pages/Ansible/JobTemplateDetail.tsx": "f19ecac2ff4f5108fe021e6e235c4abb2510912220274ae63b5b23c3f9f17c7b",
     "frontend/src/pages/Ansible/JobTemplates.test.tsx": "9980d0f22b6fa264aeb4625a2c2cca2fa41570251eb96b19531400ae2f54404b",
