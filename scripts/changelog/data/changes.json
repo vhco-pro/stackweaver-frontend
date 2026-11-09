@@ -1,5 +1,28 @@
 [
   {
+    "id": "docs-table-type",
+    "title": "Documentation tables are easier to read",
+    "area": "Documentation",
+    "kind": "Changed",
+    "reviewed": true,
+    "audience": "People reading Stackweaver documentation, blog articles and module READMEs in the frontend.",
+    "before": "Table text was set a size smaller than the surrounding text, with tighter line spacing.",
+    "after": "Table text is the same size as the surrounding text, with the same generous line spacing, and the header row is a smaller label above it. Tables keep their frame and tinted header row.",
+    "action": "Update the frontend image. No configuration change is required.",
+    "details": [],
+    "guides": [
+      {
+        "title": "Set up self-hosted runners",
+        "path": "/docs/user-guides/self-hosted-runners"
+      }
+    ],
+    "sourceCommits": [],
+    "requiredComponents": [
+      "frontend"
+    ],
+    "availability": []
+  },
+  {
     "id": "docs-toc-drawer-and-code-header",
     "title": "The phone outline marks the section you are reading, and code block title bars are slimmer",
     "area": "Documentation",

@@ -52,11 +52,15 @@
   border-collapse: collapse;
 }
 
+/* Cells read like the paragraphs around them: the body size and a 1.75 line height, with the
+   header row at 0.8 of the body (the type Astro Starlight uses). Both sides keep 1rem so cell
+   text lines up under the header text inside the tint. */
 .docs-table :is(th, td) {
-  padding: 0.6em 0.85em;
+  padding: 0.75rem 1rem;
   border: 0;
   border-bottom: 1px solid var(--docs-table-line);
-  font-size: calc(var(--docs-body-size) * 0.875);
+  font-size: var(--docs-body-size);
+  line-height: 1.75;
   text-align: left;
   vertical-align: top;
 }
@@ -66,9 +70,32 @@
 }
 
 .docs-table th {
+  padding-block: 0.625rem;
   background: var(--docs-table-header);
   color: var(--docs-table-heading);
+  font-size: calc(var(--docs-body-size) * 0.8);
   font-weight: 600;
+}
+
+/* Open tables (`data-docs-table-style="open"` on an ancestor): no frame, and the header tint
+   becomes a band with rounded ends. */
+[data-docs-table-style='open'] .docs-table {
+  border: 0;
+  border-radius: 0;
+}
+
+[data-docs-table-style='open'] .docs-table th {
+  border-bottom: 0;
+}
+
+[data-docs-table-style='open'] .docs-table th:first-child {
+  border-start-start-radius: 8px;
+  border-end-start-radius: 8px;
+}
+
+[data-docs-table-style='open'] .docs-table th:last-child {
+  border-start-end-radius: 8px;
+  border-end-end-radius: 8px;
 }
 
 /* ---------- Navigation tint: the selected sidebar page and the search triggers ---------- */

@@ -97,11 +97,13 @@ it('writes the host code block presentation onto the renderer root and nothing w
   const bareRoot = bare.container.querySelector('.markdown-content');
   expect(bareRoot).not.toHaveAttribute('data-docs-code-style');
   expect(bareRoot).not.toHaveAttribute('data-docs-code-tone');
+  expect(bareRoot).not.toHaveAttribute('data-docs-table-style');
   bare.unmount();
 
-  const hosted = render(<MemoryRouter><ThemeProvider><DocsEnvironmentContext.Provider value={{ basePath: '', staticRender: false, codeBlocks: { style: 'classic', tone: 'deep' } }}>{article}</DocsEnvironmentContext.Provider></ThemeProvider></MemoryRouter>);
+  const hosted = render(<MemoryRouter><ThemeProvider><DocsEnvironmentContext.Provider value={{ basePath: '', staticRender: false, codeBlocks: { style: 'classic', tone: 'deep' }, tables: { style: 'open' } }}>{article}</DocsEnvironmentContext.Provider></ThemeProvider></MemoryRouter>);
   const root = hosted.container.querySelector('.markdown-content');
   expect(root).toHaveAttribute('data-docs-code-style', 'classic');
   expect(root).toHaveAttribute('data-docs-code-tone', 'deep');
-  expect(root?.querySelectorAll('[data-docs-code-tone], [data-docs-code-style]')).toHaveLength(0);
+  expect(root).toHaveAttribute('data-docs-table-style', 'open');
+  expect(root?.querySelectorAll('[data-docs-code-tone], [data-docs-code-style], [data-docs-table-style]')).toHaveLength(0);
 });
