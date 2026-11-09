@@ -42,7 +42,7 @@ an administrative API response is not necessarily available to a public reader.
 
 ## Scope and repository topology
 
-The product is developed in a private monorepo and published through eight public satellites.
+The product is developed in a private monorepo and published through nine public satellites.
 The shared `core/` module is private. The upstream repository and shared dependencies remain
 part of a product-wide review even when they are not publicly accessible. See the
 [repository map](../architecture/repositories.md) for the full source/distribution layout.
@@ -53,6 +53,7 @@ part of a product-wide review even when they are not publicly accessible. See th
 | [stackweaver-frontend](https://github.com/vhco-pro/stackweaver-frontend) | Frontend and public docs | BSL 1.1 | [![OpenSSF Scorecard for stackweaver-frontend](https://api.scorecard.dev/projects/github.com/vhco-pro/stackweaver-frontend/badge)](https://scorecard.dev/viewer/?uri=github.com/vhco-pro/stackweaver-frontend) |
 | [stackweaver-orchestrator](https://github.com/vhco-pro/stackweaver-orchestrator) | Job scheduling | BSL 1.1 | [![OpenSSF Scorecard for stackweaver-orchestrator](https://api.scorecard.dev/projects/github.com/vhco-pro/stackweaver-orchestrator/badge)](https://scorecard.dev/viewer/?uri=github.com/vhco-pro/stackweaver-orchestrator) |
 | [stackweaver-ansible-runner](https://github.com/vhco-pro/stackweaver-ansible-runner) | Ansible execution | Apache-2.0 | [![OpenSSF Scorecard for stackweaver-ansible-runner](https://api.scorecard.dev/projects/github.com/vhco-pro/stackweaver-ansible-runner/badge)](https://scorecard.dev/viewer/?uri=github.com/vhco-pro/stackweaver-ansible-runner) |
+| [stackweaver-launcher](https://github.com/vhco-pro/stackweaver-launcher) | Launcher image and standalone launcher binaries | Apache-2.0 | [![OpenSSF Scorecard for stackweaver-launcher](https://api.scorecard.dev/projects/github.com/vhco-pro/stackweaver-launcher/badge)](https://scorecard.dev/viewer/?uri=github.com/vhco-pro/stackweaver-launcher) |
 | [stackweaver-opentofu-runner](https://github.com/vhco-pro/stackweaver-opentofu-runner) | OpenTofu execution | Apache-2.0 | [![OpenSSF Scorecard for stackweaver-opentofu-runner](https://api.scorecard.dev/projects/github.com/vhco-pro/stackweaver-opentofu-runner/badge)](https://scorecard.dev/viewer/?uri=github.com/vhco-pro/stackweaver-opentofu-runner) |
 | [stackweaver-helm](https://github.com/vhco-pro/stackweaver-helm) | Helm chart | Apache-2.0 | [![OpenSSF Scorecard for stackweaver-helm](https://api.scorecard.dev/projects/github.com/vhco-pro/stackweaver-helm/badge)](https://scorecard.dev/viewer/?uri=github.com/vhco-pro/stackweaver-helm) |
 | [stackweaver-zitadel-init](https://github.com/vhco-pro/stackweaver-zitadel-init) | Identity bootstrap | BSL 1.1 | [![OpenSSF Scorecard for stackweaver-zitadel-init](https://api.scorecard.dev/projects/github.com/vhco-pro/stackweaver-zitadel-init/badge)](https://scorecard.dev/viewer/?uri=github.com/vhco-pro/stackweaver-zitadel-init) |
@@ -128,7 +129,7 @@ assessment against the baseline's full requirement and the project's actual scop
 
 | Control | Review question | Evidence | Where to check |
 |---|---|---|---|
-| QA-01.01 | The source repository is publicly readable at a static URL | Gap | The eight satellites are public; the shared core module is private. NDA access is a separate audit option, not public source availability. |
+| QA-01.01 | The source repository is publicly readable at a static URL | Gap | The satellites are public; the shared core module is private. NDA access is a separate audit option, not public source availability. |
 | QA-01.02 | There is a public record of every change (who and when) | Public | Satellite Git history and sync PRs are public. The private upstream review record needs separate evidence; provenance alone does not expose it. |
 | QA-02.01 | The repository contains a list of direct dependencies | Public | Inspect the relevant dependency manifests and lockfiles, including dependencies resolved from the private core module. |
 | QA-04.01 | A multi-repository project documents its list of codebases | Public | Use the [repository map](../architecture/repositories.md) to identify the product codebases and distribution boundaries. |

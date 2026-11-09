@@ -6,6 +6,7 @@
 #   cp sso.env.example sso.env
 #   cp vcs.env.example vcs.env
 #   cp oidc.env.example oidc.env
+#   cp registry-auth.json.example registry-auth.json
 #   sed -i.bak "s|^OIDC_SIGNING_KEY=.*|OIDC_SIGNING_KEY=$(openssl genrsa 2048 | openssl base64 -A)|" oidc.env
 #   sed -i.bak "s/^ENCRYPTION_KEY=.*/ENCRYPTION_KEY=$(openssl rand -hex 32)/" .env
 #   rm -f oidc.env.bak .env.bak
@@ -25,11 +26,15 @@ volumes:
   garage_data:
   garage_meta:
   zitadel-pat:
-  # The launchers' node-local cache copies, named so the job containers they start can mount them.
+  # The launcher's node-local cache copy, named so the job containers it starts can mount it.
   stackweaver-launcher-cache:
     name: stackweaver-launcher-cache
-  stackweaver-ansible-launcher-cache:
-    name: stackweaver-ansible-launcher-cache
+
+secrets:
+  # The launcher's registry credential for private job images: a Docker config file with inline
+  # `auths` entries (registry-auth.json.example), read by the launcher alone (RUNNER_DOCKER_CONFIG).
+  registry-auth:
+    file: ./registry-auth.json
 
 # How long Compose waits for a launcher to stop before it kills it, on `docker compose stop`,
 # `down`, a restart or an upgrade. A launcher told to stop drains: it waits up to its drain grace
@@ -416,15 +421,16 @@ services:
         condition: service_started
     networks: [stackweaver]
 
-  # The OpenTofu launcher. It registers as the deployment's hosted launcher with
-  # STACKWEAVER_HOSTED_SECRET (generated into .env by zitadel-init), holds one long-poll heartbeat
-  # and places every job it claims in a fresh, hardened container of its engine's job image
-  # through the Docker socket. It holds no database, storage, Redis or platform secret: the executor in the job container
-  # fetches what its job needs from the API with a token for that job alone. The socket is
-  # root-equivalent on this host, which is why the launcher itself never runs user code.
+  # The launcher. It registers as the deployment's hosted launcher with STACKWEAVER_HOSTED_SECRET
+  # (generated into .env by zitadel-init), holds one long-poll heartbeat and places every OpenTofu
+  # run, Ansible job and sync it claims in a fresh, hardened container of its engine's job image
+  # through the Docker socket. It holds no database, storage, Redis or platform secret: the
+  # executor in the job container fetches what its job needs from the API with a token for that job
+  # alone. The socket is root-equivalent on this host, which is why the launcher itself never runs
+  # user code.
   launcher:
     stop_grace_period: *launcher-stop-grace
-    image: ghcr.io/vhco-pro/stackweaver-opentofu-runner:latest
+    image: ghcr.io/vhco-pro/stackweaver-launcher:latest
     container_name: launcher
     restart: unless-stopped
     user: root  # reaches the Docker socket; job containers run as the image's non-root user
@@ -436,13 +442,16 @@ services:
       # and nothing else of it.
       STACKWEAVER_ENV_FILE: /config/stackweaver/.env
       RUNNER_NAME: launcher
-      RUNNER_MAX_CONCURRENT_JOBS: "4"
+      # One pool of slots shared by OpenTofu runs, Ansible jobs and syncs.
+      RUNNER_MAX_CONCURRENT_JOBS: "8"
       RUNNER_DRIVER: container
-      # Each engine's job image. Compose pulls both as the launchers' own images, so a placement
-      # uses the copy on this host and pulls an image only when it is missing.
+      # Each engine's job image, pulled on every placement, so a moved tag runs its current image.
       RUNNER_TOFU_IMAGE: ghcr.io/vhco-pro/stackweaver-opentofu-runner:latest
       RUNNER_ANSIBLE_IMAGE: ghcr.io/vhco-pro/stackweaver-ansible-runner:latest
-      RUNNER_JOB_IMAGE_PULL: missing
+      # The registry credential the job images are pulled with (the registry-auth secret).
+      RUNNER_DOCKER_CONFIG: /run/secrets/registry-auth
+      # The jobs network's firewall rules are written from the launcher's own image.
+      RUNNER_FIREWALL_IMAGE: ghcr.io/vhco-pro/stackweaver-launcher:latest
       # The node-local, read-only copy of the organizations' caches: a named volume, so
       # job containers mount their organization's subpath of it read-only.
       RUNNER_CACHE_DIR: /var/cache/stackweaver-launcher
@@ -451,6 +460,8 @@ services:
       RUNNER_EXTRA_HOSTS: host.docker.internal:host-gateway
     extra_hosts:
       - host.docker.internal:host-gateway
+    secrets:
+      - registry-auth
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - stackweaver-launcher-cache:/var/cache/stackweaver-launcher
@@ -460,63 +471,7 @@ services:
       # which is after zitadel-init completed (depends_on).
       - ./.env:/config/stackweaver/.env:ro
     healthcheck:
-      test: ["CMD", "/usr/local/bin/runner", "healthcheck"]
-      interval: 15s
-      timeout: 5s
-      retries: 8
-      start_period: 30s
-    depends_on:
-      api:
-        condition: service_started
-      zitadel-init:
-        condition: service_completed_successfully
-    networks: [stackweaver]
-
-  # The Ansible launcher, which also runs the syncs (playbook and configuration snapshots, inventory syncs). It registers as the deployment's hosted launcher with
-  # STACKWEAVER_HOSTED_SECRET (generated into .env by zitadel-init), holds one long-poll heartbeat
-  # and places every job it claims in a fresh, hardened container of its engine's job image
-  # through the Docker socket. It holds no database, storage, Redis or platform secret: the executor in the job container
-  # fetches what its job needs from the API with a token for that job alone. The socket is
-  # root-equivalent on this host, which is why the launcher itself never runs user code.
-  ansible-launcher:
-    stop_grace_period: *launcher-stop-grace
-    image: ghcr.io/vhco-pro/stackweaver-ansible-runner:latest
-    container_name: ansible-launcher
-    restart: unless-stopped
-    user: root  # reaches the Docker socket; job containers run as the image's non-root user
-    environment:
-      STACKWEAVER_SERVER: http://host.docker.internal:8022
-      STACKWEAVER_HOSTED: "1"
-      # zitadel-init generates STACKWEAVER_HOSTED_SECRET into .env after Compose has fixed this
-      # container's environment, so the launcher reads that one value from the file at start
-      # and nothing else of it.
-      STACKWEAVER_ENV_FILE: /config/stackweaver/.env
-      RUNNER_NAME: ansible-launcher
-      RUNNER_MAX_CONCURRENT_JOBS: "4"
-      RUNNER_DRIVER: container
-      # Each engine's job image. Compose pulls both as the launchers' own images, so a placement
-      # uses the copy on this host and pulls an image only when it is missing.
-      RUNNER_TOFU_IMAGE: ghcr.io/vhco-pro/stackweaver-opentofu-runner:latest
-      RUNNER_ANSIBLE_IMAGE: ghcr.io/vhco-pro/stackweaver-ansible-runner:latest
-      RUNNER_JOB_IMAGE_PULL: missing
-      # The node-local, read-only copy of the organizations' caches: a named volume, so
-      # job containers mount their organization's subpath of it read-only.
-      RUNNER_CACHE_DIR: /var/cache/stackweaver-launcher
-      RUNNER_CACHE_VOLUME: stackweaver-ansible-launcher-cache
-      RUNNER_NETWORK: stackweaver-jobs
-      RUNNER_EXTRA_HOSTS: host.docker.internal:host-gateway
-    extra_hosts:
-      - host.docker.internal:host-gateway
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
-      - stackweaver-ansible-launcher-cache:/var/cache/stackweaver-launcher
-      # Only the generated .env, never the install directory beside it, whose sso, vcs and oidc
-      # files and GitHub App key a launcher must not hold. zitadel-init replaces .env by
-      # a rename, so this single-file mount holds the file as it was when the launcher started,
-      # which is after zitadel-init completed (depends_on).
-      - ./.env:/config/stackweaver/.env:ro
-    healthcheck:
-      test: ["CMD", "/usr/local/bin/ansible-runner", "healthcheck"]
+      test: ["CMD", "/usr/local/bin/stackweaver-launcher", "healthcheck"]
       interval: 15s
       timeout: 5s
       retries: 8

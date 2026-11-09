@@ -56,7 +56,7 @@ export default function Collections() {
     <PageHeader
       icon={Blocks}
       title="Galaxy Collections"
-      subtitle="Ansible Galaxy collections available in the runner"
+      subtitle="Ansible Galaxy collections available to your jobs"
       listState={loading ? 'loading' : collections.length === 0 && search === '' ? 'empty' : 'ready'}
     />
   );
@@ -85,7 +85,7 @@ export default function Collections() {
               <p className="font-medium text-blue-500">Auto-Install from requirements.yml</p>
               <p className="text-muted-foreground mt-1">
                 Additional collections can be installed automatically by adding a <code className="bg-muted px-1 rounded-sm">requirements.yml</code> file 
-                to your playbook repository. The runner will install them before job execution.
+                to your playbook repository. Each job installs them before it runs.
               </p>
             </div>
           </div>
@@ -192,7 +192,7 @@ roles:
             showWrapToggle={false}
           />
           <p className="text-sm text-muted-foreground mt-4">
-            The runner will automatically detect and install these before executing your playbook.
+            Each job detects and installs these before it runs your playbook.
           </p>
         </CardContent>
       </Card>

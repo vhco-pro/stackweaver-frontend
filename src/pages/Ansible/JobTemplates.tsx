@@ -20,6 +20,7 @@ import {
 import { agentPoolsApi, type AgentPool } from '@/api/client';
 import { PlaybookSourcePicker } from '@/components/ansible/PlaybookSourcePicker';
 import { resolvePlaybookSelection, type PlaybookSelection } from '@/components/ansible/playbook-selection';
+import { AgentPoolSelect } from '@/components/ansible/AgentPoolSelect';
 import {
   getAnsibleJobTemplateFromJsonApi,
   getAnsiblePlaybookFromJsonApi,
@@ -728,26 +729,12 @@ export default function JobTemplates() {
                 </SelectContent>
               </Select>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="agent_pool_id">Agent Pool (Optional)</Label>
-              <Select
-                value={createForm.agent_pool_id || '__none__'}
-                onValueChange={(value) => setCreateForm({ ...createForm, agent_pool_id: value === '__none__' ? '' : value })}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Default (built-in runner)" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="__none__">Default (built-in runner)</SelectItem>
-                  {agentPools.map((pool) => (
-                    <SelectItem key={pool.id} value={pool.id}>{pool.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <p className="text-xs text-muted-foreground">
-                Assign to a self-hosted runner pool for execution on your own infrastructure.
-              </p>
-            </div>
+            <AgentPoolSelect
+              id="agent_pool_id"
+              agentPools={agentPools}
+              value={createForm.agent_pool_id}
+              onChange={(agentPoolId) => { setCreateForm({ ...createForm, agent_pool_id: agentPoolId }); }}
+            />
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="verbosity">Verbosity</Label>

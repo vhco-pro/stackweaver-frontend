@@ -100,7 +100,7 @@ cancellation without understanding whether execution has actually stopped.
 | Applying or destroying | Resources already changed remain. Compare phase output, the latest available state and actual infrastructure before a fresh plan. |
 | Waiting on run tasks | The run and outstanding checks become terminal. Check the run before responding to any delayed task result. |
 
-On the hosted capacity and on self-hosted runners alike, the job running a canceled run
+On the hosted capacity and on agent pools alike, the job running a canceled run
 stops OpenTofu within one status poll. The launcher that placed it then stops and removes its
 container, pod or process, even on a pool that keeps failed jobs for inspection. The process
 can take a moment to stop after the request is recorded. If the result is uncertain, check

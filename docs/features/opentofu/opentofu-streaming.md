@@ -28,7 +28,7 @@ capabilities: [
 # Read live run output
 
 Open a run to follow plan and apply progress, then return to the same run to inspect its
-stored output. This guide covers remote runs on the hosted capacity and agent runs on self-hosted pools.
+stored output. This guide covers remote runs on the hosted capacity and agent runs on agent pools.
 Local-mode execution keeps output with its local CLI; these API log endpoints can return
 an empty response for local runs.
 
@@ -102,9 +102,9 @@ The [API explorer](/docs/api-reference/explorer) lists the full operation schema
 
 ## Stored output and troubleshooting
 
-The job's executor captures OpenTofu's stdout and stderr line by line and streams it to the
+The job's process captures OpenTofu's stdout and stderr line by line and streams it to the
 API, which buffers it while the run executes and persists it for later access. This is the
-same wherever the run executes, on the hosted capacity or on a self-hosted runner. Stored logs
+same wherever the run executes, on the hosted capacity or on a launcher of an agent pool. Stored logs
 remain subject to the run's availability and deployment storage/retention policies; this
 is not a promise that every log is kept forever.
 

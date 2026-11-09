@@ -51,17 +51,17 @@ A direct [JSON:API example](#register-through-the-api) is also provided. There i
 
 ```mermaid
 sequenceDiagram
-    participant Runner as Job (executor)
+    participant Job as Job process
     participant SW as StackWeaver API
     participant Cloud
 
     Note over SW: Exposes OIDC discovery + JWKS endpoints
-    Runner->>SW: Fetch the job's inputs with its job token
-    SW-->>Runner: Short-lived JWT (workspace + phase scoped) among the inputs
-    Runner->>Cloud: Present JWT as a federated / web-identity credential
+    Job->>SW: Fetch the job's inputs with its job token
+    SW-->>Job: Short-lived JWT (workspace + phase scoped) among the inputs
+    Job->>Cloud: Present JWT as a federated / web-identity credential
     Cloud->>SW: Fetch JWKS to verify signature
-    Cloud-->>Runner: Cloud access token
-    Runner->>Cloud: Provision resources with access token
+    Cloud-->>Job: Cloud access token
+    Job->>Cloud: Provision resources with access token
 ```
 
 <details>
@@ -70,7 +70,7 @@ sequenceDiagram
 1. **OIDC provider** - Stackweaver exposes a signing key at `/.well-known/jwks` and a discovery document at `/.well-known/openid-configuration`.
 2. **Cloud trust** - You configure your cloud to trust Stackweaver as an OIDC issuer (an Azure federated credential, an AWS IAM OIDC provider + role, or a GCP Workload Identity Pool provider).
 3. **Registration** - You register the cloud-side identifiers in Stackweaver using the TFE Terraform provider (one resource per cloud).
-4. **Run time** - The API mints a short-lived JWT scoped to the specific workspace and run phase, and hands it to the job with the rest of its inputs; the job's executor sets it, alongside the cloud identifiers, as environment variables or token files. This works the same on the hosted capacity and on every self-hosted runner. The target provider uses the injected credential. Ansible integrations have their own documented configuration.
+4. **Run time** - The API mints a short-lived JWT scoped to the specific workspace and run phase, and hands it to the job with the rest of its inputs; the job's process sets it, alongside the cloud identifiers, as environment variables or token files. This works the same on the hosted capacity and on every launcher of an agent pool. The target provider uses the injected credential. Ansible integrations have their own documented configuration.
 
 </details>
 
@@ -261,7 +261,7 @@ After apply, confirm the registration exists and its returned identifiers match 
 
 ### Step 4: Configure the aws Provider in Your Workspaces
 
-With no conflicting static credentials configured, the `aws` provider performs `AssumeRoleWithWebIdentity` automatically from the injected environment. The job's executor writes the token to a file and sets:
+With no conflicting static credentials configured, the `aws` provider performs `AssumeRoleWithWebIdentity` automatically from the injected environment. The job's process writes the token to a file and sets:
 
 | Variable | Description |
 |----------|-------------|
@@ -326,7 +326,7 @@ After apply, confirm the registration exists and its returned identifiers match 
 
 ### Step 4: Configure the google Provider in Your Workspaces
 
-No provider block credentials are required - the `google` provider reads an external-account credential configuration automatically from the injected environment. The job's executor writes the token and a credential-config file and sets:
+No provider block credentials are required - the `google` provider reads an external-account credential configuration automatically from the injected environment. The job's process writes the token and a credential-config file and sets:
 
 | Variable | Description |
 |----------|-------------|
@@ -343,7 +343,7 @@ Set the `project` (and `region`) in your `google` provider block as usual.
 ## Vault
 
 HashiCorp Vault differs from the cloud providers: instead of the provider exchanging a token, the
-**job's executor logs in to Vault** via the JWT auth method and exports a `VAULT_TOKEN` for the run. Point the
+**job's process logs in to Vault** via the JWT auth method and exports a `VAULT_TOKEN` for the run. Point the
 Vault JWT auth method at Stackweaver as an OIDC issuer, then register the config. The token audience is
 `vault.workload.identity`.
 
@@ -400,7 +400,7 @@ After apply, confirm the registration exists and its returned identifiers match 
 
 ### Step 4: Use the vault Provider in Your Workspaces
 
-No provider block credentials are required - the executor logs in to Vault before the run and exports the
+No provider block credentials are required - the job's process logs in to Vault before the run and exports the
 token. The `vault` provider (and any provider reading `VAULT_*`) picks it up automatically:
 
 | Variable | Description |

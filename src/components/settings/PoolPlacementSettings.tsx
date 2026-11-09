@@ -27,7 +27,7 @@ export function PoolSettingsSummary({ pool }: { pool: AgentPool }) {
         <h4 className="text-sm font-semibold">Job placement</h4>
       </div>
       <dl className="grid gap-3 grid-cols-2 lg:grid-cols-4">
-        <Row label="Kind" value={pool.kind === 'hosted' ? 'Hosted' : 'Customer'} />
+        <Row label="Kind" value={pool.kind === 'hosted' ? 'Hosted capacity' : 'Agent pool'} />
         <Row label="Limits" value={limits ? `${limits}${pool.limits_required ? ' (required)' : ''}` : 'None'} />
         <Row label="Failed jobs kept" value={pool.keep_failed_jobs_for ? formatSeconds(pool.keep_failed_jobs_for) : 'Removed at once'} />
         <Row label="Node-local cache" value={pool.local_readthrough ? 'On' : 'Off'} />
@@ -37,7 +37,24 @@ export function PoolSettingsSummary({ pool }: { pool: AgentPool }) {
 }
 
 /**
- * DeploymentSettingsPanel shows the deployment-wide runner settings read-only (#933, D0, D15): the
+ * LauncherDriver shows the driver a launcher reported and, for a hosted launcher under strict hosted
+ * isolation (`launcher.hostedStrict`), that setting by its label.
+ */
+export function LauncherDriver({ driver, hostedStrict }: { driver?: string; hostedStrict: boolean }) {
+  return (
+    <>
+      {driver || '-'}
+      {hostedStrict && (
+        <span className="ml-2 inline-flex items-center rounded-full border border-sky-500/30 bg-sky-500/10 px-2 py-0.5 text-xs text-sky-700 dark:text-sky-300">
+          Strict hosted isolation
+        </span>
+      )}
+    </>
+  );
+}
+
+/**
+ * DeploymentSettingsPanel shows the deployment-wide launcher settings read-only (#933, D0, D15): the
  * chart or env files set them, so neither this page nor the API changes them. Collapsed by default.
  */
 export function DeploymentSettingsPanel() {
@@ -67,7 +84,7 @@ export function DeploymentSettingsPanel() {
             <Row label="Job log cap" value={formatBytes(d.job_log_max_bytes)} />
             <Row label="Cache size limit" value={formatBytes(d.cache_size_limit)} />
             <Row label="Hosted default cap" value={d.hosted_default_max_concurrent_jobs ? String(d.hosted_default_max_concurrent_jobs) : 'Unlimited'} />
-            <Row label="Runner request limit" value={`${d.runner_rate_limit.rps} per second, bursts of ${d.runner_rate_limit.burst}`} />
+            <Row label="Launcher request limit" value={`${d.runner_rate_limit.rps} per second, bursts of ${d.runner_rate_limit.burst}`} />
             <Row label="Job request limit" value={`${d.job_rate_limit.rps} per second, bursts of ${d.job_rate_limit.burst}`} />
             <Row label="OpenTofu releases" value={d.mirror?.tofu_releases_url || 'Public'} />
             <Row label="Provider mirror" value={d.mirror?.provider_network_mirror || 'Public registry'} />

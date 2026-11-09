@@ -13,7 +13,7 @@ capabilities: [
     "summary": "Find waiting approvals, failed work and running operations across organizations you can access.",
     "area": "platform",
     "availability": "available",
-    "limitations": "Runner and change-request rows require their respective organization management permissions.",
+    "limitations": "Launcher and change-request rows require their respective organization management permissions.",
     "evidence": [
       "frontend/src/pages/Dashboard/attention.ts",
       "frontend/src/pages/Dashboard/attention.test.ts",
@@ -51,7 +51,7 @@ first, followed by failed work and other action items.
 | Workspaces left broken | Open the errored **Workspaces** list and inspect the most recent failed run. |
 | Job templates left failing | Open **Job Templates** and inspect the template's latest failed job. |
 | Inventories failed to sync | Open **Inventories** and read the failed sync output. Check whether jobs would use stale hosts. |
-| Runners offline | Open **Settings > Runners** and check the affected runners and pools. Other runners may still be available. |
+| Launchers offline | Open **Settings > Launchers** and check the affected launchers and pools. Other launchers may still be available. |
 | Recent OpenTofu failures | Open **Usage** to investigate the failed runs. |
 | Recent Ansible failures | Open the filtered **Jobs** list and inspect the failed jobs. |
 | Open change requests | Open **Settings > Change Requests** to review outstanding workspace tasks. |
@@ -63,7 +63,7 @@ first, followed by failed work and other action items.
 | A workspace or template left failing | Its latest execution failed and no newer run or job has replaced it. |
 | Recent failures | Failures in the last 14 days, including work that may since have recovered. A failed ad hoc Ansible job belongs here, not under failing job templates. |
 
-You see only data your account can access. Runner rows require permission to manage agent
+You see only data your account can access. Launcher rows require permission to manage agent
 pools; change-request rows require permission to manage workspaces in that organization.
 An omitted row does not prove that everything is healthy.
 

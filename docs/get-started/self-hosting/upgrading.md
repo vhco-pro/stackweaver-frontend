@@ -11,7 +11,7 @@ covers:
 
 Choose a reviewed set of component versions, take a recoverable backup, then follow the
 procedure for your deployment. A healthy container is the first check; sign-in, saved data
-and runner connectivity must work too.
+and launcher connectivity must work too.
 
 ```mermaid
 flowchart LR
@@ -30,10 +30,10 @@ not every commit or an exhaustive compatibility matrix.
 
 | Record | Why it matters |
 |---|---|
-| Current and target component tags or digests | API, frontend, orchestrator, the two runner (launcher) images and the initializer publish independently. A matching version number across them is not required. |
+| Current and target component tags or digests | API, frontend, orchestrator, the launcher image, the two job images and the initializer publish independently. A matching version number across them is not required. |
 | Chart version and complete values, for Helm | A chart version selects templates and defaults; image overrides can select different containers. |
 | Identity and storage arrangement | Bundled Zitadel/Garage and external services have different recovery owners. |
-| Self-hosted launcher versions | Upgrading the platform does not upgrade launchers running elsewhere. Upgrade them with the platform, because a job's executor comes from its launcher's image. |
+| Self-hosted launcher versions | Upgrading the platform does not upgrade launchers running elsewhere. Upgrade them with the platform, because the program that runs each job comes from its launcher's image. |
 
 **Confirmed available by** in the feed establishes that a change is present in the listed
 component releases. It is not the first release containing the change, a minimum supported
@@ -53,9 +53,9 @@ Automation uses `tfe-` API tokens; a Zitadel access token is not an API credenti
 2. Take a [complete backup](./backup-and-restore.md), including keys, identity, database and
    object data. A database dump alone does not restore a deployment.
 3. Restore into an isolated environment and test the target versions there. Keep it away
-   from production runners, schedules, webhooks, SMTP and cloud targets.
+   from production launchers, schedules, webhooks, SMTP and cloud targets.
 4. Pause incoming work and schedules, let active jobs/runs finish, and stop self-hosted
-   runners for the maintenance window. Confirm no pending run, job or update-on-launch sync
+   launchers for the maintenance window. Confirm no pending run, job or update-on-launch sync
    remains. The orchestrator fails an OpenTofu run that is still pending 30 minutes after it
    was created, so queue any such run again after the upgrade.
 
@@ -146,13 +146,13 @@ Use a dedicated test workspace/inventory and harmless targets for execution chec
 | API token | A `tfe-` token can read a resource it is authorized to read; a denied cross-organization read stays denied. |
 | Saved data and object storage | A known workspace, state version and prior job output are readable. |
 | Stored credentials and identity | A dedicated test credential remains usable; sign-in and configured SSO still work. |
-| Runner connectivity | **Settings > Agent Pools** shows hosted launchers online under **Hosted capacity**, and your self-hosted launchers online in their pools. A controlled plan or harmless playbook produces output. Do not apply production changes as a smoke test. |
+| Launcher connectivity | **Settings > Agent Pools** shows hosted launchers online under **Hosted capacity**, and your self-hosted launchers online in their pools. A controlled plan or harmless playbook produces output. Do not apply production changes as a smoke test. |
 
 If a check fails, keep maintenance in place, collect redacted logs, and compare the target
 configuration to the saved record. Use the linked deployment troubleshooting guidance.
 Restore the matched recovery set when the failure requires a data rollback; do not point
 old binaries at a migrated database without a release-specific recovery procedure.
 
-Resume schedules, runners and incoming triggers deliberately, then watch the first normal
+Resume schedules, launchers and incoming triggers deliberately, then watch the first normal
 runs and jobs. Keep the recovery set until the upgraded installation has passed your
 retention and acceptance policy.

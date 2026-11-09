@@ -2077,5 +2077,88 @@
       "launcher"
     ],
     "availability": []
+  },
+  {
+    "id": "one-launcher-service",
+    "title": "One launcher service runs both engines in Compose and the chart",
+    "area": "Runners",
+    "kind": "Changed",
+    "reviewed": true,
+    "audience": "Operators who install Stackweaver with Docker Compose or the Helm chart, or run launchers that pull private job images.",
+    "before": "Compose ran two hosted launcher services and the chart two launcher Deployments, one per engine, each from its engine's job image.",
+    "after": "Compose runs one launcher service and the chart one launcher Deployment, both from the stackweaver-launcher image, placing each job in its engine's job image. A launcher pulls private job images with its own registry credential, read from the Docker config files RUNNER_DOCKER_CONFIG names.",
+    "action": "Compose: stop the old Ansible launcher with docker compose stop --timeout 390 ansible-launcher, copy registry-auth.json.example to registry-auth.json, then run docker compose up -d --remove-orphans. Helm: upgrade to chart 0.16.2 first, then move runner.* and ansibleRunner.* values under launcher.",
+    "details": [
+      "The chart translates every runner.* and ansibleRunner.* value onto the launcher for two minor releases and lists each one in the install notes.",
+      "With launcher.driver set to inprocess, the chart runs one launcher Deployment per engine from that engine's job image; launcher.inprocess.opentofu and launcher.inprocess.ansible size each.",
+      "The chart mounts launcher.jobImages.pullSecrets, by default global.imagePullSecrets, into the launcher, which copies the matching credential into a pull Secret of each job's own, keyed by the job image's repository.",
+      "Compose and the chart run 8 jobs at once on the one launcher, shared by both engines, and pull job images on every placement.",
+      "The Compose example adds a registry-auth.json file, the launcher's credential for private job images."
+    ],
+    "guides": [
+      {
+        "title": "Set up self-hosted runners",
+        "path": "/docs/user-guides/self-hosted-runners"
+      }
+    ],
+    "sourceCommits": [],
+    "draftCommits": [],
+    "requiredComponents": [
+      "launcher",
+      "opentofu-runner",
+      "ansible-runner",
+      "helm"
+    ],
+    "availability": []
+  },
+  {
+    "id": "runner-type-filter-combined",
+    "title": "The runner type filter includes launchers that serve both engines",
+    "area": "Runners",
+    "kind": "Changed",
+    "reviewed": true,
+    "audience": "API users who list an organization's launchers by runner type.",
+    "before": "filter[runner_type]=tofu and filter[runner_type]=ansible on GET /api/v2/organizations/:name/runners returned only launchers of exactly that type.",
+    "after": "filter[runner_type]=tofu returns the OpenTofu launchers and the launchers that serve both engines, and filter[runner_type]=ansible the Ansible launchers and the launchers that serve both. filter[runner_type]=combined returns only the launchers that serve both engines. The response format is unchanged.",
+    "action": "No action is required. A script that expected only single-engine launchers from the filter can check each launcher's runner-type attribute.",
+    "details": [],
+    "guides": [
+      {
+        "title": "Set up self-hosted runners",
+        "path": "/docs/user-guides/self-hosted-runners"
+      }
+    ],
+    "sourceCommits": [],
+    "draftCommits": [],
+    "requiredComponents": [
+      "api"
+    ],
+    "availability": []
+  },
+  {
+    "id": "standard-names",
+    "title": "Hosted capacity, Agent pool and Launcher everywhere",
+    "area": "Runners",
+    "kind": "Changed",
+    "reviewed": true,
+    "audience": "Everyone who chooses where runs and jobs execute, and operators who run launchers.",
+    "before": "The UI, API error messages and docs called the installation's job capacity Platform runner, Default (built-in runner), Default (server-side) or Hosted, called the process that starts jobs a runner or an agent, and showed internal names such as hosted.strict, Customer and Runner rate budget.",
+    "after": "Every surface uses the same names: Hosted capacity for the capacity the installation provides, Agent pool for an organization's own pool of launchers, and Launcher for the process that registers with a pool and starts its jobs. The pool settings show Strict hosted isolation and Launcher request limit, and the Add a launcher dialog recommends the pool's agent token and shows a container launcher command and an in-process command per engine, pointed at the API's own address.",
+    "action": "No action is required. The API's routes, types, attributes, values, scopes and environment variables are unchanged. A script that matches the text of an error message or a lost run's reason may need the new wording; runs lost before the change keep their old reason.",
+    "details": [],
+    "guides": [
+      {
+        "title": "Set up self-hosted runners",
+        "path": "/docs/user-guides/self-hosted-runners"
+      }
+    ],
+    "sourceCommits": [],
+    "draftCommits": [],
+    "requiredComponents": [
+      "api",
+      "frontend",
+      "launcher"
+    ],
+    "availability": []
   }
 ]

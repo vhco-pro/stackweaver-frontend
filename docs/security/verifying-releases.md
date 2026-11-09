@@ -43,8 +43,8 @@ to match the guide.
 
 ## 1. Verify a container signature
 
-Choose a component: `api`, `frontend`, `orchestrator`, `opentofu-runner`, `ansible-runner`,
-`zitadel-init` or `secrets-init`. Set its exact release tag:
+Choose a component: `api`, `frontend`, `orchestrator`, `launcher`, `opentofu-runner`,
+`ansible-runner`, `zitadel-init` or `secrets-init`. Set its exact release tag:
 
 ```bash
 COMPONENT=api
@@ -126,6 +126,21 @@ Some releases also attach `provenance.intoto.jsonl`, `sbom.spdx.intoto.jsonl` an
 `checksums.txt` to their GitHub Release. Check the actual asset list. A checksum checks bytes,
 not signer identity; a downloaded attestation still needs verification. Do not assume that
 every release has those files or that the SBOM is a raw, unsigned Release attachment.
+
+## Verify a launcher binary
+
+The launcher satellite's release also attaches a static Linux binary for amd64 and arm64,
+`stackweaver-launcher_<version>_linux_<arch>`, a `SHA256SUMS` file and a build provenance
+attestation for each binary. The attestation proves where a binary was built; `SHA256SUMS` is
+not signed and only checks the download.
+
+```bash
+VERSION=<launcher version>
+REPO=vhco-pro/stackweaver-launcher
+gh release download "$VERSION" --repo "$REPO" --pattern "stackweaver-launcher_*_linux_amd64" --pattern SHA256SUMS
+sha256sum --check --ignore-missing SHA256SUMS
+gh attestation verify "stackweaver-launcher_${VERSION}_linux_amd64" --repo "$REPO"
+```
 
 ## Verify the Helm chart
 

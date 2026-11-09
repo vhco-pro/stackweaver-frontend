@@ -916,7 +916,7 @@ export default function JobDetail() {
                   </dd>
                 </div>
                 <div>
-                  <dt className="text-muted-foreground">Agent Pool</dt>
+                  <dt className="text-muted-foreground">Agent pool</dt>
                   <dd className="mt-0.5">
                     {job.agent_pool_name ? (
                       <span className="inline-flex items-center gap-1.5">
@@ -924,13 +924,13 @@ export default function JobDetail() {
                         {job.agent_pool_name}
                       </span>
                     ) : (
-                      <span className="text-muted-foreground italic">Default (server-side)</span>
+                      <span className="text-muted-foreground">Hosted capacity</span>
                     )}
                   </dd>
                 </div>
                 {job.runner_name && (
                   <div>
-                    <dt className="text-muted-foreground">Runner</dt>
+                    <dt className="text-muted-foreground">Launcher</dt>
                     <dd className="mt-0.5">
                       <span className="inline-flex items-center gap-1.5">
                         <Server className="h-3.5 w-3.5 text-blue-500" />

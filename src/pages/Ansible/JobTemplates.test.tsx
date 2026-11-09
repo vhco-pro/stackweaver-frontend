@@ -358,8 +358,10 @@ describe('JobTemplates: a return inside the stale window', () => {
     await user.click(await screen.findByRole('option', { name: 'production' }));
     await user.click(selectShowing(dialog, 'None'));
     await user.click(await screen.findByRole('option', { name: 'deploy-key' }));
-    await user.click(selectShowing(dialog, 'Default (built-in runner)'));
+    // Leaving the pool unset runs on Hosted capacity (one-launcher spec, AC28).
+    await user.click(selectShowing(dialog, 'Hosted capacity'));
     expect(await screen.findByRole('option', { name: 'edge-pool' })).toBeInTheDocument();
+    expect(document.body.textContent).not.toMatch(/built-in runner|runner pool/i);
 
     expect(ansiblePlaybooksApi.listByOrganization).toHaveBeenCalledTimes(1);
     expect(ansibleInventoriesApi.list).toHaveBeenCalledTimes(1);

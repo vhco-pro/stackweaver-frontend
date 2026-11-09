@@ -112,14 +112,14 @@ export function StreamView({ lines, startMs, query, emptyNote, rawAvailable = tr
     <div className="space-y-2">
       <div className="flex items-center justify-end gap-2">
         <span className="text-xs text-muted-foreground">
-          {showRaw ? 'Raw runner output, one line per event' : `${lines.length} lines · click one for its raw event`}
+          {showRaw ? 'Raw Ansible output, one line per event' : `${lines.length} lines · click one for its raw event`}
         </span>
         <button
           type="button"
           aria-pressed={showRaw}
           disabled={!rawAvailable}
           onClick={() => { setRaw((previous) => !previous); }}
-          title={rawAvailable ? 'Show the runner output verbatim' : 'Raw output is not loaded for very large runs'}
+          title={rawAvailable ? 'Show the Ansible output verbatim' : 'Raw output is not loaded for very large runs'}
           className={cn(
             'flex items-center gap-1.5 rounded-lg border px-2 py-1 text-xs transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
             showRaw

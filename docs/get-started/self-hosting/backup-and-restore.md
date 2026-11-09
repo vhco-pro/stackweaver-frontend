@@ -37,9 +37,9 @@ flowchart TB
 | Encryption and signing keys | `.env`, `oidc.env`, configured key files | Losing the encryption key can make retained credentials unreadable. Changing the workload identity key changes its published signing identity. |
 | Deployment configuration | Complete installed bundle, including hidden files | Image pins, Zitadel master key, SSO/VCS settings, proxy/issuer configuration, certificates and GitHub App keys. |
 
-The launchers' cache volumes, `stackweaver-launcher-cache` and `stackweaver-ansible-launcher-cache`,
-need no backup. They hold a node-local copy of each organization's verified cache, which lives in
-object storage, and the launchers fill them again as jobs run.
+The launcher's cache volume, `stackweaver-launcher-cache`, needs no backup. It holds a node-local
+copy of each organization's verified cache, which lives in object storage, and the launcher fills
+it again as jobs run.
 
 Queued runs and jobs are database rows, but Redis in the supplied bundle is ephemeral and a
 restore does not continue in-flight work. Finish or cancel queued work before backing up.
@@ -137,7 +137,7 @@ corruption; they do not prove that the set can restore successfully.
 
 Use a separate recovery host or fully isolated Docker daemon. Before starting **any**
 restored service, block outbound traffic from the recovery environment to production
-targets, production runners, SMTP and webhook destinations. Keep production ingress/DNS
+targets, production launchers, SMTP and webhook destinations. Keep production ingress/DNS
 pointing at the original installation. This network isolation is mandatory for a rehearsal:
 the API's scheduler can launch work even before you open the browser. A different Compose
 project name is not an egress policy. Use your host/network firewall and verify its deny
@@ -220,10 +220,10 @@ Keep the original installation and backup intact until these checks pass:
    then start the workers needed for a harmless test:
 
    ```bash
-   docker compose up -d --no-deps orchestrator launcher ansible-launcher
+   docker compose up -d --no-deps orchestrator launcher
    ```
 
-   Check runner connectivity and use dedicated targets explicitly permitted by the
+   Check launcher connectivity and use dedicated targets explicitly permitted by the
    rehearsal network policy. Keep unrelated self-hosted launchers stopped.
 5. Record the recovery duration, recovered data timestamp, exact image references and any
    manual changes. Repeat the drill after changes to storage, keys or identity.

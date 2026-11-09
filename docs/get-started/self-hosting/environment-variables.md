@@ -30,7 +30,7 @@ beside each value rather than assuming one default applies to every deployment.
 | Workload identity signing in Compose | Persistent `oidc.env`. |
 | Database, public URLs and initial bootstrap inputs in the standalone Compose example | Follow the [Compose guide](./docker-compose/README.md); distinguish operator inputs from generated identity values. |
 | Kubernetes deployment | Chart values and referenced Secrets in the [Helm guide](./kubernetes/README.md). |
-| Variables a run should receive | Workspace variables, Ansible credentials or the explicit [launcher passthrough](#runner-variables-that-reach-runs). |
+| Variables a run should receive | Workspace variables, Ansible credentials or the explicit [launcher passthrough](#launcher-variables-that-reach-runs). |
 
 Do not put persistent integration settings into generated identity output. After changing a
 value, update the service that consumes it and verify the effective behavior. Merely editing
@@ -201,11 +201,11 @@ These settings apply to the whole installation. The API reads them and serves th
 | `STACKWEAVER_RUN_TIMEOUT_DEFAULT` | Run timeout, in seconds, of a run or job whose workspace, job template, project and organization set none. The orchestrator reads it too, to find runs that ran past their timeout, so set the same value there (`orchestrator.env` on Kubernetes). | `7200` |
 | `STACKWEAVER_SYNC_TIMEOUT` | Time limit, in seconds, of a sync that has no launching object (a snapshot capture, a VCS inventory file sync or a constructed rebuild), and of a dynamic inventory source sync whose source, project and organization set none. | `3600` |
 | `STACKWEAVER_JOB_LOG_MAX_BYTES` | Most output stored for one job, in bytes. Above it the API keeps the beginning and the last 256 KiB, records how much it dropped, and the job runs on. | `67108864` (64 MiB) |
-| `STACKWEAVER_HOSTED_DEFAULT_MAX_CONCURRENT_JOBS` | Jobs of one organization the hosted capacity runs at once, when a platform administrator has not set a cap on that organization's hosted pool. `0` means unlimited. | `0` |
+| `STACKWEAVER_HOSTED_DEFAULT_MAX_CONCURRENT_JOBS` | Jobs of one organization the hosted capacity runs at once, when a platform administrator has not set a cap on that organization's hosted capacity. `0` means unlimited. | `0` |
 | `IMAGES_ALLOWED_REGISTRIES` | Comma-separated registries or registry paths run images may come from, for example `ghcr.io/acme,registry.example.com`. A bare image name counts as `docker.io`. Empty allows any registry. See [Run Images and Execution Environments](../../user-guides/run-images-and-execution-environments.md#the-registry-allowlist). | (empty) |
 | `CACHE_SIZE_LIMIT` | Size bound of each organization's verified cache, in bytes or with a `Ki`, `Mi`, `Gi` or `Ti` suffix, when the organization sets none under Run Defaults. The oldest entries are removed first. | `50Gi` |
 | `RUNNER_RATE_LIMIT_RPS` / `RUNNER_RATE_LIMIT_BURST` | Rate budget of each launcher on the `/api/v2/runner` routes, in requests per second and burst. These routes are exempt from the per-IP limit, so many launchers behind one address do not share a budget. | `20` / `40` |
-| `JOB_RATE_LIMIT_RPS` / `JOB_RATE_LIMIT_BURST` | Rate budget of each job's executor on the same routes. | `20` / `40` |
+| `JOB_RATE_LIMIT_RPS` / `JOB_RATE_LIMIT_BURST` | Rate budget of each job's process on the same routes. | `20` / `40` |
 
 ### Job mirrors, proxy and CA
 
@@ -227,9 +227,9 @@ Jobs on an air-gapped network also need a route to the mirrors. On the container
 
 ### Using an internal OpenTofu mirror
 
-Runs download the OpenTofu version pinned on the workspace the first time they need it, from the organization's cache when it holds that version and from `TOFU_RELEASES_URL` otherwise, verifying the archive against the checksums published alongside the release. The runner image already bundles one version, so an installation that only ever uses that version needs no access to the release mirror at all.
+Runs download the OpenTofu version pinned on the workspace the first time they need it, from the organization's cache when it holds that version and from `TOFU_RELEASES_URL` otherwise, verifying the archive against the checksums published alongside the release. The OpenTofu job image already bundles one version, so an installation that only ever uses that version needs no access to the release mirror at all.
 
-Set `TOFU_RELEASES_URL` and `TOFU_VERSION_INDEX_URL` together: the first serves the binaries and the second populates the version catalogue, so overriding only one still leaves the other reaching for the internet. Your mirror must reproduce the upstream layout exactly, because the executor builds these paths itself:
+Set `TOFU_RELEASES_URL` and `TOFU_VERSION_INDEX_URL` together: the first serves the binaries and the second populates the version catalogue, so overriding only one still leaves the other reaching for the internet. Your mirror must reproduce the upstream layout exactly, because the job builds these paths itself:
 
 ```
 <TOFU_RELEASES_URL>/v<version>/tofu_<version>_linux_<arch>.zip
@@ -247,7 +247,7 @@ Checksum verification runs against your mirror's own `SHA256SUMS` file and canno
 | `STACKWEAVER_WEBHOOK_BASE_URL` | Webhook callback base URL | (derived) |
 | `ANSIBLE_SCHEDULER_ENABLED` | Fire Ansible schedules on their cron. Set `false` to stop cron firing; run now, held-job release, workflow progression, schedule outcomes and notifications continue either way. Any number of API replicas can leave it on: one replica at a time does each scheduler tick's work, so no schedule fires twice. | `true` |
 | `TERRAFORM_DRIFT_DETECTION_ENABLED` | Enable drift detection | `true` |
-| `RUNNER_MONITOR_ENABLED` | Enable runner health monitoring | `true` |
+| `RUNNER_MONITOR_ENABLED` | Enable launcher health monitoring | `true` |
 | `STACKWEAVER_NOTIFICATIONS_ALLOW_PRIVATE` | Allow workspace notification webhooks to deliver to internal/private/loopback addresses. Off by default, so notification delivery cannot reach the cloud metadata endpoint or internal services (SSRF guard). Set to `true` only if your notification collectors run on an internal network. Applies to both the API (test deliveries) and the orchestrator (run-event deliveries). | `false` |
 | `STACKWEAVER_RUN_TASKS_ALLOW_PRIVATE` | The run-task twin of the flag above: allow run-task webhooks (and the create-time URL verification) to reach internal/private/loopback addresses. Kept separate from the notifications flag so opening one surface does not silently open the other. Applies to the API (verification handshake) and the orchestrator (stage webhook delivery). | `false` |
 | `STACKWEAVER_ANSIBLE_NOTIFICATIONS_ALLOW_PRIVATE` | The Ansible twin of the two flags above: allow Ansible notification templates of type webhook and Microsoft Teams to deliver to internal/private/loopback/link-local addresses. Off by default, so a template's URL, whatever it resolves to and wherever it redirects, cannot reach the cloud metadata endpoint or internal services. Set to `true` only if your Ansible notification receivers, such as an internal chat server, run on an internal network. Email notifications go to the SMTP host you configure and are not affected. Applies to the API, which sends both the test deliveries and the job and workflow event deliveries. | `false` |
@@ -275,7 +275,7 @@ In the standalone Compose bundle, `frontend-config` writes `env.js` after identi
 
 ## Orchestrator
 
-The orchestrator is a background service that routes each pending run to its pool (an agent pool, or the organization's hosted pool for remote execution), requests the configuration snapshot of a VCS-backed run, wakes the launchers waiting for that pool through Redis, and releases work that is stuck.
+The orchestrator is a background service that routes each pending run to its pool (an agent pool, or the organization's hosted capacity for remote execution), requests the configuration snapshot of a VCS-backed run, wakes the launchers waiting for that pool through Redis, and releases work that is stuck.
 
 | Variable | Description | Default |
 |---|---|---|
@@ -300,9 +300,9 @@ The orchestrator is a background service that routes each pending run to its poo
 
 ## Launchers
 
-The OpenTofu launcher (the `stackweaver-opentofu-runner` image) and the Ansible launcher (the `stackweaver-ansible-runner` image) read the same variables. A launcher holds no database, Redis or object storage credential, no encryption key and no signing key: it registers with the API, claims work, and its executor fetches what each job needs from the API with a token for that job alone. See [Self-Hosted Runners](../../user-guides/self-hosted-runners.md) for how the pieces fit together.
+The launcher reads these variables, whether it runs from the `stackweaver-launcher` image, from a job image (`stackweaver-opentofu-runner`, `stackweaver-ansible-runner`) for the in-process driver, or as the binary on a host. A launcher holds no database, Redis or object storage credential, no encryption key and no signing key: it registers with the API, claims work, and each job fetches what it needs from the API with a token for that job alone. See [Set up launchers](../../user-guides/self-hosted-runners.md) for how the pieces fit together.
 
-On Docker Compose, the `launcher` and `ansible-launcher` services set these in their `environment:` blocks in `docker-compose.yml`, and read only `STACKWEAVER_HOSTED_SECRET` from `.env`. On Kubernetes, the chart sets them from the `launcher.*`, `runner.*` and `ansibleRunner.*` values, and `runner.env` and `ansibleRunner.env` add any other variable. A launcher you run for an agent pool takes them from its own container or Deployment environment.
+On Docker Compose, the `launcher` service sets these in its `environment:` block in `docker-compose.yml`, and reads only `STACKWEAVER_HOSTED_SECRET` from `.env`. On Kubernetes, the chart sets them from the `launcher.*` values, and `launcher.env` adds any other variable. A launcher you run for an agent pool takes them from its own container or Deployment environment.
 
 ### Registration
 
@@ -311,14 +311,14 @@ On Docker Compose, the `launcher` and `ansible-launcher` services set these in t
 | `STACKWEAVER_SERVER` | Base URL of the API the launcher registers with. Jobs reach the API at the same address, so it must resolve where they run: with `RUNNER_JOB_NAMESPACE` set, use a namespace-qualified Service name. The chart sets `http://<release>-api.<namespace>.svc:8022`. | (required) |
 | `STACKWEAVER_TOKEN` | Agent token or API key a launcher of an agent pool registers with. | (required for an agent pool) |
 | `RUNNER_AGENT_POOL_ID` | ID of the agent pool the launcher joins. | (required for an agent pool) |
-| `STACKWEAVER_HOSTED` | `1` registers the launcher as one of the installation's hosted launchers, which serve every organization's hosted pool in its placement group. | (unset) |
+| `STACKWEAVER_HOSTED` | `1` registers the launcher as one of the installation's hosted launchers, which serve every organization's hosted capacity in its placement group. | (unset) |
 | `STACKWEAVER_HOSTED_SECRET` | The hosted registration secret (see [Runs, jobs and launchers](#runs-jobs-and-launchers)); required with `STACKWEAVER_HOSTED=1`. | (none) |
 | `STACKWEAVER_ENV_FILE` | Docker Compose: path of the generated `.env`, from which the launcher reads `STACKWEAVER_HOSTED_SECRET` at start and nothing else. | (unset) |
 | `STACKWEAVER_HOSTED_GROUP` | Placement group a hosted launcher serves. Chart value `launcher.hostedGroup`. | `default` |
 | `STACKWEAVER_HOSTED_STRICT` | `1` makes the launcher refuse the in-process driver, the `host-identity` network mode and `CACHE_VERIFY_TRANSPARENCY_LOG=false`, and fail at start if any is configured. Chart value `launcher.hostedStrict`. | (unset) |
 | `RUNNER_NAME` | Name the launcher registers under; it must be unique per launcher. The chart uses the pod name. | Hostname |
 | `RUNNER_LABELS` | Comma-separated labels reported with the launcher. | (none) |
-| `RUNNER_MAX_CONCURRENT_JOBS` | Jobs the launcher runs at once. Chart values `runner.maxConcurrentJobs` and `ansibleRunner.maxConcurrentJobs`. | `1` |
+| `RUNNER_MAX_CONCURRENT_JOBS` | Jobs the launcher runs at once. Chart value `launcher.maxConcurrentJobs` (8). | `1` |
 | `RUNNER_HEALTH_ADDR` | Address of the `/healthz` and `/readyz` endpoints; `off` turns them off. The image's `healthcheck` subcommand reads `/readyz` there. Chart value `launcher.healthPort`. | `:9090` |
 | `RUNNER_DRAIN_GRACE` | How long a launcher that received `SIGTERM` waits for its jobs to finish before it deregisters, as a duration. | `5m` |
 | `LOG_LEVEL` | Log verbosity. | `info` |
@@ -329,9 +329,10 @@ On Docker Compose, the `launcher` and `ansible-launcher` services set these in t
 |---|---|---|
 | `RUNNER_DRIVER` | `inprocess`, `container` or `kubernetes`. Chart value `launcher.driver`. | `inprocess` (chart: `kubernetes`) |
 | `RUNNER_ENGINES` | Engines the launcher serves: `tofu`, `ansible` or both, comma separated. An in-process launcher otherwise serves each engine whose toolchain it finds on its `PATH` and refuses to start with neither; the container and Kubernetes drivers otherwise serve both. | Found on `PATH` (in-process), both (container and Kubernetes) |
-| `RUNNER_TOFU_IMAGE` | Job image of OpenTofu runs: a run that selects no run image runs in it, and a custom run image gets the executor from it. | `ghcr.io/vhco-pro/stackweaver-opentofu-runner:latest` |
+| `RUNNER_TOFU_IMAGE` | Job image of OpenTofu runs: a run that selects no run image runs in it, and a custom run image gets `stackweaver-executor`, the program that runs the job, copied from it. | `ghcr.io/vhco-pro/stackweaver-opentofu-runner:latest` |
 | `RUNNER_ANSIBLE_IMAGE` | Job image of Ansible jobs and syncs, used the same way. | `ghcr.io/vhco-pro/stackweaver-ansible-runner:latest` |
-| `RUNNER_JOB_IMAGE_PULL` | When the launcher pulls a job image: `always`, `missing` or `never`. When the registry cannot be reached, a cached job image still runs and the job shows a warning. | `always`; with only `RUNNER_IMAGE` set, no policy: pulled when missing on the container driver, the cluster's default on Kubernetes |
+| `RUNNER_JOB_IMAGE_PULL` | When the launcher pulls a job image: `always`, `missing` or `never`. When the registry cannot be reached, a cached job image still runs and the job shows a warning. Chart value `launcher.jobImages.pullPolicy` (`Always`, `IfNotPresent`, `Never`). | `always`; with only `RUNNER_IMAGE` set, no policy: pulled when missing on the container driver, the cluster's default on Kubernetes |
+| `RUNNER_DOCKER_CONFIG` | The launcher's registry credential for private job images: Docker config files, comma separated, or a directory whose `.json` files are read. Inline `auths` entries (`auth`, or `username` and `password`, and on the container driver `identitytoken`) pull the job images and the firewall image, never a run image; `credsStore` and `credHelpers` are not supported. On the Kubernetes driver the launcher copies the matching entry into a pull Secret of each job's own, keyed by the job image's repository. Chart value `launcher.jobImages.pullSecrets`, by default `global.imagePullSecrets`. | (none) |
 | `RUNNER_PLACEMENT_TIMEOUT` | How long a Kubernetes job pod may fail to pull its image before the job fails with the kubelet's reason. | `5m` |
 | `RUNNER_IMAGE` | Deprecated: set `RUNNER_TOFU_IMAGE` and `RUNNER_ANSIBLE_IMAGE` instead. Alone, it is the image of every job, and the launcher logs a warning; it is ignored for an engine whose job image is set. | (none) |
 | `RUNNER_NETWORK_MODE` | `platform` blocks the cloud metadata endpoints from jobs; `host-identity` leaves them open on the container and Kubernetes drivers. Chart value `launcher.network`. | `platform` |
@@ -340,7 +341,7 @@ On Docker Compose, the `launcher` and `ansible-launcher` services set these in t
 | `RUNNER_NETWORK` | Jobs network of the container driver. The launcher creates it and, on a rootful engine, firewalls it. | (none) |
 | `RUNNER_DENY_CIDRS` | Comma-separated ranges no job on the jobs network may reach, in addition to the cloud metadata ranges and the engine's other networks, such as the subnet of a database outside Docker. | (none) |
 | `RUNNER_ALLOW_TCP` | Comma-separated `host:port` endpoints, or `http` and `https` URLs, that jobs reach beside the API even inside a denied range: an air-gapped installation's mirrors. Names are resolved when the launcher starts. On the container driver they are accepted by the jobs network's firewall; on the Kubernetes driver they are added as allowed peers of the job NetworkPolicy the launcher manages. | (none) |
-| `RUNNER_FIREWALL_IMAGE` | Image of the short-lived container that programs the jobs network's firewall; it needs `iptables` on Docker and `nft` on Podman or Docker's nftables backend. | `RUNNER_TOFU_IMAGE` |
+| `RUNNER_FIREWALL_IMAGE` | Image of the short-lived container that programs the jobs network's firewall; it needs `iptables` on Docker and `nft` on Podman or Docker's nftables backend. The launcher image carries both. It is pulled only when missing. | `RUNNER_TOFU_IMAGE` |
 | `RUNNER_EXTRA_HOSTS` | Comma-separated `host:address` entries added to every job container's hosts file, such as `host.docker.internal:host-gateway`. | (none) |
 | `RUNNER_JOB_USER` | User job containers run as, instead of the image's user. | The image's user |
 | `RUNNER_ALLOW_ROOT` | `true` lets the container driver run an image whose user is root. | `false` |
@@ -361,18 +362,18 @@ On Docker Compose, the `launcher` and `ansible-launcher` services set these in t
 | `RUNNER_CACHE_VOLUME` | Named volume holding `RUNNER_CACHE_DIR`, which job containers mount their organization's part of. A container-driver launcher that itself runs in a container needs it for jobs to use the copy. | (none) |
 | `RUNNER_CACHE_LOCAL_SIZE_LIMIT` | Size bound of the copy, in bytes or with a `Ki`, `Mi`, `Gi` or `Ti` suffix; the least recently used entries are removed first. | `20Gi` |
 | `CACHE_VERIFY_TRANSPARENCY_LOG` | `false` verifies OpenTofu releases against the release key the launcher carries instead of with `cosign` and the Sigstore transparency log, for launchers that cannot reach the log. Refused under `STACKWEAVER_HOSTED_STRICT`. | `true` |
-| `RUNNER_COSIGN` | Path of the `cosign` binary. The OpenTofu runner image includes it. | `cosign` on the path |
+| `RUNNER_COSIGN` | Path of the `cosign` binary. The OpenTofu job image includes it. | `cosign` on the path |
 
 ### Job settings
 
 | Variable | Description | Default |
 |---|---|---|
-| `STACKWEAVER_RUN_ENV_PASSTHROUGH` | Comma-separated names of further launcher variables to hand to jobs. See [Runner variables that reach runs](#runner-variables-that-reach-runs). Chart values `runner.runEnvPassthrough` and `ansibleRunner.runEnvPassthrough`. | (none) |
+| `STACKWEAVER_RUN_ENV_PASSTHROUGH` | Comma-separated names of further launcher variables to hand to jobs. See [Launcher variables that reach runs](#launcher-variables-that-reach-runs). Chart value `launcher.runEnvPassthrough`. | (none) |
 | `ANSIBLE_HOST_KEY_CHECKING` | `true` makes Ansible jobs verify SSH host keys and honour a project or organization `ansible.cfg` `known_hosts`. Left unset, jobs skip strict checking, because managed hosts are often ephemeral. On the container and Kubernetes drivers, also name it in `STACKWEAVER_RUN_ENV_PASSTHROUGH` so it reaches the job. | `false` |
 
-### Runner variables that reach runs
+### Launcher variables that reach runs
 
-A launcher's environment holds its registration and runner tokens, and the processes a job
+A launcher's environment holds its registration and launcher tokens, and the processes a job
 starts run code the job's author controls: OpenTofu providers, the `external` data source and
 `local-exec` provisioners, playbooks, inventory plugins and scripts, and Galaxy installs. A
 job's environment is therefore built from the variables the job defines itself, the
@@ -398,7 +399,7 @@ flowchart LR
 | Ansible jobs, inventory sync and Galaxy | `ANSIBLE_HOME`, `ANSIBLE_REMOTE_TMP`, `ANSIBLE_LOCAL_TEMP`, `ANSIBLE_COLLECTIONS_PATH`, `ANSIBLE_ROLES_PATH`, `VIRTUAL_ENV`, `AZURE_TENANT`, `AZURE_SUBSCRIPTION_ID`. Other `ANSIBLE_*` names set on the launcher are not passed on. |
 
 A launcher holds no database, Redis or storage credential, encryption key or signing key, and
-its registration and runner tokens are not inherited through the built-in list.
+its registration and launcher tokens are not inherited through the built-in list.
 
 For additional names, set the variable on the launcher and list it explicitly:
 
@@ -414,10 +415,10 @@ launcher. On the container and Kubernetes drivers a named variable is passed int
 container or pod, where the job's processes receive it only when it is also on the built-in
 list above, such as a `TF_TOKEN_<host>` credential. Give a job on those drivers any other
 setting through its workspace or variable-set variables, or its job template's extra
-variables. For Helm, use the corresponding launcher's `env` and `runEnvPassthrough` values:
+variables. For Helm, use the launcher's `env` and `runEnvPassthrough` values:
 
 ```yaml
-runner:
+launcher:
   env:
     AWS_PROFILE: example-profile
     AWS_CONFIG_FILE: /etc/aws/config
@@ -426,8 +427,8 @@ runner:
     - AWS_CONFIG_FILE
 ```
 
-Use `ansibleRunner.env` and `ansibleRunner.runEnvPassthrough` for Ansible. Never list a
-platform secret: whatever you name here is readable by every job of that launcher. Verify
+Never list a platform secret: whatever you name here is readable by every job of the
+launcher. Verify
 with a harmless diagnostic on an isolated test workload, without printing secrets into logs.
 
 ---
@@ -539,4 +540,4 @@ When running with Docker Compose, environment variables are split across several
 > The `zitadel-init` container sets the `ZITADEL_*` keys in `.env` on every run, generates `STACKWEAVER_HOSTED_SECRET` once
 > and keeps it, and leaves every other entry as it is. Do not edit the `ZITADEL_*` values by hand, because the next run replaces them.
 > Put identity and access settings (SSO, SMTP, platform administration) in `sso.env`, VCS settings in `vcs.env`, and workload identity settings in `oidc.env`.
-> The settings of runs, jobs, mirrors and launchers have no file of their own: set them in the `environment:` block of the `api`, `orchestrator`, `launcher` or `ansible-launcher` service in `docker-compose.yml`, as the tables above say.
+> The settings of runs, jobs, mirrors and launchers have no file of their own: set them in the `environment:` block of the `api`, `orchestrator` or `launcher` service in `docker-compose.yml`, as the tables above say.

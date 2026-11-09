@@ -95,8 +95,8 @@ export default function Landing() {
               { icon: Database, title: 'State & Secrets', description: 'Encrypted state storage (S3-compatible), variable sets, sensitive vars, workspace-scoped secrets' },
               { icon: Wrench, title: 'Ansible Automation', description: 'Projects, inventories, credentials, job templates and schedules' },
               { icon: GitBranch, title: 'VCS-Driven Workflows', description: 'GitHub App and Azure DevOps integration, repo/branch selection, webhooks for push/PR events, auto-queue and speculative plans' },
-              { icon: Cpu, title: 'Remote Execution Engine', description: 'Self-hosted runners with agent pools, Redis-queued plans/applies, streamed logs and artifact storage, org-scoped runner assignment' },
-              { icon: KeyRound, title: 'Identity & SSO', description: 'OIDC workload identity for AWS, GCP and Azure; no static credentials in runners. SSO via Azure AD, Okta, Cognito or any OIDC provider with optional team sync' },
+              { icon: Cpu, title: 'Remote Execution Engine', description: 'Hosted capacity or agent pools of your own launchers, Redis-queued plans/applies, streamed logs and artifact storage, org-scoped pool assignment' },
+              { icon: KeyRound, title: 'Identity & SSO', description: 'OIDC workload identity for AWS, GCP and Azure; no static credentials in jobs. SSO via Azure AD, Okta, Cognito or any OIDC provider with optional team sync' },
               { icon: ShieldCheck, title: 'Run Tasks & Governance', description: 'Hook security scanners, cost checks and custom gates into runs at stage boundaries, advisory or mandatory. Manual apply confirmation, audit trails, team and org permissions' },
               { icon: Globe, title: 'Multi-Cloud & Hybrid', description: 'AWS/GCP/Azure support, on-prem friendly with outbound agent pools' },
 
@@ -141,7 +141,7 @@ export default function Landing() {
               Install it, point a workspace at it, and run your first plan.
             </p>
             <p className="text-lg text-slate-800 dark:text-gray-400 mb-10 max-w-xl mx-auto">
-              OpenTofu and Ansible, one login, your own runners.
+              OpenTofu and Ansible, one login, your own launchers.
             </p>
             
             <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">

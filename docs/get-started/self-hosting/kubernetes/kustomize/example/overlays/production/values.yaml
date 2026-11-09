@@ -200,8 +200,9 @@ orchestrator:
   githubApp:
     id: ""
     name: ""
-# -- Launchers --
-# The OpenTofu and Ansible launchers place every job in a pod of its own.
+# -- Launcher --
+# One launcher serves OpenTofu and Ansible: it places every job in a pod of its own, in that
+# engine's job image.
 launcher:
   driver: kubernetes
   network: platform
@@ -213,14 +214,13 @@ launcher:
     - 10.244.0.0/16
     - 10.96.0.0/12
   keepFailedJobsFor: ""
-# -- OpenTofu launcher --
-runner:
   image:
-    repository: ghcr.io/vhco-pro/stackweaver-opentofu-runner
+    repository: ghcr.io/vhco-pro/stackweaver-launcher
     tag: latest
     pullPolicy: IfNotPresent
   replicas: 1
-  maxConcurrentJobs: 4
+  # Jobs and syncs of both engines at once, each in a pod of its own.
+  maxConcurrentJobs: 8
   resources:
     requests:
       cpu: 200m
@@ -233,26 +233,17 @@ runner:
   nodeSelector: {}
   tolerations: []
   affinity: {}
-# -- Ansible launcher --
-ansibleRunner:
-  image:
-    repository: ghcr.io/vhco-pro/stackweaver-ansible-runner
-    tag: latest
-    pullPolicy: IfNotPresent
-  replicas: 1
-  maxConcurrentJobs: 4
-  resources:
-    requests:
-      cpu: 200m
-      memory: 256Mi
-    limits:
-      cpu: "1"
-      memory: 1Gi
-  env: {}
-  podAnnotations: {}
-  nodeSelector: {}
-  tolerations: []
-  affinity: {}
+  jobImages:
+    opentofu:
+      repository: ghcr.io/vhco-pro/stackweaver-opentofu-runner
+      tag: latest
+    ansible:
+      repository: ghcr.io/vhco-pro/stackweaver-ansible-runner
+      tag: latest
+    # Job pods pull their job image on every placement.
+    pullPolicy: Always
+    # dockerconfigjson Secrets for private job images; empty uses global.imagePullSecrets.
+    pullSecrets: []
 # ── Storage ───────────────────────────────────────────────────────────────────
 # All data (state, configs, registry, logs, ansible artifacts) is stored in a
 # single S3-compatible bucket. Any S3-compatible service works: AWS S3, R2, B2,

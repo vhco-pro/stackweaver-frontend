@@ -15,7 +15,7 @@ covers:
   - "frontend/src/components/settings/**"
 ---
 
-# Set up self-hosted runners
+# Set up launchers
 
 Run OpenTofu or Ansible inside your own network by starting a launcher, registering it with an agent pool and explicitly routing work to that pool. A launcher runs one job at a time unless you raise its concurrency; add launchers to increase parallel capacity.
 
@@ -33,7 +33,7 @@ Before you start, make sure you have:
 | Requirement | Description |
 |-------------|-------------|
 | **Stackweaver account** | Sign in to your organization. |
-| **Organization admin or runner permissions** | You need permission to manage agent pools and API keys with runner scopes. |
+| **Organization admin or agent pool permissions** | You need permission to manage agent pools and API keys with the Launcher registration scope. |
 | **A Linux host or a Kubernetes cluster** | Launchers run on Linux only. The container driver needs a Docker or Podman socket on the host; the Kubernetes driver needs a namespace it may create pods in. |
 | **Outbound HTTPS access** | The launcher, and every job it places, must reach your Stackweaver API (e.g. `https://your-stackweaver.example.com`). |
 
@@ -43,15 +43,15 @@ Every OpenTofu run, Ansible job and sync goes through the same three parts, wher
 
 | Part | What it does |
 |------|--------------|
-| **Launcher** | A long-running process (the `stackweaver-opentofu-runner` or `stackweaver-ansible-runner` image) that registers with one agent pool, or with the installation's hosted capacity, and keeps one heartbeat open to the API. When the API offers it work, it claims the job, asks the API for a token valid for that one job, and hands the job to its driver. With the container and Kubernetes drivers a launcher never runs user code itself, and it holds no database, object storage or Redis credential. |
+| **Launcher** | A long-running process (the `stackweaver-launcher` image, a job image, or the `stackweaver-launcher` binary on a Linux host) that registers with one agent pool, or with the installation's hosted capacity, and keeps one heartbeat open to the API. When the API offers it work, it claims the job, asks the API for a token valid for that one job, and hands the job to its driver. With the container and Kubernetes drivers a launcher never runs user code itself, and it holds no database, object storage or Redis credential. |
 | **Driver** | Decides where the job runs: `inprocess` (a child process of the launcher), `container` (a fresh container per job through a Docker or Podman socket) or `kubernetes` (a fresh pod per job). |
-| **Executor** | Runs one job and exits. It fetches the job's configuration, variables, credentials and state from the API with the job token, runs `tofu` or `ansible-playbook`, streams the output back and uploads the plan, the state and the result. The job token is refused once the job has finished. |
+| **Job process** | Runs one job and exits. It fetches the job's configuration, variables, credentials and state from the API with the job token, runs `tofu` or `ansible-playbook`, streams the output back and uploads the plan, the state and the result. The job token is refused once the job has finished. |
 
 ## Registration and dispatch
 
 **Agent pools** group launchers and define which workspaces or projects can use them. You create a pool in Settings, then start launchers in that pool. When you configure a workspace (or project) to use agent execution, or name the pool on an Ansible job template, its work is offered to the launchers of that pool.
 
-**Launchers** register with one pool using a registration credential, and the API gives each one a runner token of its own. After registration, the launcher appears in Settings > Runners and shows its status (online, busy, offline), type (OpenTofu, Ansible, or combined), driver, network mode and last heartbeat.
+**Launchers** register with one pool using a registration credential, and the API gives each one a launcher token of its own. After registration, the launcher appears in **Settings > Launchers** and shows its status (online, busy, offline), engines (OpenTofu, Ansible, or OpenTofu and Ansible), driver, network mode and last heartbeat.
 
 The flow is:
 
@@ -61,18 +61,18 @@ flowchart LR
     B --> C["Start a launcher"]
     C --> D["Route workspaces, projects and templates"]
     D --> E["Launcher claims a job"]
-    E --> F["Driver places the executor"]
+    E --> F["Driver places the job"]
 ```
 
 <details>
 <summary><strong>Flow Steps (Legend)</strong></summary>
 
 1. **Agent pool** - Create an agent pool and optionally restrict which workspaces or projects can use it.
-2. **Registration token** - Create an agent token on the pool, or an API key with the runner registration scope.
+2. **Registration token** - Create an agent token on the pool, or an API key with the Launcher registration scope.
 3. **Launcher** - Start the launcher with that token, the pool ID and the server URL; it registers itself.
 4. **Routing** - Set workspace/project/organization execution defaults for OpenTofu; select the pool on an Ansible template or ad hoc command.
 5. **Claim** - The launcher's heartbeat is answered with the work waiting for its pool, up to its free capacity, and it claims a job atomically, so a job never runs twice.
-6. **Placement** - The driver starts the executor in-process, in a container or in a pod, with a token for that job alone.
+6. **Placement** - The driver starts the job's process in-process, in a container or in a pod, with a token for that job alone.
 
 </details>
 
@@ -101,22 +101,22 @@ You can later edit the pool to change allowed or excluded workspaces and project
 
 ## 2. Create a registration credential
 
-A launcher registers with a registration credential and then switches to a runner token the API issues to it, which it uses for every heartbeat and claim afterwards. That means you can safely revoke the registration credential once your launchers are up; they keep working until they next restart and need to register again.
+A launcher registers with a registration credential and then switches to a launcher token the API issues to it, which it uses for every heartbeat and claim afterwards. That means you can safely revoke the registration credential once your launchers are up; they keep working until they next restart and need to register again.
 
 The safest registration credential is a **pool-scoped agent token**. Expand the pool on the **Settings > Agent Pools** page and use its **Agent tokens** section: create a token with a description, copy the value once, and revoke it when you are done. A launcher presenting an agent token can only join that pool, so it is the safest way to hand out registration access per environment. This is the Terraform-compatible `tfe_agent_token` resource, so you can also manage these tokens with the `hashicorp/tfe` provider.
 
-You can also use an organization API key that may register runners:
+You can also use an organization API key that may register launchers:
 
 1. Go to **Settings > API Keys**.
-2. Create a new API key and choose the **Runner Registration** scope.
+2. Create a new API key and choose the **Launcher registration** scope.
 3. For the organization, select the same organization that owns the agent pool.
 4. Save the key and **copy the token** (e.g. `tfe-xxx...`). You will not see it again.
 
 The registration key must explicitly carry `org:<organization-id>:runner:register`.
-A general-purpose key with no scopes or wildcard scopes cannot register a runner. Pool-bound
+A general-purpose key with no scopes or wildcard scopes cannot register a launcher. Pool-bound
 keys must match that pool; an unreadable binding is an error, not unrestricted access. Such a key registers launchers into any pool of that organization, so prefer an agent token when a launcher should only ever join one pool.
 
-Protect the registration credential and supply it only to the launcher. Revoking it does not stop already-registered launchers, because they use their own runner tokens; a restart needs a valid registration credential again. Everything below works the same whichever kind of registration credential you use.
+Protect the registration credential and supply it only to the launcher. Revoking it does not stop already-registered launchers, because they use their own launcher tokens; a restart needs a valid registration credential again. Everything below works the same whichever kind of registration credential you use.
 
 ### Rotating an agent token
 
@@ -139,7 +139,19 @@ Replace `:id` with the agent token ID. The response carries the new token and, i
 
 ## 3. Start a launcher
 
-The launcher is the same image the installation's hosted capacity uses. Started with a pool ID and a registration token, it serves that pool and runs each job with its driver.
+One launcher binary serves OpenTofu runs, Ansible jobs and syncs. Started with a pool ID and a registration token, it serves that pool and runs each job with its driver. It ships in three forms:
+
+| Form | Use it for |
+|------|------------|
+| The launcher image, `ghcr.io/vhco-pro/stackweaver-launcher` | The container and Kubernetes drivers. It carries no OpenTofu or Ansible: each job runs in its engine's job image. |
+| The job images, `ghcr.io/vhco-pro/stackweaver-opentofu-runner` and `ghcr.io/vhco-pro/stackweaver-ansible-runner` | The in-process driver in Docker or Kubernetes. Each carries its engine's toolchain and starts a launcher for that engine. They are also the images the container and Kubernetes drivers run jobs in. |
+| The `stackweaver-launcher` binary | The in-process driver on a Linux host with OpenTofu, Ansible or both installed (see [Linux host, in-process driver](#linux-host-in-process-driver)). |
+
+A launcher serves these engines:
+
+- `RUNNER_ENGINES` (`tofu`, `ansible` or `tofu,ansible`) restricts it to the engines it names. An in-process launcher refuses to start when a named engine's toolchain is missing.
+- Otherwise an in-process launcher serves the engines whose toolchain answers on its host (`tofu version`, `ansible --version`), and refuses to start when neither does.
+- Otherwise a container or Kubernetes launcher serves both engines. It places each OpenTofu run in `RUNNER_TOFU_IMAGE` and each Ansible job and sync in `RUNNER_ANSIBLE_IMAGE`, both the published job images' `latest` by default.
 
 ### Required values
 
@@ -174,7 +186,7 @@ docker run -d --restart unless-stopped --stop-timeout 390 \
 ```
 :::
 
-`--stop-timeout 390` gives a stopping launcher time to let its jobs finish (see [Drivers and isolation](#drivers-and-isolation)); Docker's default of 10 seconds would kill it first. An in-process launcher runs one job at a time unless you raise `RUNNER_MAX_CONCURRENT_JOBS`. Its jobs share the launcher's filesystem, user and network, and they run only in the platform image. Use the container driver when jobs need isolation from one another or a [run image](./run-images-and-execution-environments.md) of their own.
+`--stop-timeout 390` gives a stopping launcher time to let its jobs finish (see [Drivers and isolation](#drivers-and-isolation)); Docker's default of 10 seconds would kill it first. Each job image serves its own engine. An in-process launcher runs one job at a time unless you raise `RUNNER_MAX_CONCURRENT_JOBS`. Its jobs share the launcher's filesystem, user and network, and they run only in its own image. Use the container driver when jobs need isolation from one another or a [run image](./run-images-and-execution-environments.md) of their own.
 
 ### Docker or Podman, container driver
 
@@ -184,20 +196,32 @@ With the container driver, the launcher creates a fresh, hardened container for 
 docker run -d --restart unless-stopped --stop-timeout 390 --user root \
   -v /var/run/docker.sock:/var/run/docker.sock \
   -v stackweaver-launcher-cache:/var/cache/stackweaver-launcher \
+  -v "$PWD/registry-auth.json:/etc/stackweaver/registry-auth.json:ro" \
   -e RUNNER_AGENT_POOL_ID="<pool-uuid>" \
   -e STACKWEAVER_TOKEN="<your-token>" \
   -e STACKWEAVER_SERVER=https://your-stackweaver.example.com \
-  -e RUNNER_NAME=my-tofu-launcher \
+  -e RUNNER_NAME=my-launcher \
   -e RUNNER_DRIVER=container \
-  -e RUNNER_IMAGE=ghcr.io/vhco-pro/stackweaver-opentofu-runner:latest \
+  -e RUNNER_TOFU_IMAGE=ghcr.io/vhco-pro/stackweaver-opentofu-runner:latest \
+  -e RUNNER_ANSIBLE_IMAGE=ghcr.io/vhco-pro/stackweaver-ansible-runner:latest \
+  -e RUNNER_DOCKER_CONFIG=/etc/stackweaver/registry-auth.json \
+  -e RUNNER_FIREWALL_IMAGE=ghcr.io/vhco-pro/stackweaver-launcher:latest \
   -e RUNNER_NETWORK=stackweaver-jobs \
   -e RUNNER_MAX_CONCURRENT_JOBS=4 \
   -e RUNNER_CACHE_DIR=/var/cache/stackweaver-launcher \
   -e RUNNER_CACHE_VOLUME=stackweaver-launcher-cache \
-  ghcr.io/vhco-pro/stackweaver-opentofu-runner:latest
+  ghcr.io/vhco-pro/stackweaver-launcher:latest
 ```
 
-`RUNNER_IMAGE` is the platform image the executor comes from, normally the launcher's own image. `RUNNER_NETWORK` names the jobs network the launcher creates and firewalls (see [Network modes](#network-modes)); leave it out and jobs run on the engine's default network without the firewall. `RUNNER_CACHE_DIR` and `RUNNER_CACHE_VOLUME` give the launcher a node-local copy of the organization's cache that job containers mount read-only (see [The node-local cache](#the-node-local-cache)). For an Ansible launcher, use the Ansible image in both places.
+This launcher serves both engines. `RUNNER_TOFU_IMAGE` and `RUNNER_ANSIBLE_IMAGE` are the job images: a job that names no [run image](./run-images-and-execution-environments.md) runs in its engine's job image, and a custom run image gets the job's `stackweaver-executor` program copied from it. The launcher pulls a job image every time it places a job (`RUNNER_JOB_IMAGE_PULL=always`), so a host keeps running the current image after a tag moves; `missing` pulls only an absent image and `never` uses only images already on the host. When the registry cannot be reached, a job whose default job image is cached runs that copy, with a warning in its output; a run image never runs from the cache, and neither does an image the registry refused.
+
+`RUNNER_DOCKER_CONFIG` names the launcher's registry credential for private job images: one or more Docker config files, comma separated, or a directory of `.json` files. The launcher uses each file's inline `auths` entries (`auth`, `username` and `password`, or `identitytoken`) to pull the job images and the firewall image, never a job's run image, which is pulled with its own credential. `credsStore` and `credHelpers` are not supported, and the launcher warns about them at start. Your `~/.docker/config.json` is usually readable only by you, so give the launcher a file of its own, for example:
+
+```json
+{ "auths": { "ghcr.io": { "auth": "<base64 of username:token>" } } }
+```
+
+`RUNNER_FIREWALL_IMAGE` is the image the launcher writes the jobs network's firewall rules from, which needs `nft` and `iptables`; the launcher image carries both, and it is pulled only when missing. Unset, the launcher uses the OpenTofu job image. `RUNNER_NETWORK` names the jobs network the launcher creates and firewalls (see [Network modes](#network-modes)); leave it out and jobs run on the engine's default network without the firewall. `RUNNER_CACHE_DIR` and `RUNNER_CACHE_VOLUME` give the launcher a node-local copy of the organization's cache that job containers mount read-only (see [The node-local cache](#the-node-local-cache)). Add `-e RUNNER_ENGINES=tofu` or `ansible` to serve one engine only.
 
 Jobs reach the API at the address in `STACKWEAVER_SERVER`, from the jobs network. Use an address a job container can resolve, never `localhost`. When the API runs on the same host, use `http://host.docker.internal:<api-port>`, and add `--add-host host.docker.internal:host-gateway` and `-e RUNNER_EXTRA_HOSTS=host.docker.internal:host-gateway` to the command above so the launcher and its jobs both resolve that name.
 
@@ -216,7 +240,7 @@ The driver speaks the Docker Engine API, which Podman also serves.
 
    These rules last until the next reboot; save them with your distribution's firewall tooling.
 
-On rootful Podman the launcher firewalls the jobs network with an nftables table, so the firewall image (`RUNNER_FIREWALL_IMAGE`, the platform image by default) needs `nft`. Rootless Podman cannot program the host firewall, so the jobs network has no firewall there. Every executor then checks at start whether a cloud metadata endpoint answers from its network, and refuses to run if one does.
+On rootful Podman the launcher firewalls the jobs network with an nftables table, so the firewall image (`RUNNER_FIREWALL_IMAGE`) needs `nft`, which the launcher image and the OpenTofu job image carry. Rootless Podman cannot program the host firewall, so the jobs network has no firewall there. Every job then checks at start whether a cloud metadata endpoint answers from its network, and refuses to run if one does.
 
 CPU and memory limits are applied on engines with cgroup v2. On an engine that cannot enforce them, the job runs without them, unless the pool requires limits.
 
@@ -236,7 +260,7 @@ kubectl create secret generic stackweaver-runner-token \
 
 #### Step 3b: Deploy the launcher
 
-The manifest below runs an OpenTofu launcher with the in-process driver, which needs no permissions in the cluster. For an Ansible launcher, use the `ghcr.io/vhco-pro/stackweaver-ansible-runner` image. It deploys a single replica; increase `replicas` to run more launchers in the same pool.
+The manifest below runs an OpenTofu launcher with the in-process driver from the OpenTofu job image, which needs no permissions in the cluster. For an Ansible launcher, use the `ghcr.io/vhco-pro/stackweaver-ansible-runner` image. It deploys a single replica; increase `replicas` to run more launchers in the same pool.
 
 ```yaml
 apiVersion: apps/v1
@@ -291,7 +315,7 @@ spec:
               memory: 1Gi
 ```
 
-Apply the manifest with `kubectl apply -f launcher.yaml`. The pod starts, registers with the API, and appears in **Settings > Runners**. Confirm its pool and **Online** status before routing work. `/healthz` answers while the process is up, and `/readyz` answers once the launcher is registered, its heartbeat is fresh and its driver can place jobs.
+Apply the manifest with `kubectl apply -f launcher.yaml`. The pod starts, registers with the API, and appears in **Settings > Launchers**. Confirm its pool and **Online** status before routing work. `/healthz` answers while the process is up, and `/readyz` answers once the launcher is registered, its heartbeat is fresh and its driver can place jobs.
 
 > [!TIP]
 > Use `RUNNER_NAME` with `fieldRef: metadata.name` so each pod gets a distinct registration name. A Deployment replacement changes the pod name and can leave an old offline row. For stable fleet identities, use a deployment model with stable names and verify registrations after replacement.
@@ -344,22 +368,71 @@ The Role grants no `exec` and nothing cluster-scoped. If you manage the job name
 Then change `launcher.yaml`:
 
 1. Add `serviceAccountName: stackweaver-launcher` to the pod `spec`.
-2. Add these entries to the container's `env`, with your cluster's pod and service ranges:
+2. Change the container's `image` to `ghcr.io/vhco-pro/stackweaver-launcher:latest`, which serves both engines and places each job in its engine's job image.
+3. Add these entries to the container's `env`, with your cluster's pod and service ranges:
 
    ```yaml
    - name: RUNNER_DRIVER
      value: kubernetes
-   - name: RUNNER_IMAGE
+   - name: RUNNER_TOFU_IMAGE
      value: ghcr.io/vhco-pro/stackweaver-opentofu-runner:latest
+   - name: RUNNER_ANSIBLE_IMAGE
+     value: ghcr.io/vhco-pro/stackweaver-ansible-runner:latest
    - name: RUNNER_CLUSTER_CIDRS
      value: "10.244.0.0/16,10.96.0.0/12"
    ```
 
-3. Check that `STACKWEAVER_SERVER` resolves from a job pod. Job pods reach the API at the same address as the launcher.
+4. Check that `STACKWEAVER_SERVER` resolves from a job pod. Job pods reach the API at the same address as the launcher.
+
+Job pods pull their job image every time (`imagePullPolicy: Always`, from `RUNNER_JOB_IMAGE_PULL`). For a private job image, mount a dockerconfigjson Secret into the launcher pod and name the file in `RUNNER_DOCKER_CONFIG`: the launcher copies the matching registry's credential into a pull Secret of each job's own, keyed by the job image's repository, so no run image receives it. Use `auth`, or `username` and `password`, entries; an `identitytoken` entry cannot reach a job pod. A job pod that cannot pull its image fails after `RUNNER_PLACEMENT_TIMEOUT` (5 minutes by default).
 
 Apply both files with `kubectl apply -f launcher-rbac.yaml -f launcher.yaml`.
 
 Jobs run in the launcher's namespace, or in the one `RUNNER_JOB_NAMESPACE` names. For a separate job namespace, create the Role and RoleBinding there, keep the RoleBinding's subject in the launcher's namespace, and use a namespace-qualified API address such as `http://stackweaver-api.stackweaver.svc:8022`. Each job pod satisfies the restricted Pod Security Standard, runs under `RUNNER_JOB_UID` when its image's user is not numeric, and carries no ServiceAccount token unless its identity needs one. `RUNNER_RUNTIME_CLASS` runs job pods under a sandboxed runtime such as gVisor or Kata. At start the launcher applies a NetworkPolicy to the job namespace that blocks the cluster ranges in `RUNNER_CLUSTER_CIDRS` and the cloud metadata ranges.
+
+### Linux host, in-process driver
+
+On a Linux host or VM without Docker, the launcher binary runs each job as a child process on the host's own OpenTofu, Ansible or both. Each launcher release attaches static binaries for amd64 and arm64, a `SHA256SUMS` file and a build provenance attestation to its [GitHub release](https://github.com/vhco-pro/stackweaver-launcher/releases).
+
+1. Install OpenTofu, Ansible or both, so that `tofu version` and `ansible --version` answer for the user the launcher runs as. The launcher serves the engines whose toolchain answers.
+2. Download the binary for your architecture and `SHA256SUMS` from the release, check them, and verify the attestation with the GitHub CLI:
+
+   ```bash
+   sha256sum --check --ignore-missing SHA256SUMS
+   gh attestation verify stackweaver-launcher_<version>_linux_amd64 --repo vhco-pro/stackweaver-launcher
+   sudo install -m 0755 stackweaver-launcher_<version>_linux_amd64 /usr/local/bin/stackweaver-launcher
+   ```
+
+   The attestation is what proves the binary's origin; `SHA256SUMS` only guards the download.
+3. Create a user for the launcher and a file it alone can read, `/etc/stackweaver/launcher.env`, with the required values:
+
+   ```bash
+   STACKWEAVER_SERVER=https://your-stackweaver.example.com
+   STACKWEAVER_TOKEN=<your-token>
+   RUNNER_AGENT_POOL_ID=<pool-uuid>
+   RUNNER_NAME=my-vm-launcher
+   ```
+
+4. Run it under systemd with `/etc/systemd/system/stackweaver-launcher.service`, then `sudo systemctl enable --now stackweaver-launcher`:
+
+   ```ini
+   [Unit]
+   Description=Stackweaver launcher
+   After=network-online.target
+   Wants=network-online.target
+
+   [Service]
+   User=stackweaver
+   EnvironmentFile=/etc/stackweaver/launcher.env
+   ExecStart=/usr/local/bin/stackweaver-launcher
+   Restart=on-failure
+   TimeoutStopSec=390
+
+   [Install]
+   WantedBy=multi-user.target
+   ```
+
+   `TimeoutStopSec=390` lets a stopping launcher finish its jobs, as `--stop-timeout 390` does for Docker. Jobs share the launcher user's filesystem and network.
 
 ### Launcher environment variables
 
@@ -374,20 +447,24 @@ These variables work with Docker, Podman and Kubernetes. The [environment variab
 | `RUNNER_LABELS` | Comma-separated labels reported with the launcher (e.g. `production,gpu`). | (none) |
 | `RUNNER_MAX_CONCURRENT_JOBS` | Jobs the launcher runs at once. | `1` |
 | `RUNNER_DRIVER` | `inprocess`, `container` or `kubernetes`. | `inprocess` |
-| `RUNNER_TOFU_IMAGE`, `RUNNER_ANSIBLE_IMAGE` | Job image of each engine, which jobs without a run image run in and custom run images get the executor from. | The published OpenTofu and Ansible images, `latest` |
+| `RUNNER_ENGINES` | The engines the launcher serves: `tofu`, `ansible` or `tofu,ansible`. | In-process: the toolchains on the host. Container and Kubernetes: both |
+| `RUNNER_TOFU_IMAGE`, `RUNNER_ANSIBLE_IMAGE` | Job image of each engine, which jobs without a run image run in and custom run images get the `stackweaver-executor` program from. | The published OpenTofu and Ansible images, `latest` |
 | `RUNNER_JOB_IMAGE_PULL` | When job images are pulled: `always`, `missing` or `never`. | `always`; with only `RUNNER_IMAGE` set, no policy: pulled when missing on the container driver, the cluster's default on Kubernetes |
+| `RUNNER_DOCKER_CONFIG` | Docker config files, comma separated, or a directory of them, holding the launcher's credential for private job images. | (none) |
+| `RUNNER_FIREWALL_IMAGE` | Image the container driver writes the jobs network's firewall rules from; pulled only when missing. | The OpenTofu job image |
+| `RUNNER_PLACEMENT_TIMEOUT` | How long a Kubernetes job pod may fail to pull its image before its job fails. | `5m` |
 | `RUNNER_IMAGE` | Deprecated: the one image of every job, used when neither job image is set. Set the job images instead. | (none) |
 | `RUNNER_NETWORK` | Jobs network of the container driver. | (none) |
 | `RUNNER_NETWORK_MODE` | `platform` or `host-identity` (see [Network modes](#network-modes)). | `platform` |
 | `RUNNER_DRAIN_GRACE` | How long a stopping launcher waits for its jobs to finish. | `5m` |
 | `STACKWEAVER_RUN_ENV_PASSTHROUGH` | Comma-separated names of further launcher variables handed to the jobs of an in-process launcher. | (none) |
 
-The jobs a launcher places do not inherit its environment, which holds its registration and runner tokens. They receive their own variables from Stackweaver plus a fixed allowlist of the launcher's, listed in [Runner variables that reach runs](../get-started/self-hosting/environment-variables.md#runner-variables-that-reach-runs). On an in-process launcher, name any further variable your jobs rely on in `STACKWEAVER_RUN_ENV_PASSTHROUGH`; on the container and Kubernetes drivers, give a job its settings through workspace or variable-set variables, or its job template's extra variables.
+The jobs a launcher places do not inherit its environment, which holds its registration and launcher tokens. They receive their own variables from Stackweaver plus a fixed allowlist of the launcher's, listed in [Launcher variables that reach runs](../get-started/self-hosting/environment-variables.md#launcher-variables-that-reach-runs). On an in-process launcher, name any further variable your jobs rely on in `STACKWEAVER_RUN_ENV_PASSTHROUGH`; on the container and Kubernetes drivers, give a job its settings through workspace or variable-set variables, or its job template's extra variables.
 
-After the launcher starts, it registers with the API and appears under **Settings > Runners** with status **Online** once its heartbeat is answered. You can open it from the list to see details, labels, and recent jobs.
+After the launcher starts, it registers with the API and appears under **Settings > Launchers** with status **Online** once its heartbeat is answered. You can open it from the list to see details, labels, and recent jobs.
 
 > [!NOTE]
-> The **Add runner** dialog in Settings > Runners shows Docker commands with your pool ID and the API's address filled in, for the in-process driver or the container driver. Use the copy button there as a starting point, then replace `<registration-token>` with your agent token or organization key. For Kubernetes, use the Docker commands as a reference for the environment variables to include in your manifest.
+> The **Add a launcher** dialog in **Settings > Launchers** picks the agent pool and recommends that pool's agent token, with a link to the pool's **Agent tokens** section; an organization key with the **Launcher registration** scope is the alternative. It then shows Docker commands with the pool ID and the API's address filled in: a container driver command that runs the launcher image and serves both engines, and an in-process command for each engine that runs that engine's job image. Use the copy button there as a starting point, then replace `<registration-token>` with your agent token or organization key. For Kubernetes, use the Docker commands as a reference for the environment variables to include in your manifest.
 
 ---
 
@@ -415,7 +492,7 @@ Select **Agent Pool (Optional)** on the job template, or the agent-pool choice f
 
 The template's effective settings (`GET /api/v2/ansible/job-templates/:id/effective-settings`) name the pool its jobs use and the level it comes from (`agent-pool-id`). Check them and start a non-destructive test job before routing production automation.
 
-Syncs are routed by the kind of sync. A dynamic inventory source sync runs on the project's or the organization's default agent pool when one is set, and on the hosted capacity otherwise. The syncs that capture a snapshot from your VCS provider (a playbook snapshot, a VCS inventory file, a constructed inventory rebuild, and the configuration of a VCS-backed workspace) always run on the hosted capacity in the platform image, so the launchers in your pools never need a route to your VCS host or a VCS credential.
+Syncs are routed by the kind of sync. A dynamic inventory source sync runs on the project's or the organization's default agent pool when one is set, and on the hosted capacity otherwise. The syncs that capture a snapshot from your VCS provider (a playbook snapshot, a VCS inventory file, a constructed inventory rebuild, and the configuration of a VCS-backed workspace) always run on the hosted capacity in the Ansible job image, so the launchers in your pools never need a route to your VCS host or a VCS credential.
 
 ---
 
@@ -448,9 +525,9 @@ Jobs run in the platform Ansible image unless they select an execution environme
 | `container` | A fresh container per job on the launcher's Docker or Podman engine | Own filesystem, non-root user, no capabilities, read-only root filesystem, the firewalled jobs network | Applied where the engine supports cgroup v2 |
 | `kubernetes` | A fresh pod per job in the job namespace | Own filesystem, restricted Pod Security Standard, the job namespace's NetworkPolicy, optional sandboxed runtime class | Applied as pod resource limits |
 
-On every driver the executor writes the credentials a job needs (inventory secrets, SSH keys, vault passwords, cloud token files, CLI configuration) with owner-only permissions into a directory that exists for that job, and removes it on every exit path before a failed container or pod is kept for inspection. A container or Kubernetes job image must run as a non-root user; a launcher on the container driver accepts a root image only with `RUNNER_ALLOW_ROOT=true`.
+On every driver the job's process writes the credentials it needs (inventory secrets, SSH keys, vault passwords, cloud token files, CLI configuration) with owner-only permissions into a directory that exists for that job, and removes it on every exit path before a failed container or pod is kept for inspection. A container or Kubernetes job image must run as a non-root user; a launcher on the container driver accepts a root image only with `RUNNER_ALLOW_ROOT=true`.
 
-When a launcher stops (`SIGTERM`), it stops claiming, lets its jobs finish for up to `RUNNER_DRAIN_GRACE` (5 minutes), stops what is left with a 60-second grace and then deregisters. Whatever stops it must wait that long: the Compose files set `stop_grace_period: 6m30s` on every launcher service, the chart sets `terminationGracePeriodSeconds: 390` on the launcher pods (`launcher.terminationGracePeriodSeconds`), and a `docker run` launcher needs `--stop-timeout 390`. Raise these when you raise `RUNNER_DRAIN_GRACE`. A launcher killed before it drains leaves its jobs to the rule below. If a launcher disappears in the middle of a job, Stackweaver handles the job by what is safe to repeat: a plan or a sync is offered again as a new attempt, while an apply ends as failed with the message "runner lost during apply" (its apply reported as errored to Terraform clients) and an Ansible job ends as errored with "runner lost during job". Neither is retried on its own: **Re-queue apply** on the run page (or `POST /api/v2/runs/:id/actions/apply`) applies the run's saved plan as a new attempt, and is refused if the workspace state moved meanwhile; relaunch the job to run it again. Each attempt has its own job token, and the token of an earlier attempt is refused, so an orphaned job can neither finish nor upload state. A restarted launcher reattaches to the job containers or pods it still owns.
+When a launcher stops (`SIGTERM`), it stops claiming, lets its jobs finish for up to `RUNNER_DRAIN_GRACE` (5 minutes), stops what is left with a 60-second grace and then deregisters. Whatever stops it must wait that long: the Compose files set `stop_grace_period: 6m30s` on every launcher service, the chart sets `terminationGracePeriodSeconds: 390` on the launcher pods (`launcher.terminationGracePeriodSeconds`), and a `docker run` launcher needs `--stop-timeout 390`. Raise these when you raise `RUNNER_DRAIN_GRACE`. A launcher killed before it drains leaves its jobs to the rule below. If a launcher disappears in the middle of a job, Stackweaver handles the job by what is safe to repeat: a plan or a sync is offered again as a new attempt, while an apply ends as failed with the message "launcher lost during apply" (its apply reported as errored to Terraform clients) and an Ansible job ends as errored with "launcher lost during job". Neither is retried on its own: **Re-queue apply** on the run page (or `POST /api/v2/runs/:id/actions/apply`) applies the run's saved plan as a new attempt, and is refused if the workspace state moved meanwhile; relaunch the job to run it again. Each attempt has its own job token, and the token of an earlier attempt is refused, so an orphaned job can neither finish nor upload state. A restarted launcher reattaches to the job containers or pods it still owns.
 
 ## Network modes
 
@@ -459,17 +536,17 @@ The installer sets a launcher's network mode with `RUNNER_NETWORK_MODE` (chart v
 | Mode | What jobs can reach |
 |------|---------------------|
 | `platform` (default) | The API, DNS and the internet. Inbound traffic, the cloud metadata ranges (`169.254.0.0/16`, `fd00:ec2::/64`, `fd20:ce::/64`), the other networks on the engine and, on Kubernetes, the cluster ranges in `RUNNER_CLUSTER_CIDRS` are blocked. Jobs get cloud access from the platform identity or an identity binding, never from the node. |
-| `host-identity` | The same, plus the cloud metadata endpoints, so jobs can use the node's or VM's own identity. It applies to the container and Kubernetes drivers; on the container driver the executor skips its metadata check in this mode. A launcher started with `STACKWEAVER_HOSTED_STRICT` refuses this mode. |
+| `host-identity` | The same, plus the cloud metadata endpoints, so jobs can use the node's or VM's own identity. It applies to the container and Kubernetes drivers; on the container driver the job skips its metadata check in this mode. A launcher under Strict hosted isolation (`STACKWEAVER_HOSTED_STRICT`) refuses this mode. |
 
-On the container driver, the launcher creates the network `RUNNER_NETWORK` names and, on a rootful engine, programs the host firewall for it through a short-lived container from the platform image: a chain under Docker's `DOCKER-USER` on Docker, and an nftables table of its own on Podman and on Docker's nftables backend. Before it writes them, it removes any rules for the same subnet that another jobs network left behind, for example when a launcher stopped without removing its own. Rules you add yourself, such as a `DOCKER-USER` allowance for Podman's jobs network, stay. Jobs never reach `168.63.129.16`, Azure's platform address, in any network mode; they resolve names through the engine's resolver. Jobs on the network cannot reach each other, the engine's gateway or any port the host publishes, except the API, whether it listens on the host or runs in a container behind a port the host publishes. `RUNNER_DENY_CIDRS` adds ranges no job may reach, such as your database's subnet. `RUNNER_ALLOW_TCP` lists `host:port` endpoints, or `http` and `https` URLs, that jobs may reach even inside a denied range, which is how jobs on an air-gapped install reach mirrors on the same host or network; the launcher resolves each name when it starts. On the Kubernetes driver, `RUNNER_ALLOW_TCP` adds the same endpoints as allowed peers of the job NetworkPolicy the launcher manages. On rootful Podman it creates the network through Podman's own API, without Podman's isolation between networks, so a job reaches an allowed endpoint that a container on another Podman network publishes; the nftables table refuses everything else.
+On the container driver, the launcher creates the network `RUNNER_NETWORK` names and, on a rootful engine, programs the host firewall for it through a short-lived container from the firewall image (`RUNNER_FIREWALL_IMAGE`): a chain under Docker's `DOCKER-USER` on Docker, and an nftables table of its own on Podman and on Docker's nftables backend. Before it writes them, it removes any rules for the same subnet that another jobs network left behind, for example when a launcher stopped without removing its own. Rules you add yourself, such as a `DOCKER-USER` allowance for Podman's jobs network, stay. Jobs never reach `168.63.129.16`, Azure's platform address, in any network mode; they resolve names through the engine's resolver. Jobs on the network cannot reach each other, the engine's gateway or any port the host publishes, except the API, whether it listens on the host or runs in a container behind a port the host publishes. `RUNNER_DENY_CIDRS` adds ranges no job may reach, such as your database's subnet. `RUNNER_ALLOW_TCP` lists `host:port` endpoints, or `http` and `https` URLs, that jobs may reach even inside a denied range, which is how jobs on an air-gapped install reach mirrors on the same host or network; the launcher resolves each name when it starts. On the Kubernetes driver, `RUNNER_ALLOW_TCP` adds the same endpoints as allowed peers of the job NetworkPolicy the launcher manages. On rootful Podman it creates the network through Podman's own API, without Podman's isolation between networks, so a job reaches an allowed endpoint that a container on another Podman network publishes; the nftables table refuses everything else.
 
 The in-process driver has no network isolation: its jobs reach whatever the launcher can reach, including the metadata endpoint of the host.
 
 ## Hosted capacity
 
-Each organization has a hosted pool that runs everything in `remote` execution mode and every snapshot sync. On a self-hosted install its launchers are the `launcher` and `ansible-launcher` services of the Docker Compose bundle, or the launcher Deployments of the Helm chart. It is shown read-only as **Hosted capacity** at the top of **Settings > Agent Pools**, with the jobs in flight, the jobs queued, the hosted launchers online and the placement group it is served from. Its launchers belong to the installation, so they are counted rather than named. The hosted pool cannot be renamed, deleted or selected as a workspace's agent pool, and it does not appear in the TFE agent pools API.
+Each organization has hosted capacity that runs everything in `remote` execution mode and every snapshot sync. On a self-hosted install its launchers are the `launcher` service of the Docker Compose bundle, or the launcher Deployment of the Helm chart. It is shown read-only as **Hosted capacity** at the top of **Settings > Agent Pools**, with the jobs in flight, the jobs queued, the hosted launchers online and the placement group it is served from. Its launchers belong to the installation, so they are counted rather than named. Hosted capacity cannot be renamed, deleted or selected as a workspace's agent pool, and it does not appear in the TFE agent pools API.
 
-A platform administrator can cap how many jobs of one organization the hosted capacity runs at once, and choose which placement group serves it, through `max-concurrent-jobs` and `placement-group` on `PATCH /api/v2/agent-pools/:id`; the pool's ID is the `pool-id` of `GET /api/v2/organizations/:name/hosted-capacity`. An organization admin's request for those fields is refused. When a hosted pool sets no cap, the deployment's `STACKWEAVER_HOSTED_DEFAULT_MAX_CONCURRENT_JOBS` applies, and `0` means unlimited. A run or job waiting on the cap stays `pending`, and its timeline says "Waiting for hosted capacity" with the slots in use. A hosted launcher serves only the hosted pools whose placement group equals its own `STACKWEAVER_HOSTED_GROUP` (`default` when unset), so a group can be dedicated capacity for one organization, a region, or a set of nodes with stricter controls. Work on a hosted pool whose group has no launcher online waits until one comes online.
+A platform administrator can cap how many jobs of one organization the hosted capacity runs at once, and choose which placement group serves it, through `max-concurrent-jobs` and `placement-group` on `PATCH /api/v2/agent-pools/:id`; the pool's ID is the `pool-id` of `GET /api/v2/organizations/:name/hosted-capacity`. An organization admin's request for those fields is refused. When hosted capacity sets no cap, the deployment's `STACKWEAVER_HOSTED_DEFAULT_MAX_CONCURRENT_JOBS` applies, and `0` means unlimited. A run or job waiting on the cap stays `pending`, and its timeline says "Waiting for hosted capacity" with the slots in use. A hosted launcher serves only the hosted capacity whose placement group equals its own `STACKWEAVER_HOSTED_GROUP` (`default` when unset), so a group can be dedicated capacity for one organization, a region, or a set of nodes with stricter controls. Work on hosted capacity whose group has no launcher online waits until one comes online.
 
 ## Pool settings
 
@@ -479,18 +556,18 @@ The pool's edit dialog on **Settings > Agent Pools** has a **Job placement** sec
 |---------|--------|
 | **CPU limit** and **Memory limit** | Limits applied to each job container or pod, in Kubernetes quantities such as `1500m` and `2Gi`. |
 | **Refuse a job whose limits the launcher cannot enforce** | A job is refused, rather than run without limits, on a launcher that cannot apply them (the in-process driver, or an engine without cgroup v2). |
-| **Keep a failed job for (minutes)** | Leaves a failed job's container or pod in place this long for inspection. The executor has already removed every credential it wrote. A canceled job is not a failure and is removed at once. When unset, the launcher's `RUNNER_KEEP_FAILED_FOR` applies. |
+| **Keep a failed job for (minutes)** | Leaves a failed job's container or pod in place this long for inspection. The job has already removed every credential it wrote. A canceled job is not a failure and is removed at once. When unset, the launcher's `RUNNER_KEEP_FAILED_FOR` applies. |
 | **Keep a node-local copy of the organization's cache** | On by default. Turn it off to have every job read its cache entries through the API. |
 
 The expanded row also has a read-only **Deployment settings** panel with the values the installer set for the whole installation: the allowed image registries, the default run timeout, the sync timeout, the job log cap, the cache size limit, the hosted default cap, the request limits of launchers and jobs, and the mirrors, proxy and extra CA certificates jobs use. The same values are the `deployment` attribute of `GET /api/v2/platform/settings`.
 
 ## Identity bindings
 
-A job always receives the platform identity: for each cloud the organization has an [OIDC configuration](./oidc-configuration.md) for, Stackweaver mints a short-lived token for that run or job and the executor hands it to the job. [Workload Identity](./workload-identity.md) describes it.
+A job always receives the platform identity: for each cloud the organization has an [OIDC configuration](./oidc-configuration.md) for, Stackweaver mints a short-lived token for that run or job and hands it to the job's process. [Workload Identity](./workload-identity.md) describes it.
 
 A pool can also offer identity bindings, which run its job pods as a Kubernetes ServiceAccount that a cloud's pod identity mechanism trusts. Add them in the **Identity bindings** section of the pool's expanded row. A binding has a name, a mechanism (`aws-irsa`, `aws-pod-identity`, `gcp-workload-identity` or `azure-workload-identity`), a ServiceAccount name with the annotations the mechanism reads, and one of three ways of handling the ServiceAccount: **Create it**, where the launcher creates the account with those annotations; **Create one per job**, where the launcher creates a copy of it for every job and removes it with the pod; or **Reference an existing one**, where the account is declared elsewhere and the launcher never writes it. When the launcher finds that something other than Stackweaver manages a ServiceAccount, for example a GitOps controller, the binding is marked as declared outside Stackweaver and becomes read-only.
 
-A workspace, job template or inventory source selects a binding in its **Identity binding** control, and a project or organization can set a default (see [Run Images and Execution Environments](./run-images-and-execution-environments.md#where-a-setting-comes-from)). A job whose resolved binding belongs to a pool other than the one it runs on is refused, and hosted pools offer no bindings. Bindings apply to jobs placed by a launcher on the Kubernetes driver. This guide does not cover the cloud-side setup of each mechanism; [Workload Identity](./workload-identity.md) describes the platform identity, which needs none.
+A workspace, job template or inventory source selects a binding in its **Identity binding** control, and a project or organization can set a default (see [Run Images and Execution Environments](./run-images-and-execution-environments.md#where-a-setting-comes-from)). A job whose resolved binding belongs to a pool other than the one it runs on is refused, and hosted capacity offers no bindings. Bindings apply to jobs placed by a launcher on the Kubernetes driver. This guide does not cover the cloud-side setup of each mechanism; [Workload Identity](./workload-identity.md) describes the platform identity, which needs none.
 
 ## Registry pull Secrets
 
@@ -506,11 +583,11 @@ Every organization has a verified cache of the OpenTofu releases, provider packa
 
 The cache lives in the installation's object storage, under a prefix of its own for each organization, and no organization reads another's entries. The oldest entries are removed first once it reaches the organization's cache size limit, set under **Run Defaults** in **Settings > Organization**, or the deployment's `CACHE_SIZE_LIMIT` (50 GiB by default).
 
-OpenTofu releases are verified with `cosign`, which consults the Sigstore transparency log; the OpenTofu runner image includes `cosign`. A launcher that cannot reach the log, on an air-gapped network, can be started with `CACHE_VERIFY_TRANSPARENCY_LOG=false`; it then verifies the release's GPG signature against OpenTofu's release key, which the launcher carries, and records the entry as verified offline. A launcher started with `STACKWEAVER_HOSTED_STRICT` refuses that setting.
+OpenTofu releases are verified with `cosign`, which consults the Sigstore transparency log; the OpenTofu job image includes `cosign`. A launcher that cannot reach the log, on an air-gapped network, can be started with `CACHE_VERIFY_TRANSPARENCY_LOG=false`; it then verifies the release's GPG signature against OpenTofu's release key, which the launcher carries, and records the entry as verified offline. A launcher under Strict hosted isolation (`STACKWEAVER_HOSTED_STRICT`) refuses that setting.
 
 ## The node-local cache
 
-A launcher keeps a copy of the cache entries its jobs used, so repeated jobs on the same host fetch nothing twice. Only the launcher writes the copy: it fetches each entry under its runner token, checks its digest, and mounts the job's organization's part of it read-only into the job. The executor still checks the digest of every entry it reads and fetches anything missing through the API. A run log line that ends in "(node-local copy)" says every entry came from it.
+A launcher keeps a copy of the cache entries its jobs used, so repeated jobs on the same host fetch nothing twice. Only the launcher writes the copy: it fetches each entry under its launcher token, checks its digest, and mounts the job's organization's part of it read-only into the job. The job still checks the digest of every entry it reads and fetches anything missing through the API. A run log line that ends in "(node-local copy)" says every entry came from it.
 
 | Driver | Where the copy lives |
 |--------|----------------------|
@@ -522,21 +599,21 @@ A launcher keeps a copy of the cache entries its jobs used, so repeated jobs on 
 
 ---
 
-## Verify and monitor runners
+## Verify and monitor launchers
 
-Open **Settings > Runners** to check status (Online, Busy, Offline or Error), type, pool, hostname, heartbeat and current load against capacity. Open a launcher for capabilities, labels and recent jobs.
+Open **Settings > Launchers** to check status (Online, Busy, Offline or Error), engines, pool, hostname, heartbeat and current load against capacity. Open a launcher for capabilities, labels and recent jobs.
 
-![A registered online OpenTofu runner in its production pool.](./images/self-hosted-runners.png "Synthetic example. Online registration is distinct from successfully executing a workload.")
+![A registered online OpenTofu launcher in its production pool.](./images/self-hosted-runners.png "Synthetic example. Online registration is distinct from successfully executing a workload.")
 
-After registration, run a reviewed test plan or harmless Ansible job and verify its runner assignment and output. Online heartbeats prove connectivity, not cloud permissions or successful workload execution.
+After registration, run a reviewed test plan or harmless Ansible job and verify which launcher ran it and its output. Online heartbeats prove connectivity, not cloud permissions or successful workload execution.
 
 A run or job page has a **Placement** panel that shows where its latest attempt ran: the attempt number (for a run, of its current phase, so an apply that follows its plan is the apply's first attempt, and only a plan offered again or a re-queued apply counts as a new one), the driver, the container or pod, the image and its digest with the level the image came from, the identity binding (or the platform token) and the node.
 
-### Runner status
+### Launcher status
 
 Launchers keep a heartbeat open to the API. If heartbeats stop (e.g. container down or network issue), Stackweaver marks the launcher **Offline** after a short period and offers it no new work. When the launcher comes back and heartbeats again, it returns to **Online** and can receive jobs again.
 
-Use **Edit** on a runner to change its description or labels. See [Operate and troubleshoot](#operate-and-troubleshoot) for deletion, image replacement and bulk maintenance.
+Use **Edit** on a launcher to change its description or labels. See [Operate and troubleshoot](#operate-and-troubleshoot) for deletion, image replacement and bulk maintenance.
 
 ## Configure pools and routing as code
 
@@ -598,14 +675,14 @@ Record the returned pool ID and verify its access scope. List pools before retry
 | Launcher stays offline. | Check the container, `STACKWEAVER_SERVER`, `STACKWEAVER_TOKEN`, `RUNNER_AGENT_POOL_ID`, the outbound TLS connection and the registration/heartbeat logs. The launcher retries with backoff, and `/readyz` on port 9090 says what it is waiting for. |
 | Launcher is online but work waits. | Check workload type, pool assignment/access, labels and available capacity. A launcher runs at most `RUNNER_MAX_CONCURRENT_JOBS` jobs at once. Work on the hosted capacity may be waiting on the organization's hosted cap. |
 | All launchers in a pool are offline. | Restore capacity or explicitly change execution routing after reviewing its trust/network implications. There is no automatic fallback. |
-| A job fails with an error about its image on an in-process pool. | The job resolved a run image other than the platform image, and an in-process launcher runs only its own image. Run the pool's launchers with the container or Kubernetes driver, or select no run image for that workspace, template or project. |
-| Upgrade the platform. | Upgrade your launchers to the platform's release at the same time, because a job's executor comes from its launcher's image. A launcher ignores `RUNNER_MODE`; remove it from older runner deployments. |
-| Upgrade a launcher. | Pull a reviewed image, replace the container with the same intended name/pool and a valid registration credential, then confirm registration and a test job. A stopping launcher finishes its jobs first, for up to `RUNNER_DRAIN_GRACE`. Same-name registration in the same organization reuses the runner record and refreshes its runner token. Do not run two instances with the same name. |
+| A job fails with an error about its image on an in-process pool. | The job resolved a run image other than its engine's job image, and an in-process launcher runs only its own image. Run the pool's launchers with the container or Kubernetes driver, or select no run image for that workspace, template or project. |
+| Upgrade the platform. | Upgrade your launchers to the platform's release at the same time, because a job's `stackweaver-executor` program comes from its launcher's image. A launcher ignores `RUNNER_MODE`; remove it from older launcher deployments. |
+| Upgrade a launcher. | Pull a reviewed image, replace the container with the same intended name/pool and a valid registration credential, then confirm registration and a test job. A stopping launcher finishes its jobs first, for up to `RUNNER_DRAIN_GRACE`. Same-name registration in the same organization reuses the launcher record and refreshes its launcher token. Do not run two instances with the same name. |
 | Run both workload types. | Deploy the documented OpenTofu and Ansible images separately; each image runs one engine. They can join the same pool with the same registration credential. |
 | Remove a launcher. | Stop the container as well as deleting its registration. A running container with valid registration credentials can register again. |
 
-Use resource limits and size each launcher for its workload: set CPU and memory limits on the pool so a single job cannot exhaust the host, and require them where a job without limits is not acceptable. Prefer the container or Kubernetes driver for any pool that runs code from more than one team, so each job gets its own filesystem and network, and keep the `platform` network mode unless jobs really need the node's identity. Give the container driver's host the Docker or Podman socket only through the launcher, since the socket is root-equivalent. Keep registration keys out of repositories and avoid passing the launcher's full environment to jobs. Use [the environment allowlist](../get-started/self-hosting/environment-variables.md#runner-variables-that-reach-runs) when additional job variables are needed.
+Use resource limits and size each launcher for its workload: set CPU and memory limits on the pool so a single job cannot exhaust the host, and require them where a job without limits is not acceptable. Prefer the container or Kubernetes driver for any pool that runs code from more than one team, so each job gets its own filesystem and network, and keep the `platform` network mode unless jobs really need the node's identity. Give the container driver's host the Docker or Podman socket only through the launcher, since the socket is root-equivalent. Keep registration keys out of repositories and avoid passing the launcher's full environment to jobs. Use [the environment allowlist](../get-started/self-hosting/environment-variables.md#launcher-variables-that-reach-runs) when additional job variables are needed.
 
-For bulk maintenance, select runner cards and use **Add label**, **Remove label** or **Delete**. Label operations change only the selected label; deletion asks for confirmation. Partial failures leave failed runners selected for retry. Verify selection and scope before repeating a batch.
+For bulk maintenance, select launcher cards and use **Add label**, **Remove label** or **Delete**. Label operations change only the selected label; deletion asks for confirmation. Partial failures leave failed launchers selected for retry. Verify selection and scope before repeating a batch.
 
 Next, [run jobs in your own images](./run-images-and-execution-environments.md), [give jobs cloud access with workload identity](./workload-identity.md), [manage workspace inputs](./managing-workspace-variables.md), [read OpenTofu run results](./understanding-opentofu-runs.md) or [run an Ansible job](../get-started/your-first-ansible-job.md).

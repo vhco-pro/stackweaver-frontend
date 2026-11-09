@@ -36,6 +36,7 @@ import { TemplateNotificationsCard } from '@/components/ansible/TemplateNotifica
 import { TemplateAccessCard } from '@/components/ansible/TemplateAccessCard';
 import { PlaybookSourcePicker } from '@/components/ansible/PlaybookSourcePicker';
 import { resolvePlaybookSelection, type PlaybookSelection } from '@/components/ansible/playbook-selection';
+import { AgentPoolSelect } from '@/components/ansible/AgentPoolSelect';
 import { Button } from '@/components/ui/button';
 import { GradientButton } from '@/components/ui/gradient-button';
 import { Page } from '@/components/layout/Page';
@@ -1571,26 +1572,12 @@ export default function JobTemplateDetail() {
                 </Select>
               </div>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="agent_pool_id">Agent Pool (Optional)</Label>
-              <Select
-                value={editForm.agent_pool_id || '__none__'}
-                onValueChange={(value) => setEditForm({ ...editForm, agent_pool_id: value === '__none__' ? '' : value })}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Default (built-in runner)" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="__none__">Default (built-in runner)</SelectItem>
-                  {agentPools.map((pool) => (
-                    <SelectItem key={pool.id} value={pool.id}>{pool.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <p className="text-xs text-muted-foreground">
-                Assign to a self-hosted runner pool for execution on your own infrastructure.
-              </p>
-            </div>
+            <AgentPoolSelect
+              id="agent_pool_id"
+              agentPools={agentPools}
+              value={editForm.agent_pool_id}
+              onChange={(agentPoolId) => { setEditForm({ ...editForm, agent_pool_id: agentPoolId }); }}
+            />
             {/* Run image (an execution environment) and identity binding (#933, D6, D8). */}
             <RunImageSelect
               id="template-run-image"

@@ -54,7 +54,7 @@ reference does not promise future delivery dates.
 The job page offers a host-by-task matrix, timeline and chronological stream over the same
 recorded events. Status filters, host/task search and a shared detail drawer let you move
 from a failed host to its task result. Output that cannot be structured remains in the stream.
-The page polls during execution; it is not a WebSocket feed. The executor writes its event
+The page polls during execution; it is not a WebSocket feed. Stackweaver writes its event
 callback into every job, so events are recorded line by line in any image, execution
 environments included.
 
@@ -109,8 +109,8 @@ job-local file named by `GOOGLE_APPLICATION_CREDENTIALS`; do not hard-code that 
 path into a playbook. A task that explicitly selects its own authentication keeps that
 choice. The target project's permissions still come from the chosen Google identity.
 
-This applies on the hosted capacity and on self-hosted runners. A job's executor comes
-from its launcher, so keep self-hosted launchers on the same release as the platform;
+This applies on the hosted capacity and on agent pools. The process that runs a job comes
+from its launcher, so keep your own launchers on the same release as the platform;
 upgrading only the platform does not update them. If the job cannot write the credential file, the job fails instead of continuing
 without its attached identity. Never print the key or credential file to verify access;
 use a read-only Google Cloud operation against a dedicated test resource.
@@ -316,5 +316,5 @@ For repository dependencies and the organization's verified cache, use
 an AWX execution environment built with `ansible-builder`, use
 [Run images and execution environments](../../user-guides/run-images-and-execution-environments.md).
 For webhook launching and choosing the pool a job runs on, use
-[Execution flows](./execution-flows.md) and [Self-hosted runners](../../user-guides/self-hosted-runners.md). Organization
+[Execution flows](./execution-flows.md) and [Set up launchers](../../user-guides/self-hosted-runners.md). Organization
 activity is covered by [Usage and analytics](../../user-guides/usage-analytics.md).

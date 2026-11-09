@@ -585,9 +585,9 @@ export function CreateWorkspaceDialog({
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="remote">Remote (Platform Managed)</SelectItem>
+                <SelectItem value="remote">Remote (Hosted capacity)</SelectItem>
                 <SelectItem value="local">Local (Self-Managed)</SelectItem>
-                <SelectItem value="agent">Agent (Custom Runner Pool)</SelectItem>
+                <SelectItem value="agent">Agent (Agent pool)</SelectItem>
               </SelectContent>
             </Select>
           </div>

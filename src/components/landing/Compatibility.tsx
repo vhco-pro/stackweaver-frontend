@@ -179,7 +179,7 @@ export function Compatibility() {
           </h2>
           <p className="text-slate-800 dark:text-gray-400 text-lg leading-relaxed mb-8">
             The Stackweaver Terraform provider describes the platform itself: organizations, projects, workspaces, variables,
-            teams and runners, and the Ansible side with its playbooks, inventories, credentials and job templates.
+            teams and agent pools, and the Ansible side with its playbooks, inventories, credentials and job templates.
           </p>
           <ul className="space-y-5">
             {POINTS.map((point) => (

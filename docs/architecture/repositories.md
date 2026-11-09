@@ -26,8 +26,8 @@ repositories by automated sync pull requests.
 |---|---|---|
 | API | [stackweaver-api](https://github.com/vhco-pro/stackweaver-api) | HTTP API, authentication integration and platform services. |
 | Orchestrator | [stackweaver-orchestrator](https://github.com/vhco-pro/stackweaver-orchestrator) | Dispatch queued infrastructure work. |
-| OpenTofu runner | [stackweaver-opentofu-runner](https://github.com/vhco-pro/stackweaver-opentofu-runner) | Execute plan/apply work and provide runner images. |
-| Ansible runner | [stackweaver-ansible-runner](https://github.com/vhco-pro/stackweaver-ansible-runner) | Execute playbooks and platform inventory syncs. |
+| OpenTofu runner | [stackweaver-opentofu-runner](https://github.com/vhco-pro/stackweaver-opentofu-runner) | Build the OpenTofu job image. |
+| Ansible runner | [stackweaver-ansible-runner](https://github.com/vhco-pro/stackweaver-ansible-runner) | Build the Ansible job image. |
 | Launcher | [stackweaver-launcher](https://github.com/vhco-pro/stackweaver-launcher) | The launcher image and binaries, which register with an agent pool or as hosted capacity and start each run, job and sync in its job image. |
 | Frontend | [stackweaver-frontend](https://github.com/vhco-pro/stackweaver-frontend) | Web application and public documentation. |
 | Helm chart | [stackweaver-helm](https://github.com/vhco-pro/stackweaver-helm) | Kubernetes installation and configuration. |
@@ -73,9 +73,9 @@ artifact signatures and provenance.
 
 ## Check the component's license
 
-Read the `LICENSE` at the tag or commit you use. The runner and launcher repositories and the
+Read the `LICENSE` at the tag or commit you use. The job image and launcher repositories and the
 Helm chart publish Apache 2.0 licenses. API, orchestrator, frontend and initializer repositories
-publish BSL 1.1 licenses. Runner and launcher `NOTICE` files also describe the shared `core` linkage.
+publish BSL 1.1 licenses. Job image and launcher `NOTICE` files also describe the shared `core` linkage.
 Repository descriptions are not a substitute for those files.
 
 The [OSPS evidence guide](../security/osps-baseline-compliance.md#argued-deviations)

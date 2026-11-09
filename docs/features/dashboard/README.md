@@ -27,7 +27,7 @@ and links to the relevant work. Terraform and Ansible items share this order:
 | 3 | Workspaces left broken | The workspace's latest run errored. |
 | 4 | Job templates left failing | The template's latest job errored. |
 | 5 | Inventories failed to sync | The latest inventory sync failed; inspect its last successful data before relying on it. |
-| 6 | Runners offline | Execution capacity may be unavailable. |
+| 6 | Launchers offline | Execution capacity may be unavailable. |
 | 7 | Terraform runs failed | Failures occurred inside the displayed recent-failure window. |
 | 8 | Ansible jobs failed | Ansible failures occurred inside that same window. |
 | 9 | Open change requests | A workspace has outstanding requested work. |
@@ -37,7 +37,7 @@ a time window. A later successful execution can clear the first while the earlie
 still contributes to the second. Ad hoc Ansible failures count as recent failures but do not
 make a job template "left failing".
 
-Runner and change-request counts require the corresponding administrative access. An absent
+Launcher and change-request counts require the corresponding administrative access. An absent
 row can mean you lack access; it does not establish that its count is zero.
 
 ## Live work and organization cards

@@ -145,7 +145,7 @@ export default function RunImages() {
       <PageHeader
         icon={Box}
         title="Run Images"
-        subtitle="Images your OpenTofu runs and Ansible jobs run in instead of the platform image"
+        subtitle="Images your OpenTofu runs and Ansible jobs run in instead of the default job image"
         backTo={{ to: `/app/${orgName}/settings`, label: 'Back to Settings' }}
         action={addAction}
         listState={listState}

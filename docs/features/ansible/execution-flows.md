@@ -98,7 +98,7 @@ repository triggers. Use the diagrams below to locate the stage you need to inve
 
 ## Where the work runs
 
-Stackweaver's Ansible engine is built from a small number of cooperating services. The API owns all state and decisions; launchers only claim work and place it. Every job and every sync is a row in PostgreSQL that waits for a launcher of its pool, which is either the organization's hosted pool, served by the installation's own launchers, or an agent pool whose launchers run in your network. Launchers reach the API over HTTPS only and hold no database, storage or Redis credential.
+Stackweaver's Ansible engine is built from a small number of cooperating services. The API owns all state and decisions; launchers only claim work and place it. Every job and every sync is a row in PostgreSQL that waits for a launcher of its pool, which is either the organization's hosted capacity, served by the installation's own launchers, or an agent pool whose launchers run in your network. Launchers reach the API over HTTPS only and hold no database, storage or Redis credential.
 
 ```mermaid
 flowchart LR
@@ -109,8 +109,8 @@ flowchart LR
     API -.->|"wakeups"| Redis[("Redis")]
     Hosted["Hosted launcher"] -->|"heartbeat, claim, job token over HTTPS"| API
     Agent["Launcher in an agent pool"] -->|"heartbeat, claim, job token over HTTPS"| API
-    Hosted --> E1["Executor in a job container or pod"]
-    Agent --> E2["Executor (in-process, container or pod)"]
+    Hosted --> E1["Job process in a job container or pod"]
+    Agent --> E2["Job process (in-process, container or pod)"]
     E1 -->|"inputs, events, result"| API
     E2 -->|"inputs, events, result"| API
     API -.->|"scheduler tick (30s)"| API
@@ -122,8 +122,8 @@ flowchart LR
 1. **API server** - owns every decision: launch gates, RBAC, variable merging, workflow progression, notification dispatch. Runs the scheduler tick, and is the only service that reads and writes the database and object storage on a job's behalf.
 2. **PostgreSQL** - jobs, syncs, events, inventories, sync history, workflow state. A job or sync waiting for a launcher is a row with its pool, not a queue message.
 3. **Redis** - carries wakeups, so a launcher holding an open heartbeat is answered as soon as work for its pool appears. No launcher connects to it.
-4. **Launcher** - the `stackweaver-ansible-runner` image, on the hosted capacity or in an agent pool. It keeps one heartbeat open, is offered work for its pool up to its free capacity, claims a job atomically and asks the API for a token valid for that job alone.
-5. **Executor** - placed by the launcher's driver as a child process, a container or a pod. It fetches the job's inputs with the job token, installs Galaxy requirements, runs `ansible-playbook`, and posts events and the result back.
+4. **Launcher** - the `stackweaver-launcher` image (or, for the in-process driver, the `stackweaver-ansible-runner` job image or the launcher binary on a host with Ansible), on the hosted capacity or in an agent pool. It keeps one heartbeat open, is offered work for its pool up to its free capacity, claims a job atomically and asks the API for a token valid for that job alone.
+5. **Job process** - placed by the launcher's driver as a child process, a container or a pod. It fetches the job's inputs with the job token, installs Galaxy requirements, runs `ansible-playbook`, and posts events and the result back.
 6. **Scheduler tick** - a 30-second loop inside the API that fires schedules on their cron, releases held jobs, advances workflows, records what each schedule's sync became, dispatches notifications, and cleans up expired jobs. Every API replica runs it and one replica at a time does each tick's work, so no schedule fires twice and no notification is sent twice. `ANSIBLE_SCHEDULER_ENABLED=false` stops only the cron firing; the rest of the tick runs either way.
 
 </details>
@@ -152,7 +152,7 @@ flowchart TD
     SYNC --> TICK["Scheduler tick releases<br/>when syncs settle"]
     HOLD --> TICK
     TICK --> DISPATCH{"Agent pool on the template,<br/>project or organization?"}
-    DISPATCH -->|no| HOSTED["Offer to the hosted pool's launchers"]
+    DISPATCH -->|no| HOSTED["Offer to the hosted launchers"]
     DISPATCH -->|yes| POLL["Offer to that pool's launchers"]
 ```
 
@@ -283,7 +283,7 @@ Every job takes the same path, whether its pool is the organization's hosted cap
 
 | | Hosted capacity | Agent pool |
 |---|---|---|
-| Who runs the launchers | The installation (the `ansible-launcher` service on Docker Compose, the Ansible launcher Deployment on Kubernetes) | You, on your own hosts or cluster |
+| Who runs the launchers | The installation (the `launcher` service on Docker Compose, the launcher Deployment on Kubernetes) | You, on your own hosts or cluster |
 | Which jobs it gets | Jobs whose template, project and organization name no agent pool, every snapshot capture, VCS inventory file sync and constructed rebuild, and dynamic source syncs without an agent pool default | Jobs whose template targets the pool, or whose project or organization defaults to it |
 | Driver | Container or Kubernetes. An operator can choose in-process instead, which a strict hosted deployment refuses. | In-process, container or Kubernetes |
 | Network position | Inside the Stackweaver deployment | Anywhere with outbound HTTPS to the API |
@@ -295,7 +295,7 @@ sequenceDiagram
     participant Launcher
     participant API
     participant DB as PostgreSQL
-    participant Executor
+    participant Job as Job process
     loop long-poll heartbeat
         Launcher->>API: heartbeat (pool, free capacity)
         API->>DB: released jobs and syncs of this pool (bounded by free capacity)
@@ -305,26 +305,26 @@ sequenceDiagram
     API-->>Launcher: 200 claimed / 409 already taken, skip
     Launcher->>API: POST job token
     API-->>Launcher: token valid for this job and attempt only
-    Launcher->>Executor: place (in-process, container or pod) with the job token
-    Executor->>API: GET job artifacts
-    API-->>Executor: inventory (sliced), credentials, vault passwords,<br/>env vars, per-run identity tokens, playbook source, cache descriptor
-    Executor->>API: GET playbook snapshot
-    API-->>Executor: snapshot tarball (streamed from object storage)
-    Note over Executor: install requirements.yml<br/>(from the organization's verified cache first)
-    Executor->>API: POST source banner + Galaxy install events
-    Executor->>Executor: ansible-playbook
-    Executor->>API: POST events + final status
+    Launcher->>Job: place (in-process, container or pod) with the job token
+    Job->>API: GET job artifacts
+    API-->>Job: inventory (sliced), credentials, vault passwords,<br/>env vars, per-run identity tokens, playbook source, cache descriptor
+    Job->>API: GET playbook snapshot
+    API-->>Job: snapshot tarball (streamed from object storage)
+    Note over Job: install requirements.yml<br/>(from the organization's verified cache first)
+    Job->>API: POST source banner + Galaxy install events
+    Job->>Job: ansible-playbook
+    Job->>API: POST events + final status
 ```
 
 <details>
 <summary><strong>What the flow guarantees (Legend)</strong></summary>
 
 1. **Held jobs apply everywhere** - a launcher is only offered jobs that the gates have released, so concurrency limits and dependency syncs behave the same on every pool.
-2. **Credential handling** - the executor alone receives decrypted job credentials in the artifacts response. It writes them with owner-only permissions into a directory that exists for that job and removes them on every exit path, and the job token is refused once the job has finished. Protect the hosts your launchers run on; cleanup is not a guarantee against host access or an interrupted process.
+2. **Credential handling** - the job's process alone receives decrypted job credentials in the artifacts response. It writes them with owner-only permissions into a directory that exists for that job and removes them on every exit path, and the job token is refused once the job has finished. Protect the hosts your launchers run on; cleanup is not a guarantee against host access or an interrupted process.
 3. **Every job starts from a snapshot** - a `cached` playbook runs its last synced snapshot. A `fresh` playbook, and a `cached` one that has not been synced yet, is captured by a snapshot sync on the hosted capacity first, and the job waits for it. No job clones from your VCS provider, so launchers never need a route to it or a VCS credential.
 4. **Ad hoc commands** - the transient playbook is generated server-side and shipped as content in the artifacts, so no repository access is needed.
 5. **Job claiming** - the API limits offered work to each launcher's free capacity and atomically claims a job on start. A launcher that loses the claim skips it; this prevents that claim race from starting the same job or slice twice.
-6. **A lost launcher** - if a launcher disappears while a job runs, the job ends as errored with "runner lost during job", because a playbook may not be safe to run twice; relaunch it to run a new attempt. A sync is offered again as a new attempt. The token of an earlier attempt is refused.
+6. **A lost launcher** - if a launcher disappears while a job runs, the job ends as errored with "launcher lost during job", because a playbook may not be safe to run twice; relaunch it to run a new attempt. A sync is offered again as a new attempt. The token of an earlier attempt is refused.
 7. **Choosing the path** - set an agent pool on the job template (or pick one in the Run Command dialog), or a default on the project or organization; leave them all empty to run on the hosted capacity.
 
 </details>
@@ -359,7 +359,7 @@ flowchart TD
 <summary><strong>Reconciliation semantics (Legend)</strong></summary>
 
 1. **Source ownership** - dynamic sources stamp the hosts and groups they discover. With *overwrite* on, a source prunes only its own rows when the provider stops reporting them; manual entries and other sources' rows are never touched.
-2. **Where syncs run** - a VCS inventory file sync and a constructed rebuild always run on the hosted capacity in the platform image, with the only clone credential held in that sync's memory. A dynamic source sync runs on the project's or organization's default agent pool when one is set, otherwise on the hosted capacity, in the execution environment and with the identity binding its source resolves, bounded by its sync timeout.
+2. **Where syncs run** - a VCS inventory file sync and a constructed rebuild always run on the hosted capacity in the Ansible job image, with the only clone credential held in that sync's memory. A dynamic source sync runs on the project's or organization's default agent pool when one is set, otherwise on the hosted capacity, in the execution environment and with the identity binding its source resolves, bounded by its sync timeout.
 3. **A failed run reconciles nothing** - for a dynamic source sync and for a constructed inventory build, the sync tells `ansible-inventory` to exit non-zero when it cannot parse any one of the sources it was given (rejected credentials, an unreachable endpoint, a configuration the plugin refuses, an input it cannot read). Such a run is recorded as failed with the plugin's error in its output, and the rows stay as the last successful run left them. A run that succeeds with no hosts is a different outcome: with *overwrite* on it prunes everything the source owned.
 4. **Variable merging** - by default synced host variables merge into existing ones (your manual keys survive); *overwrite variables* switches to wholesale replacement.
 5. **Constructed inventories** - are derived-only: their hosts and groups come from the build alone, and every successful rebuild replaces the materialized set from the inputs and rules. The API refuses to add a host, a group or an inventory source to a constructed inventory, to add a host to one of its groups, or to move one of its groups under another, so every row a rebuild removes is one it derived. A host or group can still be deleted, and the next rebuild derives it again if the inputs and rules still produce it.

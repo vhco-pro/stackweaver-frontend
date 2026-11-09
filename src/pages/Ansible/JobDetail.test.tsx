@@ -193,3 +193,26 @@ describe('JobDetail playbook of a job', () => {
     expect(row.getByRole('button', { name: 'site-deploy' })).toBeInTheDocument();
   });
 });
+
+// The Details tab names where the job ran with the standard names (one-launcher spec, AC28): a job
+// on no agent pool ran on Hosted capacity, and the process that started it is its launcher.
+describe('JobDetail placement', () => {
+  beforeEach(() => {
+    vi.mocked(ansibleJobsApi.getEvents).mockResolvedValue({ data: [] });
+  });
+
+  it('shows Hosted capacity for a job on no agent pool, and the launcher that ran it', async () => {
+    vi.mocked(ansibleJobsApi.get).mockResolvedValue({
+      data: finishedJob({ 'job-type': 'run', 'runner-name': 'hosted-launcher-1' }),
+    });
+    renderPage();
+    await screen.findByText('deploy web');
+    await userEvent.setup().click(screen.getByRole('tab', { name: /details/i }));
+    const pool = within((await screen.findByText('Agent pool', { selector: 'dt' })).parentElement!);
+    expect(pool.getByText('Hosted capacity')).toBeInTheDocument();
+    const launcher = within(screen.getByText('Launcher', { selector: 'dt' }).parentElement!);
+    expect(launcher.getByText('hosted-launcher-1')).toBeInTheDocument();
+    expect(document.body.textContent).not.toMatch(/server-side|built-in runner/i);
+    expect(screen.queryByText('Runner', { selector: 'dt' })).not.toBeInTheDocument();
+  });
+});

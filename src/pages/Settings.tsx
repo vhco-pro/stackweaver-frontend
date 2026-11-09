@@ -9,8 +9,11 @@ import { usePermissions } from '@/hooks/usePermissions';
 import { usePlatformAdmin } from '@/hooks/usePlatformAdmin';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
+import { agentPoolsApi, organizationMembershipsApi } from '@/api/client';
 
 interface SettingsSection {
+  /** A stable identifier for the cards whose access is checked: never the display title. */
+  key?: 'users-teams' | 'agent-pools' | 'launchers' | 'change-requests' | 'run-tasks';
   title: string;
   description: string;
   icon: LucideIcon;
@@ -101,6 +104,7 @@ const orgSettingsSections: SettingsSection[] = [
     path: '/app/:orgName/settings/organization',
   },
   {
+    key: 'users-teams',
     title: 'Users & Teams',
     description: 'Manage organization members and teams',
     icon: Users,
@@ -157,8 +161,9 @@ const orgSettingsSections: SettingsSection[] = [
     path: '/app/:orgName/settings/authentication-token', // Will be replaced with actual orgName
   },
   {
+    key: 'agent-pools',
     title: 'Agent Pools',
-    description: 'Manage agent pools for self-hosted runners (TFE-compatible)',
+    description: 'Manage the agent pools your own launchers register with (TFE-compatible)',
     icon: Cpu,
     gradient: 'from-teal-500 to-cyan-500',
     path: '/app/:orgName/settings/agent-pools',
@@ -171,13 +176,15 @@ const orgSettingsSections: SettingsSection[] = [
     path: '/app/:orgName/settings/run-images',
   },
   {
-    title: 'Runners',
-    description: 'View and manage self-hosted runners for OpenTofu and Ansible',
+    key: 'launchers',
+    title: 'Launchers',
+    description: 'View and manage the launchers that start OpenTofu runs and Ansible jobs for your agent pools',
     icon: Server,
     gradient: 'from-purple-500 to-pink-500',
     path: '/app/:orgName/settings/runners',
   },
   {
+    key: 'change-requests',
     title: 'Change Requests',
     description: 'Triage open action items filed against workspaces in this organization',
     icon: ClipboardList,
@@ -185,6 +192,7 @@ const orgSettingsSections: SettingsSection[] = [
     path: '/app/:orgName/settings/change-requests',
   },
   {
+    key: 'run-tasks',
     title: 'Run Tasks',
     description: 'External services that validate runs at stage boundaries',
     icon: Zap,
@@ -267,7 +275,6 @@ export default function Settings() {
     queryKey: ['perm-membership', orgName, session?.user?.email],
     queryFn: async () => {
       try {
-        const { organizationMembershipsApi } = await import('@/api/client');
         await organizationMembershipsApi.list(orgName!);
         return true;
       } catch (err: unknown) {
@@ -283,7 +290,6 @@ export default function Settings() {
     queryKey: ['perm-agent-pools', orgName, session?.user?.email],
     queryFn: async () => {
       try {
-        const { agentPoolsApi } = await import('@/api/client');
         await agentPoolsApi.list(orgName!);
         return true;
       } catch (err: unknown) {
@@ -299,12 +305,14 @@ export default function Settings() {
   const settingsSections: SettingsSection[] = isOrgSettings
     ? orgSettingsSections
         .filter((section: SettingsSection) => {
-          if (section.title === 'Users & Teams') return hasManageMembershipAccess !== false;
-          if (section.title === 'Agent Pools') return hasManageAgentPoolsAccess !== false;
-          if (section.title === 'Runners') return hasManageAgentPoolsAccess !== false;
-          if (section.title === 'Change Requests') return canManageWorkspaces;
-          if (section.title === 'Run Tasks') return canManageWorkspaces;
-          return true;
+          switch (section.key) {
+            case 'users-teams': return hasManageMembershipAccess !== false;
+            case 'agent-pools':
+            case 'launchers': return hasManageAgentPoolsAccess !== false;
+            case 'change-requests':
+            case 'run-tasks': return canManageWorkspaces;
+            default: return true;
+          }
         })
         .map((section: SettingsSection) => ({
           ...section,

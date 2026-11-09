@@ -128,7 +128,7 @@ function itemsForOrg(org: DashboardOrgStats, failureWindowDays: number): Attenti
   add(
     'runners_offline',
     org.runners_offline ?? 0,
-    `of ${org.runners_total ?? 0} ${plural(org.runners_total ?? 0, 'runner is', 'runners are')} offline`,
+    `of ${org.runners_total ?? 0} ${plural(org.runners_total ?? 0, 'launcher is', 'launchers are')} offline`,
     `/app/${org.name}/settings/runners`,
     'red',
   );

@@ -105,7 +105,7 @@ export default function ApiKeysSettings() {
         scopes.push(`project:${selectedProjectId}:${perm}`);
       });
     } else if (scopeType === 'runner' && effectiveOrgId) {
-      // Runner scope - allows registering runners for an organization
+      // Launcher registration scope - lets launchers register with an organization's agent pools
       scopes.push(`org:${effectiveOrgId}:runner:register`);
     }
 
@@ -131,7 +131,7 @@ export default function ApiKeysSettings() {
     }
 
     if (scopeType === 'runner' && !effectiveOrgId) {
-      toast.error('Please select an organization for runner registration');
+      toast.error('Please select an organization for launcher registration');
       return;
     }
 
@@ -377,7 +377,7 @@ export default function ApiKeysSettings() {
                     <SelectItem value="runner">
                       <div className="flex items-center gap-2">
                         <Server className="h-4 w-4" />
-                        <span>Runner Registration</span>
+                        <span>Launcher registration</span>
                       </div>
                     </SelectItem>
                   </SelectContent>
@@ -415,7 +415,7 @@ export default function ApiKeysSettings() {
 
               {scopeType === 'runner' && (
                 <p className="text-sm text-muted-foreground">
-                  This key allows self-hosted runners to register with this organization.
+                  This key lets launchers register with this organization's agent pools.
                   Use this key when starting a launcher with <code className="px-1 py-0.5 rounded-sm bg-muted">STACKWEAVER_TOKEN</code>.
                 </p>
               )}
