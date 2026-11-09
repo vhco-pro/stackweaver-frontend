@@ -5,7 +5,9 @@ import { createContext, useContext, useCallback } from 'react';
  * `classic` keeps the original transparent frame, and the `deep` tone darkens the fills in dark mode.
  */
 export interface DocsCodeBlockPresentation { style?:'framed'|'classic'; tone?:'default'|'deep' }
-export interface DocsEnvironment { basePath:string; staticRender:boolean; files?:Record<string,string>; codeBlocks?:DocsCodeBlockPresentation }
+/** How Markdown tables look. `framed` applies when a host sets nothing; `open` drops the frame and keeps the tinted header as a band. */
+export interface DocsTablePresentation { style?:'framed'|'open' }
+export interface DocsEnvironment { basePath:string; staticRender:boolean; files?:Record<string,string>; codeBlocks?:DocsCodeBlockPresentation; tables?:DocsTablePresentation }
 /** A generic host adapter. The viewer does not import application config or services. */
 export const DocsEnvironmentContext=createContext<DocsEnvironment>({basePath:'',staticRender:false});
 export function useDocsEnvironment() {

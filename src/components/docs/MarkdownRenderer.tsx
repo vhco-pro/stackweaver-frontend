@@ -868,7 +868,7 @@ export function MarkdownRenderer({
 }: MarkdownRendererProps) {
   const navigate = useNavigate();
   const location = useLocation();
-  const { staticRender, assetUrl, codeBlocks } = useDocsEnvironment();
+  const { staticRender, assetUrl, codeBlocks, tables } = useDocsEnvironment();
   const [highlightedCode, setHighlightedCode] = useState<Record<string, string>>({});
   const [copiedCodeId, setCopiedCodeId] = useState<string | null>(null);
   const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
@@ -1366,7 +1366,7 @@ export function MarkdownRenderer({
   return (
     // Code frame presentation is CSS only: frames read it from these attributes, so frames
     // stay free of context and prerendered pages carry the host's choice too.
-    <div className={cn('markdown-content', className)} data-docs-code-style={codeBlocks?.style} data-docs-code-tone={codeBlocks?.tone}>
+    <div className={cn('markdown-content', className)} data-docs-code-style={codeBlocks?.style} data-docs-code-tone={codeBlocks?.tone} data-docs-table-style={tables?.style}>
       {metaHeader}
       <CodeRenderContext.Provider value={codeRenderState}>
         {renderedMarkdown}
