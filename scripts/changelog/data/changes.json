@@ -2209,5 +2209,29 @@
       "api"
     ],
     "availability": []
+  },
+  {
+    "id": "run-has-changes-follows-plan",
+    "title": "A run reports whether its plan has changes in every status after the plan",
+    "area": "OpenTofu runs",
+    "kind": "Fixed",
+    "reviewed": true,
+    "audience": "API and terraform-provider-tfe users who read a run's has-changes attribute, and teams with post-plan run tasks.",
+    "before": "A run's has-changes attribute on GET /api/v2/runs/:id and in the workspace list was true only while the run was planned or completed. An applied run read false although its plan had changes, and a run waiting for confirmation after a post-plan run task read false, so tfe_workspace_run waited indefinitely and the workspace showed the run as finished.",
+    "after": "A run's has-changes follows its plan in every status after the plan finishes, including confirmation, run task stages, the apply, and an applied, failed or canceled run. It is false before the plan finishes and for a plan with no changes.",
+    "action": "No action is required.",
+    "details": [],
+    "guides": [
+      {
+        "title": "Read OpenTofu runs",
+        "path": "/docs/user-guides/understanding-opentofu-runs"
+      }
+    ],
+    "sourceCommits": [],
+    "draftCommits": [],
+    "requiredComponents": [
+      "api"
+    ],
+    "availability": []
   }
 ]
