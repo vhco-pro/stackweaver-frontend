@@ -22,10 +22,10 @@ const lostBeforeRename = 'runner lost during apply' + tail;
 describe('LostApplyRequeue', () => {
   beforeEach(() => { vi.clearAllMocks(); });
 
-  it('recognises only a failed run with the launcher-lost reason, old or new', () => {
-    expect(isLostApply({ status: 'failed', error_message: lost })).toBe(true);
-    expect(isLostApply({ status: 'failed', error_message: lostBeforeRename })).toBe(true);
-    expect(isLostApply({ status: 'failed', error_message: 'Error: apply failed' })).toBe(false);
+  it('recognises only an errored run with the launcher-lost reason, old or new', () => {
+    expect(isLostApply({ status: 'errored', error_message: lost })).toBe(true);
+    expect(isLostApply({ status: 'errored', error_message: lostBeforeRename })).toBe(true);
+    expect(isLostApply({ status: 'errored', error_message: 'Error: apply failed' })).toBe(false);
     expect(isLostApply({ status: 'applying', error_message: lost })).toBe(false);
   });
 

@@ -34,7 +34,7 @@ describe('isRunActive', () => {
       expect(isRunActive({ status } as Pick<Run, 'status'>)).toBe(true);
     }
     expect(isRunActive({ status: 'applied' })).toBe(false);
-    expect(isRunActive({ status: 'failed' })).toBe(false);
+    expect(isRunActive({ status: 'errored' })).toBe(false);
   });
 });
 

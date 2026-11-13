@@ -59,9 +59,10 @@ matching executions and says when the list is truncated.
 | Ansible. | Job outcomes, average/p95 duration, busiest templates and current automation assets. Ad hoc jobs are excluded from template rankings. |
 | Activity. | Recorded audit events, grouped by date, action and resource type. |
 
-A plan-only run at `planned` counts as successful. A plan-and-apply run at `planned` is
-still pending confirmation. OpenTofu `applied`/`completed` and Ansible `successful` count
-as successful outcomes; Ansible `failed` and `error` count as failures.
+OpenTofu `applied` and `planned_and_finished` (a plan-only run, or a plan with nothing to
+apply) count as successful outcomes, and `errored` as a failure. A plan-and-apply run at
+`planned` is still pending confirmation. Ansible `successful` counts as successful, and
+Ansible `failed` and `error` as failures.
 
 Date filters bound historical execution and audit metrics. **In flight** and current asset
 counts describe the present state, so do not expect them to fall to zero when viewing an

@@ -3,6 +3,7 @@
 import { useEffect, useEffectEvent, useRef, useState } from 'react';
 import { runsApi, type Run } from '@/api/client';
 import { getRunFromJsonApi } from '@/utils/jsonapi';
+import { isCanceledRunStatus, isFinalRunStatus } from '@/utils/runStatus';
 
 interface UseRunPollingOptions {
   runId: string | null;
@@ -124,14 +125,8 @@ export function useRunPolling({
     const isInTerminalState = () => {
       const status = currentStatusRef.current;
       const operation = currentOperationRef.current;
-      if (!status) return false;
-      if (status === 'failed' || status === 'canceled') return true;
-      if (status === 'applied') return true;
-      if (status === 'planned' && operation === 'plan-only') return true;
-      // post_plan_completed is the plan-only rest state when a post-plan run task exists.
-      if (status === 'post_plan_completed' && operation === 'plan-only') return true;
-      if (status === 'completed') return true;
-      return false;
+      void operation; // a final status is final whatever the operation
+      return isFinalRunStatus(status);
     };
 
     const fetchRun = async () => {
@@ -163,8 +158,8 @@ export function useRunPolling({
 
         // On the plan→apply transition the apply phase begins its own fresh log stream;
         // start its cursor at 0 (plan cursor stays independent and keeps its assembled text).
-        if (runData.operation === 'plan-and-apply' &&
-          previousStatus === 'planned' &&
+        if ((runData.operation === 'plan-and-apply' || runData.operation === 'destroy') &&
+          previousStatus && previousStatus !== 'applying' &&
           runData.status === 'applying') {
           applyLogOffsetRef.current = 0;
           applyLogsRef.current = '';
@@ -178,10 +173,9 @@ export function useRunPolling({
 
         // Fetch plan output when plan phase completes
         // Plan-and-apply, plan-only, and destroy runs all have a plan phase - fetch plan for all of them
+        // planned-at is set the moment the plan finishes; a final run has whatever plan it made.
         const shouldFetchPlan = (
-          (runData.operation === 'plan-only' || runData.operation === 'plan' || runData.operation === 'plan-and-apply' || runData.operation === 'destroy') &&
-          (runData.status === 'planned' || runData.status === 'applying' || runData.status === 'applied' || runData.status === 'failed' || runData.status === 'canceled' ||
-            (runData.operation !== 'plan-and-apply' && runData.operation !== 'destroy' && runData.status === 'completed')) &&
+          (runData['status-timestamps']?.['planned-at'] !== undefined || isFinalRunStatus(runData.status)) &&
           !planFetchedRef.current
         );
 
@@ -241,11 +235,11 @@ export function useRunPolling({
         const isTwoPhaseRun = runData.operation === 'plan-and-apply' || runData.operation === 'destroy';
         const hasApplyStarted = isTwoPhaseRun && 
           runData['status-timestamps']?.['applying-at'] !== undefined;
-        const hasApplyCompleted = isTwoPhaseRun && 
-          (runData.status === 'applied' || runData.status === 'failed' || runData.status === 'applying' || runData.status === 'canceled');
+        const hasApplyCompleted = isTwoPhaseRun &&
+          (runData.status === 'applied' || runData.status === 'errored' || runData.status === 'applying' || runData.status === 'canceled' || runData.status === 'force_canceled');
         // Also check if run was cancelled but apply phase had started (cancelled during apply/destroy)
-        const wasCancelledDuringApply = isTwoPhaseRun && 
-          runData.status === 'canceled' && 
+        const wasCancelledDuringApply = isTwoPhaseRun &&
+          (runData.status === 'canceled' || runData.status === 'force_canceled') &&
           runData['status-timestamps']?.['applying-at'] !== undefined;
         const shouldFetchApplyState = (hasApplyStarted || hasApplyCompleted || wasCancelledDuringApply) && !applyStateFetchedRef.current;
 
@@ -296,9 +290,7 @@ export function useRunPolling({
         const shouldStreamApply = (
           (isTwoPhaseOp &&
             (runData.status === 'applying' || runData.status === 'applied' || wasCancelledDuringApply)) ||
-          (runData.operation === 'apply' &&
-            (runData.status === 'running' || runData.status === 'completed')) ||
-          runData.status === 'failed' // surface error output when a run fails
+          runData.status === 'errored' // surface error output when a run errors
         );
 
         if (shouldStreamApply && !applyLogDoneRef.current) {
@@ -315,7 +307,7 @@ export function useRunPolling({
                   setLogs(next);
                   emitLogsChange(next);
                 }
-              } else if ((runData.status === 'canceled' || runData.status === 'failed') &&
+              } else if ((isCanceledRunStatus(runData.status) || runData.status === 'errored') &&
                 applyLogOffsetRef.current === 0) {
                 // Cancelled/failed before any apply output was produced - show empty rather
                 // than leaving stale content; never fall back to the plan log.
@@ -330,18 +322,8 @@ export function useRunPolling({
           }
         }
 
-        // Stop polling if run is in terminal state
-        // For plan-and-apply runs: 'applied' is terminal
-        // For plan-only runs: 'planned' is terminal
-        // For legacy runs: 'completed', 'failed', 'canceled' are terminal
-        const isTerminal = (
-          runData.status === 'failed' ||
-          runData.status === 'canceled' ||
-          (runData.operation === 'plan-and-apply' && runData.status === 'applied') ||
-          (runData.operation === 'plan-only' && (runData.status === 'planned' || runData.status === 'post_plan_completed')) ||
-          (runData.operation === 'destroy' && (runData.status === 'applied' || runData.status === 'completed')) ||
-          ((runData.operation === 'apply' || runData.operation === 'plan') && runData.status === 'completed')
-        );
+        // Stop polling once the run's status is final.
+        const isTerminal = isFinalRunStatus(runData.status);
         if (isTerminal && pollIntervalRef.current) {
           clearInterval(pollIntervalRef.current);
           pollIntervalRef.current = null;

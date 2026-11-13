@@ -10,5 +10,5 @@ const LOST_APPLY_PREFIXES = ['launcher lost during apply', 'runner lost during a
 /** Whether a run ended because its launcher was lost during the apply phase. */
 export function isLostApply(run: { status?: string; error_message?: string }): boolean {
   const reason = run.error_message ?? '';
-  return run.status === 'failed' && LOST_APPLY_PREFIXES.some((prefix) => reason.startsWith(prefix));
+  return run.status === 'errored' && LOST_APPLY_PREFIXES.some((prefix) => reason.startsWith(prefix));
 }

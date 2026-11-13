@@ -56,9 +56,9 @@ export default function Activities() {
     const status = attrs.details?.status;
 
     if (attrs.action?.includes('run')) {
-      if (status === 'completed' || status === 'success') {
+      if (status === 'completed' || status === 'success' || status === 'applied' || status === 'planned_and_finished') {
         return <CheckCircle2 className="h-5 w-5 text-green-500" />;
-      } else if (status === 'failed' || status === 'error') {
+      } else if (status === 'failed' || status === 'error' || status === 'errored') {
         return <XCircle className="h-5 w-5 text-red-500" />;
       } else if (status === 'running' || status === 'pending') {
         return <Clock className="h-5 w-5 text-yellow-500" />;

@@ -1,140 +1,62 @@
 // Copyright (c) 2025 VH & Co BV. Licensed under the Business Source License 1.1. See LICENSE for details.
 
 import { describe, it, expect } from 'vitest';
-import { computeDisplayStatus, type RunStatusInput } from './runStatus';
+import { computeDisplayStatus, isCanceledRunStatus, isFinalRunStatus, type RunStatusInput } from './runStatus';
 
 describe('computeDisplayStatus', () => {
-  // 1. Failed/Canceled (highest priority)
-  it('returns errored for failed status', () => {
-    expect(computeDisplayStatus({ status: 'failed' })).toBe('errored');
+  // The TFE run statuses the API reports, and the badge each one shows.
+  const cases: Array<[string, RunStatusInput, string]> = [
+    ['errored', { status: 'errored' }, 'errored'],
+    ['canceled', { status: 'canceled' }, 'cancelled'],
+    ['force_canceled', { status: 'force_canceled' }, 'cancelled'],
+    ['discarded', { status: 'discarded' }, 'discarded'],
+    ['planned_and_finished plan-and-apply (no changes)', { status: 'planned_and_finished', operation: 'plan-and-apply', hasChanges: false }, 'finished'],
+    ['planned_and_finished plan-only', { status: 'planned_and_finished', operation: 'plan-only', hasChanges: true }, 'finished'],
+    ['planned_and_finished destroy with nothing to destroy', { status: 'planned_and_finished', operation: 'destroy' }, 'finished'],
+    ['pending', { status: 'pending' }, 'pending'],
+    ['pre_plan_completed', { status: 'pre_plan_completed' }, 'pending'],
+    ['planning', { status: 'planning' }, 'planning'],
+    ['applying', { status: 'applying' }, 'applying'],
+    ['post_apply_completed', { status: 'post_apply_completed' }, 'applying'],
+    ['pre_plan_running', { status: 'pre_plan_running' }, 'tasks-running'],
+    ['post_plan_running', { status: 'post_plan_running' }, 'tasks-running'],
+    ['pre_apply_running', { status: 'pre_apply_running' }, 'tasks-running'],
+    ['post_apply_running', { status: 'post_apply_running' }, 'tasks-running'],
+    ['planned waiting for confirmation', { status: 'planned', operation: 'plan-and-apply', hasChanges: true, isConfirmable: true }, 'planned'],
+    ['post_plan_completed waiting for confirmation', { status: 'post_plan_completed', operation: 'plan-and-apply', hasChanges: true, isConfirmable: true }, 'planned'],
+    ['planned destroy waiting for confirmation', { status: 'planned', operation: 'destroy', hasChanges: true }, 'planned'],
+    ['applied', { status: 'applied', operation: 'plan-and-apply' }, 'applied'],
+    ['applied destroy', { status: 'applied', operation: 'destroy' }, 'destroyed'],
+    ['unknown status', { status: 'something-new' }, 'pending'],
+  ];
+  it.each(cases)('%s', (_name, input, want) => {
+    expect(computeDisplayStatus(input)).toBe(want);
   });
 
-  it('returns cancelled for canceled status', () => {
-    expect(computeDisplayStatus({ status: 'canceled' })).toBe('cancelled');
+  // An older response could hold a finished plan at `planned`; it never reads as awaiting a confirmation.
+  it.each([
+    ['plan-only operation', { status: 'planned', operation: 'plan-only' }],
+    ['plan-only flag', { status: 'planned', planOnly: true }],
+    ['no changes', { status: 'planned', operation: 'plan-and-apply', hasChanges: false }],
+    ['not confirmable', { status: 'planned', operation: 'plan-and-apply', isConfirmable: false }],
+  ] as Array<[string, RunStatusInput]>)('planned with %s is finished', (_name, input) => {
+    expect(computeDisplayStatus(input)).toBe('finished');
   });
+});
 
-  // 2. In-progress statuses
-  it('returns pending for pending status', () => {
-    expect(computeDisplayStatus({ status: 'pending' })).toBe('pending');
+describe('isFinalRunStatus', () => {
+  it.each(['applied', 'planned_and_finished', 'errored', 'canceled', 'force_canceled', 'discarded'])('%s is final', (s) => {
+    expect(isFinalRunStatus(s)).toBe(true);
   });
-
-  it('returns planning for planning status', () => {
-    expect(computeDisplayStatus({ status: 'planning' })).toBe('planning');
+  it.each(['pending', 'planning', 'planned', 'post_plan_completed', 'applying', 'post_apply_running', '', undefined])('%s is not final', (s) => {
+    expect(isFinalRunStatus(s)).toBe(false);
   });
+});
 
-  it('returns applying for applying status', () => {
-    expect(computeDisplayStatus({ status: 'applying' })).toBe('applying');
-  });
-
-  it('returns running for running status', () => {
-    expect(computeDisplayStatus({ status: 'running' })).toBe('running');
-  });
-
-  // 3. Planned status - complex branching
-  describe('planned status', () => {
-    it('returns finished for plan-only operation', () => {
-      expect(computeDisplayStatus({ status: 'planned', operation: 'plan-only' })).toBe('finished');
-    });
-
-    it('returns finished when planOnly is true', () => {
-      expect(computeDisplayStatus({ status: 'planned', planOnly: true })).toBe('finished');
-    });
-
-    it('returns finished when planOnly is true even with plan-and-apply operation', () => {
-      expect(computeDisplayStatus({ status: 'planned', operation: 'plan-and-apply', planOnly: true })).toBe('finished');
-    });
-
-    it('returns finished when hasChanges is false', () => {
-      expect(computeDisplayStatus({ status: 'planned', hasChanges: false })).toBe('finished');
-    });
-
-    it('returns planned when hasChanges is true', () => {
-      expect(computeDisplayStatus({ status: 'planned', hasChanges: true })).toBe('planned');
-    });
-
-    it('returns planned when hasChanges undefined and canApply is true', () => {
-      expect(computeDisplayStatus({ status: 'planned', canApply: true })).toBe('planned');
-    });
-
-    it('returns finished when hasChanges undefined and canApply is false', () => {
-      expect(computeDisplayStatus({ status: 'planned', canApply: false })).toBe('finished');
-    });
-
-    it('returns planned when both hasChanges and canApply are undefined', () => {
-      expect(computeDisplayStatus({ status: 'planned' })).toBe('planned');
-    });
-
-    it('returns planned for plan-and-apply with changes', () => {
-      expect(computeDisplayStatus({
-        status: 'planned',
-        operation: 'plan-and-apply',
-        hasChanges: true,
-        canApply: true,
-      })).toBe('planned');
-    });
-
-    it('returns finished for plan-and-apply with no changes', () => {
-      expect(computeDisplayStatus({
-        status: 'planned',
-        operation: 'plan-and-apply',
-        hasChanges: false,
-      })).toBe('finished');
-    });
-  });
-
-  // 4. Applied status
-  describe('applied status', () => {
-    it('returns destroyed for destroy operation', () => {
-      expect(computeDisplayStatus({ status: 'applied', operation: 'destroy' })).toBe('destroyed');
-    });
-
-    it('returns applied for non-destroy operation', () => {
-      expect(computeDisplayStatus({ status: 'applied', operation: 'plan-and-apply' })).toBe('applied');
-    });
-
-    it('returns applied when no operation specified', () => {
-      expect(computeDisplayStatus({ status: 'applied' })).toBe('applied');
-    });
-  });
-
-  // 5. Completed status
-  describe('completed status', () => {
-    it('returns finished for plan-and-apply (no changes)', () => {
-      expect(computeDisplayStatus({ status: 'completed', operation: 'plan-and-apply' })).toBe('finished');
-    });
-
-    it('returns finished for plan-only', () => {
-      expect(computeDisplayStatus({ status: 'completed', operation: 'plan-only' })).toBe('finished');
-    });
-
-    it('returns destroyed for destroy operation', () => {
-      expect(computeDisplayStatus({ status: 'completed', operation: 'destroy' })).toBe('destroyed');
-    });
-
-    it('returns applied for unknown operation (legacy)', () => {
-      expect(computeDisplayStatus({ status: 'completed' })).toBe('applied');
-    });
-  });
-
-  // 6. Fallback
-  it('returns pending for unknown status', () => {
-    expect(computeDisplayStatus({ status: 'some-unknown-status' })).toBe('pending');
-  });
-
-  // 7. Table-driven: all priority combinations
-  describe('priority ordering', () => {
-    const cases: [RunStatusInput, string][] = [
-      [{ status: 'failed', operation: 'destroy' }, 'errored'],
-      [{ status: 'canceled', operation: 'plan-and-apply', hasChanges: true }, 'cancelled'],
-      [{ status: 'pending', operation: 'plan-and-apply' }, 'pending'],
-      [{ status: 'planning', operation: 'destroy' }, 'planning'],
-      [{ status: 'applying', operation: 'plan-and-apply' }, 'applying'],
-    ];
-
-    for (const [input, expected] of cases) {
-      it(`${input.status} with operation=${input.operation} returns ${expected}`, () => {
-        expect(computeDisplayStatus(input)).toBe(expected);
-      });
-    }
-  });
+describe('isCanceledRunStatus', () => {
+  it.each([['canceled', true], ['force_canceled', true], ['discarded', true], ['errored', false], ['applied', false]] as Array<[string, boolean]>)(
+    '%s', (s, want) => {
+      expect(isCanceledRunStatus(s)).toBe(want);
+    },
+  );
 });

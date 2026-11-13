@@ -24,7 +24,7 @@ const run = (status: string): JsonApiResource => ({
 
 describe('hasActiveWorkspaceRun', () => {
   it('is true when any workspace has an in-progress run', () => {
-    for (const status of ['pending', 'planning', 'planned', 'applying', 'running']) {
+    for (const status of ['pending', 'planning', 'planned', 'applying', 'post_plan_running', 'post_plan_completed']) {
       expect(hasActiveWorkspaceRun([{ latestRun: run(status) }])).toBe(true);
     }
   });
@@ -33,6 +33,7 @@ describe('hasActiveWorkspaceRun', () => {
     expect(hasActiveWorkspaceRun([])).toBe(false);
     expect(hasActiveWorkspaceRun([{}])).toBe(false);
     expect(hasActiveWorkspaceRun([{ latestRun: run('applied') }, { latestRun: run('errored') }])).toBe(false);
+    expect(hasActiveWorkspaceRun([{ latestRun: run('planned_and_finished') }, { latestRun: run('discarded') }])).toBe(false);
   });
 
   it('is true if even one of several workspaces is active', () => {
@@ -184,7 +185,7 @@ describe('latestRunResource', () => {
         'has-changes': true,
         'created-at': '2026-08-02T10:00:00Z',
         'completed-at': null,
-        'permissions': { 'can-apply': true },
+        'actions': { 'is-confirmable': true },
       },
     });
   });
@@ -203,7 +204,7 @@ describe('latestRunResource', () => {
         completed_at: '2026-08-02T10:04:00Z',
       },
     });
-    expect(resource?.attributes['permissions']).toEqual({ 'can-apply': false });
+    expect(resource?.attributes['actions']).toEqual({ 'is-confirmable': false });
     expect(resource?.attributes['completed-at']).toBe('2026-08-02T10:04:00Z');
   });
 });
@@ -221,12 +222,11 @@ describe('workspaceStatusCategory', () => {
   });
 
   it('buckets failures', () => {
-    expect(workspaceStatusCategory(runWith({ status: 'failed' }))).toBe('errored');
     expect(workspaceStatusCategory(runWith({ status: 'errored' }))).toBe('errored');
   });
 
   it('buckets executing runs', () => {
-    for (const status of ['running', 'planning', 'applying']) {
+    for (const status of ['planning', 'applying', 'post_plan_running', 'pre_apply_running']) {
       expect(workspaceStatusCategory(runWith({ status }))).toBe('running');
     }
   });
@@ -241,11 +241,16 @@ describe('workspaceStatusCategory', () => {
   it('treats a finished plan-only run as a success, not an approval', () => {
     expect(workspaceStatusCategory(runWith({ status: 'planned', 'plan-only': true }))).toBe('success');
     expect(workspaceStatusCategory(runWith({ status: 'applied' }))).toBe('success');
-    expect(workspaceStatusCategory(runWith({ status: 'completed' }))).toBe('success');
+    expect(workspaceStatusCategory(runWith({ status: 'planned_and_finished', 'plan-only': true }))).toBe('success');
   });
 
-  it('leaves a cancelled run uncategorised', () => {
+  it('treats a plan with nothing to apply as a success', () => {
+    expect(workspaceStatusCategory(runWith({ status: 'planned_and_finished', operation: 'plan-and-apply' }))).toBe('success');
+  });
+
+  it('leaves a cancelled or discarded run uncategorised', () => {
     expect(workspaceStatusCategory(runWith({ status: 'canceled' }))).toBeNull();
+    expect(workspaceStatusCategory(runWith({ status: 'discarded' }))).toBeNull();
   });
 });
 
@@ -282,7 +287,7 @@ describe('countWorkspacesByStatus', () => {
       countWorkspacesByStatus([
         { latestRun: runWith({ status: 'pending' }) },
         { latestRun: runWith({ status: 'planned', operation: 'plan-and-apply' }) },
-        { latestRun: runWith({ status: 'failed' }) },
+        { latestRun: runWith({ status: 'errored' }) },
         { latestRun: runWith({ status: 'applying' }) },
         { latestRun: runWith({ status: 'applied' }) },
         {},

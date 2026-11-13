@@ -252,15 +252,14 @@ export default function Workspaces() {
     const operation = getRunOperation(run);
     const planOnly = getAttribute<boolean>(run, 'plan-only', false);
     const hasChanges = getAttribute<boolean>(run, 'has-changes', undefined);
-    const permissions = getAttribute<Record<string, boolean>>(run, 'permissions', {});
-    const canApply = permissions?.['can-apply'] ?? false;
+    const actions = getAttribute<Record<string, boolean>>(run, 'actions', {});
 
     const displayStatus = computeDisplayStatus({
       status,
       operation,
       planOnly,
       hasChanges,
-      canApply,
+      isConfirmable: actions?.['is-confirmable'],
     });
 
     return <StatusBadge status={displayStatus} variant="outline" />;

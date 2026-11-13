@@ -137,7 +137,9 @@ export function getRunFromJsonApi(resource: JsonApiResource): Run {
     committer: getAttribute<string>(resource, 'committer'),
     'pr-number': getAttribute<number>(resource, 'pr-number'),
     'source-branch': getAttribute<string>(resource, 'source-branch'),
+    actions: getAttribute<Record<string, boolean>>(resource, 'actions'),
     permissions: getAttribute<Record<string, boolean>>(resource, 'permissions'),
+    message: getAttribute<string>(resource, 'message'),
     'status-timestamps': getAttribute<Record<string, string>>(resource, 'status-timestamps'),
   };
   

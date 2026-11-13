@@ -79,6 +79,20 @@ describe('useRunPolling', () => {
     expect(mocks.get).toHaveBeenCalledTimes(2);
   });
 
+  it('keeps polling a plan waiting for its confirmation', async () => {
+    renderHook(() => useRunPolling({ runId: 'run-1', pollInterval: 2000 }));
+    await flush();
+    mocks.status.value = 'planned';
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(2000);
+    });
+    const calls = mocks.get.mock.calls.length;
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(4000);
+    });
+    expect(mocks.get.mock.calls.length).toBeGreaterThan(calls);
+  });
+
   it('invokes the latest onStatusChange and stops on a terminal status', async () => {
     const first = vi.fn();
     const latest = vi.fn();
@@ -90,13 +104,13 @@ describe('useRunPolling', () => {
     rerender({ cb: latest });
     await flush();
 
-    mocks.status.value = 'planned'; // terminal for a plan-only run
+    mocks.status.value = 'planned_and_finished'; // final: a plan-only run, or a plan with nothing to apply
     await act(async () => {
       await vi.advanceTimersByTimeAsync(2000);
     });
     expect(first).not.toHaveBeenCalled();
     expect(latest).toHaveBeenCalledTimes(1);
-    expect(latest.mock.calls[0][0]).toMatchObject({ status: 'planned' });
+    expect(latest.mock.calls[0][0]).toMatchObject({ status: 'planned_and_finished' });
 
     const calls = mocks.get.mock.calls.length;
     await act(async () => {
