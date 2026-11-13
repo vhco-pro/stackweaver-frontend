@@ -409,6 +409,33 @@ function repositoryResource(id: number) {
   };
 }
 
+// #855: the organization list pages at 20, and every caller treats the result as the caller's
+// complete membership, so the client walks every page rather than returning the first.
+describe('organizationsApi.list', () => {
+  afterEach(() => { vi.unstubAllGlobals(); });
+
+  const org = (name: string) => ({ id: `org-${name}`, type: 'organizations', attributes: { name } });
+  const block = (current: number, next: number | null) => ({
+    pagination: { 'current-page': current, 'page-size': 100, 'prev-page': current > 1 ? current - 1 : null, 'next-page': next, 'total-pages': 2, 'total-count': 3 },
+  });
+
+  it('follows next-page and returns every organization', async () => {
+    const sent = stubResponses(
+      { body: { data: [org('acme'), org('beta')], meta: block(1, 2) } },
+      { body: { data: [org('demo')], meta: block(2, null) } },
+    );
+
+    const res = await organizationsApi.list();
+
+    expect(res.data.map(o => o.name)).toEqual(['acme', 'beta', 'demo']);
+    expect(res.total).toBe(3);
+    const urls = sent().map(r => decodeURIComponent(r.url));
+    expect(urls).toHaveLength(2);
+    expect(urls[0]).toMatch(/\/organizations\?page\[number\]=1&page\[size\]=100$/);
+    expect(urls[1]).toMatch(/\/organizations\?page\[number\]=2&page\[size\]=100$/);
+  });
+});
+
 describe('platform documents (Phase 3)', () => {
   beforeEach(() => {
     vi.spyOn(console, 'warn').mockImplementation(() => undefined);

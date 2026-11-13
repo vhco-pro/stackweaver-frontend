@@ -23,7 +23,7 @@ const organization = (name: string): Organization => ({ id: name, name, created_
 const organizations = [organization('bravo'), organization('alpha')];
 const responseFor = (data = organizations): Awaited<ReturnType<typeof organizationsApi.list>> => ({
   data,
-  meta: { pagination: { 'current-page': 1, 'page-size': 20, 'total-pages': 1, 'total-count': data.length } },
+  total: data.length,
 });
 const moduleFor = (orgName: string): Module => ({
   id: `${orgName}-module`, organization_id: orgName, name: `${orgName}-module`, provider: 'aws',

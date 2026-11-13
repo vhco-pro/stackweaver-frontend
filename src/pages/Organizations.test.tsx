@@ -64,7 +64,7 @@ describe('Organizations: creation follows the account permission', () => {
 
   it('hides creation in the empty state and says who creates organizations when it is not allowed', async () => {
     vi.mocked(accountApi.details).mockResolvedValue(profile(false));
-    vi.mocked(organizationsApi.list).mockResolvedValue({ data: [], meta: undefined as never });
+    vi.mocked(organizationsApi.list).mockResolvedValue({ data: [], total: 0 });
     renderPage();
 
     expect(await screen.findByText(SUBSTITUTE)).toBeInTheDocument();
@@ -74,7 +74,7 @@ describe('Organizations: creation follows the account permission', () => {
 
   it('hides creation in the header when it is not allowed', async () => {
     vi.mocked(accountApi.details).mockResolvedValue(profile(false));
-    vi.mocked(organizationsApi.list).mockResolvedValue({ data: [acme], meta: undefined as never });
+    vi.mocked(organizationsApi.list).mockResolvedValue({ data: [acme], total: 1 });
     renderPage();
 
     expect(await screen.findByText('acme')).toBeInTheDocument();
@@ -84,7 +84,7 @@ describe('Organizations: creation follows the account permission', () => {
 
   it('offers creation in the empty state and the header when it is allowed', async () => {
     vi.mocked(accountApi.details).mockResolvedValue(profile(true));
-    vi.mocked(organizationsApi.list).mockResolvedValue({ data: [], meta: undefined as never });
+    vi.mocked(organizationsApi.list).mockResolvedValue({ data: [], total: 0 });
     const view = renderPage();
 
     expect(await screen.findByText('Get started by creating your first organization.')).toBeInTheDocument();
@@ -92,7 +92,7 @@ describe('Organizations: creation follows the account permission', () => {
     expect(screen.queryByText(SUBSTITUTE)).not.toBeInTheDocument();
     view.unmount();
 
-    vi.mocked(organizationsApi.list).mockResolvedValue({ data: [acme], meta: undefined as never });
+    vi.mocked(organizationsApi.list).mockResolvedValue({ data: [acme], total: 1 });
     renderPage();
     expect(await screen.findByText('acme')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Create Organization/ })).toBeInTheDocument();
