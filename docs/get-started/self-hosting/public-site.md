@@ -17,6 +17,9 @@ Stackweaver's frontend serves public product pages and documentation alongside t
 application. Installations request `noindex` by default. Opt in only when you intend to
 publish those public pages at your own HTTPS address.
 
+The enquiry form is available only on the official Stackweaver website. Self-hosted
+installations keep the email link in the FAQ.
+
 The indexing setting does not protect private data. Keep authentication and network access
 controls in place. Crawlers must be able to fetch a page to read its `noindex` rule; the
 robots file therefore allows crawling even when indexing is disabled. See

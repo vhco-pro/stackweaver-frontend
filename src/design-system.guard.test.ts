@@ -43,7 +43,7 @@ const OUT_OF_SCOPE = [
   'components/animate-ui/',
 ];
 // Surfaces that deliberately use the brand ramp (blue, indigo, purple) instead of a page ramp.
-const BRAND_SURFACE = ['pages/Login/', 'pages/Auth/', 'pages/Auth.tsx', 'components/auth/'];
+const BRAND_SURFACE = ['pages/Login/', 'pages/Auth/', 'pages/Auth.tsx', 'pages/Contact.tsx', 'components/auth/'];
 // The login flow and the screens outside the application shell, which the sweep did not restyle.
 const PUBLIC_OR_LOGIN = [...BRAND_SURFACE, 'pages/OAuthAuthorize.tsx', 'pages/VCS/', 'pages/Privacy.tsx'];
 

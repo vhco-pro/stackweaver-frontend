@@ -13,6 +13,7 @@ import DocsIndexPage from '@/pages/Docs/DocsIndex';
 import DocsViewer from '@/pages/Docs/DocsViewer';
 import { PublicNotFound } from '@/components/blog/PublicNotFound';
 import Landing from '@/pages/Landing';
+import Contact from '@/pages/Contact';
 import Privacy from '@/pages/Privacy';
 import Terms from '@/pages/Terms';
 import type { DocsIndex } from '@/components/docs/docsCollection';
@@ -29,9 +30,9 @@ export function renderPublicPage(page:PublicPage,input:PublicRenderInput):string
  const docPath=page.path.replace(/^\/docs\/?/,'')||'README';
  client.setQueryData(['doc','public','/docs-index.json','/docs',docPath,page.path],{content:input.content,isDirectoryPage:page.folder!==undefined});
  const article=input.articles.find(article=>article.canonical===page.path);
- const body=page.kind==='home'?<Landing/>:page.kind==='privacy'?<Privacy/>:page.kind==='terms'?<Terms/>:page.kind==='blog'?<BlogIndex articles={input.articles}/>:page.kind==='article'&&article?<ArticleView article={article} related={input.articles}/>:page.kind==='ansible'?<AnsiblePage/>:page.path==='/docs'?<DocsIndexPage/>:page.kind==='docs-index'&&!page.source?<DocsIndexPage folderPath={page.folder}/>:<Routes><Route path="/docs/*" element={<DocsViewer/>}/></Routes>;
+ const body=page.kind==='home'?<Landing/>:page.kind==='contact'?<Contact/>:page.kind==='privacy'?<Privacy/>:page.kind==='terms'?<Terms/>:page.kind==='blog'?<BlogIndex articles={input.articles}/>:page.kind==='article'&&article?<ArticleView article={article} related={input.articles}/>:page.kind==='ansible'?<AnsiblePage/>:page.path==='/docs'?<DocsIndexPage/>:page.kind==='docs-index'&&!page.source?<DocsIndexPage folderPath={page.folder}/>:<Routes><Route path="/docs/*" element={<DocsViewer/>}/></Routes>;
  try {
-  return renderToString(<StaticRouter location={page.path}><QueryClientProvider client={client}><ThemeProvider><DocsEnvironmentContext.Provider value={{basePath:'',staticRender:true,files:input.files,codeBlocks:stackweaverDocsCodeBlocks}}>{page.kind!=='home'&&<PublicNav activeLink={page.kind==='docs'||page.kind==='docs-index'?'docs':'blog'}/>} {body}{!['home','docs','docs-index'].includes(page.kind)&&<Footer/>}</DocsEnvironmentContext.Provider></ThemeProvider></QueryClientProvider></StaticRouter>);
+  return renderToString(<StaticRouter location={page.path}><QueryClientProvider client={client}><ThemeProvider><DocsEnvironmentContext.Provider value={{basePath:'',staticRender:true,files:input.files,codeBlocks:stackweaverDocsCodeBlocks}}>{!['home','contact'].includes(page.kind)&&<PublicNav activeLink={page.kind==='docs'||page.kind==='docs-index'?'docs':'blog'}/>} {body}{!['home','contact','docs','docs-index'].includes(page.kind)&&<Footer/>}</DocsEnvironmentContext.Provider></ThemeProvider></QueryClientProvider></StaticRouter>);
  } finally { client.clear(); }
 }
 

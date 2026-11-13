@@ -28,3 +28,11 @@ test('public HTML preserves shell dollar tokens without duplicating its document
  assert.equal((html.match(/<title>/g)??[]).length,1);
  assert.equal((html.match(/<head>/g)??[]).length,1);
 });
+
+test('contact is an explicit opt-in restricted to the official root site',()=>{
+ assert.doesNotMatch(siteSettings({url:'https://stackweaver.sh',indexing:true}),/set \$sw_contact_opt_in "1"/);
+ assert.match(siteSettings({url:'https://stackweaver.sh/',indexing:true,contact:true}),/set \$sw_contact_opt_in "1"/);
+ for(const url of ['', 'https://customer.example', 'https://stackweaver.sh/stack', 'https://www.stackweaver.sh']) {
+  assert.throws(()=>siteSettings({url,contact:true}),/contact/i);
+ }
+});

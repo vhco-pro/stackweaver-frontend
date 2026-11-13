@@ -48,7 +48,7 @@ describe('route contract and provider placement', () => {
   afterEach(() => { auth.session = { user: { id: 'person' } }; localStorage.clear(); });
 
   it('preserves every existing route in order, including guards and layout widths', () => {
-    const added=new Set(['/ansible','/blog','/compare/:slug','/blog/:slug','*']);
+    const added=new Set(['/ansible','/blog','/compare/:slug','/blog/:slug','/contact','*']);
     const all=flatten(appRoutes).filter(r=>r.path).map(r=>({path:r.path,wrappers:wrappers(r.element)}));
     // Preserve the captured private/public contract while adding the reviewed public routes.
     expect(all.filter(route=>!added.has(route.path!))).toEqual(contract);
@@ -57,6 +57,7 @@ describe('route contract and provider placement', () => {
       {path:'/blog',wrappers:[{name:'Blog'}]},
       {path:'/compare/:slug',wrappers:[{name:'BlogArticle'}]},
       {path:'/blog/:slug',wrappers:[{name:'BlogArticle'}]},
+      {path:'/contact',wrappers:[{name:'PublicNotFound'}]},
       {path:'*',wrappers:[{name:'PublicNotFound'}]},
     ]);
   });

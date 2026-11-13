@@ -1,5 +1,6 @@
 // Copyright (c) 2025 VH & Co BV. Licensed under the Business Source License 1.1. See LICENSE for details.
 
+import { contactHref, contactPageEnabled } from '@/lib/contactSite';
 import { Link } from 'react-router-dom';
 
 const linkClass = 'hover:text-blue-600 dark:hover:text-white transition-colors';
@@ -27,7 +28,8 @@ const LEGAL: FooterLink[] = [
   { label: 'Terms of Service', href: '/terms' },
 ];
 
-function FooterColumn({ title, links }: { title: string; links: FooterLink[] }) {
+function FooterColumn({ title, links, contact = false, reloadDocument }: { title: string; links: FooterLink[]; contact?: boolean; reloadDocument: boolean }) {
+  const staticRender = typeof document === 'undefined';
   return (
     <div>
       <h3 className="text-lg font-semibold text-slate-950 dark:text-white mb-4">{title}</h3>
@@ -35,7 +37,7 @@ function FooterColumn({ title, links }: { title: string; links: FooterLink[] }) 
         {links.map((link) => (
           <li key={link.label}>
             {link.href.startsWith('/') ? (
-              <Link to={link.href} className={linkClass}>
+              <Link to={link.href} reloadDocument={reloadDocument} className={linkClass}>
                 {link.label}
               </Link>
             ) : (
@@ -45,12 +47,17 @@ function FooterColumn({ title, links }: { title: string; links: FooterLink[] }) 
             )}
           </li>
         ))}
+        {contact && (staticRender || contactPageEnabled()) && (
+          <li data-sw-contact-entry={staticRender ? '' : undefined}>
+            <a href={contactHref()} className={linkClass}>Contact</a>
+          </li>
+        )}
       </ul>
     </div>
   );
 }
 
-export function Footer() {
+export function Footer({ reloadDocument = false }: { reloadDocument?: boolean } = {}) {
   return (
     <footer className="py-16 px-6 border-t border-slate-200 dark:border-white/10 bg-gradient-to-t from-slate-100/50 to-transparent dark:from-slate-950/50 dark:to-transparent">
       <div className="max-w-6xl mx-auto">
@@ -61,8 +68,8 @@ export function Footer() {
               Stackweaver is a DevOps automation platform for managing infrastructure and configuration with OpenTofu and Ansible.
             </p>
           </div>
-          <FooterColumn title="Resources" links={RESOURCES} />
-          <FooterColumn title="Legal" links={LEGAL} />
+          <FooterColumn title="Resources" links={RESOURCES} contact reloadDocument={reloadDocument} />
+          <FooterColumn title="Legal" links={LEGAL} reloadDocument={reloadDocument} />
         </div>
 
         <div className="border-t border-slate-200 dark:border-white/10 pt-8 mt-8 flex justify-center">
