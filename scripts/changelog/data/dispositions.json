@@ -146,5 +146,17 @@
   {
     "id": "maintenance-kind-validation",
     "reason": "Source-checkout maintenance validation only: seed credential-free local kind fixtures separately from optional GitHub fixtures, exercise controlled documentation requests and browser-resolved preview URLs, disable optional registry audit/fund requests in historical test builds, and refresh maintained captures and current internal instructions. Restore the documented manual-CI candidate secret scan with a checksum-pinned scanner, validated complete comparison ranges, merge-resolution coverage, redacted artifacts and real positive/negative controls, with independent actual Git completion/error accounting even when the scanner reports success; historical matches remain separately tracked. Existing application APIs, runtime behavior and customer configuration are preserved; no released security outcome is claimed."
+  },
+  {
+    "commit": "c450c9bc9c63d03739ea507b6c24ad9352942581",
+    "reason": "Merge commit that brought main into the shared development loop branch. It adds no change of its own; the branch moves the internal spec, tasks, implement, ship and investigate workflow onto the shared vh-adlc loop, which is development tooling with no customer-facing capability."
+  },
+  {
+    "commit": "4adc356ecf4b4e5740c5c9ca3337f41de8e4c47d",
+    "reason": "Merge commit that brought main into the shared development loop branch before review. It adds no change of its own; the branch moves the internal spec, tasks, implement, ship and investigate workflow onto the shared vh-adlc loop, which is development tooling with no customer-facing capability."
+  },
+  {
+    "commit": "7b6de083162ba577a7e07b53cc637e0ed7e93045",
+    "reason": "Merge commit that brought main into the shared development loop branch before its merge. It adds no change of its own; the branch moves the internal spec, tasks, implement, ship and investigate workflow onto the shared vh-adlc loop, which is development tooling with no customer-facing capability."
   }
 ]
