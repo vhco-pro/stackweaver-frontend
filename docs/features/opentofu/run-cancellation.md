@@ -41,10 +41,13 @@ interrupt output and ends with `Stackweaver: the run was canceled.`
 
 | Run state | Action |
 |---|---|
-| `pending`, `running`, `planning`, `applying` | Cancel from the run page or API. |
+| `pending`, `planning`, `applying` | Cancel from the run page or API. |
 | A run-task stage (an external check at a plan/apply boundary) is running | Use the cancel API below. It also cancels outstanding task stages/results. |
-| Plan finished and is waiting for approval | Discard the plan rather than using Cancel. |
-| Terminal run | Inspect its result; it cannot be canceled again. |
+| Plan finished and is waiting for approval (`planned`) | Discard the plan rather than using Cancel. The run ends `discarded`. |
+| Final run (`applied`, `planned_and_finished`, `errored`, `canceled`, `discarded`) | Inspect its result; it cannot be canceled again. |
+
+The run's `actions.is-cancelable` and `actions.is-discardable` attributes say which action
+its current status accepts.
 
 Use the actual run status, not an informal queue label, to choose an action. The API can
 refuse a request if a run finishes or changes state before the cancellation is accepted.
@@ -82,9 +85,9 @@ curl --fail-with-body \
   "$STACKWEAVER_API_URL/api/v2/runs/$RUN_ID"
 ```
 
-The serialized canceled status is `canceled`. A `400` means the state is not eligible;
-a `409` can mean it changed concurrently. Read the current record before choosing another
-action. Cancellation also closes outstanding run-task stages, so a later external verdict
+The serialized canceled status is `canceled`. A `409` means the run's status does not
+accept a cancel, or that it changed concurrently. Read the current record before choosing
+another action. Cancellation also closes outstanding run-task stages, so a later external verdict
 does not restart the run.
 
 Terraform resources configure and queue work; the cancel action is a lifecycle request,

@@ -93,17 +93,12 @@ export default function RunDetail() {
     pollInterval, // Dynamic polling interval based on run status
     onStatusChange: (updatedRun) => {
       runStatusRef.current = updatedRun.status;
-      // Show toast notification on status change. AUD-078: the success toast was keyed on the
-      // legacy `completed` status that the lifecycle no longer sets (AUD-031), so it never fired.
-      // Fire on the real terminal-success states: `applied` (plan-and-apply / destroy) and
-      // `planned` for a plan-only run; keep `completed` as a legacy fallback.
-      const succeeded =
-        updatedRun.status === 'applied' ||
-        (updatedRun.status === 'planned' && updatedRun.operation === 'plan-only') ||
-        updatedRun.status === 'completed';
+      // Show toast notification on status change: a run succeeds when it is applied, or planned
+      // and finished (a plan-only run, or a plan with nothing to apply).
+      const succeeded = updatedRun.status === 'applied' || updatedRun.status === 'planned_and_finished';
       if (succeeded) {
         toast.success(`${updatedRun.operation.charAt(0).toUpperCase() + updatedRun.operation.slice(1)} run completed`);
-      } else if (updatedRun.status === 'failed') {
+      } else if (updatedRun.status === 'errored') {
         toast.error('Run failed');
       }
     },
@@ -249,9 +244,8 @@ export default function RunDetail() {
   const handleCancel = async () => {
     if (!run || !id) return;
 
-    // Allow cancellation of pending, running, planning, and applying runs
-    const cancellableStatuses = ['pending', 'running', 'planning', 'applying'];
-    if (!cancellableStatuses.includes(run.status)) {
+    // The API says which runs it cancels: queued, planning, applying, or waiting on run tasks.
+    if (run.actions?.['is-cancelable'] !== true) {
       toast.error('Run cannot be cancelled in current state');
       return;
     }
@@ -315,7 +309,7 @@ export default function RunDetail() {
       operation: run.operation,
       planOnly: run.plan_only,
       hasChanges,
-      canApply: run.permissions?.['can-apply'],
+      isConfirmable: run.actions?.['is-confirmable'],
     });
   }, [run, planOutput, isApplyStarting]);
 
@@ -358,22 +352,18 @@ export default function RunDetail() {
     );
   }
 
-  // TFE-compatible: Handle new statuses and operation types
-  const canCancel = run.status === 'pending' || run.status === 'planning' || run.status === 'applying' || run.status === 'running' ||
-    run.status.endsWith('_running'); // run-task stages are cancellable too
+  // The run's actions say what its status accepts and its permissions what the caller may do
+  // (TFE run actions and permissions); a button shows when both allow it.
+  const canCancel = run.actions?.['is-cancelable'] === true && run.permissions?.['can-cancel'] !== false;
 
-  // TFE-compatible: Use permissions.can-apply from API response (backend is source of truth)
-  // For plan-and-apply runs: can-apply is true when plan phase is completed (status="planned")
-  // For plan-only runs: can-apply is always false
-  // Also check if plan has changes - don't allow apply if no changes detected
-  const canApply = run.permissions?.['can-apply'] === true && planHasChanges;
+  // A plan waiting for its confirmation. A plan with nothing to apply is planned_and_finished
+  // and never confirmable.
+  const canApply = run.actions?.['is-confirmable'] === true && run.permissions?.['can-apply'] === true && planHasChanges;
 
-  // Can discard plan-and-apply and destroy runs that are in "planned" status (plan phase completed, waiting for confirmation)
-  // Hide discard button if plan has been applied (status="applying" or "applied")
-  const canDiscard = (run.operation === 'plan-and-apply' || run.operation === 'destroy')
-    && (run.status === 'planned' || run.status === 'completed' || run.status === 'post_plan_completed')
-    && !run.error_message
-    && run.permissions?.['can-apply'] === true; // Only show if can still be applied
+  // Discarding is offered beside the confirmation, for a plan the caller decides not to apply.
+  const canDiscard = run.actions?.['is-confirmable'] === true
+    && run.actions?.['is-discardable'] === true
+    && run.permissions?.['can-discard'] === true;
 
   const handleApplyClick = () => {
     if (!run || !id || applying) return;
@@ -609,11 +599,18 @@ export default function RunDetail() {
             planPhaseContent: (
               <>
                 {/* Show cancelled indicator when plan was cancelled before completion */}
-                {run.status === 'canceled' && !run['status-timestamps']?.['planned-at'] && (
+                {(run.status === 'canceled' || run.status === 'force_canceled') && !run['status-timestamps']?.['planned-at'] && (
                   <div className="border rounded-lg p-8 text-center text-muted-foreground">
                     <XCircle className="h-12 w-12 mx-auto mb-3 text-gray-400" />
                     <p className="text-lg font-medium mb-1">Plan Cancelled</p>
                     <p className="text-sm">The plan operation was cancelled before completion.</p>
+                  </div>
+                )}
+                {run.status === 'discarded' && !run['status-timestamps']?.['planned-at'] && (
+                  <div className="border rounded-lg p-8 text-center text-muted-foreground">
+                    <XCircle className="h-12 w-12 mx-auto mb-3 text-gray-400" />
+                    <p className="text-lg font-medium mb-1">Run Discarded</p>
+                    <p className="text-sm">The run was discarded before it started planning.</p>
                   </div>
                 )}
                 {/* Show terminal view when planning and terminal view enabled, otherwise show spinner */}
@@ -626,7 +623,7 @@ export default function RunDetail() {
                   </div>
                 ) : null}
                 {/* Show errors if plan failed - only when plan has NOT completed (no planned-at timestamp) */}
-                {run.status === 'failed' &&
+                {run.status === 'errored' &&
                   !run['status-timestamps']?.['planned-at'] &&
                   (run.error_message || runLogs) && (
                     <ErrorDisplay logs={run.error_message || runLogs || ''} title="Plan Error" />
@@ -634,7 +631,7 @@ export default function RunDetail() {
                 {/* Hide OutputViewer if plan failed (no planned-at timestamp) to avoid showing "No changes detected" alongside errors */}
                 {/* Only show plan output/no changes message when plan has actually completed (has planned-at timestamp) */}
                 {/* This ensures we don't show "No changes detected" while plan is still pending/planning */}
-                {run['status-timestamps']?.['planned-at'] && !(run.status === 'failed' && !run['status-timestamps']?.['planned-at']) && (
+                {run['status-timestamps']?.['planned-at'] && !(run.status === 'errored' && !run['status-timestamps']?.['planned-at']) && (
                   planOutput ? (
                     <OutputViewer
                       data={planOutput}
@@ -666,7 +663,7 @@ export default function RunDetail() {
             applyPhaseContent: (
               <>
                 {/* Show cancelled indicator when apply/destroy was cancelled during execution */}
-                {run.status === 'canceled' && run['status-timestamps']?.['applying-at'] && (
+                {(run.status === 'canceled' || run.status === 'force_canceled') && run['status-timestamps']?.['applying-at'] && (
                   <div className="border rounded-lg p-8 text-center text-muted-foreground">
                     <XCircle className="h-12 w-12 mx-auto mb-3 text-gray-400" />
                     <p className="text-lg font-medium mb-1">{run.operation === 'destroy' ? 'Destroy Cancelled' : 'Apply Cancelled'}</p>
@@ -676,7 +673,7 @@ export default function RunDetail() {
                 {/* A lost apply is re-queued by a person, never on its own (decision 16) */}
                 {id && isLostApply(run) && <LostApplyRequeue runId={id} onRequeued={() => { refetchRun(); }} />}
                 {/* Show errors if apply/destroy failed - when plan phase completed (has planned-at timestamp) */}
-                {run.status === 'failed' &&
+                {run.status === 'errored' &&
                   run['status-timestamps']?.['planned-at'] &&
                   (run.error_message || runLogs) && (
                     <ErrorDisplay logs={run.error_message || runLogs || ''} title={run.operation === 'destroy' ? 'Destroy Error' : 'Apply Error'} />
@@ -689,8 +686,8 @@ export default function RunDetail() {
                     showJsonViewer={true}
                     planOutput={planOutput || undefined}
                     isApplying={run.status === 'applying' || isApplyStarting}
-                    isCancelled={run.status === 'canceled' && run['status-timestamps']?.['applying-at'] !== undefined}
-                    isFailed={run.status === 'failed' && run['status-timestamps']?.['applying-at'] !== undefined}
+                    isCancelled={(run.status === 'canceled' || run.status === 'force_canceled') && run['status-timestamps']?.['applying-at'] !== undefined}
+                    isFailed={run.status === 'errored' && run['status-timestamps']?.['applying-at'] !== undefined}
                     applyState={polledApplyState || undefined}
                     runId={id || undefined}
                     runOutputs={runOutputs ?? undefined}

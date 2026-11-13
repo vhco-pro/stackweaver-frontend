@@ -52,6 +52,7 @@ export function UnifiedPhaseTimeline({
   void applyOutput;
   void planOutputLoading;
   void applyOutputLoading;
+  void planHasChanges; // the run status decides the apply phase now: a plan with nothing to apply is planned_and_finished
 
   // Extract phase-specific timestamps from status-timestamps (TFE-compatible)
   // IMPORTANT: Must be extracted before functions that use them
@@ -61,43 +62,27 @@ export function UnifiedPhaseTimeline({
   const applyingAt = statusTimestamps?.['applying-at'];
   const appliedAt = statusTimestamps?.['applied-at'];
 
-  // Determine Plan Phase status and title
+  // How the run ended, in the TFE run statuses: errored, canceled (forcefully or not) or discarded.
+  const errored = run.status === 'errored';
+  const canceled = run.status === 'canceled' || run.status === 'force_canceled';
+  const discarded = run.status === 'discarded';
+  const applyStarted = applyingAt !== undefined;
+
+  // Determine Plan Phase status and title. planned-at is set the moment the plan finishes, so a
+  // plan with it is finished whatever happened to the run afterwards.
   const getPlanPhaseProps = () => {
     let status: 'pending' | 'running' | 'completed' | 'failed' | 'cancelled' = 'pending';
     let title = 'Plan Phase';
 
-    // Handle cancelled status first - check timestamps to determine which phase was cancelled
-    if (run.status === 'canceled') {
-      // If plan completed (has planned-at), plan phase succeeded before cancellation
-      if (plannedAt) {
-        status = 'completed';
-        title = 'Plan Finished';
-      } else {
-        // Plan was cancelled before completion
-        status = 'cancelled';
-        title = 'Plan Phase';
-      }
-      return { status, title, timestamp: run.started_at };
-    }
-
-    if (run.status === 'planning') {
-      status = 'running';
-      title = 'Plan Phase';
-    } else if (run.status === 'planned' || run.status === 'applying' || run.status === 'applied' || run.status === 'completed') {
+    if (plannedAt) {
       status = 'completed';
       title = 'Plan Finished';
-    } else     if (run.status === 'failed') {
-      // For plan-and-apply and destroy runs, check if plan phase completed before failure
-      // Strictly require plannedAt timestamp (PlanCompletedAt from backend)
-      // Weak indicators like planOutput or applyingAt can lead to false positives on failed plans
-      const planCompleted = !!plannedAt;
-      if ((run.operation === 'plan-and-apply' || run.operation === 'destroy') && planCompleted) {
-        status = 'completed';
-        title = 'Plan Finished';
-      } else if (run.operation === 'plan-only' || run.operation === 'plan-and-apply' || run.operation === 'destroy') {
-        status = 'failed';
-        title = 'Plan Phase';
-      }
+    } else if (canceled || discarded) {
+      status = 'cancelled';
+    } else if (run.status === 'planning') {
+      status = 'running';
+    } else if (errored) {
+      status = 'failed';
     }
 
     return { status, title, timestamp: run.started_at };
@@ -110,62 +95,42 @@ export function UnifiedPhaseTimeline({
     const isDestroy = run.operation === 'destroy';
     let title = isDestroy ? 'Destroy Phase' : 'Apply Phase';
 
-    // For runs with no changes: backend sets status to 'completed' but apply never ran
-    const applyActuallyRan = applyingAt !== undefined;
-    const hasNoChanges = planHasChanges === false;
-    
-    if ((run.operation === 'plan-and-apply' || isDestroy) && run.status === 'completed' && hasNoChanges && !applyActuallyRan) {
-      status = 'pending';
-      return { status, title, timestamp: run.started_at };
-    }
-
-    // Handle cancelled status - the entire run was discarded/cancelled, so apply/destroy phase is also cancelled
-    if (run.status === 'canceled') {
-      status = 'cancelled';
-      return { status, title, timestamp: applyingAt || run.started_at };
-    }
-
     if (run.status === 'applying' || isApplyStarting) {
       status = 'running';
-    } else if (run.status === 'applied' || (run.status === 'completed' && (applyActuallyRan || planHasChanges !== false))) {
+    } else if (run.status === 'applied' || run.status === 'post_apply_running' || run.status === 'post_apply_completed') {
       status = 'completed';
       title = isDestroy ? 'Destroyed' : 'Applied';
-    } else if (run.status === 'failed' && (run.operation === 'plan-and-apply' || isDestroy)) {
+    } else if (errored && applyStarted) {
       status = 'failed';
+    } else if (canceled || discarded) {
+      // Canceled mid-apply, or the plan was discarded or canceled before its apply.
+      status = 'cancelled';
     }
 
-    return { status, title, timestamp: run.started_at };
+    return { status, title, timestamp: applyStarted ? applyingAt : run.started_at };
   };
 
-  // Determine default expansion for Plan Phase
-  // Expand if pending, planning, planned, or failed (to show errors)
+  // Whether the run reached its apply phase, or was stopped at the point it would have: a plan
+  // with nothing to apply (planned_and_finished) has no apply phase to show.
+  const showApplyPhase =
+    run.status === 'applying' || run.status === 'applied' || isApplyStarting ||
+    run.status === 'post_apply_running' || run.status === 'post_apply_completed' ||
+    (errored && applyStarted) ||
+    ((canceled || discarded) && (applyStarted || plannedAt !== undefined));
+
+  // Determine default expansion for Plan Phase: expanded while it matters (queued, planning,
+  // waiting for a confirmation, errored, stopped before it finished, or finished with nothing to
+  // apply), collapsed once the apply is the story.
   const getPlanPhaseDefaultExpanded = () => {
-    // If cancelled during planning, expand to show cancellation
-    if (run.status === 'canceled' && !plannedAt) {
-      return true;
-    }
-    // If failed but plan completed (plannedAt set), collapse plan phase to focus on Apply error
-    if (run.status === 'failed' && plannedAt) {
-      return false;
-    }
-    // If completed with no changes, expand plan so user can see "No changes detected"
-    if (run.status === 'completed' && planHasChanges === false) {
-      return true;
-    }
-    return run.status === 'pending' || run.status === 'planning' || run.status === 'planned' || run.status === 'failed';
+    if ((canceled || discarded) && !plannedAt) return true;
+    if (errored) return !plannedAt;
+    return ['pending', 'planning', 'planned', 'post_plan_completed', 'planned_and_finished'].includes(run.status);
   };
 
   // Determine default expansion for Apply Phase
   const getApplyPhaseDefaultExpanded = () => {
-    // Expand if cancelled during apply (has applying-at timestamp)
-    if (run.status === 'canceled' && applyingAt) {
-      return true;
-    }
-    // Expand if failed during apply/destroy
-    if (run.status === 'failed' && (run.operation === 'plan-and-apply' || run.operation === 'destroy')) {
-      return true;
-    }
-    return run.status === 'applying' || run.status === 'applied' || run.status === 'completed' || isApplyStarting;
+    if ((canceled || errored) && applyStarted) return true;
+    return run.status === 'applying' || run.status === 'applied' || isApplyStarting;
   };
 
   // Determine if Plan Phase is collapsible
@@ -175,7 +140,9 @@ export function UnifiedPhaseTimeline({
 
   // Render action buttons for plan-and-apply and destroy runs
   const renderActionButtons = () => {
-    if ((run.operation !== 'plan-and-apply' && run.operation !== 'destroy') || !canApply || run.status !== 'planned') {
+    // canApply follows the run's actions.is-confirmable: `planned`, or `post_plan_completed` when a
+    // post-plan task stage exists.
+    if ((run.operation !== 'plan-and-apply' && run.operation !== 'destroy') || !canApply) {
       return null;
     }
 
@@ -262,15 +229,8 @@ export function UnifiedPhaseTimeline({
           </PhaseBox>
 
 
-          {/* Apply Phase - Only show when applying/applied/completed, isApplyStarting, failed during apply, or cancelled after plan completed */}
-          {/* Hide apply phase if plan has no changes and apply never ran (no applying-at timestamp) */}
-          {/* Backend sets status to 'completed' when no changes, so we check planHasChanges to determine if apply ran */}
-          {/* Use multiple indicators: applyingAt, plannedAt timestamps, or planOutput existence to determine if plan completed */}
-          {((run.status === 'applying' || run.status === 'applied' || isApplyStarting ||
-            (run.status === 'completed' && (applyingAt !== undefined || planHasChanges === true || planHasChanges === undefined)) ||
-            (run.status === 'failed' && run.operation === 'plan-and-apply' &&
-              (applyingAt || plannedAt)) ||
-            (run.status === 'canceled' && run.operation === 'plan-and-apply' && (plannedAt || applyingAt)))) && (
+          {/* Apply Phase - shown once the apply started, or when the run was stopped where it would have; never for a plan with nothing to apply */}
+          {showApplyPhase && (
               <>
                 <PhaseBox
                   ref={applyPhaseRef}
@@ -314,7 +274,7 @@ export function UnifiedPhaseTimeline({
               createdAt: run.created_at,
               // Use phase-specific timestamps from status-timestamps (TFE-compatible)
               startedAt: planningAt || run.started_at,
-              finishedAt: plannedAt || (run.status === 'planned' || run.status === 'completed' ? run.completed_at : undefined),
+              finishedAt: plannedAt || (run.status === 'planned_and_finished' ? run.completed_at : undefined),
             }}
           >
             {children?.planPhaseContent}
@@ -345,11 +305,7 @@ export function UnifiedPhaseTimeline({
           </PhaseBox>
 
           {/* Destroy Phase (apply the destroy plan - actually destroys resources) */}
-          {((run.status === 'applying' || run.status === 'applied' || isApplyStarting ||
-            (run.status === 'completed' && (applyingAt !== undefined || planHasChanges === true || planHasChanges === undefined)) ||
-            (run.status === 'failed' && run.operation === 'destroy' &&
-              (applyingAt || plannedAt)) ||
-            (run.status === 'canceled' && run.operation === 'destroy' && (plannedAt || applyingAt)))) && (
+          {showApplyPhase && (
               <>
                 <PhaseBox
                   ref={applyPhaseRef}

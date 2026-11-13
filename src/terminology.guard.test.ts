@@ -210,7 +210,9 @@ describe('terminology guard', () => {
     expect(findings.map((f) => f.line)).toEqual([4]);
   });
 
-  it('finds no retired term in a user-visible string of the frontend', () => {
+  // The walk reads every source file. It takes under two seconds alone, but the full suite runs
+  // beside it in parallel workers, and on a loaded host it passed vitest's 5 s default.
+  it('finds no retired term in a user-visible string of the frontend', { timeout: 30_000 }, () => {
     const findings = walk('').flatMap((file) => scan(file, readFileSync(join(SRC, file), 'utf8')));
     expect(findings.map((f) => `${f.file}:${f.line} "${f.text}" uses ${f.term}`)).toEqual([]);
   });

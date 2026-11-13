@@ -10,6 +10,7 @@ import {
   resolveRelationship,
   resolveRelationships,
   flattenResource,
+  getRunFromJsonApi,
   flattenResources,
   isJsonApiResponse,
   normalizeJsonApiResponse,
@@ -268,5 +269,25 @@ describe('normalizeJsonApiResponse', () => {
 
   it('throws for non-JSON:API response', () => {
     expect(() => normalizeJsonApiResponse({ foo: 'bar' })).toThrow('not in JSON:API format');
+  });
+});
+
+describe('getRunFromJsonApi', () => {
+  it('keeps the run actions, permissions and message the run page acts on', () => {
+    const run = getRunFromJsonApi({
+      id: 'run-1',
+      type: 'runs',
+      attributes: {
+        status: 'planned',
+        operation: 'plan-and-apply',
+        message: 'queued by the API',
+        actions: { 'is-cancelable': false, 'is-confirmable': true, 'is-discardable': true, 'is-force-cancelable': false },
+        permissions: { 'can-apply': true, 'can-cancel': true, 'can-discard': true },
+      },
+    });
+    expect(run.actions?.['is-confirmable']).toBe(true);
+    expect(run.actions?.['is-discardable']).toBe(true);
+    expect(run.permissions?.['can-apply']).toBe(true);
+    expect(run.message).toBe('queued by the API');
   });
 });

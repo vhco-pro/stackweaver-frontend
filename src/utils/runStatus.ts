@@ -1,26 +1,49 @@
 // Copyright (c) 2025 VH & Co BV. Licensed under the Business Source License 1.1. See LICENSE for details.
 
 /**
- * Unified status badge computation utility
- * 
- * Computes display status from TFE-compatible run attributes.
- * This is the single source of truth for status badge logic.
- * 
- * Implementation: frontend/src/utils/runStatus.ts
- * Usage: All components use this function to compute status badges consistently
- * 
+ * Run status vocabulary and the unified status badge computation.
+ *
+ * The API reports the TFE run statuses
+ * (https://developer.hashicorp.com/terraform/enterprise/api-docs/run#run-states). This module is
+ * the single place the frontend interprets them: which statuses are final, and which badge a run
+ * shows.
+ *
  * @see frontend/src/components/runs/StatusBadge.tsx - Badge component
  * @see frontend/src/pages/RunDetail.tsx - Run detail page usage
  * @see frontend/src/pages/WorkspaceDetail.tsx - Workspace detail page usage
  * @see frontend/src/pages/Workspaces.tsx - Workspaces list page usage
  */
 
+/**
+ * The statuses after which a run never moves again: applied, planned and finished (a plan-only run,
+ * or a plan with nothing to apply), errored, canceled, force-canceled or discarded.
+ */
+export const FINAL_RUN_STATUSES: readonly string[] = [
+  'applied',
+  'planned_and_finished',
+  'errored',
+  'canceled',
+  'force_canceled',
+  'discarded',
+];
+
+/** Whether a run status is final. */
+export function isFinalRunStatus(status: string | undefined | null): boolean {
+  return !!status && FINAL_RUN_STATUSES.includes(status);
+}
+
+/** Whether a run ended canceled, forcefully or not, or discarded. */
+export function isCanceledRunStatus(status: string | undefined | null): boolean {
+  return status === 'canceled' || status === 'force_canceled' || status === 'discarded';
+}
+
 export interface RunStatusInput {
   status: string;
   operation?: string;
   planOnly?: boolean;
   hasChanges?: boolean;
-  canApply?: boolean;
+  /** actions.is-confirmable: the run waits for a confirmation of its plan. */
+  isConfirmable?: boolean;
 }
 
 export type DisplayStatus =
@@ -32,97 +55,55 @@ export type DisplayStatus =
   | 'finished'
   | 'errored'
   | 'cancelled'
+  | 'discarded'
   | 'running'
   | 'destroyed'
   | 'tasks-running'
   | 'no-runs';
 
 /**
- * Computes display status badge from TFE-compatible run attributes
- * 
- * Matches TFE's badge logic but centralized in one place.
- * Based on TFE API attributes: status, operation, plan-only, has-changes, can-apply
- * 
- * @param input - Run status attributes from TFE-compatible API
- * @returns Display status string for badge component
+ * Computes the badge a run shows from its TFE attributes (status, operation, plan-only,
+ * has-changes, actions.is-confirmable).
  */
 export function computeDisplayStatus(input: RunStatusInput): DisplayStatus {
-  const { status, operation, planOnly, hasChanges, canApply } = input;
-  
-  // Priority order (matches TFE behavior):
-  // 1. Failed/Canceled (highest priority)
-  // 2. In-progress statuses
-  // 3. Completed statuses with operation-specific labels
-  
-  if (status === 'failed') return 'errored';
-  if (status === 'canceled') return 'cancelled';
-  if (status === 'pending') return 'pending';
-  if (status === 'planning') return 'planning';
-  if (status === 'applying') return 'applying';
-  if (status === 'running') return 'running';
+  const { status, operation, planOnly, hasChanges, isConfirmable } = input;
 
-  // Run-task stage statuses (run tasks executing at a stage boundary). pre_plan_completed is
-  // dispatchable like pending; post_plan_completed is the confirmable rest state, semantically
-  // `planned` (falls through to the planned branch below).
-  if (
-    status === 'pre_plan_running' ||
-    status === 'post_plan_running' ||
-    status === 'pre_apply_running' ||
-    status === 'post_apply_running'
-  ) {
-    return 'tasks-running';
-  }
-  if (status === 'pre_plan_completed') return 'pending';
-  if (status === 'post_apply_completed') return 'applying';
-
-  if (status === 'planned' || status === 'post_plan_completed') {
-    if (operation === 'plan-only' || planOnly) {
-      return 'finished'; // Plan-only: cannot be applied
-    }
-    // Plan-and-apply: check if has changes
-    // If hasChanges is explicitly false, no changes detected
-    if (hasChanges === false) {
-      return 'finished'; // No changes detected
-    }
-    // If hasChanges is true, definitely has changes
-    if (hasChanges === true) {
-      return 'planned'; // Has changes, waiting for apply
-    }
-    // If hasChanges is undefined, use canApply as fallback indicator
-    // canApply=true means the run can be applied (likely has changes)
-    // canApply=false means the run cannot be applied (likely no changes or already applied)
-    if (hasChanges === undefined) {
-      if (canApply === true) {
-        return 'planned'; // Can apply, assume has changes
-      }
-      if (canApply === false) {
-        return 'finished'; // Cannot apply, assume no changes
-      }
-      // If both are undefined, default to planned (safer assumption)
-      return 'planned';
-    }
-    return 'planned'; // Default to planned if hasChanges is true
-  }
-  
-  // Destroy runs complete with status 'applied' but display as 'destroyed'
-  if (status === 'applied') {
-    if (operation === 'destroy') return 'destroyed';
-    return 'applied';
-  }
-  
-  if (status === 'completed') {
-    // Completed status - map based on operation
-    if (operation === 'plan-and-apply') {
-      // Plan-and-apply with no changes: backend sets status to 'completed' (not 'applied')
-      // Backend logic: if no changes, status='completed'; if has changes, status='planned' (waiting for apply)
-      // So 'completed' for plan-and-apply always means finished (no changes detected)
+  switch (status) {
+    case 'errored':
+      return 'errored';
+    case 'canceled':
+    case 'force_canceled':
+      return 'cancelled';
+    case 'discarded':
+      return 'discarded';
+    case 'planned_and_finished':
+      // A plan-only run, or a plan with nothing to apply: the run is complete.
       return 'finished';
-    }
-    if (operation === 'plan-only') return 'finished';
-    if (operation === 'destroy') return 'destroyed';
-    return 'applied'; // Default for legacy apply runs
+    case 'pending':
+    case 'pre_plan_completed': // the pre-plan tasks passed; the run waits to plan like a pending one
+      return 'pending';
+    case 'planning':
+      return 'planning';
+    case 'applying':
+    case 'post_apply_completed':
+      return 'applying';
+    case 'pre_plan_running':
+    case 'post_plan_running':
+    case 'pre_apply_running':
+    case 'post_apply_running':
+      return 'tasks-running';
+    case 'planned':
+    case 'post_plan_completed':
+      // Waiting for a confirmation: post_plan_completed is `planned` when a post-plan task stage
+      // exists. A plan-only run never rests here, and a plan with no changes is
+      // planned_and_finished; the checks below only keep an older response readable.
+      if (operation === 'plan-only' || planOnly || hasChanges === false || isConfirmable === false) {
+        return 'finished';
+      }
+      return 'planned';
+    case 'applied':
+      return operation === 'destroy' ? 'destroyed' : 'applied';
+    default:
+      return 'pending';
   }
-  
-  return 'pending'; // Fallback
 }
-

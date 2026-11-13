@@ -104,6 +104,33 @@ During apply, follow resource progress and expand failures. Afterward, confirm t
 status and review the saved outputs and state version. A failed apply may have changed
 some resources already; do not assume it rolled everything back.
 
+## Read the run status
+
+A run reports the Terraform Enterprise run statuses, so the Terraform CLI and the `tfe`
+provider read them as they would from Terraform Enterprise.
+
+| Status | Badge | Meaning |
+|---|---|---|
+| `pending` | Pending | Queued, waiting for a launcher of the run's pool. |
+| `planning` | Planning | The plan is running. |
+| `planned` | Planned | The plan has changes and waits for a confirmation, or for auto-apply to start it. |
+| `planned_and_finished` | Finished | Nothing to apply: a plan-only run, or a plan with no changes. The run is complete. |
+| `applying` | Applying | The confirmed plan is being applied. |
+| `applied` | Applied, or Destroyed for a destroy run | The apply finished. |
+| `errored` | Errored | The plan, the apply or a mandatory run task failed. |
+| `canceled` | Cancelled | Someone canceled the run while it was queued, planning or applying. |
+| `discarded` | Discarded | Someone discarded the run before it started, or rejected its plan. |
+
+While run tasks execute, the run reports the stage, for example `post_plan_running`. With a
+post-plan task stage, a plan waiting for confirmation reports `post_plan_completed` instead
+of `planned`.
+
+A run's `actions` say what its status allows: `is-confirmable` while a plan waits for
+confirmation, `is-discardable` while it waits to start or to be confirmed, and
+`is-cancelable` while it is queued, planning, applying or running tasks. The apply, discard
+and cancel actions answer `409` when the run's status does not allow them. Its
+`permissions` say what you may do to runs of the workspace, whatever their status.
+
 ## Inspect a run through the API
 
 For automation, use read requests with a token allowed to access that workspace. Set

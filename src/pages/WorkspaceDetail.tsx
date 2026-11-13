@@ -18,7 +18,7 @@ import {
   type VariableSet
 } from '@/api/client';
 import { getRunFromJsonApi, type JsonApiResource } from '@/utils/jsonapi';
-import { calculateRunDuration, isRunActive } from './WorkspaceDetail.helpers';
+import { calculateRunDuration, isRunActive, runMatchesStatusFilter } from './WorkspaceDetail.helpers';
 import { useNow } from '@/hooks/useNow';
 import { MarkdownRenderer } from '@/components/docs/MarkdownRenderer';
 import { OutputViewer } from '@/components/runs/OutputViewer';
@@ -525,14 +525,8 @@ export default function WorkspaceDetail() {
   // latest run is in progress. Passed into the pure calculateRunDuration so it
   // never calls Date.now() during render (react-hooks/purity).
   const now = useNow(!!latestRun && isRunActive(latestRun));
-  const shouldFetchPlan = latestRun && (
-    (latestRun.operation === 'plan-and-apply' && 
-     (latestRun.status === 'planned' || latestRun.status === 'applying' || latestRun.status === 'applied')) ||
-    ((latestRun.operation === 'plan-only' || latestRun.operation === 'plan') && 
-     (latestRun.status === 'planned' || latestRun.status === 'completed')) ||
-    (latestRun.operation === 'destroy' && 
-     (latestRun.status === 'planned' || latestRun.status === 'applying' || latestRun.status === 'applied' || latestRun.status === 'completed'))
-  );
+  // The latest run's plan, once it finished: planned-at is set the moment a plan finishes.
+  const shouldFetchPlan = !!latestRun?.['status-timestamps']?.['planned-at'];
   const { data: latestRunPlanOutput } = useQuery({
     queryKey: ['plan-output', latestRun?.id, latestRun?.status],
     queryFn: async () => {
@@ -817,7 +811,7 @@ export default function WorkspaceDetail() {
       operation: run.operation,
       planOnly: run.plan_only,
       hasChanges,
-      canApply: run.permissions?.['can-apply'],
+      isConfirmable: run.actions?.['is-confirmable'],
     });
     return <StatusBadge status={displayStatus} variant="outline" />;
   };
@@ -869,21 +863,12 @@ export default function WorkspaceDetail() {
     // Status filter with TFE-style status mapping
     let matchesStatus = true;
     if (statusFilter !== 'all') {
-      const isPlanOnly = run.plan_only || run.operation === 'plan-only' || run.operation === 'plan';
       switch (statusFilter) {
         case 'errored':
-          matchesStatus = run.status === 'failed'; // 'errored' is not a valid status, use 'failed'
-          break;
         case 'running':
-          matchesStatus = ['running', 'planning', 'applying'].includes(run.status);
-          break;
         case 'on_hold':
-          // Plan-only runs in "planned" status are finished, not on hold
-          matchesStatus = run.status === 'pending' || (run.status === 'planned' && !isPlanOnly);
-          break;
         case 'success':
-          // Plan-only runs in "planned" status are also considered success
-          matchesStatus = run.status === 'applied' || run.status === 'completed' || (run.status === 'planned' && isPlanOnly);
+          matchesStatus = runMatchesStatusFilter(run, statusFilter);
           break;
         default:
           matchesStatus = run.status === statusFilter;
@@ -1774,7 +1759,7 @@ export default function WorkspaceDetail() {
                 )}
               >
                 <XCircle className="h-4 w-4" />
-                Errored {runs.filter(r => r.status === 'failed').length}
+                Errored {runs.filter(r => runMatchesStatusFilter(r, 'errored')).length}
               </button>
               <button
                 onClick={() => setStatusFilter('running')}
@@ -1785,8 +1770,8 @@ export default function WorkspaceDetail() {
                     : "text-blue-600 dark:text-blue-400 hover:bg-blue-500/20"
                 )}
               >
-                <Loader2 className={cn("h-4 w-4", runs.filter(r => ['running', 'planning', 'applying'].includes(r.status)).length > 0 && "animate-spin")} />
-                Running {runs.filter(r => ['running', 'planning', 'applying'].includes(r.status)).length}
+                <Loader2 className={cn("h-4 w-4", runs.some(r => runMatchesStatusFilter(r, 'running')) && "animate-spin")} />
+                Running {runs.filter(r => runMatchesStatusFilter(r, 'running')).length}
               </button>
               <button
                 onClick={() => setStatusFilter('on_hold')}
@@ -1798,7 +1783,7 @@ export default function WorkspaceDetail() {
                 )}
               >
                 <Pause className="h-4 w-4" />
-                On Hold {runs.filter(r => r.status === 'pending' || (r.status === 'planned' && !r.plan_only && r.operation !== 'plan-only' && r.operation !== 'plan')).length}
+                On Hold {runs.filter(r => runMatchesStatusFilter(r, 'on_hold')).length}
               </button>
               <button
                 onClick={() => setStatusFilter('success')}
@@ -1810,7 +1795,7 @@ export default function WorkspaceDetail() {
                 )}
               >
                 <CheckCircle2 className="h-4 w-4" />
-                Success {runs.filter(r => r.status === 'applied' || r.status === 'completed' || (r.status === 'planned' && (r.plan_only || r.operation === 'plan-only' || r.operation === 'plan'))).length}
+                Success {runs.filter(r => runMatchesStatusFilter(r, 'success')).length}
               </button>
             </div>
             <div className="flex items-center gap-2">

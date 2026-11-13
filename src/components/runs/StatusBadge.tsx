@@ -83,6 +83,12 @@ const statusConfig: Record<DisplayStatus, {
     icon: XCircle,
     spinning: false,
   },
+  discarded: {
+    label: 'Discarded',
+    className: 'bg-gray-500/10 text-gray-600 dark:text-gray-400',
+    icon: XCircle,
+    spinning: false,
+  },
   running: {
     label: 'Running',
     className: 'bg-blue-500/10 text-blue-600 dark:text-blue-400',

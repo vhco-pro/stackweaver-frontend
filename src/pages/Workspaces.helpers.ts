@@ -5,7 +5,17 @@ import { getAttribute, getRunOperation, getRunStatus, type JsonApiResource } fro
 
 // Run statuses that mean a workspace is still doing work, so the list should keep
 // polling for updates. Used by the Workspaces list's React Query refetchInterval.
-const ACTIVE_RUN_STATUSES = ['pending', 'planning', 'planned', 'applying', 'running'];
+const ACTIVE_RUN_STATUSES = [
+  'pending', 'planning', 'planned', 'applying',
+  'pre_plan_running', 'pre_plan_completed', 'post_plan_running', 'post_plan_completed',
+  'pre_apply_running', 'post_apply_running', 'post_apply_completed',
+];
+// Statuses in which a run waits for someone to confirm its plan.
+const CONFIRMABLE_RUN_STATUSES = ['planned', 'post_plan_completed'];
+// Statuses in which a run is executing.
+const EXECUTING_RUN_STATUSES = ['planning', 'applying', 'pre_plan_running', 'post_plan_running', 'pre_apply_running', 'post_apply_running', 'post_apply_completed'];
+// Statuses in which a run ended well: applied, or planned with nothing (or nothing allowed) to apply.
+const SUCCEEDED_RUN_STATUSES = ['applied', 'planned_and_finished'];
 
 /**
  * Whether any workspace in the list has an active (in-progress) latest run.
@@ -51,8 +61,8 @@ export function latestRunResource(workspace: Workspace): JsonApiResource | undef
       'has-changes': run.has_changes,
       'created-at': run.created_at,
       'completed-at': run.completed_at ?? null,
-      'permissions': {
-        'can-apply': !run.plan_only && run.status === 'planned',
+      'actions': {
+        'is-confirmable': !run.plan_only && CONFIRMABLE_RUN_STATUSES.includes(run.status),
       },
     },
   };
@@ -78,11 +88,11 @@ export function workspaceStatusCategory(latestRun: JsonApiResource | undefined):
   const status = getRunStatus(latestRun);
   const planOnly = isPlanOnlyRun(latestRun);
 
-  if (status === 'failed' || status === 'errored') return 'errored';
-  if (['running', 'planning', 'applying'].includes(status)) return 'running';
-  if (status === 'planned' && !planOnly) return 'needs_attention';
-  if (status === 'pending') return 'needs_attention';
-  if (status === 'completed' || status === 'applied' || (status === 'planned' && planOnly)) return 'success';
+  if (status === 'errored') return 'errored';
+  if (EXECUTING_RUN_STATUSES.includes(status)) return 'running';
+  if (CONFIRMABLE_RUN_STATUSES.includes(status) && !planOnly) return 'needs_attention';
+  if (status === 'pending' || status === 'pre_plan_completed') return 'needs_attention';
+  if (SUCCEEDED_RUN_STATUSES.includes(status) || (CONFIRMABLE_RUN_STATUSES.includes(status) && planOnly)) return 'success';
 
   return null;
 }
@@ -105,15 +115,15 @@ export function workspaceMatchesStatus(
 
   switch (filter) {
     case 'needs_attention':
-      return (status === 'planned' && !planOnly) || status === 'pending';
+      return (CONFIRMABLE_RUN_STATUSES.includes(status) && !planOnly) || status === 'pending' || status === 'pre_plan_completed';
     case 'errored':
-      return status === 'failed' || status === 'errored';
+      return status === 'errored';
     case 'running':
-      return ['running', 'planning', 'applying'].includes(status);
+      return EXECUTING_RUN_STATUSES.includes(status);
     case 'on_hold':
-      return status === 'pending' || (status === 'planned' && !planOnly);
+      return status === 'pending' || status === 'pre_plan_completed' || (CONFIRMABLE_RUN_STATUSES.includes(status) && !planOnly);
     case 'success':
-      return status === 'completed' || status === 'applied' || (status === 'planned' && planOnly);
+      return SUCCEEDED_RUN_STATUSES.includes(status) || (CONFIRMABLE_RUN_STATUSES.includes(status) && planOnly);
   }
 }
 

@@ -4,12 +4,38 @@ import type { Run } from '@/api/client';
 
 // Run statuses that mean the run is still in progress (its duration is still
 // growing). Shared by the WorkspaceDetail poll gate and the live-duration clock.
-export const RUN_ACTIVE_STATUSES = [
-  'running', 'pending', 'planning', 'applying', 'plan_queued', 'apply_queued',
+export const RUN_ACTIVE_STATUSES: readonly string[] = [
+  'pending', 'planning', 'applying', 'pre_plan_running', 'pre_plan_completed', 'post_plan_running',
+  'pre_apply_running', 'post_apply_running', 'post_apply_completed',
 ];
 
 export function isRunActive(run: Pick<Run, 'status'>): boolean {
   return RUN_ACTIVE_STATUSES.includes(run.status);
+}
+
+/** The status filters of a workspace's run list. */
+export type RunStatusFilter = 'errored' | 'running' | 'on_hold' | 'success';
+
+const EXECUTING = ['planning', 'applying', 'pre_plan_running', 'post_plan_running', 'pre_apply_running', 'post_apply_running', 'post_apply_completed'];
+const WAITING_FOR_CONFIRMATION = ['planned', 'post_plan_completed'];
+
+/**
+ * Whether a run belongs in a run-list status filter: errored; executing; on hold (queued, or a
+ * plan waiting for its confirmation); or a success (applied, or planned and finished: a plan-only
+ * run or a plan with nothing to apply).
+ */
+export function runMatchesStatusFilter(run: Pick<Run, 'status' | 'operation' | 'plan_only'>, filter: RunStatusFilter): boolean {
+  switch (filter) {
+    case 'errored':
+      return run.status === 'errored';
+    case 'running':
+      return EXECUTING.includes(run.status);
+    case 'on_hold':
+      return run.status === 'pending' || run.status === 'pre_plan_completed' ||
+        (WAITING_FOR_CONFIRMATION.includes(run.status) && !run.plan_only && run.operation !== 'plan-only');
+    case 'success':
+      return run.status === 'applied' || run.status === 'planned_and_finished';
+  }
 }
 
 /** Format a millisecond duration as a compact human string (e.g. "1m 5s", "2h 3m"). */

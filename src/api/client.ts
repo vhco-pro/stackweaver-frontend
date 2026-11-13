@@ -403,10 +403,11 @@ export interface Run {
   id: string;
   workspace_id: string;
   created_by?: string;
-  // TFE-compatible statuses: pending, planning, planned, applying, applied, failed, canceled
-  // Legacy: running, completed (for backward compatibility)
+  // TFE run statuses (https://developer.hashicorp.com/terraform/enterprise/api-docs/run#run-states).
+  // planned_and_finished ends a plan-only run and a plan with nothing to apply.
   status:
-    | 'pending' | 'planning' | 'planned' | 'applying' | 'applied' | 'failed' | 'canceled' | 'running' | 'completed'
+    | 'pending' | 'planning' | 'planned' | 'applying' | 'applied' | 'planned_and_finished'
+    | 'errored' | 'canceled' | 'force_canceled' | 'discarded'
     // Run-task stage statuses: entered only when the run has task stages at that boundary.
     | 'pre_plan_running' | 'pre_plan_completed' | 'post_plan_running' | 'post_plan_completed'
     | 'pre_apply_running' | 'post_apply_running' | 'post_apply_completed';
@@ -427,19 +428,34 @@ export interface Run {
   committer?: string; // Committer email/name (for VCS-triggered runs)
   'pr-number'?: number; // Pull request number (for PR-triggered speculative runs)
   'source-branch'?: string; // Source/head branch of the PR (for PR-triggered speculative runs)
+  // What the run's status accepts (TFE run actions); the action buttons follow these.
+  actions?: {
+    'is-cancelable'?: boolean;
+    'is-confirmable'?: boolean;
+    'is-discardable'?: boolean;
+    'is-force-cancelable'?: boolean;
+  };
+  // What the caller may do to the run, whatever its status.
   permissions?: {
-    'can-apply'?: boolean; // TFE-compatible: Only true if run can be applied
+    'can-apply'?: boolean;
     'can-cancel'?: boolean;
     'can-discard'?: boolean;
     'can-force-execute'?: boolean;
     'can-force-cancel'?: boolean;
   };
   'status-timestamps'?: {
+    'plan-queueable-at'?: string;
     'planning-at'?: string;
     'planned-at'?: string;
+    'planned-and-finished-at'?: string;
     'applying-at'?: string;
     'applied-at'?: string;
+    'errored-at'?: string;
+    'canceled-at'?: string;
+    'force-canceled-at'?: string;
+    'discarded-at'?: string;
   };
+  message?: string;
   'has-changes'?: boolean; // TFE-compatible: Indicates if plan has changes
   // Self-hosted runner info (Phase 3)
   agent_pool_id?: string;

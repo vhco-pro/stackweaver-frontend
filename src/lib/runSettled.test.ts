@@ -3,15 +3,15 @@ import { describe, expect, it } from 'vitest';
 import { isRunSettled } from './runSettled';
 
 describe('isRunSettled', () => {
-  it('treats a finished plan-only run, which the API reports as planned, as settled', () => {
-    expect(isRunSettled({ status: 'planned', operation: 'plan-only' })).toBe(true);
+  it('treats a finished plan-only run, which the API reports as planned_and_finished, as settled', () => {
+    expect(isRunSettled({ status: 'planned_and_finished', operation: 'plan-only' })).toBe(true);
   });
 
   it('keeps a plan-and-apply run waiting for confirmation unsettled: its apply is still to be placed', () => {
     expect(isRunSettled({ status: 'planned', operation: 'plan-and-apply' })).toBe(false);
   });
 
-  it.each(['applied', 'planned_and_finished', 'errored', 'failed', 'canceled', 'discarded', 'force_canceled'])('treats %s as settled', (status) => {
+  it.each(['applied', 'planned_and_finished', 'errored', 'canceled', 'discarded', 'force_canceled'])('treats %s as settled', (status) => {
     expect(isRunSettled({ status, operation: 'plan-and-apply' })).toBe(true);
   });
 

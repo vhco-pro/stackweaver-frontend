@@ -2233,5 +2233,54 @@
       "api"
     ],
     "availability": []
+  },
+  {
+    "id": "run-statuses-match-tfe",
+    "title": "Runs report the Terraform Enterprise run statuses and actions",
+    "area": "OpenTofu runs",
+    "kind": "Fixed",
+    "reviewed": true,
+    "audience": "terraform-provider-tfe, Terraform CLI and API users who read a run's status, actions or timestamps, and anyone who uses tfe_workspace_run.",
+    "before": "A plan with no changes, and a finished plan-only run, rested at planned and could be confirmed, so tfe_workspace_run waited indefinitely for a no-change apply. A failed run reported failed instead of errored, a discarded run reported canceled, the apply and cancel actions answered 400 instead of 409, a destroy run had no apply relationship, run lists reported has-changes false for every run, and a run never kept its message.",
+    "after": "A plan-only run and a plan with nothing to apply end at planned_and_finished. Runs report errored, canceled and discarded, actions that match what the action endpoints accept, a status-timestamps key for every status entered, a plan and an apply on every run, the caller's permissions, and the message they were queued with. tfe_workspace_run completes a no-change apply and destroy, and can retry an errored plan.",
+    "action": "Clients that compare a run's status with failed, completed or running read errored, planned_and_finished or applied instead. Stored runs are migrated when the API starts.",
+    "details": [],
+    "guides": [
+      {
+        "title": "Read OpenTofu runs",
+        "path": "/docs/user-guides/understanding-opentofu-runs"
+      }
+    ],
+    "sourceCommits": [],
+    "draftCommits": [],
+    "requiredComponents": [
+      "api",
+      "frontend"
+    ],
+    "availability": []
+  },
+  {
+    "id": "cli-remote-runs",
+    "title": "Terraform CLI remote runs work through the cloud block and the remote backend",
+    "area": "OpenTofu runs",
+    "kind": "Fixed",
+    "reviewed": true,
+    "audience": "Teams that run terraform plan and terraform apply against a Stackweaver workspace.",
+    "before": "Every remote terraform plan and apply failed with Failed to read logs: unauthorized, the cloud block was refused as an unsupported Terraform Enterprise version, and terraform plan created a run that could be applied.",
+    "after": "terraform plan, apply, destroy and plan -detailed-exitcode stream their logs and exit as they do against Terraform Enterprise, through both the cloud block and the remote backend, and terraform plan creates a speculative plan-only run.",
+    "action": "No action is required.",
+    "details": [],
+    "guides": [
+      {
+        "title": "Your first OpenTofu workspace",
+        "path": "/docs/get-started/your-first-opentofu-workspace"
+      }
+    ],
+    "sourceCommits": [],
+    "draftCommits": [],
+    "requiredComponents": [
+      "api"
+    ],
+    "availability": []
   }
 ]

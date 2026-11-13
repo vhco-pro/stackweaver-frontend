@@ -108,7 +108,7 @@ export function formatActivityNotification(attrs: ActivityAttributes): ActivityN
         // eslint-disable-next-line @typescript-eslint/no-base-to-string
         : (statusRaw != null && typeof statusRaw !== 'object' ? String(statusRaw) : 'started');
       message = `${operationStr} run ${statusStr}`;
-      type = details.status === 'completed' ? 'success' : 'info';
+      type = details.status === 'completed' || details.status === 'applied' || details.status === 'planned_and_finished' ? 'success' : 'info';
       break;
     }
     default:
