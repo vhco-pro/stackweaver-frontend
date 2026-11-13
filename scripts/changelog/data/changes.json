@@ -2360,5 +2360,30 @@
       "helm"
     ],
     "availability": []
+  },
+  {
+    "id": "organization-list-complete",
+    "title": "The Organizations page and selector list every organization you belong to",
+    "area": "Platform",
+    "kind": "Fixed",
+    "reviewed": true,
+    "audience": "People who belong to more than 20 organizations, such as platform teams, consultants and managed-service operators.",
+    "before": "The Organizations page, the organization selector and the organization-scoped pages loaded only the first 20 of your organizations, with no way to reach the rest. Opening one of the others showed Organization Not Found, although you were a member. Which 20 were shown could change between visits.",
+    "after": "The Organizations page, the organization selector and every organization-scoped page see all of your organizations. Lists of your organizations are in alphabetical order. The organizations API keeps its page size and pagination.",
+    "action": "No action is required.",
+    "details": [],
+    "guides": [
+      {
+        "title": "Organization settings",
+        "path": "/docs/user-guides/organization-settings"
+      }
+    ],
+    "sourceCommits": [],
+    "draftCommits": [],
+    "requiredComponents": [
+      "api",
+      "frontend"
+    ],
+    "availability": []
   }
 ]

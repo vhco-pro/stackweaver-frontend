@@ -519,12 +519,16 @@ function organizationFromJsonApi(item: JsonApiResource): Organization {
 }
 
 export const organizationsApi = {
-  // The list endpoint is TFE-compatible JSON:API (go-tfe Organizations.List decodes resource
-  // objects), so parse each element like `get` does.
-  list: () =>
-    apiClient
-      .get<{ data: JsonApiResource[]; meta: { pagination: { 'current-page': number; 'page-size': number; 'total-pages': number; 'total-count': number } } }>('/organizations')
-      .then(res => ({ data: (res.data ?? []).map(organizationFromJsonApi), meta: res.meta })),
+  // Every organization the caller belongs to. The endpoint is TFE-compatible JSON:API (go-tfe
+  // Organizations.List decodes resource objects) and pages at 20 by default, so this walks every
+  // page: callers treat the result as the complete membership (the organization guard, the
+  // selector, the Organizations page), and a first page alone hid every organization past it.
+  list: async () => {
+    const { items, total } = await fetchAllPages((page, pageSize) =>
+      apiClient.get<JsonApiListResponse>(`/organizations?page%5Bnumber%5D=${page}&page%5Bsize%5D=${pageSize}`),
+    );
+    return { data: items.map(organizationFromJsonApi), total };
+  },
   get: (name: string) =>
     apiClient
       .get<{ data: JsonApiResource }>(`/organizations/${encodeURIComponent(name)}`)

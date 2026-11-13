@@ -577,7 +577,7 @@
         },
         {
           "path": "frontend/src/api/client.ts",
-          "sha256": "143f2ff05e13a5433492fc359a929005b097ad150bb8c8f33736da6d3e02e369"
+          "sha256": "2ff82a009cf7d518289178e8b7b99c2f0ae37b0bb6d44abb280ab2f285b7b9a1"
         },
         {
           "path": "frontend/src/components/workspace/WorkspaceChangeRequests.tsx",

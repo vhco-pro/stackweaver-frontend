@@ -46,7 +46,7 @@ describe('PlatformOrganizations', () => {
       data: [demo, other],
       pagination: { 'current-page': 1, 'page-size': 20, 'total-pages': 1, 'total-count': 2 },
     });
-    vi.mocked(organizationsApi.list).mockResolvedValue({ data: memberOf, meta: undefined as never });
+    vi.mocked(organizationsApi.list).mockResolvedValue({ data: memberOf, total: memberOf.length });
   });
 
   it('links the rows the viewer is a member of and says "Not a member" on the others', async () => {
