@@ -3,7 +3,7 @@
 // Pins the organization's default OpenTofu version, an organization setting on this page (the
 // install-wide versions page has no organization to act on). The options are the open list of
 // enabled versions without the deprecated ones, choosing one saves it through the organization
-// update, and "Not set" clears it with an empty string.
+// update, and the empty choice clears it with a JSON null (#1069, Q4: null clears, "" keeps).
 
 import { describe, it, expect, vi, beforeAll, beforeEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
@@ -85,11 +85,16 @@ describe('Organization settings: default OpenTofu version', () => {
     );
     vi.mocked(organizationsApi.update).mockImplementation((_name, body) => {
       const attrs = (body as { data: { attributes: Record<string, unknown> } }).data.attributes;
-      if (typeof attrs['default-terraform-version'] === 'string') storedDefault = attrs['default-terraform-version'];
+      if ('default-terraform-version' in attrs) {
+        const v = attrs['default-terraform-version'];
+        if (v === null) storedDefault = '';
+        else if (typeof v === 'string' && v !== '') storedDefault = v;
+      }
       return Promise.resolve({ ...baseOrg, default_terraform_version: storedDefault });
     });
     vi.mocked(terraformVersionsApi.listEnabled).mockResolvedValue({
       data: [version('1.9.0'), version('1.10.2'), version('1.6.0', { deprecated: true })],
+      meta: { 'installation-default-version': '1.13.1' },
     });
   });
 
@@ -98,12 +103,14 @@ describe('Organization settings: default OpenTofu version', () => {
     renderPage();
 
     await waitFor(() => {
-      expect(versionSelect()).toHaveTextContent('Not set');
+      expect(versionSelect()).toHaveTextContent('Installation default (1.13.1)');
     });
+    expect(screen.getByText(/runs the installation's engine/)).toBeInTheDocument();
+    expect(screen.getByText(/downloaded once per organization/)).toBeInTheDocument();
 
     await user.click(versionSelect());
     const options = (await screen.findAllByRole('option')).map((o) => o.textContent);
-    expect(options).toEqual(['Not set', '1.10.2', '1.9.0']);
+    expect(options).toEqual(['Installation default (1.13.1)', '1.10.2', '1.9.0']);
 
     await user.click(screen.getByRole('option', { name: '1.10.2' }));
     await waitFor(() => {
@@ -116,14 +123,14 @@ describe('Organization settings: default OpenTofu version', () => {
     });
 
     await user.click(versionSelect());
-    await user.click(await screen.findByRole('option', { name: 'Not set' }));
+    await user.click(await screen.findByRole('option', { name: 'Installation default (1.13.1)' }));
     await waitFor(() => {
       expect(organizationsApi.update).toHaveBeenLastCalledWith('acme', {
-        data: { type: 'organizations', attributes: { 'default-terraform-version': '' } },
+        data: { type: 'organizations', attributes: { 'default-terraform-version': null } },
       });
     });
     await waitFor(() => {
-      expect(versionSelect()).toHaveTextContent('Not set');
+      expect(versionSelect()).toHaveTextContent('Installation default (1.13.1)');
     });
     expect(organizationsApi.update).toHaveBeenCalledTimes(2);
   });

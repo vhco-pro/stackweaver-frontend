@@ -87,17 +87,23 @@ export default function OrganizationSettings() {
   });
 
   // The versions a workspace may run: the open list (enabled versions), without the deprecated
-  // ones, newest first. Any member may read it, so an owner needs no platform access to choose.
-  const { data: tofuVersions = [] } = useQuery({
+  // ones, newest first, and the installation default the list's meta names (#1069, D4). Any member
+  // may read it, so an owner needs no platform access to choose.
+  const { data: catalogue } = useQuery({
     queryKey: ['enabledTofuVersions'],
     queryFn: async () => {
       const res = await terraformVersionsApi.listEnabled();
-      return (res.data ?? [])
-        .filter((v) => v.attributes.enabled && !v.attributes.deprecated)
-        .map((v) => v.attributes.version)
-        .sort(compareVersionsDesc);
+      return {
+        versions: (res.data ?? [])
+          .filter((v) => v.attributes.enabled && !v.attributes.deprecated)
+          .map((v) => v.attributes.version)
+          .sort(compareVersionsDesc),
+        installationDefault: res.meta?.['installation-default-version'] ?? '',
+      };
     },
   });
+  const tofuVersions = catalogue?.versions ?? [];
+  const installationDefault = catalogue?.installationDefault ?? '';
 
   // Sync the editable general fields from server data when it changes (adjust-state-during-render).
   const dataKey = org ? `${org.name}:${org.email ?? ''}:${org.collaborator_auth_policy ?? ''}` : 'none';
@@ -148,13 +154,14 @@ export default function OrganizationSettings() {
     })();
   };
 
-  // Set or clear (an empty string) the version a workspace runs when it names none.
+  // Set the version a workspace runs when it names none, or clear it back to the installation
+  // default: the API clears on a JSON null and keeps the stored value on "" (#1069, Q4).
   const setDefaultVersion = (version: string) => {
     if (!orgName) return;
     setSavingFlag('default-terraform-version');
     void (async () => {
       try {
-        await patchOrg({ 'default-terraform-version': version });
+        await patchOrg({ 'default-terraform-version': version || null });
         toast.success(version ? `Default OpenTofu version set to ${version}` : 'Default OpenTofu version cleared');
       } catch (err: unknown) {
         toast.error(err instanceof Error ? err.message : 'Failed to update the default OpenTofu version');
@@ -273,7 +280,9 @@ export default function OrganizationSettings() {
             <div className="space-y-1">
               <Label htmlFor="default-terraform-version" className="font-medium">Default OpenTofu version</Label>
               <p className="text-sm text-muted-foreground">
-                Used when a workspace does not specify an OpenTofu version. Choose "Not set" to clear it.
+                Used when a workspace and its project set no OpenTofu version. With Installation default, such a
+                workspace runs the installation's engine; any other version is downloaded once per organization and
+                then served from the organization's cache.
               </p>
             </div>
             <div className="flex items-center gap-2">
@@ -289,7 +298,9 @@ export default function OrganizationSettings() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value={NO_DEFAULT_VERSION}>Not set</SelectItem>
+                  <SelectItem value={NO_DEFAULT_VERSION}>
+                    {installationDefault ? `Installation default (${installationDefault})` : 'Installation default'}
+                  </SelectItem>
                   {versionOptions.map((version) => (
                     <SelectItem key={version} value={version}>{version}</SelectItem>
                   ))}

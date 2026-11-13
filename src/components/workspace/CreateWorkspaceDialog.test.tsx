@@ -182,6 +182,25 @@ beforeEach(() => {
   vi.spyOn(console, 'error').mockImplementation(() => undefined);
 });
 
+// A workspace created without a version stores none and inherits its project's, its
+// organization's or the installation default (#1069, D2). The choice reads "Inherit", as it does in
+// the edit dialog, and creating with it sends no terraform-version.
+describe('CreateWorkspaceDialog: OpenTofu version', () => {
+  it('offers Inherit first, shows it by default, and creates with no terraform-version', async () => {
+    const user = await setup();
+    const versionSelect = dialog().getByRole('combobox', { name: 'OpenTofu Version' });
+    expect(versionSelect).toHaveTextContent('Inherit');
+
+    await user.click(versionSelect);
+    const options = (await screen.findAllByRole('option')).map((o) => o.textContent);
+    expect(options[0]).toBe('Inherit');
+    await user.click(screen.getByRole('option', { name: 'Inherit' }));
+
+    const [, data] = await submit(user);
+    expect(data.terraform_version).toBeUndefined();
+  });
+});
+
 describe('CreateWorkspaceDialog: Allow destroy plans (AC9)', () => {
   it('shows the checkbox checked by default', async () => {
     await setup();

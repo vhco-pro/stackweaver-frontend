@@ -102,6 +102,38 @@ describe('TofuVersions', () => {
     });
   });
 
+  // The installation default (#1069, D3, D5): its row carries a badge, its enable switch is
+  // disabled with a tooltip naming TOFU_DEFAULT_VERSION, and it offers no delete, because the API
+  // refuses both.
+  it('marks the installation default and disables its switch with the reason', async () => {
+    const user = userEvent.setup();
+    const bundled: TerraformVersionResource = {
+      ...customVersion,
+      id: 'tv-bundled',
+      attributes: { ...customVersion.attributes, version: '1.13.1', official: false },
+    };
+    vi.mocked(adminTerraformVersionsApi.list).mockResolvedValue({
+      data: [customVersion, bundled],
+      meta: {
+        pagination: { 'current-page': 1, 'page-size': 20, 'total-pages': 1, 'total-count': 2 },
+        'installation-default-version': '1.13.1',
+      },
+    });
+    renderPage();
+
+    const row = (await screen.findByText('1.13.1')).closest('tr') as HTMLElement;
+    expect(within(row).getByText('Installation default')).toBeInTheDocument();
+    const toggle = within(row).getByRole('switch');
+    expect(toggle).toBeDisabled();
+    expect(within(row).queryByRole('button', { name: 'Delete OpenTofu 1.13.1' })).not.toBeInTheDocument();
+    await user.hover(within(row).getByTestId('installation-default-switch'));
+    expect(await screen.findByRole('tooltip')).toHaveTextContent('TOFU_DEFAULT_VERSION');
+
+    const other = screen.getByText('1.99.0').closest('tr') as HTMLElement;
+    expect(within(other).queryByText('Installation default')).not.toBeInTheDocument();
+    expect(within(other).getByRole('switch')).toBeEnabled();
+  });
+
   it('shows the install-wide subtitle and no organization default-version control', async () => {
     renderPage();
 

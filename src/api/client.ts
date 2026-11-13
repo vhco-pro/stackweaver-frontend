@@ -256,10 +256,16 @@ export interface TerraformVersionResource {
   attributes: TerraformVersionAttributes;
 }
 
+/** Meta of both catalogue listings: the installation default OpenTofu version (TOFU_DEFAULT_VERSION),
+ * which a workspace runs when its workspace, project and organization set none. */
+export interface TerraformVersionsMeta {
+  'installation-default-version'?: string;
+}
+
 // Public: list enabled terraform versions (any authenticated user)
 export const terraformVersionsApi = {
   listEnabled: () =>
-    apiClient.get<{ data: TerraformVersionResource[] }>('/terraform-versions'),
+    apiClient.get<{ data: TerraformVersionResource[]; meta?: TerraformVersionsMeta }>('/terraform-versions'),
 };
 
 // Admin: manage terraform versions (owners team only)
@@ -270,7 +276,7 @@ export const adminTerraformVersionsApi = {
     if (params?.pageSize) query.set('page[size]', String(params.pageSize));
     if (params?.search) query.set('search[version]', params.search);
     const qs = query.toString();
-    return apiClient.get<{ data: TerraformVersionResource[]; meta: { pagination: { 'current-page': number; 'page-size': number; 'total-pages': number; 'total-count': number } } }>(`/admin/terraform-versions${qs ? '?' + qs : ''}`);
+    return apiClient.get<{ data: TerraformVersionResource[]; meta: TerraformVersionsMeta & { pagination: { 'current-page': number; 'page-size': number; 'total-pages': number; 'total-count': number } } }>(`/admin/terraform-versions${qs ? '?' + qs : ''}`);
   },
   get: (id: string) =>
     apiClient.get<{ data: TerraformVersionResource }>(`/admin/terraform-versions/${id}`).then(res => res.data),
@@ -835,7 +841,9 @@ export const workspacesApi = {
     vcs_repository?: string;
     vcs_branch?: string;
     working_directory?: string;
-    terraform_version?: string;
+    /** A version pins it; null clears the workspace's own version so it inherits again (#1069).
+     * Undefined leaves it as it is. */
+    terraform_version?: string | null;
     auto_queue_runs?: boolean;
     auto_apply?: boolean;
     allow_destroy_plan?: boolean;
