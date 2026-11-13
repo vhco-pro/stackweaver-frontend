@@ -31,7 +31,7 @@ const mobilePageLinkClass = (active: boolean) => cn(
 
 interface PublicNavProps {
   /** Active public section to highlight. */
-  activeLink?: 'home' | 'docs' | 'blog';
+  activeLink?: 'home' | 'docs' | 'blog' | 'contact';
   /**
    * Drives the logo's opacity from outside. The landing page keeps the logo hidden until its
    * hero logo has travelled up to this spot.
@@ -43,6 +43,7 @@ export function PublicNav({ activeLink = 'home', logoOpacity }: PublicNavProps) 
   const session = usePublicSession();
   const blogActive = activeLink === 'blog';
   const docsActive = activeLink === 'docs';
+  const reloadDocument = activeLink === 'contact';
   const { theme, setTheme } = useTheme();
   const navigate = useNavigate();
   const [isScrolled, setIsScrolled] = useState(false);
@@ -59,6 +60,10 @@ export function PublicNav({ activeLink = 'home', logoOpacity }: PublicNavProps) 
 
   const handleGetStarted = (e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();
+    if (reloadDocument) {
+      window.location.assign(session ? '/dashboard' : '/auth/login');
+      return;
+    }
     if (session) {
       void Promise.resolve(navigate('/dashboard'));
     } else {
@@ -67,6 +72,7 @@ export function PublicNav({ activeLink = 'home', logoOpacity }: PublicNavProps) 
   };
 
   const handleLogoClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
+    if (reloadDocument) return;
     e.preventDefault();
     if (activeLink === 'home') {
       window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -85,7 +91,7 @@ export function PublicNav({ activeLink = 'home', logoOpacity }: PublicNavProps) 
     >
       <div className="max-w-7xl mx-auto px-4 md:px-6 h-16 flex items-center justify-between">
         <a
-          href="#"
+          href={reloadDocument ? '/' : '#'}
           onClick={handleLogoClick}
           className="flex items-center gap-3 hover:opacity-80 transition-opacity"
         >
@@ -150,8 +156,8 @@ export function PublicNav({ activeLink = 'home', logoOpacity }: PublicNavProps) 
               >
                 Features
               </a>
-              <Link to="/blog" aria-current={blogActive?'page':undefined} className={`text-sm transition-all duration-300 hover:text-blue-500 dark:hover:text-blue-300 min-h-11 inline-flex items-center ${blogActive ? 'text-blue-600 dark:text-blue-400' : isScrolled ? 'text-slate-800 dark:text-white' : 'text-slate-800/70 dark:text-white/70'}`}>Blog</Link>
-              <Link
+              <Link reloadDocument={reloadDocument} to="/blog" aria-current={blogActive?'page':undefined} className={`text-sm transition-all duration-300 hover:text-blue-500 dark:hover:text-blue-300 min-h-11 inline-flex items-center ${blogActive ? 'text-blue-600 dark:text-blue-400' : isScrolled ? 'text-slate-800 dark:text-white' : 'text-slate-800/70 dark:text-white/70'}`}>Blog</Link>
+              <Link reloadDocument={reloadDocument}
                 to="/docs"
                 aria-current={docsActive ? 'page' : undefined}
                 className={`text-sm transition-all duration-300 hover:text-blue-500 dark:hover:text-blue-300 ${
@@ -160,7 +166,7 @@ export function PublicNav({ activeLink = 'home', logoOpacity }: PublicNavProps) 
               >
                 Docs
               </Link>
-              <Link
+              <Link reloadDocument={reloadDocument}
                 to="/docs/api-reference/explorer"
                 aria-label="API Reference"
                 className={`text-sm whitespace-nowrap transition-all duration-300 hover:text-blue-500 dark:hover:text-blue-300 ${
@@ -172,7 +178,7 @@ export function PublicNav({ activeLink = 'home', logoOpacity }: PublicNavProps) 
             </>
           ) : (
             <>
-              <Link
+              <Link reloadDocument={reloadDocument}
                 to="/"
                 className={`text-sm transition-all duration-300 hover:text-blue-500 dark:hover:text-blue-300 ${
                   isScrolled ? 'text-slate-800 dark:text-white' : 'text-slate-800/70 dark:text-white/70'
@@ -180,7 +186,7 @@ export function PublicNav({ activeLink = 'home', logoOpacity }: PublicNavProps) 
               >
                 Home
               </Link>
-              <Link
+              <Link reloadDocument={reloadDocument}
                 to="/#overview"
                 className={`text-sm transition-all duration-300 hover:text-blue-500 dark:hover:text-blue-300 ${
                   isScrolled ? 'text-slate-800 dark:text-white' : 'text-slate-800/70 dark:text-white/70'
@@ -188,7 +194,7 @@ export function PublicNav({ activeLink = 'home', logoOpacity }: PublicNavProps) 
               >
                 Overview
               </Link>
-              <Link
+              <Link reloadDocument={reloadDocument}
                 to="/#compat"
                 className={`text-sm transition-all duration-300 hover:text-blue-500 dark:hover:text-blue-300 ${
                   isScrolled ? 'text-slate-800 dark:text-white' : 'text-slate-800/70 dark:text-white/70'
@@ -196,7 +202,7 @@ export function PublicNav({ activeLink = 'home', logoOpacity }: PublicNavProps) 
               >
                 Compatibility
               </Link>
-              <Link
+              <Link reloadDocument={reloadDocument}
                 to="/#install"
                 className={`text-sm transition-all duration-300 hover:text-blue-500 dark:hover:text-blue-300 ${
                   isScrolled ? 'text-slate-800 dark:text-white' : 'text-slate-800/70 dark:text-white/70'
@@ -204,7 +210,7 @@ export function PublicNav({ activeLink = 'home', logoOpacity }: PublicNavProps) 
               >
                 Install
               </Link>
-              <Link
+              <Link reloadDocument={reloadDocument}
                 to="/#features"
                 className={`text-sm transition-all duration-300 hover:text-blue-500 dark:hover:text-blue-300 ${
                   isScrolled ? 'text-slate-800 dark:text-white' : 'text-slate-800/70 dark:text-white/70'
@@ -212,15 +218,15 @@ export function PublicNav({ activeLink = 'home', logoOpacity }: PublicNavProps) 
               >
                 Features
               </Link>
-              <Link to="/blog" aria-current={blogActive?'page':undefined} className={`text-sm transition-all duration-300 hover:text-blue-500 dark:hover:text-blue-300 min-h-11 inline-flex items-center ${blogActive ? 'text-blue-600 dark:text-blue-400' : isScrolled ? 'text-slate-800 dark:text-white' : 'text-slate-800/70 dark:text-white/70'}`}>Blog</Link>
-              <Link
+              <Link reloadDocument={reloadDocument} to="/blog" aria-current={blogActive?'page':undefined} className={`text-sm transition-all duration-300 hover:text-blue-500 dark:hover:text-blue-300 min-h-11 inline-flex items-center ${blogActive ? 'text-blue-600 dark:text-blue-400' : isScrolled ? 'text-slate-800 dark:text-white' : 'text-slate-800/70 dark:text-white/70'}`}>Blog</Link>
+              <Link reloadDocument={reloadDocument}
                 to="/docs"
                 aria-current={docsActive ? 'page' : undefined}
                 className={`text-sm transition-all duration-300 font-medium ${docsActive ? 'text-blue-600 dark:text-blue-400' : 'text-slate-800/70 dark:text-white/70'}`}
               >
                 Docs
               </Link>
-              <Link
+              <Link reloadDocument={reloadDocument}
                 to="/docs/api-reference/explorer"
                 aria-label="API Reference"
                 className={`text-sm whitespace-nowrap transition-all duration-300 hover:text-blue-500 dark:hover:text-blue-300 ${
@@ -337,8 +343,8 @@ export function PublicNav({ activeLink = 'home', logoOpacity }: PublicNavProps) 
                   >
                     Features
                   </a>
-                  <Link to="/blog" onClick={() => setMobileMenuOpen(false)} aria-current={blogActive?'page':undefined} className={mobilePageLinkClass(blogActive)}>Blog</Link>
-                  <Link
+                  <Link reloadDocument={reloadDocument} to="/blog" onClick={() => setMobileMenuOpen(false)} aria-current={blogActive?'page':undefined} className={mobilePageLinkClass(blogActive)}>Blog</Link>
+                  <Link reloadDocument={reloadDocument}
                     to="/docs"
                     aria-current={docsActive ? 'page' : undefined}
                     onClick={() => setMobileMenuOpen(false)}
@@ -346,7 +352,7 @@ export function PublicNav({ activeLink = 'home', logoOpacity }: PublicNavProps) 
                   >
                     Docs
                   </Link>
-                  <Link
+                  <Link reloadDocument={reloadDocument}
                     to="/docs/api-reference/explorer"
                     onClick={() => setMobileMenuOpen(false)}
                     className="flex items-center px-3 py-3 text-sm font-medium text-slate-700 dark:text-gray-200 hover:bg-slate-100 dark:hover:bg-white/10 rounded-lg transition-colors"
@@ -356,43 +362,43 @@ export function PublicNav({ activeLink = 'home', logoOpacity }: PublicNavProps) 
                 </>
               ) : (
                 <>
-                  <Link
+                  <Link reloadDocument={reloadDocument}
                     to="/"
                     onClick={() => setMobileMenuOpen(false)}
                     className="flex items-center px-3 py-3 text-sm font-medium text-slate-700 dark:text-gray-200 hover:bg-slate-100 dark:hover:bg-white/10 rounded-lg transition-colors"
                   >
                     Home
                   </Link>
-                  <Link
+                  <Link reloadDocument={reloadDocument}
                     to="/#overview"
                     onClick={() => setMobileMenuOpen(false)}
                     className="flex items-center px-3 py-3 text-sm font-medium text-slate-700 dark:text-gray-200 hover:bg-slate-100 dark:hover:bg-white/10 rounded-lg transition-colors"
                   >
                     Overview
                   </Link>
-                  <Link
+                  <Link reloadDocument={reloadDocument}
                     to="/#compat"
                     onClick={() => setMobileMenuOpen(false)}
                     className="flex items-center px-3 py-3 text-sm font-medium text-slate-700 dark:text-gray-200 hover:bg-slate-100 dark:hover:bg-white/10 rounded-lg transition-colors"
                   >
                     Compatibility
                   </Link>
-                  <Link
+                  <Link reloadDocument={reloadDocument}
                     to="/#install"
                     onClick={() => setMobileMenuOpen(false)}
                     className="flex items-center px-3 py-3 text-sm font-medium text-slate-700 dark:text-gray-200 hover:bg-slate-100 dark:hover:bg-white/10 rounded-lg transition-colors"
                   >
                     Install
                   </Link>
-                  <Link
+                  <Link reloadDocument={reloadDocument}
                     to="/#features"
                     onClick={() => setMobileMenuOpen(false)}
                     className="flex items-center px-3 py-3 text-sm font-medium text-slate-700 dark:text-gray-200 hover:bg-slate-100 dark:hover:bg-white/10 rounded-lg transition-colors"
                   >
                     Features
                   </Link>
-                  <Link to="/blog" onClick={() => setMobileMenuOpen(false)} aria-current={blogActive?'page':undefined} className={mobilePageLinkClass(blogActive)}>Blog</Link>
-                  <Link
+                  <Link reloadDocument={reloadDocument} to="/blog" onClick={() => setMobileMenuOpen(false)} aria-current={blogActive?'page':undefined} className={mobilePageLinkClass(blogActive)}>Blog</Link>
+                  <Link reloadDocument={reloadDocument}
                     to="/docs"
                     aria-current={docsActive ? 'page' : undefined}
                     onClick={() => setMobileMenuOpen(false)}
@@ -400,7 +406,7 @@ export function PublicNav({ activeLink = 'home', logoOpacity }: PublicNavProps) 
                   >
                     Docs
                   </Link>
-                  <Link
+                  <Link reloadDocument={reloadDocument}
                     to="/docs/api-reference/explorer"
                     onClick={() => setMobileMenuOpen(false)}
                     className="flex items-center px-3 py-3 text-sm font-medium text-slate-700 dark:text-gray-200 hover:bg-slate-100 dark:hover:bg-white/10 rounded-lg transition-colors"

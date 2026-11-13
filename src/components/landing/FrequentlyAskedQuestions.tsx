@@ -1,5 +1,6 @@
 // Copyright (c) 2026 VH & Co BV. Licensed under the Business Source License 1.1. See LICENSE for details.
 
+import { contactHref } from '@/lib/contactSite';
 import { ChevronDown } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { glassSurface } from '@/lib/surfaces';
@@ -47,7 +48,7 @@ const questions = [
     question: 'Can VH & Co help us set up or maintain our instance?',
     answer: <>
       Yes. VH &amp; Co can help you deploy Stackweaver on your infrastructure or work with you on ongoing maintenance.
-      {' '}<a className={answerLink} href="mailto:contact@vhco.pro">Get in touch</a> to discuss what your team needs.
+      {' '}<a className={answerLink} href={contactHref()}>Get in touch</a> to discuss what your team needs.
     </>,
   },
 ];

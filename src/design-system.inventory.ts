@@ -67,6 +67,7 @@ export const SWEPT_PAGES: string[] = [
 export const EXEMPT_PAGES: Array<{ prefix: string; reason: string }> = [
   { prefix: 'pages/Blog/', reason: 'the owner-approved public editorial design, separate from application pages' },
   { prefix: 'pages/Landing.tsx', reason: 'the public landing page; its design is a separate spec (landing-page-upgrade-plan.md)' },
+  { prefix: 'pages/Contact.tsx', reason: 'the public contact page uses the approved marketing heading and brand ramp' },
   { prefix: 'pages/Privacy.tsx', reason: 'a public page with its own title block, covered by its own criterion' },
   { prefix: 'pages/Terms.tsx', reason: 'a public page with its own title block, built like the privacy page (landing-page-upgrade-plan.md)' },
   { prefix: 'pages/Login/', reason: 'the login flow; its title block comes from LoginLayout and it uses the brand ramp' },

@@ -1,5 +1,28 @@
 [
   {
+    "id": "official-contact-page",
+    "title": "Contact Stackweaver from the public website",
+    "area": "Platform",
+    "kind": "Added",
+    "reviewed": true,
+    "audience": "People evaluating Stackweaver or looking for help with installation and migration.",
+    "before": "The public website provided an email link in the FAQ.",
+    "after": "The official site can offer a contact page with a message preview and a direct email link. Sending depends on the site's delivery configuration.",
+    "action": "Use the Contact link in the footer or Get in touch in the FAQ on the official website.",
+    "details": [],
+    "guides": [
+      {
+        "title": "Public pages and search indexing",
+        "path": "/docs/get-started/self-hosting/public-site"
+      }
+    ],
+    "sourceCommits": [],
+    "requiredComponents": [
+      "frontend"
+    ],
+    "availability": []
+  },
+  {
     "id": "docs-table-type",
     "title": "Documentation tables are easier to read",
     "area": "Documentation",

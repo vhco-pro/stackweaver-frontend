@@ -1,10 +1,12 @@
 // Copyright (c) 2025 VH & Co BV. Licensed under the Business Source License 1.1. See LICENSE for details.
+import { contactPageEnabled } from '@/lib/contactSite';
 import { createRoutesFromElements, Route, Navigate } from 'react-router-dom';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
 import { internalDocs } from '@/components/docs/docsCollection';
 import { deferredPage } from '@/components/routes/deferredPage';
 import { DocsShell } from '@/components/routes/DocsShell';
 import { PublicNotFound } from '@/components/blog/PublicNotFound';
+const Contact = deferredPage(() => import('./pages/Contact'), 'Contact');
 const Landing = deferredPage(() => import('./pages/Landing'), 'Landing');
 
 const AnsiblePublic = deferredPage(() => import('./pages/Blog/Ansible'), 'AnsiblePublic');
@@ -91,6 +93,7 @@ export const appRoutes = createRoutesFromElements(<>
               <Route path="/blog" element={<Blog />} />
               <Route path="/compare/:slug" element={<BlogArticle />} />
               <Route path="/blog/:slug" element={<BlogArticle />} />
+              <Route path="/contact" element={contactPageEnabled() ? <Contact /> : <PublicNotFound />} />
               <Route path="/landing" element={<Landing />} />
               <Route path="/privacy" element={<Privacy />} />
               <Route path="/terms" element={<Terms />} />

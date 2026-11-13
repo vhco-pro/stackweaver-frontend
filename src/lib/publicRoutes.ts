@@ -3,7 +3,7 @@ import type { DocsIndex, DocTreeNode } from '../components/docs/docsTypes';
 import type { BlogArticle } from './blog';
 export interface PublicPage {
  path:string; title:string; description:string;
- kind:'home'|'blog'|'article'|'docs'|'docs-index'|'ansible'|'privacy'|'terms';
+ kind:'home'|'blog'|'article'|'docs'|'docs-index'|'ansible'|'privacy'|'terms'|'contact';
  source?:string; folder?:string; updated?:string; author?:string; published?:string;
 }
 export function cleanBasePath(value:string):string {
@@ -18,6 +18,7 @@ export function buildPublicRoutes(index:DocsIndex, articles:readonly BlogArticle
   {path:'/',kind:'home',title:'Ansible and OpenTofu automation',description:'Run Ansible playbooks and OpenTofu infrastructure workflows with Stackweaver. Self-host today; a managed service is planned.'},
   {path:'/ansible',kind:'ansible',title:'Ansible automation with a web interface',description:'Launch repository playbooks, manage inventories and credentials, schedule jobs and inspect host-by-task output with Stackweaver.'},
   {path:'/blog',kind:'blog',title:'Practical infrastructure automation articles',description:'Workflow comparisons and practical notes on Ansible, OpenTofu and running infrastructure automation as a team.'},
+  {path:'/contact',kind:'contact',title:'Contact',description:'Ask about installing, migrating to, or running Stackweaver for your team.'},
   {path:'/privacy',kind:'privacy',title:'Privacy Policy',description:'How Stackweaver handles personal data, authentication and your privacy choices.'},
   {path:'/terms',kind:'terms',title:'Terms of Service',description:'Terms for using Stackweaver and its related services.'},
  ];

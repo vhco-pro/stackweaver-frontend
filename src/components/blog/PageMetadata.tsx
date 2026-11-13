@@ -3,10 +3,11 @@ import { useMountEffect } from '@/hooks/useMountEffect';
 import { pageStructuredData, previewImageMetadata } from '@/lib/publicRoutes';
 import pages from 'virtual:public-pages';
 import { config } from '@/config';
+import { contactPageEnabled } from '@/lib/contactSite';
 /** Mounted with a pathname key so navigation cannot retain another page's head state. */
 export function PageMetadata({path}:{path:string}) {
  useMountEffect(()=>{
-  const page=pages.find(page=>page.path===(path==='/landing'?'/':path));
+  const page=path==='/contact'&&!contactPageEnabled()?undefined:pages.find(page=>page.path===(path==='/landing'?'/':path));
   const trusted=document.head.querySelector<HTMLMetaElement>('meta[name="sw-public-site-url"]')?.content;
   const siteUrl=trusted&&!trusted.includes('__SW_')?trusted:location.origin+config.basePath;
   for(const element of document.head.querySelectorAll('[data-sw-meta]')) element.remove();
