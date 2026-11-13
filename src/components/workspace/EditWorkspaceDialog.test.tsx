@@ -19,6 +19,7 @@ import {
   terraformVersionsApi,
   type Workspace,
 } from '@/api/client';
+import { effectiveSettingsApi, type EffectiveSetting } from '@/api/runPlacement';
 import { EditWorkspaceDialog } from './EditWorkspaceDialog';
 
 vi.mock('@/api/client', () => ({
@@ -33,6 +34,8 @@ vi.mock('@/api/client', () => ({
   terraformVersionsApi: { listEnabled: vi.fn() },
 }));
 
+vi.mock('@/api/runPlacement', () => ({ effectiveSettingsApi: { get: vi.fn() } }));
+
 vi.mock('sonner', () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
 
 const baseWorkspace: Workspace = {
@@ -46,12 +49,22 @@ const baseWorkspace: Workspace = {
   updated_at: '2026-01-01T00:00:00Z',
 };
 
-function setup(workspace: Workspace) {
+function setup(workspace: Workspace, tofuVersion: EffectiveSetting<string> = { value: '1.13.1', level: 'deployment' }) {
   vi.mocked(vcsConnectionsApi.list).mockResolvedValue([]);
   vi.mocked(agentPoolsApi.list).mockResolvedValue(
     { data: [] } as unknown as Awaited<ReturnType<typeof agentPoolsApi.list>>,
   );
-  vi.mocked(terraformVersionsApi.listEnabled).mockResolvedValue({ data: [] });
+  vi.mocked(terraformVersionsApi.listEnabled).mockResolvedValue({
+    data: ['1.13.1', '1.9.0'].map((version) => ({
+      id: `tv-${version}`,
+      type: 'terraform-versions',
+      attributes: {
+        version, url: '', sha: '', deprecated: false, 'deprecated-reason': null, official: true,
+        enabled: true, beta: false, usage: 0, 'created-at': '2026-01-01T00:00:00Z',
+      },
+    })),
+  });
+  vi.mocked(effectiveSettingsApi.get).mockResolvedValue({ tofu_version: tofuVersion });
   vi.mocked(workspacesApi.update).mockResolvedValue(workspace);
 
   const onUpdated = vi.fn();
@@ -152,5 +165,54 @@ describe('EditWorkspaceDialog: Allow destroy plans (AC10)', () => {
     const [, , data] = await save(user);
 
     expect(data).toMatchObject({ allow_destroy_plan: false, auto_apply: true, force_delete: true });
+  });
+});
+
+// The workspace's terraform-version always reads a concrete version (the effective one, #1069 D2),
+// so the version select takes the pin from the effective-settings level instead: only level
+// "workspace" is a version the workspace stores. Anything else selects the inherit choice, and a
+// save that does not touch the select sends no terraform-version, so it never stamps a pin.
+describe('EditWorkspaceDialog: OpenTofu version select (AC23)', () => {
+  const versionTrigger = () => dialog().getByRole('combobox', { name: 'OpenTofu Version' });
+
+  it('selects the stored version when the effective level is workspace', async () => {
+    setup({ ...baseWorkspace, terraform_version: '1.9.0' }, { value: '1.9.0', level: 'workspace' });
+    await waitFor(() => {
+      expect(versionTrigger()).toHaveTextContent('1.9.0');
+    });
+    expect(dialog().queryByTestId('edit-tofu-version-inherited')).not.toBeInTheDocument();
+  });
+
+  it('selects the inherit choice when the version comes from another level, though terraform_version is concrete', async () => {
+    setup({ ...baseWorkspace, terraform_version: '1.13.1' }, { value: '1.13.1', level: 'deployment' });
+    const hint = await dialog().findByTestId('edit-tofu-version-inherited');
+    expect(hint).toHaveTextContent('1.13.1');
+    expect(versionTrigger()).not.toHaveTextContent('1.13.1');
+  });
+
+  it.each<{ name: string; stored: string; setting: EffectiveSetting<string> }>([
+    { name: 'an inherited version', stored: '1.13.1', setting: { value: '1.13.1', level: 'deployment' } },
+    { name: 'a pinned version', stored: '1.9.0', setting: { value: '1.9.0', level: 'workspace' } },
+  ])('sends no terraform-version on a save that leaves the select alone ($name)', async ({ stored, setting }) => {
+    const { user } = setup({ ...baseWorkspace, terraform_version: stored }, setting);
+    await waitFor(() => {
+      expect(effectiveSettingsApi.get).toHaveBeenCalled();
+    });
+    await user.click(allowDestroyPlans());
+    const [, , data] = await save(user);
+    expect(data.terraform_version).toBeUndefined();
+  });
+
+  it('offers Inherit first, and saving it on a pinned workspace sends a null terraform-version', async () => {
+    const { user } = setup({ ...baseWorkspace, terraform_version: '1.9.0' }, { value: '1.9.0', level: 'workspace' });
+    await waitFor(() => {
+      expect(versionTrigger()).toHaveTextContent('1.9.0');
+    });
+    await user.click(versionTrigger());
+    const options = (await screen.findAllByRole('option')).map((o) => o.textContent);
+    expect(options[0]).toBe('Inherit');
+    await user.click(screen.getByRole('option', { name: 'Inherit' }));
+    const [, , data] = await save(user);
+    expect(data.terraform_version).toBeNull();
   });
 });

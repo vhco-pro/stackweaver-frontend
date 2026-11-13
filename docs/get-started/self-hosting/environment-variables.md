@@ -231,9 +231,25 @@ The mirror block tells every job, and every launcher verifying cache entries, wh
 
 Jobs on an air-gapped network also need a route to the mirrors. On the container driver, list them in `RUNNER_ALLOW_TCP` on the launchers when they sit inside a denied range, as described under [Launchers](#launchers). On Kubernetes, the chart's job NetworkPolicy blocks the ranges in `launcher.clusterCIDRs`; NetworkPolicies add up, so a policy of your own in the job namespace that selects pods labelled `stackweaver.io/role: job` and allows egress to the mirror opens it.
 
+### OpenTofu installation default version
+
+A workspace runs the OpenTofu version set on the workspace, else on its project, else on its organization, else the installation default. `TOFU_DEFAULT_VERSION` sets the installation default. Set it on the API: in the `api` service's `environment:` block on Docker Compose, or with the chart value `tofu.defaultVersion` on Kubernetes.
+
+| Value | Installation default |
+|---|---|
+| (unset or empty) | The version the published OpenTofu job image bakes. Runs that use it download nothing. |
+| `latest` | The newest enabled, non-beta, non-deprecated version in the versions catalogue. |
+| An exact version, such as `1.13.1` | That version. |
+
+Any other value is logged as a warning when the API starts and treated as unset. The API adds the installation default to the versions catalogue at startup if it is missing, enables it if it is disabled, and refuses to disable or delete it. With `latest`, it refuses to disable or delete the last enabled, non-beta, non-deprecated version instead.
+
+A workspace that sets no version follows the installation default, so a chart upgrade that bakes a newer engine moves those workspaces to it. Every run log opens with a line naming the engine version and where it came from: the image, the organization's cache, or the URL it was downloaded from.
+
+OpenTofu reads state written by an earlier release, but an earlier release may not read state written by a later one. Before you roll back to a release whose job image bakes an older engine, set `TOFU_DEFAULT_VERSION` to the version your workspaces last ran. Lower it only after checking each workspace's state.
+
 ### Using an internal OpenTofu mirror
 
-Runs download the OpenTofu version pinned on the workspace the first time they need it, from the organization's cache when it holds that version and from `TOFU_RELEASES_URL` otherwise, verifying the archive against the checksums published alongside the release. The OpenTofu job image already bundles one version, so an installation that only ever uses that version needs no access to the release mirror at all.
+A run uses the image's own binary when the image bakes the version it needs. Otherwise it downloads that version the first time it needs it, from the organization's cache when it holds that version and from `TOFU_RELEASES_URL` otherwise, verifying the archive against the checksums published alongside the release. A download that fails with a server error, a timeout or a connection error is tried up to three times. When the version cannot be obtained, the run fails before `tofu init` and its log names the version, each place that was tried and the reason. An installation whose workspaces only use the installation default, with `TOFU_DEFAULT_VERSION` unset, needs no access to the release mirror at all.
 
 Set `TOFU_RELEASES_URL` and `TOFU_VERSION_INDEX_URL` together: the first serves the binaries and the second populates the version catalogue, so overriding only one still leaves the other reaching for the internet. Your mirror must reproduce the upstream layout exactly, because the job builds these paths itself:
 

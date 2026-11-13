@@ -2282,5 +2282,60 @@
       "api"
     ],
     "availability": []
+  },
+  {
+    "id": "opentofu-engine-failure-explained",
+    "title": "A run that cannot get its OpenTofu version says why in its own log",
+    "area": "OpenTofu runs",
+    "kind": "Fixed",
+    "reviewed": true,
+    "audience": "Everyone running OpenTofu workspaces, especially on egress-restricted or air-gapped installations and on Kubernetes or container launchers.",
+    "before": "When the OpenTofu version a run needed could not be downloaded, the run log read \"opentofu init failed: fork/exec /usr/local/bin/tofu-<version>: no such file or directory\", and the real reason was only in the job pod or container log, which was already gone. A single failed download failed the run.",
+    "after": "A run whose OpenTofu version cannot be obtained fails before tofu init, and its log names the version, each place that was tried (the image, the organization's cache) and the reason, such as the release host's status, a timeout, a connection error or a checksum mismatch, with the number of attempts. A download that fails with a server error, a timeout or a connection error is tried up to three times. Every run log opens with a line naming the engine version and where it came from. An in-process launcher uses its host's own tofu when that reports exactly the version the run needs.",
+    "action": "No action is required.",
+    "details": [],
+    "guides": [
+      {
+        "title": "Using an internal OpenTofu mirror",
+        "path": "/docs/get-started/self-hosting/environment-variables#using-an-internal-opentofu-mirror"
+      }
+    ],
+    "sourceCommits": [],
+    "draftCommits": [],
+    "requiredComponents": [
+      "opentofu-runner",
+      "launcher"
+    ],
+    "availability": []
+  },
+  {
+    "id": "opentofu-installation-default-version",
+    "title": "Workspaces that set no OpenTofu version run the engine the job image carries",
+    "area": "OpenTofu runs",
+    "kind": "Changed",
+    "reviewed": true,
+    "audience": "Operators of every installation and organization owners who manage OpenTofu versions; terraform-provider-tfe users reading a workspace's terraform-version.",
+    "before": "A new organization's default OpenTofu version was the newest release in the live OpenTofu index, and a new workspace stored that version. Since OpenTofu 1.13.2 that was a version the job image does not carry, so every Kubernetes or container job downloaded it from GitHub before init. A workspace's stored version could not be cleared through the API or the edit dialog.",
+    "after": "A workspace runs the version set on the workspace, else on its project, else on its organization, else the installation default. TOFU_DEFAULT_VERSION (chart value tofu.defaultVersion) sets the installation default: unset means the version the published job image bakes, latest means the newest enabled catalogue version, and an exact version means that version. New organizations and workspaces store no version and follow it. A workspace read always returns the version the workspace runs. A JSON null for terraform-version or default-terraform-version on PATCH clears the stored version; the edit dialog's Inherit choice and the organization's Installation default choice send it. The catalogue always holds the installation default, refuses to disable or delete it, and reports it in meta.installation-default-version.",
+    "action": "Organizations and workspaces created before this release keep the version they stored. To make one follow the installation default, choose Installation default in its organization settings or Inherit in the workspace's edit dialog. Before you roll back to a release whose job image bakes an older engine, set tofu.defaultVersion (or TOFU_DEFAULT_VERSION) to the version your workspaces last ran.",
+    "details": [],
+    "guides": [
+      {
+        "title": "OpenTofu installation default version",
+        "path": "/docs/get-started/self-hosting/environment-variables#opentofu-installation-default-version"
+      },
+      {
+        "title": "Organization settings",
+        "path": "/docs/user-guides/organization-settings"
+      }
+    ],
+    "sourceCommits": [],
+    "draftCommits": [],
+    "requiredComponents": [
+      "api",
+      "frontend",
+      "helm"
+    ],
+    "availability": []
   }
 ]

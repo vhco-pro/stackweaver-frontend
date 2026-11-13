@@ -522,10 +522,10 @@ export function CreateWorkspaceDialog({
               onValueChange={(value) => { setTerraformVersion(value === '__default__' ? '' : value); }}
             >
               <SelectTrigger id="terraform-version">
-                <SelectValue placeholder="Use organization default" />
+                <SelectValue placeholder="Inherit" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="__default__">Use organization default</SelectItem>
+                <SelectItem value="__default__">Inherit</SelectItem>
                 {availableTfVersions.map((v) => (
                   <SelectItem key={v.id} value={v.attributes.version}>
                     {v.attributes.version}{v.attributes.beta ? ' (Beta)' : ''}

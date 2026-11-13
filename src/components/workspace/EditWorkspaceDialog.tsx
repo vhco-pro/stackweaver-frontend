@@ -117,7 +117,10 @@ function EditWorkspaceFormBody({
   // '' means "auto" - resolveEffectiveBranch derives the default from the loaded list.
   const [selectedBranch, setSelectedBranch] = useState<string>(workspace.vcs_branch || 'main');
   const [workingDirectory, setWorkingDirectory] = useState(workspace.working_directory || '');
-  const [terraformVersion, setTerraformVersion] = useState(workspace.terraform_version || '');
+  // The version the user picked in this dialog; null until they touch the select. The workspace's
+  // terraform_version always reads a concrete version (the effective one), so whether the workspace
+  // pins it comes from the effective-settings level: only "workspace" is a stored pin.
+  const [versionChoice, setVersionChoice] = useState<string | null>(null);
   const [autoQueueRuns, setAutoQueueRuns] = useState(workspace.auto_queue_runs || false);
   const [autoApply, setAutoApply] = useState(workspace.auto_apply || false);
   // On unless the workspace says otherwise, the same reading the new-run dialog uses.
@@ -132,6 +135,9 @@ function EditWorkspaceFormBody({
     queryKey: ['effectiveSettings', 'workspace', workspace.id],
     queryFn: () => effectiveSettingsApi.get('workspace', workspace.id),
   });
+  const pinnedVersion =
+    effective?.tofu_version?.level === 'workspace' ? (workspace.terraform_version || effective.tofu_version.value) : '';
+  const terraformVersion = versionChoice ?? pinnedVersion;
   const { data: runImages } = useRunImages(orgName);
   const { data: bindingOptions } = useIdentityBindingOptions(orgName);
   const [repositorySearch, setRepositorySearch] = useState<string>('');
@@ -248,7 +254,9 @@ function EditWorkspaceFormBody({
         vcs_repository: selectedRepository || undefined,
         vcs_branch: effectiveBranch || undefined,
         working_directory: workingDirectory.trim() || undefined,
-        terraform_version: terraformVersion || undefined,
+        // Untouched, the version is not sent, so an unrelated save never stamps a pin; Inherit sends
+        // null, which clears the workspace's own version (#1069, Q4).
+        terraform_version: versionChoice === null ? undefined : versionChoice || null,
         auto_queue_runs: autoQueueRuns,
         auto_apply: autoApply,
         allow_destroy_plan: allowDestroyPlan,
@@ -569,13 +577,18 @@ function EditWorkspaceFormBody({
           <Label htmlFor="edit-terraform-version">OpenTofu Version</Label>
           <Select
             value={terraformVersion || '__default__'}
-            onValueChange={(value) => setTerraformVersion(value === '__default__' ? '' : value)}
+            onValueChange={(value) => {
+              // Radix reports '' when the controlled value changes before its item renders; no
+              // choice here is empty, so that is not the user's pick.
+              if (!value) return;
+              setVersionChoice(value === '__default__' ? '' : value);
+            }}
           >
             <SelectTrigger id="edit-terraform-version">
-              <SelectValue placeholder="Use default version" />
+              <SelectValue placeholder="Inherit" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="__default__">Use organization default</SelectItem>
+              <SelectItem value="__default__">Inherit</SelectItem>
               {availableTfVersions.map((v) => (
                 <SelectItem key={v.id} value={v.attributes.version}>
                   {v.attributes.version}{v.attributes.beta ? ' (Beta)' : ''}
@@ -587,7 +600,7 @@ function EditWorkspaceFormBody({
             <InheritedHint
               setting={effective?.tofu_version}
               ownLevel="workspace"
-              describe={v => v || 'the newest version available'}
+              describe={v => v}
               testId="edit-tofu-version-inherited"
             />
           )}

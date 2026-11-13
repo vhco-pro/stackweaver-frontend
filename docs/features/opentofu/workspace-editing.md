@@ -50,7 +50,7 @@ The maintained example uses synthetic data. No settings are saved during capture
 |---|---|
 | Name and description | Change identification. A rename changes name-based links and API addressing. |
 | Connection, repository, branch, working directory | Choose the configuration read by future work; compare it against existing state. |
-| OpenTofu version | Changes the engine used for runs. Check configuration, provider and state compatibility. |
+| OpenTofu version | Changes the engine used for runs. Check configuration, provider and state compatibility. **Inherit** clears the workspace's own version, so it runs its project's, its organization's or the installation default; the hint under the control names that version and where it comes from. |
 | Auto-queue | Controls automatic runs from repository pushes. |
 | Auto-apply | Can apply successful plans without a manual approval. |
 | Allow destroy plans | Permits destroy operations to be queued; turning it off does not disable other run types. |

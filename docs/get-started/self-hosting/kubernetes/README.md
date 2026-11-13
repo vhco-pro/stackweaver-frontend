@@ -583,6 +583,20 @@ reconcile Jobs as well as workload readiness. Bootstrap skips existing Secrets r
 adding or rotating keys, and creates any whole Secret a new chart version adds; follow
 release-specific schema migration instructions when needed.
 
+### OpenTofu engine version
+
+Workspaces that set no OpenTofu version run the installation default, `tofu.defaultVersion`.
+Left empty, it is the version the release's job image bakes, so an upgrade to a release with
+a newer engine moves those workspaces to it. Each run log's first line names the engine that
+ran. To choose the default yourself, set `tofu.defaultVersion` to `latest` or to an exact
+version; see [Environment variables](../environment-variables.md#opentofu-installation-default-version).
+
+> [!IMPORTANT]
+> Before you roll the chart back to a release whose job image bakes an older engine, set
+> `tofu.defaultVersion` to the OpenTofu version your workspaces last ran. OpenTofu does not
+> guarantee that an older release can read state a newer one wrote. Lower the value only after
+> checking each workspace's state.
+
 ### Job image pulls
 
 Job pods pull their job image as `launcher.jobImages.pullPolicy` says: `Always` by default,

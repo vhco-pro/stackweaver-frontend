@@ -22,6 +22,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Switch } from '@/components/ui/switch';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 import { dangerGhostIcon } from '@/lib/surfaces';
 import { compareVersionsDesc } from '@/lib/semver';
@@ -54,6 +55,7 @@ export default function TofuVersions() {
         versions: sorted,
         totalPages: res.meta?.pagination?.['total-pages'] || 1,
         totalCount: res.meta?.pagination?.['total-count'] || 0,
+        installationDefault: res.meta?.['installation-default-version'] ?? '',
       };
     },
     retry: retryUnlessNotFound,
@@ -62,6 +64,8 @@ export default function TofuVersions() {
   const versions = versionsData?.versions ?? [];
   const totalPages = versionsData?.totalPages ?? 1;
   const totalCount = versionsData?.totalCount ?? 0;
+  // The installation default (TOFU_DEFAULT_VERSION), which the API refuses to disable or delete.
+  const installationDefault = versionsData?.installationDefault ?? '';
 
   const refreshAll = () => {
     void refetchVersions();
@@ -217,16 +221,42 @@ export default function TofuVersions() {
                             Official
                           </span>
                         )}
+                        {v.attributes.version === installationDefault && (
+                          <span className="rounded-full bg-emerald-500/10 px-2 py-0.5 text-xs font-medium text-emerald-700 dark:text-emerald-300">
+                            Installation default
+                          </span>
+                        )}
                       </div>
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-3">
-                        <Switch
-                          checked={v.attributes.enabled}
-                          onCheckedChange={() => { void handleToggleEnabled(v); }}
-                          aria-label={v.attributes.enabled ? 'Disable version' : 'Enable version'}
-                          className="data-[state=checked]:bg-green-500"
-                        />
+                        {v.attributes.version === installationDefault ? (
+                          <TooltipProvider delayDuration={150}>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                {/* A disabled switch receives no pointer events, so the tooltip sits on a focusable wrapper. */}
+                                <span tabIndex={0} data-testid="installation-default-switch" className="inline-flex rounded-full">
+                                  <Switch
+                                    checked={v.attributes.enabled}
+                                    disabled
+                                    aria-label={`OpenTofu ${v.attributes.version} is the installation default`}
+                                    className="data-[state=checked]:bg-green-500"
+                                  />
+                                </span>
+                              </TooltipTrigger>
+                              <TooltipContent side="top" className="max-w-xs">
+                                The installation default (TOFU_DEFAULT_VERSION) cannot be disabled or deleted. Change TOFU_DEFAULT_VERSION first.
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        ) : (
+                          <Switch
+                            checked={v.attributes.enabled}
+                            onCheckedChange={() => { void handleToggleEnabled(v); }}
+                            aria-label={v.attributes.enabled ? 'Disable version' : 'Enable version'}
+                            className="data-[state=checked]:bg-green-500"
+                          />
+                        )}
                         {v.attributes.deprecated && (
                           <span className="rounded-full bg-red-500/10 px-2 py-0.5 text-xs font-medium text-red-600 dark:text-red-400">
                             Deprecated
@@ -239,7 +269,7 @@ export default function TofuVersions() {
                     </td>
                     <td className="px-4 py-3 text-right">
                       <div className="flex items-center justify-end gap-1">
-                        {!v.attributes.official && (
+                        {!v.attributes.official && v.attributes.version !== installationDefault && (
                           <Button
                             variant="ghost"
                             size="icon"

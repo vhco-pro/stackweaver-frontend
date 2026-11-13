@@ -394,7 +394,7 @@ Jobs run in the launcher's namespace, or in the one `RUNNER_JOB_NAMESPACE` names
 
 On a Linux host or VM without Docker, the launcher binary runs each job as a child process on the host's own OpenTofu, Ansible or both. Each launcher release attaches static binaries for amd64 and arm64, a `SHA256SUMS` file and a build provenance attestation to its [GitHub release](https://github.com/vhco-pro/stackweaver-launcher/releases).
 
-1. Install OpenTofu, Ansible or both, so that `tofu version` and `ansible --version` answer for the user the launcher runs as. The launcher serves the engines whose toolchain answers.
+1. Install OpenTofu, Ansible or both, so that `tofu version` and `ansible --version` answer for the user the launcher runs as. The launcher serves the engines whose toolchain answers. A run that needs exactly the version your host's `tofu` reports uses it as is; a run that needs another version downloads that version once into `~/.tofu-versions`. Installing the installation default (normally the version the published job image bakes) avoids the download for workspaces that set no version.
 2. Download the binary for your architecture and `SHA256SUMS` from the release, check them, and verify the attestation with the GitHub CLI:
 
    ```bash

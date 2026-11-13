@@ -4,11 +4,11 @@
 // and the level it came from (#933, D0, AC32), as it does for the run image and identity binding.
 
 import { describe, expect, it, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { agentPoolsApi, terraformVersionsApi, vcsConnectionsApi, type Workspace } from '@/api/client';
-import { effectiveSettingsApi } from '@/api/runPlacement';
+import { effectiveSettingsApi, type EffectiveSetting } from '@/api/runPlacement';
 import { EditWorkspaceDialog } from './EditWorkspaceDialog';
 
 vi.mock('@/api/client', () => ({
@@ -35,13 +35,11 @@ const workspace: Workspace = {
   updated_at: '2026-01-01T00:00:00Z',
 };
 
-function renderDialog(ws: Workspace) {
+function renderDialog(ws: Workspace, tofuVersion: EffectiveSetting<string> = { value: '1.10.2', level: 'project' }) {
   vi.mocked(vcsConnectionsApi.list).mockResolvedValue([]);
   vi.mocked(agentPoolsApi.list).mockResolvedValue({ data: [] } as unknown as Awaited<ReturnType<typeof agentPoolsApi.list>>);
   vi.mocked(terraformVersionsApi.listEnabled).mockResolvedValue({ data: [] });
-  vi.mocked(effectiveSettingsApi.get).mockResolvedValue({
-    tofu_version: { value: '1.10.2', level: 'project' },
-  });
+  vi.mocked(effectiveSettingsApi.get).mockResolvedValue({ tofu_version: tofuVersion });
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   render(
     <QueryClientProvider client={client}>
@@ -60,9 +58,14 @@ describe('EditWorkspaceDialog: effective OpenTofu version', () => {
     expect(hint).toHaveTextContent('1.10.2');
   });
 
+  // A pin is the workspace level of the effective setting: terraform_version alone reads the
+  // effective version for every workspace since #1069 (D2), so the mock says level workspace.
   it('shows no hint when the workspace pins its own version', async () => {
-    renderDialog({ ...workspace, terraform_version: '1.9.0' });
+    renderDialog({ ...workspace, terraform_version: '1.9.0' }, { value: '1.9.0', level: 'workspace' });
     await screen.findByRole('dialog');
+    await waitFor(() => {
+      expect(effectiveSettingsApi.get).toHaveBeenCalled();
+    });
     expect(screen.queryByTestId('edit-tofu-version-inherited')).not.toBeInTheDocument();
   });
 });

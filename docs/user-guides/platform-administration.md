@@ -53,6 +53,22 @@ Being an organization owner does not grant the platform role. Organization owner
 their own default OpenTofu version from the catalogue under
 [Organization settings](./organization-settings.md).
 
+## The installation default version
+
+The catalogue marks one version with an **Installation default** badge: the version every
+workspace runs when its workspace, project and organization set none. The operator chooses
+it with `TOFU_DEFAULT_VERSION` (chart value `tofu.defaultVersion`): unset means the version
+the published job image bakes, `latest` means the newest enabled, non-beta, non-deprecated
+catalogue version, and an exact version means that version. See
+[Environment variables](../get-started/self-hosting/environment-variables.md#opentofu-installation-default-version).
+
+Its enable switch is disabled, with a tooltip that names `TOFU_DEFAULT_VERSION`, because
+the API refuses to disable or delete the installation default and answers `409 Conflict`.
+With `latest`, the same refusal protects the last enabled, non-beta, non-deprecated version.
+You can still deprecate it. Both catalogue listings, `GET /api/v2/terraform-versions` and
+`GET /api/v2/admin/terraform-versions`, report the version in
+`meta.installation-default-version`.
+
 ## Declared and granted administrators
 
 | Type | Controlled by | How access changes |

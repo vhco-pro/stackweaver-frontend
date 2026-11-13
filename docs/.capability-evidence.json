@@ -29,7 +29,7 @@
       "evidence": [
         {
           "path": "backend/internal/api/v2/handlers/runner_agent.go",
-          "sha256": "8e40b867538057ba44dab9d6aeacf38f6002a5cfe269da2fbceb803f783a61d9"
+          "sha256": "7e18dcf9bd8f09a289e09f66464e39835b54c40201000ebcec8cb00bad4486b2"
         },
         {
           "path": "backend/internal/launcher/launcher.go",
@@ -53,7 +53,7 @@
         },
         {
           "path": "backend/internal/api/v2/handlers/runner_agent.go",
-          "sha256": "8e40b867538057ba44dab9d6aeacf38f6002a5cfe269da2fbceb803f783a61d9"
+          "sha256": "7e18dcf9bd8f09a289e09f66464e39835b54c40201000ebcec8cb00bad4486b2"
         },
         {
           "path": "backend/internal/executor/ansibleexec/run.go",
@@ -193,7 +193,7 @@
         },
         {
           "path": "backend/internal/api/v2/handlers/runner_agent.go",
-          "sha256": "8e40b867538057ba44dab9d6aeacf38f6002a5cfe269da2fbceb803f783a61d9"
+          "sha256": "7e18dcf9bd8f09a289e09f66464e39835b54c40201000ebcec8cb00bad4486b2"
         },
         {
           "path": "core/services/ansible/playbook_sync.go",
@@ -345,7 +345,7 @@
         },
         {
           "path": "core/plugins/opentofu/plugin.go",
-          "sha256": "ac2a6af0e477ef97f0d64661996d3e5b5e60a37e79ae91188d92bae0a3e31e44"
+          "sha256": "68c8ce8d9348d3b3fab9d726bf4be81fe440d1113a43aa95db31f6b4362a8515"
         },
         {
           "path": "frontend/src/components/workspace/CreateRunDialog.tsx",
@@ -356,7 +356,7 @@
     {
       "id": "organization-policies",
       "guide": "user-guides/organization-settings.md",
-      "guideHash": "0ae3fc500ab68521742e916345d976818e42c5ac58ddaedef9c79b9c985d6b06",
+      "guideHash": "8923e9a05b40e3da381b9eac0ddc63c01545b4d7f905fd8c6e750a424cf8ce07",
       "metadataHash": "e16a93190b38c2aa1076607956a2222a3b192085c73b22d08d2c30d2fde9309d",
       "evidence": [
         {
@@ -365,11 +365,11 @@
         },
         {
           "path": "backend/internal/api/v2/handlers/organizations.go",
-          "sha256": "a3b1b0d6a7f6f3cc7a135c57c22c12d818dacc78aa094aa37fdc4ce609ee39c3"
+          "sha256": "e7a7db2e57af25f24c8fd1eb285c97b44ee308fdeed012b06d31a0ea010f986f"
         },
         {
           "path": "frontend/src/pages/Settings/Organization.tsx",
-          "sha256": "7295e04b140f03c9e591620be54e2193501f09b62a955bcac17298554f3d720f"
+          "sha256": "61b28e8d7a3d4c5251d9b28297c4e5746ab7cbe4aad448acb9fb6b1983749221"
         }
       ]
     },
@@ -421,11 +421,11 @@
         },
         {
           "path": "backend/internal/executor/tofuexec/run.go",
-          "sha256": "b00c86a8f5ef6015747a82a6695601fc7839b88267b4ab2cbc45fe78be2a2a14"
+          "sha256": "69d662fc992a94eae7d03f3be0eeccc2251f35cea1e86a587c097e58267f39df"
         },
         {
           "path": "core/plugins/opentofu/plugin.go",
-          "sha256": "ac2a6af0e477ef97f0d64661996d3e5b5e60a37e79ae91188d92bae0a3e31e44"
+          "sha256": "68c8ce8d9348d3b3fab9d726bf4be81fe440d1113a43aa95db31f6b4362a8515"
         }
       ]
     },
@@ -465,7 +465,7 @@
         },
         {
           "path": "backend/internal/api/v2/handlers/terraform/workspaces.go",
-          "sha256": "9b24be8bb144ccc893f125f710f8d5bd316639dfc7511d4ca5c2cce79952c098"
+          "sha256": "a1bfeea826df9a531c65174d176ca402b974be6006ef545d2b0dae86d671bf1f"
         },
         {
           "path": "backend/internal/launcher/supervise.go",
@@ -477,7 +477,7 @@
         },
         {
           "path": "core/plugins/opentofu/plugin.go",
-          "sha256": "ac2a6af0e477ef97f0d64661996d3e5b5e60a37e79ae91188d92bae0a3e31e44"
+          "sha256": "68c8ce8d9348d3b3fab9d726bf4be81fe440d1113a43aa95db31f6b4362a8515"
         },
         {
           "path": "core/repository/run.go",
@@ -577,7 +577,7 @@
         },
         {
           "path": "frontend/src/api/client.ts",
-          "sha256": "6ebfafafbdd18dc588adcee1c42ee4e0678bde5286696231bb6ab16c700584e3"
+          "sha256": "143f2ff05e13a5433492fc359a929005b097ad150bb8c8f33736da6d3e02e369"
         },
         {
           "path": "frontend/src/components/workspace/WorkspaceChangeRequests.tsx",
@@ -608,7 +608,7 @@
     {
       "id": "workspace-settings",
       "guide": "features/opentofu/workspace-editing.md",
-      "guideHash": "d0d1b0ab6f80cd1fca052c4f43be7898f2855bbf027c45f531ff7e51444fe487",
+      "guideHash": "9e6780f954e342d2b6d83d996261edc4ce954cf14b67c9cc94676540c7f5f30f",
       "metadataHash": "4a091f7672acd2f1d75ba40aac20e94286689e10f0acf972a5588e914c98b9f1",
       "evidence": [
         {
@@ -617,7 +617,7 @@
         },
         {
           "path": "backend/internal/api/v2/handlers/terraform/workspaces.go",
-          "sha256": "9b24be8bb144ccc893f125f710f8d5bd316639dfc7511d4ca5c2cce79952c098"
+          "sha256": "a1bfeea826df9a531c65174d176ca402b974be6006ef545d2b0dae86d671bf1f"
         },
         {
           "path": "frontend/src/pages/WorkspaceDetail.tsx",
