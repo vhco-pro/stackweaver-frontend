@@ -2385,5 +2385,29 @@
       "frontend"
     ],
     "availability": []
+  },
+  {
+    "id": "azure-devops-connection-token-proof",
+    "title": "Azure DevOps connections prove their token against the Azure DevOps organization they name",
+    "area": "VCS",
+    "kind": "Fixed",
+    "reviewed": true,
+    "audience": "Organizations that connect Azure DevOps, and API clients that create Azure DevOps connections directly.",
+    "before": "Creating an Azure DevOps connection through the API stored the access token and Azure DevOps organization name without checking that the token could reach that organization. Service-hook deliveries were matched to connections by the Azure DevOps organization name alone.",
+    "after": "Creating an Azure DevOps connection through the API checks the token against the named Azure DevOps organization and answers 422 when it cannot reach it. Service-hook deliveries reach a connection only after its token has proven access to the Azure DevOps organization. A connection made before this check proves it with its stored token on its first delivery and keeps that proof.",
+    "action": "No action is required for connections made through the Connect Azure DevOps flow. An API-created connection whose token cannot reach its Azure DevOps organization no longer receives deliveries; reconnect it with a valid token.",
+    "details": [],
+    "guides": [
+      {
+        "title": "Azure DevOps",
+        "path": "/docs/user-guides/vcs/azure-devops"
+      }
+    ],
+    "sourceCommits": [],
+    "draftCommits": [],
+    "requiredComponents": [
+      "api"
+    ],
+    "availability": []
   }
 ]

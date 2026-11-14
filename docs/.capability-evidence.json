@@ -225,11 +225,11 @@
       "evidence": [
         {
           "path": "backend/internal/api/v2/handlers/vcs_app_installation.go",
-          "sha256": "60884bdfa423cd423440ca3ba0e0fabbd423fc3dfdd4f9022d95122e7c15a430"
+          "sha256": "61188a4e5fcabfdaae4fbc6a17ebc5cd99d02aab70b74b438f608ed7f4122f75"
         },
         {
           "path": "backend/internal/api/v2/handlers/vcs_push_ansible_sync_test.go",
-          "sha256": "7913621edcbe28e3a12b87b61c9f2b3a602ee7627044590383bf4f86d72f9a40"
+          "sha256": "e168702a18b670160858e92827d9449daf5b060b029c421bfb60f07b83343622"
         }
       ]
     },
@@ -521,11 +521,11 @@
       "evidence": [
         {
           "path": "backend/internal/api/v2/handlers/vcs_app_installation.go",
-          "sha256": "60884bdfa423cd423440ca3ba0e0fabbd423fc3dfdd4f9022d95122e7c15a430"
+          "sha256": "61188a4e5fcabfdaae4fbc6a17ebc5cd99d02aab70b74b438f608ed7f4122f75"
         },
         {
           "path": "backend/internal/api/v2/handlers/vcs_connections.go",
-          "sha256": "6b0af3952e305de655d32f5b0a29a7b62f3ef7beba08d7d7bee2e8fffc6776ce"
+          "sha256": "01420a1706d6eb63fc2ca558668af392bb306802da0db938075624eb48744130"
         },
         {
           "path": "core/services/vcs/provider.go",
