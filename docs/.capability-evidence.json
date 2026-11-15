@@ -341,7 +341,7 @@
       "evidence": [
         {
           "path": "backend/internal/api/v2/handlers/terraform/runs.go",
-          "sha256": "8b95b90b382dbdf2622910c8393a01e5650b83e1dc57d77ecc8a6d105c910aec"
+          "sha256": "3eb4c391ce86ae181bac8793d478614e491757353bcb69c432eefec679da29bc"
         },
         {
           "path": "core/plugins/opentofu/plugin.go",
@@ -401,7 +401,7 @@
         },
         {
           "path": "backend/internal/api/v2/handlers/terraform/runs.go",
-          "sha256": "8b95b90b382dbdf2622910c8393a01e5650b83e1dc57d77ecc8a6d105c910aec"
+          "sha256": "3eb4c391ce86ae181bac8793d478614e491757353bcb69c432eefec679da29bc"
         },
         {
           "path": "backend/internal/launcher/supervise.go",
@@ -417,7 +417,7 @@
       "evidence": [
         {
           "path": "backend/internal/api/v2/handlers/terraform/runs.go",
-          "sha256": "8b95b90b382dbdf2622910c8393a01e5650b83e1dc57d77ecc8a6d105c910aec"
+          "sha256": "3eb4c391ce86ae181bac8793d478614e491757353bcb69c432eefec679da29bc"
         },
         {
           "path": "backend/internal/executor/tofuexec/run.go",
@@ -481,7 +481,7 @@
         },
         {
           "path": "core/repository/run.go",
-          "sha256": "d32a14372e93da535a649e6d35f58b8ede0ce3e0e9b87731b02e2eea28751e33"
+          "sha256": "2975f0d44f65804cc8f140e343128e328a4ef63616db938abe0484460436dfe1"
         },
         {
           "path": "core/repository/run_lifecycle_test.go",

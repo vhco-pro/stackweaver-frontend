@@ -56,6 +56,10 @@ once the organization has one, the same card offers **Add GitHub account**.
    https://app.example.com/vcs/github/installed
    ```
 
+   Check **Redirect on update** below the Setup URL. GitHub then returns to Stackweaver after an
+   existing installation is configured, which is how an account that already has the app
+   installed is connected to another Stackweaver organization.
+
 5. Enable webhooks. Set **Webhook URL** to the public API origin plus this path:
 
    ```text
@@ -270,7 +274,9 @@ installed on. Each installation is its own connection, with its own repositories
 
 1. Open **Settings > VCS Connections** and choose **Add GitHub account** on the GitHub card.
 2. Select the other GitHub account or organization and its repositories, then complete the
-   flow as for the first connection.
+   flow as for the first connection. For an account that already has the app installed,
+   choose **Configure**, then **Save**. GitHub returns to Stackweaver only when the app has
+   **Redirect on update** checked (see [Register the app](#register-the-app)).
 3. Confirm the new row under **Connected Providers**. Workspace, playbook, inventory and module
    pickers list each connection with its account, for example `GitHub - example-platform (App)`.
 
@@ -287,6 +293,7 @@ unaffected.
 
 | Symptom | Check and next action |
 |---|---|
+| GitHub stays on the installation settings after **Save** and never returns to Stackweaver. | Check **Redirect on update** in the app's settings, then restart from **Add GitHub account**. |
 | Redirect to localhost from a public deployment. | Correct the app's Setup URL and Callback URL, and the deployment's public frontend origin. Restart from **Connect GitHub**. |
 | GitHub App not configured. | Read API startup logs. Check App ID, slug, readable PEM, and Helm Secret wiring. |
 | User authorization not configured. | Supply the Client ID and client secret, and register the authorization callback. |
