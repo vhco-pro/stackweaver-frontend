@@ -101,7 +101,7 @@ function FileTree({ nodes, selectedPath, onSelect, depth = 0 }: FileTreeProps) {
             <li key={node.name} style={{ margin: 0 }}>
               <button
                 type="button"
-                className="flex items-center gap-1.5 w-full px-2 py-px text-sm text-muted-foreground hover:text-foreground hover:bg-muted/40 transition-colors"
+                className="docs-explorer-row flex items-center gap-1.5 w-full px-2 py-px text-sm text-muted-foreground hover:text-foreground hover:bg-slate-200/50 dark:hover:bg-white/[0.04] transition-colors"
                 style={{ paddingLeft: `${(depth + 1) * 0.75}rem` }}
                 onClick={() => {
                   setOpenDirs((prev) => {
@@ -132,10 +132,11 @@ function FileTree({ nodes, selectedPath, onSelect, depth = 0 }: FileTreeProps) {
           <li key={node.path} style={{ margin: 0 }}>
             <button
               type="button"
-              className={`flex items-center gap-1.5 w-full px-2 py-px text-sm transition-colors ${
+              aria-current={isActive ? 'true' : undefined}
+              className={`docs-explorer-row flex items-center gap-1.5 w-full px-2 py-px text-sm transition-colors ${
                 isActive
-                  ? 'bg-muted/60 text-foreground'
-                  : 'text-muted-foreground hover:text-foreground hover:bg-muted/30'
+                  ? 'bg-slate-200/90 text-foreground dark:bg-white/[0.08]'
+                  : 'text-muted-foreground hover:text-foreground hover:bg-slate-200/50 dark:hover:bg-white/[0.04]'
               }`}
               style={{ paddingLeft: `${(depth + 1) * 0.75}rem` }}
               onClick={() => onSelect(node.path, node.lang)}
@@ -310,7 +311,7 @@ function InteractiveCodeExplorer({ path, defaultFile = '', docsBase = '/docs' }:
 
   if (error) {
     return (
-      <div className="my-4 rounded-md border border-border/40 p-4 text-sm text-muted-foreground">
+      <div className="shiki-wrapper docs-code-explorer docs-code-explorer-message">
         {error}
       </div>
     );
@@ -318,14 +319,14 @@ function InteractiveCodeExplorer({ path, defaultFile = '', docsBase = '/docs' }:
 
   if (!manifest) {
     return (
-      <div className="my-4 rounded-md border border-border/40 flex items-center justify-center" style={{ height: '480px' }}>
+      <div className="shiki-wrapper docs-code-explorer docs-code-explorer-loading">
         <div className="h-8 w-8 rounded-full border-2 border-primary border-t-transparent animate-spin" />
       </div>
     );
   }
 
   const treeNodes = buildFileTree(manifest.files);
-  const rootName = manifest.root.toUpperCase();
+  const rootName = manifest.root;
 
   // For GitHub sources: show ref in header, get per-file link for current selection
   const shortRef = manifest.source?.ref
@@ -385,53 +386,56 @@ function InteractiveCodeExplorer({ path, defaultFile = '', docsBase = '/docs' }:
 
   // Action buttons shared between inline header and dialog header (icons only)
   const actionButtons = (
-    <div className="flex items-center gap-3">
+    <>
       <button
         type="button"
         onClick={() => { void handleDownload(); }}
         disabled={downloading}
-        className="text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50"
-        title={downloading ? 'Downloading…' : 'Download'}
+        className="docs-code-action"
+        aria-label={downloading ? 'Downloading' : `Download ${rootName}`}
+        title={downloading ? 'Downloading' : 'Download'}
       >
-        <Download className="h-3.5 w-3.5" />
+        <Download aria-hidden="true" />
       </button>
       <button
         type="button"
         onClick={() => { void handleCopy(); }}
-        className="text-muted-foreground hover:text-foreground transition-colors"
-        title={copied ? 'Copied!' : 'Copy'}
+        className="docs-code-action"
+        aria-label={copied ? 'Copied' : `Copy ${selectedFile}`}
+        title={copied ? 'Copied' : 'Copy'}
       >
-        {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
+        {copied ? <Check aria-hidden="true" /> : <Copy aria-hidden="true" />}
       </button>
-    </div>
+    </>
   );
 
   return (
     <>
       {/* Inline explorer */}
-      <div className="not-prose my-4 rounded-md border border-border/40 overflow-hidden flex flex-col" style={{ height: '480px' }}>
+      <div className="not-prose shiki-wrapper docs-code-explorer">
         {/* Header */}
-        <div className="flex items-center justify-between px-3 py-2 border-b border-border/40 bg-muted/30 shrink-0">
-          <span className="flex items-center gap-2 text-xs font-semibold tracking-wider text-muted-foreground">
-            {githubTitleIcon}{rootName}{refBadge}
+        <div className="docs-code-header">
+          <span className="docs-code-explorer-title">
+            {githubTitleIcon}<span className="docs-code-language">{rootName}</span>{refBadge}
           </span>
-          <div className="flex items-center gap-3">
+          <div className="docs-code-actions">
             {actionButtons}
             <button
               type="button"
               onClick={() => { setExpanded(true); }}
-              className="text-muted-foreground hover:text-foreground transition-colors"
+              className="docs-code-action"
+              aria-label={`Expand ${rootName}`}
               title="Expand"
             >
-              <Maximize2 className="h-3.5 w-3.5" />
+              <Maximize2 aria-hidden="true" />
             </button>
           </div>
         </div>
 
         {/* Body */}
-        <div className="flex flex-1 min-h-0">
+        <div className="docs-code-explorer-body">
           {/* File tree pane */}
-          <div className="min-w-[180px] max-w-[220px] border-r border-border/40 overflow-y-auto bg-muted/10 py-2">
+          <div className="docs-code-explorer-tree">
             <FileTree
               nodes={treeNodes}
               selectedPath={selectedFile}
@@ -440,8 +444,8 @@ function InteractiveCodeExplorer({ path, defaultFile = '', docsBase = '/docs' }:
           </div>
 
           {/* Code pane - relative+absolute ensures the scroll container is exactly the flex child's box */}
-          <div className="flex-1 relative min-w-0">
-            <div className="code-explorer-code absolute inset-0 overflow-auto text-sm">
+          <div className="docs-code-explorer-pane">
+            <div className="code-explorer-code">
               {codePaneContent}
             </div>
           </div>
@@ -450,29 +454,30 @@ function InteractiveCodeExplorer({ path, defaultFile = '', docsBase = '/docs' }:
 
       {/* Fullscreen dialog */}
       <Dialog open={expanded} onOpenChange={setExpanded}>
-        <DialogContent hideCloseButton aria-label={rootName} aria-describedby={undefined} className="not-prose max-w-[90vw] p-0 gap-0 overflow-hidden" style={{ height: '90vh', display: 'flex', flexDirection: 'column' }}>
+        <DialogContent hideCloseButton aria-label={rootName} aria-describedby={undefined} className="not-prose docs-code-explorer docs-code-explorer-dialog max-w-[90vw] p-0 gap-0 overflow-hidden">
           {/* Dialog header */}
-          <div className="flex items-center justify-between px-3 py-2 border-b border-border/40 bg-muted/30 shrink-0">
-            <span className="flex items-center gap-2 text-xs font-semibold tracking-wider text-muted-foreground">
-              {githubTitleIcon}{rootName}{refBadge}
+          <div className="docs-code-header">
+            <span className="docs-code-explorer-title">
+              {githubTitleIcon}<span className="docs-code-language">{rootName}</span>{refBadge}
             </span>
-            <div className="flex items-center gap-3">
+            <div className="docs-code-actions">
               {actionButtons}
               <button
                 type="button"
                 onClick={() => { setExpanded(false); }}
-                className="text-muted-foreground hover:text-foreground transition-colors"
+                className="docs-code-action"
+                aria-label={`Collapse ${rootName}`}
                 title="Collapse"
               >
-                <Minimize2 className="h-3.5 w-3.5" />
+                <Minimize2 aria-hidden="true" />
               </button>
             </div>
           </div>
 
-          {/* Dialog body: flex-1 + min-h-0 lets it fill remaining height */}
-          <div className="flex flex-1 min-h-0 overflow-hidden">
+          {/* Dialog body fills the remaining height */}
+          <div className="docs-code-explorer-body">
             {/* File tree pane */}
-            <div className="min-w-[180px] max-w-[260px] border-r border-border/40 overflow-y-auto bg-muted/10 py-2">
+            <div className="docs-code-explorer-tree">
               <FileTree
                 nodes={treeNodes}
                 selectedPath={selectedFile}
@@ -481,8 +486,8 @@ function InteractiveCodeExplorer({ path, defaultFile = '', docsBase = '/docs' }:
             </div>
 
             {/* Code pane */}
-            <div className="flex-1 relative min-w-0">
-              <div className="code-explorer-code absolute inset-0 overflow-auto text-sm">
+            <div className="docs-code-explorer-pane">
+              <div className="code-explorer-code">
                 {codePaneContent}
               </div>
             </div>

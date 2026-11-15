@@ -276,3 +276,156 @@ html:not(.dark) .markdown-content .shiki-wrapper pre:is(.docs-code-fallback, [cl
   overflow: hidden;
   background: var(--docs-frame-body);
 }
+
+/*
+ * The code explorer: a file tree beside a code pane in the same frame and header as a code block.
+ * The dialog view is portalled outside the renderer root, so these rules are not scoped to
+ * .markdown-content and read the frame tokens from :root.
+ */
+.docs-code-explorer {
+  --docs-code-muted: var(--muted-foreground, hsl(215.4 16.3% 46.9%));
+  --docs-code-foreground: var(--foreground, hsl(222.2 84% 4.9%));
+  display: flex;
+  flex-direction: column;
+  height: 480px;
+}
+
+.dark .docs-code-explorer {
+  --docs-code-muted: var(--muted-foreground, hsl(215 20.2% 65.1%));
+  --docs-code-foreground: var(--foreground, hsl(210 40% 98%));
+}
+
+.docs-code-explorer > .docs-code-header {
+  flex-shrink: 0;
+}
+
+.docs-code-explorer-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+.docs-code-actions {
+  display: inline-flex;
+  align-items: center;
+  margin-left: auto;
+  margin-right: -0.75rem;
+}
+
+.docs-code-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  min-width: 44px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  transition: color 150ms;
+}
+
+.docs-code-action:hover,
+.docs-code-action:focus-visible {
+  color: var(--docs-code-foreground);
+}
+
+.docs-code-action:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: -4px;
+}
+
+.docs-code-action:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.docs-code-action svg {
+  width: 1rem;
+  height: 1rem;
+}
+
+.docs-code-explorer-body {
+  display: flex;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+/* The tree is as wide as its longest name, up to a share of the frame, and scrolls beyond that. */
+.docs-code-explorer-tree {
+  flex: 0 0 auto;
+  width: max-content;
+  min-width: min(11rem, 40%);
+  max-width: min(20rem, 40%);
+  overflow: auto;
+  padding: 0.5rem 0;
+  border-right: 1px solid var(--docs-frame-head-line);
+  background: var(--docs-frame-head);
+  scrollbar-width: var(--docs-frame-scrollbar-width, thin);
+  scrollbar-color: var(--docs-frame-scrollbar-color, auto);
+}
+
+.docs-code-explorer-tree .docs-explorer-row {
+  white-space: nowrap;
+  padding-right: 0.75rem;
+}
+
+/* The pane's scroller is exactly the flex child's box, so long files scroll inside the frame. */
+.docs-code-explorer-pane {
+  position: relative;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.docs-code-explorer .code-explorer-code {
+  position: absolute;
+  inset: 0;
+  overflow: auto;
+  font-size: 0.875rem;
+  scrollbar-width: var(--docs-frame-scrollbar-width, thin);
+  scrollbar-color: var(--docs-frame-scrollbar-color, auto);
+}
+
+/* The pane scrolls, so the highlighted block inside it never becomes a second scroller. */
+.docs-code-explorer .code-explorer-code pre[class*='shiki'] {
+  box-sizing: border-box;
+  min-width: 100%;
+  width: max-content;
+  margin: 0;
+  padding: var(--docs-frame-code-padding, 0.75rem) !important;
+  overflow: visible;
+  font-family: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace !important;
+  font-size: 0.875rem !important;
+  line-height: var(--docs-frame-line-height, 1.5) !important;
+  border: none !important;
+  border-radius: 0;
+}
+
+.docs-code-explorer .code-explorer-code pre[class*='shiki'] code {
+  overflow: visible;
+}
+
+.docs-code-explorer-loading {
+  align-items: center;
+  justify-content: center;
+}
+
+.docs-code-explorer-message {
+  height: auto;
+  padding: 1rem;
+  color: var(--docs-code-muted);
+  font-size: 0.875rem;
+}
+
+/* Expanded: the dialog supplies the surface, the explorer fills it. */
+.docs-code-explorer-dialog {
+  height: 90vh;
+  border: 1px solid var(--docs-frame-edge);
+  border-radius: 0.5rem;
+}
+
+.docs-code-explorer-dialog .docs-code-explorer-tree {
+  max-width: min(24rem, 30%);
+}

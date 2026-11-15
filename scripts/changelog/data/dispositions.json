@@ -162,5 +162,9 @@
   {
     "commit": "1c2e9ab3e651a062272b9518d77f7a67e900e978",
     "reason": "Development tooling only. It adds BuildKit cache mounts to the development Dockerfiles that the Compose dev stack and the kind E2E harness build, and builds the harness's images concurrently. No published image, chart or customer-facing capability changes."
+  },
+  {
+    "commit": "f3711abd6672171bd86eee1fbe00d7e706d029c8",
+    "reason": "Development tooling only. It makes the kind E2E harness stop starting image builds after one fails and updates the harness tests for concurrent builds and the single kind load. No published image, chart or customer-facing capability changes."
   }
 ]
