@@ -177,12 +177,20 @@ button.docs-nav-tint:hover {
  * needs, never wider than the content column. Only top-level objects do: one nested in a list
  * item, callout or disclosure keeps its container's width and scrolls there.
  */
-.markdown-content.docs-article > :is(.docs-code-block, .docs-code-group, .docs-table, .docs-diagram) {
+.markdown-content.docs-article > :is(.docs-code-block, .docs-code-group, .docs-code-explorer, .docs-table, .docs-diagram) {
   grid-column: full;
   justify-self: center;
   width: fit-content;
   min-width: min(100%, var(--docs-measure));
   max-width: 100%;
+}
+
+/*
+ * A code explorer's code pane scrolls inside a fixed frame, so it has no intrinsic width to fit:
+ * it takes the whole content column.
+ */
+.markdown-content.docs-article > .docs-code-explorer {
+  width: 100%;
 }
 
 /*
