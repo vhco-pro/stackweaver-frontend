@@ -158,5 +158,9 @@
   {
     "commit": "7b6de083162ba577a7e07b53cc637e0ed7e93045",
     "reason": "Merge commit that brought main into the shared development loop branch before its merge. It adds no change of its own; the branch moves the internal spec, tasks, implement, ship and investigate workflow onto the shared vh-adlc loop, which is development tooling with no customer-facing capability."
+  },
+  {
+    "commit": "1c2e9ab3e651a062272b9518d77f7a67e900e978",
+    "reason": "Development tooling only. It adds BuildKit cache mounts to the development Dockerfiles that the Compose dev stack and the kind E2E harness build, and builds the harness's images concurrently. No published image, chart or customer-facing capability changes."
   }
 ]
