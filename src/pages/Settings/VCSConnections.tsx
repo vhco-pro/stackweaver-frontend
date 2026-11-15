@@ -4,8 +4,8 @@ import { useState } from 'react';
 import { useMountEffect } from '@/hooks/useMountEffect';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import { GitBranch, Plus, Trash2, CheckCircle2 } from 'lucide-react';
-import { getVcsProviderIcon, getVcsProviderLabel } from '@/lib/vcs';
+import { GitBranch, Plus, Trash2, CheckCircle2, ExternalLink } from 'lucide-react';
+import { getVcsProviderIcon, getVcsProviderLabel, getVcsManageUrl } from '@/lib/vcs';
 import { Button } from '@/components/ui/button';
 import { GradientButton } from '@/components/ui/gradient-button';
 import { Page, PageDialogContent } from '@/components/layout/Page';
@@ -183,7 +183,7 @@ export default function VCSConnections() {
             </p>
             <Button variant="outline" className="w-full">
               <Plus className="h-4 w-4 mr-2" />
-              {connections.some(c => c.provider === 'github') ? 'Manage Connection' : 'Connect GitHub'}
+              {connections.some(c => c.provider === 'github') ? 'Add GitHub account' : 'Connect GitHub'}
             </Button>
           </div>
 
@@ -218,7 +218,7 @@ export default function VCSConnections() {
             </p>
             <Button variant="outline" className="w-full">
               <Plus className="h-4 w-4 mr-2" />
-              {connections.some(c => c.provider === 'azure_devops') ? 'Manage Connection' : 'Connect Azure DevOps'}
+              {connections.some(c => c.provider === 'azure_devops') ? 'Add Azure DevOps organization' : 'Connect Azure DevOps'}
             </Button>
           </div>
 
@@ -307,18 +307,32 @@ export default function VCSConnections() {
                     </Badge>
                   </TableCell>
                   <TableCell>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className={dangerOutline}
-                      onClick={() => {
-                        setConnectionToDelete(conn);
-                        setDeleteDialogOpen(true);
-                      }}
-                    >
-                      <Trash2 className="h-4 w-4 mr-2" />
-                      Delete
-                    </Button>
+                    <div className="flex flex-wrap items-center gap-2">
+                      {(() => {
+                        // Only an App connection has an installation to configure on GitHub.
+                        const manageUrl = getVcsManageUrl(conn.provider, conn.installation_id ?? '', conn.account_name, conn.account_type);
+                        return manageUrl ? (
+                          <Button asChild variant="outline" size="sm">
+                            <a href={manageUrl} target="_blank" rel="noopener noreferrer">
+                              <ExternalLink className="h-4 w-4 mr-2" />
+                              Configure on GitHub
+                            </a>
+                          </Button>
+                        ) : null;
+                      })()}
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className={dangerOutline}
+                        onClick={() => {
+                          setConnectionToDelete(conn);
+                          setDeleteDialogOpen(true);
+                        }}
+                      >
+                        <Trash2 className="h-4 w-4 mr-2" />
+                        Disconnect
+                      </Button>
+                    </div>
                   </TableCell>
                 </TableRow>
               ))}
@@ -373,10 +387,11 @@ export default function VCSConnections() {
       <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <PageDialogContent>
           <DialogHeader>
-            <DialogTitle>Delete VCS Connection</DialogTitle>
+            <DialogTitle>Disconnect VCS Connection</DialogTitle>
             <DialogDescription>
-              Are you sure you want to delete the connection to {connectionToDelete?.provider} - {connectionToDelete?.account_name}?
-              This will remove access to all repositories associated with this connection.
+              Disconnect {connectionToDelete ? getVcsProviderLabel(connectionToDelete.provider) : ''} - {connectionToDelete?.account_name}?
+              Workspaces, modules, playbooks and inventories that use this connection lose access to its
+              repositories. Other connections stay as they are.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
@@ -385,7 +400,7 @@ export default function VCSConnections() {
             </Button>
             <Button variant="destructive" onClick={() => { void handleDelete(); }} disabled={deleting}>
               {deleting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Delete
+              Disconnect
             </Button>
           </DialogFooter>
         </PageDialogContent>

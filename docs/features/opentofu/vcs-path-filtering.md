@@ -64,6 +64,11 @@ matching rules apply to GitHub push/PR handling and Azure DevOps deliveries. If 
 provides no changed-file list, Stackweaver can trigger conservatively rather than assume
 nothing changed.
 
+For a GitHub pull request, the changed files come from GitHub's pull request file list, read
+with the connection's installation token (the app's **Pull requests: read** permission).
+GitHub lists at most 3000 files. When the list is longer, or cannot be read, every workspace
+on the repository is triggered.
+
 <a id="configuration" style="scroll-margin-top: 7rem"></a>
 
 ### Configure directory prefixes with Terraform

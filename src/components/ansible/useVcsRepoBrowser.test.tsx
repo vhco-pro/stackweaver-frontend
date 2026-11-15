@@ -55,14 +55,16 @@ describe('useVcsRepoBrowser connection selection', () => {
     for (const client of clients.splice(0)) client.clear();
   });
 
-  it('selects the sole deduplicated connection after an uncached response', async () => {
-    const replacement = connection('connection-a-new', first.account_name);
-    vi.mocked(vcsConnectionsApi.list).mockResolvedValue([first, replacement]);
+  // This case used to expect two connections of one account to collapse into the newer one and
+  // be selected. An App connection and a token connection may share an account (#938), so both
+  // stay listed by id and neither is chosen for the caller.
+  it('keeps two connections of one account apart and selects neither', async () => {
+    const appConnection = { ...connection('connection-a-app', first.account_name), installation_id: '424242' };
+    vi.mocked(vcsConnectionsApi.list).mockResolvedValue([first, appConnection]);
     const { result } = renderHook(() => useVcsRepoBrowser('fixture', true), { wrapper: wrapperFor(clientWith()) });
-    await waitFor(() => { expect(result.current.connectionId).toBe(replacement.id); });
-    expect(result.current.connections).toEqual([replacement]);
-    expect(result.current.connection).toEqual(replacement);
-    await waitFor(() => { expect(vcsConnectionsApi.listAllRepositories).toHaveBeenCalledWith(replacement.id, undefined); });
+    await waitFor(() => { expect(result.current.connections).toEqual([first, appConnection]); });
+    expect(result.current.connectionId).toBe('');
+    expect(vcsConnectionsApi.listAllRepositories).not.toHaveBeenCalled();
   });
 
   it('selects a cached sole connection after remount without another list request', async () => {

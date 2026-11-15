@@ -6,10 +6,10 @@
 // carry the logic that used to live inside those effects, so they are unit-pinned.
 
 import { describe, it, expect } from 'vitest';
+import { getVcsConnectionLabel } from '@/lib/vcs';
 import {
   defaultBranchName,
   resolveEffectiveBranch,
-  dedupeVcsConnections,
   vcsConnectionExists,
   hasStateInvalidatingChanges,
 } from './EditWorkspaceDialog.helpers';
@@ -58,21 +58,19 @@ describe('resolveEffectiveBranch', () => {
   });
 });
 
-describe('dedupeVcsConnections', () => {
-  it('collapses same provider/account/type, keeping the last seen', () => {
-    const result = dedupeVcsConnections([
-      conn('1', 'github', 'acme'),
-      conn('2', 'github', 'acme'),
-      conn('3', 'gitlab', 'acme'),
-    ]);
-    expect(result.map((c) => c.id)).toEqual(['2', '3']);
+// The pickers used to collapse connections that shared provider, account and type, and this
+// block asserted that two ids collapsed into one. An organization can now hold a GitHub App
+// connection and a token connection for the same account (#938), and collapsing them hid a
+// connection; every picker lists connections by id and a label tells them apart.
+describe('connection labels', () => {
+  it('marks an App connection and a token connection of one account apart', () => {
+    const app = { ...conn('1', 'github', 'acme'), installation_id: '424242' };
+    const token = conn('2', 'github', 'acme');
+    expect(getVcsConnectionLabel(app)).toBe('GitHub - acme (App)');
+    expect(getVcsConnectionLabel(token)).toBe('GitHub - acme (token)');
   });
-  it('keeps distinct accounts/types', () => {
-    const result = dedupeVcsConnections([
-      conn('1', 'github', 'acme', 'organization'),
-      conn('2', 'github', 'acme', 'user'),
-    ]);
-    expect(result).toHaveLength(2);
+  it('names the provider', () => {
+    expect(getVcsConnectionLabel(conn('3', 'azure_devops', 'contoso'))).toBe('Azure DevOps - contoso (token)');
   });
 });
 

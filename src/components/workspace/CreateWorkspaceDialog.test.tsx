@@ -47,12 +47,13 @@ const githubConnection: VCSConnection = {
   provider: 'github',
   account_name: 'acme-org',
   account_type: 'organization',
+  installation_id: '101',
   created_at: '2026-01-01T00:00:00Z',
   updated_at: '2026-01-01T00:00:00Z',
 };
 
-// A second installation; the dialog lists connections once per provider and account.
-const otherConnection: VCSConnection = { ...githubConnection, id: 'conn-2', account_name: 'other-org' };
+// A second installation; the dialog lists every connection by id, labelled App or token (#938).
+const otherConnection: VCSConnection = { ...githubConnection, id: 'conn-2', account_name: 'other-org', installation_id: '102' };
 
 type ProjectStub = { id: string; name: string };
 
@@ -246,7 +247,7 @@ describe('CreateWorkspaceDialog: the rows beside it are the same checkbox (AC11)
 
   it('renders all three rows with the shared Checkbox primitive', async () => {
     const user = await setup([githubConnection]);
-    await user.click(dialog().getByText('GitHub - acme-org'));
+    await user.click(dialog().getByText('GitHub - acme-org (App)'));
 
     expectSharedCheckbox(allowDestroyPlans());
     expectSharedCheckbox(autoApply());
@@ -279,7 +280,7 @@ describe('CreateWorkspaceDialog: the rows beside it are the same checkbox (AC11)
 
     expect(dialog().queryByRole('checkbox', { name: 'Automatically queue runs on VCS push' })).toBeNull();
 
-    await user.click(dialog().getByText('GitHub - acme-org'));
+    await user.click(dialog().getByText('GitHub - acme-org (App)'));
 
     expect(autoQueueRuns()).not.toBeChecked();
   });
@@ -287,7 +288,7 @@ describe('CreateWorkspaceDialog: the rows beside it are the same checkbox (AC11)
   it('submits auto-queue-runs with a VCS connection, repository and branch selected', async () => {
     const user = await setup([githubConnection]);
 
-    await user.click(dialog().getByText('GitHub - acme-org'));
+    await user.click(dialog().getByText('GitHub - acme-org (App)'));
     await user.click(await dialog().findByRole('combobox', { name: /^Repository/ }));
     await user.click(await screen.findByRole('option', { name: /acme-org\/network/ }));
     // The repository's default branch is selected once the branch list loads.
@@ -385,7 +386,7 @@ describe('CreateWorkspaceDialog: the project is preselected', () => {
 
     expect(projectsApi.list).toHaveBeenCalledTimes(1);
     expect(projectSelect()).toHaveTextContent('default');
-    expect(dialog().getByText('GitHub - acme-org')).toBeInTheDocument();
+    expect(dialog().getByText('GitHub - acme-org (App)')).toBeInTheDocument();
     const [, data] = await submit(user);
 
     expect(data).toMatchObject({ project_id: 'proj-default' });
@@ -415,7 +416,7 @@ describe('CreateWorkspaceDialog: repositories and branches follow the selection'
 
   it('selects the default branch again when the user returns to a repository', async () => {
     const { user } = await openDialog({ connections: [githubConnection], repositories: twoRepositories });
-    await user.click(dialog().getByText('GitHub - acme-org'));
+    await user.click(dialog().getByText('GitHub - acme-org (App)'));
 
     await pickRepository(user, 'acme-org/network');
     await waitFor(() => { expect(branchSelect()).toHaveTextContent('main'); });
@@ -436,7 +437,7 @@ describe('CreateWorkspaceDialog: repositories and branches follow the selection'
       connections: [githubConnection],
       repositories: twoRepositories,
     });
-    await user.click(dialog().getByText('GitHub - acme-org'));
+    await user.click(dialog().getByText('GitHub - acme-org (App)'));
 
     await pickRepository(user, 'acme-org/network');
     await waitFor(() => { expect(branchSelect()).toHaveTextContent('main'); });
@@ -460,7 +461,7 @@ describe('CreateWorkspaceDialog: repositories and branches follow the selection'
       { name: 'main', commit: { sha: 'abc', url: '' }, protected: false },
       featureBranch,
     ]);
-    await user.click(dialog().getByText('GitHub - acme-org'));
+    await user.click(dialog().getByText('GitHub - acme-org (App)'));
     await pickRepository(user, 'acme-org/network');
     await waitFor(() => { expect(branchSelect()).toHaveTextContent('main'); });
 
@@ -478,11 +479,11 @@ describe('CreateWorkspaceDialog: repositories and branches follow the selection'
       repositories: { 'conn-1': [networkRepo], 'conn-2': [billingRepo] },
     });
 
-    await user.click(dialog().getByText('GitHub - acme-org'));
+    await user.click(dialog().getByText('GitHub - acme-org (App)'));
     await pickRepository(user, 'acme-org/network');
-    await user.click(dialog().getByText('GitHub - other-org'));
+    await user.click(dialog().getByText('GitHub - other-org (App)'));
     await pickRepository(user, 'other-org/billing');
-    await user.click(dialog().getByText('GitHub - acme-org'));
+    await user.click(dialog().getByText('GitHub - acme-org (App)'));
 
     await user.click(await dialog().findByRole('combobox', { name: /^Repository/ }));
     expect(await screen.findByRole('option', { name: /acme-org\/network/ })).toBeInTheDocument();

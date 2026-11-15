@@ -26,7 +26,7 @@ import {
 import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from 'sonner';
 import { Loader2, GitBranch, Plus, CheckCircle2 } from 'lucide-react';
-import { getVcsProviderIcon, getVcsProviderLabel, getVcsManageUrl } from '@/lib/vcs';
+import { getVcsProviderIcon, getVcsConnectionLabel, getVcsManageUrl } from '@/lib/vcs';
 import { workspacesApi, vcsConnectionsApi, projectsApi, agentPoolsApi, terraformVersionsApi } from '@/api/client';
 import { VCSProviderSelector } from '@/components/vcs/VCSProviderSelector';
 import { VCSProjectSelect } from '@/components/vcs/VCSProjectSelect';
@@ -34,7 +34,6 @@ import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { IdentityBindingSelect, RunImageSelect } from '@/components/settings/RunPlacementFields';
 import { autoFillWorkspaceName, resolveBranch, resolveProjectId } from './CreateWorkspaceDialog.helpers';
-import { dedupeVcsConnections } from './EditWorkspaceDialog.helpers';
 
 interface CreateWorkspaceDialogProps {
   open: boolean;
@@ -101,7 +100,7 @@ export function CreateWorkspaceDialog({
       return {
         tfVersions: Array.isArray(tfRes?.data) ? tfRes.data : [],
         projects: projectsRes?.data || [],
-        vcsConnections: dedupeVcsConnections(Array.isArray(vcsRes) ? vcsRes : []),
+        vcsConnections: Array.isArray(vcsRes) ? vcsRes : [],
         agentPools: Array.isArray(poolsRes?.data) ? poolsRes.data : [],
       };
     },
@@ -339,7 +338,7 @@ export function CreateWorkspaceDialog({
                       <div className="flex items-center gap-2">
                         {getVcsProviderIcon(conn.provider)}
                         <span className="text-sm font-medium">
-                          {getVcsProviderLabel(conn.provider)} - {conn.account_name}
+                          {getVcsConnectionLabel(conn)}
                         </span>
                         <Badge variant="outline" className="text-xs">
                           {conn.account_type}

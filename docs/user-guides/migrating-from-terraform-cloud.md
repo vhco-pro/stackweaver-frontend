@@ -6,6 +6,7 @@ covers:
   - "backend/internal/services/auth/**"
   - "backend/internal/api/v2/handlers/agent_pools.go"
   - "backend/internal/api/v2/handlers/agent_tokens.go"
+  - "backend/internal/api/v2/handlers/github_app_installations.go"
 ---
 
 # Migrate from Terraform Cloud or Enterprise
@@ -28,6 +29,32 @@ Use [the provider guide](./terraform-provider.md) for destination resource confi
 Execution modes mean the same as in Terraform Cloud. A workspace in `remote` execution mode runs on the organization's hosted capacity, which is the installation's own launchers. A workspace in `agent` mode runs on the agent pool it names. `tfe_agent_pool`, `tfe_agent_token` and a workspace's `agent_pool_id` work with `terraform-provider-tfe` as they do against Terraform Cloud.
 
 To run an agent pool's work, start launchers registered with an agent token of that pool; see [Set up launchers](./self-hosted-runners.md). The hosted capacity is not an agent pool on the TFE API: it does not appear in the agent pools list and cannot be assigned through `agent-pool-id`, and a run waiting for a free hosted slot stays `pending`.
+
+## VCS connections
+
+Connect each GitHub account and Azure DevOps organization to the destination organization first; see [VCS integrations](./vcs/README.md). A workspace's `vcs_repo` block then names its connection in one of two ways:
+
+- `github_app_installation_id`: the GitHub App installation ID. The `tfe_github_app_installation` data source looks it up by name or installation ID among the installations connected in the organizations your token can reach. An installation the workspace's organization has not connected is rejected with `400`.
+- `oauth_token_id`: the Stackweaver connection ID, from `GET /api/v2/organizations/<organization>/vcs-connections`.
+
+A `vcs_repo` block that names neither uses the organization's only connection. When the organization has several, the request is rejected with `422`; name one of the two fields.
+
+```hcl
+data "tfe_github_app_installation" "platform" {
+  name = "example-platform"
+}
+
+resource "tfe_workspace" "production" {
+  name         = "production"
+  organization = "your-org"
+
+  vcs_repo {
+    identifier                 = "example-platform/infrastructure"
+    branch                     = "main"
+    github_app_installation_id = data.tfe_github_app_installation.platform.id
+  }
+}
+```
 
 ## Connect your CLI
 
@@ -123,7 +150,7 @@ The following table is generated from a lifecycle-test snapshot. It is not a liv
 
 <!-- BEGIN GENERATED: tfe-compat-table -->
 
-Verified by driving the stock `hashicorp/tfe` provider against a running Stackweaver: **59 verified**, 5 did not pass, 0 untested, 64 fixtures total.
+Verified by driving the stock `hashicorp/tfe` provider against a running Stackweaver: **59 verified**, 5 did not pass, 1 untested, 65 fixtures total.
 
 Evidence from a run on **2026-09-12T07:05:09Z** using hashicorp/tfe ~> 0.77. A row says what that run showed; it does not say whether Stackweaver implements the resource.
 
@@ -139,6 +166,7 @@ Evidence from a run on **2026-09-12T07:05:09Z** using hashicorp/tfe ~> 0.77. A r
 | `tfe_azure_oidc_configuration` | ✅ verified | lifecycle passed against a running Stackweaver |
 | `tfe_data_agent_pool` | ✅ verified | lifecycle passed against a running Stackweaver |
 | `tfe_data_current_user` | ✅ verified | lifecycle passed against a running Stackweaver |
+| `tfe_data_github_app_installation` | ➖ untested | nothing has exercised this |
 | `tfe_data_organization` | ✅ verified | lifecycle passed against a running Stackweaver |
 | `tfe_data_organization_members` | ✅ verified | lifecycle passed against a running Stackweaver |
 | `tfe_data_organization_membership` | ✅ verified | lifecycle passed against a running Stackweaver |

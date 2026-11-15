@@ -6,13 +6,6 @@ import { ansiblePlaybooksApi } from '@/api/ansible';
 import { vcsConnectionsApi, type VCSConnection } from '@/api/client';
 import { getPlaybookFileFromJsonApi } from '@/utils/ansible-jsonapi';
 
-/** Deduplicate VCS connections by provider + account (one entry per real account). */
-export function dedupeVcsConnections(connections: VCSConnection[]): VCSConnection[] {
-  return Array.from(
-    new Map(connections.map((c) => [`${c.provider}-${c.account_name}-${c.account_type}`, c])).values()
-  );
-}
-
 /**
  * Cascading VCS connection → (ADO project) → repository → branch → playbook
  * files browser state, shared by the bulk-import wizard and the playbook
@@ -33,7 +26,8 @@ export function useVcsRepoBrowser(
     queryKey: ['vcsRepoBrowserConnections', organizationName],
     queryFn: async () => {
       const res = await vcsConnectionsApi.list(organizationName);
-      return dedupeVcsConnections(Array.isArray(res) ? res : []);
+      // Every connection by id: an App connection and a token connection may share an account (#938).
+      return Array.isArray(res) ? res : [];
     },
     enabled: enabled && !!organizationName,
   });

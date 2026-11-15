@@ -25,7 +25,7 @@ import {
 import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from 'sonner';
 import { Loader2, GitBranch, Plus, CheckCircle2 } from 'lucide-react';
-import { getVcsProviderIcon, getVcsProviderLabel } from '@/lib/vcs';
+import { getVcsProviderIcon, getVcsConnectionLabel } from '@/lib/vcs';
 import { registryApi, vcsConnectionsApi } from '@/api/client';
 import { VCSProviderSelector } from '@/components/vcs/VCSProviderSelector';
 import { VCSProjectSelect } from '@/components/vcs/VCSProjectSelect';
@@ -62,19 +62,11 @@ export function CreateModuleDialog({
 
   // Load VCS connections when dialog opens
   const { data: vcsConnections = [], isLoading: loadingVCS } = useQuery({
-    queryKey: ['vcs-connections-deduped', orgName],
+    queryKey: ['vcs-connections', orgName],
     queryFn: async () => {
       const vcsRes = await vcsConnectionsApi.list(orgName);
-      const connections = Array.isArray(vcsRes) ? vcsRes : [];
-      // Deduplicate by provider + account_name + account_type to prevent duplicates
-      return Array.from(
-        new Map(
-          connections.map(conn => [
-            `${conn.provider}-${conn.account_name}-${conn.account_type}`,
-            conn
-          ])
-        ).values()
-      );
+      // Every connection by id: an App connection and a token connection may share an account (#938).
+      return Array.isArray(vcsRes) ? vcsRes : [];
     },
     enabled: open,
   });
@@ -284,7 +276,7 @@ export function CreateModuleDialog({
                         <div className="flex items-center gap-2">
                           {getVcsProviderIcon(conn.provider)}
                           <span className="text-sm font-medium">
-                            {getVcsProviderLabel(conn.provider)} - {conn.account_name}
+                            {getVcsConnectionLabel(conn)}
                           </span>
                         </div>
                         {vcsConnectionId === conn.id && (

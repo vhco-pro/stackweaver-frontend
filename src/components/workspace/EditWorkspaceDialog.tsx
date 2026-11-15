@@ -36,7 +36,6 @@ import { IdentityBindingSelect, InheritedHint, RunImageSelect } from '@/componen
 import { useIdentityBindingOptions, useRunImages } from '@/hooks/useRunPlacement';
 import { bindingLabel, runImageLabel } from '@/lib/runPlacement';
 import {
-  dedupeVcsConnections,
   vcsConnectionExists,
   resolveEffectiveBranch,
   hasStateInvalidatingChanges,
@@ -162,7 +161,7 @@ function EditWorkspaceFormBody({
       return {
         tfVersions: Array.isArray(tfRes?.data) ? tfRes.data : [],
         agentPools: Array.isArray(poolsRes?.data) ? poolsRes.data : [],
-        vcsConnections: dedupeVcsConnections(Array.isArray(vcsRes) ? vcsRes : []),
+        vcsConnections: Array.isArray(vcsRes) ? vcsRes : [],
       };
     },
     enabled: !!orgName,

@@ -42,6 +42,14 @@ export function getVcsProviderIcon(provider: VcsProvider, className = 'h-4 w-4')
   }
 }
 
+/**
+ * The label a picker shows for one connection. An organization can hold a GitHub App connection
+ * and a token connection for the same account (#938), so the label says which one it is.
+ */
+export function getVcsConnectionLabel(conn: { provider: VcsProvider; account_name: string; installation_id?: string }): string {
+  return `${getVcsProviderLabel(conn.provider)} - ${conn.account_name} (${conn.installation_id ? 'App' : 'token'})`;
+}
+
 /** Returns a human-readable provider label. */
 export function getVcsProviderLabel(provider: VcsProvider): string {
   switch (provider) {

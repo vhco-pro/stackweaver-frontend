@@ -35,7 +35,8 @@ separate app for local and production deployments when their Setup URLs differ.
 
 ![VCS Connections with an example GitHub installation and its management control.](../images/github-connection.png)
 
-Example organization after connection. Before the first connection, choose **Connect GitHub**.
+Example organization after connection. Before the first connection, choose **Connect GitHub**;
+once the organization has one, the same card offers **Add GitHub account**.
 
 ## Register the app
 
@@ -85,7 +86,7 @@ Keep the app's access limited to the repositories it should automate.
 |---|---|---|
 | Contents | Read-only | Read configuration, playbooks, inventories and module source. |
 | Metadata | Read-only | Repository metadata; GitHub includes it for apps. |
-| Pull requests | Read-only | Read pull request changes for speculative plans. |
+| Pull requests | Read-only | Read the files a pull request changes, for path filtering and speculative plans. |
 | Commit statuses | Read and write | Publish plan results as commit status checks. |
 
 An existing registration may also grant **Webhooks: write** for repository-hook management
@@ -94,7 +95,8 @@ statuses. Keep them when your deployment uses those operations; do not grant unr
 Actions permissions merely for this connection flow.
 
 Subscribe to **Push** and **Pull request** events. Installation lifecycle events let
-Stackweaver remove a connection when the app is uninstalled. New-installation or
+Stackweaver remove the connections on an installation, in every organization that connected
+it, when the app is uninstalled. New-installation or
 repository-access-change deliveries do not connect a Stackweaver organization: the signed-in
 browser return does that. `workflow_job` is not a requirement of this VCS connection flow.
 
@@ -229,6 +231,10 @@ a single collapsed line is not a valid replacement for the PEM file.
 5. Push a small relevant change in a test repository. Check the app's webhook deliveries,
    the expected sync or run, and any configured pull request status check.
 
+A push or pull request run starts once a launcher on the organization's hosted capacity has
+captured the repository at the delivered commit, using the workspace's own connection. Until
+then the run stays pending and its configuration version has the status `fetching`.
+
 Installing the app directly from GitHub does not connect a Stackweaver organization.
 Stackweaver checks the authorized user's access to the installation before recording it
 for the organization that started the flow.
@@ -257,6 +263,26 @@ sequenceDiagram
 
 </details>
 
+## Connect more GitHub accounts
+
+An organization can hold one connection for each GitHub account or organization the app is
+installed on. Each installation is its own connection, with its own repositories.
+
+1. Open **Settings > VCS Connections** and choose **Add GitHub account** on the GitHub card.
+2. Select the other GitHub account or organization and its repositories, then complete the
+   flow as for the first connection.
+3. Confirm the new row under **Connected Providers**. Workspace, playbook, inventory and module
+   pickers list each connection with its account, for example `GitHub - example-platform (App)`.
+
+Selecting an account the organization already connected updates that connection instead of
+adding a second one. To install the app on GitHub accounts other than the one that owns it,
+the app must allow installation on **Any account** (see [Register the app](#register-the-app)).
+
+Each row has its own actions. **Configure on GitHub** opens that installation's settings,
+where you change its repository access. **Disconnect** removes only that connection; the
+organization's other connections, and the workspaces and registrations that use them, are
+unaffected.
+
 ## Recover a connection problem
 
 | Symptom | Check and next action |
@@ -269,7 +295,9 @@ sequenceDiagram
 | Flow expired or the wrong Stackweaver user returned. | Restart from the intended organization's **Connect GitHub** and complete within 15 minutes. |
 | Every webhook delivery returns 401. | Compare the configured secret locally with the GitHub setting. Check env-file quoting or `$` expansion and overriding Compose entries, then recreate the API. |
 | Push causes no run or sync. | Check webhook URL, delivery result, repository access, tracked branch, and applicable path filters or auto-queue settings. |
-| Token generation fails. | Check the App ID, private-key formatting and installation access. |
+| A push or pull request run stays pending. | Check that a hosted launcher is online. The configuration capture runs on the organization's hosted capacity, even for a workspace on an agent pool. |
+| Pull request triggers every workspace. | GitHub lists at most 3000 changed files. A larger pull request, or a file list that cannot be read, triggers every workspace on the repository. Check the installation's **Pull requests** permission. |
+| Token generation fails. | Check the App ID, private-key formatting and installation access. Captures that need a token, including a registry module version published from a Git tag, fail until the connection can mint one. |
 | Status checks return 403. | Approve the installation's updated **Commit statuses: read and write** permission; retry with an authorized installation. |
 
 See [GitHub's app registration reference](https://docs.github.com/en/apps/creating-github-apps/registering-a-github-app/registering-a-github-app)

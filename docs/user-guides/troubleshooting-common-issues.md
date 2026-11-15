@@ -17,7 +17,7 @@ the cause or repeat real changes.
 
 | Symptom | Check first | Next action |
 |---|---|---|
-| Run stays queued. | Workspace lock, execution mode, whether a launcher of the run's pool is online and orchestrator status. A run stays pending until a launcher of its pool is online. | For remote execution, check the hosted launcher's logs. For agent execution, check that a launcher of the workspace's agent pool shows as **Online** under **Settings > Launchers**. See [Set up launchers](./self-hosted-runners.md). |
+| Run stays queued. | Workspace lock, execution mode, whether a launcher of the run's pool is online and orchestrator status. A run stays pending until a launcher of its pool is online. A VCS-backed run first waits for its configuration capture, which runs on the organization's hosted capacity even when the workspace uses an agent pool. | For remote execution, check the hosted launcher's logs. For agent execution, check that a launcher of the workspace's agent pool shows as **Online** under **Settings > Launchers**. See [Set up launchers](./self-hosted-runners.md). |
 | Run fails before planning. | Repository access, branch/commit, working directory and initialization output. | Correct the specific connection or path; preserve the existing connection while diagnosing. |
 | Unexpected deletion or replacement. | Selected commit, variables, state version and provider lock file. | Stop before apply. Compare with a known successful run and investigate drift deliberately. |
 | Provider authentication/permission error. | Credential expiry, workload-identity trust, target account/region and operation permission. | Correct the narrow failing permission or credential. See [workload identity](./oidc-configuration.md). |

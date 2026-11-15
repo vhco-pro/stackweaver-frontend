@@ -2409,5 +2409,30 @@
       "api"
     ],
     "availability": []
+  },
+  {
+    "id": "multiple-vcs-connections",
+    "title": "An organization can connect several GitHub accounts and Azure DevOps organizations",
+    "area": "VCS",
+    "kind": "Added",
+    "reviewed": true,
+    "audience": "Organizations that use more than one GitHub account or Azure DevOps organization, and operators upgrading an installation.",
+    "before": "An organization held one connection per VCS provider. Connecting a second GitHub account or Azure DevOps organization silently pointed the existing connection at it.",
+    "after": "Each GitHub App installation and each Azure DevOps organization is its own connection, and connecting the same one again updates it. Workspaces, playbooks, inventories and modules keep the connection they were created with. The API runs no git: a VCS run, a webhook run and a module version published from a tag are captured by a launcher with the resource's own connection, and a GitHub pull request triggers only the workspaces whose files it changes, read from GitHub's API.",
+    "action": "Upgrade the API, the orchestrator and the launchers to this release together, and keep a launcher running: VCS runs and tag publishing wait for one. While older and newer API or orchestrator replicas run side by side during a rolling upgrade, a VCS run created in that window can end errored with its reason; queue it again once every replica runs this release. No data is lost. On upgrade, connections that share an identity are merged into the most recently updated one, and the API log names every merged connection and each workspace, module, playbook and inventory it moved.",
+    "details": [],
+    "guides": [
+      {
+        "title": "GitHub App",
+        "path": "/docs/user-guides/vcs/github-app"
+      }
+    ],
+    "sourceCommits": [],
+    "draftCommits": [],
+    "requiredComponents": [
+      "api",
+      "launcher"
+    ],
+    "availability": []
   }
 ]

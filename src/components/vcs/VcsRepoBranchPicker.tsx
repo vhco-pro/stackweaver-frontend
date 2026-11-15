@@ -14,7 +14,7 @@ import {
 } from '@/components/ui/select';
 import { CheckCircle2, Loader2, Plus } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { getVcsProviderIcon, getVcsProviderLabel, getVcsManageUrl } from '@/lib/vcs';
+import { getVcsProviderIcon, getVcsConnectionLabel, getVcsManageUrl } from '@/lib/vcs';
 import { VCSProviderSelector } from '@/components/vcs/VCSProviderSelector';
 import { VCSProjectSelect } from '@/components/vcs/VCSProjectSelect';
 import type { useVcsRepoBrowser } from '@/components/ansible/useVcsRepoBrowser';
@@ -76,7 +76,7 @@ export function VcsRepoBranchPicker({ organizationName, browser }: VcsRepoBranch
                   <div className="flex items-center gap-2">
                     {getVcsProviderIcon(conn.provider, 'h-4 w-4')}
                     <span className="text-sm font-medium">
-                      {getVcsProviderLabel(conn.provider)} - {conn.account_name}
+                      {getVcsConnectionLabel(conn)}
                     </span>
                     <Badge variant="outline" className="text-xs">
                       {conn.account_type}
