@@ -19,6 +19,7 @@
     "features/ansible/api-reference": "architecture/using-the-api",
     "api-reference": "architecture/using-the-api",
     "api-reference/README": "architecture/using-the-api",
-    "features/ansible/changelog": "changelog"
+    "features/ansible/changelog": "changelog",
+    "user-guides/oidc-configuration": "user-guides/workload-identity"
   }
 }

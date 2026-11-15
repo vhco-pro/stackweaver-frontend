@@ -407,7 +407,7 @@ One `launcher` service, from the `stackweaver-launcher` image, replaces the `lau
    from their environment. The program that runs each job comes from its launcher's image; see
    [Set up launchers](../../../user-guides/self-hosted-runners.md#operate-and-troubleshoot).
 5. If a cloud trust matches an Ansible job's subject exactly, update it to the job name in
-   [the token subject](../../../user-guides/oidc-configuration.md#the-token-subject-shared-across-clouds).
+   [the token subject](../../../user-guides/workload-identity/token-subjects.md).
    Rename any organization, project, workspace, template or job whose name contains a colon:
    a run or job whose configured identity cannot be minted fails before it starts.
 6. Once the upgrade works, delete the `runner-workspaces` and `ansible-workspaces` volumes,

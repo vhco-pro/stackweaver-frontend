@@ -662,7 +662,7 @@ Chart version 0.16.1 is the first with launchers.
    A launcher you run with the Kubernetes driver outside the chart needs the Role described
    under [Run every job in a pod of its own](../../../user-guides/self-hosted-runners.md#step-3c-run-every-job-in-a-pod-of-its-own).
 6. If a cloud trust matches an Ansible job's subject exactly, update it to the job name in
-   [the token subject](../../../user-guides/oidc-configuration.md#the-token-subject-shared-across-clouds).
+   [the token subject](../../../user-guides/workload-identity/token-subjects.md).
    Rename any organization, project, workspace, template or job whose name contains a colon:
    a run or job whose configured identity cannot be minted fails before it starts.
 7. Once the upgrade works, delete any claim you supplied through `existingClaim`, such as the

@@ -4,7 +4,7 @@
     {
       "id": "ad-hoc-commands",
       "guide": "user-guides/dynamic-inventories.md",
-      "guideHash": "5b4578c7835fbdc18f6650bddf3e008248768f2c8c7b4b1cde4654b130baa60c",
+      "guideHash": "33707d1469bb7393ab2e50d401749b10cd974cd8c69896111a7c8edf9c06f372",
       "metadataHash": "f1c27ac8c147811f75b6ed3334a6b674b045e37f2174d5ee25595a80e4d1bf6d",
       "evidence": [
         {
@@ -44,7 +44,7 @@
     {
       "id": "ansible-azure-identity",
       "guide": "user-guides/azure-key-vault-from-playbooks.md",
-      "guideHash": "d77b38b62df936a608bc1fa34f9ce9202bda1f64cbdf570ad8ca3d209399ed31",
+      "guideHash": "d22f37e365bf6300005e39a2e964758eab9b6084aff8c52884cdd28e523b6508",
       "metadataHash": "53a9695893099c8801bb3357ffe0d8484dc34b7d2150e7a0eb210591d3aedf49",
       "evidence": [
         {
@@ -256,7 +256,7 @@
     {
       "id": "cloud-inventories",
       "guide": "user-guides/dynamic-inventories.md",
-      "guideHash": "5b4578c7835fbdc18f6650bddf3e008248768f2c8c7b4b1cde4654b130baa60c",
+      "guideHash": "33707d1469bb7393ab2e50d401749b10cd974cd8c69896111a7c8edf9c06f372",
       "metadataHash": "707616ee92f755f9ee257b8ed6adf3221e2ac13ec139d281b628713caadeb96e",
       "evidence": [
         {
@@ -276,7 +276,7 @@
     {
       "id": "constructed-inventories",
       "guide": "user-guides/dynamic-inventories.md",
-      "guideHash": "5b4578c7835fbdc18f6650bddf3e008248768f2c8c7b4b1cde4654b130baa60c",
+      "guideHash": "33707d1469bb7393ab2e50d401749b10cd974cd8c69896111a7c8edf9c06f372",
       "metadataHash": "d514e4f2386cf2445e7fefd3c36345c9a754600c41974e3dfec9b1b5dd68d40a",
       "evidence": [
         {
@@ -535,8 +535,8 @@
     },
     {
       "id": "workload-identity",
-      "guide": "user-guides/oidc-configuration.md",
-      "guideHash": "60bf6799e470d0e1325c6c6e5f02c8574c1e326f32ac375c6d25861911585879",
+      "guide": "user-guides/workload-identity/README.md",
+      "guideHash": "6deb6f6b9311c579d80a374c7d80af5f68522007cb04d7250d04e8775cd35c47",
       "metadataHash": "f883e77c516cacae6bb134352fa12a7d2345aa1f53ee189974bcdff3f6061c2c",
       "evidence": [
         {
