@@ -161,6 +161,18 @@ Set the public origin and authorized token locally, and replace both organizatio
 The response's `meta.auth-url` is the authorization destination, not a completed connection.
 Follow it in the browser to complete consent and the callback.
 
+### Connect another Azure DevOps organization
+
+A Stackweaver organization can hold one connection for each Azure DevOps organization. Once
+one exists, the Azure DevOps card offers **Add Azure DevOps organization**; enter the other
+organization's name and authorize as above. Connecting an Azure DevOps organization that is
+already connected refreshes that connection's tokens instead of adding a second one.
+
+Pickers list each connection with its organization, for example
+`Azure DevOps - example-platform (token)`. **Disconnect** on a connection's row removes only
+that connection; the other connections, and the workspaces and registrations that use them,
+are unaffected.
+
 ## 4. Link a repository and verify hooks
 
 1. Create or edit a workspace. Select the connection, repository and branch.

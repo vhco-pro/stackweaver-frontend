@@ -492,7 +492,7 @@ Select **Agent Pool (Optional)** on the job template, or the agent-pool choice f
 
 The template's effective settings (`GET /api/v2/ansible/job-templates/:id/effective-settings`) name the pool its jobs use and the level it comes from (`agent-pool-id`). Check them and start a non-destructive test job before routing production automation.
 
-Syncs are routed by the kind of sync. A dynamic inventory source sync runs on the project's or the organization's default agent pool when one is set, and on the hosted capacity otherwise. The syncs that capture a snapshot from your VCS provider (a playbook snapshot, a VCS inventory file, a constructed inventory rebuild, and the configuration of a VCS-backed workspace) always run on the hosted capacity in the Ansible job image, so the launchers in your pools never need a route to your VCS host or a VCS credential.
+Syncs are routed by the kind of sync. A dynamic inventory source sync runs on the project's or the organization's default agent pool when one is set, and on the hosted capacity otherwise. The syncs that capture a snapshot from your VCS provider (a playbook snapshot, a VCS inventory file, a constructed inventory rebuild, the configuration of a VCS-backed workspace, and a registry module version published from a Git tag) always run on the hosted capacity in the Ansible job image, so the launchers in your pools never need a route to your VCS host or a VCS credential.
 
 ---
 

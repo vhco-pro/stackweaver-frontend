@@ -79,7 +79,7 @@ belongs in the [self-hosting guides](../get-started/self-hosting/README.md).
 | API | Enforces access and manages organizations, projects, workspaces and jobs. | Automation clients, every launcher and every job process connect here. |
 | Zitadel | Handles user identity and issues sign-in tokens. | Issuer and callback URLs must match the deployment's public addresses. |
 | Orchestrator | Routes runs to their pool, requests configuration snapshots and releases stuck work. | It uses the database and Redis; it runs no infrastructure tools. |
-| Launchers and job processes | Claim runs, jobs and syncs and run each one as an in-process, container or Kubernetes job process. | Job processes need access to the API, providers, collections and target hosts their work uses. Configuration and playbook snapshots are captured on the hosted capacity, so its job processes also need access to your VCS provider. |
+| Launchers and job processes | Claim runs, jobs and syncs and run each one as an in-process, container or Kubernetes job process. | Job processes need access to the API, providers, collections and target hosts their work uses. Configuration and playbook snapshots, and registry module versions published from Git tags, are captured on the hosted capacity, so its job processes also need access to your VCS provider. |
 | PostgreSQL | Stores resource metadata, permissions and execution records. | Include its data in your backup and recovery plan. |
 | Redis | Carries launcher wakeups and buffers live output. | Keep it reachable by the API and the orchestrator. |
 | S3-compatible storage | Holds configuration snapshots, state files and artifacts. | Preserve it alongside the database. Garage is the bundled option; an external compatible service can be used. |

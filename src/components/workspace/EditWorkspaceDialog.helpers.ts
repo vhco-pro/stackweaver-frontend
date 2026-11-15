@@ -23,22 +23,6 @@ export function resolveEffectiveBranch(selectedBranch: string, branches: Branch[
   return selectedBranch || defaultBranchName(branches);
 }
 
-/**
- * Collapse VCS connections that are the same provider/account into one entry.
- * Mirrors the dialog's original `Map`-based de-duplication, where the last entry
- * with a given provider/account/type key wins.
- */
-export function dedupeVcsConnections(connections: VCSConnection[]): VCSConnection[] {
-  return Array.from(
-    new Map(
-      connections.map((conn) => [
-        `${conn.provider}-${conn.account_name}-${conn.account_type}`,
-        conn,
-      ]),
-    ).values(),
-  );
-}
-
 /** Whether `id` matches a connection present in the list (string-normalized). */
 export function vcsConnectionExists(connections: VCSConnection[], id: string): boolean {
   return !!id && connections.some((conn) => String(conn.id) === String(id));

@@ -65,7 +65,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
-import { getVcsProviderIcon, getVcsProviderLabel, getVcsRepoUrl, getVcsBranchUrl, getVcsFileUrl, getVcsManageUrl } from '@/lib/vcs';
+import { getVcsProviderIcon, getVcsConnectionLabel, getVcsProviderLabel, getVcsRepoUrl, getVcsBranchUrl, getVcsFileUrl, getVcsManageUrl } from '@/lib/vcs';
 import { VCSProviderSelector } from '@/components/vcs/VCSProviderSelector';
 import { VCSProjectSelect } from '@/components/vcs/VCSProjectSelect';
 import { PlaybookImportWizard } from '@/components/ansible/PlaybookImportWizard';
@@ -199,10 +199,8 @@ export default function Playbooks() {
     queryFn: async () => {
       try {
         const vcsRes = await vcsConnectionsApi.list(selectedOrg);
-        const connections = Array.isArray(vcsRes) ? vcsRes : [];
-        return Array.from(
-          new Map(connections.map((conn) => [`${conn.provider}-${conn.account_name}-${conn.account_type}`, conn])).values(),
-        );
+        // Every connection by id: an App connection and a token connection may share an account (#938).
+        return Array.isArray(vcsRes) ? vcsRes : [];
       } catch (err) {
         console.error('Failed to load VCS connections:', err);
         toast.error('Failed to load VCS connections');
@@ -870,7 +868,7 @@ export default function Playbooks() {
                         <div className="flex items-center gap-2">
                           {getVcsProviderIcon(conn.provider, 'h-4 w-4')}
                           <span className="text-sm font-medium">
-                            {getVcsProviderLabel(conn.provider)} - {conn.account_name}
+                            {getVcsConnectionLabel(conn)}
                           </span>
                           <Badge variant="outline" className="text-xs">
                             {conn.account_type}

@@ -29,7 +29,7 @@
       "evidence": [
         {
           "path": "backend/internal/api/v2/handlers/runner_agent.go",
-          "sha256": "7e18dcf9bd8f09a289e09f66464e39835b54c40201000ebcec8cb00bad4486b2"
+          "sha256": "79cf016fc92b9ca8ace52b24fd217a684a7aa23b50218c1874a02b087f656a92"
         },
         {
           "path": "backend/internal/launcher/launcher.go",
@@ -53,7 +53,7 @@
         },
         {
           "path": "backend/internal/api/v2/handlers/runner_agent.go",
-          "sha256": "7e18dcf9bd8f09a289e09f66464e39835b54c40201000ebcec8cb00bad4486b2"
+          "sha256": "79cf016fc92b9ca8ace52b24fd217a684a7aa23b50218c1874a02b087f656a92"
         },
         {
           "path": "backend/internal/executor/ansibleexec/run.go",
@@ -193,7 +193,7 @@
         },
         {
           "path": "backend/internal/api/v2/handlers/runner_agent.go",
-          "sha256": "7e18dcf9bd8f09a289e09f66464e39835b54c40201000ebcec8cb00bad4486b2"
+          "sha256": "79cf016fc92b9ca8ace52b24fd217a684a7aa23b50218c1874a02b087f656a92"
         },
         {
           "path": "core/services/ansible/playbook_sync.go",
@@ -225,11 +225,11 @@
       "evidence": [
         {
           "path": "backend/internal/api/v2/handlers/vcs_app_installation.go",
-          "sha256": "61188a4e5fcabfdaae4fbc6a17ebc5cd99d02aab70b74b438f608ed7f4122f75"
+          "sha256": "638032d41f6b84e19d02a7d668764c5bf5d9979ca6535c34c21c68d74ca9f929"
         },
         {
           "path": "backend/internal/api/v2/handlers/vcs_push_ansible_sync_test.go",
-          "sha256": "e168702a18b670160858e92827d9449daf5b060b029c421bfb60f07b83343622"
+          "sha256": "67799865158fe5092be7be82c7537ea72ac87028d29df836015aac0262450d4e"
         }
       ]
     },
@@ -261,7 +261,7 @@
       "evidence": [
         {
           "path": "backend/internal/executor/syncexec/run.go",
-          "sha256": "2b04dab9750df49b669acddaffb2f009f4d40a7a2b5db9910cbba87cc75dc6a9"
+          "sha256": "3f05e35de716d3d50abe80db6f5e6f7cc0dfdd71ca5d9a7a6e7b177172efc938"
         },
         {
           "path": "core/services/ansible/inventory_source.go",
@@ -285,7 +285,7 @@
         },
         {
           "path": "backend/internal/executor/syncexec/run.go",
-          "sha256": "2b04dab9750df49b669acddaffb2f009f4d40a7a2b5db9910cbba87cc75dc6a9"
+          "sha256": "3f05e35de716d3d50abe80db6f5e6f7cc0dfdd71ca5d9a7a6e7b177172efc938"
         }
       ]
     },
@@ -341,7 +341,7 @@
       "evidence": [
         {
           "path": "backend/internal/api/v2/handlers/terraform/runs.go",
-          "sha256": "35908cf601393c16d3b531b91f8f3b7f544c56b46e6bf6fad398fadb8e733483"
+          "sha256": "8b95b90b382dbdf2622910c8393a01e5650b83e1dc57d77ecc8a6d105c910aec"
         },
         {
           "path": "core/plugins/opentofu/plugin.go",
@@ -361,7 +361,7 @@
       "evidence": [
         {
           "path": "backend/internal/api/middleware/org_wall_registry.go",
-          "sha256": "10921a39918d2f06159763b21199696b4404bca105542b5a0185bebedbb13bcb"
+          "sha256": "9eb518b900dc8cb815fcb4416d9d96b3859a5ddc55f632a1bba644b057f54b43"
         },
         {
           "path": "backend/internal/api/v2/handlers/organizations.go",
@@ -381,7 +381,7 @@
       "evidence": [
         {
           "path": "backend/internal/api/v2/routes/routes.go",
-          "sha256": "ac8bb65f3c2abb95fca5b865646b75198005031f9ec968908396bf9afa5d3124"
+          "sha256": "f108c049a864f2c129e6117b3a00e195e46ccccf0e10f355a297d117f7221bd6"
         },
         {
           "path": "frontend/src/pages/Docs/ApiReferenceExplorer.tsx",
@@ -401,7 +401,7 @@
         },
         {
           "path": "backend/internal/api/v2/handlers/terraform/runs.go",
-          "sha256": "35908cf601393c16d3b531b91f8f3b7f544c56b46e6bf6fad398fadb8e733483"
+          "sha256": "8b95b90b382dbdf2622910c8393a01e5650b83e1dc57d77ecc8a6d105c910aec"
         },
         {
           "path": "backend/internal/launcher/supervise.go",
@@ -417,7 +417,7 @@
       "evidence": [
         {
           "path": "backend/internal/api/v2/handlers/terraform/runs.go",
-          "sha256": "35908cf601393c16d3b531b91f8f3b7f544c56b46e6bf6fad398fadb8e733483"
+          "sha256": "8b95b90b382dbdf2622910c8393a01e5650b83e1dc57d77ecc8a6d105c910aec"
         },
         {
           "path": "backend/internal/executor/tofuexec/run.go",
@@ -457,7 +457,7 @@
       "evidence": [
         {
           "path": "backend/cmd/orchestrator/main.go",
-          "sha256": "75a93c8e1f02748f34ffde44c35084795932e218d2b86161a4a5c0ef101bdac7"
+          "sha256": "0e7fe01268787a0b48966cbc862f8a9ca06afc3f032cc8c871b06776d67ec644"
         },
         {
           "path": "backend/cmd/orchestrator/task_stages.go",
@@ -465,7 +465,7 @@
         },
         {
           "path": "backend/internal/api/v2/handlers/terraform/workspaces.go",
-          "sha256": "a1bfeea826df9a531c65174d176ca402b974be6006ef545d2b0dae86d671bf1f"
+          "sha256": "931b5c91a6b40169053b12d2ecb122cda87546f14bf4c8448ec003d6dc2252e0"
         },
         {
           "path": "backend/internal/launcher/supervise.go",
@@ -481,7 +481,7 @@
         },
         {
           "path": "core/repository/run.go",
-          "sha256": "aa64c7cc7640be2005a60849b050a200bd59dd15c066ebac94b929c5f1de9dfe"
+          "sha256": "d32a14372e93da535a649e6d35f58b8ede0ce3e0e9b87731b02e2eea28751e33"
         },
         {
           "path": "core/repository/run_lifecycle_test.go",
@@ -521,11 +521,11 @@
       "evidence": [
         {
           "path": "backend/internal/api/v2/handlers/vcs_app_installation.go",
-          "sha256": "61188a4e5fcabfdaae4fbc6a17ebc5cd99d02aab70b74b438f608ed7f4122f75"
+          "sha256": "638032d41f6b84e19d02a7d668764c5bf5d9979ca6535c34c21c68d74ca9f929"
         },
         {
           "path": "backend/internal/api/v2/handlers/vcs_connections.go",
-          "sha256": "01420a1706d6eb63fc2ca558668af392bb306802da0db938075624eb48744130"
+          "sha256": "bf36e4f03370002731f9c43eb1eaf7682020d0b6cd7e1d5d4a93c6e367342142"
         },
         {
           "path": "core/services/vcs/provider.go",
@@ -592,7 +592,7 @@
     {
       "id": "workspace-path-filters",
       "guide": "features/opentofu/vcs-path-filtering.md",
-      "guideHash": "c10954ce86d47b58df0a497a904995c4f497c1b8cd2f79743fa028397cf1c201",
+      "guideHash": "da68299d34c25c515e5a6cf2ebb7dd2aede0bb17698ded4dcce8cd28141c2cde",
       "metadataHash": "efe624e2b74896d4e780b408ed942ff8eb860343875635054eba8491bdc01971",
       "evidence": [
         {
@@ -617,7 +617,7 @@
         },
         {
           "path": "backend/internal/api/v2/handlers/terraform/workspaces.go",
-          "sha256": "a1bfeea826df9a531c65174d176ca402b974be6006ef545d2b0dae86d671bf1f"
+          "sha256": "931b5c91a6b40169053b12d2ecb122cda87546f14bf4c8448ec003d6dc2252e0"
         },
         {
           "path": "frontend/src/pages/WorkspaceDetail.tsx",
