@@ -46,6 +46,31 @@
     "availability": []
   },
   {
+    "id": "docs-code-explorer-frame",
+    "title": "Multi-file code examples use the code block frame and the full content width",
+    "area": "Documentation",
+    "kind": "Fixed",
+    "reviewed": true,
+    "audience": "People reading Stackweaver documentation that includes a multi-file example with a file tree, such as the Docker Compose install and the SSO guides.",
+    "before": "A multi-file example kept an older frame with an uppercase title, so it looked different from the code blocks around it, and it stayed in the text column while code blocks and tables grew wider. Long file names were cut off in its file tree.",
+    "after": "A multi-file example uses the same frame, title bar and scrollbars as a code block and takes the full content width. Its file tree is as wide as its longest file name, up to a share of the example, and scrolls beyond that. Its download, copy and expand buttons have labels for screen readers and 44 pixel touch targets.",
+    "action": "Update the frontend image. No configuration change is required.",
+    "details": [],
+    "guides": [
+      {
+        "title": "Install with Docker Compose",
+        "path": "/docs/get-started/self-hosting/docker-compose"
+      }
+    ],
+    "sourceCommits": [
+      "6a346e7fe7c4f9df8e40add46bd7894ac0221e45"
+    ],
+    "requiredComponents": [
+      "frontend"
+    ],
+    "availability": []
+  },
+  {
     "id": "docs-toc-drawer-and-code-header",
     "title": "The phone outline marks the section you are reading, and code block title bars are slimmer",
     "area": "Documentation",
@@ -1556,7 +1581,7 @@
       },
       {
         "title": "Configure workload identity",
-        "path": "/docs/user-guides/oidc-configuration"
+        "path": "/docs/user-guides/workload-identity"
       }
     ],
     "sourceCommits": [],

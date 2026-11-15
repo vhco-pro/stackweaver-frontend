@@ -283,7 +283,7 @@ OIDC Federation uses the subscription in the organization's Azure OIDC configura
 For the other source authentication modes, supply `subscription_id` through source API
 `config`. On a private deployment where the Stackweaver issuer is not public, use a cloud
 credential, or Managed Identity or Workload Identity on an agent pool you run inside Azure.
-Read [OIDC operator configuration](./oidc-configuration.md#operator-configuration) before
+Read [workload identity signing key and issuer](./workload-identity/signing-key.md) before
 choosing Stackweaver federation.
 
 <a id="oidc-subject-formats" style="scroll-margin-top: 7rem"></a>

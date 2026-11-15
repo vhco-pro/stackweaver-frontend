@@ -141,7 +141,7 @@ organization:<org>:project:<project>:job:<job-name>:run
 `adhoc-<module>` for an ad hoc command. For a job launched directly it is the name you gave the
 job, so name the job when you launch it. This is the job subject, not an OpenTofu workspace or
 inventory-source subject. A job whose identity cannot be minted fails before it starts, with the
-reason in its error. Follow [OIDC configuration](./oidc-configuration.md) for issuer and Azure
+reason in its error. Follow [Azure workload identity](./workload-identity/azure.md) for issuer and Azure
 trust setup. Stackweaver supplies the token environment; do not paste token values into YAML.
 
 <a id="azure-setup"></a>

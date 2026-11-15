@@ -69,7 +69,7 @@ capabilities and is not a complete compatibility matrix. Check the guide for set
 |---|---|
 | [Cross-organization dashboard](/docs/user-guides/reading-the-dashboard) | Find waiting approvals, failed work and running operations across organizations you can access. **Limits:** Launcher and change-request rows require their respective organization management permissions. |
 | [GitHub and Azure DevOps connections](/docs/user-guides/vcs) | Connect repositories for code-driven infrastructure and Ansible workflows. |
-| [OIDC workload identity](/docs/user-guides/oidc-configuration) | Authenticate OpenTofu runs to Azure, AWS, GCP or Vault with short-lived workload tokens. **Limits:** Operators must configure signing keys and each target cloud must trust the intended run subject. |
+| [OIDC workload identity](/docs/user-guides/workload-identity) | Authenticate OpenTofu runs to Azure, AWS, GCP or Vault with short-lived workload tokens. **Limits:** Operators must configure signing keys and each target cloud must trust the intended run subject. |
 | [Organization policies](/docs/user-guides/organization-settings) | Configure token access, workspace policies and pull-request behavior for an organization. |
 | [REST API and OpenAPI explorer](/docs/architecture/using-the-api) | Automate platform operations and browse request and response schemas in the API explorer. **Limits:** Terraform-compatible operations and Stackweaver-specific endpoints have different coverage. Check the schema for the operation you use. |
 

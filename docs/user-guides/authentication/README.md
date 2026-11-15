@@ -14,7 +14,7 @@ covers:
 
 Browser sign-in uses a server-side Stackweaver session held in an `HttpOnly` cookie. Self-hosting operators configure Zitadel; organization administrators can [connect an external identity provider](../sso/README.md) and [map groups to teams](../sso/team-mapping.md).
 
-Automation uses separate credentials. Use the [Stackweaver Terraform provider](../terraform-provider.md) or [API guidance](../../architecture/using-the-api.md) with a `tfe-` API token. A Zitadel access token is not an API credential. [Workload identity](../oidc-configuration.md) gives a run access to a cloud service or Vault; it does not configure browser sign-in.
+Automation uses separate credentials. Use the [Stackweaver Terraform provider](../terraform-provider.md) or [API guidance](../../architecture/using-the-api.md) with a `tfe-` API token. A Zitadel access token is not an API credential. [Workload identity](../workload-identity/README.md) gives a run access to a cloud service or Vault; it does not configure browser sign-in.
 
 ## Verify browser sign-in
 
