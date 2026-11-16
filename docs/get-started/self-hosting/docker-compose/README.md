@@ -227,7 +227,7 @@ service's `environment:` block; see
 [Runs, jobs and launchers](../environment-variables.md#runs-jobs-and-launchers).
 
 To run work inside your own network as well, add agent pools and start launchers in them;
-see [Set up launchers](../../../user-guides/self-hosted-runners.md).
+see [Set up launchers](../../../user-guides/launchers/README.md).
 
 ### Run on Podman
 
@@ -405,7 +405,7 @@ One `launcher` service, from the `stackweaver-launcher` image, replaces the `lau
    launchers short.
 4. Upgrade the launchers of your agent pools to the same release and remove `RUNNER_MODE`
    from their environment. The program that runs each job comes from its launcher's image; see
-   [Set up launchers](../../../user-guides/self-hosted-runners.md#operate-and-troubleshoot).
+   [Set up launchers](../../../user-guides/launchers/operate.md#operate-and-troubleshoot).
 5. If a cloud trust matches an Ansible job's subject exactly, update it to the job name in
    [the token subject](../../../user-guides/workload-identity/token-subjects.md).
    Rename any organization, project, workspace, template or job whose name contains a colon:

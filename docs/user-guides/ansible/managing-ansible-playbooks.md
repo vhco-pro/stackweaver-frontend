@@ -1,4 +1,6 @@
 ---
+title: "Playbooks"
+nav_order: 1
 description: "Register repository playbooks, choose cached or fresh execution, verify sync and remove unused registrations."
 covers:
   - "backend/internal/api/v2/handlers/ansible/**"
@@ -34,13 +36,13 @@ Register a repository file so you can use it in a job template. Choose a source 
 control whether jobs use the last synced snapshot or a snapshot of the branch captured
 when they launch.
 
-![Playbooks page with search and filters above registrations showing their repository, file path, branch and sync status.](./images/playbooks-overview.png "Example playbooks. Use New Playbook for one file or Import from repository for several.")
+![Playbooks page with search and filters above registrations showing their repository, file path, branch and sync status.](../images/playbooks-overview.png "Example playbooks. Use New Playbook for one file or Import from repository for several.")
 
 ## Before you start
 
 For creation or import from the **Playbooks** page, you need organization-level Ansible
 management permission and at least one project in the organization. Use a
-[GitHub or Azure DevOps connection](./vcs/README.md) in that same organization with access
+[GitHub or Azure DevOps connection](../vcs/README.md) in that same organization with access
 to the repository and branch containing your playbooks.
 
 The Playbooks page and import wizard do not offer a project picker. Do not rely on a
@@ -66,7 +68,7 @@ to verify repository loading, commit this as `site.yml` on the branch you will r
 This example runs in the job itself and changes no managed hosts. A successful task verifies
 that the file loaded; it does not test connectivity or permissions on your target hosts.
 Use your own playbook for the actual work. Collection dependencies belong in repository
-`requirements.yml`; see [Galaxy collections](../features/ansible/galaxy-collections.md).
+`requirements.yml`; see [Galaxy collections](../../features/ansible/galaxy-collections.md).
 
 | Interface | Use it for |
 |---|---|
@@ -111,11 +113,11 @@ again once a sync succeeds.
 4. Under **Source**, choose **Cached snapshot (recommended)** or **Fresh from remote**.
 5. Select **Create Playbook** and check that it appears on the Playbooks page.
 
-![Create Playbook form with a repository, main branch, bootstrap playbook path and cached source selected.](./images/playbooks-register.png "Example registration ready to submit. The Name can be changed before creating the playbook.")
+![Create Playbook form with a repository, main branch, bootstrap playbook path and cached source selected.](../images/playbooks-register.png "Example registration ready to submit. The Name can be changed before creating the playbook.")
 
 To prepare a cached revision before launching, open the playbook and select **Sync from VCS**.
 Wait for a successful sync and check the recorded commit. For an end-to-end launch, continue
-with [your first Ansible job](../get-started/your-first-ansible-job.md).
+with [your first Ansible job](../../get-started/your-first-ansible-job.md).
 
 <a id="importing-many-playbooks-at-once" style="scroll-margin-top: 7rem"></a>
 
@@ -129,7 +131,7 @@ with [your first Ansible job](../get-started/your-first-ansible-job.md).
 5. Read the per-file results. Some files can be created while others fail; correct the
    reported failures and retry those files.
 
-![Import wizard with two new playbook files selected and existing registrations checked and disabled.](./images/playbooks-import.png "Example repository: two files selected for import. The other three are already registered.")
+![Import wizard with two new playbook files selected and existing registrations checked and disabled.](../images/playbooks-import.png "Example repository: two files selected for import. The other three are already registered.")
 
 New registrations queue a sync, so an import result does not prove content is already
 synced. Check the eventual sync status before relying on a cached revision. Repeating an
@@ -221,7 +223,7 @@ and stored content are removed from object storage.
 
 ### Declare a playbook with Terraform
 
-Configure the [Stackweaver provider](./terraform-provider.md) with your host, token and
+Configure the [Stackweaver provider](../terraform-provider.md) with your host, token and
 organization. Add this resource to `playbooks.tf`, supplying existing project and
 VCS connection IDs from that organization:
 
@@ -252,7 +254,7 @@ terraform import stackweaver_ansible_playbook.baseline "$PLAYBOOK_ID"
 
 ### Register and sync through the API
 
-Configure the environment as in [Using the API](../architecture/using-the-api.md). Save
+Configure the environment as in [Using the API](../../architecture/using-the-api.md). Save
 this as `playbook.json`, replacing the project and connection IDs and repository details:
 
 ```json

@@ -52,7 +52,7 @@ The Ansible image includes the maintained upstream fixes in Filelock 4.2.1 and O
 
 </details>
 
-[Run images and execution environments](/docs/user-guides/run-images-and-execution-environments)
+[Run images and execution environments](/docs/user-guides/launchers/run-images-and-execution-environments)
 
 ## Confirmed available by 2026-10-27
 
@@ -79,7 +79,7 @@ The unsupported scm API credential type and the unused vcs UI option are removed
 
 </details>
 
-[Register Ansible playbooks and repository access](/docs/user-guides/managing-ansible-playbooks#before-you-start)
+[Register Ansible playbooks and repository access](/docs/user-guides/ansible/managing-ansible-playbooks#before-you-start)
 
 <a id="change-application-navigation-warmup" style="scroll-margin-top: 7rem"></a>
 
@@ -184,7 +184,7 @@ The highlighting cache uses the complete code block, so examples with a shared p
 
 </details>
 
-[Platform administration](/docs/user-guides/platform-administration)
+[Platform administration](/docs/user-guides/administration/platform-administration)
 
 <a id="change-docs-quality-changelog" style="scroll-margin-top: 7rem"></a>
 
@@ -313,7 +313,7 @@ Platform administrators manage installation-wide resources without receiving org
 
 </details>
 
-[Platform administration](/docs/user-guides/platform-administration)
+[Platform administration](/docs/user-guides/administration/platform-administration)
 
 <a id="change-public-docs-quality-workflow" style="scroll-margin-top: 7rem"></a>
 
@@ -393,7 +393,7 @@ Registration requires an explicit runner registration scope. Failed or mismatche
 
 </details>
 
-[Self-hosted runner credentials](/docs/user-guides/self-hosted-runners)
+[Self-hosted runner credentials](/docs/user-guides/launchers)
 
 <a id="change-saved-plan-storage" style="scroll-margin-top: 7rem"></a>
 
@@ -419,7 +419,7 @@ The platform runner seals saved plans using the configured encryption service an
 
 </details>
 
-[Run lifecycle and execution paths](/docs/user-guides/understanding-opentofu-runs)
+[Run lifecycle and execution paths](/docs/user-guides/opentofu/understanding-opentofu-runs)
 
 <a id="change-supported-vcs-connections" style="scroll-margin-top: 7rem"></a>
 
@@ -472,7 +472,7 @@ Hosts and groups come from the inputs and rules. Writes that create a host, grou
 
 </details>
 
-[Constructed inventory setup and constraints](/docs/user-guides/dynamic-inventories#build-a-constructed-inventory)
+[Constructed inventory setup and constraints](/docs/user-guides/ansible/dynamic-inventories/constructed-inventories)
 
 <a id="change-failed-inventory-sync" style="scroll-margin-top: 7rem"></a>
 
@@ -498,7 +498,7 @@ These failures are recorded as failed syncs. The output includes the plugin erro
 
 </details>
 
-[Dynamic inventories and sync behavior](/docs/user-guides/dynamic-inventories)
+[Dynamic inventories and sync behavior](/docs/user-guides/ansible/dynamic-inventories)
 
 <a id="change-generated-api-reference" style="scroll-margin-top: 7rem"></a>
 
@@ -550,4 +550,4 @@ The job still runs against the last successfully synced hosts, with a warning ab
 
 </details>
 
-[Inventory refresh failure behavior](/docs/user-guides/dynamic-inventories#when-an-update-on-launch-sync-fails)
+[Inventory refresh failure behavior](/docs/user-guides/ansible/dynamic-inventories#when-an-update-on-launch-sync-fails)

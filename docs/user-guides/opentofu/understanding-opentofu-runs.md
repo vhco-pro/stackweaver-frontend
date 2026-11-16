@@ -1,4 +1,6 @@
 ---
+title: "Understanding runs"
+nav_order: 1
 description: "Choose a run type, review planned changes and verify apply results before acting."
 covers:
   - "core/plugins/opentofu/**"
@@ -33,7 +35,7 @@ of a run, not interchangeable signs that the work is finished.
 Open the workspace and select **New run**. Choosing Plan & Apply or Plan Only queues it;
 Destroy opens a separate confirmation first.
 
-![The workspace run-type chooser before queuing any execution.](./images/workspace-new-run.png)
+![The workspace run-type chooser before queuing any execution.](../images/workspace-new-run.png)
 
 | Choice | What happens |
 |---|---|
@@ -153,7 +155,7 @@ curl --fail-with-body --silent --show-error \
 
 The [API viewer](/docs/api-reference/explorer) documents creation, actions and output
 schemas. Terraform/OpenTofu CLI remote execution can also queue plans through the
-workspace's configured backend; see [your first workspace](../get-started/your-first-opentofu-workspace.md).
+workspace's configured backend; see [your first workspace](../../get-started/your-first-opentofu-workspace.md).
 The management provider configures workspace behavior, not an equivalent YAML run record.
 Do not invent a repository YAML definition for reviewing a run.
 
@@ -168,6 +170,6 @@ Do not invent a repository YAML definition for reviewing a run.
 | Result differs from an earlier run. | Compare commits, inputs, provider lock files, state versions and output. |
 
 Use the workspace's run history to open a known successful run and compare the same fields.
-Keep run IDs and redacted error text for support. See [troubleshooting](./troubleshooting-common-issues.md),
-[variables](./managing-workspace-variables.md) and [VCS path filtering](../features/opentofu/vcs-path-filtering.md)
+Keep run IDs and redacted error text for support. See [troubleshooting](../troubleshooting-common-issues.md),
+[variables](./managing-workspace-variables.md) and [VCS path filtering](../../features/opentofu/vcs-path-filtering.md)
 for the next diagnostic step.

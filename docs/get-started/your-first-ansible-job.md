@@ -85,7 +85,7 @@ The image shows example values; use your repository and `hello.yml` path. Cached
 from a snapshot captured when the playbook syncs; the first run with no snapshot yet syncs one
 automatically and then runs from it. Fresh mode captures a new snapshot of the repository at
 each launch, before the job starts, so it needs VCS availability at launch time. See
-[Manage playbooks](../user-guides/managing-ansible-playbooks.md#choose-what-a-job-runs) for
+[Manage playbooks](../user-guides/ansible/managing-ansible-playbooks.md#choose-what-a-job-runs) for
 both modes.
 
 ## 3. Register and sync the inventory
@@ -110,7 +110,7 @@ db1 ansible_host=192.0.2.20
 
 Those are documentation addresses, not reachable test targets. Use real addresses and suitable
 credentials when you move beyond the local example. For discovered hosts, use
-[Dynamic inventories](../user-guides/dynamic-inventories.md).
+[Dynamic inventories](../user-guides/ansible/dynamic-inventories/README.md).
 
 ## 4. Create and launch a job template
 
@@ -283,6 +283,6 @@ secret store. A sudo task also needs target-side privilege escalation configured
 For a failed inventory or playbook sync, open its sync status/log, correct repository access
 or the path/branch, and sync again. Confirm the expected hosts and commit before relaunching.
 
-For the next task, read [Manage playbooks](../user-guides/managing-ansible-playbooks.md),
+For the next task, read [Manage playbooks](../user-guides/ansible/managing-ansible-playbooks.md),
 [repository-push sync](../features/ansible-playbook-webhook-sync.md) or the
 [canonical Ansible catalogue](../features/ansible/README.md).

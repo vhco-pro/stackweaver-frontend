@@ -78,7 +78,7 @@ ZITADEL_WEBHOOK_IDP_SYNC_KEY=<webhook-key>
 ZITADEL_WEBHOOK_COMPLEMENT_TOKEN_KEY=<webhook-key>
 ```
 
-These are output names for diagnosis, not values to paste into a hand-maintained `.env`. `STACKWEAVER_HOSTED_SECRET` is the secret the `launcher` and `ansible-launcher` services register with as the installation's hosted launchers. `zitadel-init` generates it on its first run and keeps the existing value on every later run. See [Email and sign-up](../../get-started/self-hosting/email.md) for SMTP, self-registration and notification-mode inputs.
+These are output names for diagnosis, not values to paste into a hand-maintained `.env`. `STACKWEAVER_HOSTED_SECRET` is the secret the `launcher` service registers with as the installation's hosted launcher. `zitadel-init` generates it on its first run and keeps the existing value on every later run. See [Email and sign-up](../../get-started/self-hosting/email.md) for SMTP, self-registration and notification-mode inputs.
 
 ## Kubernetes and Helm
 

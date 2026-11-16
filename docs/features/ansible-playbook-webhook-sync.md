@@ -25,7 +25,7 @@ This works for GitHub and Azure DevOps connections; it does not need an OpenTofu
 ![Register Playbook form with the repository, branch and playbook file inputs.](../user-guides/images/playbooks-register.png)
 
 Example registration using the real product form. For all UI fields, bulk import and
-source-mode choices, use [Managing Ansible playbooks](../user-guides/managing-ansible-playbooks.md).
+source-mode choices, use [Managing Ansible playbooks](../user-guides/ansible/managing-ansible-playbooks.md).
 
 ### Declare the registration with Terraform
 
@@ -50,7 +50,7 @@ resource "stackweaver_ansible_playbook" "deploy" {
 Run a reviewed Terraform plan and apply from your existing management configuration. For
 an existing registration, update its managed resource or import it rather than creating a
 duplicate. The resource registers the playbook; it neither installs a GitHub App nor launches
-a job. Use the linked guide for the complete [REST registration and sync procedure](../user-guides/managing-ansible-playbooks.md#register-and-sync-through-the-api).
+a job. Use the linked guide for the complete [REST registration and sync procedure](../user-guides/ansible/managing-ansible-playbooks.md#register-and-sync-through-the-api).
 
 ## Which changes queue a sync?
 
@@ -101,7 +101,7 @@ still apply to the launched job.
 > Verify the job's actual playbook source before treating it as a deployment of one commit.
 
 See [Ansible execution](./ansible/execution-flows.md#webhook-triggers) for launch gates and
-[playbook source modes](../user-guides/managing-ansible-playbooks.md#source-modes) for the
+[playbook source modes](../user-guides/ansible/managing-ansible-playbooks.md#source-modes) for the
 snapshot/fresh distinction.
 
 ## Request another sync and check it

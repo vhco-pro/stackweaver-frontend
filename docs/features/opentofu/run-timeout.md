@@ -51,7 +51,7 @@ approval waits have their own limits.
 A run uses the first value it finds in this order: the workspace's own value, its project's,
 its organization's, then the platform default. An empty value, or `0`, at a level means
 inherit from the next one. Run images and identity bindings follow the same rule; see
-[Run images and execution environments](../../user-guides/run-images-and-execution-environments.md#where-a-setting-comes-from).
+[Run images and execution environments](../../user-guides/launchers/run-images-and-execution-environments.md#where-a-setting-comes-from).
 
 The platform default is 2 hours (7200 seconds). An operator can change it for the whole
 installation with `STACKWEAVER_RUN_TIMEOUT_DEFAULT`; see
@@ -150,4 +150,4 @@ run started.
    legitimate. Check the new plan before applying again; increasing the limit is not a rollback.
 
 Use [run cancellation](./run-cancellation.md) to request a manual stop of an active run.
-For external-check failures and override rules, see [Run Tasks](../../user-guides/run-tasks.md).
+For external-check failures and override rules, see [Run Tasks](../../user-guides/opentofu/run-tasks.md).

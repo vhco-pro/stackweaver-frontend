@@ -19,7 +19,7 @@ cloud infrastructure or configuring a cloud provider.
 You need an account with permission to create a workspace in an organization and a connected VCS
 repository. A workspace in the default `remote` execution mode runs on the installation's hosted
 capacity; in `agent` mode it needs an OpenTofu launcher online in its agent pool (see
-[Set up launchers](../user-guides/self-hosted-runners.md)). Use a separate example
+[Set up launchers](../user-guides/launchers/README.md)). Use a separate example
 workspace and a branch you control. Planning still executes configuration code; only use code
 you trust.
 
@@ -66,7 +66,7 @@ it later under **Edit**.
 
 The sample needs no input variables or cloud credentials. For other configurations, add
 required Terraform/environment variables under **Variables**, or use **Import .env**, and
-mark secrets sensitive. See [Manage workspace variables](../user-guides/managing-workspace-variables.md).
+mark secrets sensitive. See [Manage workspace variables](../user-guides/opentofu/managing-workspace-variables.md).
 
 ## Terraform or OpenTofu alternative
 
@@ -170,6 +170,6 @@ changes and state before retrying.
 
 A repository push can queue runs when enabled; pull-request runs are for review and do not
 apply. Local execution is a separate workspace mode for CLI-driven work. Use
-[Read OpenTofu runs](../user-guides/understanding-opentofu-runs.md),
+[Read OpenTofu runs](../user-guides/opentofu/understanding-opentofu-runs.md),
 [workspace settings](../features/opentofu/workspace-editing.md) and
 [path filtering](../features/opentofu/vcs-path-filtering.md) when moving to a real environment.

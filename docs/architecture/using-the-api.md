@@ -116,4 +116,4 @@ An example showing a refusal or a missing resource does not prove the operation 
 unsupported. Check its description and requirements, then use the running deployment's
 response to diagnose your request.
 
-The description covers Stackweaver's implemented API. Its Terraform Enterprise discovery path does not imply support for every Terraform Enterprise operation. See [Migrating from Terraform Cloud](../user-guides/migrating-from-terraform-cloud.md) and [the Terraform provider guide](../user-guides/terraform-provider.md) when choosing tooling for your integration.
+The description covers Stackweaver's implemented API. Its Terraform Enterprise discovery path does not imply support for every Terraform Enterprise operation. See [Migrating from Terraform Cloud](../user-guides/opentofu/migrating-from-terraform-cloud.md) and [the Terraform provider guide](../user-guides/terraform-provider.md) when choosing tooling for your integration.

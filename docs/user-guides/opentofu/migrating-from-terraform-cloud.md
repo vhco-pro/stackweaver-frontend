@@ -1,4 +1,6 @@
 ---
+title: "Migrating from Terraform Cloud"
+nav_order: 5
 description: "Moving Terraform Cloud or Terraform Enterprise workspaces onto Stackweaver: pointing the CLI at a Stackweaver host, token equivalence, migrating state, and an evidence-backed table of which terraform-provider-tfe resources have been verified to work."
 covers:
   - "scripts/tfe-compat/**"
@@ -22,17 +24,17 @@ Move a workspace's configuration, inputs and state to a Stackweaver host, then r
 | Transfer state using a method supported by your CLI/backend combination. | Keep a protected state backup and record which backend is authoritative. |
 | Recreate API credentials on Stackweaver. | Source-platform tokens do not become Stackweaver tokens. |
 
-Use [the provider guide](./terraform-provider.md) for destination resource configuration and the evidence table below to assess your TFE resources. A state transfer does not transfer variables or VCS settings.
+Use [the provider guide](../terraform-provider.md) for destination resource configuration and the evidence table below to assess your TFE resources. A state transfer does not transfer variables or VCS settings.
 
 ## Execution modes
 
 Execution modes mean the same as in Terraform Cloud. A workspace in `remote` execution mode runs on the organization's hosted capacity, which is the installation's own launchers. A workspace in `agent` mode runs on the agent pool it names. `tfe_agent_pool`, `tfe_agent_token` and a workspace's `agent_pool_id` work with `terraform-provider-tfe` as they do against Terraform Cloud.
 
-To run an agent pool's work, start launchers registered with an agent token of that pool; see [Set up launchers](./self-hosted-runners.md). The hosted capacity is not an agent pool on the TFE API: it does not appear in the agent pools list and cannot be assigned through `agent-pool-id`, and a run waiting for a free hosted slot stays `pending`.
+To run an agent pool's work, start launchers registered with an agent token of that pool; see [Set up launchers](../launchers/README.md). The hosted capacity is not an agent pool on the TFE API: it does not appear in the agent pools list and cannot be assigned through `agent-pool-id`, and a run waiting for a free hosted slot stays `pending`.
 
 ## VCS connections
 
-Connect each GitHub account and Azure DevOps organization to the destination organization first; see [VCS integrations](./vcs/README.md). A workspace's `vcs_repo` block then names its connection in one of two ways:
+Connect each GitHub account and Azure DevOps organization to the destination organization first; see [VCS integrations](../vcs/README.md). A workspace's `vcs_repo` block then names its connection in one of two ways:
 
 - `github_app_installation_id`: the GitHub App installation ID. The `tfe_github_app_installation` data source looks it up by name or installation ID among the installations connected in the organizations your token can reach. An installation the workspace's organization has not connected is rejected with `400`.
 - `oauth_token_id`: the Stackweaver connection ID, from `GET /api/v2/organizations/<organization>/vcs-connections`.
@@ -96,7 +98,7 @@ Use a Stackweaver `tfe-` API credential authorized for the destination organizat
   when automation should stay within that boundary.
 
 Organization creation requires a user credential and must also be allowed by the deployment's
-organization-creation policy. See [Using the API](../architecture/using-the-api.md) for token
+organization-creation policy. See [Using the API](../../architecture/using-the-api.md) for token
 restrictions. A Zitadel access token is not an API credential.
 
 ## Transfer and verify state
@@ -224,4 +226,4 @@ Evidence from a run on **2026-09-12T07:05:09Z** using hashicorp/tfe ~> 0.77. A r
 
 <!-- END GENERATED: tfe-compat-table -->
 
-Check the timestamp and provider version above against your migration target. For endpoint details use the [API explorer](/docs/api-reference/explorer); for practical request setup use [Using the API](../architecture/using-the-api.md).
+Check the timestamp and provider version above against your migration target. For endpoint details use the [API explorer](/docs/api-reference/explorer); for practical request setup use [Using the API](../../architecture/using-the-api.md).

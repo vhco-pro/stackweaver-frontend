@@ -195,7 +195,7 @@ This compares documented product behavior and runnable examples, without a side-
 [tofu-data]: https://opentofu.org/docs/language/resources/tf-data/
 [sw-first-job]: /docs/get-started/your-first-ansible-job
 [sw-first-workspace]: /docs/get-started/your-first-opentofu-workspace
-[sw-migration]: /docs/user-guides/migrating-from-terraform-cloud
+[sw-migration]: /docs/user-guides/opentofu/migrating-from-terraform-cloud
 [sw-ansible]: /docs/features/ansible
 [sw-compose]: /docs/get-started/self-hosting/docker-compose
 [sw-license]: https://github.com/vhco-pro/stackweaver-api/blob/main/LICENSE

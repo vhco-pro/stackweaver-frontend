@@ -343,7 +343,7 @@ and IPv6 ranges. Jobs resolve names through the cluster's DNS service. A Network
 the node's identity, set `launcher.network: host-identity`, which leaves the metadata
 endpoints open and keeps `168.63.129.16` closed. Jobs otherwise authenticate to clouds with the per-run identity token the
 platform mints, or with an identity binding a pool offers (see
-[Set up launchers](../../../user-guides/self-hosted-runners.md#identity-bindings)).
+[Set up launchers](../../../user-guides/launchers/identity-bindings-and-pull-secrets.md#identity-bindings)).
 
 The launchers serve every organization's hosted capacity: runs and jobs in remote execution
 mode, and every sync that captures a snapshot from a VCS provider. `launcher.replicas` and
@@ -387,7 +387,7 @@ widening anything else.
 example `30m`; the job has already removed every credential it wrote before the pod is kept.
 `launcher.podTemplate` adds labels, annotations, a node selector, tolerations and a priority
 class to every job pod. To run work inside your own network as well, add agent pools and
-start launchers in them; see [Set up launchers](../../../user-guides/self-hosted-runners.md).
+start launchers in them; see [Set up launchers](../../../user-guides/launchers/README.md).
 
 Keep the platform encryption key consistent across the API and orchestrator; launchers and
 job pods never hold it. The chart creates a strong key by default; a BYO key is a
@@ -658,9 +658,9 @@ Chart version 0.16.1 is the first with launchers.
    after it was created, so finish the upgrade promptly once the old launchers stop.
 5. Upgrade the launchers of your agent pools to the same release and remove `RUNNER_MODE`
    from their environment. The program that runs each job comes from its launcher's image; see
-   [Set up launchers](../../../user-guides/self-hosted-runners.md#operate-and-troubleshoot).
+   [Set up launchers](../../../user-guides/launchers/operate.md#operate-and-troubleshoot).
    A launcher you run with the Kubernetes driver outside the chart needs the Role described
-   under [Run every job in a pod of its own](../../../user-guides/self-hosted-runners.md#step-3c-run-every-job-in-a-pod-of-its-own).
+   under [Run every job in a pod of its own](../../../user-guides/launchers/start-a-launcher.md#run-every-job-in-a-pod-of-its-own).
 6. If a cloud trust matches an Ansible job's subject exactly, update it to the job name in
    [the token subject](../../../user-guides/workload-identity/token-subjects.md).
    Rename any organization, project, workspace, template or job whose name contains a colon:
@@ -672,7 +672,7 @@ Chart version 0.16.1 is the first with launchers.
 Each organization's verified cache in object storage takes the place of the per-project Galaxy
 cache, and fills again as jobs run. An Ansible inventory sync that used AKS workload identity
 through `ansibleRunner.workloadIdentity` uses an identity binding of an agent pool instead; see
-[Dynamic inventories](../../../user-guides/dynamic-inventories.md#choose-azure-source-authentication).
+[Dynamic inventories](../../../user-guides/ansible/dynamic-inventories/cloud-sources.md#choose-azure-source-authentication).
 
 ### Upgrading to server-side browser sessions
 

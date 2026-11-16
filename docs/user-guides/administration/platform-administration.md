@@ -1,4 +1,6 @@
 ---
+title: "Platform administration"
+nav_order: 2
 description: "Configure platform administrators, scoped tokens and the OpenTofu catalogue through deployment settings, UI, API and Terraform."
 covers:
   - "backend/internal/services/platformadmin/**"
@@ -60,7 +62,7 @@ workspace runs when its workspace, project and organization set none. The operat
 it with `TOFU_DEFAULT_VERSION` (chart value `tofu.defaultVersion`): unset means the version
 the published job image bakes, `latest` means the newest enabled, non-beta, non-deprecated
 catalogue version, and an exact version means that version. See
-[Environment variables](../get-started/self-hosting/environment-variables.md#opentofu-installation-default-version).
+[Environment variables](../../get-started/self-hosting/environment-variables.md#opentofu-installation-default-version).
 
 Its enable switch is disabled, with a tooltip that names `TOFU_DEFAULT_VERSION`, because
 the API refuses to disable or delete the installation default and answers `409 Conflict`.
@@ -184,7 +186,7 @@ return not found when the caller lacks the required access.
 4. To remove a granted administrator, open their row's actions menu, choose
    **Remove administrator**, then confirm. Their organization memberships remain unchanged.
 
-![Platform Administrators with one deployment-declared account, one granted account and the deployment policy.](./images/platform-administrators.png)
+![Platform Administrators with one deployment-declared account, one granted account and the deployment policy.](../images/platform-administrators.png)
 
 *Generated example data. Declared accounts have a badge and no remove action.*
 
@@ -194,7 +196,7 @@ Open **Settings > Organizations** and search by organization name. Check its con
 counts and creation date. **Open** appears only for organizations you belong to; **Not a
 member** does not provide a way to bypass membership.
 
-![The platform organization directory with an accessible example organization and a second organization marked Not a member.](./images/platform-organizations.png)
+![The platform organization directory with an accessible example organization and a second organization marked Not a member.](../images/platform-organizations.png)
 
 *Generated example data. Directory visibility does not grant organization access.*
 
@@ -209,7 +211,7 @@ scope:
    the token. Save the one-time value in your secret store.
 4. Check the token's **Platform admin** badge and verify a read-only admin request below.
 
-![The personal token creation form with the Platform admin option selected and an example description.](./images/platform-admin-token.png)
+![The personal token creation form with the Platform admin option selected and an example description.](../images/platform-admin-token.png)
 
 *Generated example data. The form is prepared without creating or exposing a token.*
 
@@ -281,7 +283,7 @@ and schemas.
 | Grant | An already-granted administrator returns 400. A declared administrator stays unchanged. |
 | Revoke | A non-admin returns 400; a deployment-declared administrator returns 422. |
 | Organization list or read | Returns summaries without member lists, settings or tokens. |
-| Hosted capacity settings | `PATCH /api/v2/agent-pools/:id` on an organization's hosted capacity sets `max-concurrent-jobs`, the jobs of that organization the hosted capacity runs at once (while it is unset, `STACKWEAVER_HOSTED_DEFAULT_MAX_CONCURRENT_JOBS` applies), and `placement-group`, the group of hosted launchers that serves it. The pool's ID is the `pool-id` of `GET /api/v2/organizations/:name/hosted-capacity`. An organization admin's request for those fields returns 403, and hosted capacity has no other writable setting. See [Set up launchers](./self-hosted-runners.md#hosted-capacity). |
+| Hosted capacity settings | `PATCH /api/v2/agent-pools/:id` on an organization's hosted capacity sets `max-concurrent-jobs`, the jobs of that organization the hosted capacity runs at once (while it is unset, `STACKWEAVER_HOSTED_DEFAULT_MAX_CONCURRENT_JOBS` applies), and `placement-group`, the group of hosted launchers that serves it. The pool's ID is the `pool-id` of `GET /api/v2/organizations/:name/hosted-capacity`. An organization admin's request for those fields returns 403, and hosted capacity has no other writable setting. See [Set up launchers](../launchers/hosted-capacity-and-pool-settings.md#hosted-capacity). |
 
 For authenticated callers, missing platform standing or a missing platform-admin token
 scope returns 404. `GET /api/v2/account/details` and `GET /api/v2/platform/settings` are
@@ -291,14 +293,14 @@ report `organization-creation` and a read-only `deployment` attribute with the s
 installer gave runs and jobs: the allowed image registries, the default run and sync
 timeouts, the job log cap, the cache size limit, the hosted default concurrency cap, the
 launcher and job request limits, and the job mirrors, proxy and CA (never a token). The
-[Environment variables reference](../get-started/self-hosting/environment-variables.md#runs-jobs-and-launchers)
+[Environment variables reference](../../get-started/self-hosting/environment-variables.md#runs-jobs-and-launchers)
 lists where each comes from. See the [API reference](/docs/api-reference/explorer) for operation schemas.
 
 ## Manage catalogue versions with Terraform or OpenTofu
 
 Use the native provider's `stackweaver_terraform_version` resource or its
 `tfe_terraform_version` alias with a platform admin token. Follow the
-[provider setup](./terraform-provider.md) for the hostname, credentials and version pinning.
+[provider setup](../terraform-provider.md) for the hostname, credentials and version pinning.
 Save this example alongside that provider configuration:
 
 ```hcl
@@ -345,7 +347,7 @@ applying. The provider does not expose a role-grant resource for this guide's ad
 If a declared administrator cannot sign in, recover the identity account through your
 Zitadel administrator or your tested identity recovery procedure. Stackweaver does not
 manage identity passwords. The Zitadel console is normally at `/ui/console` on the auth
-host; see [Zitadel setup](./authentication/zitadel-setup.md#troubleshooting).
+host; see [Zitadel setup](../authentication/zitadel-setup.md#troubleshooting).
 
 If you have deployment access and another usable identity account, add its verified email
 to the declared list, redeploy or recreate the API, then have that user sign in. Changing

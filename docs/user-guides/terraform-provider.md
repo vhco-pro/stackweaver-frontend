@@ -70,14 +70,14 @@ platform resources. With OpenTofu, use `tofu` for the same CLI sequence.
 
 ## Install-wide automation
 
-Install-wide resources need a platform admin token. The OpenTofu versions catalogue, which `tfe_terraform_version` manages, belongs to the installation rather than to an organization, and its API answers only a token that carries the platform admin scope. A [platform administrator](./platform-administration.md) mints one under **Settings > API Tokens** by ticking **Platform admin** in the create dialog; the checkbox appears only to platform administrators, and `terraform login` always mints a plain token. Inside organizations a platform admin token acts exactly as a plain token of the same person, so one token can manage `tfe_terraform_version` and that person's organization resources in the same configuration. The token stops working for the install-wide resources as soon as its owner stops being a platform administrator.
+Install-wide resources need a platform admin token. The OpenTofu versions catalogue, which `tfe_terraform_version` manages, belongs to the installation rather than to an organization, and its API answers only a token that carries the platform admin scope. A [platform administrator](./administration/platform-administration.md) mints one under **Settings > API Tokens** by ticking **Platform admin** in the create dialog; the checkbox appears only to platform administrators, and `terraform login` always mints a plain token. Inside organizations a platform admin token acts exactly as a plain token of the same person, so one token can manage `tfe_terraform_version` and that person's organization resources in the same configuration. The token stops working for the install-wide resources as soon as its owner stops being a platform administrator.
 
 ## Existing TFE configurations
 
 The native provider exposes its supported TFE-compatible resources under `tfe_*` aliases
 as well as `stackweaver_*` names. Native-only resources use `stackweaver_*`. This does not
 promise support for every upstream TFE feature. Check the installed provider schema and the
-[compatibility evidence](./migrating-from-terraform-cloud.md) for the operations you need.
+[compatibility evidence](./opentofu/migrating-from-terraform-cloud.md) for the operations you need.
 
 To keep using HashiCorp's provider against Stackweaver, choose its source and your
 Stackweaver hostname explicitly:
@@ -108,7 +108,7 @@ the provider source.
 ## Change provider source without changing the platform
 
 A source change and a move from Terraform Cloud are different operations. Follow
-[the migration guide](./migrating-from-terraform-cloud.md) to transfer platform objects and
+[the migration guide](./opentofu/migrating-from-terraform-cloud.md) to transfer platform objects and
 state; do not point existing management state at another host and apply it blindly.
 
 For an existing state **already managing the same Stackweaver installation**, assess a

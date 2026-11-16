@@ -75,7 +75,7 @@ After syncing, check that the inventory contains the `demo` group and its `local
 
 The point of this check is simple: a path entered in a form is not proof that the file was fetched.
 If a sync fails, resolve the repository access or path before launching the job.
-The [first-job guide](/docs/get-started/your-first-ansible-job) has the full setup path, and the [playbook guide](/docs/user-guides/managing-ansible-playbooks) explains cached and fresh source modes.
+The [first-job guide](/docs/get-started/your-first-ansible-job) has the full setup path, and the [playbook guide](/docs/user-guides/ansible/managing-ansible-playbooks) explains cached and fresh source modes.
 
 ## Give the run a reusable name
 

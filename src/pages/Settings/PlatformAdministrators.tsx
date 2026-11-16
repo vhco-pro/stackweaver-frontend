@@ -72,7 +72,7 @@ function DeploymentSettingsPanel() {
         <p className="text-sm text-muted-foreground">
           Declared administrators are set in the deployment configuration.{' '}
           <Link
-            to="/docs/user-guides/platform-administration"
+            to="/docs/user-guides/administration/platform-administration"
             className="inline-flex items-center gap-1 text-pink-700 underline underline-offset-2 hover:text-pink-800 dark:text-pink-300 dark:hover:text-pink-200"
           >
             <BookOpen className="h-3.5 w-3.5" />

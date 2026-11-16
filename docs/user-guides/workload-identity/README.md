@@ -43,7 +43,7 @@ To set it up, your operator configures the signing key and issuer once, then eac
 | [GCP](./gcp.md). | `stackweaver_gcp_oidc_configuration`. | Workload Identity Pool/provider and service account; `//iam.googleapis.com/<workload-provider-name>`. |
 | [Vault](./vault.md). | `stackweaver_vault_oidc_configuration`. | JWT auth method and role; `vault.workload.identity`. |
 
-The target pages cover OpenTofu runs. Ansible uses different resource subjects and authentication paths; use [dynamic inventories](../dynamic-inventories.md) for inventory discovery and [Azure Key Vault from playbooks](../azure-key-vault-from-playbooks.md) for Azure job identity. Do not assume an OpenTofu registration enables every Ansible integration.
+The target pages cover OpenTofu runs. Ansible uses different resource subjects and authentication paths; use [dynamic inventories](../ansible/dynamic-inventories/README.md) for inventory discovery and [Azure Key Vault from playbooks](../ansible/azure-key-vault-from-playbooks.md) for Azure job identity. Do not assume an OpenTofu registration enables every Ansible integration.
 
 ## Before you start
 
@@ -96,7 +96,7 @@ sequenceDiagram
 
 </details>
 
-The platform identity is the same on every driver and every pool, the hosted capacity included, and it is what every job uses unless it selects something else. It works for both engines: an OpenTofu run and an Ansible job each receive the tokens of all four targets the organization configured, and an Azure dynamic inventory source sync receives an Azure token (see [Dynamic Inventories](../dynamic-inventories.md)). On an Ansible job, an Azure credential attached to the job takes precedence over the organization's Azure configuration.
+The platform identity is the same on every driver and every pool, the hosted capacity included, and it is what every job uses unless it selects something else. It works for both engines: an OpenTofu run and an Ansible job each receive the tokens of all four targets the organization configured, and an Azure dynamic inventory source sync receives an Azure token (see [Dynamic Inventories](../ansible/dynamic-inventories/README.md)). On an Ansible job, an Azure credential attached to the job takes precedence over the organization's Azure configuration.
 
 ## What a job receives
 
@@ -108,13 +108,13 @@ A target the organization has not configured receives no token. A job then has n
 
 A job never inherits the cloud identity of the VM or node it runs on. On the container and Kubernetes drivers, a launcher in the default `platform` network mode blocks the cloud metadata ranges (`169.254.0.0/16`, `fd00:ec2::/64` and `fd20:ce::/64`) from every job, which is where an instance profile, a managed identity or a VM service account would come from. Azure's platform address `168.63.129.16` stays blocked in every network mode. On the container driver, every job also checks at start whether a metadata endpoint answers and refuses to run if one does, so a host whose firewall could not be programmed, such as rootless Podman, fails closed. A job pod never uses the host network and carries no ServiceAccount token unless an identity binding needs one.
 
-The in-process driver does not isolate the network: a job of an in-process launcher can reach whatever its host can, including the host's metadata endpoint. Use the container or Kubernetes driver for any pool where that matters. See [Set up launchers](../self-hosted-runners.md#network-modes).
+The in-process driver does not isolate the network: a job of an in-process launcher can reach whatever its host can, including the host's metadata endpoint. Use the container or Kubernetes driver for any pool where that matters. See [Set up launchers](../launchers/drivers-and-network-modes.md#network-modes).
 
 ## Other identity options
 
 Two further options exist for launchers you run yourself:
 
-- An agent pool whose launchers use the Kubernetes driver can offer **identity bindings**. A binding runs the pool's job pods as a ServiceAccount that a cloud's pod identity mechanism trusts (`aws-irsa`, `aws-pod-identity`, `gcp-workload-identity` or `azure-workload-identity`). The hosted capacity offers no bindings. [Set up launchers](../self-hosted-runners.md#identity-bindings) describes how bindings are created and selected.
+- An agent pool whose launchers use the Kubernetes driver can offer **identity bindings**. A binding runs the pool's job pods as a ServiceAccount that a cloud's pod identity mechanism trusts (`aws-irsa`, `aws-pod-identity`, `gcp-workload-identity` or `azure-workload-identity`). The hosted capacity offers no bindings. [Set up launchers](../launchers/identity-bindings-and-pull-secrets.md#identity-bindings) describes how bindings are created and selected.
 - Whoever installs a launcher can set the `host-identity` network mode on its container or Kubernetes driver. It leaves the metadata endpoints open, so jobs use the node's own identity. A strict hosted deployment refuses this mode.
 
 Stackweaver does not document the cloud-side setup of these options as a supported configuration. Use the platform identity described above, which works the same for every cloud, every driver and the hosted capacity.
