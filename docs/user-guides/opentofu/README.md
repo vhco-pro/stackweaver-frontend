@@ -1,4 +1,5 @@
 ---
+icon: opentofu
 title: "OpenTofu"
 layout: overview
 description: "Read and act on runs, manage workspace variables, add run tasks, track change requests and migrate from Terraform Cloud."

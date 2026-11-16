@@ -1,4 +1,5 @@
 ---
+title: "Kustomize and GitOps"
 description: "GitOps deployment guide using Kustomize with Argo CD or Flux CD"
 covers:
   - "deploy/helm/**"

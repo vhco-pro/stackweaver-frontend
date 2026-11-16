@@ -1,4 +1,6 @@
 ---
+title: "Microsoft Entra ID"
+icon: microsoft-entra
 description: "Step-by-step guide for configuring Azure AD / Entra ID as an SSO provider"
 covers:
   - "scripts/zitadel-init/**"

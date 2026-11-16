@@ -1,4 +1,5 @@
 ---
+icon: azure
 title: "Azure"
 nav_order: 1
 description: "Let OpenTofu runs reach Azure without a client secret: an Entra app registration with a federated credential that trusts Stackweaver."

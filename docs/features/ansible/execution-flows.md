@@ -1,4 +1,5 @@
 ---
+title: "Execution flows"
 description: "How Ansible execution works in Stackweaver: job lifecycle and launch gates, how launchers claim and place jobs on hosted capacity and agent pools, inventory syncs, workflows, ad hoc commands, and webhook triggers - with flow diagrams"
 covers:
   - "backend/cmd/launcher/**"

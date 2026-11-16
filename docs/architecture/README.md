@@ -1,4 +1,5 @@
 ---
+title: "Architecture"
 nav_order: 40
 description: "How Stackweaver's API, execution services and storage fit together, and what that means for operating a deployment."
 covers:

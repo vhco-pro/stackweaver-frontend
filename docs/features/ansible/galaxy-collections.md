@@ -1,4 +1,5 @@
 ---
+title: "Galaxy collections and roles"
 description: "Declare repository requirements, verify installs, understand cache/search behavior and configure private Ansible content."
 covers:
   - "backend/cmd/launcher/**"

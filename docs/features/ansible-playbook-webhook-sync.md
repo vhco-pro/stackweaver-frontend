@@ -1,4 +1,5 @@
 ---
+title: "Playbook webhook sync"
 description: "Register VCS playbooks, understand push filtering, verify cached commits and distinguish sync from webhook job launches."
 covers:
   - "backend/internal/api/v2/handlers/vcs_app_installation.go"

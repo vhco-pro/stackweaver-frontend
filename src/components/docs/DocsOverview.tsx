@@ -3,11 +3,13 @@ import { Link } from 'react-router-dom';
 import { ArrowRight, Folder } from 'lucide-react';
 import { docLabel, docUrl, homepageEntries, type DocsIndex } from './docsCollection';
 import { glassSurface } from '@/lib/surfaces';
+import { BrandIcon } from '@/components/brand/BrandIcon';
+import { brandById, type BrandPolicy } from '@/lib/brands';
 import './overview.css';
 
 /** Collection presentation only. Hosts supply metadata; no product catalogue lives here. */
-export function DocsOverview({ index, folderPath, docsBase, hideCompleted }: {
-  index: DocsIndex; folderPath: string; docsBase: string; hideCompleted: boolean;
+export function DocsOverview({ index, folderPath, docsBase, hideCompleted, brandLogos = 'permitted' }: {
+  index: DocsIndex; folderPath: string; docsBase: string; hideCompleted: boolean; brandLogos?: BrandPolicy;
 }) {
   const { folders, files } = homepageEntries(index, folderPath, hideCompleted);
   const root = !folderPath;
@@ -15,7 +17,7 @@ export function DocsOverview({ index, folderPath, docsBase, hideCompleted }: {
     <div className="overview-section-title"><h2>{root ? 'More to read' : 'In this section'}</h2><span>{files.length} {files.length === 1 ? 'article' : 'articles'}</span></div>
     <div className="overview-reading-list">{files.map((file, i) => <Link key={file.path} to={docUrl(docsBase, file.path)} className="overview-reading-row">
       <span className="overview-row-number" aria-hidden="true">{String(i + 1).padStart(2, '0')}</span>
-      <span className="min-w-0"><h3>{docLabel(file)}</h3>{file.description && <p>{file.description}</p>}</span>
+      <span className="min-w-0"><h3 className={brandById(file.icon, brandLogos) ? 'brand-heading' : undefined}>{(() => { const brand = brandById(file.icon, brandLogos); return brand && <BrandIcon brand={brand}/>; })()}<span>{docLabel(file)}</span></h3>{file.description && <p>{file.description}</p>}</span>
       <ArrowRight className="overview-row-arrow" aria-hidden="true" />
     </Link>)}</div>
   </section>;
@@ -24,7 +26,7 @@ export function DocsOverview({ index, folderPath, docsBase, hideCompleted }: {
     <div className="overview-section-grid">{folders.map((folder, i) => {
       const lead = root && i === 0 && folder.nav_order !== undefined;
       return <article key={folder.path} data-overview-lead={lead} className={`${glassSurface} overview-section-card ${lead ? 'overview-lead' : ''}`}>
-        <div className="overview-card-heading"><span className="overview-folder-icon"><Folder aria-hidden="true" /></span><h3><Link to={docUrl(docsBase, folder.path)}>{folder.title}</Link></h3></div>
+        <div className="overview-card-heading"><span className="overview-folder-icon" data-brand={brandById(folder.icon, brandLogos)?.id}>{(() => { const brand = brandById(folder.icon, brandLogos); return brand ? <BrandIcon brand={brand}/> : <Folder aria-hidden="true" />; })()}</span><h3><Link to={docUrl(docsBase, folder.path)}>{folder.title}</Link></h3></div>
         <p className="overview-card-description">{folder.description}</p>
         {folder.links.length > 0 && <div className="overview-card-links">{folder.links.map(link => <Link key={link.path} to={docUrl(docsBase, link.path)}>{docLabel(link)}{lead && <ArrowRight aria-hidden="true" />}</Link>)}</div>}
         <div className="overview-card-footer"><span>{folder.count} {folder.count === 1 ? 'page' : 'pages'}</span><Link aria-label={`Browse ${folder.title}`} to={docUrl(docsBase, folder.path)}>Browse section<ArrowRight aria-hidden="true" /></Link></div>

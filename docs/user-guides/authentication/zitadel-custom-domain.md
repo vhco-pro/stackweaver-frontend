@@ -1,4 +1,6 @@
 ---
+title: "Zitadel custom domain"
+icon: zitadel
 description: "Guide for running Zitadel on a custom domain while keeping internal service communication on the private Docker network"
 covers:
   - "scripts/zitadel-init/**"

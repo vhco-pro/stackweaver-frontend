@@ -1,4 +1,6 @@
 ---
+title: "Zitadel setup"
+icon: zitadel
 description: "Guide for Zitadel OIDC initialization in Docker Compose and Kubernetes deployments"
 covers:
   - "scripts/zitadel-init/**"

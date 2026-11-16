@@ -1,4 +1,5 @@
 ---
+title: "Live run output"
 description: "Follow plan/apply progress, read separate phase logs and understand polling, byte offsets and stored-output limits."
 covers:
   - "frontend/src/pages/RunDetail.tsx"

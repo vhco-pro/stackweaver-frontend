@@ -1,4 +1,5 @@
 ---
+title: "Backup and restore"
 description: "Create a complete cold backup of the bundled Compose deployment and rehearse restoration into an empty destination."
 nav_order: 50
 covers:

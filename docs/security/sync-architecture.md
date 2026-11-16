@@ -1,4 +1,5 @@
 ---
+title: "Satellite publication"
 description: "Understand the satellite publication path, signing identities, enforced checks and limits of the public audit evidence."
 covers:
   - ".github/workflows/sync-*.yml"

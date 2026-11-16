@@ -8,6 +8,8 @@ export interface DocTreeNode {
   status?: string;
   nav_order?: number;
   layout?: 'overview';
+  /** Brand id from the `icon` frontmatter field (src/lib/brands.ts). */
+  icon?: string;
   children?: DocTreeNode[];
 }
 export interface DocsIndex {

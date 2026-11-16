@@ -1,4 +1,5 @@
 ---
+title: "Repositories"
 status: stable
 status_description: "Map of upstream development and nine public component distribution repositories, with verified repository/license links."
 description: "Find public component source and releases, understand upstream synchronization and choose where to report an issue."

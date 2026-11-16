@@ -21,6 +21,8 @@ import { CodeExplorer } from '@/components/docs/CodeExplorer';
 import { GitHubSnippet } from '@/components/docs/GitHubSnippet';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { useTheme } from '@/contexts/ThemeContext';
+import { BrandIcon } from '@/components/brand/BrandIcon';
+import { brandById, brandForHeading, type BrandPolicy } from '@/lib/brands';
 
 // Types for ReactMarkdown components
 interface MarkdownHeadingProps {
@@ -605,6 +607,8 @@ export interface MarkdownRendererProps {
   isDirectoryPage?: boolean;
   // Custom link handler (optional, for non-docs contexts)
   onLinkClick?: (href: string) => void;
+  // Which brand logos headings may show; a public page keeps the default.
+  brandLogos?: BrandPolicy;
 }
 
 // ─── Frontmatter parsing ─────────────────────────────────────────────────────
@@ -858,6 +862,7 @@ export function MarkdownRenderer({
   content,
   className,
   hideTitle = false,
+  brandLogos = 'permitted',
   enableCallouts = true,
   enableCodeGroups = true,
   enableMermaid = true,
@@ -923,6 +928,8 @@ export function MarkdownRenderer({
 
   // Parse frontmatter from content
   const { meta, body: markdownBody } = useMemo(() => parseFrontmatter(content), [content]);
+  const pageBrand = brandById(typeof meta.icon === 'string' ? meta.icon : undefined, brandLogos);
+  const headingIcons = meta.heading_icons !== 'false';
 
   // Track theme changes (html.dark class) so Shiki uses matching colors
   useMountEffect(() => {
@@ -965,33 +972,23 @@ export function MarkdownRenderer({
       return '';
     };
 
+    // A heading about one brand gets its logo: the page title takes the `icon` frontmatter first, any
+    // h1-h4 starting with a brand name gets that brand. `heading_icons: false` turns the automatic match off.
+    const heading = (Tag: 'h1' | 'h2' | 'h3' | 'h4', props: MarkdownHeadingProps) => {
+      const text = extractTextFromChildren(props.children);
+      const id = text.toLowerCase().replace(/\s+/g, '-').replace(/[^\w-]/g, '');
+      const brand = (Tag === 'h1' ? pageBrand : undefined) ?? (headingIcons ? brandForHeading(text, brandLogos) : undefined);
+      if (!brand) return <Tag id={id} {...props} />;
+      const { children, className, ...rest } = props;
+      return <Tag id={id} {...rest} className={cn('brand-heading', typeof className === 'string' ? className : undefined)}><BrandIcon brand={brand}/><span>{children}</span></Tag>;
+    };
+
     return {
       // Headings with IDs for anchor links and TOC
-      h1: ({ ...props }: MarkdownHeadingProps) => {
-        if (hideTitle) return null;
-        const children = props.children;
-        const text = extractTextFromChildren(children);
-        const id = text.toLowerCase().replace(/\s+/g, '-').replace(/[^\w-]/g, '');
-        return <h1 id={id} {...props} />;
-      },
-      h2: ({ ...props }: MarkdownHeadingProps) => {
-        const children = props.children;
-        const text = extractTextFromChildren(children);
-        const id = text.toLowerCase().replace(/\s+/g, '-').replace(/[^\w-]/g, '');
-        return <h2 id={id} {...props} />;
-      },
-      h3: ({ ...props }: MarkdownHeadingProps) => {
-        const children = props.children;
-        const text = extractTextFromChildren(children);
-        const id = text.toLowerCase().replace(/\s+/g, '-').replace(/[^\w-]/g, '');
-        return <h3 id={id} {...props} />;
-      },
-      h4: ({ ...props }: MarkdownHeadingProps) => {
-        const children = props.children;
-        const text = extractTextFromChildren(children);
-        const id = text.toLowerCase().replace(/\s+/g, '-').replace(/[^\w-]/g, '');
-        return <h4 id={id} {...props} />;
-      },
+      h1: (props: MarkdownHeadingProps) => hideTitle ? null : heading('h1', props),
+      h2: (props: MarkdownHeadingProps) => heading('h2', props),
+      h3: (props: MarkdownHeadingProps) => heading('h3', props),
+      h4: (props: MarkdownHeadingProps) => heading('h4', props),
       h5: ({ ...props }: MarkdownHeadingProps) => {
         const children = props.children;
         const text = extractTextFromChildren(children);
@@ -1228,7 +1225,7 @@ export function MarkdownRenderer({
         </div>
       ),
     };
-  }, [assetUrl, location.pathname, docPath, docsBase, navigate, hideTitle, enableCallouts, enableCodeGroups, onLinkClick, currentDir]);
+  }, [assetUrl, location.pathname, docPath, docsBase, navigate, hideTitle, enableCallouts, enableCodeGroups, onLinkClick, currentDir, pageBrand, headingIcons, brandLogos]);
 
   const codeRenderState = useMemo<CodeRenderState>(() => ({
     highlightedCode, copiedCodeId, setCopiedCodeId, enableMermaid,

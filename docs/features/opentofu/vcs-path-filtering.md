@@ -1,4 +1,5 @@
 ---
+title: "Path filtering"
 description: "Choose working-directory, prefix or glob rules, configure them with Terraform/API and verify monorepo triggering."
 covers:
   - "backend/internal/api/v2/handlers/vcs_path_filtering.go"

@@ -1,4 +1,5 @@
 ---
+title: "OSPS security evidence"
 description: "Review Stackweaver's OSPS control evidence, audit access requirements and known gaps without confusing source observations with conformance."
 covers:
   - ".github/workflows/**"

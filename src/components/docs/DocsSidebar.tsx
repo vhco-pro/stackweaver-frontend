@@ -3,19 +3,12 @@
 import { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { ChevronRight, ChevronDown, FileText, Folder, FolderOpen } from 'lucide-react';
+import { BrandIcon } from '@/components/brand/BrandIcon';
+import { brandById } from '@/lib/brands';
 import { cn } from '@/lib/utils';
-import { resolveCollection, useDocsIndex, useCompletedFilter, type DocsCollection } from './docsCollection';
+import { docLabel, resolveCollection, sidebarOptions, useDocsIndex, useCompletedFilter, type BrandLogoPolicy, type DocsCollection } from './docsCollection';
 import { DocsSearch } from './DocsSearch';
-
-interface DocTreeNode {
-  type: 'directory' | 'file';
-  name: string;
-  path: string;
-  title?: string;
-  description?: string;
-  status?: string;
-  children?: DocTreeNode[];
-}
+import type { DocTreeNode } from './docsTypes';
 
 interface DocsSidebarProps {
   className?: string;
@@ -66,6 +59,12 @@ function filterTree(nodes: DocTreeNode[], hideCompleted: boolean): DocTreeNode[]
     .filter((n): n is DocTreeNode => n !== null);
 }
 
+/** A brand page shows its logo when the collection's policy allows it; every other page keeps the document icon. */
+function NavIcon({ icon, policy }: { icon?: string; policy?: BrandLogoPolicy }) {
+  const brand = brandById(icon, policy);
+  return brand ? <BrandIcon brand={brand} className="h-4 w-4 text-base" /> : <FileText className="h-4 w-4 shrink-0" />;
+}
+
 export function DocsSidebar({ className, onNavigate, docsBase: legacyBase, indexFile: legacyIndex, collection: explicitCollection, showSearch = true, headerAction }: DocsSidebarProps) {
   const collection = resolveCollection({ collection: explicitCollection, docsBase: legacyBase, indexFile: legacyIndex });
   const { docsBase } = collection;
@@ -74,6 +73,11 @@ export function DocsSidebar({ className, onNavigate, docsBase: legacyBase, index
   const { data: index, isPending: loading } = useDocsIndex(collection);
   const [expandedDirs, setExpandedDirs] = useState<Set<string>>(new Set());
   const isInternal = !!collection.statusFilter;
+  const options = sidebarOptions(collection);
+  // A folder is labelled by its README title, a page by its own title, unless the collection shows names.
+  const folderLabel = (node: DocTreeNode, readme: DocTreeNode | null) => options.labels === 'names' ? node.name
+    : readme?.title && readme.title !== 'README' ? readme.title : docLabel(node);
+  const pageLabel = (node: DocTreeNode) => options.labels === 'names' ? node.title || node.name.replace(/\.md$/, '') : docLabel(node);
   const [hideCompleted, setHideCompleted] = useCompletedFilter(collection);
 
   // Auto-expand directories that contain the current path when the location (or
@@ -217,12 +221,17 @@ export function DocsSidebar({ className, onNavigate, docsBase: legacyBase, index
             title={readmeFile?.description || undefined}
           >
             {isInternal && <StatusDot status={readmeFile?.status} />}
-            <FileText className="h-4 w-4 shrink-0" />
-            <span className="truncate">{node.name}</span>
+            {options.icons && <NavIcon icon={readmeFile?.icon ?? node.icon} policy={collection.brandLogos} />}
+            <span className="truncate">{folderLabel(node, readmeFile)}</span>
           </Link>
         );
       }
 
+      const chevron = (
+        <div className="chevron-container shrink-0">
+          {isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+        </div>
+      );
       return (
         <div key={node.path}>
           <button
@@ -235,23 +244,18 @@ export function DocsSidebar({ className, onNavigate, docsBase: legacyBase, index
             )}
             style={{ paddingLeft: `${0.75 + level * 1.5}rem` }}
           >
-            {hasChildren && (
-              <div className="chevron-container shrink-0">
-                {isExpanded ? (
-                  <ChevronDown className="h-4 w-4" />
-                ) : (
-                  <ChevronRight className="h-4 w-4" />
-                )}
-              </div>
-            )}
-            <div className="folder-icon-container shrink-0">
-              {isExpanded ? (
+            {/* With icons the chevron leads the row; a text-only sidebar puts it at the end, so folders
+                and pages share one left edge. */}
+            {hasChildren && options.icons && chevron}
+            {options.icons && <div className="folder-icon-container shrink-0">
+              {brandById(node.icon, collection.brandLogos) ? <NavIcon icon={node.icon} policy={collection.brandLogos} /> : isExpanded ? (
                 <FolderOpen className="h-4 w-4" />
               ) : (
                 <Folder className="h-4 w-4" />
               )}
-            </div>
-            <span className="truncate">{node.name}</span>
+            </div>}
+            <span className="truncate text-left">{folderLabel(node, readmeFile)}</span>
+            {hasChildren && !options.icons && <span className="ml-auto flex">{chevron}</span>}
           </button>
           {isExpanded && hasChildren && (
             <div className="mt-1">
@@ -279,11 +283,29 @@ export function DocsSidebar({ className, onNavigate, docsBase: legacyBase, index
           title={node.description || undefined}
         >
           {isInternal && <StatusDot status={node.status} />}
-          <FileText className="h-4 w-4 shrink-0" />
-          <span className="truncate">{node.title || node.name.replace(/\.md$/, '')}</span>
+          {options.icons && <NavIcon icon={node.icon} policy={collection.brandLogos} />}
+          <span className="truncate">{pageLabel(node)}</span>
         </Link>
       );
     }
+  };
+
+  const renderSection = (node: DocTreeNode) => {
+    const readme = findReadmeInDir(node.children);
+    const readmePath = readme ? getDocPath(readme.path) : null;
+    const active = !!readmePath && location.pathname.replace(/\/$/, '') === readmePath;
+    const label = folderLabel(node, readme);
+    const labelClass = cn('docs-nav-section block px-3 pb-1 pt-5 text-xs font-semibold uppercase tracking-[0.12em] text-foreground/80', active && 'text-foreground');
+    return (
+      <div key={node.path}>
+        {readmePath
+          ? <Link to={readmePath} onClick={() => onNavigate?.()} className={cn(labelClass, 'hover:text-foreground')} aria-current={active ? 'page' : undefined}>{label}</Link>
+          : <p className={labelClass}>{label}</p>}
+        <div className="space-y-1">
+          {(node.children ?? []).filter(child => !(child.type === 'file' && /^README\.md$/i.test(child.name))).map(child => renderNode(child, 0))}
+        </div>
+      </div>
+    );
   };
 
   const renderBody = () => {
@@ -316,7 +338,7 @@ export function DocsSidebar({ className, onNavigate, docsBase: legacyBase, index
             Hide completed
           </label>
         )}
-        {filterTree(index.tree, isInternal && hideCompleted).map(node => renderNode(node))}
+        {filterTree(index.tree, isInternal && hideCompleted).map(node => options.sections && node.type === 'directory' ? renderSection(node) : renderNode(node))}
       </div>
     );
   };

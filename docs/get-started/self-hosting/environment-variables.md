@@ -1,4 +1,5 @@
 ---
+title: "Environment variables"
 description: "Comprehensive reference for all environment variables across every service"
 covers:
   - "backend/cmd/api/**"

@@ -2,6 +2,7 @@
 title: "Changelog"
 description: "Stackweaver changes, affected users and upgrade actions, with confirmed component availability."
 nav_order: 60
+heading_icons: false
 covers:
   - "scripts/changelog/**"
 ---

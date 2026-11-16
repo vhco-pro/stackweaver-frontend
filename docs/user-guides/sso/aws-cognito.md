@@ -1,4 +1,6 @@
 ---
+title: "Amazon Cognito"
+icon: aws-cognito
 description: "Understand the Cognito scope compatibility limit before attempting generic OIDC sign-in."
 covers:
   - "scripts/zitadel-init/**"

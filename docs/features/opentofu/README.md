@@ -1,4 +1,5 @@
 ---
+icon: opentofu
 title: "OpenTofu features"
 layout: overview
 description: "OpenTofu capabilities and guides for workspaces, runs and automation."

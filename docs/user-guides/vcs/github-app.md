@@ -1,4 +1,6 @@
 ---
+title: "GitHub App"
+icon: github
 description: "Register a GitHub App, configure Compose or Helm credentials, connect an organization and verify repository access."
 covers:
   - "backend/internal/api/v2/handlers/vcs*.go"

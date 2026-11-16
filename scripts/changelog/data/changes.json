@@ -1,5 +1,30 @@
 [
   {
+    "id": "docs-brand-logos-and-sidebar",
+    "title": "Documentation shows permitted product logos and a sidebar of page titles",
+    "area": "Documentation",
+    "kind": "Changed",
+    "reviewed": true,
+    "audience": "People reading Stackweaver documentation, and operators who host the documentation viewer.",
+    "before": "The documentation sidebar listed file and folder names with file and folder icons, such as get-started and workload-identity, and some pages showed their file name as their title.",
+    "after": "The sidebar lists page and section titles under section labels, without icons. Headings and page titles about a product such as OpenTofu, Kubernetes, Helm, GitHub, Okta, Azure or Microsoft Entra ID show that product's logo, unless its owner requires permission first. Every page has its own title.",
+    "action": "Update the frontend image. No configuration change is required.",
+    "details": [],
+    "guides": [
+      {
+        "title": "Workload identity",
+        "path": "/docs/user-guides/workload-identity"
+      }
+    ],
+    "sourceCommits": [
+      "b9f1315088bceb6349ed6938001cb3c240f81f84"
+    ],
+    "requiredComponents": [
+      "frontend"
+    ],
+    "availability": []
+  },
+  {
     "id": "blog-article-details",
     "title": "Blog articles show the author, dates and reading time as labelled details",
     "area": "Platform",

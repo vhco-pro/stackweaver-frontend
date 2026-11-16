@@ -1,4 +1,5 @@
 ---
+title: "Upgrading"
 description: "Choose component versions, prepare recovery, upgrade with Compose or Helm, and check the result."
 nav_order: 40
 covers:
