@@ -4,7 +4,7 @@
     {
       "id": "ad-hoc-commands",
       "guide": "user-guides/ansible/dynamic-inventories/README.md",
-      "guideHash": "dd38fa473363c3126e11662b840be4218018c5f0949afb9e30b6650a91dfd47f",
+      "guideHash": "f8a000499cb51a0d9c1744bcb9ec61c095e305cd7c88199daf4e25f2f3287aff",
       "metadataHash": "f1c27ac8c147811f75b6ed3334a6b674b045e37f2174d5ee25595a80e4d1bf6d",
       "evidence": [
         {
@@ -13,7 +13,7 @@
         },
         {
           "path": "core/services/ansible/job.go",
-          "sha256": "661826155cdcb0a5108c4768b7f54c5c21ed00c623074d73676d50ede796b6bb"
+          "sha256": "54e9280a3b2c155ad9947987733928c891e01f53107e49a88c8cf4be9593eaff"
         },
         {
           "path": "core/services/ansible/job_test.go",
@@ -29,7 +29,7 @@
       "evidence": [
         {
           "path": "backend/internal/api/v2/handlers/runner_agent.go",
-          "sha256": "79cf016fc92b9ca8ace52b24fd217a684a7aa23b50218c1874a02b087f656a92"
+          "sha256": "a3ef7dfef65e45d97edcd996c20aa7dcf87f42636dacfa5bc81377b7e0e23a60"
         },
         {
           "path": "backend/internal/launcher/launcher.go",
@@ -37,7 +37,7 @@
         },
         {
           "path": "core/services/ansible/job.go",
-          "sha256": "661826155cdcb0a5108c4768b7f54c5c21ed00c623074d73676d50ede796b6bb"
+          "sha256": "54e9280a3b2c155ad9947987733928c891e01f53107e49a88c8cf4be9593eaff"
         }
       ]
     },
@@ -53,7 +53,7 @@
         },
         {
           "path": "backend/internal/api/v2/handlers/runner_agent.go",
-          "sha256": "79cf016fc92b9ca8ace52b24fd217a684a7aa23b50218c1874a02b087f656a92"
+          "sha256": "a3ef7dfef65e45d97edcd996c20aa7dcf87f42636dacfa5bc81377b7e0e23a60"
         },
         {
           "path": "backend/internal/executor/ansibleexec/run.go",
@@ -149,7 +149,7 @@
         },
         {
           "path": "core/services/ansible/job.go",
-          "sha256": "661826155cdcb0a5108c4768b7f54c5c21ed00c623074d73676d50ede796b6bb"
+          "sha256": "54e9280a3b2c155ad9947987733928c891e01f53107e49a88c8cf4be9593eaff"
         },
         {
           "path": "frontend/src/pages/Ansible/run-viewer/adapter.test.ts",
@@ -193,7 +193,7 @@
         },
         {
           "path": "backend/internal/api/v2/handlers/runner_agent.go",
-          "sha256": "79cf016fc92b9ca8ace52b24fd217a684a7aa23b50218c1874a02b087f656a92"
+          "sha256": "a3ef7dfef65e45d97edcd996c20aa7dcf87f42636dacfa5bc81377b7e0e23a60"
         },
         {
           "path": "core/services/ansible/playbook_sync.go",
@@ -225,7 +225,7 @@
       "evidence": [
         {
           "path": "backend/internal/api/v2/handlers/vcs_app_installation.go",
-          "sha256": "638032d41f6b84e19d02a7d668764c5bf5d9979ca6535c34c21c68d74ca9f929"
+          "sha256": "66f00f9e739222a295cd738fd13daf03fa5ee0b8925fe34a90a1eebae4ae5fa4"
         },
         {
           "path": "backend/internal/api/v2/handlers/vcs_push_ansible_sync_test.go",
@@ -256,7 +256,7 @@
     {
       "id": "cloud-inventories",
       "guide": "user-guides/ansible/dynamic-inventories/README.md",
-      "guideHash": "dd38fa473363c3126e11662b840be4218018c5f0949afb9e30b6650a91dfd47f",
+      "guideHash": "f8a000499cb51a0d9c1744bcb9ec61c095e305cd7c88199daf4e25f2f3287aff",
       "metadataHash": "707616ee92f755f9ee257b8ed6adf3221e2ac13ec139d281b628713caadeb96e",
       "evidence": [
         {
@@ -269,7 +269,7 @@
         },
         {
           "path": "core/services/ansible/inventory_source_sync_test.go",
-          "sha256": "3621e5e4e90119e80fdba6cfca4be38c0d9a8837358f93309cccfe8cd025005f"
+          "sha256": "8b3c41b572240959481183c05f233f99a4e20e548b5a1d1eb22183ebf5650e08"
         }
       ]
     },
@@ -281,7 +281,7 @@
       "evidence": [
         {
           "path": "backend/internal/executor/syncexec/constructed_integration_test.go",
-          "sha256": "e2fec042335820a31b190e250c9a1dd6617f9da09ef3c1966262c26d515cce03"
+          "sha256": "5152964e8da99d8c66b03bfdba8b1b558d2a66c8ce8283978fe9d3856f1e0cf8"
         },
         {
           "path": "backend/internal/executor/syncexec/run.go",
@@ -341,7 +341,7 @@
       "evidence": [
         {
           "path": "backend/internal/api/v2/handlers/terraform/runs.go",
-          "sha256": "3eb4c391ce86ae181bac8793d478614e491757353bcb69c432eefec679da29bc"
+          "sha256": "1bd4199f3dd9e5c49816c248ff72644a470444fa0d8989ad1d2a0138e4be8326"
         },
         {
           "path": "core/plugins/opentofu/plugin.go",
@@ -401,7 +401,7 @@
         },
         {
           "path": "backend/internal/api/v2/handlers/terraform/runs.go",
-          "sha256": "3eb4c391ce86ae181bac8793d478614e491757353bcb69c432eefec679da29bc"
+          "sha256": "1bd4199f3dd9e5c49816c248ff72644a470444fa0d8989ad1d2a0138e4be8326"
         },
         {
           "path": "backend/internal/launcher/supervise.go",
@@ -417,7 +417,7 @@
       "evidence": [
         {
           "path": "backend/internal/api/v2/handlers/terraform/runs.go",
-          "sha256": "3eb4c391ce86ae181bac8793d478614e491757353bcb69c432eefec679da29bc"
+          "sha256": "1bd4199f3dd9e5c49816c248ff72644a470444fa0d8989ad1d2a0138e4be8326"
         },
         {
           "path": "backend/internal/executor/tofuexec/run.go",
@@ -457,7 +457,7 @@
       "evidence": [
         {
           "path": "backend/cmd/orchestrator/main.go",
-          "sha256": "0e7fe01268787a0b48966cbc862f8a9ca06afc3f032cc8c871b06776d67ec644"
+          "sha256": "ddf0a7de08a8e5b52cd87dd30b9fe2ab7548f8f754eb3a72dd1f89bab09217d7"
         },
         {
           "path": "backend/cmd/orchestrator/task_stages.go",
@@ -481,7 +481,7 @@
         },
         {
           "path": "core/repository/run.go",
-          "sha256": "2975f0d44f65804cc8f140e343128e328a4ef63616db938abe0484460436dfe1"
+          "sha256": "0fa962687065fbea8b6e82d2d933ef018605435743359311e8307d99a7c33ffd"
         },
         {
           "path": "core/repository/run_lifecycle_test.go",
@@ -521,7 +521,7 @@
       "evidence": [
         {
           "path": "backend/internal/api/v2/handlers/vcs_app_installation.go",
-          "sha256": "638032d41f6b84e19d02a7d668764c5bf5d9979ca6535c34c21c68d74ca9f929"
+          "sha256": "66f00f9e739222a295cd738fd13daf03fa5ee0b8925fe34a90a1eebae4ae5fa4"
         },
         {
           "path": "backend/internal/api/v2/handlers/vcs_connections.go",
@@ -592,7 +592,7 @@
     {
       "id": "workspace-path-filters",
       "guide": "features/opentofu/vcs-path-filtering.md",
-      "guideHash": "8ced2a263b53394af4cfd4e3f2fb6c49cfd1ddcaf33dbeadecccf89839583243",
+      "guideHash": "996da90577ad92e8be3c4c24ca1b9cc27b0804d9f46c54af76246ea78bec9e5a",
       "metadataHash": "efe624e2b74896d4e780b408ed942ff8eb860343875635054eba8491bdc01971",
       "evidence": [
         {
