@@ -36,7 +36,7 @@
     "guides": [
       {
         "title": "Set up self-hosted runners",
-        "path": "/docs/user-guides/self-hosted-runners"
+        "path": "/docs/user-guides/launchers"
       }
     ],
     "sourceCommits": [],
@@ -294,7 +294,7 @@
     "guides": [
       {
         "title": "Inventory refresh failure behavior",
-        "path": "/docs/user-guides/dynamic-inventories#when-an-update-on-launch-sync-fails"
+        "path": "/docs/user-guides/ansible/dynamic-inventories#when-an-update-on-launch-sync-fails"
       }
     ],
     "sourceCommits": [
@@ -326,7 +326,7 @@
     "guides": [
       {
         "title": "Dynamic inventories and sync behavior",
-        "path": "/docs/user-guides/dynamic-inventories"
+        "path": "/docs/user-guides/ansible/dynamic-inventories"
       }
     ],
     "sourceCommits": [
@@ -360,7 +360,7 @@
     "guides": [
       {
         "title": "Constructed inventory setup and constraints",
-        "path": "/docs/user-guides/dynamic-inventories#build-a-constructed-inventory"
+        "path": "/docs/user-guides/ansible/dynamic-inventories/constructed-inventories"
       }
     ],
     "sourceCommits": [
@@ -566,7 +566,7 @@
     "guides": [
       {
         "title": "Run lifecycle and execution paths",
-        "path": "/docs/user-guides/understanding-opentofu-runs"
+        "path": "/docs/user-guides/opentofu/understanding-opentofu-runs"
       }
     ],
     "sourceCommits": [
@@ -596,7 +596,7 @@
     "guides": [
       {
         "title": "Platform administration",
-        "path": "/docs/user-guides/platform-administration"
+        "path": "/docs/user-guides/administration/platform-administration"
       }
     ],
     "sourceCommits": [
@@ -632,7 +632,7 @@
     "guides": [
       {
         "title": "Self-hosted runner credentials",
-        "path": "/docs/user-guides/self-hosted-runners"
+        "path": "/docs/user-guides/launchers"
       }
     ],
     "sourceCommits": [
@@ -720,7 +720,7 @@
     "guides": [
       {
         "title": "Register Ansible playbooks and repository access",
-        "path": "/docs/user-guides/managing-ansible-playbooks#before-you-start"
+        "path": "/docs/user-guides/ansible/managing-ansible-playbooks#before-you-start"
       }
     ],
     "sourceCommits": [
@@ -818,7 +818,7 @@
     "guides": [
       {
         "title": "Platform administration",
-        "path": "/docs/user-guides/platform-administration"
+        "path": "/docs/user-guides/administration/platform-administration"
       }
     ],
     "sourceCommits": [
@@ -1115,11 +1115,11 @@
       },
       {
         "title": "Delete a playbook registration",
-        "path": "/docs/user-guides/managing-ansible-playbooks#deleting-a-playbook"
+        "path": "/docs/user-guides/ansible/managing-ansible-playbooks#deleting-a-playbook"
       },
       {
         "title": "Delete an inventory",
-        "path": "/docs/user-guides/dynamic-inventories#deleting-an-inventory"
+        "path": "/docs/user-guides/ansible/dynamic-inventories#deleting-an-inventory"
       }
     ],
     "sourceCommits": [],
@@ -1169,7 +1169,7 @@
     "guides": [
       {
         "title": "Delete a playbook registration",
-        "path": "/docs/user-guides/managing-ansible-playbooks#deleting-a-playbook"
+        "path": "/docs/user-guides/ansible/managing-ansible-playbooks#deleting-a-playbook"
       },
       {
         "title": "Ansible attachment and deletion rules",
@@ -1201,7 +1201,7 @@
     "guides": [
       {
         "title": "What a delete removes",
-        "path": "/docs/user-guides/organization-settings#what-a-delete-removes"
+        "path": "/docs/user-guides/administration/organization-settings#what-a-delete-removes"
       }
     ],
     "sourceCommits": [],
@@ -1322,7 +1322,7 @@
     "guides": [
       {
         "title": "Managing Ansible playbooks",
-        "path": "/docs/user-guides/managing-ansible-playbooks"
+        "path": "/docs/user-guides/ansible/managing-ansible-playbooks"
       }
     ],
     "sourceCommits": [],
@@ -1368,7 +1368,7 @@
     "guides": [
       {
         "title": "Organization settings",
-        "path": "/docs/user-guides/organization-settings"
+        "path": "/docs/user-guides/administration/organization-settings"
       }
     ],
     "sourceCommits": [],
@@ -1416,7 +1416,7 @@
     "guides": [
       {
         "title": "Configure organization settings",
-        "path": "/docs/user-guides/organization-settings"
+        "path": "/docs/user-guides/administration/organization-settings"
       }
     ],
     "sourceCommits": [],
@@ -1441,7 +1441,7 @@
     "guides": [
       {
         "title": "Configure organization settings",
-        "path": "/docs/user-guides/organization-settings"
+        "path": "/docs/user-guides/administration/organization-settings"
       }
     ],
     "sourceCommits": [],
@@ -1466,7 +1466,7 @@
     "guides": [
       {
         "title": "Configure organization settings",
-        "path": "/docs/user-guides/organization-settings"
+        "path": "/docs/user-guides/administration/organization-settings"
       }
     ],
     "sourceCommits": [],
@@ -1568,8 +1568,8 @@
     ],
     "guides": [
       {
-        "title": "Self-hosted runners",
-        "path": "/docs/user-guides/self-hosted-runners"
+        "title": "Launchers",
+        "path": "/docs/user-guides/launchers"
       },
       {
         "title": "Upgrade a Kubernetes install",
@@ -1612,7 +1612,7 @@
     "guides": [
       {
         "title": "Read OpenTofu runs",
-        "path": "/docs/user-guides/understanding-opentofu-runs"
+        "path": "/docs/user-guides/opentofu/understanding-opentofu-runs"
       }
     ],
     "sourceCommits": [],
@@ -1664,7 +1664,7 @@
     "guides": [
       {
         "title": "Managing Ansible playbooks",
-        "path": "/docs/user-guides/managing-ansible-playbooks"
+        "path": "/docs/user-guides/ansible/managing-ansible-playbooks"
       }
     ],
     "sourceCommits": [],
@@ -1689,7 +1689,7 @@
     "guides": [
       {
         "title": "Managing Ansible playbooks",
-        "path": "/docs/user-guides/managing-ansible-playbooks"
+        "path": "/docs/user-guides/ansible/managing-ansible-playbooks"
       }
     ],
     "sourceCommits": [],
@@ -1764,7 +1764,7 @@
     "guides": [
       {
         "title": "Read OpenTofu runs",
-        "path": "/docs/user-guides/understanding-opentofu-runs"
+        "path": "/docs/user-guides/opentofu/understanding-opentofu-runs"
       }
     ],
     "sourceCommits": [],
@@ -1789,12 +1789,12 @@
     ],
     "guides": [
       {
-        "title": "Self-hosted runners",
-        "path": "/docs/user-guides/self-hosted-runners"
+        "title": "Launchers",
+        "path": "/docs/user-guides/launchers"
       },
       {
         "title": "Organization settings",
-        "path": "/docs/user-guides/organization-settings"
+        "path": "/docs/user-guides/administration/organization-settings"
       }
     ],
     "sourceCommits": [],
@@ -1818,7 +1818,7 @@
     "guides": [
       {
         "title": "Read OpenTofu runs",
-        "path": "/docs/user-guides/understanding-opentofu-runs"
+        "path": "/docs/user-guides/opentofu/understanding-opentofu-runs"
       }
     ],
     "sourceCommits": [],
@@ -1844,8 +1844,8 @@
     ],
     "guides": [
       {
-        "title": "Self-hosted runners",
-        "path": "/docs/user-guides/self-hosted-runners"
+        "title": "Launchers",
+        "path": "/docs/user-guides/launchers"
       }
     ],
     "sourceCommits": [],
@@ -1869,8 +1869,8 @@
     "details": [],
     "guides": [
       {
-        "title": "Self-hosted runners",
-        "path": "/docs/user-guides/self-hosted-runners"
+        "title": "Launchers",
+        "path": "/docs/user-guides/launchers"
       }
     ],
     "sourceCommits": [],
@@ -1892,8 +1892,8 @@
     "details": [],
     "guides": [
       {
-        "title": "Self-hosted runners",
-        "path": "/docs/user-guides/self-hosted-runners"
+        "title": "Launchers",
+        "path": "/docs/user-guides/launchers"
       }
     ],
     "sourceCommits": [],
@@ -1918,7 +1918,7 @@
     "guides": [
       {
         "title": "Read OpenTofu runs",
-        "path": "/docs/user-guides/understanding-opentofu-runs"
+        "path": "/docs/user-guides/opentofu/understanding-opentofu-runs"
       }
     ],
     "sourceCommits": [],
@@ -1941,7 +1941,7 @@
     "guides": [
       {
         "title": "Manage Ansible playbooks",
-        "path": "/docs/user-guides/managing-ansible-playbooks"
+        "path": "/docs/user-guides/ansible/managing-ansible-playbooks"
       }
     ],
     "sourceCommits": [],
@@ -2017,7 +2017,7 @@
     "guides": [
       {
         "title": "Run images and execution environments",
-        "path": "/docs/user-guides/run-images-and-execution-environments"
+        "path": "/docs/user-guides/launchers/run-images-and-execution-environments"
       }
     ],
     "sourceCommits": [],
@@ -2048,7 +2048,7 @@
       },
       {
         "title": "Dynamic inventories",
-        "path": "/docs/user-guides/dynamic-inventories"
+        "path": "/docs/user-guides/ansible/dynamic-inventories"
       }
     ],
     "sourceCommits": [],
@@ -2100,7 +2100,7 @@
     "guides": [
       {
         "title": "Run images and execution environments",
-        "path": "/docs/user-guides/run-images-and-execution-environments"
+        "path": "/docs/user-guides/launchers/run-images-and-execution-environments"
       }
     ],
     "sourceCommits": [
@@ -2135,7 +2135,7 @@
     "guides": [
       {
         "title": "Set up self-hosted runners",
-        "path": "/docs/user-guides/self-hosted-runners"
+        "path": "/docs/user-guides/launchers"
       }
     ],
     "sourceCommits": [],
@@ -2169,7 +2169,7 @@
     "guides": [
       {
         "title": "Set up self-hosted runners",
-        "path": "/docs/user-guides/self-hosted-runners"
+        "path": "/docs/user-guides/launchers"
       }
     ],
     "sourceCommits": [],
@@ -2196,7 +2196,7 @@
     "guides": [
       {
         "title": "Set up self-hosted runners",
-        "path": "/docs/user-guides/self-hosted-runners"
+        "path": "/docs/user-guides/launchers"
       }
     ],
     "sourceCommits": [],
@@ -2220,7 +2220,7 @@
     "guides": [
       {
         "title": "Set up self-hosted runners",
-        "path": "/docs/user-guides/self-hosted-runners"
+        "path": "/docs/user-guides/launchers"
       }
     ],
     "sourceCommits": [],
@@ -2272,7 +2272,7 @@
     "guides": [
       {
         "title": "Read OpenTofu runs",
-        "path": "/docs/user-guides/understanding-opentofu-runs"
+        "path": "/docs/user-guides/opentofu/understanding-opentofu-runs"
       }
     ],
     "sourceCommits": [],
@@ -2296,7 +2296,7 @@
     "guides": [
       {
         "title": "Read OpenTofu runs",
-        "path": "/docs/user-guides/understanding-opentofu-runs"
+        "path": "/docs/user-guides/opentofu/understanding-opentofu-runs"
       }
     ],
     "sourceCommits": [],
@@ -2374,7 +2374,7 @@
       },
       {
         "title": "Organization settings",
-        "path": "/docs/user-guides/organization-settings"
+        "path": "/docs/user-guides/administration/organization-settings"
       }
     ],
     "sourceCommits": [],
@@ -2400,7 +2400,7 @@
     "guides": [
       {
         "title": "Organization settings",
-        "path": "/docs/user-guides/organization-settings"
+        "path": "/docs/user-guides/administration/organization-settings"
       }
     ],
     "sourceCommits": [],
@@ -2473,8 +2473,8 @@
     "details": [],
     "guides": [
       {
-        "title": "Self-hosted runners",
-        "path": "/docs/user-guides/self-hosted-runners"
+        "title": "Monitor and operate launchers",
+        "path": "/docs/user-guides/launchers/operate"
       }
     ],
     "sourceCommits": [],

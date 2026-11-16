@@ -10,7 +10,7 @@ covers:
 
 The dashboard combines the organizations you can access so you can find blocked work without
 opening each organization first. It shows current attention items and live operations;
-[Usage & Analytics](../../user-guides/usage-analytics.md) provides trends within one organization.
+[Usage & Analytics](../../user-guides/administration/usage-analytics.md) provides trends within one organization.
 For the controls and a worked example, see [Reading the dashboard](../../user-guides/reading-the-dashboard.md).
 
 ![The cross-organization attention list, showing synthetic example organizations and counts.](../../user-guides/images/dashboard-attention.png)
@@ -89,5 +89,5 @@ configure resources elsewhere and are not alternative ways to read this screen.
 ## Related guides
 
 - [Reading the dashboard](../../user-guides/reading-the-dashboard.md): find and open work.
-- [Usage & Analytics](../../user-guides/usage-analytics.md): examine trends and failures in one organization.
-- [Change requests](../../user-guides/change-requests.md): track requested workspace changes.
+- [Usage & Analytics](../../user-guides/administration/usage-analytics.md): examine trends and failures in one organization.
+- [Change requests](../../user-guides/opentofu/change-requests.md): track requested workspace changes.

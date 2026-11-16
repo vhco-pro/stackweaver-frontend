@@ -132,7 +132,7 @@ on one Redis, as a development slot does. Launchers never connect to Redis.
 
 This key protects the following stored values: workspace and variable-set variables, Ansible credentials, OpenTofu **state files**, saved **plan files**, configuration versions and playbook snapshots in object storage, and sensitive OpenTofu **output values**, the **plan JSON** of each run and **VCS connection tokens** in the database. Use the same value across every service that handles this data so they can read each other's ciphertext. The **orchestrator** also reads it, to decrypt VCS tokens when refreshing OAuth tokens, to decrypt the signing keys of notification and run-task webhooks, and to read runs' plan JSON for commit statuses and run-task stages.
 
-The Helm chart provisions a strong `ENCRYPTION_KEY` automatically into a Kubernetes Secret (preserved across upgrades and uninstall) and injects it into the API **and orchestrator**, or you can bring your own - see the [Kubernetes guide](kubernetes/README.md#secrets). Launchers and jobs never receive this key: a job is handed its decrypted inputs by the API, over a token for that job alone.
+The Helm chart provisions a strong `ENCRYPTION_KEY` automatically into a Kubernetes Secret (preserved across upgrades and uninstall) and injects it into the API **and orchestrator**, or you can bring your own - see the [Kubernetes guide](./kubernetes/README.md#secrets). Launchers and jobs never receive this key: a job is handed its decrypted inputs by the API, over a token for that job alone.
 
 > [!WARNING]
 > Keep the encryption key with your database and object-storage backups. Generating a new key is not a credential-rotation procedure and can make stored data unreadable.
@@ -189,7 +189,7 @@ GITHUB_WEBHOOK_SECRET='example$literal'
 
 ### Platform administration
 
-A platform administrator manages the installation itself: the OpenTofu versions catalogue, the list of platform administrators, and a read-only list of every organization. See [Platform administration](../../user-guides/platform-administration.md) for what the role can and cannot do. On Docker Compose these variables go in `sso.env`; on Kubernetes they come from the chart's `platform.*` values.
+A platform administrator manages the installation itself: the OpenTofu versions catalogue, the list of platform administrators, and a read-only list of every organization. See [Platform administration](../../user-guides/administration/platform-administration.md) for what the role can and cannot do. On Docker Compose these variables go in `sso.env`; on Kubernetes they come from the chart's `platform.*` values.
 
 | Variable | Description | Default |
 |---|---|---|
@@ -208,7 +208,7 @@ These settings apply to the whole installation. The API reads them and serves th
 | `STACKWEAVER_SYNC_TIMEOUT` | Time limit, in seconds, of a sync that has no launching object (a snapshot capture, a VCS inventory file sync or a constructed rebuild), and of a dynamic inventory source sync whose source, project and organization set none. | `3600` |
 | `STACKWEAVER_JOB_LOG_MAX_BYTES` | Most output stored for one job, in bytes. Above it the API keeps the beginning and the last 256 KiB, records how much it dropped, and the job runs on. | `67108864` (64 MiB) |
 | `STACKWEAVER_HOSTED_DEFAULT_MAX_CONCURRENT_JOBS` | Jobs of one organization the hosted capacity runs at once, when a platform administrator has not set a cap on that organization's hosted capacity. `0` means unlimited. | `0` |
-| `IMAGES_ALLOWED_REGISTRIES` | Comma-separated registries or registry paths run images may come from, for example `ghcr.io/acme,registry.example.com`. A bare image name counts as `docker.io`. Empty allows any registry. See [Run Images and Execution Environments](../../user-guides/run-images-and-execution-environments.md#the-registry-allowlist). | (empty) |
+| `IMAGES_ALLOWED_REGISTRIES` | Comma-separated registries or registry paths run images may come from, for example `ghcr.io/acme,registry.example.com`. A bare image name counts as `docker.io`. Empty allows any registry. See [Run Images and Execution Environments](../../user-guides/launchers/run-images-and-execution-environments.md#the-registry-allowlist). | (empty) |
 | `CACHE_SIZE_LIMIT` | Size bound of each organization's verified cache, in bytes or with a `Ki`, `Mi`, `Gi` or `Ti` suffix, when the organization sets none under Run Defaults. The oldest entries are removed first. | `50Gi` |
 | `RUNNER_RATE_LIMIT_RPS` / `RUNNER_RATE_LIMIT_BURST` | Rate budget of each launcher on the `/api/v2/runner` routes, in requests per second and burst. These routes are exempt from the per-IP limit, so many launchers behind one address do not share a budget. | `20` / `40` |
 | `JOB_RATE_LIMIT_RPS` / `JOB_RATE_LIMIT_BURST` | Rate budget of each job's process on the same routes. | `20` / `40` |
@@ -322,7 +322,7 @@ The orchestrator is a background service that routes each pending run to its poo
 
 ## Launchers
 
-The launcher reads these variables, whether it runs from the `stackweaver-launcher` image, from a job image (`stackweaver-opentofu-runner`, `stackweaver-ansible-runner`) for the in-process driver, or as the binary on a host. A launcher holds no database, Redis or object storage credential, no encryption key and no signing key: it registers with the API, claims work, and each job fetches what it needs from the API with a token for that job alone. See [Set up launchers](../../user-guides/self-hosted-runners.md) for how the pieces fit together.
+The launcher reads these variables, whether it runs from the `stackweaver-launcher` image, from a job image (`stackweaver-opentofu-runner`, `stackweaver-ansible-runner`) for the in-process driver, or as the binary on a host. A launcher holds no database, Redis or object storage credential, no encryption key and no signing key: it registers with the API, claims work, and each job fetches what it needs from the API with a token for that job alone. See [Set up launchers](../../user-guides/launchers/README.md) for how the pieces fit together.
 
 On Docker Compose, the `launcher` service sets these in its `environment:` block in `docker-compose.yml`, and reads only `STACKWEAVER_HOSTED_SECRET` from `.env`. On Kubernetes, the chart sets them from the `launcher.*` values, and `launcher.env` adds any other variable. A launcher you run for an agent pool takes them from its own container or Deployment environment.
 

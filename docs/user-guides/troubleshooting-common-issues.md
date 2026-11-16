@@ -17,11 +17,11 @@ the cause or repeat real changes.
 
 | Symptom | Check first | Next action |
 |---|---|---|
-| Run stays queued. | Workspace lock, execution mode, whether a launcher of the run's pool is online and orchestrator status. A run stays pending until a launcher of its pool is online. A VCS-backed run first waits for its configuration capture, which runs on the organization's hosted capacity even when the workspace uses an agent pool. | For remote execution, check the hosted launcher's logs. For agent execution, check that a launcher of the workspace's agent pool shows as **Online** under **Settings > Launchers**. See [Set up launchers](./self-hosted-runners.md). |
+| Run stays queued. | Workspace lock, execution mode, whether a launcher of the run's pool is online and orchestrator status. A run stays pending until a launcher of its pool is online. A VCS-backed run first waits for its configuration capture, which runs on the organization's hosted capacity even when the workspace uses an agent pool. | For remote execution, check the hosted launcher's logs. For agent execution, check that a launcher of the workspace's agent pool shows as **Online** under **Settings > Launchers**. See [Set up launchers](./launchers/README.md). |
 | Run fails before planning. | Repository access, branch/commit, working directory and initialization output. | Correct the specific connection or path; preserve the existing connection while diagnosing. |
 | Unexpected deletion or replacement. | Selected commit, variables, state version and provider lock file. | Stop before apply. Compare with a known successful run and investigate drift deliberately. |
 | Provider authentication/permission error. | Credential expiry, workload-identity trust, target account/region and operation permission. | Correct the narrow failing permission or credential. See [workload identity troubleshooting](./workload-identity/troubleshooting.md). |
-| A required external check holds the run. | Stage, task finding and enforcement level. | Follow [run-task recovery](./run-tasks.md); an override bypasses a gate and needs appropriate access. |
+| A required external check holds the run. | Stage, task finding and enforcement level. | Follow [run-task recovery](./opentofu/run-tasks.md); an override bypasses a gate and needs appropriate access. |
 | Run times out. | Last output and whether it is progressing or waiting on a remote operation. | Diagnose first, then review [run timeout](../features/opentofu/run-timeout.md). |
 
 A failed apply can leave partial infrastructure changes. Inspect the actual result and state
@@ -46,7 +46,7 @@ not the first response to an unexpected plan.
 Check the destination workspace, state version, resource addresses and import result.
 Compare against the protected source backup. Do not force-push over a newer state version
 or bypass lineage/serial checks. Follow the guarded
-[migration procedure](./migrating-from-terraform-cloud.md).
+[migration procedure](./opentofu/migrating-from-terraform-cloud.md).
 
 ## Ansible
 
@@ -54,9 +54,9 @@ or bypass lineage/serial checks. Follow the guarded
 |---|---|---|
 | Host unreachable. | Inventory hostname/IP, the job's network path, SSH port and attached credential. Jobs on the container driver, including the Docker Compose hosted capacity, run on a firewalled jobs network that reaches the internet and the API but not the installation's own services. On Kubernetes, the job NetworkPolicy blocks the ranges in `launcher.clusterCIDRs`. | Test reachability from the network the jobs run on; private targets may need a launcher of an agent pool inside their network. |
 | Permission denied or become failure. | Remote user, key selection, sudo/become policy and file permissions. | Correct the target's required permission; do not broadly disable host security. |
-| Playbook not found. | Registration, repository-relative path, branch and last sync. | Use [playbook management](./managing-ansible-playbooks.md) to inspect the snapshot and selected revision. |
+| Playbook not found. | Registration, repository-relative path, branch and last sync. | Use [playbook management](./ansible/managing-ansible-playbooks.md) to inspect the snapshot and selected revision. |
 | Job hangs or times out. | Last task output, network waits, target load and forks. | Diagnose the stalled task before increasing the timeout on the job template, or the default run timeout of the project or organization the template inherits it from; split work or bound task runtime if appropriate. |
-| Hosts missing or inventory warning. | Source sync status, plugin authentication/configuration and last successful sync. | Follow [dynamic inventories](./dynamic-inventories.md). A failed refresh does not always prevent a job from using older hosts. |
+| Hosts missing or inventory warning. | Source sync status, plugin authentication/configuration and last successful sync. | Follow [dynamic inventories](./ansible/dynamic-inventories/README.md). A failed refresh does not always prevent a job from using older hosts. |
 
 ## Access, webhooks and dashboard figures
 
@@ -65,7 +65,7 @@ or bypass lineage/serial checks. Follow the guarded
 | Organization/workspace denied or not found. | Correct organization, invitation, team membership, workspace permissions and API-token scope. Ask an owner to verify the intended grant. |
 | Push/PR does not trigger a run. | Repository/branch linkage, speculative setting, path filters, provider hook events and delivery status. Follow the relevant [VCS guide](./vcs/README.md). |
 | Hook delivery returns an error. | Public reachability, current secret and the provider's response body. Redact credentials before sharing delivery records. |
-| Counts differ across pages. | Organization, visibility, selected time range and live versus historical figures. See [dashboard](./reading-the-dashboard.md) and [analytics](./usage-analytics.md). |
+| Counts differ across pages. | Organization, visibility, selected time range and live versus historical figures. See [dashboard](./reading-the-dashboard.md) and [analytics](./administration/usage-analytics.md). |
 
 Do not delete and reconnect an OAuth connection as the first diagnostic step. It can affect
 resources using it. Use the provider-specific recovery only after verifying the failure.

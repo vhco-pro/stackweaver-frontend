@@ -88,8 +88,8 @@ counts and a brief activity summary. Its attention highlight covers standing pro
 and pending decisions; it does not include every recent failure or open change request.
 
 For success rates, durations and delivery trends, open **Usage** in the organization's
-sidebar. [Usage & Analytics](./usage-analytics.md) explains that page. Read
-[Change requests](./change-requests.md)
+sidebar. [Usage & Analytics](./administration/usage-analytics.md) explains that page. Read
+[Change requests](./opentofu/change-requests.md)
 for the filing and archive workflow.
 
 ## Your recent activity

@@ -3,8 +3,8 @@
   "records": [
     {
       "id": "ad-hoc-commands",
-      "guide": "user-guides/dynamic-inventories.md",
-      "guideHash": "33707d1469bb7393ab2e50d401749b10cd974cd8c69896111a7c8edf9c06f372",
+      "guide": "user-guides/ansible/dynamic-inventories/README.md",
+      "guideHash": "dd38fa473363c3126e11662b840be4218018c5f0949afb9e30b6650a91dfd47f",
       "metadataHash": "f1c27ac8c147811f75b6ed3334a6b674b045e37f2174d5ee25595a80e4d1bf6d",
       "evidence": [
         {
@@ -24,7 +24,7 @@
     {
       "id": "ansible-agent-pools",
       "guide": "features/ansible/execution-flows.md",
-      "guideHash": "e2234b9541f2ecd8a891e05cef3c6ef337d37d7838bd3392b7a3fed4dc491b8a",
+      "guideHash": "b95b65c79fd037bc7635dfa47a019b7e7ccbafbf6061d156ed4fc73af5866458",
       "metadataHash": "b3c5e26e14ce0e577b69d4aaf1e2ea3c080b42723d5171a413ed022e23815127",
       "evidence": [
         {
@@ -43,8 +43,8 @@
     },
     {
       "id": "ansible-azure-identity",
-      "guide": "user-guides/azure-key-vault-from-playbooks.md",
-      "guideHash": "d22f37e365bf6300005e39a2e964758eab9b6084aff8c52884cdd28e523b6508",
+      "guide": "user-guides/ansible/azure-key-vault-from-playbooks.md",
+      "guideHash": "ba8ff6ab32a3e21004b8374d74cce2ed7925b2b2a24bc445c3cf52149c04be03",
       "metadataHash": "53a9695893099c8801bb3357ffe0d8484dc34b7d2150e7a0eb210591d3aedf49",
       "evidence": [
         {
@@ -64,7 +64,7 @@
     {
       "id": "ansible-callbacks",
       "guide": "features/ansible/execution-flows.md",
-      "guideHash": "e2234b9541f2ecd8a891e05cef3c6ef337d37d7838bd3392b7a3fed4dc491b8a",
+      "guideHash": "b95b65c79fd037bc7635dfa47a019b7e7ccbafbf6061d156ed4fc73af5866458",
       "metadataHash": "26721c8f9ba767aa99002890f3af09f351240b71f34f101334cd345363c3b3f1",
       "evidence": [
         {
@@ -80,7 +80,7 @@
     {
       "id": "ansible-credentials",
       "guide": "features/ansible/roadmap.md",
-      "guideHash": "e4a6b646cc034ce88f87fd30324c80bfed91c405588f53df2d79860ffeb99062",
+      "guideHash": "91e289fe7870a2bea19cf1b7a267c7ad3ba4643459562e4a9b826ff13fc9cc02",
       "metadataHash": "783e425cea8c262b05555e82f8428367e22fabd205ebe0322d5ab7ed2a803e6d",
       "evidence": [
         {
@@ -104,7 +104,7 @@
     {
       "id": "ansible-galaxy",
       "guide": "features/ansible/galaxy-collections.md",
-      "guideHash": "118b32cfc144f79172474a6150a4a7f9575876f349dcc76d63a4297098abab11",
+      "guideHash": "515fe577293847ad464219342cff14fdbef714510f5c785da18450fab4b33e96",
       "metadataHash": "4592ed872577bcf5f73ee0c6be6b69cd03aa43198eaa60edf5e8075b774629a1",
       "evidence": [
         {
@@ -132,7 +132,7 @@
     {
       "id": "ansible-job-execution",
       "guide": "features/ansible/execution-flows.md",
-      "guideHash": "e2234b9541f2ecd8a891e05cef3c6ef337d37d7838bd3392b7a3fed4dc491b8a",
+      "guideHash": "b95b65c79fd037bc7635dfa47a019b7e7ccbafbf6061d156ed4fc73af5866458",
       "metadataHash": "2ca8fd5b262a7ddc078664836c2207d868c3523cb18c60b7bf4a39ff5e907b4b",
       "evidence": [
         {
@@ -160,7 +160,7 @@
     {
       "id": "ansible-notifications",
       "guide": "features/ansible/roadmap.md",
-      "guideHash": "e4a6b646cc034ce88f87fd30324c80bfed91c405588f53df2d79860ffeb99062",
+      "guideHash": "91e289fe7870a2bea19cf1b7a267c7ad3ba4643459562e4a9b826ff13fc9cc02",
       "metadataHash": "fbb5784f344b7236a3f07fdd23e9af2f61e50c7e2362a1be23dfc8c2228f6e93",
       "evidence": [
         {
@@ -179,8 +179,8 @@
     },
     {
       "id": "ansible-playbooks",
-      "guide": "user-guides/managing-ansible-playbooks.md",
-      "guideHash": "60c9a14190416bd79eb3226ff8e20f7a0520f384d22c671323e58a6e734f5c41",
+      "guide": "user-guides/ansible/managing-ansible-playbooks.md",
+      "guideHash": "a6911a7e617bbd3564529ca57ad6091fc733df362800e81b50e60f3b4b0228b6",
       "metadataHash": "d8d844453864216b22b7e90fa3fa3b7407ffdb2860d8083275eed278a68b1742",
       "evidence": [
         {
@@ -204,7 +204,7 @@
     {
       "id": "ansible-schedules",
       "guide": "features/ansible/execution-flows.md",
-      "guideHash": "e2234b9541f2ecd8a891e05cef3c6ef337d37d7838bd3392b7a3fed4dc491b8a",
+      "guideHash": "b95b65c79fd037bc7635dfa47a019b7e7ccbafbf6061d156ed4fc73af5866458",
       "metadataHash": "54789f92dbf8b8df283ccc90fd3ef7eaf6cc470ee10fe789d5e58c812c132881",
       "evidence": [
         {
@@ -220,7 +220,7 @@
     {
       "id": "ansible-webhook-launches",
       "guide": "features/ansible/execution-flows.md",
-      "guideHash": "e2234b9541f2ecd8a891e05cef3c6ef337d37d7838bd3392b7a3fed4dc491b8a",
+      "guideHash": "b95b65c79fd037bc7635dfa47a019b7e7ccbafbf6061d156ed4fc73af5866458",
       "metadataHash": "16ec619025fa07fb7850dea60ae670377f50857406cb28e349de1712bc2bda4c",
       "evidence": [
         {
@@ -236,7 +236,7 @@
     {
       "id": "ansible-workflows",
       "guide": "features/ansible/execution-flows.md",
-      "guideHash": "e2234b9541f2ecd8a891e05cef3c6ef337d37d7838bd3392b7a3fed4dc491b8a",
+      "guideHash": "b95b65c79fd037bc7635dfa47a019b7e7ccbafbf6061d156ed4fc73af5866458",
       "metadataHash": "c033f353314396c2c02d39dd8ab3cd395127b2d184c6dac62fc6ae4283e6b0a0",
       "evidence": [
         {
@@ -255,8 +255,8 @@
     },
     {
       "id": "cloud-inventories",
-      "guide": "user-guides/dynamic-inventories.md",
-      "guideHash": "33707d1469bb7393ab2e50d401749b10cd974cd8c69896111a7c8edf9c06f372",
+      "guide": "user-guides/ansible/dynamic-inventories/README.md",
+      "guideHash": "dd38fa473363c3126e11662b840be4218018c5f0949afb9e30b6650a91dfd47f",
       "metadataHash": "707616ee92f755f9ee257b8ed6adf3221e2ac13ec139d281b628713caadeb96e",
       "evidence": [
         {
@@ -275,8 +275,8 @@
     },
     {
       "id": "constructed-inventories",
-      "guide": "user-guides/dynamic-inventories.md",
-      "guideHash": "33707d1469bb7393ab2e50d401749b10cd974cd8c69896111a7c8edf9c06f372",
+      "guide": "user-guides/ansible/dynamic-inventories/constructed-inventories.md",
+      "guideHash": "392d57f2cdcbed62dc27f543637c7f79fee7b53dd77486a278e2d238e44da2e9",
       "metadataHash": "d514e4f2386cf2445e7fefd3c36345c9a754600c41974e3dfec9b1b5dd68d40a",
       "evidence": [
         {
@@ -292,7 +292,7 @@
     {
       "id": "dashboard",
       "guide": "user-guides/reading-the-dashboard.md",
-      "guideHash": "acb92d90c85da82ec1660f2cb5bd575d0bf5c82cae7bb49b425322448a580c6c",
+      "guideHash": "36d6d06776051b254843464aac1a2f2128c5790e390152b3bb5b8690a0516517",
       "metadataHash": "ae940e4240d2a662718826712a9527a51eb93d27d2c40393f585964eaed43f12",
       "evidence": [
         {
@@ -335,8 +335,8 @@
     },
     {
       "id": "opentofu-runs",
-      "guide": "user-guides/understanding-opentofu-runs.md",
-      "guideHash": "f75236ee225019a2fe0f1a9cb32a47263425d1bb219c9c764f66086647b05851",
+      "guide": "user-guides/opentofu/understanding-opentofu-runs.md",
+      "guideHash": "4052a90e8f8575feeea62b4fbdb3542d7f02585afc79fc51f8d8c8a306824e47",
       "metadataHash": "4c42b39400c124f7ca016a1c097fea4b7a7823e3a91b82f3b199469346124546",
       "evidence": [
         {
@@ -355,8 +355,8 @@
     },
     {
       "id": "organization-policies",
-      "guide": "user-guides/organization-settings.md",
-      "guideHash": "8923e9a05b40e3da381b9eac0ddc63c01545b4d7f905fd8c6e750a424cf8ce07",
+      "guide": "user-guides/administration/organization-settings.md",
+      "guideHash": "8b8e8a175b24c09a5bef22ee766f30a73ed85a9622a83f2f5c25acf367f88ff7",
       "metadataHash": "e16a93190b38c2aa1076607956a2222a3b192085c73b22d08d2c30d2fde9309d",
       "evidence": [
         {
@@ -376,7 +376,7 @@
     {
       "id": "platform-api",
       "guide": "architecture/using-the-api.md",
-      "guideHash": "847c49634a4673d234fbca360a0ecaf8bf993f1e0497685950e81c1353722117",
+      "guideHash": "0c58c65d795b1b2a362a7bcd85cd08874b7b5754fd1c6bfb6c9b6fc0d2106be3",
       "metadataHash": "b5fbdbebb886a67b8db068cd6b69be4534643f11317cdcc230c720c4179ead03",
       "evidence": [
         {
@@ -412,7 +412,7 @@
     {
       "id": "run-output",
       "guide": "features/opentofu/opentofu-streaming.md",
-      "guideHash": "a3acd2c43b32159798b4b077e11440596167042d46d22ec4c6e49d98fca3ed0f",
+      "guideHash": "be73777fef5ca43378a9de5d27eb65fe87a59622d7f267e5c8e260a41c6d76f3",
       "metadataHash": "af71251efbb2123b2f9459df3ba6445b0ebee0dc20429cb4846b788b5cfb376b",
       "evidence": [
         {
@@ -431,8 +431,8 @@
     },
     {
       "id": "run-tasks",
-      "guide": "user-guides/run-tasks.md",
-      "guideHash": "ea369c6406be97af4494627eac65a3824d6b321582e9fb01a26bb0b2dab161e9",
+      "guide": "user-guides/opentofu/run-tasks.md",
+      "guideHash": "a031a69bd218064417d785a025304ca488bcba9446c15b5b561f5f4c2be289e2",
       "metadataHash": "f7ea10994a790dbc1fc27ac3fa2e774c9b8320675aaa7c6cc2898fb9cb42d51c",
       "evidence": [
         {
@@ -452,7 +452,7 @@
     {
       "id": "run-timeouts",
       "guide": "features/opentofu/run-timeout.md",
-      "guideHash": "0b2325e316569522e2361b27110c70eae51156522bdea790bd878232a9c361fe",
+      "guideHash": "b60f808ae55e0287906ed3d388556036e8786a72cad171aad3caedecc0ce349c",
       "metadataHash": "d8ce5d449b5d003ee2b6adf090489cca1ce2ce171ff4d639ad76e374c582b5c6",
       "evidence": [
         {
@@ -500,7 +500,7 @@
     {
       "id": "static-inventories",
       "guide": "get-started/your-first-ansible-job.md",
-      "guideHash": "d3d65740cb951ce9a2c0e5510dac6765117c9b8c6918048430bb92b12cd118ca",
+      "guideHash": "7b9b8199e22dbb03ac4968a459b251ae643b4719f71e07f5ace5ccc69f7a5376",
       "metadataHash": "10d8b72a352e14dbc34729d41351234db0d866c7a9a02df5e0c5acb111a23933",
       "evidence": [
         {
@@ -536,7 +536,7 @@
     {
       "id": "workload-identity",
       "guide": "user-guides/workload-identity/README.md",
-      "guideHash": "6deb6f6b9311c579d80a374c7d80af5f68522007cb04d7250d04e8775cd35c47",
+      "guideHash": "297e64c3b68824bddb19bf90ec3afa93f317ffb2b5e74e50101aa6f5d57047c2",
       "metadataHash": "f883e77c516cacae6bb134352fa12a7d2345aa1f53ee189974bcdff3f6061c2c",
       "evidence": [
         {
@@ -559,8 +559,8 @@
     },
     {
       "id": "workspace-change-requests",
-      "guide": "user-guides/change-requests.md",
-      "guideHash": "08fc04acc8d5ecb76857e3cc3f391af4ab0dc6d11d8f648f6c2e487f281b870d",
+      "guide": "user-guides/opentofu/change-requests.md",
+      "guideHash": "1f0f039a78397616e254baa55b54ff6b4a32cb5eb874cd56f8bb6a564e5fc563",
       "metadataHash": "38cef266ce60a4edea4a91ab1f98657b5bd7a931905a5d59825aafa4a2f6eb38",
       "evidence": [
         {
@@ -592,7 +592,7 @@
     {
       "id": "workspace-path-filters",
       "guide": "features/opentofu/vcs-path-filtering.md",
-      "guideHash": "da68299d34c25c515e5a6cf2ebb7dd2aede0bb17698ded4dcce8cd28141c2cde",
+      "guideHash": "8ced2a263b53394af4cfd4e3f2fb6c49cfd1ddcaf33dbeadecccf89839583243",
       "metadataHash": "efe624e2b74896d4e780b408ed942ff8eb860343875635054eba8491bdc01971",
       "evidence": [
         {
@@ -608,7 +608,7 @@
     {
       "id": "workspace-settings",
       "guide": "features/opentofu/workspace-editing.md",
-      "guideHash": "9e6780f954e342d2b6d83d996261edc4ce954cf14b67c9cc94676540c7f5f30f",
+      "guideHash": "31a077dbe9eafffc3271b6399815e1e52277cd175956f66df708f804d6416766",
       "metadataHash": "4a091f7672acd2f1d75ba40aac20e94286689e10f0acf972a5588e914c98b9f1",
       "evidence": [
         {
@@ -627,8 +627,8 @@
     },
     {
       "id": "workspace-variables",
-      "guide": "user-guides/managing-workspace-variables.md",
-      "guideHash": "d1b5e91b24c6c3e6a100d337714b80ee15eb8de524a76d19759568f9cfce0676",
+      "guide": "user-guides/opentofu/managing-workspace-variables.md",
+      "guideHash": "0421f5b7826a21d36ec86e5250302f5b477fb27d2a8bf53dfe57547f871f789f",
       "metadataHash": "d079290387638e4f82ef6e6d88d6fc5bc72bfb563a09c46fa85fd6a25eb85add",
       "evidence": [
         {

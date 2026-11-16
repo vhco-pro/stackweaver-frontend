@@ -63,7 +63,7 @@ Choose releases compatible with the Ansible version of the job's image and pin e
 have tested when reproducibility matters. Unversioned entries and ranges can resolve to
 different content over time. A job template has no separate collection-version list.
 
-Register the playbook through the [UI, Terraform or API](../../user-guides/managing-ansible-playbooks.md#automate-registrations).
+Register the playbook through the [UI, Terraform or API](../../user-guides/ansible/managing-ansible-playbooks.md#automate-registrations).
 Those interfaces choose the repository and source mode; YAML declares the dependencies.
 Do not invent a Stackweaver collection resource to replace `requirements.yml`.
 
@@ -181,10 +181,10 @@ that version, and a role or git source by the commit it resolved to. One organiz
 entries are never served to another. The cache lives in the installation's object storage
 and is bounded by the organization's cache size limit (**Settings > Organization > Run
 Defaults**), which removes the oldest entries first. See
-[The Organization's Cache](../../user-guides/self-hosted-runners.md#the-organizations-cache).
+[The Organization's Cache](../../user-guides/launchers/caches.md#the-organizations-cache).
 
 For ad hoc content that must always exist, use an
-[execution environment](../../user-guides/run-images-and-execution-environments.md) that
+[execution environment](../../user-guides/launchers/run-images-and-execution-environments.md) that
 contains it, selected on the inventory's project or organization. A project's or
 organization's `ansible.cfg` can also add a search path to a directory the job's image holds.
 
@@ -232,7 +232,7 @@ resource "stackweaver_ansible_config" "galaxy" {
 Use `project_id` instead of `organization` for a project-scoped config. Exactly one scope
 must be set. This is the whole config for that scope: merge other needed settings into
 the file, rather than overwriting an existing config with only the Galaxy section.
-See [Configure Ansible dependencies](../../user-guides/self-hosted-runners.md#5-configure-ansible-dependencies)
+See [Configure Ansible dependencies](../../user-guides/launchers/route-work.md#configure-ansible-dependencies)
 for the UI procedure and precedence.
 
 A private Galaxy server takes its token from the `ansible.cfg` server definition. To use a
@@ -250,7 +250,7 @@ Keep tokens out of committed requirements and logs.
 Use repository requirements for most playbooks. For content required by ad hoc commands,
 build an image on top of the Ansible image that installs it into a directory the job's user
 can read, such as `/usr/share/ansible/collections`, and select it as an
-[execution environment](../../user-guides/run-images-and-execution-environments.md).
+[execution environment](../../user-guides/launchers/run-images-and-execution-environments.md).
 Install as the image's build user and switch back to the runtime user afterward. Do not
 install only into root's home directory. An existing AWX execution environment works the
 same way.

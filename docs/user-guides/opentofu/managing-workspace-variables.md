@@ -1,4 +1,6 @@
 ---
+title: "Workspace variables"
+nav_order: 2
 description: "Guide for setting up OpenTofu variables across workspaces, variable sets, and projects"
 covers:
   - "core/services/variable/**"
@@ -47,7 +49,7 @@ Use an account with permission to write variables on the workspace. Read access 
 3. Enter the value. Enable **HCL** for a Terraform expression such as a list or map; leave it off for a literal string. Mark secrets **Sensitive**.
 4. Save, then confirm the key, category and flags in the list. The value is available to subsequent runs.
 
-![Workspace Variables tab with a Terraform region and a masked environment variable.](./images/workspace-variables.png "Synthetic example data. The secret value is not shown.")
+![Workspace Variables tab with a Terraform region and a masked environment variable.](../images/workspace-variables.png "Synthetic example data. The secret value is not shown.")
 
 | Value | HCL setting |
 |---|---|
@@ -113,7 +115,7 @@ Terraform-category values are written to `stackweaver.auto.tfvars`. Your reposit
 
 ## Configure variables as code
 
-Configure [the Stackweaver provider](./terraform-provider.md) first, then put this example in `workspace-variables.tf`. Replace the workspace ID and organization. Review the plan before applying:
+Configure [the Stackweaver provider](../terraform-provider.md) first, then put this example in `workspace-variables.tf`. Replace the workspace ID and organization. Review the plan before applying:
 
 ```hcl
 resource "stackweaver_variable" "region" {
@@ -249,4 +251,4 @@ These external/null examples require their respective providers. The stock OpenT
 | Import partly failed. | Read the per-row summary and retry failed rows only. |
 | Secret appears in output. | Stop exposing it, restrict the output and rotate the credential if needed. Review the code that prints it; the Sensitive flag is not a guarantee against disclosure. |
 
-For related changes, see [workspace editing](../features/opentofu/workspace-editing.md) and [VCS path filtering](../features/opentofu/vcs-path-filtering.md).
+For related changes, see [workspace editing](../../features/opentofu/workspace-editing.md) and [VCS path filtering](../../features/opentofu/vcs-path-filtering.md).

@@ -114,7 +114,7 @@ Some launches wait for an inventory refresh, a configuration or playbook snapsho
 For OpenTofu, a workspace supplies configuration and variables. A run can plan, apply or
 destroy infrastructure, subject to its settings and permissions. The configuration of a
 VCS-backed workspace is captured by a snapshot sync on the hosted capacity. State versions
-are stored in object storage, with their metadata in PostgreSQL. See [Understanding OpenTofu runs](../user-guides/understanding-opentofu-runs.md).
+are stored in object storage, with their metadata in PostgreSQL. See [Understanding OpenTofu runs](../user-guides/opentofu/understanding-opentofu-runs.md).
 
 For Ansible, a job template supplies the playbook, inventory and execution settings. Launch
 conditions can include inventory refreshes and concurrency limits. Workflows can add approval
@@ -135,7 +135,7 @@ in your browser does not mean a job can reach a private target.
 
 Keep each launcher's credentials limited to the work it performs. The API coordinates
 execution; it does not provide the job process's network access to target hosts. See
-[Set up launchers](../user-guides/self-hosted-runners.md) to configure agent pools, start
+[Set up launchers](../user-guides/launchers/README.md) to configure agent pools, start
 launchers and choose how isolated their jobs are.
 
 <a id="security-architecture"></a>
@@ -150,7 +150,7 @@ Default session limits are one hour idle, twelve hours absolute and a five-minut
 liveness check. See [browser sessions](../user-guides/authentication/zitadel-setup.md#browser-sessions).
 
 Stackweaver applies organization, project and resource permissions to requests; sign-in alone
-does not grant access to every resource. [Platform administration](../user-guides/platform-administration.md)
+does not grant access to every resource. [Platform administration](../user-guides/administration/platform-administration.md)
 controls install-wide operations without granting membership inside organizations.
 Automation authenticates with `tfe-` API tokens, not Zitadel access tokens. See [Using the API](./using-the-api.md) for
 integration guidance and the [API explorer](/docs/api-reference/explorer) for endpoint details.

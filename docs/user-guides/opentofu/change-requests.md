@@ -1,4 +1,6 @@
 ---
+title: "Change requests"
+nav_order: 4
 description: "File workspace action items, review open requests and archive completed work."
 covers:
   - "core/models/change_request*"
@@ -68,7 +70,7 @@ For example, use a subject such as "Upgrade the network module" and put the targ
 and the checks to perform in the message. File a separate request for each affected workspace
 so its team can close out the work independently.
 
-![File a change request dialog with a subject and message for production-network](./images/change-requests-file.png)
+![File a change request dialog with a subject and message for production-network](../images/change-requests-file.png)
 
 *Example workspace and instruction. Filing records the work; it does not execute it.*
 
@@ -83,7 +85,7 @@ so its team can close out the work independently.
 Archiving records completion without deleting the request. The interface does not offer a
 reopen action. It does not verify that the infrastructure work was completed for you.
 
-![Workspace Change Requests tab showing an open request and the expanded Archived section](./images/change-requests-workspace.png)
+![Workspace Change Requests tab showing an open request and the expanded Archived section](../images/change-requests-workspace.png)
 
 *An open module upgrade request and a completed lockfile review. Archived work stays separate.*
 
@@ -95,7 +97,7 @@ Open **Settings > Change Requests** to see open requests grouped by workspace. S
 workspace name to open its requests, or use **Archive** there once its work is complete.
 Archived requests disappear from this backlog and remain in the workspace's **Archived** section.
 
-![Organization Change Requests page grouping open requests by workspace](./images/change-requests-backlog.png)
+![Organization Change Requests page grouping open requests by workspace](../images/change-requests-backlog.png)
 
 *Example organization backlog with separate workspaces and an Archive action on each request.*
 
@@ -118,7 +120,7 @@ do not load additional pages, so a missing older request is not proof it was del
 
 ### 1. File against selected workspaces
 
-Configure the environment as in [Using the API](../architecture/using-the-api.md). Save
+Configure the environment as in [Using the API](../../architecture/using-the-api.md). Save
 the following as `change-request.json`, replacing the workspace IDs with IDs in the
 selected organization. Attribute names use underscores for this bulk operation.
 

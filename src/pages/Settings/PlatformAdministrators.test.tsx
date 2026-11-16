@@ -116,7 +116,7 @@ describe('PlatformAdministrators', () => {
     expect(within(panel).getByText(/Declared administrators are set in the deployment configuration/)).toBeInTheDocument();
     expect(within(panel).getByRole('link', { name: /Platform administration guide/ })).toHaveAttribute(
       'href',
-      '/docs/user-guides/platform-administration',
+      '/docs/user-guides/administration/platform-administration',
     );
   });
 

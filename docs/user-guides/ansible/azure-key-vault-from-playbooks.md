@@ -1,5 +1,6 @@
 ---
-title: "Read Azure Key Vault secrets"
+title: "Azure Key Vault from playbooks"
+nav_order: 3
 description: "Read a Key Vault secret from an Ansible job using an existing Azure identity, without exposing the value in job output."
 covers:
   - "backend/cmd/launcher/**"
@@ -46,7 +47,7 @@ DNS and network configuration your vault requires. Its execution environment nee
 | Stackweaver's organization identity | The UI or the Terraform/OpenTofu provider example below. |
 | Azure trust and vault access | Your Azure identity and role configuration. Saving an identity in Stackweaver does not grant vault access. |
 
-The [Galaxy collections guide](../features/ansible/galaxy-collections.md) explains repository
+The [Galaxy collections guide](../../features/ansible/galaxy-collections.md) explains repository
 dependency installation and image requirements.
 
 <a id="how-authentication-reaches-your-playbook"></a>
@@ -61,7 +62,7 @@ when neither supplies the job identity.
 |---|---|
 | Attached service principal | Attach an Azure credential to the job template. Use the identity's vault permissions, not the permissions of the person launching the job. |
 | Organization federation | Save the organization's Azure application identifiers and configure the application's trust for Stackweaver's issuer, audience and job subject. Jobs on the hosted capacity and on agent pools receive the same federation token, because the API mints it and hands it to the job with its other inputs. |
-| AKS Entra Workload ID | Run the job in a pod that has Workload ID: a job that a Kubernetes launcher in an agent pool runs with an `azure-workload-identity` [identity binding](./self-hosted-runners.md#identity-bindings), or a job of an in-process launcher whose own pod has Workload ID. The playbook uses that pod identity, not a Stackweaver job federation subject. Stackweaver does not document the Azure-side setup of these options as a supported configuration. |
+| AKS Entra Workload ID | Run the job in a pod that has Workload ID: a job that a Kubernetes launcher in an agent pool runs with an `azure-workload-identity` [identity binding](../launchers/identity-bindings-and-pull-secrets.md#identity-bindings), or a job of an in-process launcher whose own pod has Workload ID. The playbook uses that pod identity, not a Stackweaver job federation subject. Stackweaver does not document the Azure-side setup of these options as a supported configuration. |
 
 If you already have a working attached credential or AKS identity, continue to
 [grant vault access](#azure-setup). Otherwise, configure organization federation through
@@ -74,13 +75,13 @@ You need organization permission to manage OIDC settings. Open your organization
 Enter the application's **Client ID**, Azure **Subscription ID** and **Tenant ID**, then
 choose **Create**. Confirm the saved Azure entry has the intended identifiers.
 
-![Azure OIDC form with the Client ID, Subscription ID and Tenant ID fields](./images/key-vault-azure-identity.png)
+![Azure OIDC form with the Client ID, Subscription ID and Tenant ID fields](../images/key-vault-azure-identity.png)
 
 *Example Azure identifiers. Use your own application's values.*
 
 ### Configure the same identity with Terraform or OpenTofu
 
-With the [Stackweaver provider configured](./terraform-provider.md), add this resource to
+With the [Stackweaver provider configured](../terraform-provider.md), add this resource to
 `oidc.tf`. Replace `example-platform` and the three example Azure identifiers. Use the
 existing identity configuration if one is already managed; do not create a second copy in
 the UI and your provider configuration.
@@ -103,7 +104,7 @@ its federated credential or its Key Vault role assignment.
 Use the provider for maintained configuration. For an API integration, send a `POST` request
 to the path below, replacing `<org>` with your organization name. Authenticate with a
 Stackweaver API token allowed to manage its OIDC settings; see
-[Using the API](../architecture/using-the-api.md).
+[Using the API](../../architecture/using-the-api.md).
 
 ```text
 /api/v2/organizations/<org>/oidc-configurations
@@ -141,7 +142,7 @@ organization:<org>:project:<project>:job:<job-name>:run
 `adhoc-<module>` for an ad hoc command. For a job launched directly it is the name you gave the
 job, so name the job when you launch it. This is the job subject, not an OpenTofu workspace or
 inventory-source subject. A job whose identity cannot be minted fails before it starts, with the
-reason in its error. Follow [Azure workload identity](./workload-identity/azure.md) for issuer and Azure
+reason in its error. Follow [Azure workload identity](../workload-identity/azure.md) for issuer and Azure
 trust setup. Stackweaver supplies the token environment; do not paste token values into YAML.
 
 <a id="azure-setup"></a>

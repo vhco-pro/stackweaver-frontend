@@ -1,4 +1,6 @@
 ---
+title: "Run tasks"
+nav_order: 3
 description: "Guide for run tasks: hooking external services (security scanners, cost checks, custom gates) into your OpenTofu runs at stage boundaries, with advisory or mandatory enforcement"
 covers:
   - "core/models/run_task*"
@@ -52,7 +54,7 @@ You need a reachable HTTP(S) task endpoint, organization permission to manage ru
 3. Open the workspace's **Run Tasks** tab, select the task and its stages, then choose advisory or mandatory enforcement.
 4. Create a new run and inspect the task stage on its detail page. Confirm the result and the service's message before expanding the rollout.
 
-![New run task dialog with endpoint and global application controls.](./images/run-task-create.png "Synthetic example. The form is prepared but not submitted.")
+![New run task dialog with endpoint and global application controls.](../images/run-task-create.png "Synthetic example. The form is prepared but not submitted.")
 
 A global task applies to every workspace at its configured stages and enforcement level. If a workspace attaches the same task directly, that attachment takes precedence, including its enforcement setting. The run snapshots its applicable tasks at creation; editing attachments does not alter an in-flight run.
 
@@ -70,7 +72,7 @@ The default timeouts are ten minutes without progress and sixty minutes total. O
 
 ## Configure tasks as code
 
-Set up [the Stackweaver provider](./terraform-provider.md), then save this in `run-tasks.tf`. Replace the organization, workspace ID and service URL. The example starts advisory:
+Set up [the Stackweaver provider](../terraform-provider.md), then save this in `run-tasks.tf`. Replace the organization, workspace ID and service URL. The example starts advisory:
 
 ```hcl
 resource "stackweaver_organization_run_task" "security" {

@@ -116,6 +116,6 @@ is not a promise that every log is kept forever.
 | Output stops updating. | Check API connectivity and the status of the run's launcher before assuming the operation stopped. |
 | Run is failed or canceled. | Review the phase output and saved state before retrying; a partial apply can leave resources. |
 
-Use [Understanding runs](../../user-guides/understanding-opentofu-runs.md) for operation
+Use [Understanding runs](../../user-guides/opentofu/understanding-opentofu-runs.md) for operation
 choices and phase interpretation, [Cancellation](./run-cancellation.md) to stop eligible
 work, and [Run timeouts](./run-timeout.md) for execution limits.

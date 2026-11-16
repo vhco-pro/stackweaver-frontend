@@ -1,4 +1,6 @@
 ---
+title: "Run images and execution environments"
+nav_order: 5
 description: "Run OpenTofu runs and Ansible jobs in images of your own: run images and registry credentials, the registry allowlist, Ansible execution environments, and how a run image, identity binding and run timeout are inherited from the project, the organization and the platform"
 covers:
   - "frontend/src/pages/Settings/RunImages.tsx"
@@ -61,7 +63,7 @@ The installation can restrict where run images come from with `IMAGES_ALLOWED_RE
 
 ## Ansible execution environments
 
-The default Ansible path is the platform Ansible image plus the project's `requirements.yml`, installed from the organization's verified cache before every job (see [Galaxy collections](../features/ansible/galaxy-collections.md)). That covers collections and roles, which is what most execution environments are built for, and it needs no image of your own.
+The default Ansible path is the platform Ansible image plus the project's `requirements.yml`, installed from the organization's verified cache before every job (see [Galaxy collections](../../features/ansible/galaxy-collections.md)). That covers collections and roles, which is what most execution environments are built for, and it needs no image of your own.
 
 An execution environment built with `ansible-builder` for AWX is an optional compatibility path. It runs unchanged as a run image of the Ansible engine: Stackweaver injects its job program and event callback, so nothing needs to be rebuilt. What an execution environment adds beyond collections, such as a pinned `ansible-core`, Python packages or system packages, belongs in your own image: either your existing execution environment, or a small Dockerfile on top of the Ansible job image.
 

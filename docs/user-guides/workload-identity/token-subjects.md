@@ -34,7 +34,7 @@ StackWeaver-native format, no `run_phase:`:
 organization:<org-name>:project:<project-name>:inventory:<name>:sync
 ```
 
-For a UI-configured dynamic source using Stackweaver federation, `<name>` is the **source name**. Native tokens can also represent an inventory, but a VCS inventory file does not automatically use that trust contract. Follow the [dynamic inventory guide](../dynamic-inventories.md) for VCS runtime identity and plugin configuration.
+For a UI-configured dynamic source using Stackweaver federation, `<name>` is the **source name**. Native tokens can also represent an inventory, but a VCS inventory file does not automatically use that trust contract. Follow the [dynamic inventory guide](../ansible/dynamic-inventories/README.md) for VCS runtime identity and plugin configuration.
 
 ## Ansible job execution
 

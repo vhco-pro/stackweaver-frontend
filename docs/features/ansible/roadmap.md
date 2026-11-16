@@ -140,7 +140,7 @@ organization's Ansible permissions.
 
 The template's **Access** view summarizes team access from its organization/project rules.
 Use [Execution flows](./execution-flows.md#configure-and-launch-a-template) for Terraform
-settings and launch examples, and [Dynamic inventories](../../user-guides/dynamic-inventories.md)
+settings and launch examples, and [Dynamic inventories](../../user-guides/ansible/dynamic-inventories/README.md)
 for source authentication and reconciliation.
 
 ## Workflows
@@ -298,7 +298,7 @@ A job using inventory that failed to refresh includes warnings in every message,
 started and successful notifications. The payload carries human-readable `warnings` and
 structured `extra.inventory_sync_warnings`. Email subjects add **(with warnings)** and
 successful Teams notifications use amber. Read those warnings before treating success as
-proof of fresh inventory. See [inventory sync failures](../../user-guides/dynamic-inventories.md#when-an-update-on-launch-sync-fails).
+proof of fresh inventory. See [inventory sync failures](../../user-guides/ansible/dynamic-inventories/README.md#when-an-update-on-launch-sync-fails).
 
 ## Not yet available
 
@@ -314,7 +314,7 @@ proof of fresh inventory. See [inventory sync failures](../../user-guides/dynami
 For repository dependencies and the organization's verified cache, use
 [Galaxy collections](./galaxy-collections.md). To run jobs in an image of your own, including
 an AWX execution environment built with `ansible-builder`, use
-[Run images and execution environments](../../user-guides/run-images-and-execution-environments.md).
+[Run images and execution environments](../../user-guides/launchers/run-images-and-execution-environments.md).
 For webhook launching and choosing the pool a job runs on, use
-[Execution flows](./execution-flows.md) and [Set up launchers](../../user-guides/self-hosted-runners.md). Organization
-activity is covered by [Usage and analytics](../../user-guides/usage-analytics.md).
+[Execution flows](./execution-flows.md) and [Set up launchers](../../user-guides/launchers/README.md). Organization
+activity is covered by [Usage and analytics](../../user-guides/administration/usage-analytics.md).

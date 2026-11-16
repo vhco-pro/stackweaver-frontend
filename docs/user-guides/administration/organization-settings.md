@@ -1,4 +1,6 @@
 ---
+title: "Organization settings"
+nav_order: 1
 description: "Guide to organization-level settings and policies: admin contact, token access, force-delete policy, health assessments, pull request status behavior, and the run defaults"
 covers:
   - "frontend/src/pages/Settings/Organization.tsx"
@@ -33,7 +35,7 @@ Open **Settings > Organization** to change policies for an organization. These s
 2. Edit the admin contact/authentication policy and choose **Save**, or change an individual policy switch. Switches save immediately.
 3. Wait for the result, then reopen the page to confirm the persisted value. Check affected automation before changing another access policy.
 
-![Organization settings with general fields, workspace policies and run defaults.](./images/organization-policies.png "Synthetic organization. No settings were changed during capture.")
+![Organization settings with general fields, workspace policies and run defaults.](../images/organization-policies.png "Synthetic organization. No settings were changed during capture.")
 
 ## General and access policies
 
@@ -68,7 +70,7 @@ The **Run Defaults** card sets what the organization's runs, jobs and syncs use 
 | **Identity binding** | The identity binding the organization's runs and jobs use. |
 | **Cache size limit (GiB)** | The most the organization's verified cache of OpenTofu releases, providers and Galaxy content may hold before its oldest entries are removed. |
 
-A field left empty uses the platform default, which the placeholder shows. [Run images and execution environments](./run-images-and-execution-environments.md#where-a-setting-comes-from) explains how these defaults are inherited. Over the API they are the `run-timeout` (seconds), `tofu-run-image-id`, `ansible-run-image-id`, `identity-binding-id` and `cache-size-limit` (bytes) attributes of `PATCH /api/v2/organizations/:name`. They are Stackweaver extensions with no `tfe_organization` equivalent.
+A field left empty uses the platform default, which the placeholder shows. [Run images and execution environments](../launchers/run-images-and-execution-environments.md#where-a-setting-comes-from) explains how these defaults are inherited. Over the API they are the `run-timeout` (seconds), `tofu-run-image-id`, `ansible-run-image-id`, `identity-binding-id` and `cache-size-limit` (bytes) attributes of `PATCH /api/v2/organizations/:name`. They are Stackweaver extensions with no `tfe_organization` equivalent.
 
 ## What a delete removes
 
@@ -80,7 +82,7 @@ Deleting a workspace, project or organization also removes what it holds in obje
 | Project | The above for each of its workspaces, and the cached snapshots and stored content of its playbooks. |
 | Organization | The above for each of its projects, its verified cache, and its registry modules and providers. |
 
-A deleted object can only be recovered from a [backup](../get-started/self-hosting/backup-and-restore.md). Deleting a project keeps the organization's registry.
+A deleted object can only be recovered from a [backup](../../get-started/self-hosting/backup-and-restore.md). Deleting a project keeps the organization's registry.
 
 If object storage cannot be reached, the delete still succeeds. The API logs a warning, and the objects it could not remove stay in the bucket.
 
@@ -96,7 +98,7 @@ Aggregated checks and passing statuses for untriggered plans are mutually exclus
 
 ## Configure settings as code
 
-Configure [the Stackweaver Terraform provider](./terraform-provider.md), then use `organization.tf`. The example creates a new organization; import an existing organization into the chosen resource before managing it, rather than creating a duplicate.
+Configure [the Stackweaver Terraform provider](../terraform-provider.md), then use `organization.tf`. The example creates a new organization; import an existing organization into the chosen resource before managing it, rather than creating a duplicate.
 
 ```hcl
 resource "stackweaver_organization" "platform" {
@@ -140,7 +142,7 @@ curl --fail-with-body --silent --show-error --request PATCH \
   "$STACKWEAVER_URL/api/v2/organizations/$ORG"
 ```
 
-Expect the organization resource with the saved attributes. Re-read it to resolve an uncertain update before retrying. See [Using the API](../architecture/using-the-api.md) for token scope, error responses and operation discovery. These management settings use provider HCL or JSON:API, not a repository YAML document.
+Expect the organization resource with the saved attributes. Re-read it to resolve an uncertain update before retrying. See [Using the API](../../architecture/using-the-api.md) for token scope, error responses and operation discovery. These management settings use provider HCL or JSON:API, not a repository YAML document.
 
 ## Organization creation and names
 
@@ -155,7 +157,7 @@ Who may create organizations is a deployment setting, `STACKWEAVER_ORGANIZATION_
 
 Note that organization names are permanently reserved once used. Deleting an organization does not free its name, because workload-identity token subjects embed the organization name and a re-registered name could otherwise be trusted by the original tenant's cloud federation. Terraform Enterprise would allow the reuse; here a create with a previously-used name returns a 422, and so does renaming an organization onto a name another organization used before, so pick a new name. Renaming keeps the old name reserved for your organization, so you can rename back to it later but nobody else can take it.
 
-The default OpenTofu version (`default-terraform-version`) is set in **Workspace Policies**. Choose an enabled, non-deprecated entry from the installation catalogue, or **Installation default (<version>)** to clear it. A workspace runs the version set on the workspace, else on its project, else on its organization, else the installation's default, which the operator sets with [`TOFU_DEFAULT_VERSION`](../get-started/self-hosting/environment-variables.md#opentofu-installation-default-version) and which is normally the version the job image bakes. A workspace that runs the installation default downloads nothing; any other version is downloaded once per organization and then served from the organization's cache.
+The default OpenTofu version (`default-terraform-version`) is set in **Workspace Policies**. Choose an enabled, non-deprecated entry from the installation catalogue, or **Installation default (<version>)** to clear it. A workspace runs the version set on the workspace, else on its project, else on its organization, else the installation's default, which the operator sets with [`TOFU_DEFAULT_VERSION`](../../get-started/self-hosting/environment-variables.md#opentofu-installation-default-version) and which is normally the version the job image bakes. A workspace that runs the installation default downloads nothing; any other version is downloaded once per organization and then served from the organization's cache.
 
 Through the API, `PATCH /api/v2/organizations/:name` with `"default-terraform-version": null` clears the organization's default, and a read then returns an empty value. An omitted attribute or an empty string leaves the stored default as it is. A workspace's `terraform-version` follows the same rule on `PATCH /api/v2/workspaces/:id` and `PATCH /api/v2/organizations/:org/workspaces/:name`: `null` clears the workspace's own version, so it inherits again, and the workspace edit dialog's **Inherit** choice does the same. A workspace read always returns the version the workspace runs.
 

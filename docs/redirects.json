@@ -20,6 +20,19 @@
     "api-reference": "architecture/using-the-api",
     "api-reference/README": "architecture/using-the-api",
     "features/ansible/changelog": "changelog",
-    "user-guides/oidc-configuration": "user-guides/workload-identity"
+    "user-guides/oidc-configuration": "user-guides/workload-identity",
+    "user-guides/self-hosted-runners": "user-guides/launchers",
+    "user-guides/run-images-and-execution-environments": "user-guides/launchers/run-images-and-execution-environments",
+    "user-guides/managing-ansible-playbooks": "user-guides/ansible/managing-ansible-playbooks",
+    "user-guides/azure-key-vault-from-playbooks": "user-guides/ansible/azure-key-vault-from-playbooks",
+    "user-guides/dynamic-inventories": "user-guides/ansible/dynamic-inventories",
+    "user-guides/understanding-opentofu-runs": "user-guides/opentofu/understanding-opentofu-runs",
+    "user-guides/managing-workspace-variables": "user-guides/opentofu/managing-workspace-variables",
+    "user-guides/run-tasks": "user-guides/opentofu/run-tasks",
+    "user-guides/change-requests": "user-guides/opentofu/change-requests",
+    "user-guides/migrating-from-terraform-cloud": "user-guides/opentofu/migrating-from-terraform-cloud",
+    "user-guides/organization-settings": "user-guides/administration/organization-settings",
+    "user-guides/platform-administration": "user-guides/administration/platform-administration",
+    "user-guides/usage-analytics": "user-guides/administration/usage-analytics"
   }
 }

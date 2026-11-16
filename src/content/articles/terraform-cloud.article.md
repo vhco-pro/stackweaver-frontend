@@ -174,11 +174,11 @@ This comparison includes no quoted prices or claim of complete feature parity.
 [hcp-agents]: https://developer.hashicorp.com/terraform/cloud-docs/agents
 [hcp-europe]: https://developer.hashicorp.com/terraform/cloud-docs/europe
 [tofu-data]: https://opentofu.org/docs/language/resources/tf-data/
-[sw-runs]: /docs/user-guides/understanding-opentofu-runs
+[sw-runs]: /docs/user-guides/opentofu/understanding-opentofu-runs
 [sw-first-job]: /docs/get-started/your-first-ansible-job
 [sw-first-workspace]: /docs/get-started/your-first-opentofu-workspace
 [sw-self-hosting]: /docs/get-started/self-hosting
-[sw-migration]: /docs/user-guides/migrating-from-terraform-cloud
+[sw-migration]: /docs/user-guides/opentofu/migrating-from-terraform-cloud
 [sw-provider]: /docs/user-guides/terraform-provider
 [sw-compose]: /docs/get-started/self-hosting/docker-compose
 [sw-license]: https://github.com/vhco-pro/stackweaver-api/blob/main/LICENSE

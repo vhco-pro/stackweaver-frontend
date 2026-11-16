@@ -1,4 +1,6 @@
 ---
+title: "Usage analytics"
+nav_order: 3
 description: "Find failed automation, compare periods and inspect organization analytics through the UI or API."
 covers:
   - "frontend/src/pages/Usage/**"
@@ -22,7 +24,7 @@ You need owners-team access, permission to view all workspaces or all projects, 
 organization API token. Ordinary membership alone is insufficient because the page spans
 the organization's projects and workspaces.
 
-![Usage and analytics with synthetic run counts, daily outcomes and a recent failure.](./images/usage-overview.png)
+![Usage and analytics with synthetic run counts, daily outcomes and a recent failure.](../images/usage-overview.png)
 
 ## Read the headline figures
 
@@ -97,4 +99,4 @@ See the [API viewer](/docs/api-reference/explorer) for full schemas.
 Check the organization, UTC boundaries and whether you are comparing historical totals
 with a live figure. Then inspect the underlying executions and their decided outcomes.
 Retry an explicit load error; do not interpret it as an idle organization. For execution
-failures, use [common troubleshooting](./troubleshooting-common-issues.md).
+failures, use [common troubleshooting](../troubleshooting-common-issues.md).

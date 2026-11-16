@@ -164,7 +164,7 @@ There is no separate repository YAML definition for these workspace settings.
 2. In a test repository, push one matching and one unrelated change to the tracked branch.
 3. Check webhook delivery and the workspace's resulting runs. Matching paths do not bypass
    repository/branch selection, automatic-queue settings or other launch requirements.
-4. For PRs, check the organization's [pull request behavior](../../user-guides/organization-settings.md#pull-request-behavior).
+4. For PRs, check the organization's [pull request behavior](../../user-guides/administration/organization-settings.md#pull-request-behavior).
    Passing statuses for untriggered workspaces and aggregated monorepo status checks are
    separate organization policies.
 
