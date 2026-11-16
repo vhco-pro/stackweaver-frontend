@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowUpRight, Search } from 'lucide-react';
 import { publishedArticles, type BlogArticleSummary } from '@/lib/blog';
+import { ArticleMetaCompact, ArticleTopics } from './ArticleMeta';
 import './blog.css';
 
 export function BlogIndex({ articles, preview = false }: { articles: readonly BlogArticleSummary[]; preview?: boolean }) {
@@ -26,7 +27,7 @@ export function BlogIndex({ articles, preview = false }: { articles: readonly Bl
     {!results.length ? <div className="blog-empty" role="status"><h2>{available.length ? 'No articles match your search.' : 'Articles are being prepared.'}</h2><p>{available.length ? 'Try another topic or search term.' : 'Explore the documentation while we prepare the first articles.'}</p>{available.length > 0 && <button type="button" onClick={clear}>Clear filters</button>}</div> :
       <div className="blog-results">{results.map((article,index) => <Link className={index===0?'blog-featured':'blog-row'} to={article.canonical} key={article.canonical}>
         <div className={`blog-cover ${article.topics.includes('OpenTofu')?'blog-cover-tofu':''}`} aria-hidden="true"><span>Stackweaver / {article.topics[0]}</span><strong>{article.topics.includes('Tutorial')?article.topics[0]:article.canonical.endsWith('/awx')?'AAP':article.canonical.endsWith('/semaphore')?'Semaphore UI':article.canonical.endsWith('/terraform-cloud')?'Terraform Cloud':'Stackweaver'}</strong><span>{article.topics.includes('Tutorial')?'Try the workflow':article.canonical.startsWith('/compare/')?'A workflow worth comparing':'The thinking behind Stackweaver'}</span></div>
-        <div className="blog-card-copy"><p className="blog-kicker">{article.topics.join(' / ')}</p><h2>{article.title} <ArrowUpRight aria-hidden="true" /></h2><p>{article.description}</p><span className="blog-byline">{article.author}{article.status==='draft'?' / Editorial draft':article.published?` / ${article.published}`:''}</span></div>
+        <div className="blog-card-copy"><ArticleTopics topics={article.topics}/><h2>{article.title} <ArrowUpRight aria-hidden="true" /></h2><p>{article.description}</p><ArticleMetaCompact article={article}/></div>
       </Link>)}</div>}
     <section className="blog-docs-callout"><div><h2>Looking for the how-to?</h2><p>Installation, configuration and product guides live in the docs.</p></div><Link to="/docs">Explore the documentation <ArrowUpRight aria-hidden="true"/></Link></section>
   </div></main>;

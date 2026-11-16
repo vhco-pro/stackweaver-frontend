@@ -3,7 +3,8 @@ import { Link } from 'react-router-dom';
 import { ArrowLeft, ArrowUpRight } from 'lucide-react';
 import { DocAnchorScroll } from '@/components/docs/DocAnchorScroll';
 import { MarkdownRenderer } from '@/components/docs/MarkdownRenderer';
-import { relatedArticles, type BlogArticle } from '@/lib/blog';
+import { readingMinutes, relatedArticles, type BlogArticle } from '@/lib/blog';
+import { ArticleMeta, ArticleTopics } from './ArticleMeta';
 import './blog.css';
 
 export function ArticleView({ article, related = [] }: { article: BlogArticle; related?: readonly BlogArticle[] }) {
@@ -12,7 +13,7 @@ export function ArticleView({ article, related = [] }: { article: BlogArticle; r
   const tutorial = article.topics.includes('Tutorial');
   const headings = [...article.body.matchAll(/^## (.+)$/gm)].map(match => ({title:match[1],id:match[1].toLowerCase().replace(/\s+/g,'-').replace(/[^\w-]/g,'')}));
   return <main className="blog-page"><article className="blog-wrap"><Link to="/blog" className="blog-back"><ArrowLeft aria-hidden="true"/> All articles</Link>
-    <header className="blog-article-heading"><p className="blog-kicker">{article.topics.join(' / ')}</p><h1>{article.title}</h1><p>{article.description}</p><div className="blog-byline">By {article.author} / {article.status==='draft'?'Editorial draft':article.published} / Updated {article.updated}</div></header>
+    <header className="blog-article-heading"><ArticleTopics topics={article.topics}/><h1>{article.title}</h1><p>{article.description}</p><ArticleMeta article={{...article,readingMinutes:readingMinutes(article.body)}}/></header>
     <div className="blog-article-banner" aria-hidden="true"><span>{tutorial?'Ansible workflow':comparison?'Ansible and OpenTofu':'Infrastructure automation'}</span><strong>{tutorial?'A manual run, then a schedule.':comparison?'Start with the workflow.':'Built around your control.'}</strong><span>Stackweaver / {tutorial?'Practical guides':comparison?'Practical comparisons':'The vision'}</span></div>
     <div className="blog-article-layout"><div className="blog-prose"><MarkdownRenderer content={article.body} docPath="" docsBase="/docs"/><DocAnchorScroll/>
       {reading.length > 0 && <div className="blog-related"><p className="blog-kicker">Continue reading</p>{reading.map(other => <Link key={other.canonical} to={other.canonical}>{other.title} <ArrowUpRight aria-hidden="true"/></Link>)}</div>}

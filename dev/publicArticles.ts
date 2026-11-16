@@ -3,12 +3,12 @@ import { readFileSync, readdirSync } from 'node:fs';
 import path from 'node:path';
 import type { Plugin } from 'vite';
 import { buildPublicRoutes } from '../src/lib/publicRoutes';
-import { parseArticles, publishedArticles } from '../src/lib/blog';
+import { parseArticles, publishedArticles, readingMinutes } from '../src/lib/blog';
 
 export function articleModule(sources: Record<string,string>, preview: boolean, summaries = false) {
   const parsed = parseArticles(sources);
   const selected = preview ? parsed : publishedArticles(parsed);
-  const output = summaries ? selected.map(article => ({title:article.title,description:article.description,canonical:article.canonical,author:article.author,status:article.status,published:article.published,featured:article.featured,updated:article.updated,topics:article.topics})) : selected;
+  const output = summaries ? selected.map(article => ({title:article.title,description:article.description,canonical:article.canonical,author:article.author,status:article.status,published:article.published,featured:article.featured,updated:article.updated,topics:article.topics,readingMinutes:readingMinutes(article.body)})) : selected;
   return `export default ${JSON.stringify(output)};`;
 }
 /** Production bundles never contain draft article bodies, including in source maps. */

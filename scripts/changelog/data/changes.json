@@ -1,5 +1,28 @@
 [
   {
+    "id": "blog-article-details",
+    "title": "Blog articles show the author, dates and reading time as labelled details",
+    "area": "Platform",
+    "kind": "Changed",
+    "reviewed": true,
+    "audience": "People reading articles on the Stackweaver blog and the official website.",
+    "before": "An article showed its author and dates as one line of text separated by slashes, with dates in YYYY-MM-DD form, and the topics above the title were also separated by slashes.",
+    "after": "An article header shows the author with an initials badge, then the publication date, the update date when it differs, and the reading time, each with its own label and icon. Article cards on the blog index show the same details in a compact row, and topics are separated by a dot.",
+    "action": "Update the frontend image. No configuration change is required.",
+    "details": [],
+    "guides": [
+      {
+        "title": "Public pages and search indexing",
+        "path": "/docs/get-started/self-hosting/public-site"
+      }
+    ],
+    "sourceCommits": [],
+    "requiredComponents": [
+      "frontend"
+    ],
+    "availability": []
+  },
+  {
     "id": "official-contact-page",
     "title": "Contact Stackweaver from the public website",
     "area": "Platform",

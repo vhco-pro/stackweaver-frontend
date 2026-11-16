@@ -21,6 +21,7 @@ describe('article archive payload', () => {
   expect(production).toContain('Ansible');
   expect(production).not.toContain('Private draft body');
   expect(production).not.toContain('/blog/draft-only');
+  expect(production).toContain('"readingMinutes":1');
   const preview=articleModule(sources,true,true);
   expect(preview).toContain('/blog/draft-only');
   expect(preview).not.toContain('Private draft body');

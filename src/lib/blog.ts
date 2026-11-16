@@ -14,7 +14,22 @@ export interface BlogArticle {
   body: string;
 }
 
-export type BlogArticleSummary = Omit<BlogArticle, 'body'>;
+/** Summaries carry the reading time instead of the body, so the index never ships article text. */
+export type BlogArticleSummary = Omit<BlogArticle, 'body'> & { readingMinutes?: number };
+
+const articleDateFormat = new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' });
+
+/** Article dates are calendar days (YYYY-MM-DD), so format them in UTC to keep the day the author wrote. */
+export function formatArticleDate(value: string): string {
+  return articleDateFormat.format(new Date(`${value}T00:00:00Z`));
+}
+
+/** Whole minutes at 220 words a minute, never below one; code fences and Markdown syntax are not counted as words. */
+export function readingMinutes(body: string): number {
+  const prose = body.replace(/```[\s\S]*?```/g, ' ').replace(/[#>*_`|[\]()-]/g, ' ');
+  const words = prose.split(/\s+/).filter(word => /\w/.test(word)).length;
+  return Math.max(1, Math.round(words / 220));
+}
 
 function record(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
