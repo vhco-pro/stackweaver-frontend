@@ -2459,5 +2459,32 @@
       "launcher"
     ],
     "availability": []
+  },
+  {
+    "id": "launcher-delete-race-not-found",
+    "title": "Deleting launchers and agent pools answers correctly when deletes overlap, and takes the launcher's key with it",
+    "area": "Runners",
+    "kind": "Fixed",
+    "reviewed": true,
+    "audience": "Administrators and API clients that delete launchers or agent pools, especially from two places at once or with retries.",
+    "before": "When two delete requests for the same launcher or agent pool overlapped, one answered 204 and the other 500, although the launcher or pool was deleted, and the Launchers page reported a failure. Deleting a launcher left the `runner-<name>` key its registration created in the registering user's API keys. An error the API sent without a detail showed as \"HTTP error! status: <code>\".",
+    "after": "The overlapping delete answers 404, as a delete of a launcher or pool that no longer exists always has, and the Launchers page counts a launcher that is already gone as deleted. Deleting a launcher removes its key. An error without a detail shows its title, such as \"Launcher not found\".",
+    "action": "No action is required. Keys left by launchers deleted earlier stay in the API keys list until you delete them.",
+    "details": [],
+    "guides": [
+      {
+        "title": "Self-hosted runners",
+        "path": "/docs/user-guides/self-hosted-runners"
+      }
+    ],
+    "sourceCommits": [],
+    "draftCommits": [
+      "b5d32b13f915aa53414fb839e9cb413608b03675"
+    ],
+    "requiredComponents": [
+      "api",
+      "frontend"
+    ],
+    "availability": []
   }
 ]

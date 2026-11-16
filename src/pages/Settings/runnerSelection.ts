@@ -47,6 +47,21 @@ export interface BulkResult {
   failed: { id: string; error: string }[];
 }
 
+function isNotFound(err: unknown): boolean {
+  return typeof err === 'object' && err !== null && (err as { status?: unknown }).status === 404;
+}
+
+// deleteTreatingNotFoundAsDone runs a launcher delete and counts a 404 as done: the launcher is
+// gone, which is what the user asked for, for example because another tab or administrator
+// deleted it first (#856). Any other failure still fails.
+export async function deleteTreatingNotFoundAsDone(del: () => Promise<unknown>): Promise<void> {
+  try {
+    await del();
+  } catch (err: unknown) {
+    if (!isNotFound(err)) throw err;
+  }
+}
+
 // runBulk applies op to every id and reports which succeeded and which failed, so one failing
 // runner neither aborts the rest nor hides that it failed.
 export async function runBulk(ids: readonly string[], op: (id: string) => Promise<unknown>): Promise<BulkResult> {
