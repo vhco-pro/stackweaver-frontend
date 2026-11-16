@@ -1,4 +1,5 @@
 ---
+title: "Terraform provider"
 description: "Configure the native Terraform provider, authenticate and safely assess an existing TFE configuration."
 covers:
   - "backend/internal/api/v2/routes/**"

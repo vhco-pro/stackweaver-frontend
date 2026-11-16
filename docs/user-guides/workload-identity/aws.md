@@ -1,4 +1,5 @@
 ---
+icon: aws
 title: "AWS"
 nav_order: 2
 description: "Let OpenTofu runs assume an AWS role without access keys: an IAM OIDC provider and a role that trusts Stackweaver's web-identity token."

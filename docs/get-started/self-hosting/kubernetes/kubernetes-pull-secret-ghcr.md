@@ -1,4 +1,5 @@
 ---
+title: "GHCR pull secret"
 description: "Guide for creating a Kubernetes image pull secret for the private StackWeaver images on GHCR"
 covers:
   - "deploy/helm/**"

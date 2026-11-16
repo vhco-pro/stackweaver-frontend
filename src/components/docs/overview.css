@@ -53,3 +53,6 @@
   .overview-lead .overview-card-links { margin-bottom: 1rem; }
   .overview-reading-row { gap: .75rem; }
 }
+/* A section about one brand shows its logo in the icon tile, on a neutral wash so the brand colour carries. */
+.overview-folder-icon .brand-icon { font-size: 1.25rem; }
+.overview-folder-icon[data-brand] { background: rgb(148 163 184 / .08); border-color: rgb(148 163 184 / .3); }

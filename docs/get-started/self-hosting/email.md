@@ -1,4 +1,5 @@
 ---
+title: "Email and sign-up"
 description: "Configure email (SMTP) for sign-up verification, password reset and email login codes, choose who may sign up, and what an install without SMTP offers"
 covers:
   - "scripts/zitadel-init/**"

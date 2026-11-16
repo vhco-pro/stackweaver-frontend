@@ -1,4 +1,5 @@
 ---
+icon: google-cloud
 title: "GCP"
 nav_order: 3
 description: "Let OpenTofu runs impersonate a GCP service account without a key file: a Workload Identity Pool with an OIDC provider that trusts Stackweaver."

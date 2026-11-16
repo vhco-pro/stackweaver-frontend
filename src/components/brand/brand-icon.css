@@ -1,0 +1,42 @@
+/* Copyright (c) 2026 VH & Co BV. Licensed under the Business Source License 1.1. */
+/* A square box of 1em, so the logo scales with its heading or label; wide artwork is contained. */
+.brand-icon {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 1em;
+  height: 1em;
+  vertical-align: -0.125em;
+}
+.brand-icon img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  margin: 0;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+.brand-icon-themed .brand-icon-dark,
+.dark .brand-icon-themed .brand-icon-light {
+  display: none;
+}
+.dark .brand-icon-themed .brand-icon-dark {
+  display: block;
+}
+
+/* A logo in front of a heading: a little smaller than the cap height reads better than a full em. */
+/* The logo sits in a box one line tall, so a heading that wraps keeps it beside its first line. */
+.brand-heading {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.45em;
+}
+.brand-heading > .brand-icon {
+  width: 1em;
+  height: 1lh;
+}
+.brand-heading > .brand-icon img {
+  height: 0.9em;
+}

@@ -1,4 +1,6 @@
 ---
+title: "Kubernetes with Helm"
+icon: kubernetes
 description: "Kubernetes Helm chart deployment guide with secrets, ingress, SSO, and external dependencies"
 covers:
   - "deploy/helm/**"

@@ -1,4 +1,5 @@
 ---
+title: "Reading the dashboard"
 description: "Find work that needs attention across organizations, inspect queued or active operations and choose the next action."
 covers:
   - "frontend/src/pages/Dashboard/**"

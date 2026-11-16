@@ -1,4 +1,6 @@
 ---
+title: "Okta"
+icon: okta
 description: "Step-by-step guide for configuring Okta as an SSO provider"
 covers:
   - "scripts/zitadel-init/**"

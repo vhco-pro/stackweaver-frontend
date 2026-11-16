@@ -1,4 +1,6 @@
 ---
+title: "Docker Compose"
+icon: docker
 description: "Docker Compose deployment guide covering services, configuration, and management"
 covers:
   - "deploy/docker-compose.yml"

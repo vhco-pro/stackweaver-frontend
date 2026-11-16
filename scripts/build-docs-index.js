@@ -34,7 +34,7 @@ try {
       const body = match[2];
       const data = {};
       // Basic YAML parsing for known frontmatter fields
-      const fields = ['title', 'description', 'status', 'status_description', 'author', 'priority', 'created', 'updated', 'issue', 'goal', 'nav_order', 'layout'];
+      const fields = ['title', 'description', 'status', 'status_description', 'author', 'priority', 'created', 'updated', 'issue', 'goal', 'nav_order', 'layout', 'icon'];
       for (const field of fields) {
         const re = new RegExp(`^${field}:\\s*(.+)$`, 'm');
         const fm = frontmatter.match(re);
@@ -382,6 +382,7 @@ function buildTree(files) {
         ...(metadata.status ? { status: metadata.status } : {}),
         ...(metadata.layout === 'overview' ? { layout: 'overview' } : {}),
         ...(metadata.nav_order !== undefined ? { nav_order: metadata.nav_order } : {}),
+        ...(typeof metadata.icon === 'string' && metadata.icon ? { icon: metadata.icon } : {}),
       };
       continue;
     }
@@ -405,6 +406,7 @@ function buildTree(files) {
       ...(metadata.status ? { status: metadata.status } : {}),
         ...(metadata.layout === 'overview' ? { layout: 'overview' } : {}),
       ...(metadata.nav_order !== undefined ? { nav_order: metadata.nav_order } : {}),
+        ...(typeof metadata.icon === 'string' && metadata.icon ? { icon: metadata.icon } : {}),
     };
   }
 
@@ -431,6 +433,7 @@ function buildTree(files) {
             path: dirPath,
             children: [],
             ...(overview?.nav_order !== undefined ? { nav_order: overview.nav_order } : {}),
+            ...(overview?.icon ? { icon: overview.icon } : {}),
           };
           currentLevel.push(dirNode);
         }
@@ -457,6 +460,7 @@ function buildTree(files) {
         ...(metadata.status ? { status: metadata.status } : {}),
         ...(metadata.layout === 'overview' ? { layout: 'overview' } : {}),
         ...(metadata.nav_order !== undefined ? { nav_order: metadata.nav_order } : {}),
+        ...(typeof metadata.icon === 'string' && metadata.icon ? { icon: metadata.icon } : {}),
       });
     }
   }

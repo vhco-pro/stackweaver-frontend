@@ -1,4 +1,5 @@
 ---
+title: "Team mapping"
 description: "Map exact external group values to teams and understand synchronization and revocation limits."
 covers:
   - "scripts/zitadel-init/**"

@@ -1,4 +1,5 @@
 ---
+title: "Dashboard counts"
 description: "The cross-organization dashboard: why it spans tenants, what the attention list and live operations show, and the two endpoints behind them"
 covers:
   - "backend/internal/api/v2/handlers/dashboard*"

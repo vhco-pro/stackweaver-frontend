@@ -1,4 +1,6 @@
 ---
+title: "Your first Ansible job"
+icon: ansible
 description: "Step-by-step tutorial for creating an Ansible inventory, credentials, job template, and running a job"
 covers:
   - "backend/internal/api/v2/handlers/ansible/**"

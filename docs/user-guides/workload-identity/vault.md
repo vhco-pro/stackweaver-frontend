@@ -1,4 +1,5 @@
 ---
+icon: vault
 title: "Vault"
 nav_order: 4
 description: "Let OpenTofu runs log in to HashiCorp Vault without a stored token: a JWT auth role bound to the run's subject."

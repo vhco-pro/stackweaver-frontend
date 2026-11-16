@@ -1,4 +1,5 @@
 ---
+title: "Workspace settings"
 description: "Edit workspace settings through UI, Terraform or API and verify source, state and automation consequences."
 covers:
   - "frontend/src/pages/WorkspaceDetail.tsx"

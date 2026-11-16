@@ -1,4 +1,6 @@
 ---
+title: "Azure DevOps"
+icon: azure-devops
 description: "Connect Azure DevOps repositories through Entra OAuth, verify service hooks and manage deployment credentials."
 covers:
   - "core/services/vcs/**"

@@ -5,6 +5,20 @@ import { useQuery } from '@tanstack/react-query';
 
 import type { DocTreeNode, DocsIndex } from './docsTypes';
 export type { DocTreeNode, DocsIndex } from './docsTypes';
+/** How a collection's sidebar presents its entries. */
+export interface DocsSidebarOptions {
+  /** File, folder and brand icons beside entries. */
+  icons: boolean;
+  /** `titles` shows each page's and section's title; `names` shows the file and folder names. */
+  labels: 'titles' | 'names';
+  /** Top-level folders become section labels with their contents listed beneath, instead of collapsible folders. */
+  sections: boolean;
+}
+/**
+ * Which brand logos a collection shows (src/lib/brands.ts): `permitted` only the brands whose owners'
+ * published policies allow it, `all` every logo (for a private collection), `none` no logos.
+ */
+export type BrandLogoPolicy = 'permitted' | 'all' | 'none';
 export interface DocsCollection {
   id: string;
   docsBase: string;
@@ -14,15 +28,26 @@ export interface DocsCollection {
   description: string;
   statusFilter?: boolean;
   statusStorageKey?: string;
+  /** Sidebar presentation; unset options take the public defaults of `sidebarOptions`. */
+  sidebar?: Partial<DocsSidebarOptions>;
+  /** Defaults to `permitted`, the only safe choice for a public site. */
+  brandLogos?: BrandLogoPolicy;
+}
+/** Defaults suit a public site: a text-only sidebar of page titles grouped under section labels. */
+export function sidebarOptions(collection: DocsCollection): DocsSidebarOptions {
+  return { icons: false, labels: 'titles', sections: true, ...collection.sidebar };
 }
 export const publicDocs: DocsCollection = {
   id: 'public', docsBase: '/docs', indexFile: '/docs-index.json', searchIndexFile: '/docs-search-index.json',
   title: 'Documentation', description: 'Explore the guides, concepts, and references for your infrastructure automation.',
+  brandLogos: 'permitted',
 };
 export const internalDocs: DocsCollection = {
   id: 'internal', docsBase: '/internal-docs', indexFile: '/internal-docs-index.json', searchIndexFile: '/internal-docs-search-index.json',
   title: 'Internal documentation', description: 'Browse engineering plans, investigations, guidelines, and operational knowledge.',
   statusFilter: true, statusStorageKey: 'internal-docs-hide-completed',
+  sidebar: { icons: true, labels: 'names', sections: false },
+  brandLogos: 'all',
 };
 export interface CollectionProps { collection?: DocsCollection; docsBase?: string; indexFile?: string }
 /** Legacy route props are resolved at the host boundary, not inside presentation components. */

@@ -1,4 +1,5 @@
 ---
+title: "Integration reference"
 description: "Reference job-event queries, credential boundaries, workflow configuration, notifications and current Ansible limits."
 covers:
   - "core/services/ansible/**"

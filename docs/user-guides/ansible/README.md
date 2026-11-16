@@ -1,4 +1,5 @@
 ---
+icon: ansible
 title: "Ansible"
 layout: overview
 description: "Register playbooks, refresh hosts from dynamic inventories and read secrets from playbooks with an Azure identity."

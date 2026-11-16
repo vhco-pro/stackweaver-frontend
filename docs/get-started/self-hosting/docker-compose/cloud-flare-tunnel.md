@@ -1,4 +1,6 @@
 ---
+title: "Cloudflare Tunnel"
+icon: cloudflare
 description: "Guide for exposing StackWeaver via Cloudflare Tunnel with systemd persistence"
 covers:
   - "deploy/docker-compose.yml"

@@ -1,4 +1,5 @@
 ---
+title: "Verify a release"
 description: "Verify container images, Helm charts and sync commits with the expected Sigstore workflow identity, immutable digest and attestation type."
 covers:
   - ".github/workflows/**"

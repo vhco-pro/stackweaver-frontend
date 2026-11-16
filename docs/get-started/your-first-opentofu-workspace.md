@@ -1,4 +1,6 @@
 ---
+title: "Your first OpenTofu workspace"
+icon: opentofu
 description: "Step-by-step tutorial for creating an OpenTofu workspace and running a plan"
 covers:
   - "frontend/src/components/workspace/**"

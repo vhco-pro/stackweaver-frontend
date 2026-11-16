@@ -1,4 +1,5 @@
 ---
+title: "Run timeouts"
 description: "Configure OpenTofu run timeouts on a workspace, project or organization, and understand which limits apply to plans, applies, external checks and approval waits."
 covers:
   - "backend/cmd/launcher/**"

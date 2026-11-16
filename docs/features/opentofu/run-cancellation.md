@@ -1,4 +1,5 @@
 ---
+title: "Run cancellation"
 description: "Cancel eligible runs safely through the UI or API, distinguish discard and verify partial infrastructure changes."
 covers:
   - "backend/internal/api/v2/handlers/terraform/runs.go"

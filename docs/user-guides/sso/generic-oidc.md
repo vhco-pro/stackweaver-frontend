@@ -1,4 +1,5 @@
 ---
+title: "Generic OIDC"
 description: "Register an OIDC client, discover its issuer, configure group claims and automate a Keycloak example."
 covers:
   - "scripts/zitadel-init/**"
