@@ -166,5 +166,13 @@
   {
     "commit": "f3711abd6672171bd86eee1fbe00d7e706d029c8",
     "reason": "Development tooling only. It makes the kind E2E harness stop starting image builds after one fails and updates the harness tests for concurrent builds and the single kind load. No published image, chart or customer-facing capability changes."
+  },
+  {
+    "commit": "c27c03b3e413e4fd4709cecb15ac801a2f8ae3a7",
+    "reason": "Development tooling only. It points the local tfe-compat table check at the migration guide after the user guides moved it under opentofu/. No published image, chart, document content or customer-facing capability changes."
+  },
+  {
+    "commit": "d8c5997906659c11f1bb585a58366de50b001356",
+    "reason": "Development tooling only. It keeps the pre-commit hook's GIT_ variables out of the secret scan test's fixture repositories and adds a guard test that verify runs. No published image, chart or customer-facing capability changes."
   }
 ]
