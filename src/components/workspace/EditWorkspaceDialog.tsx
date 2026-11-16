@@ -25,7 +25,7 @@ import {
 import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from 'sonner';
 import { Loader2, GitBranch, Plus, CheckCircle2, AlertTriangle } from 'lucide-react';
-import { getVcsProviderIcon, getVcsProviderLabel, getVcsManageUrl } from '@/lib/vcs';
+import { getVcsProviderIcon, getVcsConnectionLabel, getVcsManageUrl } from '@/lib/vcs';
 import { workspacesApi, vcsConnectionsApi, agentPoolsApi, terraformVersionsApi, type Workspace } from '@/api/client';
 import { VCSProviderSelector } from '@/components/vcs/VCSProviderSelector';
 import { VCSProjectSelect } from '@/components/vcs/VCSProjectSelect';
@@ -378,7 +378,7 @@ function EditWorkspaceFormBody({
                       <div className="flex items-center gap-2">
                         {getVcsProviderIcon(conn.provider)}
                         <span className="text-sm font-medium">
-                          {getVcsProviderLabel(conn.provider)} - {conn.account_name}
+                          {getVcsConnectionLabel(conn)}
                         </span>
                         <Badge variant="outline" className="text-xs">
                           {conn.account_type}

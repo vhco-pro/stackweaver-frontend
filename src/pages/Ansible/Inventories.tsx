@@ -66,7 +66,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
-import { getVcsProviderIcon, getVcsProviderLabel } from '@/lib/vcs';
+import { getVcsProviderIcon, getVcsConnectionLabel } from '@/lib/vcs';
 import { VCSProviderSelector } from '@/components/vcs/VCSProviderSelector';
 import { VCSProjectSelect } from '@/components/vcs/VCSProjectSelect';
 import { detectDynamicInventoryPlugin } from '@/utils/dynamic-inventory';
@@ -286,9 +286,8 @@ export default function Inventories() {
       try {
         const vcsRes = await vcsConnectionsApi.list(selectedOrg);
         const connections = Array.isArray(vcsRes) ? vcsRes : [];
-        return Array.from(
-          new Map(connections.map((conn) => [`${conn.provider}-${conn.account_name}-${conn.account_type}`, conn])).values(),
-        );
+        // Every connection: an App and a token connection of one account are both listed.
+        return connections;
       } catch (err) {
         console.error('Failed to load VCS connections:', err);
         toast.error('Failed to load VCS connections');
@@ -833,7 +832,7 @@ export default function Inventories() {
                             <div className="flex items-center gap-2">
                               {getVcsProviderIcon(conn.provider, 'h-4 w-4')}
                               <span className="text-sm font-medium">
-                                {getVcsProviderLabel(conn.provider)} - {conn.account_name}
+                                {getVcsConnectionLabel(conn)}
                               </span>
                               <Badge variant="outline" className="text-xs">
                                 {conn.account_type}

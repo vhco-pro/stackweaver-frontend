@@ -88,9 +88,9 @@ Keep the app's access limited to the repositories it should automate.
 
 | Repository permission | Level | Use |
 |---|---|---|
-| Contents | Read-only | Read configuration, playbooks, inventories and module source. |
+| Contents | Read-only | Read configuration, playbooks, inventories and module source, and the files a pull request commit changes, for path filtering. |
 | Metadata | Read-only | Repository metadata; GitHub includes it for apps. |
-| Pull requests | Read-only | Read the files a pull request changes, for path filtering and speculative plans. |
+| Pull requests | Read-only | Receive pull request events, which start speculative plans. |
 | Commit statuses | Read and write | Publish plan results as commit status checks. |
 
 An existing registration may also grant **Webhooks: write** for repository-hook management
@@ -303,7 +303,7 @@ unaffected.
 | Every webhook delivery returns 401. | Compare the configured secret locally with the GitHub setting. Check env-file quoting or `$` expansion and overriding Compose entries, then recreate the API. |
 | Push causes no run or sync. | Check webhook URL, delivery result, repository access, tracked branch, and applicable path filters or auto-queue settings. |
 | A push or pull request run stays pending. | Check that a hosted launcher is online. The configuration capture runs on the organization's hosted capacity, even for a workspace on an agent pool. |
-| Pull request triggers every workspace. | GitHub lists at most 3000 changed files. A larger pull request, or a file list that cannot be read, triggers every workspace on the repository. Check the installation's **Pull requests** permission. |
+| Pull request triggers every workspace. | GitHub lists at most 300 changed files for a pull request commit. A larger change, or a file list that cannot be read, triggers every workspace on the repository. Check the installation's **Contents** permission. |
 | Token generation fails. | Check the App ID, private-key formatting and installation access. Captures that need a token, including a registry module version published from a Git tag, fail until the connection can mint one. |
 | Status checks return 403. | Approve the installation's updated **Commit statuses: read and write** permission; retry with an authorized installation. |
 

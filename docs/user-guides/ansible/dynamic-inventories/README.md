@@ -167,7 +167,8 @@ not guaranteed protection from later overwrite pruning.
 
 The warning names each affected source, the failure and last successful refresh, or says
 that it has never synced and contributed no hosts. It appears above the job's tabs and at
-the start of its output, wherever the job runs.
+the start of its output, wherever the job runs. A source whose sync could not be started at
+all is named too; its own status stays as it was, so the job's warning is where that shows.
 
 <details>
 <summary>Refresh warnings in the API and notifications</summary>

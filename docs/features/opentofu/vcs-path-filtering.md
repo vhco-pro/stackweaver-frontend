@@ -64,10 +64,12 @@ matching rules apply to GitHub push/PR handling and Azure DevOps deliveries. If 
 provides no changed-file list, Stackweaver can trigger conservatively rather than assume
 nothing changed.
 
-For a GitHub pull request, the changed files come from GitHub's pull request file list, read
-with the connection's installation token (the app's **Pull requests: read** permission).
-GitHub lists at most 3000 files. When the list is longer, or cannot be read, every workspace
-on the repository is triggered.
+For a GitHub pull request, the changed files are the ones the delivered commit changes
+against the pull request's base, read from GitHub with the connection's installation token
+(the app's **Contents: read** permission). A pull request that receives newer commits before
+Stackweaver processes an earlier delivery is still filtered by that delivery's own files.
+GitHub lists at most 300 changed files for a comparison. When the list reaches that limit, or
+cannot be read, every workspace on the repository is triggered.
 
 <a id="configuration" style="scroll-margin-top: 7rem"></a>
 

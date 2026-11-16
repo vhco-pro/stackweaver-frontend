@@ -168,6 +168,10 @@
     "reason": "Development tooling only. It makes the kind E2E harness stop starting image builds after one fails and updates the harness tests for concurrent builds and the single kind load. No published image, chart or customer-facing capability changes."
   },
   {
+    "commit": "fb8ae826b3ae0e6a797ca7ea5909dbe9f629b4b5",
+    "reason": "Development tooling only. The secret-scan script test drops the git hook's GIT_ variables before building its fixture repositories, and a new guard test, run by local verify, requires that of every script test that creates a repository. No published image, chart, API or customer-facing capability changes."
+  },
+  {
     "commit": "c27c03b3e413e4fd4709cecb15ac801a2f8ae3a7",
     "reason": "Development tooling only. It points the local tfe-compat table check at the migration guide after the user guides moved it under opentofu/. No published image, chart, document content or customer-facing capability changes."
   },
