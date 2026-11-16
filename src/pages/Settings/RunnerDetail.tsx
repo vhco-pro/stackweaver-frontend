@@ -21,6 +21,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { runnersApi } from '@/api/client';
+import { deleteTreatingNotFoundAsDone } from './runnerSelection';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { engineLabel } from '@/lib/launcherEngines';
@@ -99,7 +100,7 @@ export default function RunnerDetail() {
     
     try {
       setDeleting(true);
-      await runnersApi.delete(runner.id);
+      await deleteTreatingNotFoundAsDone(() => runnersApi.delete(runner.id));
       toast.success('Launcher deleted');
       void navigate(`/app/${orgName}/settings/runners`);
     } catch (err) {

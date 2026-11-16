@@ -2,6 +2,7 @@
 
 import { describe, it, expect } from 'vitest';
 import {
+  deleteTreatingNotFoundAsDone,
   headerState,
   normalizeLabel,
   runBulk,
@@ -59,5 +60,29 @@ describe('runBulk', () => {
     const result = await runBulk(ids, (id) => (id === 'b' ? Promise.reject(new Error('boom')) : Promise.resolve()));
     expect(result.succeeded).toEqual(['a', 'c']);
     expect(result.failed).toEqual([{ id: 'b', error: 'boom' }]);
+  });
+});
+
+// A launcher another tab or administrator already deleted answers 404: that delete is done (#856).
+describe('deleteTreatingNotFoundAsDone', () => {
+  const failing = (status: number, message: string) => () =>
+    Promise.reject(Object.assign(new Error(message), { status }));
+
+  it('counts a 404 as done', async () => {
+    await expect(deleteTreatingNotFoundAsDone(failing(404, 'Launcher not found'))).resolves.toBeUndefined();
+  });
+
+  it('still fails on any other error', async () => {
+    await expect(deleteTreatingNotFoundAsDone(failing(500, 'Internal Server Error'))).rejects.toThrow('Internal Server Error');
+    await expect(deleteTreatingNotFoundAsDone(failing(403, 'Forbidden'))).rejects.toThrow('Forbidden');
+    await expect(deleteTreatingNotFoundAsDone(() => Promise.reject(new Error('network down')))).rejects.toThrow('network down');
+  });
+
+  it('lets runBulk report a launcher that was already gone as deleted', async () => {
+    const result = await runBulk(ids, (id) =>
+      deleteTreatingNotFoundAsDone(id === 'b' ? failing(404, 'Launcher not found') : () => Promise.resolve()),
+    );
+    expect(result.succeeded).toEqual(ids);
+    expect(result.failed).toEqual([]);
   });
 });

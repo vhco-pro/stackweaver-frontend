@@ -12,6 +12,7 @@ import {
   activitiesApi,
   organizationsApi,
   registryApi,
+  runnersApi,
   runsApi,
   settingsApi,
   tokensApi,
@@ -129,6 +130,26 @@ describe('error messages', () => {
     await expect(registryApi.modules.publishVersion('acme', 'vpc', 'aws', '1.0.0', file)).rejects.toThrow(
       'request body too large',
     );
+
+    stubErrorResponse(404, JSON.stringify({ errors: [{ status: '404', title: 'Not Found' }] }));
+    await expect(registryApi.modules.publishVersion('acme', 'vpc', 'aws', '1.0.0', file)).rejects.toThrow('Not Found');
+  });
+
+  // jsonapi.WriteErrorNoDetail sends a title and no detail (#856): the toast then names the error
+  // ("Launcher not found") instead of a status code.
+  it('falls back to errors[0].title when there is no detail, and keeps the status', async () => {
+    stubErrorResponse(404, JSON.stringify({ errors: [{ status: '404', title: 'Launcher not found' }] }));
+
+    const failure: unknown = await runnersApi.delete('r-1').catch((err: unknown) => err);
+
+    expect((failure as Error).message).toBe('Launcher not found');
+    expect((failure as Error & { status?: number }).status).toBe(404);
+  });
+
+  it('prefers the detail over the title', async () => {
+    stubErrorResponse(404, JSON.stringify({ errors: [{ status: '404', title: 'Not Found', detail: 'Agent pool not found' }] }));
+
+    await expect(organizationsApi.create({ name: 'acme' })).rejects.toThrow('Agent pool not found');
   });
 });
 

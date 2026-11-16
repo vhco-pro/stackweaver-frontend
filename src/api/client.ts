@@ -21,6 +21,13 @@ async function reportIfSessionEnded(response: Response): Promise<void> {
   if (isAuthenticationRequired(body)) reportAuthenticationRequired();
 }
 
+// errorMessageFrom is the message of a failed request: the first JSON:API error's detail, else its
+// title, else the status. An error written without a detail (jsonapi.WriteErrorNoDetail) still
+// carries a title such as "Launcher not found", which says more than the status code.
+function errorMessageFrom(errorData: { errors?: { detail?: string; title?: string }[] }, status: number): string {
+  return errorData.errors?.[0]?.detail || errorData.errors?.[0]?.title || `HTTP error! status: ${status}`;
+}
+
 // Retry configuration
 const MAX_RETRIES = 3;
 const INITIAL_RETRY_DELAY = 1000; // 1 second
@@ -101,8 +108,8 @@ class ApiClient {
 
         if (!response.ok) {
           const errorData = await response.json().catch(() => ({}));
-          // Handle v2 error format: { errors: [{ detail: "...", ... }] }
-          const errorMessage = errorData.errors?.[0]?.detail || `HTTP error! status: ${response.status}`;
+          // Handle v2 error format: { errors: [{ detail: "...", title: "...", ... }] }
+          const errorMessage = errorMessageFrom(errorData, response.status);
           const error = new Error(errorMessage);
           (error as Error & { status?: number }).status = response.status;
           throw error;
@@ -4037,8 +4044,7 @@ export const registryApi = {
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
         if (response.status === 401 && isAuthenticationRequired(errorData)) reportAuthenticationRequired();
-        const errorMessage = errorData.errors?.[0]?.detail || `HTTP error! status: ${response.status}`;
-        throw new Error(errorMessage);
+        throw new Error(errorMessageFrom(errorData, response.status));
       }
 
       return await response.json();
@@ -4116,8 +4122,7 @@ export const registryApi = {
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
         if (response.status === 401 && isAuthenticationRequired(errorData)) reportAuthenticationRequired();
-        const errorMessage = errorData.errors?.[0]?.detail || `HTTP error! status: ${response.status}`;
-        throw new Error(errorMessage);
+        throw new Error(errorMessageFrom(errorData, response.status));
       }
 
       return await response.json();

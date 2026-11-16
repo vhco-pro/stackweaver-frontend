@@ -13,6 +13,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
+  deleteTreatingNotFoundAsDone,
   headerState,
   normalizeLabel,
   runBulk,
@@ -131,7 +132,9 @@ export default function Runners() {
   const handleBulkDelete = async () => {
     setBulkBusy(true);
     try {
-      const result = await runBulk(selectedRunners.map((r) => r.id), (id) => runnersApi.delete(id));
+      const result = await runBulk(selectedRunners.map((r) => r.id), (id) =>
+        deleteTreatingNotFoundAsDone(() => runnersApi.delete(id)),
+      );
       reportBulk(result, 'Deleted');
       if (result.failed.length === 0) setSelected(new Set());
       setBulkAction(null);
@@ -205,7 +208,7 @@ export default function Runners() {
     if (!deleteRunner) return;
     setDeleting(true);
     try {
-      await runnersApi.delete(deleteRunner.id);
+      await deleteTreatingNotFoundAsDone(() => runnersApi.delete(deleteRunner.id));
       toast.success('Launcher deleted');
       setDeleteRunner(null);
       void refetchRunners();

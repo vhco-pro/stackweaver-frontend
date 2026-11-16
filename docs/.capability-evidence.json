@@ -381,7 +381,7 @@
       "evidence": [
         {
           "path": "backend/internal/api/v2/routes/routes.go",
-          "sha256": "f108c049a864f2c129e6117b3a00e195e46ccccf0e10f355a297d117f7221bd6"
+          "sha256": "3a0bdcec6580ebc3fda3fac4e218b0b6b959f4dd43c42c878b41750869ee5194"
         },
         {
           "path": "frontend/src/pages/Docs/ApiReferenceExplorer.tsx",
@@ -577,7 +577,7 @@
         },
         {
           "path": "frontend/src/api/client.ts",
-          "sha256": "2ff82a009cf7d518289178e8b7b99c2f0ae37b0bb6d44abb280ab2f285b7b9a1"
+          "sha256": "db6c63d84ed75c623f0919bcdce405a4647e69bfaf3e427c474d7fb750bfff5a"
         },
         {
           "path": "frontend/src/components/workspace/WorkspaceChangeRequests.tsx",
