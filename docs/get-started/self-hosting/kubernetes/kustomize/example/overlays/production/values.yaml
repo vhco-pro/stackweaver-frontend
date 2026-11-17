@@ -273,8 +273,8 @@ postgresql:
     repository: postgres
     tag: "17"
   auth:
-    username: iac
-    database: iac_platform
+    username: stackweaver
+    database: stackweaver
   storage:
     size: 10Gi
     storageClass: ""

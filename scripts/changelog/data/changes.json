@@ -17,7 +17,8 @@
       }
     ],
     "sourceCommits": [
-      "b9f1315088bceb6349ed6938001cb3c240f81f84"
+      "b9f1315088bceb6349ed6938001cb3c240f81f84",
+      "bf1c96a507ea75f28db433dfeffe084fece28b9c"
     ],
     "requiredComponents": [
       "frontend"
@@ -2536,6 +2537,35 @@
     ],
     "requiredComponents": [
       "api",
+      "frontend"
+    ],
+    "availability": []
+  },
+  {
+    "id": "bundled-database-account-stackweaver",
+    "title": "New installs name their bundled database and its account stackweaver",
+    "area": "Platform",
+    "kind": "Changed",
+    "reviewed": true,
+    "audience": "Operators installing Stackweaver with the Helm chart's bundled PostgreSQL or the Docker Compose example.",
+    "before": "The Helm chart's bundled PostgreSQL and the Docker Compose example created a database named `iac_platform` owned by an `iac` account, and the Compose example's default password was `iac_password`. The orchestrator fell back to the same names when `DATABASE_USER`, `DATABASE_PASSWORD` or `DATABASE_NAME` was unset.",
+    "after": "The bundled database and its account are both named `stackweaver`, the Compose example's default password is `stackweaver_password`, and the orchestrator falls back to these names. The Helm values `postgresql.auth.username` and `postgresql.auth.database`, and the Compose example's `POSTGRES_USER`, `POSTGRES_PASSWORD` and `POSTGRES_DB`, still override them.",
+    "action": "New installs need no action. An existing install must keep its old names: set `postgresql.auth.username: iac` and `postgresql.auth.database: iac_platform` in your Helm values, or keep `POSTGRES_USER=iac`, `POSTGRES_PASSWORD=iac_password` and `POSTGRES_DB=iac_platform` in your Compose `.env` and the `iac` account in `zitadel-defaults.yaml`. An orchestrator you run without the `DATABASE_*` variables needs them set to the old names.",
+    "details": [],
+    "guides": [
+      {
+        "title": "Self-host with Docker Compose",
+        "path": "/docs/get-started/self-hosting/docker-compose"
+      },
+      {
+        "title": "Self-host on Kubernetes",
+        "path": "/docs/get-started/self-hosting/kubernetes"
+      }
+    ],
+    "sourceCommits": [],
+    "draftCommits": [],
+    "requiredComponents": [
+      "helm",
       "frontend"
     ],
     "availability": []

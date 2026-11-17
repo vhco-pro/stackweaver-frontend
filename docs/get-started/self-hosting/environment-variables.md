@@ -309,9 +309,9 @@ The orchestrator is a background service that routes each pending run to its poo
 | `REDIS_DB` | Redis database index | `0` |
 | `DATABASE_HOST` | PostgreSQL hostname | `localhost` |
 | `DATABASE_PORT` | PostgreSQL port | `5432` |
-| `DATABASE_USER` | PostgreSQL username | `iac` |
-| `DATABASE_PASSWORD` | PostgreSQL password | `iac_password` |
-| `DATABASE_NAME` | Database name | `iac_platform` |
+| `DATABASE_USER` | PostgreSQL username | `stackweaver` |
+| `DATABASE_PASSWORD` | PostgreSQL password | `stackweaver_password` |
+| `DATABASE_NAME` | Database name | `stackweaver` |
 | `DATABASE_SSLMODE` | SSL mode | `disable` |
 | `ENCRYPTION_KEY` | 32-byte hex encryption key (**required**; `openssl rand -hex 32`) | (required) |
 | `STACKWEAVER_RUN_TIMEOUT_DEFAULT` | The deployment default run timeout, in seconds, used to find runs and jobs that ran past their timeout. Set the same value as on the API. | `7200` |

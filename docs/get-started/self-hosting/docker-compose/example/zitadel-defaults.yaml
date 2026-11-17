@@ -12,13 +12,13 @@ Database:
     Port: 5432
     Database: zitadel
     Admin:
-      Username: iac
-      Password: iac_password
+      Username: stackweaver
+      Password: stackweaver_password
       SSL:
         Mode: disable
     User:
-      Username: iac
-      Password: iac_password
+      Username: stackweaver
+      Password: stackweaver_password
       SSL:
         Mode: disable
 

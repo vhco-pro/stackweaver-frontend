@@ -321,8 +321,8 @@ The application and identity data are separate databases. Export both, using the
 users/database names if you changed them:
 
 ```bash
-docker compose exec -T postgres pg_dump -U iac iac_platform > application-backup.sql
-docker compose exec -T postgres pg_dump -U iac zitadel > identity-backup.sql
+docker compose exec -T postgres pg_dump -U stackweaver stackweaver > application-backup.sql
+docker compose exec -T postgres pg_dump -U stackweaver zitadel > identity-backup.sql
 ```
 
 Protect the backup as sensitive data. These dumps do not include object storage, volumes or key/configuration files.
@@ -457,7 +457,7 @@ to narrow the failing service. Do not share initializer
 logs without checking them for credentials. To inspect PostgreSQL interactively:
 
 ```bash
-docker compose exec postgres psql -U iac -d iac_platform
+docker compose exec postgres psql -U stackweaver -d stackweaver
 ```
 
 For source access or contribution enquiries, contact `contact@vhco.pro`.
