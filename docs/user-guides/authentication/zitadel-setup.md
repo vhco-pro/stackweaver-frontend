@@ -256,7 +256,7 @@ Compose diagnostics:
 
 ```bash
 docker compose logs zitadel zitadel-init
-docker compose exec postgres psql -U iac -d iac_platform -c "SELECT 1;"
+docker compose exec postgres psql -U stackweaver -d stackweaver -c "SELECT 1;"
 ```
 
 Kubernetes BaseURI diagnostics:

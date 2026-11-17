@@ -52,14 +52,14 @@ services:
     container_name: postgres
     restart: unless-stopped
     environment:
-      POSTGRES_USER: ${POSTGRES_USER:-iac}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-iac_password}
-      POSTGRES_DB: ${POSTGRES_DB:-iac_platform}
+      POSTGRES_USER: ${POSTGRES_USER:-stackweaver}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-stackweaver_password}
+      POSTGRES_DB: ${POSTGRES_DB:-stackweaver}
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./init-postgres.sql:/docker-entrypoint-initdb.d/init-postgres.sql:ro
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-iac} -d ${POSTGRES_DB:-iac_platform}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-stackweaver} -d ${POSTGRES_DB:-stackweaver}"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -271,9 +271,9 @@ services:
       # Database. These must track the postgres service's own POSTGRES_* values - with no config
       # file in play, environment variables are the API's only source for them.
       DATABASE_HOST: postgres
-      DATABASE_USER: ${POSTGRES_USER:-iac}
-      DATABASE_PASSWORD: ${POSTGRES_PASSWORD:-iac_password}
-      DATABASE_NAME: ${POSTGRES_DB:-iac_platform}
+      DATABASE_USER: ${POSTGRES_USER:-stackweaver}
+      DATABASE_PASSWORD: ${POSTGRES_PASSWORD:-stackweaver_password}
+      DATABASE_NAME: ${POSTGRES_DB:-stackweaver}
       REDIS_HOST: redis
       ZITADEL_ISSUER: ${ZITADEL_ISSUER:-http://localhost:8080}
       ZITADEL_API_CLIENT_ID: ${ZITADEL_API_CLIENT_ID:-}
@@ -398,9 +398,9 @@ services:
       # Neither binary reads a config file, so no CONFIG_PATH here; the database credentials
       # below must track the postgres service's own POSTGRES_* values.
       DATABASE_HOST: postgres
-      DATABASE_USER: ${POSTGRES_USER:-iac}
-      DATABASE_PASSWORD: ${POSTGRES_PASSWORD:-iac_password}
-      DATABASE_NAME: ${POSTGRES_DB:-iac_platform}
+      DATABASE_USER: ${POSTGRES_USER:-stackweaver}
+      DATABASE_PASSWORD: ${POSTGRES_PASSWORD:-stackweaver_password}
+      DATABASE_NAME: ${POSTGRES_DB:-stackweaver}
       REDIS_HOST: redis
       REDIS_PORT: "6379"
       REDIS_PASSWORD: ""

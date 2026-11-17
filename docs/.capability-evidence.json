@@ -457,7 +457,7 @@
       "evidence": [
         {
           "path": "backend/cmd/orchestrator/main.go",
-          "sha256": "ddf0a7de08a8e5b52cd87dd30b9fe2ab7548f8f754eb3a72dd1f89bab09217d7"
+          "sha256": "cf52e94186a0c512d4dc849e8b3a803b7c4457dccbd629371853cf1e9cf32d2e"
         },
         {
           "path": "backend/cmd/orchestrator/task_stages.go",
