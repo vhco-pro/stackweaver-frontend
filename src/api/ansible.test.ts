@@ -300,3 +300,30 @@ describe('Ansible request documents', () => {
     expect(output).toBe('PLAY [all] ***\nok: [web1]\n');
   });
 });
+
+// #914: a template's or a playbook's recent jobs are narrowed by the server, across every page of
+// the organization's jobs, not filtered from the first page in the browser.
+describe('ansibleJobsApi.listByOrganization filters', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.restoreAllMocks();
+  });
+
+  it('asks for one template\'s jobs, one page of ten', async () => {
+    const sent = captureRequest({ data: [] }, { status: 200 });
+    await ansibleJobsApi.listByOrganization('acme', { page: 1, pageSize: 10 }, { jobTemplateId: 'tpl-1' });
+    const url = new URL(sent().url, 'http://localhost');
+    expect(url.pathname).toMatch(/\/organizations\/acme\/ansible\/jobs$/);
+    expect(url.searchParams.get('filter[job-template-id]')).toBe('tpl-1');
+    expect(url.searchParams.get('filter[playbook-id]')).toBeNull();
+    expect(url.searchParams.get('page[size]')).toBe('10');
+  });
+
+  it('asks for one playbook\'s jobs', async () => {
+    const sent = captureRequest({ data: [] }, { status: 200 });
+    await ansibleJobsApi.listByOrganization('acme', undefined, { playbookId: 'pb-1' });
+    const url = new URL(sent().url, 'http://localhost');
+    expect(url.searchParams.get('filter[playbook-id]')).toBe('pb-1');
+    expect(url.searchParams.get('filter[job-template-id]')).toBeNull();
+  });
+});

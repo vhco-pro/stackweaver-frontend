@@ -319,10 +319,10 @@ export default function JobTemplateDetail() {
         }
       }
 
-      const jobsRes = await ansibleJobsApi.listByOrganization(orgName!);
-      const relatedJobs = (jobsRes.data || []).map(getAnsibleJobFromJsonApi)
-        .filter(j => j.job_template_id === templateId)
-        .slice(0, 10);
+      // The API narrows to this template, so its recent jobs come from every page of the
+      // organization's jobs, not only the first.
+      const jobsRes = await ansibleJobsApi.listByOrganization(orgName!, { page: 1, pageSize: 10 }, { jobTemplateId: templateId });
+      const relatedJobs = (jobsRes.data || []).map(getAnsibleJobFromJsonApi);
 
       let fetchedCredentials: AnsibleCredential[] = [];
       let fetchedInventories: AnsibleInventory[] = [];
@@ -519,6 +519,8 @@ export default function JobTemplateDetail() {
       await refetch();
       // The list shows the name, the description and the enabled badge.
       void queryClient.invalidateQueries({ queryKey: listQueryKey });
+      // A repository-file selection registered a playbook, which the Playbooks page lists.
+      void queryClient.invalidateQueries({ queryKey: ['playbooks', orgName] });
       setEditDialogOpen(false);
       toast.success('Job template updated successfully');
     } catch (err: unknown) {

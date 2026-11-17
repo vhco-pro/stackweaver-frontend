@@ -1096,9 +1096,13 @@ export const ansibleJobsApi = {
       `/projects/${projectId}/ansible/jobs?filter[slice-group-id]=${encodeURIComponent(sliceGroupId)}`
     ),
 
-  listByOrganization: (organizationName: string, params?: PageParams) =>
+  /** An organization's jobs, newest first, optionally narrowed to one job template or one playbook. */
+  listByOrganization: (organizationName: string, params?: PageParams, filter?: { jobTemplateId?: string; playbookId?: string }) =>
     apiClient.get<JsonApiListResponse<JsonApiResource>>(
-      `/organizations/${organizationName}/ansible/jobs${pageQuery(params)}`
+      `/organizations/${organizationName}/ansible/jobs${pageQuery(params, {
+        ...(filter?.jobTemplateId && { 'filter[job-template-id]': filter.jobTemplateId }),
+        ...(filter?.playbookId && { 'filter[playbook-id]': filter.playbookId }),
+      })}`
     ),
 
   getQueue: (organizationName: string, params?: PageParams) =>

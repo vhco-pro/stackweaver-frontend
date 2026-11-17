@@ -339,6 +339,40 @@ describe('JobTemplates: a return inside the stale window', () => {
     expect(ansibleJobTemplatesApi.listByOrganization).toHaveBeenCalledTimes(1);
   });
 
+  // #914: each select of the create dialog is named by its label.
+  it('names the create dialog selects by their labels', async () => {
+    const user = userEvent.setup();
+    renderPage(cachingClient());
+
+    await user.click(await screen.findByRole('button', { name: 'New Job Template' }));
+    const dialog = within(await screen.findByRole('dialog'));
+
+    for (const name of ['Inventory *', 'Credential (Optional)', 'Verbosity']) {
+      expect(dialog.getByRole('combobox', { name })).toBeInTheDocument();
+    }
+  });
+
+  // #914: a repository-file selection registers a playbook, which the Playbooks page lists.
+  it('refreshes the Playbooks page after a template is created', async () => {
+    const user = userEvent.setup();
+    const client = cachingClient();
+    const invalidate = vi.spyOn(client, 'invalidateQueries');
+    vi.mocked(ansibleJobTemplatesApi.create).mockResolvedValue({ data: template('tpl-3', 'rotate-certs') });
+    renderPage(client);
+
+    await user.click(await screen.findByRole('button', { name: 'New Job Template' }));
+    const dialog = within(await screen.findByRole('dialog'));
+    await user.type(dialog.getByLabelText('Name *'), 'rotate-certs');
+    await user.click(await dialog.findByRole('button', { name: 'site.yml' }));
+    await user.click(selectShowing(dialog, 'Select an inventory'));
+    await user.click(await screen.findByRole('option', { name: 'production' }));
+    await user.click(dialog.getByRole('button', { name: 'Create Template' }));
+
+    await waitFor(() => {
+      expect(invalidate).toHaveBeenCalledWith({ queryKey: ['playbooks', 'acme'] });
+    });
+  });
+
   it('fills the create dialog pickers again, without asking for their options again', async () => {
     const user = userEvent.setup();
     const client = cachingClient();

@@ -227,12 +227,10 @@ export default function PlaybookDetail() {
 
       const [templatesRes, jobsRes] = await Promise.all([
         ansibleJobTemplatesApi.listByOrganization(orgName!),
-        ansibleJobsApi.listByOrganization(orgName!),
+        ansibleJobsApi.listByOrganization(orgName!, { page: 1, pageSize: 10 }, { playbookId: playbookId! }),
       ]);
       const relatedTemplates = (templatesRes.data || []).map(getAnsibleJobTemplateFromJsonApi).filter(t => t.playbook_id === playbookId);
-      const relatedJobs = (jobsRes.data || []).map(getAnsibleJobFromJsonApi)
-        .filter(j => j.playbook_id === playbookId)
-        .slice(0, 10);
+      const relatedJobs = (jobsRes.data || []).map(getAnsibleJobFromJsonApi);
       return { playbook: pb, templates: relatedTemplates, recentJobs: relatedJobs };
     },
     enabled: !!playbookId && !!orgName,

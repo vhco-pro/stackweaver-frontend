@@ -30,10 +30,10 @@ capabilities: [
   {
     "id": "ansible-schedules",
     "name": "Scheduled automation",
-    "summary": "Schedule job templates, inventory-source syncs and workflows.",
+    "summary": "Schedule job templates, inventory-source syncs, playbook syncs and workflows.",
     "area": "ansible",
     "availability": "available",
-    "limitations": "Use a dedicated inventory-source schedule. The source form's Sync Schedule field does not activate recurring syncs. Playbook-sync scheduling is not supported.",
+    "limitations": "Use a dedicated inventory-source schedule. The source form's Sync Schedule field does not activate recurring syncs.",
     "evidence": [
       "core/services/ansible/scheduler.go",
       "core/models/ansible_schedule.go"
@@ -272,7 +272,9 @@ curl --fail-with-body \
 ```
 
 For a sliced launch, list project jobs with `filter[slice-group-id]` set to the slice-group
-ID. That query returns the group's slices together in slice order. There is no management
+ID. That query returns the group's slices together in slice order. To list one job template's
+or one playbook's jobs, newest first, add `filter[job-template-id]` or `filter[playbook-id]` to
+`/api/v2/organizations/$ORG/ansible/jobs`; the result pages like the full list. There is no management
 YAML object that replaces template registration or a launch request. Your playbook YAML
 still defines what Ansible executes.
 
@@ -482,8 +484,8 @@ For *launch on webhook*, `fresh` source mode captures the selected branch's HEAD
 
 A single 30-second loop in the API drives everything time-based. Every API replica runs it, and one replica at a time does each tick's work. Knowing what it owns explains most "why did this happen a few seconds later" questions:
 
-1. **Schedules** - due cron schedules launch their job template or workflow, or request their inventory source's sync. A due `playbook_sync` schedule records a run and queues no sync. With `ANSIBLE_SCHEDULER_ENABLED=false` no schedule fires on its cron; run now and the duties below still run.
-2. **Schedule outcomes** - an inventory source schedule's last run follows its sync: **Queued** while it waits for a launcher, then running, then successful or failed.
+1. **Schedules** - due cron schedules launch their job template or workflow, or request their inventory source's or playbook's sync. With `ANSIBLE_SCHEDULER_ENABLED=false` no schedule fires on its cron; run now and the duties below still run.
+2. **Schedule outcomes** - an inventory source or playbook sync schedule's last run follows its sync: **Queued** while it waits for a launcher, then running, then successful or failed.
 3. **Held-job release** - re-evaluates jobs held by the concurrency or dependency gates and dispatches the ones whose conditions cleared.
 4. **Workflow progression** - advances running workflow runs node by node.
 5. **Notification dispatch** - finds job/workflow transitions and delivers configured webhook, email and Microsoft Teams messages. Treat the notification as a signal to inspect the run, not as a transaction proving a remote receiver acted exactly once.
@@ -496,7 +498,7 @@ A single 30-second loop in the API drives everything time-based. Every API repli
 | `job_template` | `job-template-id` | Launch the template through normal gates. |
 | `inventory_source` | `inventory-source-id` | Request that source's sync, which a launcher of its pool runs; the run is recorded as queued and then as the sync's outcome. |
 | `workflow` | `workflow-id` | Launch the workflow. |
-| `playbook_sync` | `playbook-id` | Accepted as a target type but does not queue a playbook sync; do not use for recurring sync. |
+| `playbook_sync` | `playbook-id` | Request the playbook's sync from its VCS repository, the same sync a manual or webhook sync starts; the run is recorded as queued and then as the sync's outcome. When a sync of the playbook is already in progress, the run follows that one. |
 
 Use the dedicated inventory-source schedule. A source form's **Sync Schedule** field alone
 does not activate recurring execution. Invalid cron expressions, timezones or targets from
