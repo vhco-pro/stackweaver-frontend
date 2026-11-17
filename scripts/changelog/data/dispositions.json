@@ -178,5 +178,13 @@
   {
     "commit": "d8c5997906659c11f1bb585a58366de50b001356",
     "reason": "Development tooling only. It keeps the pre-commit hook's GIT_ variables out of the secret scan test's fixture repositories and adds a guard test that verify runs. No published image, chart or customer-facing capability changes."
+  },
+  {
+    "commit": "e37a9d476cfa39d8e8eb99f4661017ccd9bead4e",
+    "reason": "No customer-visible change. It moves the docs search scroll out of a React state updater, where Strict Mode in development ran it twice; a production build scrolled once already, and the selection, scrolling and Enter behave as before. The visual evidence it refreshes differs only by antialiasing."
+  },
+  {
+    "commit": "c1b30240dbce4a4688393e2ae2bfcc362928147e",
+    "reason": "No customer-visible change. It narrows the frontend lint exemptions and types values the API client and workspace page already handled; error toasts on the workspace page show the same API detail or message as before. The guard refreshes it carries (landing tour hash, capability and visual evidence) change no published image content beyond antialiasing."
   }
 ]

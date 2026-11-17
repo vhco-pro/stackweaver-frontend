@@ -37,6 +37,15 @@ import { getAttribute, getRelationship, getRelationships } from './jsonapi';
 /**
  * Transform JSON:API resource to flat AnsibleJob object
  */
+/** One inventory-sync warning as the job resource's `inventory-sync-warnings` attribute carries it. */
+interface InventorySyncWarningAttributes {
+  'source-id'?: string;
+  'source-name'?: string;
+  'failed-at'?: string;
+  error?: string;
+  'last-successful-sync-at'?: string | null;
+}
+
 export function getAnsibleJobFromJsonApi(resource: JsonApiResource): AnsibleJob {
   return {
     id: resource.id,
@@ -80,7 +89,7 @@ export function getAnsibleJobFromJsonApi(resource: JsonApiResource): AnsibleJob 
     slice_group_id: getAttribute<string>(resource, 'slice-group-id'),
     slice_number: getAttribute<number>(resource, 'slice-number'),
     slice_count: getAttribute<number>(resource, 'slice-count'),
-    inventory_sync_warnings: (getAttribute<any[]>(resource, 'inventory-sync-warnings') || []).map((w: any) => ({
+    inventory_sync_warnings: (getAttribute<InventorySyncWarningAttributes[]>(resource, 'inventory-sync-warnings') || []).map(w => ({
       source_id: w['source-id'] ?? '',
       source_name: w['source-name'] ?? '',
       failed_at: w['failed-at'] ?? '',

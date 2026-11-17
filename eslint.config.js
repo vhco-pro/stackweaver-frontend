@@ -65,27 +65,6 @@ export default [
       }],
     },
   },
-  // Disable no-explicit-any for files that intentionally use 'any' for JSON:API attributes
-  // These files work with dynamic JSON:API structures where attributes can be any type
-  {
-    files: ['**/api/client.ts', '**/utils/jsonapi.ts', '**/utils/ansible-jsonapi.ts'],
-    rules: {
-      '@typescript-eslint/no-explicit-any': 'off',
-    },
-  },
-  // Disable no-explicit-any and unsafe-* rules for WorkspaceDetail.tsx which works with dynamic Terraform data structures
-  // Terraform plan outputs and state data have highly dynamic structures that are difficult to type strictly
-  {
-    files: ['**/pages/WorkspaceDetail.tsx'],
-    rules: {
-      '@typescript-eslint/no-explicit-any': 'off',
-      '@typescript-eslint/no-unsafe-assignment': 'off',
-      '@typescript-eslint/no-unsafe-member-access': 'off',
-      '@typescript-eslint/no-unsafe-call': 'off',
-      '@typescript-eslint/no-unsafe-argument': 'off',
-      '@typescript-eslint/no-unsafe-return': 'off',
-    },
-  },
   // Disable unsafe-* rules for JSON:API utility files and API client which work with dynamic JSON:API structures
   // These files intentionally use 'any' to handle the dynamic nature of JSON:API attributes
   {

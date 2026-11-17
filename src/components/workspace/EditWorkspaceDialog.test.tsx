@@ -216,3 +216,27 @@ describe('EditWorkspaceDialog: OpenTofu version select (AC23)', () => {
     expect(data.terraform_version).toBeNull();
   });
 });
+
+// An update keeps an attribute it leaves out (#1089), so clearing a field must send an empty string:
+// leaving it out would keep the old value.
+describe('EditWorkspaceDialog: clearing description and working directory (#1089)', () => {
+  const described = { ...baseWorkspace, description: 'Production network', working_directory: 'envs/prod' };
+
+  it('sends an empty description and working directory after both fields are cleared', async () => {
+    const { user } = setup(described);
+
+    await user.clear(dialog().getByLabelText('Description'));
+    await user.clear(dialog().getByLabelText('Working Directory'));
+    const [, , data] = await save(user);
+
+    expect(data).toMatchObject({ description: '', working_directory: '' });
+  });
+
+  it('sends the stored values unchanged when neither field is touched', async () => {
+    const { user } = setup(described);
+
+    const [, , data] = await save(user);
+
+    expect(data).toMatchObject({ description: 'Production network', working_directory: 'envs/prod' });
+  });
+});

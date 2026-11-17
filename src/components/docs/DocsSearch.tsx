@@ -253,25 +253,16 @@ function SearchSession({ docsBase = '/docs', searchIndexFile = '/docs-search-ind
 
   // Keyboard nav inside dialog
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
-    if (e.key === 'ArrowDown') {
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
       e.preventDefault();
-      setSelectedIndex(prev => {
-        const next = Math.min(prev + 1, searchResults.length - 1);
-        // Scroll the selected item into view
-        queueMicrotask(() => {
-          resultsContainerRef.current?.children[next]?.scrollIntoView({ block: 'nearest' });
-        });
-        return next;
-      });
-    } else if (e.key === 'ArrowUp') {
-      e.preventDefault();
-      setSelectedIndex(prev => {
-        const next = Math.max(prev - 1, 0);
-        queueMicrotask(() => {
-          resultsContainerRef.current?.children[next]?.scrollIntoView({ block: 'nearest' });
-        });
-        return next;
-      });
+      if (searchResults.length === 0) return;
+      const next = e.key === 'ArrowDown'
+        ? Math.min(selectedIndex + 1, searchResults.length - 1)
+        : Math.max(selectedIndex - 1, 0);
+      setSelectedIndex(next);
+      // The result rows are already rendered, so the handler scrolls the next one into view
+      // directly; a state updater must stay pure.
+      resultsContainerRef.current?.children[next]?.scrollIntoView({ block: 'nearest' });
     } else if (e.key === 'Enter' && searchResults.length > 0) {
       e.preventDefault();
       const result = searchResults[selectedIndex];

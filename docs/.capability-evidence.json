@@ -465,7 +465,7 @@
         },
         {
           "path": "backend/internal/api/v2/handlers/terraform/workspaces.go",
-          "sha256": "931b5c91a6b40169053b12d2ecb122cda87546f14bf4c8448ec003d6dc2252e0"
+          "sha256": "62500cf4aafc5d3c970e4b09db5061af61df595f86a43bb6c2deb0c4df6a88ab"
         },
         {
           "path": "backend/internal/launcher/supervise.go",
@@ -493,7 +493,7 @@
         },
         {
           "path": "frontend/src/pages/WorkspaceDetail.tsx",
-          "sha256": "cd1d8461bc27f92170c01696cf90474edcc69932df3f81f9dae455b8e6759d73"
+          "sha256": "69641a01c11c654d4a6358c383bb60cbb13eee14633c9aaefbf51a90336fb5a0"
         }
       ]
     },
@@ -577,7 +577,7 @@
         },
         {
           "path": "frontend/src/api/client.ts",
-          "sha256": "db6c63d84ed75c623f0919bcdce405a4647e69bfaf3e427c474d7fb750bfff5a"
+          "sha256": "4ee3ddc69af329b007a65f87d2172856fa2e63c0f970d7f3efb25d04909992d3"
         },
         {
           "path": "frontend/src/components/workspace/WorkspaceChangeRequests.tsx",
@@ -592,7 +592,7 @@
     {
       "id": "workspace-path-filters",
       "guide": "features/opentofu/vcs-path-filtering.md",
-      "guideHash": "15bc72758b0d178acbb5b98facc7b23271d8cd64e7b342a14d8b643cfa54909a",
+      "guideHash": "b68eb3c78c6b7a642a804635cc133312445d45fe92e75f415ba802ce9105bda6",
       "metadataHash": "efe624e2b74896d4e780b408ed942ff8eb860343875635054eba8491bdc01971",
       "evidence": [
         {
@@ -608,7 +608,7 @@
     {
       "id": "workspace-settings",
       "guide": "features/opentofu/workspace-editing.md",
-      "guideHash": "6874fba377fc7e175244f9a11fa1d4db3d8242a1dda401de2cd4deeaec7de44f",
+      "guideHash": "403301289fecf865e9faabf815822a52986fedeb1f44a90ab8b9cacfee9a62b3",
       "metadataHash": "4a091f7672acd2f1d75ba40aac20e94286689e10f0acf972a5588e914c98b9f1",
       "evidence": [
         {
@@ -617,11 +617,11 @@
         },
         {
           "path": "backend/internal/api/v2/handlers/terraform/workspaces.go",
-          "sha256": "931b5c91a6b40169053b12d2ecb122cda87546f14bf4c8448ec003d6dc2252e0"
+          "sha256": "62500cf4aafc5d3c970e4b09db5061af61df595f86a43bb6c2deb0c4df6a88ab"
         },
         {
           "path": "frontend/src/pages/WorkspaceDetail.tsx",
-          "sha256": "cd1d8461bc27f92170c01696cf90474edcc69932df3f81f9dae455b8e6759d73"
+          "sha256": "69641a01c11c654d4a6358c383bb60cbb13eee14633c9aaefbf51a90336fb5a0"
         }
       ]
     },

@@ -207,6 +207,23 @@ function cleanStateProvider(provider: string | undefined): string {
   return provider;
 }
 
+
+/**
+ * The detail of the first JSON:API error on a failed request when the API sent one, otherwise the
+ * error's own message, otherwise the fallback.
+ */
+function apiErrorDetail(err: unknown, fallback: string): string {
+  if (!(err instanceof Error)) return fallback;
+  if ('response' in err && typeof err.response === 'object' && err.response !== null && 'data' in err.response) {
+    const { data } = err.response;
+    if (typeof data === 'object' && data !== null && 'errors' in data && Array.isArray(data.errors)) {
+      const first: unknown = data.errors[0];
+      if (typeof first === 'object' && first !== null && 'detail' in first && typeof first.detail === 'string') return first.detail;
+    }
+  }
+  return err.message;
+}
+
 export default function WorkspaceDetail() {
   const { orgName, workspaceName } = useParams<{
     orgName: string;
@@ -530,7 +547,7 @@ export default function WorkspaceDetail() {
   const { data: latestRunPlanOutput } = useQuery({
     queryKey: ['plan-output', latestRun?.id, latestRun?.status],
     queryFn: async () => {
-      const planOutput = await runsApi.getPlan(latestRun!.id);
+      const planOutput: unknown = await runsApi.getPlan(latestRun!.id);
       if (planOutput && typeof planOutput === 'object' && Object.keys(planOutput).length > 0) {
         return planOutput as Record<string, unknown>;
       }
@@ -702,7 +719,8 @@ export default function WorkspaceDetail() {
     try {
       await workspacesApi.update(orgName, workspaceName, {
         name: workspace.name,
-        description: inlineDescription.trim() || undefined,
+        // "" clears the description; leaving it out would keep the old one.
+        description: inlineDescription.trim(),
       });
       void refetchData();
       setIsEditingDescription(false);
@@ -721,12 +739,6 @@ export default function WorkspaceDetail() {
     setIsEditingDescription(false);
   };
 
-  // The API's error detail when it sent one, otherwise the error's own message.
-  const toggleLockErrorMessage = (err: unknown): string =>
-    (err instanceof Error && 'response' in err && typeof err.response === 'object' && err.response !== null && 'data' in err.response && typeof err.response.data === 'object' && err.response.data !== null && 'errors' in err.response.data && Array.isArray(err.response.data.errors) && err.response.data.errors.length > 0 && typeof err.response.data.errors[0] === 'object' && err.response.data.errors[0] !== null && 'detail' in err.response.data.errors[0] && typeof err.response.data.errors[0].detail === 'string')
-      ? err.response.data.errors[0].detail
-      : (err instanceof Error ? err.message : 'Failed to toggle lock');
-
   // Runs only from the force-unlock confirmation, which opens when a normal unlock is refused
   // because another user holds the lock.
   const handleForceUnlock = async () => {
@@ -737,7 +749,7 @@ export default function WorkspaceDetail() {
       void refetchData();
       toast.success('Workspace force unlocked');
     } catch (err: unknown) {
-      toast.error(toggleLockErrorMessage(err));
+      toast.error(apiErrorDetail(err, 'Failed to toggle lock'));
     } finally {
       setForceUnlocking(false);
       setForceUnlockDialogOpen(false);
@@ -793,9 +805,7 @@ export default function WorkspaceDetail() {
         return;
       }
 
-      const errorMessage = (error instanceof Error && 'response' in error && typeof error.response === 'object' && error.response !== null && 'data' in error.response && typeof error.response.data === 'object' && error.response.data !== null && 'errors' in error.response.data && Array.isArray(error.response.data.errors) && error.response.data.errors.length > 0 && typeof error.response.data.errors[0] === 'object' && error.response.data.errors[0] !== null && 'detail' in error.response.data.errors[0] && typeof error.response.data.errors[0].detail === 'string')
-        ? error.response.data.errors[0].detail
-        : (error instanceof Error ? error.message : 'Failed to delete workspace');
+      const errorMessage = apiErrorDetail(error, 'Failed to delete workspace');
       toast.error(errorMessage);
       setDeleting(false);
     }
@@ -1110,7 +1120,7 @@ export default function WorkspaceDetail() {
                       setLockDialogOpen(true);
                     }
                   } catch (err: unknown) {
-                    toast.error(toggleLockErrorMessage(err));
+                    toast.error(apiErrorDetail(err, 'Failed to toggle lock'));
                   }
                 })();
               }}
@@ -2577,9 +2587,7 @@ export default function WorkspaceDetail() {
                     setLockReason('');
                     toast.success('Workspace locked');
                   } catch (err: unknown) {
-                    const errorMessage = (err instanceof Error && 'response' in err && typeof err.response === 'object' && err.response !== null && 'data' in err.response && typeof err.response.data === 'object' && err.response.data !== null && 'errors' in err.response.data && Array.isArray(err.response.data.errors) && err.response.data.errors.length > 0 && typeof err.response.data.errors[0] === 'object' && err.response.data.errors[0] !== null && 'detail' in err.response.data.errors[0] && typeof err.response.data.errors[0].detail === 'string')
-                      ? err.response.data.errors[0].detail
-                      : (err instanceof Error ? err.message : 'Failed to lock workspace');
+                    const errorMessage = apiErrorDetail(err, 'Failed to lock workspace');
                     toast.error(errorMessage);
                   }
                 })();

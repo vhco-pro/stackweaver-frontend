@@ -1,6 +1,6 @@
 // Copyright (c) 2025 VH & Co BV. Licensed under the Business Source License 1.1. See LICENSE for details.
 
-import { type JsonApiResource, type JsonApiResponse, type JsonApiListResponse, type JsonApiResourceIdentifier, getRelationship, getRelationships } from '@/utils/jsonapi';
+import { type JsonApiResource, type JsonApiResponse, type JsonApiListResponse, type JsonApiResourceIdentifier, type JsonApiRelationship, getRelationship, getRelationships } from '@/utils/jsonapi';
 import { fetchAllPages } from '@/lib/pagination';
 import { placementFromAttributes, type Placement } from '@/lib/placement';
 
@@ -710,8 +710,7 @@ export const projectsApi = {
  
 function workspaceFromJsonApi(item: JsonApiResource, included?: JsonApiResource[]): Workspace {
   const attrs = item.attributes || {};
-   
-  const vcsRepo = attrs['vcs-repo'] as Record<string, any> | null | undefined;
+  const vcsRepo = attrs['vcs-repo'] as { 'service-provider'?: string; identifier?: string; branch?: string } | null | undefined;
   const projectRel = getRelationship(item, 'project');
   const agentPoolRel = getRelationship(item, 'agent-pool');
   const lockedByRel = getRelationship(item, 'locked-by');
@@ -720,7 +719,7 @@ function workspaceFromJsonApi(item: JsonApiResource, included?: JsonApiResource[
   // Map TFE service-provider to our vcs_provider field
   let vcsProvider: string | undefined;
   if (vcsRepo) {
-    const sp = String(vcsRepo['service-provider'] || '');
+    const sp = vcsRepo['service-provider'] || '';
     switch (sp) {
       case 'github': vcsProvider = 'github'; break;
       case 'ado_services': vcsProvider = 'azure_devops'; break;
@@ -737,8 +736,8 @@ function workspaceFromJsonApi(item: JsonApiResource, included?: JsonApiResource[
     description: attrs['description'] ? String(attrs['description']) : undefined,
     vcs_connection_id: attrs['vcs-connection-id'] ? String(attrs['vcs-connection-id']) : undefined,
     vcs_provider: vcsProvider,
-    vcs_repository: vcsRepo ? String(vcsRepo['identifier'] || '') : undefined,
-    vcs_branch: vcsRepo ? String(vcsRepo['branch'] || '') : undefined,
+    vcs_repository: vcsRepo ? vcsRepo['identifier'] || '' : undefined,
+    vcs_branch: vcsRepo ? vcsRepo['branch'] || '' : undefined,
     vcs_account_name: attrs['vcs-account-name'] ? String(attrs['vcs-account-name']) : undefined,
     terraform_version: attrs['terraform-version'] ? String(attrs['terraform-version']) : undefined,
     working_directory: attrs['working-directory'] ? String(attrs['working-directory']) : undefined,
@@ -1984,15 +1983,15 @@ export const oidcConfigApi = {
 
 export const vcsConnectionsApi = {
   list: (organizationName: string) =>
-    apiClient.get<{ data: Array<{ id: string; type: string; attributes: Omit<VCSConnection, 'id'>; relationships?: Record<string, unknown> }> }>(`/organizations/${encodeURIComponent(organizationName)}/vcs-connections`).then(res => {
+    apiClient.get<{ data: Array<{ id: string; type: string; attributes: Omit<VCSConnection, 'id'>; relationships?: Record<string, JsonApiRelationship> }> }>(`/organizations/${encodeURIComponent(organizationName)}/vcs-connections`).then(res => {
       // Transform JSON:API format to flat structure and return all connections (no deduplication)
-      return (res.data || []).map((item: { id: string; type: string; attributes: Omit<VCSConnection, 'id'>; relationships?: Record<string, unknown> }) => {
+      return (res.data || []).map((item: { id: string; type: string; attributes: Omit<VCSConnection, 'id'>; relationships?: Record<string, JsonApiRelationship> }) => {
         const { ...attributes } = item.attributes;
         return {
           id: item.id,
           // usage of organization_id from attributes will be overwritten if present
           ...attributes, 
-          organization_id: (item.relationships?.organization as any)?.data?.id || '',
+          organization_id: getRelationship(item, 'organization')?.id || '',
         };
       });
     }),
