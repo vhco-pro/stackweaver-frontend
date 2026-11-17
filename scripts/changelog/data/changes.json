@@ -2677,5 +2677,29 @@
       "frontend"
     ],
     "availability": []
+  },
+  {
+    "id": "launcher-registration-key-permission",
+    "title": "Launcher registration keys need permission to manage agent pools",
+    "area": "Platform",
+    "kind": "Changed",
+    "reviewed": true,
+    "audience": "Organizations that register launchers with an API key carrying the Launcher registration scope instead of an agent token.",
+    "before": "An API key with the Launcher registration scope registered launchers whatever its owner's role in the organization.",
+    "after": "Creating an API key with the Launcher registration scope needs the permission that creating an agent token needs: owner of the organization, or a team with permission to manage agent pools. A key registers launchers only while its owner holds that permission. Agent tokens and just-in-time tokens are unchanged.",
+    "action": "If a launcher fails to register with an API key, have an organization owner or agent pool manager create its registration credential, preferably an agent token of the pool.",
+    "details": [],
+    "guides": [
+      {
+        "title": "Agent pools",
+        "path": "/docs/user-guides/launchers/agent-pools"
+      }
+    ],
+    "sourceCommits": [],
+    "draftCommits": [],
+    "requiredComponents": [
+      "api"
+    ],
+    "availability": []
   }
 ]
