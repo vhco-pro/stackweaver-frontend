@@ -29,7 +29,7 @@
       "evidence": [
         {
           "path": "backend/internal/api/v2/handlers/runner_agent.go",
-          "sha256": "a3ef7dfef65e45d97edcd996c20aa7dcf87f42636dacfa5bc81377b7e0e23a60"
+          "sha256": "3f28a1c2248d25723a9c89ae9017739c487762c9cae90f85e07145d72dc2f0c9"
         },
         {
           "path": "backend/internal/launcher/launcher.go",
@@ -53,7 +53,7 @@
         },
         {
           "path": "backend/internal/api/v2/handlers/runner_agent.go",
-          "sha256": "a3ef7dfef65e45d97edcd996c20aa7dcf87f42636dacfa5bc81377b7e0e23a60"
+          "sha256": "3f28a1c2248d25723a9c89ae9017739c487762c9cae90f85e07145d72dc2f0c9"
         },
         {
           "path": "backend/internal/executor/ansibleexec/run.go",
@@ -193,7 +193,7 @@
         },
         {
           "path": "backend/internal/api/v2/handlers/runner_agent.go",
-          "sha256": "a3ef7dfef65e45d97edcd996c20aa7dcf87f42636dacfa5bc81377b7e0e23a60"
+          "sha256": "3f28a1c2248d25723a9c89ae9017739c487762c9cae90f85e07145d72dc2f0c9"
         },
         {
           "path": "core/services/ansible/playbook_sync.go",
@@ -381,7 +381,7 @@
       "evidence": [
         {
           "path": "backend/internal/api/v2/routes/routes.go",
-          "sha256": "3a0bdcec6580ebc3fda3fac4e218b0b6b959f4dd43c42c878b41750869ee5194"
+          "sha256": "a783629a048b131cadd2be4383071c78d3ca44fb2662ef18213fcb396f8c4eb3"
         },
         {
           "path": "frontend/src/pages/Docs/ApiReferenceExplorer.tsx",

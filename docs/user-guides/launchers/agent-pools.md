@@ -35,7 +35,7 @@ A launcher registers with a registration credential and then switches to a launc
 
 The safest registration credential is a **pool-scoped agent token**. Expand the pool on the **Settings > Agent Pools** page and use its **Agent tokens** section: create a token with a description, copy the value once, and revoke it when you are done. A launcher presenting an agent token can only join that pool, so it is the safest way to hand out registration access per environment. This is the Terraform-compatible `tfe_agent_token` resource, so you can also manage these tokens with the `hashicorp/tfe` provider.
 
-You can also use an organization API key that may register launchers:
+You can also use an organization API key that may register launchers. Creating one needs the same permission as creating an agent token: owner of the organization, or a team with permission to manage agent pools.
 
 1. Go to **Settings > API Keys**.
 2. Create a new API key and choose the **Launcher registration** scope.
