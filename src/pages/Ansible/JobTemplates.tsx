@@ -294,6 +294,8 @@ export default function JobTemplates() {
       // Saving a repository file registers it as a playbook, so the pickers' options may have
       // grown and are fetched again.
       void queryClient.invalidateQueries({ queryKey: formDataQueryKey });
+      // The Playbooks page lists that playbook too.
+      void queryClient.invalidateQueries({ queryKey: ['playbooks', selectedOrg] });
       setCreateDialogOpen(false);
       setCreateForm({
         name: '',
@@ -702,7 +704,7 @@ export default function JobTemplates() {
                 value={createForm.inventory_id}
                 onValueChange={(value) => setCreateForm({ ...createForm, inventory_id: value })}
               >
-                <SelectTrigger>
+                <SelectTrigger id="inventory_id">
                   <SelectValue placeholder="Select an inventory" />
                 </SelectTrigger>
                 <SelectContent emptyMessage="No inventories available">
@@ -718,7 +720,7 @@ export default function JobTemplates() {
                 value={createForm.credential_id || '__none__'}
                 onValueChange={(value) => setCreateForm({ ...createForm, credential_id: value === '__none__' ? '' : value })}
               >
-                <SelectTrigger>
+                <SelectTrigger id="credential_id">
                   <SelectValue placeholder="Select a credential (optional)" />
                 </SelectTrigger>
                 <SelectContent>
@@ -742,7 +744,7 @@ export default function JobTemplates() {
                   value={String(createForm.verbosity)}
                   onValueChange={(value) => setCreateForm({ ...createForm, verbosity: parseInt(value) })}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger id="verbosity">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>

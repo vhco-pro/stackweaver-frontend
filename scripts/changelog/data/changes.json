@@ -2597,5 +2597,85 @@
       "frontend"
     ],
     "availability": []
+  },
+  {
+    "id": "ansible-playbook-sync-schedules-sync",
+    "title": "Playbook sync schedules sync the playbook",
+    "area": "Ansible",
+    "kind": "Fixed",
+    "reviewed": true,
+    "audience": "Ansible users who schedule playbook syncs from a VCS repository.",
+    "before": "A schedule of type Playbook VCS Sync recorded a successful run each time it came due, but did not sync the playbook.",
+    "after": "A due playbook sync schedule, or Run now, requests the playbook's sync from its repository, the same sync a manual or webhook sync starts. The schedule shows the run as queued, then as the sync's outcome. When a sync of the playbook is already in progress, the run follows it instead of starting another.",
+    "action": "No action is required. Playbooks that a schedule was expected to keep current may be behind their repository; their next scheduled run or a manual sync brings them up to date.",
+    "details": [],
+    "guides": [
+      {
+        "title": "Ansible execution flows",
+        "path": "/docs/features/ansible/execution-flows"
+      }
+    ],
+    "sourceCommits": [],
+    "draftCommits": [
+      "83b2bd1d4f98d053dec9343d31d0f68f325d9c60",
+      "379afa45a0bce181caa1b49ddc5829e1f515a4d1"
+    ],
+    "requiredComponents": [
+      "api"
+    ],
+    "availability": []
+  },
+  {
+    "id": "ansible-azure-service-principal-inventory-sync",
+    "title": "Azure inventory sources authenticate with a service-principal credential",
+    "area": "Ansible",
+    "kind": "Fixed",
+    "reviewed": true,
+    "audience": "Ansible users with Azure dynamic inventory sources that use an attached Azure service-principal credential.",
+    "before": "An Azure inventory source using an attached service-principal credential failed to sync with \"Failed to authenticate with provided credentials. Some attributes were missing.\"",
+    "after": "The sync hands the credential's client secret to the Azure inventory plugin under the name it reads, so service-principal sources sync. Managed identity, workload identity and OIDC sources are unchanged.",
+    "action": "No action is required. Run a sync of affected sources, or wait for their next scheduled sync, to bring their hosts up to date.",
+    "details": [],
+    "guides": [
+      {
+        "title": "Cloud inventory sources",
+        "path": "/docs/user-guides/ansible/dynamic-inventories/cloud-sources"
+      }
+    ],
+    "sourceCommits": [],
+    "draftCommits": [
+      "133ec9f43ef1b3893f26e2abea3cffe13805eb05"
+    ],
+    "requiredComponents": [
+      "api"
+    ],
+    "availability": []
+  },
+  {
+    "id": "ansible-template-recent-jobs-all-pages",
+    "title": "Job template and playbook pages show their recent jobs in busy organizations",
+    "area": "Ansible",
+    "kind": "Fixed",
+    "reviewed": true,
+    "audience": "Ansible users in organizations with many jobs, and API clients that list an organization's jobs.",
+    "before": "Recent Jobs on a job template or playbook page only looked at the organization's latest page of jobs, so in a busy organization it could be empty. The create dialog's Inventory, Credential and Verbosity selects had no accessible name, and a playbook registered while creating a template did not appear on the Playbooks page until it refreshed.",
+    "after": "Both pages show their own ten most recent jobs, whatever else ran since. `GET /api/v2/organizations/:name/ansible/jobs` accepts `filter[job-template-id]` and `filter[playbook-id]`. The create dialog's selects are named by their labels, and the Playbooks page lists a playbook registered while creating or editing a template.",
+    "action": "No action is required.",
+    "details": [],
+    "guides": [
+      {
+        "title": "Ansible execution flows",
+        "path": "/docs/features/ansible/execution-flows"
+      }
+    ],
+    "sourceCommits": [],
+    "draftCommits": [
+      "8ab346b45f4245258ead15b690e6711b1c3a2677"
+    ],
+    "requiredComponents": [
+      "api",
+      "frontend"
+    ],
+    "availability": []
   }
 ]
