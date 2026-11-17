@@ -248,11 +248,12 @@ function EditWorkspaceFormBody({
     try {
       await workspacesApi.update(orgName, workspace.name, {
         name: name.trim(),
-        description: description.trim() || undefined,
+        // An update keeps an attribute it leaves out, so a cleared field sends "" to clear it.
+        description: description.trim(),
         vcs_connection_id: vcsConnectionId || null,
         vcs_repository: selectedRepository || undefined,
         vcs_branch: effectiveBranch || undefined,
-        working_directory: workingDirectory.trim() || undefined,
+        working_directory: workingDirectory.trim(),
         // Untouched, the version is not sent, so an unrelated save never stamps a pin; Inherit sends
         // null, which clears the workspace's own version (#1069, Q4).
         terraform_version: versionChoice === null ? undefined : versionChoice || null,

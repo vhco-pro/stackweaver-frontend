@@ -12,8 +12,10 @@ import type { Run } from '@/api/client';
 export interface JsonApiResource {
   id: string;
   type: string;
-   
-  attributes: Record<string, any>; // Intentional: JSON:API spec allows any attribute types
+  // Interoperability boundary: a JSON:API attribute bag holds whatever each resource type
+  // defines, and its readers type the attributes they use.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  attributes: Record<string, any>;
   relationships?: Record<string, JsonApiRelationship>;
   links?: Record<string, string>;
 }
@@ -61,16 +63,14 @@ export type JsonApiListResponse<T extends JsonApiResource = JsonApiResource> = J
 /**
  * Extract attributes from a JSON:API resource
  */
- 
-export function getAttributes(resource: JsonApiResource): Record<string, any> {
+export function getAttributes(resource: JsonApiResource): JsonApiResource['attributes'] {
   return resource.attributes || {};
 }
 
 /**
  * Get a specific attribute from a JSON:API resource
  */
- 
-export function getAttribute<T = any>(resource: JsonApiResource, name: string, defaultValue?: T): T | undefined {
+export function getAttribute<T = unknown>(resource: JsonApiResource, name: string, defaultValue?: T): T | undefined {
   return (resource.attributes?.[name] as T) ?? defaultValue;
 }
 
@@ -254,12 +254,13 @@ export function resolveRelationships(
 
 /**
  * Transform a JSON:API resource to a flat object structure
- * This is useful when you need to work with the data in a simpler format
+ * This is useful when you need to work with the data in a simpler format.
+ * Interoperability boundary: the flat object carries the resource type's own attributes, which
+ * each caller types where it uses them.
  */
- 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function flattenResource(resource: JsonApiResource): any {
-   
-  const flattened: any = {
+  const flattened: Record<string, unknown> = {
     id: resource.id,
     ...resource.attributes,
   };
@@ -280,9 +281,9 @@ export function flattenResource(resource: JsonApiResource): any {
 }
 
 /**
- * Transform a JSON:API response array to flat objects
+ * Transform a JSON:API response array to flat objects (the same boundary as flattenResource)
  */
- 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function flattenResources(resources: JsonApiResource[]): any[] {
   return resources.map(flattenResource);
 }
@@ -290,23 +291,17 @@ export function flattenResources(resources: JsonApiResource[]): any[] {
 /**
  * Check if a response is a JSON:API format response
  */
- 
-export function isJsonApiResponse(response: any): response is JsonApiResponse<JsonApiResource | JsonApiResource[]> {
-  return (
-    response &&
-    typeof response === 'object' &&
-    'data' in response &&
-    (Array.isArray(response.data) || 
-     (response.data && typeof response.data === 'object' && 'type' in response.data))
-  );
+export function isJsonApiResponse(response: unknown): response is JsonApiResponse<JsonApiResource | JsonApiResource[]> {
+  if (typeof response !== 'object' || response === null || !('data' in response)) return false;
+  const { data } = response;
+  return Array.isArray(data) || (typeof data === 'object' && data !== null && 'type' in data);
 }
 
 /**
  * Normalize a JSON:API response to ensure consistent structure
  */
 export function normalizeJsonApiResponse<T extends JsonApiResource | JsonApiResource[]>(
-   
-  response: any
+  response: unknown
 ): JsonApiResponse<T> {
   if (!isJsonApiResponse(response)) {
     throw new Error('Response is not in JSON:API format');

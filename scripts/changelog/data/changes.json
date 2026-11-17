@@ -2569,5 +2569,33 @@
       "frontend"
     ],
     "availability": []
+  },
+  {
+    "id": "workspace-patch-keeps-omitted-attributes",
+    "title": "Updating a workspace keeps its working directory and description unless the request changes them",
+    "area": "OpenTofu",
+    "kind": "Fixed",
+    "reviewed": true,
+    "audience": "API clients and Terraform provider users that update workspaces, especially ones whose configuration lives in a repository subdirectory.",
+    "before": "A workspace update that left out `working-directory` cleared it, so the next run planned at the repository root and failed when the configuration lived in a subdirectory. An update by organization and name also cleared an omitted description, and an update by ID could not clear a description.",
+    "after": "An update changes only the attributes it sends. Leaving out `working-directory` or `description` keeps the stored value, and an empty string clears it, on both workspace update routes. Clearing either field in the workspace edit dialog, or the description on the workspace page, clears it.",
+    "action": "Check workspaces updated through the API or the Terraform provider since they were created: if one now runs at the repository root although its configuration lives in a subdirectory, set its working directory again.",
+    "details": [],
+    "guides": [
+      {
+        "title": "Workspace editing",
+        "path": "/docs/features/opentofu/workspace-editing"
+      }
+    ],
+    "sourceCommits": [],
+    "draftCommits": [
+      "d858fac0bdc24f3a1c03c371a9daf42c8389eb99",
+      "776818c77f9d5b7cfb385b8339e837d4074d38e0"
+    ],
+    "requiredComponents": [
+      "api",
+      "frontend"
+    ],
+    "availability": []
   }
 ]

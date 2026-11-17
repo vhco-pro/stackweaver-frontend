@@ -18,13 +18,13 @@
       "id": "workspace",
       "path": "/app/acme/workspaces/prod-cluster",
       "page": "pages/WorkspaceDetail.tsx",
-      "sha256": "cd1d8461bc27f92170c01696cf90474edcc69932df3f81f9dae455b8e6759d73"
+      "sha256": "69641a01c11c654d4a6358c383bb60cbb13eee14633c9aaefbf51a90336fb5a0"
     },
     {
       "id": "runs",
       "path": "/app/acme/workspaces/prod-cluster",
       "page": "pages/WorkspaceDetail.tsx",
-      "sha256": "cd1d8461bc27f92170c01696cf90474edcc69932df3f81f9dae455b8e6759d73"
+      "sha256": "69641a01c11c654d4a6358c383bb60cbb13eee14633c9aaefbf51a90336fb5a0"
     },
     {
       "id": "run",

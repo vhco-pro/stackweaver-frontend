@@ -123,10 +123,9 @@ replace its ID with `WORKSPACE_ID`:
 }
 ```
 
-> [!IMPORTANT]
-> Include the working directory even when changing another setting. The current update
-> handler can clear it to the repository root when the attribute is omitted. Do not treat
-> every workspace field as having identical partial-update behavior.
+An update changes only the attributes it sends. Leave `working-directory` or `description`
+out to keep the stored value, or send `""` to clear it; a cleared working directory runs at
+the repository root.
 
 ```bash
 curl --fail-with-body --request PATCH \

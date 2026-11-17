@@ -124,8 +124,8 @@ with `422`. Setting a nonempty list can replace the other kind already stored.
 
 ## Update filters through the API
 
-Set the API origin, token and `WORKSPACE_ID`. The request must include the intended
-`working-directory`; omitting it on the current update path can clear it to the root.
+Set the API origin, token and `WORKSPACE_ID`. An update changes only the attributes it
+sends, so a request that leaves out `working-directory` keeps the stored one.
 Save this as `path-filters.json`:
 
 ```json
