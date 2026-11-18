@@ -137,6 +137,11 @@ package. Common examples are `amazon.aws`, `azure.azcollection`, `google.cloud`,
 versions depend on the image a job runs in; inspect that image instead of relying on a
 second hand-maintained version list.
 
+The image also carries `pywinrm` with `requests-ntlm` and `pyspnego`, so the bundled
+`ansible.windows`, `community.windows` and `microsoft.ad` collections reach Windows hosts
+over WinRM with NTLM authentication (`ansible_connection: winrm`,
+`ansible_winrm_transport: ntlm`), using the user name and password of a **Machine SSH** credential.
+
 Hosted jobs run in the Ansible job image the launcher names in `RUNNER_ANSIBLE_IMAGE`, by
 default `ghcr.io/vhco-pro/stackweaver-ansible-runner:latest`. Read its installed set and engine
 version from that image:

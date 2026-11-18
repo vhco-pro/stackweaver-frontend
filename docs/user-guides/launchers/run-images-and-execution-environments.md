@@ -26,6 +26,8 @@ Every OpenTofu run and Ansible job runs in an image. Unless you choose otherwise
 
 Stackweaver needs nothing of its own inside your image. When a job resolves a run image, the launcher's driver copies Stackweaver's job program (`stackweaver-executor`) into the job's container or pod from that engine's job image and starts it as the entrypoint, so the image's own `ENTRYPOINT` and `CMD` are not used. That program then fetches the job from the API, runs `tofu` or `ansible-playbook` from your image, and reports the result.
 
+A run image need not be built from a job image or contain any Stackweaver program; it needs only what the table below lists for its engine. To replace an engine's job image itself, for every job that selects no run image, see [Use your own job image](./start-a-launcher.md#use-your-own-job-image).
+
 What an image needs depends on the engine.
 
 | Engine | What the image needs |

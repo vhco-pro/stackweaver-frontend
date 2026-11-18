@@ -8,6 +8,7 @@ covers:
   - "core/runnercontract/**"
   - "core/runnerdriver/**"
   - "frontend/src/pages/Settings/Runners.tsx"
+  - "runner-images/**"
 ---
 
 # Start a launcher
@@ -306,6 +307,35 @@ On a Linux host or VM without Docker, the launcher binary runs each job as a chi
    ```
 
    `TimeoutStopSec=390` lets a stopping launcher finish its jobs, as `--stop-timeout 390` does for Docker. Jobs share the launcher user's filesystem and network.
+
+## Use your own job image
+
+A job image of your own replaces a published job image for every job of that engine that selects no run image. Most changes do not need one:
+
+- For extra Galaxy collections and roles, commit a `requirements.yml` to the project; see [Galaxy collections](../../features/ansible/galaxy-collections.md).
+- For Python packages, system packages or your own CA certificates, select an image of your own per template, inventory source, project or organization; see [Run images and execution environments](./run-images-and-execution-environments.md).
+
+Replace the job image only when every job of an engine on a launcher needs the change. Build it `FROM` the published job image of the same release, so that it keeps what the launcher relies on:
+
+| Requirement | Why |
+|-------------|-----|
+| The launcher binary at `/usr/local/bin/stackweaver-launcher`, as an executable file rather than a link. | The container and Kubernetes drivers start every job as `/usr/local/bin/stackweaver-launcher executor`, and copy that file into a job's run image as its `stackweaver-executor` program. |
+| A link to it at the engine's earlier path: `/usr/local/bin/ansible-runner` for Ansible, `/usr/local/bin/runner` for OpenTofu. | A launcher of an earlier release starts the executor through that path. |
+| `ansible-playbook` and `ansible-galaxy` on the path for Ansible, `tofu` for OpenTofu. | The executor runs the engine from the image. |
+| `/bin/sh`, `cp` and `chmod`. | The container driver copies the executor into a run image with `/bin/sh -c` running `cp` and `chmod`; the Kubernetes driver runs `cp` directly. |
+| A non-root user. | A container-driver launcher refuses a root image unless it was started with `RUNNER_ALLOW_ROOT=true`, as for [run images](./run-images-and-execution-environments.md#how-a-run-image-runs). |
+
+An image built from an Ansible runner image of a release before launchers has no `/usr/local/bin/stackweaver-launcher`, so every job placed in it fails to start. Rebuild it from the current job image. Check an image before you configure it:
+
+```bash
+docker run --rm --entrypoint sh registry.example.com/acme/ansible-job:1.0 -c '
+  test -x /usr/local/bin/stackweaver-launcher && test ! -L /usr/local/bin/stackweaver-launcher &&
+  readlink -f /usr/local/bin/ansible-runner && command -v ansible-playbook && command -v ansible-galaxy'
+```
+
+The command prints `/usr/local/bin/stackweaver-launcher` and the two Ansible paths. For an OpenTofu image, check `/usr/local/bin/runner` and `tofu` instead.
+
+Configure the image with `RUNNER_ANSIBLE_IMAGE` or `RUNNER_TOFU_IMAGE` on a container or Kubernetes launcher, or with `launcher.jobImages.ansible` and `launcher.jobImages.opentofu` (`repository` and `tag`) in the Helm chart. On the in-process driver the job image is the launcher's own image: run it with its default command.
 
 ## Launcher environment variables
 
