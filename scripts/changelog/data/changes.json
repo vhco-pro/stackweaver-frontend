@@ -2684,10 +2684,10 @@
     "area": "Platform",
     "kind": "Changed",
     "reviewed": true,
-    "audience": "Organizations that register launchers with an API key carrying the Launcher registration scope instead of an agent token.",
+    "audience": "Organizations that register launchers with an API key carrying the Launcher registration scope, or that mint just-in-time tokens for launchers.",
     "before": "An API key with the Launcher registration scope registered launchers whatever its owner's role in the organization.",
-    "after": "Creating an API key with the Launcher registration scope needs the permission that creating an agent token needs: owner of the organization, or a team with permission to manage agent pools. A key registers launchers only while its owner holds that permission. A launcher registered before this release keeps working only while the user whose credential registered it holds that permission. Agent tokens and just-in-time tokens are unchanged.",
-    "action": "If a launcher fails to register with an API key, or a running launcher reports that its token was issued before this check, have an organization owner or agent pool manager create its registration credential, preferably an agent token of the pool, and restart the launcher.",
+    "after": "Creating an API key with the Launcher registration scope needs the permission that creating an agent token needs: owner of the organization, or a team with permission to manage agent pools. A key registers launchers only while its owner holds that permission. A launcher registered before this release keeps working only while the user whose credential registered it holds that permission. A just-in-time token is minted, and registers a launcher, only while the user whose credential minted it holds that permission, and it cannot mint another just-in-time token. Agent tokens still register launchers whatever their creator's role now; minting a just-in-time token with one needs its creator to hold that permission.",
+    "action": "If a launcher fails to register with an API key, or a running launcher reports that its token was issued before this check, have an organization owner or agent pool manager create its registration credential, preferably an agent token of the pool, and restart the launcher. If minting just-in-time tokens with an agent token fails, replace it with an agent token created by an organization owner or agent pool manager.",
     "details": [],
     "guides": [
       {
