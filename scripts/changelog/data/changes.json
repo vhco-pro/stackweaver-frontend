@@ -2701,5 +2701,37 @@
       "api"
     ],
     "availability": []
+  },
+  {
+    "id": "ansible-image-winrm",
+    "title": "The Ansible job image reaches Windows hosts over WinRM",
+    "area": "Ansible",
+    "kind": "Added",
+    "reviewed": true,
+    "audience": "Teams that run Ansible jobs against Windows hosts in the default Ansible job image.",
+    "before": "The Ansible job image bundled the Windows collections but not the WinRM transport, so a job with ansible_connection: winrm failed with \"winrm or requests is not installed\".",
+    "after": "The image carries pywinrm, requests-ntlm and pyspnego. Jobs reach Windows hosts over WinRM with NTLM authentication, using the user name and password of a Machine SSH credential.",
+    "action": "No action is required. Set ansible_connection: winrm and ansible_winrm_transport: ntlm on Windows hosts to use it.",
+    "details": [
+      "Kerberos and CredSSP authentication need packages the image does not carry; use a run image of your own for them."
+    ],
+    "guides": [
+      {
+        "title": "Galaxy collections",
+        "path": "/docs/features/ansible/galaxy-collections"
+      },
+      {
+        "title": "Start a launcher",
+        "path": "/docs/user-guides/launchers/start-a-launcher#use-your-own-job-image"
+      }
+    ],
+    "sourceCommits": [],
+    "draftCommits": [
+      "7887322d2224f2391d34c3decb5090f093ad7e0f"
+    ],
+    "requiredComponents": [
+      "ansible-runner"
+    ],
+    "availability": []
   }
 ]

@@ -104,7 +104,7 @@
     {
       "id": "ansible-galaxy",
       "guide": "features/ansible/galaxy-collections.md",
-      "guideHash": "a7db70728b76bf3e238e397474d1127ef1cb5c0ce10e68a5c3e429adad5521d1",
+      "guideHash": "22216185f8fe57e2bf039e4b47e36e8cd65b387b69d26a18a5f52e86cfa3e7e2",
       "metadataHash": "4592ed872577bcf5f73ee0c6be6b69cd03aa43198eaa60edf5e8075b774629a1",
       "evidence": [
         {
