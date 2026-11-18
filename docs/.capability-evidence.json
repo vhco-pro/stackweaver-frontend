@@ -29,7 +29,7 @@
       "evidence": [
         {
           "path": "backend/internal/api/v2/handlers/runner_agent.go",
-          "sha256": "993f032dd89c1ad055bd0d914f41a687631861a7ec38a54c107d1b867b548ee8"
+          "sha256": "f307556dd3862f7072935e1693f1ecca97df4ebe819d57707858aa964a9f8c72"
         },
         {
           "path": "backend/internal/launcher/launcher.go",
@@ -53,7 +53,7 @@
         },
         {
           "path": "backend/internal/api/v2/handlers/runner_agent.go",
-          "sha256": "993f032dd89c1ad055bd0d914f41a687631861a7ec38a54c107d1b867b548ee8"
+          "sha256": "f307556dd3862f7072935e1693f1ecca97df4ebe819d57707858aa964a9f8c72"
         },
         {
           "path": "backend/internal/executor/ansibleexec/run.go",
@@ -193,7 +193,7 @@
         },
         {
           "path": "backend/internal/api/v2/handlers/runner_agent.go",
-          "sha256": "993f032dd89c1ad055bd0d914f41a687631861a7ec38a54c107d1b867b548ee8"
+          "sha256": "f307556dd3862f7072935e1693f1ecca97df4ebe819d57707858aa964a9f8c72"
         },
         {
           "path": "core/services/ansible/playbook_sync.go",
