@@ -1,5 +1,13 @@
 [
   {
+    "commit": "b3e1f74e5e5e7adf20f96c0abcc68ba194f364a1",
+    "reason": "Internal docs-drift publisher acceptance: bind the actual owner dispatch separately from its bot credential, preserve the original refusal and install the released plugin in an isolated test profile."
+  },
+  {
+    "id": "docs-drift-native-installed-proof",
+    "reason": "Internal docs-drift acceptance verification and diagnostics. Authenticate the ordinarily installed package before loading it and retain its actual directory; the product runtime, customer interfaces and deployment behavior stay unchanged."
+  },
+  {
     "id": "docs-drift-worker-history-boundary",
     "reason": "Internal developer-workflow correction for the dormant documentation-drift worker. Covers checkout-loaded runtime inputs, complete history publication and pre-credential guard ordering before adoption."
   },
