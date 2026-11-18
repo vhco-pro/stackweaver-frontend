@@ -381,7 +381,7 @@
       "evidence": [
         {
           "path": "backend/internal/api/v2/routes/routes.go",
-          "sha256": "2121d38bed0f89947a569f276cc4653ecd176a79478925e0ef4a07eeed59abb4"
+          "sha256": "8a3685774dd00ede59afb5d9166d9124a12fb388f92c653c4a134956043707eb"
         },
         {
           "path": "frontend/src/pages/Docs/ApiReferenceExplorer.tsx",
