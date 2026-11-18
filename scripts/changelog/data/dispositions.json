@@ -1,5 +1,25 @@
 [
   {
+    "id": "docs-drift-worker-history-boundary",
+    "reason": "Internal developer-workflow correction for the dormant documentation-drift worker. Covers checkout-loaded runtime inputs, complete history publication and pre-credential guard ordering before adoption."
+  },
+  {
+    "commit": "3ea377f4e687de08c0c4d33b7561097a41596569",
+    "reason": "Internal developer-workflow correction for the dormant documentation-drift worker. Binds its local inputs before credentials and preserves bounded diagnostics and setup-failure handling before adoption."
+  },
+  {
+    "commit": "780e9184904d1dca0f6af33dbec63bd290f883eb",
+    "reason": "Corrects the dormant internal documentation-drift worker history, bounded diagnostics and synthetic recovery checks before developer-workflow adoption."
+  },
+  {
+    "commit": "a9152694275af9559ffc5581ec830e332def6011",
+    "reason": "Stages the internal developer documentation-drift workflow, its native-client installation and synthetic recovery checks behind existing legacy routing."
+  },
+  {
+    "commit": "791c4a0c49e54d3e631f82a291c1a66c65afb01c",
+    "reason": "Internal documentation-scanner collection accounting and synthetic migration checks. This prerequisite records required input and detector execution observations for the developer workflow."
+  },
+  {
     "id": "public-route-validation-bounded",
     "reason": "Build and development catalogue validation rejects malformed paths without excessive regular-expression backtracking. The accepted route language, generated public pages, deployment configuration and customer workflows are unchanged. This is not a request-handler or browser performance fix."
   },
@@ -178,6 +198,14 @@
   {
     "commit": "d8c5997906659c11f1bb585a58366de50b001356",
     "reason": "Development tooling only. It keeps the pre-commit hook's GIT_ variables out of the secret scan test's fixture repositories and adds a guard test that verify runs. No published image, chart or customer-facing capability changes."
+  },
+  {
+    "commit": "d0d419a159baa58dee1361fe1f5530fc9d644cd0",
+    "reason": "Internal staged documentation-workflow correction. Preserves operator argument routing, safe local-plan repairs, worker permissions and rollback before adoption; no customer capability or application runtime artifact changes."
+  },
+  {
+    "id": "docs-drift-native-client-repair",
+    "reason": "Internal developer automation only. Initializes the pinned audit client, isolates hosted repair settings and preserves documentation delivery subjects; no customer capability or application runtime artifact changes."
   },
   {
     "commit": "e37a9d476cfa39d8e8eb99f4661017ccd9bead4e",
