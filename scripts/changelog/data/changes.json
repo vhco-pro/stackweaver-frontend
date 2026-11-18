@@ -1,5 +1,30 @@
 [
   {
+    "id": "landing-capability-cards",
+    "title": "The landing page groups infrastructure, Ansible and execution capabilities",
+    "area": "Frontend",
+    "kind": "Changed",
+    "reviewed": true,
+    "audience": "People visiting the Stackweaver landing page.",
+    "before": "The landing page listed nine equally sized feature cards, including overlapping compatibility and execution descriptions.",
+    "after": "OpenTofu, Ansible and launcher cards describe existing workflows, show example execution paths and link to their guides.",
+    "action": "No configuration change is required.",
+    "details": [
+      "The presentation changes; product capabilities and APIs are unchanged."
+    ],
+    "guides": [
+      {
+        "title": "Launchers",
+        "path": "/docs/user-guides/launchers"
+      }
+    ],
+    "sourceCommits": [],
+    "requiredComponents": [
+      "frontend"
+    ],
+    "availability": []
+  },
+  {
     "id": "docs-brand-logos-and-sidebar",
     "title": "Documentation shows permitted product logos and a sidebar of page titles",
     "area": "Documentation",
