@@ -2686,8 +2686,8 @@
     "reviewed": true,
     "audience": "Organizations that register launchers with an API key carrying the Launcher registration scope instead of an agent token.",
     "before": "An API key with the Launcher registration scope registered launchers whatever its owner's role in the organization.",
-    "after": "Creating an API key with the Launcher registration scope needs the permission that creating an agent token needs: owner of the organization, or a team with permission to manage agent pools. A key registers launchers only while its owner holds that permission. Agent tokens and just-in-time tokens are unchanged.",
-    "action": "If a launcher fails to register with an API key, have an organization owner or agent pool manager create its registration credential, preferably an agent token of the pool.",
+    "after": "Creating an API key with the Launcher registration scope needs the permission that creating an agent token needs: owner of the organization, or a team with permission to manage agent pools. A key registers launchers only while its owner holds that permission. A launcher registered before this release keeps working only while the user whose credential registered it holds that permission. Agent tokens and just-in-time tokens are unchanged.",
+    "action": "If a launcher fails to register with an API key, or a running launcher reports that its token was issued before this check, have an organization owner or agent pool manager create its registration credential, preferably an agent token of the pool, and restart the launcher.",
     "details": [],
     "guides": [
       {
