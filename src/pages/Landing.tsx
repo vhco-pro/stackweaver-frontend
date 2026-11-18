@@ -4,7 +4,7 @@
 import { useEffect, useRef, useState, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useMountEffect } from '@/hooks/useMountEffect';
-import { ArrowRight, Zap, Server, Cloud, Layers3, GitBranch, Cpu, KeyRound, ShieldCheck, Wrench, Database, Globe, PlugZap, Container, Copy, Check, ExternalLink } from 'lucide-react';
+import { ArrowRight, Zap, Server, Cloud, GitBranch, ShieldCheck, PlugZap, Container, Copy, Check, ExternalLink } from 'lucide-react';
 import { getVcsProviderIcon } from '@/lib/vcs';
 import { Button } from '@/components/ui/button';
 import { GradientButton } from '@/components/ui/gradient-button';
@@ -13,6 +13,7 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { CookieConsent } from '@/components/gdpr/CookieConsent';
 import { Stage } from '@/components/landing/Stage';
 import { Compatibility } from '@/components/landing/Compatibility';
+import { Capabilities } from '@/components/landing/Capabilities';
 import { LicenseSecurity } from '@/components/landing/LicenseSecurity';
 import { FrequentlyAskedQuestions } from '@/components/landing/FrequentlyAskedQuestions';
 import { Footer } from '@/components/layout/Footer';
@@ -81,45 +82,7 @@ export default function Landing() {
       {/* Install Section */}
       <InstallSection />
 
-      {/* Features Section */}
-      <section id="features" className="py-12 md:py-24 px-4 md:px-6 relative">
-        <div className="max-w-6xl mx-auto">
-          <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-center mb-8 md:mb-16 bg-gradient-to-r from-blue-500 via-blue-600 to-purple-500 dark:from-white dark:to-blue-200 bg-clip-text text-transparent">
-            Powerful Features
-          </h2>
-          
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {[
-              { icon: Layers3, title: 'TFE-Compatible Core', description: 'Organizations, Projects, Workspaces, Runs, Variables, State Versions, Tokens, JSON:API v2 and TFE token auth' },
-              { icon: PlugZap, title: 'Provider Compatibility', description: 'A TFE-compatible API for supported organizations, workspaces, runs and state workflows. Check the migration guide for compatibility limits.' },
-              { icon: Database, title: 'State & Secrets', description: 'Encrypted state storage (S3-compatible), variable sets, sensitive vars, workspace-scoped secrets' },
-              { icon: Wrench, title: 'Ansible Automation', description: 'Projects, inventories, credentials, job templates and schedules' },
-              { icon: GitBranch, title: 'VCS-Driven Workflows', description: 'GitHub App and Azure DevOps integration, repo/branch selection, webhooks for push/PR events, auto-queue and speculative plans' },
-              { icon: Cpu, title: 'Remote Execution Engine', description: 'Hosted capacity or agent pools of your own launchers, Redis-queued plans/applies, streamed logs and artifact storage, org-scoped pool assignment' },
-              { icon: KeyRound, title: 'Identity & SSO', description: 'OIDC workload identity for AWS, GCP and Azure; no static credentials in jobs. SSO via Azure AD, Okta, Cognito or any OIDC provider with optional team sync' },
-              { icon: ShieldCheck, title: 'Run Tasks & Governance', description: 'Hook security scanners, cost checks and custom gates into runs at stage boundaries, advisory or mandatory. Manual apply confirmation, audit trails, team and org permissions' },
-              { icon: Globe, title: 'Multi-Cloud & Hybrid', description: 'AWS/GCP/Azure support, on-prem friendly with outbound agent pools' },
-
-            ].map((feature, index) => (
-              <div
-                key={index}
-                className="h-full rounded-xl bg-white/50 dark:bg-transparent backdrop-blur-md border border-gray-300/80 dark:border-white/10 p-6 hover:bg-white/60 hover:border-gray-300 dark:hover:border-white/20 transition-colors shadow-xs dark:shadow-none"
-              >
-                <div className="flex items-start gap-4">
-                  <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-blue-500/20 to-cyan-500/20 dark:from-blue-500/20 dark:to-indigo-500/20 flex items-center justify-center shrink-0">
-                    <feature.icon className="h-6 w-6 text-blue-600 dark:text-blue-400" />
-                  </div>
-                  <div>
-                    <h3 className="text-lg font-semibold mb-1 text-slate-950 dark:text-white">{feature.title}</h3>
-                    <p className="text-slate-800 dark:text-gray-400 text-sm leading-relaxed">{feature.description}</p>
-                    {feature.title === 'Ansible Automation' && <Link to="/ansible" className="mt-2 inline-flex min-h-11 items-center text-sm font-medium text-blue-600 underline underline-offset-4 dark:text-blue-400">Explore Ansible automation</Link>}
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
+      <Capabilities />
 
       <LicenseSecurity />
       <FrequentlyAskedQuestions />

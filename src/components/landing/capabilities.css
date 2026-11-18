@@ -1,0 +1,103 @@
+/* Copyright (c) 2026 VH & Co BV. Licensed under the Business Source License 1.1. See LICENSE for details. */
+
+.capabilities {
+  --cap-ink: #17233e;
+  --cap-muted: #526078;
+  --cap-quiet: #68748b;
+  --cap-line: rgb(67 89 140 / 16%);
+  --cap-blue: #245fbc;
+  --cap-purple: #7950b0;
+}
+.dark .capabilities {
+  --cap-ink: #f0f2fa;
+  --cap-muted: #b0b9cf;
+  --cap-quiet: #929fbc;
+  --cap-line: rgb(177 190 232 / 16%);
+  --cap-blue: #9bc5ff;
+  --cap-purple: #ceb5ff;
+  background: radial-gradient(ellipse at 65% 48%, rgb(30 27 75 / 55%), transparent 73%);
+}
+.capabilities-heading { display: flex; align-items: end; justify-content: space-between; gap: 32px; margin-bottom: 32px; }
+.capabilities-eyebrow { margin-bottom: 13px; color: var(--cap-blue); font: 11px/1.5 ui-monospace, monospace; letter-spacing: .12em; text-transform: uppercase; }
+.capabilities-summary { max-width: 335px; color: var(--cap-muted); font-size: 15px; line-height: 1.75; }
+.capabilities-grid { display: grid; grid-template-columns: 1.45fr 1fr; gap: 20px; }
+.capability-card { position: relative; isolation: isolate; overflow: hidden; min-width: 0; padding: 30px; border-radius: 25px; }
+.capability-card::before { content: ''; position: absolute; z-index: -1; inset: 0; pointer-events: none; background: radial-gradient(ellipse at 30% -30%, rgb(87 143 255 / 14%), transparent 72%); }
+.capability-ansible::before { background: radial-gradient(ellipse at 30% -30%, rgb(163 106 242 / 15%), transparent 72%); }
+.dark .capability-card::before { background: radial-gradient(ellipse at 30% -30%, rgb(76 128 241 / 26%), transparent 72%), linear-gradient(145deg, rgb(10 18 40 / 85%), rgb(9 14 31 / 85%)); }
+.dark .capability-ansible::before { background: radial-gradient(ellipse at 30% -30%, rgb(150 90 239 / 27%), transparent 72%), linear-gradient(145deg, rgb(22 16 43 / 85%), rgb(9 14 31 / 85%)); }
+.capability-engine { display: flex; align-items: center; gap: 11px; color: var(--cap-blue); font: 12px/1.5 ui-monospace, monospace; }
+.capability-ansible .capability-engine { color: var(--cap-purple); }
+.capability-engine img { width: 24px; height: 26px; object-fit: contain; }
+.capability-card h3 { margin: 20px 0 12px; color: var(--cap-ink); font-size: 29px; font-weight: 550; line-height: 1.2; letter-spacing: -.8px; }
+.capability-description { color: var(--cap-muted); font-size: 14px; line-height: 1.75; }
+.capability-tofu, .capability-ansible { display: flex; flex-direction: column; }
+.capability-run { margin: 27px 0 24px; padding: 19px 16px; border: 1px solid var(--cap-line); border-radius: 13px; background: rgb(60 100 200 / 3%); }
+.dark .capability-run { background: rgb(2 6 23 / 25%); }
+.capability-flow { display: flex; align-items: center; }
+.capability-node { flex-shrink: 0; min-width: 62px; padding: 10px 11px; border: 1px solid var(--cap-line); border-radius: 7px; color: var(--cap-ink); font: 11px/1.5 ui-monospace, monospace; text-align: center; }
+.capability-node-active { border-color: rgb(115 153 230 / 40%); color: var(--cap-blue); background: rgb(92 132 240 / 8%); }
+.capability-connector { flex: 1; min-width: 10px; height: 1px; background: rgb(115 145 220 / 55%); position: relative; }
+.capability-connector::after { content: ''; position: absolute; right: 0; top: -2px; width: 5px; height: 5px; border-top: 1px solid rgb(115 145 220 / 80%); border-right: 1px solid rgb(115 145 220 / 80%); transform: rotate(45deg); }
+.capability-run > p { margin-top: 13px; color: var(--cap-quiet); font: 10px/1.6 ui-monospace, monospace; }
+.capability-tags { display: flex; flex-wrap: wrap; gap: 7px; margin-top: auto; padding-top: 8px; list-style: none; }
+.capability-tags li { padding: 4px 8px; border: 1px solid var(--cap-line); border-radius: 6px; color: var(--cap-muted); font-size: 11px; line-height: 1.4; }
+.capability-link { align-self: start; margin-top: 17px; }
+.capability-jobs { display: flex; align-items: center; gap: 10px; margin: 29px 0 24px; }
+.capability-job-step { flex-shrink: 0; color: var(--cap-ink); text-align: center; font: 10px/1.5 ui-monospace, monospace; }
+.capability-job-step > span { display: grid; place-items: center; width: 40px; height: 40px; margin: 0 auto 10px; border: 1px solid rgb(161 123 226 / 28%); border-radius: 10px; color: var(--cap-purple); background: rgb(151 112 238 / 7%); }
+.capability-job-step svg { width: 16px; height: 16px; }
+.capability-jobs > .capability-connector { margin-bottom: 25px; }
+.capability-execution { grid-column: 1 / -1; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-items: center; gap: 48px; padding-top: 27px; padding-bottom: 23px; }
+.capability-execution-label { color: var(--cap-blue); font: 11px/1.5 ui-monospace, monospace; }
+.capability-execution h3 { font-size: 27px; margin-top: 12px; }
+.capability-execution .capability-description { font-size: 13px; }
+.capability-execution .capability-link { margin-top: 9px; }
+.capability-routing { display: flex; align-items: center; gap: 13px; }
+.capability-platform { display: flex; flex-direction: column; align-items: center; gap: 9px; font-size: 12px; color: var(--cap-muted); }
+.capability-platform img { object-fit: contain; }
+.capability-outbound { position: relative; display: flex; flex: 1; min-width: 70px; flex-direction: column; align-items: center; gap: 10px; color: var(--cap-quiet); font: 9px/1.5 ui-monospace, monospace; white-space: nowrap; }
+.capability-outbound::after { content: ''; width: 100%; height: 1px; margin-top: 7px; background: linear-gradient(90deg, #719bea, #9b7de4); }
+.capability-outbound svg { position: absolute; bottom: -8px; left: -3px; width: 17px; height: 17px; transform: rotate(180deg); color: var(--cap-blue); stroke-width: 1; }
+.capability-pool { padding: 16px; min-width: 188px; border: 1px dashed rgb(137 156 217 / 40%); border-radius: 13px; }
+.capability-pool strong { display: block; margin-bottom: 5px; font-size: 12px; font-weight: 550; color: var(--cap-ink); }
+.capability-pool > span { display: block; max-width: 170px; color: var(--cap-muted); font-size: 10px; line-height: 1.6; }
+.capability-servers { display: flex; gap: 5px; margin-top: 11px; }
+.capability-servers i { width: 30px; height: 17px; border: 1px solid rgb(137 156 217 / 40%); border-radius: 3px; background: rgb(137 156 217 / 7%); }
+.capabilities-foundation { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 30px; margin-top: 30px; }
+.capabilities-foundation > div { padding-left: 17px; border-left: 2px solid rgb(145 145 227 / 70%); }
+.capabilities-foundation h3 { margin-bottom: 6px; color: var(--cap-ink); font-size: 13px; font-weight: 550; }
+.capabilities-foundation p { color: var(--cap-muted); font-size: 12px; line-height: 1.8; }
+@media (max-width: 1023px) {
+  .capabilities-grid { grid-template-columns: 1.2fr 1fr; }
+  .capability-card { padding: 25px; }
+  .capability-card h3 { font-size: 26px; }
+  .capability-execution { gap: 26px; }
+  .capability-routing { gap: 8px; }
+  .capability-pool { min-width: 160px; padding: 13px; }
+  .capability-outbound { min-width: 55px; font-size: 8px; }
+}
+@media (max-width: 767px) {
+  .capabilities-heading { display: block; margin-bottom: 27px; }
+  .capabilities-summary { max-width: 500px; margin-top: 18px; font-size: 14px; }
+  .capabilities-grid { grid-template-columns: 1fr; gap: 17px; }
+  .capability-card { padding: 26px 23px 20px; border-radius: 22px; }
+  .capability-card h3 { font-size: 28px; }
+  .capability-execution { grid-template-columns: minmax(0, 1fr); gap: 23px; }
+  .capability-execution .capability-description { font-size: 14px; }
+  .capability-routing { padding: 0 0 10px; }
+  .capability-pool { min-width: 155px; }
+  .capability-jobs { max-width: 430px; }
+  .capabilities-foundation { grid-template-columns: 1fr; gap: 23px; }
+  .capabilities-foundation p { font-size: 13px; }
+}
+@media (max-width: 359px) {
+  .capability-card { padding: 23px 19px 18px; }
+  .capability-card h3 { font-size: 25px; }
+  .capability-run { padding: 16px 9px; }
+  .capability-node { min-width: 47px; padding: 9px 5px; font-size: 9px; }
+  .capability-pool { flex: 1; min-width: 0; padding: 10px; }
+  .capability-pool strong { font-size: 11px; }
+  .capability-platform { font-size: 10px; }
+  .capability-outbound { font-size: 7px; min-width: 45px; }
+}
