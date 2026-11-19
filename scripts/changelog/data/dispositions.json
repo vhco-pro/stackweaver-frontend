@@ -222,5 +222,9 @@
   {
     "commit": "c1b30240dbce4a4688393e2ae2bfcc362928147e",
     "reason": "No customer-visible change. It narrows the frontend lint exemptions and types values the API client and workspace page already handled; error toasts on the workspace page show the same API detail or message as before. The guard refreshes it carries (landing tour hash, capability and visual evidence) change no published image content beyond antialiasing."
+  },
+  {
+    "commit": "800a5ca418533d17264c0512c69d3d7148864640",
+    "reason": "Internal documentation-workflow staging only. Reverts an unpublished activation so the corrected shared component can pass installed and migration acceptance before cutover. No customer capability or application artifact changes."
   }
 ]
