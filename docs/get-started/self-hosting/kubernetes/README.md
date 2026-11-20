@@ -541,6 +541,9 @@ registration policy and delivery checks. The Job configures only bundled Zitadel
 The chart creates `env.js` using the ingress hostnames. Browser sign-in uses the API's
 confidential client, not a frontend client ID. The API derives its app URL and `/auth/callback`
 from `ingress.hosts.app` and `ingress.tls.enabled`. Serve non-localhost browser sessions over HTTPS.
+The chart also sets the API's public origin, `STACKWEAVER_PUBLIC_URL`, which the sign-in discovery
+document is built from: the app origin, or the origin of `frontend.env.VITE_API_URL` when that names
+another. Set it in `api.env` to use a different value.
 `frontend.env.VITE_ZITADEL_REDIRECT_URI` is not read; remove it after aligning the ingress and
 registered callback. Keep browser API requests on the frontend origin. Override
 `frontend.env.VITE_API_URL` only with consistent routing and browser policy.

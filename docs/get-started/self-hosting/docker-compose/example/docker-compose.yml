@@ -299,6 +299,9 @@ services:
       ZITADEL_WEBHOOK_IDP_SYNC_KEY: ${ZITADEL_WEBHOOK_IDP_SYNC_KEY:-}
       ZITADEL_WEBHOOK_COMPLEMENT_TOKEN_KEY: ${ZITADEL_WEBHOOK_COMPLEMENT_TOKEN_KEY:-}
       STACKWEAVER_APP_URL: ${STACKWEAVER_APP_URL:-http://localhost:5173}
+      # The API's public origin, which the sign-in discovery document is built from. The browser
+      # reaches the API through the frontend, so it defaults to STACKWEAVER_APP_URL.
+      STACKWEAVER_PUBLIC_URL: ${STACKWEAVER_PUBLIC_URL:-${STACKWEAVER_APP_URL:-http://localhost:5173}}
       ANSIBLE_ENCRYPTION_KEY: ${ENCRYPTION_KEY:-00000000000000000000000000000000}
       # Storage (Garage S3-compatible)
       STORAGE_BACKEND: s3
