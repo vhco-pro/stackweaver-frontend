@@ -96,7 +96,11 @@ AZURE_DEVOPS_WEBHOOK_SECRET=replace-with-strong-webhook-secret
 
 Leave `AZURE_DEVOPS_TENANT_ID` unset or set it to `common` only for the intended multitenant
 configuration. `STACKWEAVER_WEBHOOK_BASE_URL` is the **public API origin**, without `/api/v2`.
-Use a different origin if your API has its own host. Never maintain these values in
+Use a different origin if your API has its own host, or a public host that serves only the
+webhook receiver while the app stays internal; see
+[Public host for webhooks and discovery](../../get-started/self-hosting/public-endpoints.md).
+On Kubernetes, setting `ingress.public.host` sets this variable for you. Without it, the API
+logs a warning at startup and each time a linked resource is saved, and creates or refreshes no subscription. Never maintain these values in
 auto-generated `.env`.
 
 ```bash

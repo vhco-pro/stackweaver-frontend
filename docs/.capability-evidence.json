@@ -381,7 +381,7 @@
       "evidence": [
         {
           "path": "backend/internal/api/v2/routes/routes.go",
-          "sha256": "8a3685774dd00ede59afb5d9166d9124a12fb388f92c653c4a134956043707eb"
+          "sha256": "ad5ab33699f34ef28d5fefc1fa57855722e401b72d50e854cc783c67639c919f"
         },
         {
           "path": "frontend/src/pages/Docs/ApiReferenceExplorer.tsx",
@@ -465,7 +465,7 @@
         },
         {
           "path": "backend/internal/api/v2/handlers/terraform/workspaces.go",
-          "sha256": "62500cf4aafc5d3c970e4b09db5061af61df595f86a43bb6c2deb0c4df6a88ab"
+          "sha256": "6cef1eeed3387631e52f479b1c678e4bfd359fd08508c8253bb294bcc407c2f1"
         },
         {
           "path": "backend/internal/launcher/supervise.go",
@@ -617,7 +617,7 @@
         },
         {
           "path": "backend/internal/api/v2/handlers/terraform/workspaces.go",
-          "sha256": "62500cf4aafc5d3c970e4b09db5061af61df595f86a43bb6c2deb0c4df6a88ab"
+          "sha256": "6cef1eeed3387631e52f479b1c678e4bfd359fd08508c8253bb294bcc407c2f1"
         },
         {
           "path": "frontend/src/pages/WorkspaceDetail.tsx",

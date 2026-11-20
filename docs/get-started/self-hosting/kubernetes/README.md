@@ -59,6 +59,10 @@ The chart routes API, discovery and auth-proxy requests on the app host to the A
 login pages go to the frontend. The auth host reaches Zitadel. Browser API calls remain on
 the app origin.
 
+To keep both hosts internal while Azure DevOps, a GitHub App or a cloud token service still
+reaches Stackweaver, add a public host that serves only those paths with `ingress.public`; see
+[Public host for webhooks and discovery](../public-endpoints.md).
+
 ```mermaid
 flowchart LR
     C["Browser / OpenTofu CLI"] --> I["App ingress"]

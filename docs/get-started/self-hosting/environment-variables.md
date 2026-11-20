@@ -267,7 +267,7 @@ Checksum verification runs against your mirror's own `SHA256SUMS` file and canno
 |---|---|---|
 | `CORS_EXTRA_ORIGINS` | Further browser origins the API trusts with credentials (comma-separated), on top of the origin of `STACKWEAVER_APP_URL`, which is always trusted. Needed only when the SPA is served from an origin other than `STACKWEAVER_APP_URL`. Every state-changing browser request must come from a trusted origin, so a missing origin here refuses all browser writes from it with `403` | (none) |
 | `STACKWEAVER_BASE_URL` | Base URL for API-generated links | (derived) |
-| `STACKWEAVER_WEBHOOK_BASE_URL` | Webhook callback base URL | (derived) |
+| `STACKWEAVER_WEBHOOK_BASE_URL` | Public origin Azure DevOps service hooks are registered on, without `/api/v2`. When unset, no service hook subscription is created or refreshed and the API logs a warning at startup and on each save of a linked resource. The Helm chart sets it from `ingress.public.host` when that is set. See [Public host for webhooks and discovery](./public-endpoints.md) | (none) |
 | `ANSIBLE_SCHEDULER_ENABLED` | Fire Ansible schedules on their cron. Set `false` to stop cron firing; run now, held-job release, workflow progression, schedule outcomes and notifications continue either way. Any number of API replicas can leave it on: one replica at a time does each scheduler tick's work, so no schedule fires twice. | `true` |
 | `TERRAFORM_DRIFT_DETECTION_ENABLED` | Enable drift detection | `true` |
 | `RUNNER_MONITOR_ENABLED` | Enable launcher health monitoring | `true` |

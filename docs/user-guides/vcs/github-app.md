@@ -68,7 +68,9 @@ once the organization has one, the same card offers **Add GitHub account**.
    https://app.example.com/api/v2/vcs-connections/github/webhook
    ```
 
-   Use your API's own hostname if it differs from the frontend. Keep SSL verification on.
+   Use your API's own hostname if it differs from the frontend, or a
+   [public host for webhooks](../../get-started/self-hosting/public-endpoints.md) when the app
+   stays internal. Keep SSL verification on.
    Generate a webhook secret and retain it for the deployment configuration below.
 6. Configure repository permissions and events as described below.
 7. Choose **Any account** if organizations other than the app owner must install it, then
