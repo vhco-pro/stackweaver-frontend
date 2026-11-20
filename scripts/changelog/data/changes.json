@@ -2837,5 +2837,32 @@
       "api"
     ],
     "availability": []
+  },
+  {
+    "id": "auth-discovery-public-url",
+    "title": "The sign-in discovery document is built from the API's configured public URL",
+    "area": "Authentication",
+    "kind": "Security",
+    "reviewed": true,
+    "audience": "Operators of Helm and Docker Compose installs, and anyone who lists extra hosts in STACKWEAVER_TRUSTED_HOSTS.",
+    "before": "The Helm chart and the Compose files did not set STACKWEAVER_PUBLIC_URL, so the API built the issuer and endpoint URLs of its OIDC discovery document (/auth/oidc/discovery) from forwarding headers, limited to trusted hosts. The trusted-host check ignored ports, so a trusted host on any port could be advertised.",
+    "after": "The Helm chart sets STACKWEAVER_PUBLIC_URL to the origin of the API's public URL, and the Compose example defaults it to STACKWEAVER_APP_URL, so the discovery document always names the configured origin. A trusted-host entry with a port matches only that port; an entry without one matches the host with no port or its scheme's default port.",
+    "action": "No action is required for the chart or the Compose example. If you set STACKWEAVER_TRUSTED_HOSTS and your proxy forwards a host with a non-default port, add that port to the entry.",
+    "details": [],
+    "guides": [
+      {
+        "title": "Environment variables",
+        "path": "/docs/get-started/self-hosting/environment-variables"
+      }
+    ],
+    "sourceCommits": [],
+    "draftCommits": [
+      "6d4fe1ab67aba0b9c8e657e497815b3ee4c5b955"
+    ],
+    "requiredComponents": [
+      "api",
+      "helm"
+    ],
+    "availability": []
   }
 ]
