@@ -48,6 +48,10 @@ docker compose up -d api
 
 Keep the key private and shared by every API replica. Do not regenerate it as routine troubleshooting; changing it affects existing trust and active tokens.
 
+When the app is internal, the chart can serve only the discovery document and JWKS on a
+public host and default the issuer to that host's origin; see
+[Public host for webhooks and discovery](../../get-started/self-hosting/public-endpoints.md).
+
 On Kubernetes the chart generates the key for you. After changing `oidc.issuerUrl` in `my-values.yaml`, set `STACKWEAVER_CHART_VERSION` to the installed version from `helm list` and apply it, so the settings change does not also upgrade the chart:
 
 ```bash

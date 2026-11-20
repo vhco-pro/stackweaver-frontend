@@ -2784,5 +2784,30 @@
       "api"
     ],
     "availability": []
+  },
+  {
+    "id": "public-webhook-host",
+    "title": "Webhooks and workload identity discovery can be published on a separate public host",
+    "kind": "Added",
+    "area": "Deployment",
+    "audience": "Operators of Kubernetes installs whose app host is internal, and operators who connect Azure DevOps repositories.",
+    "before": "The Helm chart routed the webhook receivers and the workload identity discovery document only on the app host. When STACKWEAVER_WEBHOOK_BASE_URL was not set, Azure DevOps service hooks were not registered and nothing reported it.",
+    "after": "The ingress.public Helm values add an Ingress for a public host that routes only the Azure DevOps and GitHub App webhook receivers and, with ingress.public.oidcDiscovery, the discovery document and JWKS. The chart sets STACKWEAVER_WEBHOOK_BASE_URL, and with oidcDiscovery the default workload identity issuer, to that host's origin. Without a webhook base URL, the API logs a warning at startup and each time a linked resource is saved, and creates or refreshes no subscription.",
+    "action": "No action is required. To keep the app internal while Azure DevOps or a cloud token service reaches Stackweaver, set ingress.public.host. If the API logs that service hooks were not registered, set STACKWEAVER_WEBHOOK_BASE_URL and save each linked resource again.",
+    "details": [],
+    "guides": [
+      {
+        "path": "/docs/get-started/self-hosting/public-endpoints",
+        "title": "Public host for webhooks and discovery"
+      }
+    ],
+    "requiredComponents": [
+      "api",
+      "helm"
+    ],
+    "availability": [],
+    "reviewed": true,
+    "draftCommits": [],
+    "sourceCommits": []
   }
 ]
