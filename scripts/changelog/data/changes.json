@@ -2758,5 +2758,31 @@
       "ansible-runner"
     ],
     "availability": []
+  },
+  {
+    "id": "vcs-inventory-sync-prunes",
+    "title": "VCS inventory syncs remove hosts and groups that left the inventory file",
+    "area": "Ansible",
+    "kind": "Fixed",
+    "reviewed": true,
+    "audience": "Teams that keep an Ansible inventory file, or an inventory plugin file, in a repository as a VCS inventory.",
+    "before": "A VCS inventory sync added and updated hosts and groups but never removed one, so a deleted VM, or a host whose keyed group disappeared, stayed in the inventory and was still targeted by jobs.",
+    "after": "Each successful VCS inventory sync makes the inventory match its file: hosts and groups the file no longer lists are removed, with their group memberships. Hosts and groups added by hand to a VCS inventory are removed too when the file does not list them. Hosts and groups a cloud source of the same inventory owns are left to that source's Overwrite setting.",
+    "action": "Before upgrading, add any host or group you created by hand in a VCS inventory to its inventory file, or move it to another inventory, or the first sync after the upgrade removes it.",
+    "details": [],
+    "guides": [
+      {
+        "title": "Dynamic inventories",
+        "path": "/docs/user-guides/ansible/dynamic-inventories"
+      }
+    ],
+    "sourceCommits": [],
+    "draftCommits": [
+      "1ee1b6f93319c30f52fc5ba187eb5e0de7280143"
+    ],
+    "requiredComponents": [
+      "api"
+    ],
+    "availability": []
   }
 ]

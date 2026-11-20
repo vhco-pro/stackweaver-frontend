@@ -145,6 +145,12 @@ automatic Git refresh from this table: use **Sync from VCS**, then check its res
 before launching jobs that need repository changes. Constructed inventories have
 their own rebuild and cache behavior, described below.
 
+The inventory file is authoritative. Each successful VCS sync removes the hosts and
+groups the file no longer lists, so a deleted VM stops being targeted and a host leaves
+a keyed group that disappeared. This applies to hosts and groups added by hand as well:
+keep every host in the file. Hosts and groups a cloud source owns are left to that
+source's **Overwrite** setting.
+
 | Setting | Effect |
 |---|---|
 | **Update on launch** | Enabled sources refresh before jobs use this inventory. A recent successful sync within the cache timeout can skip that refresh. The default is on. |
