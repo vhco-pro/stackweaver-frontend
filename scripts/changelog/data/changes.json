@@ -2809,5 +2809,33 @@
     "reviewed": true,
     "draftCommits": [],
     "sourceCommits": []
+  },
+  {
+    "id": "ansible-edits-keep-sync-results",
+    "title": "Inventory, inventory source and playbook edits no longer undo a sync or restore deleted rows",
+    "area": "Ansible",
+    "kind": "Fixed",
+    "reviewed": true,
+    "audience": "Teams that edit Ansible inventories, inventory sources or playbooks while syncs or constructed inventory builds run.",
+    "before": "Editing an inventory, an inventory source or a playbook, starting a sync, or launching a job against a constructed inventory saved the whole record as it was read at the start of the request. A host removed by a sync that finished meanwhile came back, a credential or VCS connection deleted meanwhile was created again, and the sync status, host count or cached commit the sync had just recorded reverted to the old value.",
+    "after": "An edit no longer writes the sync status, sync results or cached snapshot, and a sync status is written on its own. Hosts, groups, credentials and VCS connections removed meanwhile stay removed, an inventory, source or playbook deleted meanwhile stays deleted, and the sync results stay as the sync recorded them. An edit that still names a credential or VCS connection deleted meanwhile is refused; reload the page and save again. Two people editing the same configuration fields at once still follow last write wins.",
+    "action": "No action is required.",
+    "details": [],
+    "guides": [
+      {
+        "title": "Dynamic inventories",
+        "path": "/docs/user-guides/ansible/dynamic-inventories"
+      },
+      {
+        "title": "Managing Ansible playbooks",
+        "path": "/docs/user-guides/ansible/managing-ansible-playbooks"
+      }
+    ],
+    "sourceCommits": [],
+    "draftCommits": [],
+    "requiredComponents": [
+      "api"
+    ],
+    "availability": []
   }
 ]

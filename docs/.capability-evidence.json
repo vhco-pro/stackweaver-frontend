@@ -13,7 +13,7 @@
         },
         {
           "path": "core/services/ansible/job.go",
-          "sha256": "0c5afd81ab6ffdd95cac99777f5626bd464e25508c17c3eddaf88d543d4279ee"
+          "sha256": "b919f04e9c3a4aeed87d696d3232d3057b7b567b32cb634e87feb66f495ec81a"
         },
         {
           "path": "core/services/ansible/job_test.go",
@@ -37,7 +37,7 @@
         },
         {
           "path": "core/services/ansible/job.go",
-          "sha256": "0c5afd81ab6ffdd95cac99777f5626bd464e25508c17c3eddaf88d543d4279ee"
+          "sha256": "b919f04e9c3a4aeed87d696d3232d3057b7b567b32cb634e87feb66f495ec81a"
         }
       ]
     },
@@ -93,7 +93,7 @@
         },
         {
           "path": "core/repository/ansible_playbook.go",
-          "sha256": "1611da1542a3fba6bfe21c80f10bd9947f42b144ae92b05966e1f83f0efc7835"
+          "sha256": "5f79574f406c795d6d3ec05323f8a24c5474474fae55e7612b557a50e7bdb0fd"
         },
         {
           "path": "core/services/ansible/credential.go",
@@ -149,7 +149,7 @@
         },
         {
           "path": "core/services/ansible/job.go",
-          "sha256": "0c5afd81ab6ffdd95cac99777f5626bd464e25508c17c3eddaf88d543d4279ee"
+          "sha256": "b919f04e9c3a4aeed87d696d3232d3057b7b567b32cb634e87feb66f495ec81a"
         },
         {
           "path": "frontend/src/pages/Ansible/run-viewer/adapter.test.ts",
@@ -189,7 +189,7 @@
         },
         {
           "path": "backend/internal/api/v2/handlers/ansible/playbook_discovery.go",
-          "sha256": "0d93af31918d1cf54189b2d4b0373c1b936506efb07337fa2b1d99540c33f03d"
+          "sha256": "630b61be93f85afd44e4da8a7a4d6e74878d258f11890c4fb56fa6f76512ba1a"
         },
         {
           "path": "backend/internal/api/v2/handlers/runner_agent.go",
