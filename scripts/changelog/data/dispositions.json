@@ -226,5 +226,9 @@
   {
     "commit": "800a5ca418533d17264c0512c69d3d7148864640",
     "reason": "Internal documentation-workflow staging only. Reverts an unpublished activation so the corrected shared component can pass installed and migration acceptance before cutover. No customer capability or application artifact changes."
+  },
+  {
+    "id": "kind-harness-run-lock",
+    "reason": "Test harness only: e2e/k8s/run.sh lets one kind run use the shared cluster at a time, and its internal guide says so. No product, chart, image or public documentation changes."
   }
 ]
