@@ -75,80 +75,80 @@ export default function Landing() {
             <AuroraCanvas className="absolute inset-0 z-0 pointer-events-none hidden dark:block" theme={resolvedTheme} />
           </>
         }
-      />
+      >
+        <Compatibility />
 
-      <Compatibility />
+        {/* Install Section */}
+        <InstallSection />
 
-      {/* Install Section */}
-      <InstallSection />
+        <Capabilities />
 
-      <Capabilities />
+        <LicenseSecurity />
+        <FrequentlyAskedQuestions />
 
-      <LicenseSecurity />
-      <FrequentlyAskedQuestions />
-
-      {/* CTA Section */}
-      <section className="pt-12 pb-24 px-4 md:px-6 relative">
-        <div className="max-w-5xl mx-auto text-center">
-          <div className="p-8 sm:p-16 md:p-20 rounded-3xl bg-gradient-to-br from-white/60 via-blue-50/50 to-white/60 dark:from-slate-950/80 dark:via-blue-950/70 dark:to-slate-950/80 backdrop-blur-xl border border-white/20 dark:border-blue-900/30 shadow-2xl shadow-blue-900/10 dark:shadow-blue-950/50">
-            {/* Badge */}
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/40 dark:bg-white/10 backdrop-blur-md border border-white/20 mb-6">
-              <Zap className="w-4 h-4 text-blue-600 dark:text-yellow-400" />
-              <span className="text-sm font-medium text-slate-700 dark:text-gray-300">Self-hosted in minutes</span>
-            </div>
-            
-            <h2 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold mb-6 pb-2 bg-gradient-to-r from-blue-500 via-blue-600 to-purple-500 dark:from-white dark:via-blue-100 dark:to-blue-300 bg-clip-text text-transparent">
-              Ready to Get Started?
-            </h2>
-            <p className="text-xl md:text-2xl text-slate-800 dark:text-gray-300 mb-4 max-w-2xl mx-auto">
-              Install it, point a workspace at it, and run your first plan.
-            </p>
-            <p className="text-lg text-slate-800 dark:text-gray-400 mb-10 max-w-xl mx-auto">
-              OpenTofu and Ansible, one login, your own launchers.
-            </p>
-            
-            <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-              <GradientButton
-                size="lg"
-                onClick={handleGetStarted}
-                className="w-auto text-lg px-8 py-6 h-auto"
-              >
-                <span className="flex items-center gap-2">
-                  <span>{session ? 'Go to Dashboard' : 'Get Started'}</span>
-                  <ArrowRight className="h-5 w-5 shrink-0" />
-                </span>
-              </GradientButton>
-              <Button
-                asChild
-                variant="outline"
-                size="lg"
-                className="bg-white/50 dark:bg-white/10 backdrop-blur-md border-slate-200 dark:border-white/20 hover:bg-white/80 dark:hover:bg-white/20 text-slate-900 dark:text-white text-lg px-8 py-6 h-auto whitespace-nowrap"
-              >
-                <a href="https://github.com/vhco-pro" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2">
-                  {getVcsProviderIcon('github', 'h-5 w-5 shrink-0')}
-                  <span>Star on GitHub</span>
-                </a>
-              </Button>
-            </div>
-            
-            {/* Trust indicators */}
-            <div className="mt-12 pt-8 border-t border-slate-200 dark:border-white/10 flex flex-wrap justify-center items-center gap-6 text-sm text-slate-800 dark:text-gray-400">
-              <div className="flex items-center gap-2">
-                <Server className="w-4 h-4 text-green-600 dark:text-green-400" />
-                <span>Runs on your infrastructure</span>
+        {/* CTA Section */}
+        <section className="pt-12 pb-24 px-4 md:px-6 relative">
+          <div className="max-w-5xl mx-auto text-center">
+            <div className="p-8 sm:p-16 md:p-20 rounded-3xl bg-gradient-to-br from-white/60 via-blue-50/50 to-white/60 dark:from-slate-950/80 dark:via-blue-950/70 dark:to-slate-950/80 backdrop-blur-xl border border-white/20 dark:border-blue-900/30 shadow-2xl shadow-blue-900/10 dark:shadow-blue-950/50">
+              {/* Badge */}
+              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/40 dark:bg-white/10 backdrop-blur-md border border-white/20 mb-6">
+                <Zap className="w-4 h-4 text-blue-600 dark:text-yellow-400" />
+                <span className="text-sm font-medium text-slate-700 dark:text-gray-300">Self-hosted in minutes</span>
               </div>
-              <div className="flex items-center gap-2">
-                <ShieldCheck className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-                <span>Signed releases</span>
+
+              <h2 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold mb-6 pb-2 bg-gradient-to-r from-blue-500 via-blue-600 to-purple-500 dark:from-white dark:via-blue-100 dark:to-blue-300 bg-clip-text text-transparent">
+                Ready to Get Started?
+              </h2>
+              <p className="text-xl md:text-2xl text-slate-800 dark:text-gray-300 mb-4 max-w-2xl mx-auto">
+                Install it, point a workspace at it, and run your first plan.
+              </p>
+              <p className="text-lg text-slate-800 dark:text-gray-400 mb-10 max-w-xl mx-auto">
+                OpenTofu and Ansible, one login, your own launchers.
+              </p>
+
+              <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+                <GradientButton
+                  size="lg"
+                  onClick={handleGetStarted}
+                  className="w-auto text-lg px-8 py-6 h-auto"
+                >
+                  <span className="flex items-center gap-2">
+                    <span>{session ? 'Go to Dashboard' : 'Get Started'}</span>
+                    <ArrowRight className="h-5 w-5 shrink-0" />
+                  </span>
+                </GradientButton>
+                <Button
+                  asChild
+                  variant="outline"
+                  size="lg"
+                  className="bg-white/50 dark:bg-white/10 backdrop-blur-md border-slate-200 dark:border-white/20 hover:bg-white/80 dark:hover:bg-white/20 text-slate-900 dark:text-white text-lg px-8 py-6 h-auto whitespace-nowrap"
+                >
+                  <a href="https://github.com/vhco-pro" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2">
+                    {getVcsProviderIcon('github', 'h-5 w-5 shrink-0')}
+                    <span>Star on GitHub</span>
+                  </a>
+                </Button>
               </div>
-              <div className="flex items-center gap-2">
-                <PlugZap className="w-4 h-4 text-yellow-500 dark:text-yellow-400" />
-                <span>TFE API compatible</span>
+
+              {/* Trust indicators */}
+              <div className="mt-12 pt-8 border-t border-slate-200 dark:border-white/10 flex flex-wrap justify-center items-center gap-6 text-sm text-slate-800 dark:text-gray-400">
+                <div className="flex items-center gap-2">
+                  <Server className="w-4 h-4 text-green-600 dark:text-green-400" />
+                  <span>Runs on your infrastructure</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <ShieldCheck className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                  <span>Signed releases</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <PlugZap className="w-4 h-4 text-yellow-500 dark:text-yellow-400" />
+                  <span>TFE API compatible</span>
+                </div>
               </div>
             </div>
           </div>
-        </div>
-      </section>
+        </section>
+      </Stage>
 
       <Footer />
       <CookieConsent />

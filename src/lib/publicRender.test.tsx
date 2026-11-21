@@ -4,6 +4,19 @@ import { renderPublicPage } from '../entry-public';
 import type { DocsIndex } from '@/components/docs/docsCollection';
 const docs:DocsIndex={generated:'',tree:[],flat:{'README.md':{type:'file',name:'README.md',path:'README.md',title:'Documentation'}}};
 describe('offline public rendering entry',()=>{
+ it.each([
+  {path:'/',kind:'home' as const,title:'Stackweaver'},
+  {path:'/privacy',kind:'privacy' as const,title:'Privacy Policy'},
+  {path:'/terms',kind:'terms' as const,title:'Terms of Service'},
+ ])('gives $path one main landmark with its heading and keeps site navigation and footer outside',page=>{
+  const html=renderPublicPage({...page,description:'Public page'}, {index:docs,content:'',articles:[]});
+  const root=document.createElement('div');root.innerHTML=html;
+  expect(root.querySelectorAll('main')).toHaveLength(1);
+  expect(root.querySelector('main h1')?.textContent).toContain(page.title);
+  expect(root.querySelector('main nav, main footer')).toBeNull();
+  expect(root.querySelectorAll('nav')).toHaveLength(1);
+  expect(root.querySelectorAll('footer')).toHaveLength(1);
+ });
  it('renders the approved blog without a session, API or authenticated provider',()=>{
   const html=renderPublicPage({path:'/blog',title:'Blog',description:'Articles',kind:'blog'}, {index:docs,content:'',articles:[]});
   expect(html).toContain('Practical notes on infrastructure automation');

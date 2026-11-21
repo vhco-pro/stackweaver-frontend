@@ -4,10 +4,34 @@ import { spawnSync } from 'node:child_process';
 import { execPath } from 'node:process';
 import { pathToFileURL } from 'node:url';
 import { resolve } from 'node:path';
+import { readFileSync } from 'node:fs';
+import { parse } from 'yaml';
 import { buildPublicRoutes, pageMetadata, cleanBasePath } from './publicRoutes';
 import type { DocsIndex } from '@/components/docs/docsCollection';
 const index: DocsIndex={generated:'',tree:[{type:'directory',name:'guides',path:'guides',children:[]}],flat:{'README.md':{type:'file',name:'README.md',path:'README.md',title:'Documentation'},'guides/README.md':{type:'file',name:'README.md',path:'guides/README.md',title:'Guides'},'guides/run.md':{type:'file',name:'run.md',path:'guides/run.md',title:'Run a playbook',description:'Launch and inspect a job.'}}};
 describe('one public route catalogue',()=>{
+ it('uses distinct subject-specific titles from the three real troubleshooting guides',()=>{
+  const guides=[
+   ['user-guides/ansible/dynamic-inventories/troubleshooting.md','Troubleshoot Ansible dynamic inventories'],
+   ['user-guides/troubleshooting-common-issues.md','Troubleshoot common issues'],
+   ['user-guides/workload-identity/troubleshooting.md','Troubleshoot workload identity'],
+  ];
+  const actual:DocsIndex={generated:'',tree:[],flat:{'README.md':index.flat['README.md']}};
+  for(const [source] of guides){
+   const markdown=readFileSync(resolve('..','docs',source),'utf8');
+   const metadata:unknown=parse(markdown.split(/^---\s*$/m)[1]);
+   if(!metadata||typeof metadata!=='object'||!('title' in metadata)||typeof metadata.title!=='string') throw new Error(`Missing title: ${source}`);
+   actual.flat[source]={type:'file',name:source.split('/').at(-1)!,path:source,title:metadata.title};
+  }
+  const routes=buildPublicRoutes(actual,[]);
+  const titles=guides.map(([source,title])=>{
+   const page=routes.find(page=>page.source===source);
+   expect(page?.title).toBe(title);
+   expect(page&&pageMetadata(page)).toContain(`<title>${title} | Stackweaver</title>`);
+   return page?.title;
+  });
+  expect(new Set(titles).size).toBe(guides.length);
+ });
  it('deduplicates README routes, lists actual docs and excludes internal/app URLs',()=>{
   const routes=buildPublicRoutes(index,[]);
   expect(routes.filter(r=>r.path==='/docs/guides')).toHaveLength(1);
