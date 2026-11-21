@@ -1,5 +1,5 @@
 ---
-title: "Troubleshooting"
+title: "Troubleshoot Ansible dynamic inventories"
 nav_order: 4
 description: "Fix dynamic inventory syncs that fail, find no hosts or leave stale hosts behind."
 covers:

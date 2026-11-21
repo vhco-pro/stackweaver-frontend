@@ -1,5 +1,5 @@
 ---
-title: "Troubleshooting"
+title: "Troubleshoot workload identity"
 nav_order: 7
 description: "Fix workload identity failures: permission errors on registration, tokens a cloud rejects, keys that change on restart and Azure role-assignment errors."
 covers:

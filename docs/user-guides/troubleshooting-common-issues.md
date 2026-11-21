@@ -1,5 +1,5 @@
 ---
-title: "Troubleshooting"
+title: "Troubleshoot common issues"
 description: "Locate the failing execution stage, inspect read-only evidence and choose a safe recovery."
 covers:
   - "backend/internal/api/v2/handlers/**"

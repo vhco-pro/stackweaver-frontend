@@ -2864,5 +2864,41 @@
       "helm"
     ],
     "availability": []
+  },
+  {
+    "id": "public-seo-basics",
+    "title": "Public guides have distinct titles and public pages identify their main content",
+    "area": "Website",
+    "kind": "Fixed",
+    "reviewed": true,
+    "audience": "Visitors searching the documentation or navigating public pages with assistive tools.",
+    "before": "The Ansible inventory, common issues and workload identity troubleshooting guides shared the same page title. The home, privacy and terms pages did not identify their primary content with a main landmark.",
+    "after": "The three troubleshooting guides have distinct page titles. The home, privacy and terms pages provide one main landmark around their primary content.",
+    "action": "No action is required.",
+    "details": [
+      "Page URLs, canonical URLs, indexing settings, AI-training crawler policy and legal wording are unchanged."
+    ],
+    "guides": [
+      {
+        "title": "Troubleshoot Ansible dynamic inventories",
+        "path": "/docs/user-guides/ansible/dynamic-inventories/troubleshooting"
+      },
+      {
+        "title": "Troubleshoot common issues",
+        "path": "/docs/user-guides/troubleshooting-common-issues"
+      },
+      {
+        "title": "Troubleshoot workload identity",
+        "path": "/docs/user-guides/workload-identity/troubleshooting"
+      }
+    ],
+    "sourceCommits": [],
+    "draftCommits": [
+      "d90796d1d70a05e9816066f9bc7ab948dc853ea8"
+    ],
+    "requiredComponents": [
+      "frontend"
+    ],
+    "availability": []
   }
 ]

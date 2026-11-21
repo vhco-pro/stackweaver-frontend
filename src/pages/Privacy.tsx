@@ -12,7 +12,7 @@ const LAST_UPDATED = 'October 12, 2026';
 export default function Privacy() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-slate-50 text-slate-900 dark:from-slate-950 dark:via-blue-950 dark:to-slate-950 dark:text-white">
-      <div className="max-w-4xl mx-auto px-6 py-16">
+      <main className="max-w-4xl mx-auto px-6 py-16">
         {/* Header */}
         <div className="mb-12">
           <Link to="/" className="inline-flex items-center gap-2 text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 mb-6 transition-colors">
@@ -226,7 +226,7 @@ export default function Privacy() {
             </p>
           </section>
         </div>
-      </div>
+      </main>
     </div>
   );
 }

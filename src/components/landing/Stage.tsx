@@ -386,9 +386,11 @@ function TourCards({ theme, onEnlarge }: { theme: 'dark' | 'light'; onEnlarge: (
 interface StageProps {
   /** The hero's decorative background, drawn behind both acts. */
   background?: ReactNode;
+  /** Remaining primary page sections, following the tour within the same landmark. */
+  children?: ReactNode;
 }
 
-export function Stage({ background }: StageProps) {
+export function Stage({ background, children }: StageProps) {
   const { resolvedTheme: theme } = useTheme();
   const reduceMotion = useReducedMotion();
   const tallEnough = useMediaQuery('(min-height: 560px)');
@@ -491,122 +493,132 @@ export function Stage({ background }: StageProps) {
 
   if (!pinned) {
     return (
-      <section id="top" ref={trackRef} data-stage data-stage-mode="stacked" className="relative">
+      <>
         <PublicNav activeLink="home" />
-        <div className="relative overflow-hidden">
-          <div className="absolute inset-x-0 top-0 h-[92vh] pointer-events-none overflow-hidden">{background}</div>
-          <div className="relative z-10 min-h-[92vh] flex items-center justify-center">
-            <div className="max-w-6xl mx-auto px-6 text-center pt-24 pb-16">
-              <div className="mb-8 flex justify-center">
-                <HeroLogo />
-              </div>
-              <div data-hero-copy>
-                <HeroCopy />
+        <main>
+          <section id="top" ref={trackRef} data-stage data-stage-mode="stacked" className="relative">
+            <div className="relative overflow-hidden">
+              <div className="absolute inset-x-0 top-0 h-[92vh] pointer-events-none overflow-hidden">{background}</div>
+              <div className="relative z-10 min-h-[92vh] flex items-center justify-center">
+                <div className="max-w-6xl mx-auto px-6 text-center pt-24 pb-16">
+                  <div className="mb-8 flex justify-center">
+                    <HeroLogo />
+                  </div>
+                  <div data-hero-copy>
+                    <HeroCopy />
+                  </div>
+                </div>
               </div>
             </div>
-          </div>
-        </div>
 
-        <div id="overview" className="relative px-4 md:px-6 py-12 md:py-20 scroll-mt-24 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white">
-          <div className="w-full max-w-[1560px] mx-auto grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10 items-center">
-            <div className="lg:col-span-4 flex flex-col gap-5 min-w-0">
-              <div>
-                <TourBadge />
+            <div id="overview" className="relative px-4 md:px-6 py-12 md:py-20 scroll-mt-24 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white">
+              <div className="w-full max-w-[1560px] mx-auto grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10 items-center">
+                <div className="lg:col-span-4 flex flex-col gap-5 min-w-0">
+                  <div>
+                    <TourBadge />
+                  </div>
+                  <TourHeading className="text-2xl sm:text-3xl xl:text-4xl" />
+                  {tablet ? (
+                    <>
+                      <TourCaption active={active} position={position} onSelect={(i) => { setPicked(true); select(i); }} />
+                      <TourPills active={active} onSelect={(i) => { setPicked(true); select(i); }} />
+                    </>
+                  ) : (
+                    <TourCards theme={theme} onEnlarge={setZoomed} />
+                  )}
+                  <TourActions />
+                </div>
+                {tablet && (
+                  <div id="tour-visual" role="tabpanel" className="lg:col-span-8 min-w-0 flex justify-center">
+                    <TourWindow active={active} theme={theme} onEnlarge={desktop ? undefined : () => { setZoomed(active); }} />
+                  </div>
+                )}
               </div>
-              <TourHeading className="text-2xl sm:text-3xl xl:text-4xl" />
-              {tablet ? (
-                <>
-                  <TourCaption active={active} position={position} onSelect={(i) => { setPicked(true); select(i); }} />
-                  <TourPills active={active} onSelect={(i) => { setPicked(true); select(i); }} />
-                </>
-              ) : (
-                <TourCards theme={theme} onEnlarge={setZoomed} />
-              )}
-              <TourActions />
             </div>
-            {tablet && (
-              <div id="tour-visual" role="tabpanel" className="lg:col-span-8 min-w-0 flex justify-center">
-                <TourWindow active={active} theme={theme} onEnlarge={desktop ? undefined : () => { setZoomed(active); }} />
-              </div>
-            )}
-          </div>
-        </div>
-        {zoom}
-      </section>
+            {zoom}
+          </section>
+          {children}
+        </main>
+      </>
     );
   }
 
   return (
-    <section
-      id="top"
-      ref={trackRef}
-      data-stage
-      data-stage-mode="pinned"
-      className="relative"
-      style={{ height: `calc(${1 + TRAVEL} * 100svh)` }}
-    >
+    <>
       <PublicNav activeLink="home" logoOpacity={navLogoOpacity} />
-      {/* The stretch of the track in which the tour is on screen: what `#overview` scrolls to. */}
-      <div id="overview" aria-hidden="true" className="absolute inset-x-0 bottom-0 pointer-events-none" style={{ top: `calc(${HERO + STEP_LANDING * STEP} * 100svh)` }} />
-
-      <div ref={pinRef} data-stage-pin className="sticky top-0 h-svh overflow-hidden">
-        <motion.div className="absolute inset-0 pointer-events-none overflow-hidden" style={{ opacity: backgroundOpacity }}>
-          {background}
-        </motion.div>
-
-        {/* act 1: the hero */}
-        <div className="absolute inset-0 z-10 flex items-center justify-center pointer-events-none">
-          <div className="max-w-6xl mx-auto px-6 text-center pt-24 pb-16">
-            <div className="mb-8 flex justify-center">
-              <motion.div ref={logoRef} style={{ x: logoX, y: logoY, scale: logoScale, visibility: logoVisibility }}>
-                <HeroLogo />
-              </motion.div>
-            </div>
-            <motion.div data-hero-copy style={{ opacity: copyOpacity, y: copyY, scale: copyScale }}>
-              <HeroCopy />
-            </motion.div>
-          </div>
-          <motion.div
-            className="absolute bottom-6 inset-x-0 flex flex-col items-center gap-2 text-xs text-slate-500 dark:text-white/50"
-            style={{ opacity: hintOpacity }}
-          >
-            <ScrollHint />
-          </motion.div>
-        </div>
-
-        {/* act 2: the product, one real screen per scroll step */}
-        <motion.div
-          className="absolute inset-0 z-10 flex items-stretch lg:items-center px-4 md:px-6 pt-[108px] pb-3 lg:pt-[112px] lg:pb-7 [@media(max-height:640px)]:max-lg:pt-[104px] text-slate-900 dark:text-white"
-          style={{ pointerEvents: tourPointerEvents }}
+      <main>
+        <section
+          id="top"
+          ref={trackRef}
+          data-stage
+          data-stage-mode="pinned"
+          className="relative"
+          style={{ height: `calc(${1 + TRAVEL} * 100svh)` }}
         >
-          <div className="w-full max-w-[1560px] mx-auto h-full lg:h-auto flex flex-col gap-3 lg:grid lg:grid-cols-12 lg:gap-10 lg:items-center">
-            <motion.div data-tour-copy className="lg:col-span-4 flex flex-col gap-2.5 lg:gap-5 min-w-0 shrink-0" style={{ opacity: tourCopyOpacity, y: tourCopyY }}>
-              <div className="max-lg:hidden">
-                <TourBadge />
-              </div>
-              <TourHeading className="text-xl lg:text-3xl xl:text-4xl [@media(max-height:640px)]:max-lg:hidden" />
-              <TourCaption active={active} position={position} onSelect={jumpToStep} className="max-lg:p-3.5" />
-              <TourPills active={active} onSelect={jumpToStep} className="max-lg:hidden" />
-              <TourActions className="max-lg:hidden" />
+          {/* The stretch of the track in which the tour is on screen: what `#overview` scrolls to. */}
+          <div id="overview" aria-hidden="true" className="absolute inset-x-0 bottom-0 pointer-events-none" style={{ top: `calc(${HERO + STEP_LANDING * STEP} * 100svh)` }} />
+
+          <div ref={pinRef} data-stage-pin className="sticky top-0 h-svh overflow-hidden">
+            <motion.div className="absolute inset-0 pointer-events-none overflow-hidden" style={{ opacity: backgroundOpacity }}>
+              {background}
             </motion.div>
 
-            <div
-              id="tour-visual"
-              role="tabpanel"
-              className="lg:col-span-8 min-w-0 flex justify-center items-start flex-1 min-h-0 lg:flex-none lg:items-center [container-type:size] lg:[container-type:normal]"
-              style={{ perspective: 1800 }}
-            >
+            {/* act 1: the hero */}
+            <div className="absolute inset-0 z-10 flex items-center justify-center pointer-events-none">
+              <div className="max-w-6xl mx-auto px-6 text-center pt-24 pb-16">
+                <div className="mb-8 flex justify-center">
+                  <motion.div ref={logoRef} style={{ x: logoX, y: logoY, scale: logoScale, visibility: logoVisibility }}>
+                    <HeroLogo />
+                  </motion.div>
+                </div>
+                <motion.div data-hero-copy style={{ opacity: copyOpacity, y: copyY, scale: copyScale }}>
+                  <HeroCopy />
+                </motion.div>
+              </div>
               <motion.div
-                className="w-full max-w-[max(200px,min(100cqw,calc((100cqh_-_50px)_*_1.28)))] lg:max-w-[calc((100svh_-_204px)_*_1.6)]"
-                style={{ opacity: windowOpacity, y: windowY, rotateX: windowTilt, scale: windowScale }}
+                className="absolute bottom-6 inset-x-0 flex flex-col items-center gap-2 text-xs text-slate-500 dark:text-white/50"
+                style={{ opacity: hintOpacity }}
               >
-                <TourWindow active={active} theme={theme} onEnlarge={desktop ? undefined : () => { setZoomed(active); }} />
+                <ScrollHint />
               </motion.div>
             </div>
+
+            {/* act 2: the product, one real screen per scroll step */}
+            <motion.div
+              className="absolute inset-0 z-10 flex items-stretch lg:items-center px-4 md:px-6 pt-[108px] pb-3 lg:pt-[112px] lg:pb-7 [@media(max-height:640px)]:max-lg:pt-[104px] text-slate-900 dark:text-white"
+              style={{ pointerEvents: tourPointerEvents }}
+            >
+              <div className="w-full max-w-[1560px] mx-auto h-full lg:h-auto flex flex-col gap-3 lg:grid lg:grid-cols-12 lg:gap-10 lg:items-center">
+                <motion.div data-tour-copy className="lg:col-span-4 flex flex-col gap-2.5 lg:gap-5 min-w-0 shrink-0" style={{ opacity: tourCopyOpacity, y: tourCopyY }}>
+                  <div className="max-lg:hidden">
+                    <TourBadge />
+                  </div>
+                  <TourHeading className="text-xl lg:text-3xl xl:text-4xl [@media(max-height:640px)]:max-lg:hidden" />
+                  <TourCaption active={active} position={position} onSelect={jumpToStep} className="max-lg:p-3.5" />
+                  <TourPills active={active} onSelect={jumpToStep} className="max-lg:hidden" />
+                  <TourActions className="max-lg:hidden" />
+                </motion.div>
+
+                <div
+                  id="tour-visual"
+                  role="tabpanel"
+                  className="lg:col-span-8 min-w-0 flex justify-center items-start flex-1 min-h-0 lg:flex-none lg:items-center [container-type:size] lg:[container-type:normal]"
+                  style={{ perspective: 1800 }}
+                >
+                  <motion.div
+                    className="w-full max-w-[max(200px,min(100cqw,calc((100cqh_-_50px)_*_1.28)))] lg:max-w-[calc((100svh_-_204px)_*_1.6)]"
+                    style={{ opacity: windowOpacity, y: windowY, rotateX: windowTilt, scale: windowScale }}
+                  >
+                    <TourWindow active={active} theme={theme} onEnlarge={desktop ? undefined : () => { setZoomed(active); }} />
+                  </motion.div>
+                </div>
+              </div>
+            </motion.div>
           </div>
-        </motion.div>
-      </div>
-      {zoom}
-    </section>
+          {zoom}
+        </section>
+        {children}
+      </main>
+    </>
   );
 }
