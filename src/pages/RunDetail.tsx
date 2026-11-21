@@ -12,6 +12,7 @@ import { RunSourceDisplay } from '@/components/runs/RunSourceDisplay';
 import { UnifiedPhaseTimeline } from '@/components/runs/UnifiedPhaseTimeline';
 import { RunTaskStages } from '@/components/runs/RunTaskStages';
 import { PlacementRecord, QueueReasonNotice } from '@/components/runners/PlacementRecord';
+import { hasPlacement } from '@/lib/placement';
 import { ErrorDisplay } from '@/components/runs/ErrorDisplay';
 import { LostApplyRequeue } from '@/components/runs/LostApplyRequeue';
 import { isLostApply } from '@/lib/lostApply';
@@ -30,7 +31,6 @@ import {
   Loader2,
   XCircle,
   CheckCircle2,
-  Server,
 } from 'lucide-react';
 import { StatusBadge } from '@/components/runs/StatusBadge';
 import { computeDisplayStatus } from '@/utils/runStatus';
@@ -498,14 +498,11 @@ export default function RunDetail() {
                 </>
               ) : null;
             })()}
-            {/* Self-hosted runner info - only show which runner executed */}
-            {run.runner_name && (
+            {/* The launcher that ran it; opens the placement record once the run was placed */}
+            {(run.runner_name || hasPlacement(placement)) && (
               <>
                 <span className="text-muted-foreground">•</span>
-                <span className="px-2 py-1 rounded-md bg-teal-500/10 text-teal-600 dark:text-teal-400 border border-teal-500/20 backdrop-blur-xs flex items-center gap-1">
-                  <Server className="h-3 w-3" />
-                  {run.runner_name}
-                </span>
+                <PlacementRecord placement={placement} runnerName={run.runner_name || undefined} />
               </>
             )}
             <span className="text-muted-foreground">•</span>
@@ -577,7 +574,6 @@ export default function RunDetail() {
         {id && <RunTaskStages runId={id} runStatus={run.status} />}
 
         <QueueReasonNotice placement={placement} />
-        <PlacementRecord placement={placement} />
 
         <UnifiedPhaseTimeline
           run={run}

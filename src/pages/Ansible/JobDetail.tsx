@@ -58,6 +58,7 @@ import { InventorySyncWarningsAlert } from '@/components/ansible/InventorySyncWa
 import { JobPlaybookLabel } from '@/components/ansible/JobPlaybookLabel';
 import { canRelaunchJob, jobPlaybookState } from '@/components/ansible/jobPlaybook';
 import { PlacementRecord, QueueReasonNotice } from '@/components/runners/PlacementRecord';
+import { hasPlacement } from '@/lib/placement';
 import { ANSIBLE_HOST_STATUSES, type HostStatus } from '@/components/ansible/hostStatus';
 
 // Date formatting helpers
@@ -776,9 +777,8 @@ export default function JobDetail() {
       {/* Ran on inventory its update-on-launch syncs did not refresh */}
       <InventorySyncWarningsAlert warnings={job.inventory_sync_warnings ?? []} />
 
-      {/* Why the job waits on its hosted pool, and where its latest attempt ran (#933, AC56, AC77) */}
+      {/* Why the job waits on its hosted pool (#933, AC56); where it ran is on the Details tab */}
       <QueueReasonNotice placement={job.placement} />
-      <PlacementRecord placement={job.placement} />
 
       {/* Warnings Banner (collapsible) */}
       {parsedWarnings.length > 0 && (
@@ -928,14 +928,12 @@ export default function JobDetail() {
                     )}
                   </dd>
                 </div>
-                {job.runner_name && (
+                {/* The launcher that ran it; opens the placement record once the job was placed (#933, AC77) */}
+                {(job.runner_name || hasPlacement(job.placement)) && (
                   <div>
-                    <dt className="text-muted-foreground">Launcher</dt>
+                    <dt className="text-muted-foreground">{job.runner_name ? 'Launcher' : 'Placement'}</dt>
                     <dd className="mt-0.5">
-                      <span className="inline-flex items-center gap-1.5">
-                        <Server className="h-3.5 w-3.5 text-blue-500" />
-                        {job.runner_name}
-                      </span>
+                      <PlacementRecord placement={job.placement} runnerName={job.runner_name || undefined} />
                     </dd>
                   </div>
                 )}
