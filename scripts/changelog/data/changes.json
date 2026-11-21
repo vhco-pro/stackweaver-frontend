@@ -1,5 +1,30 @@
 [
   {
+    "id": "run-header-fact-chips",
+    "title": "Run facts show as matching chips with coloured icons",
+    "area": "OpenTofu",
+    "kind": "Changed",
+    "reviewed": true,
+    "audience": "Everyone who reads OpenTofu run pages, workspace run cards or Ansible job details.",
+    "before": "The row under a run title mixed plain text, coloured pills, bare monospace and bullets, and a VCS run showed its pull request, branch and commit as orange, purple and blue links.",
+    "after": "The trigger, pull request, branch, commit, committer, OpenTofu version, launcher and run ID each show as the same neutral chip with a coloured icon, and the version carries the OpenTofu mark. The pull request, branch and commit chips open the VCS page, the launcher chip opens the placement record, and the run ID chip copies the ID.",
+    "action": "No configuration change is required.",
+    "details": [
+      "The presentation changes; product capabilities and APIs are unchanged."
+    ],
+    "guides": [
+      {
+        "title": "Read OpenTofu runs",
+        "path": "/docs/user-guides/opentofu/understanding-opentofu-runs"
+      }
+    ],
+    "sourceCommits": [],
+    "requiredComponents": [
+      "frontend"
+    ],
+    "availability": []
+  },
+  {
     "id": "opentofu-output-icons",
     "title": "Run output shows the OpenTofu mark instead of the Terraform logo",
     "area": "OpenTofu",

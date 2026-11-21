@@ -4,6 +4,7 @@ import { ChevronDown, Clock, MapPin, Server } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { hasPlacement, placementImageRef, queueReasonText, type Placement } from '@/lib/placement';
+import { metaChipActionClass, metaChipClass, metaIconTone } from '@/lib/metaChip';
 
 /**
  * "Waiting for hosted capacity (3 of 5 slots in use)" for work that waits on its organization's
@@ -41,9 +42,7 @@ const IMAGE_LEVELS: Record<string, string> = {
   platform: 'Platform default',
 };
 
-const chip =
-  'inline-flex items-center gap-1 rounded-md border px-2 py-1 backdrop-blur-xs ' +
-  'border-teal-500/20 bg-teal-500/10 text-teal-600 dark:text-teal-400';
+const iconClass = cn('h-3.5 w-3.5 shrink-0', metaIconTone.launcher);
 
 /**
  * Where the latest attempt of a run, job or work item ran (#933, D4, AC77). A compact, read-only
@@ -65,8 +64,8 @@ export function PlacementRecord({
   if (!hasPlacement(placement)) {
     if (!runnerName) return null;
     return (
-      <span className={cn(chip, className)}>
-        <Icon className="h-3 w-3" />
+      <span className={cn(metaChipClass, className)}>
+        <Icon className={iconClass} />
         {runnerName}
       </span>
     );
@@ -80,16 +79,11 @@ export function PlacementRecord({
           data-testid="placement-record"
           title={`${summary}: show placement`}
           aria-label={`Placement: ${summary.toLowerCase()}`}
-          className={cn(
-            chip,
-            'cursor-pointer transition-colors duration-200 hover:bg-teal-500/20',
-            'focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-teal-500/50',
-            className
-          )}
+          className={cn(metaChipClass, metaChipActionClass, className)}
         >
-          <Icon className="h-3 w-3" />
+          <Icon className={iconClass} />
           {runnerName ?? `${placement.driver} driver`}
-          <ChevronDown className="h-3 w-3 opacity-70" />
+          <ChevronDown className="h-3 w-3 opacity-60" />
         </button>
       </DialogTrigger>
       <DialogContent className="max-w-xl rounded-2xl" data-testid="placement-details">
