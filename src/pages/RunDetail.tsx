@@ -9,6 +9,9 @@ import { getRunFromJsonApi } from '@/utils/jsonapi';
 import { OutputViewer } from '@/components/runs/OutputViewer';
 import { ApplyOutputViewer } from '@/components/runs/ApplyOutputViewer';
 import { RunSourceDisplay } from '@/components/runs/RunSourceDisplay';
+import { MetaChip } from '@/components/runs/MetaChip';
+import { BrandIcon } from '@/components/brand/BrandIcon';
+import { brandById } from '@/lib/brands';
 import { UnifiedPhaseTimeline } from '@/components/runs/UnifiedPhaseTimeline';
 import { RunTaskStages } from '@/components/runs/RunTaskStages';
 import { PlacementRecord, QueueReasonNotice } from '@/components/runners/PlacementRecord';
@@ -46,6 +49,8 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { isRunSettled } from '@/lib/runSettled';
+
+const opentofuBrand = brandById('opentofu');
 
 export default function RunDetail() {
   const { runId, orgName, workspaceName } = useParams<{
@@ -484,31 +489,27 @@ export default function RunDetail() {
           </div>
         }
         stats={
-          <div className="flex items-center gap-2 flex-wrap text-xs sm:text-sm">
-            <RunSourceDisplay run={run} workspace={workspaceData || undefined} />
+          <div className="flex flex-wrap items-center gap-2">
+            <RunSourceDisplay run={run} workspace={workspaceData || undefined} className="contents" />
             {planOutput && 'terraform_version' in planOutput && (() => {
-              const version = planOutput.terraform_version;
+              const raw = planOutput.terraform_version;
+              // eslint-disable-next-line @typescript-eslint/no-base-to-string
+              const version = raw ? (typeof raw === 'string' ? raw : String(raw)) : '';
               return version ? (
-                <>
-                  <span className="text-muted-foreground">•</span>
-                  <span className="px-2 py-1 rounded-md bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20 backdrop-blur-xs">
-                    {/* eslint-disable-next-line @typescript-eslint/no-base-to-string */}
-                    v{typeof version === 'string' ? version : String(version)}
-                  </span>
-                </>
+                <MetaChip
+                  title={`OpenTofu v${version}`}
+                  icon={opentofuBrand ? <BrandIcon brand={opentofuBrand} className="text-sm" /> : undefined}
+                >
+                  v{version}
+                </MetaChip>
               ) : null;
             })()}
             {/* The launcher that ran it; opens the placement record once the run was placed */}
             {(run.runner_name || hasPlacement(placement)) && (
-              <>
-                <span className="text-muted-foreground">•</span>
-                <PlacementRecord placement={placement} runnerName={run.runner_name || undefined} />
-              </>
+              <PlacementRecord placement={placement} runnerName={run.runner_name || undefined} />
             )}
-            <span className="text-muted-foreground">•</span>
-            <div className="flex items-center gap-1.5">
-              <span className="text-muted-foreground font-mono text-xs">{run.id}</span>
-              <button
+            <MetaChip
+              trailing={<button
                 onClick={() => {
                   void (async () => {
                     try {
@@ -521,17 +522,19 @@ export default function RunDetail() {
                     }
                   })();
                 }}
-                className="p-1 hover:bg-muted rounded-sm transition-colors"
+                className="rounded-full p-1 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
                 title="Copy run ID"
                 aria-label="Copy run ID"
               >
                 {copiedRunId ? (
                   <Check className="h-3 w-3 text-green-500" />
                 ) : (
-                  <Copy className="h-3 w-3 text-muted-foreground" />
+                  <Copy className="h-3 w-3" />
                 )}
-              </button>
-            </div>
+              </button>}
+            >
+              <span className="font-mono">{run.id}</span>
+            </MetaChip>
           </div>
         }
         actions={
