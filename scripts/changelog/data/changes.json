@@ -1,5 +1,89 @@
 [
   {
+    "id": "opentofu-output-icons",
+    "title": "Run output shows the OpenTofu mark instead of the Terraform logo",
+    "area": "OpenTofu",
+    "kind": "Fixed",
+    "reviewed": true,
+    "audience": "Everyone who reads OpenTofu plan and apply output.",
+    "before": "Plan and apply output showed the Terraform logo for every output and for any provider without its own icon.",
+    "after": "Outputs and the engine's built-in terraform provider show the OpenTofu mark, tfe resources show the Stackweaver logo, and other providers show their own icon or a neutral one.",
+    "action": "No configuration change is required.",
+    "details": [
+      "The presentation changes; product capabilities and APIs are unchanged."
+    ],
+    "guides": [
+      {
+        "title": "Read OpenTofu runs",
+        "path": "/docs/user-guides/opentofu/understanding-opentofu-runs"
+      }
+    ],
+    "sourceCommits": [],
+    "draftCommits": [
+      "b0d31f515e470fbba6e33aa3f0c75361216d7626"
+    ],
+    "requiredComponents": [
+      "frontend"
+    ],
+    "availability": []
+  },
+  {
+    "id": "run-placement-dialog",
+    "title": "The run header opens the placement record in a dialog",
+    "area": "Runners",
+    "kind": "Changed",
+    "reviewed": true,
+    "audience": "Everyone who reads OpenTofu run pages or Ansible job details.",
+    "before": "A full-width Placement card sat between the warnings and the plan on every run page, and the Image row could show the digest twice.",
+    "after": "The launcher chip in the run header, or under Launcher on an Ansible job's Details tab, opens the placement record in a dialog, so the plan follows the warnings directly. The Image row shows the digest once.",
+    "action": "No configuration change is required.",
+    "details": [
+      "The presentation changes; product capabilities and APIs are unchanged."
+    ],
+    "guides": [
+      {
+        "title": "Monitor and operate launchers",
+        "path": "/docs/user-guides/launchers/operate"
+      }
+    ],
+    "sourceCommits": [],
+    "draftCommits": [
+      "810a2ddccf1437fca27a25262d29d8a7bd219c3d"
+    ],
+    "requiredComponents": [
+      "frontend"
+    ],
+    "availability": []
+  },
+  {
+    "id": "compact-status-filter-chips",
+    "title": "Status filter chips stay on one line in narrow windows",
+    "area": "Frontend",
+    "kind": "Changed",
+    "reviewed": true,
+    "audience": "Everyone who filters workspaces, or a workspace's runs, by status.",
+    "before": "In a narrow window the status filter bar on Workspaces and on a workspace's Runs tab wrapped its labels and pushed the last chips out of view.",
+    "after": "When the labels do not fit, each chip shows its icon and count. The label stays in the tooltip and for screen readers.",
+    "action": "No configuration change is required.",
+    "details": [
+      "The presentation changes; product capabilities and APIs are unchanged."
+    ],
+    "guides": [
+      {
+        "title": "Your first OpenTofu workspace",
+        "path": "/docs/get-started/your-first-opentofu-workspace"
+      }
+    ],
+    "sourceCommits": [],
+    "draftCommits": [
+      "c0390bc4a2f71d471ba21d86192262f7614ef725"
+    ],
+    "requiredComponents": [
+      "frontend"
+    ],
+    "availability": []
+  },
+  {
     "id": "landing-capability-cards",
     "title": "The landing page groups infrastructure, Ansible and execution capabilities",
     "area": "Frontend",
