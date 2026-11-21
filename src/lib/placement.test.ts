@@ -1,7 +1,7 @@
 // Copyright (c) 2026 VH & Co BV. Licensed under the Business Source License 1.1. See LICENSE for details.
 
 import { describe, expect, it } from 'vitest';
-import { hasPlacement, networkModeLabel, placementFromAttributes, queueReasonText } from './placement';
+import { hasPlacement, networkModeLabel, placementFromAttributes, placementImageRef, queueReasonText } from './placement';
 
 describe('placementFromAttributes', () => {
   it('reads the wire attributes of a placement record', () => {
@@ -42,6 +42,23 @@ describe('placementFromAttributes', () => {
 
   it('treats a record with no driver as not yet placed', () => {
     expect(hasPlacement(placementFromAttributes({ attempt: 0, driver: '' }))).toBe(false);
+  });
+});
+
+describe('placementImageRef', () => {
+  const at = (image: string, digest: string) =>
+    placementImageRef(placementFromAttributes({ attempt: 1, driver: 'container', image, 'image-digest': digest })!);
+
+  it('pins a tagged image to its digest', () => {
+    expect(at('runner:1', 'sha256:feed')).toBe('runner:1@sha256:feed');
+  });
+
+  it('does not repeat a digest the reference already carries', () => {
+    expect(at('runner@sha256:feed', 'sha256:feed')).toBe('runner@sha256:feed');
+  });
+
+  it('shows the reference alone before the digest is known', () => {
+    expect(at('runner:1', '')).toBe('runner:1');
   });
 });
 

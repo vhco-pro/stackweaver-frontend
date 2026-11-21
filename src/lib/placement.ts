@@ -55,6 +55,15 @@ export function hasPlacement(p: Placement | undefined): p is Placement {
   return !!p && p.driver !== '';
 }
 
+/**
+ * The image the placement ran, pinned to its digest. The recorded reference may already carry the
+ * digest (a digest-pinned run image), so the digest is appended only when it is missing.
+ */
+export function placementImageRef(p: Placement): string {
+  if (!p.image_digest || p.image.endsWith(`@${p.image_digest}`)) return p.image;
+  return `${p.image}@${p.image_digest}`;
+}
+
 /** The timeline copy for work waiting on hosted capacity, or '' when it is not waiting on it. */
 export function queueReasonText(p: Placement | undefined): string {
   if (!p) return '';

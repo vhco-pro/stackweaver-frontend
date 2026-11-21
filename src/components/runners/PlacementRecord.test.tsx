@@ -17,10 +17,16 @@ const placed = placementFromAttributes({
 });
 
 describe('PlacementRecord', () => {
-  it('shows the placement of the latest attempt when expanded', () => {
-    render(<PlacementRecord placement={placed} />);
-    expect(screen.getByText(/attempt 1 on the container driver/)).toBeTruthy();
-    fireEvent.click(screen.getByRole('button', { expanded: false }));
+  it('is a compact chip that opens the placement of the latest attempt', () => {
+    render(<PlacementRecord placement={placed} runnerName="launcher-1" />);
+    const chip = screen.getByTestId('placement-record');
+    expect(chip.textContent).toBe('launcher-1');
+    expect(chip.getAttribute('aria-label')).toBe('Placement: attempt 1 on the container driver');
+    expect(screen.queryByText('sw-job-run-abc-1')).toBeNull();
+
+    fireEvent.click(chip);
+    const dialog = screen.getByRole('dialog');
+    expect(dialog.textContent).toContain('Attempt 1 on the container driver');
     expect(screen.getByText('sw-job-run-abc-1')).toBeTruthy();
     expect(screen.getByText('stackweaver-runner:slot-3@sha256:feed')).toBeTruthy();
     expect(screen.getByText('Platform default')).toBeTruthy();
@@ -28,7 +34,18 @@ describe('PlacementRecord', () => {
     expect(screen.getByText('host-a')).toBeTruthy();
   });
 
-  it('renders nothing before the work is placed', () => {
+  it('names the driver when the launcher is unknown', () => {
+    render(<PlacementRecord placement={placed} />);
+    expect(screen.getByTestId('placement-record').textContent).toBe('container driver');
+  });
+
+  it('shows only the launcher before the work is placed', () => {
+    render(<PlacementRecord placement={placementFromAttributes({ attempt: 0, driver: '' })} runnerName="launcher-1" />);
+    expect(screen.queryByTestId('placement-record')).toBeNull();
+    expect(screen.getByText('launcher-1')).toBeTruthy();
+  });
+
+  it('renders nothing before the work is placed and without a launcher', () => {
     const { container } = render(<PlacementRecord placement={placementFromAttributes({ attempt: 0, driver: '' })} />);
     expect(container.innerHTML).toBe('');
   });

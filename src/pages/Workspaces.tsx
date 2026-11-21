@@ -43,9 +43,10 @@ import {
   Trash2,
   ExternalLink,
   Lock,
-  ClipboardList
+  ClipboardList,
+  Layers
 } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { StatusFilterChip, StatusFilterChips } from '@/components/filters/StatusFilterChips';
 import { getVcsProviderIcon, getVcsRepoUrl } from '@/lib/vcs';
 import {
   Select,
@@ -398,80 +399,22 @@ export default function Workspaces() {
     <Page>
       {header}
 
-      {/* Stats Bar */}
-      <div className="flex items-center gap-6 p-4 bg-muted/50 rounded-lg border border-border/40">
-        <button
-          onClick={() => setStatusFilter('all')}
-          className={cn(
-            "flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium transition-colors",
-            statusFilter === 'all'
-              ? "bg-purple-500/10 text-purple-600 dark:text-purple-400"
-              : "text-purple-600 dark:text-purple-400 hover:bg-purple-500/20"
-          )}
-        >
-          All {workspaces.length}
-        </button>
-        <button
-          onClick={() => setStatusFilter('needs_attention')}
-          className={cn(
-            "flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium transition-colors",
-            statusFilter === 'needs_attention'
-              ? "bg-orange-500/10 text-orange-600 dark:text-orange-400"
-              : "text-orange-600 dark:text-orange-400 hover:bg-orange-500/20"
-          )}
-        >
-          <AlertTriangle className="h-4 w-4" />
-          Needs Attention {aggregateStats.needsAttention}
-        </button>
-        <button
-          onClick={() => setStatusFilter('errored')}
-          className={cn(
-            "flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium transition-colors",
-            statusFilter === 'errored'
-              ? "bg-red-500/10 text-red-600 dark:text-red-400"
-              : "text-red-600 dark:text-red-400 hover:bg-red-500/20"
-          )}
-        >
-          <XCircle className="h-4 w-4" />
-          Errored {aggregateStats.errored}
-        </button>
-        <button
-          onClick={() => setStatusFilter('running')}
-          className={cn(
-            "flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium transition-colors",
-            statusFilter === 'running'
-              ? "bg-blue-500/10 text-blue-600 dark:text-blue-400"
-              : "text-blue-600 dark:text-blue-400 hover:bg-blue-500/20"
-          )}
-        >
-          <Loader2 className={cn("h-4 w-4", totalRunningRuns > 0 && "animate-spin")} />
-          Running {aggregateStats.running}
-        </button>
-        <button
-          onClick={() => setStatusFilter('on_hold')}
-          className={cn(
-            "flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium transition-colors",
-            statusFilter === 'on_hold'
-              ? "bg-gray-500/10 text-gray-600 dark:text-gray-400"
-              : "text-gray-600 dark:text-gray-400 hover:bg-gray-500/20"
-          )}
-        >
-          <Pause className="h-4 w-4" />
-          On Hold {aggregateStats.onHold}
-        </button>
-        <button
-          onClick={() => setStatusFilter('success')}
-          className={cn(
-            "flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium transition-colors",
-            statusFilter === 'success'
-              ? "bg-green-500/10 text-green-600 dark:text-green-400"
-              : "text-green-600 dark:text-green-400 hover:bg-green-500/20"
-          )}
-        >
-          <CheckCircle2 className="h-4 w-4" />
-          Success {aggregateStats.success}
-        </button>
-      </div>
+      {/* Stats Bar: icon and count only once the full labels no longer fit */}
+      <StatusFilterChips className="p-3 sm:p-4 bg-muted/50 rounded-lg border border-border/40">
+        <StatusFilterChip icon={Layers} label="All" count={workspaces.length} tone="purple"
+          active={statusFilter === 'all'} onClick={() => { setStatusFilter('all'); }} />
+        <StatusFilterChip icon={AlertTriangle} label="Needs Attention" count={aggregateStats.needsAttention} tone="orange"
+          active={statusFilter === 'needs_attention'} onClick={() => { setStatusFilter('needs_attention'); }} />
+        <StatusFilterChip icon={XCircle} label="Errored" count={aggregateStats.errored} tone="red"
+          active={statusFilter === 'errored'} onClick={() => { setStatusFilter('errored'); }} />
+        <StatusFilterChip icon={Loader2} iconClassName={totalRunningRuns > 0 ? 'animate-spin' : undefined}
+          label="Running" count={aggregateStats.running} tone="blue"
+          active={statusFilter === 'running'} onClick={() => { setStatusFilter('running'); }} />
+        <StatusFilterChip icon={Pause} label="On Hold" count={aggregateStats.onHold} tone="gray"
+          active={statusFilter === 'on_hold'} onClick={() => { setStatusFilter('on_hold'); }} />
+        <StatusFilterChip icon={CheckCircle2} label="Success" count={aggregateStats.success} tone="green"
+          active={statusFilter === 'success'} onClick={() => { setStatusFilter('success'); }} />
+      </StatusFilterChips>
 
       {/* Search and Filters */}
       <div className="flex items-center gap-4">

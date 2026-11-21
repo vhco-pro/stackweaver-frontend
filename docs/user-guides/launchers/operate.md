@@ -4,6 +4,7 @@ nav_order: 9
 description: "Check launcher status and placement, upgrade, remove and maintain launchers in bulk, and fix a launcher that stays offline or leaves work waiting."
 covers:
   - "frontend/src/pages/Settings/Runners.tsx"
+  - "frontend/src/components/runners/**"
   - "backend/internal/api/v2/handlers/runner*"
 ---
 
@@ -17,7 +18,7 @@ Open **Settings > Launchers** to check status (Online, Busy, Offline or Error), 
 
 After registration, run a reviewed test plan or harmless Ansible job and verify which launcher ran it and its output. Online heartbeats prove connectivity, not cloud permissions or successful workload execution.
 
-A run or job page has a **Placement** panel that shows where its latest attempt ran: the attempt number (for a run, of its current phase, so an apply that follows its plan is the apply's first attempt, and only a plan offered again or a re-queued apply counts as a new one), the driver, the container or pod, the image and its digest with the level the image came from, the identity binding (or the platform token) and the node.
+To see where the latest attempt ran, select the launcher's name in the run's header, next to the run ID, or open a job's **Details** tab and select its **Launcher**. The **Placement** dialog shows the attempt number (for a run, of its current phase, so an apply that follows its plan is the apply's first attempt, and only a plan offered again or a re-queued apply counts as a new one), the driver, the container or pod, the image and its digest with the level the image came from, the identity binding (or the platform token) and the node.
 
 ### Launcher status
 

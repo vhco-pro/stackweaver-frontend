@@ -20,7 +20,7 @@ import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { JsonViewer } from './JsonViewer';
 import { ResourceDiffView } from './ResourceDiffView';
-import { ProviderIcon } from './ProviderIcon';
+import { OpenTofuIcon, ProviderIcon } from './ProviderIcon';
 import { TerminalOutput } from './TerminalOutput';
 import { useRunDisplayPreferences } from '@/contexts/RunDisplayPreferencesContext';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -252,8 +252,8 @@ function OutputChangeCard({ output }: { output: OutputChange }) {
         <div className="flex items-start justify-between gap-4">
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2">
-              {/* Provider Icon - outputs are Terraform-level, use terraform icon */}
-              <ProviderIcon providerName="terraform" className="h-4 w-4" />
+              {/* Outputs belong to the engine, not to a provider */}
+              <OpenTofuIcon className="h-4 w-4" />
 
               {/* Action Badge with Icon */}
               <span className={cn(

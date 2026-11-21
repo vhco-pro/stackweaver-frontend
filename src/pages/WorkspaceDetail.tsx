@@ -72,8 +72,10 @@ import {
   Check,
   X,
   Server,
-  FileUp
+  FileUp,
+  Layers
 } from 'lucide-react';
+import { StatusFilterChip, StatusFilterChips } from '@/components/filters/StatusFilterChips';
 import { cn } from '@/lib/utils';
 import { dangerGhostIcon, dangerOutline } from '@/lib/surfaces';
 import { getVcsProviderIcon, getVcsRepoUrl, getVcsCommitUrl } from '@/lib/vcs';
@@ -1746,69 +1748,22 @@ export default function WorkspaceDetail() {
 
         {/* Runs Tab */}
         <TabsContent value="runs" className="space-y-6 mt-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <button
-                onClick={() => setStatusFilter('all')}
-                className={cn(
-                  "px-3 py-1.5 rounded-md text-sm font-medium transition-colors",
-                  statusFilter === 'all'
-                    ? "bg-purple-500/10 text-purple-600 dark:text-purple-400"
-                    : "text-muted-foreground hover:text-foreground hover:bg-accent"
-                )}
-              >
-                All {runs.length}
-              </button>
-              <button
-                onClick={() => setStatusFilter('errored')}
-                className={cn(
-                  "flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium transition-colors",
-                  statusFilter === 'errored'
-                    ? "bg-red-500/10 text-red-600 dark:text-red-400"
-                    : "text-red-600 dark:text-red-400 hover:bg-red-500/20"
-                )}
-              >
-                <XCircle className="h-4 w-4" />
-                Errored {runs.filter(r => runMatchesStatusFilter(r, 'errored')).length}
-              </button>
-              <button
-                onClick={() => setStatusFilter('running')}
-                className={cn(
-                  "flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium transition-colors",
-                  statusFilter === 'running'
-                    ? "bg-blue-500/10 text-blue-600 dark:text-blue-400"
-                    : "text-blue-600 dark:text-blue-400 hover:bg-blue-500/20"
-                )}
-              >
-                <Loader2 className={cn("h-4 w-4", runs.some(r => runMatchesStatusFilter(r, 'running')) && "animate-spin")} />
-                Running {runs.filter(r => runMatchesStatusFilter(r, 'running')).length}
-              </button>
-              <button
-                onClick={() => setStatusFilter('on_hold')}
-                className={cn(
-                  "flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium transition-colors",
-                  statusFilter === 'on_hold'
-                    ? "bg-gray-500/10 text-gray-600 dark:text-gray-400"
-                    : "text-gray-600 dark:text-gray-400 hover:bg-gray-500/20"
-                )}
-              >
-                <Pause className="h-4 w-4" />
-                On Hold {runs.filter(r => runMatchesStatusFilter(r, 'on_hold')).length}
-              </button>
-              <button
-                onClick={() => setStatusFilter('success')}
-                className={cn(
-                  "flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium transition-colors",
-                  statusFilter === 'success'
-                    ? "bg-green-500/10 text-green-600 dark:text-green-400"
-                    : "text-green-600 dark:text-green-400 hover:bg-green-500/20"
-                )}
-              >
-                <CheckCircle2 className="h-4 w-4" />
-                Success {runs.filter(r => runMatchesStatusFilter(r, 'success')).length}
-              </button>
-            </div>
-            <div className="flex items-center gap-2">
+          <div className="flex items-center justify-between gap-4">
+            {/* Icon and count only once the full labels no longer fit beside the search */}
+            <StatusFilterChips className="flex-1">
+              <StatusFilterChip icon={Layers} label="All" count={runs.length} tone="purple"
+                active={statusFilter === 'all'} onClick={() => { setStatusFilter('all'); }} />
+              <StatusFilterChip icon={XCircle} label="Errored" count={runs.filter(r => runMatchesStatusFilter(r, 'errored')).length} tone="red"
+                active={statusFilter === 'errored'} onClick={() => { setStatusFilter('errored'); }} />
+              <StatusFilterChip icon={Loader2} iconClassName={runs.some(r => runMatchesStatusFilter(r, 'running')) ? 'animate-spin' : undefined}
+                label="Running" count={runs.filter(r => runMatchesStatusFilter(r, 'running')).length} tone="blue"
+                active={statusFilter === 'running'} onClick={() => { setStatusFilter('running'); }} />
+              <StatusFilterChip icon={Pause} label="On Hold" count={runs.filter(r => runMatchesStatusFilter(r, 'on_hold')).length} tone="gray"
+                active={statusFilter === 'on_hold'} onClick={() => { setStatusFilter('on_hold'); }} />
+              <StatusFilterChip icon={CheckCircle2} label="Success" count={runs.filter(r => runMatchesStatusFilter(r, 'success')).length} tone="green"
+                active={statusFilter === 'success'} onClick={() => { setStatusFilter('success'); }} />
+            </StatusFilterChips>
+            <div className="flex shrink-0 items-center gap-2">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input

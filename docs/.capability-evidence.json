@@ -493,7 +493,7 @@
         },
         {
           "path": "frontend/src/pages/WorkspaceDetail.tsx",
-          "sha256": "69641a01c11c654d4a6358c383bb60cbb13eee14633c9aaefbf51a90336fb5a0"
+          "sha256": "0cc73b77572166049d1ec5d94960afa311f98551c2a48aa664a66a69022d5f5d"
         }
       ]
     },
@@ -621,7 +621,7 @@
         },
         {
           "path": "frontend/src/pages/WorkspaceDetail.tsx",
-          "sha256": "69641a01c11c654d4a6358c383bb60cbb13eee14633c9aaefbf51a90336fb5a0"
+          "sha256": "0cc73b77572166049d1ec5d94960afa311f98551c2a48aa664a66a69022d5f5d"
         }
       ]
     },
