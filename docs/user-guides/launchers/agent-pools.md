@@ -46,6 +46,8 @@ The registration key must explicitly carry `org:<organization-id>:runner:registe
 A general-purpose key with no scopes or wildcard scopes cannot register a launcher. Pool-bound
 keys must match that pool; an unreadable binding is an error, not unrestricted access. Such a key registers launchers into any pool of that organization, so prefer an agent token when a launcher should only ever join one pool.
 
+When using an organization API key, registration and queue-depth reads require the key owner's current permission to manage agent pools. If registration is refused, or a launcher reports that its token predates the permission check, obtain a new registration credential from an organization owner or agent pool manager. Prefer an agent token for the pool. Update the launcher's registration credential, restart it during a maintenance window, and confirm it is Online in the intended pool.
+
 Protect the registration credential and supply it only to the launcher. Revoking it does not stop already-registered launchers, because they use their own launcher tokens; a restart needs a valid registration credential again. Everything below works the same whichever kind of registration credential you use.
 
 ### Rotating an agent token

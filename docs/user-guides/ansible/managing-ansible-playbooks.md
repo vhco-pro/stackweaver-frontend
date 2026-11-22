@@ -83,7 +83,7 @@ Use your own playbook for the actual work. Collection dependencies belong in rep
 | Source mode | What runs |
 |---|---|
 | **Cached snapshot** (default) | Content captured by the last successful sync. A job keeps running from it when the VCS provider is unreachable. |
-| **Fresh from remote** / **Fresh from VCS at runtime** | The selected branch's HEAD when the job is launched. Each launch captures a new snapshot first and the job waits for it, so every launch needs repository access. |
+| **Fresh from remote** / **Fresh from VCS at runtime** | The selected branch's HEAD when the job is launched. The launch requests a capture and waits for it, so fresh mode needs repository access. Concurrent launches can share an in-progress capture of the same source. |
 
 Fresh mode does not pin a job to the commit that triggered a webhook. Cached mode can
 use an older snapshot while a new sync is still in progress. Check the intended commit
@@ -96,10 +96,11 @@ Galaxy dependencies and playbook tasks can still need network access in either m
 
 Every job starts from a snapshot, wherever it runs. Snapshots are captured by a sync on the
 hosted capacity, so a job never clones from your VCS provider, and a launcher of an agent pool
-needs neither a route to it nor a VCS credential. If a cached playbook has no snapshot yet,
-its launch requests a sync and the job waits for it. If the job still finds no snapshot
-when it starts, for example because that sync failed, it fails with that reason; launch it
-again once a sync succeeds.
+needs neither a route to it nor a VCS credential. If a cached playbook has no verified snapshot,
+its launch requests a sync and the job waits for it. Each job uses the capture assigned to
+that launch. If the sync fails or a newer capture replaces the assigned archive before the
+executor can finish acquiring it, the job reports that a new run is required. Start a new
+run once a capture succeeds.
 
 </details>
 
@@ -161,6 +162,9 @@ whole list, not just the current page. Use **Clear filters** to reset the view.
 | **Syncing** | Wait for the result before expecting a new cached revision. |
 | **Synced** | Check the commit and sync time when a specific revision matters. |
 | **Sync failed** | Read the error from the status indicator or detail page. Check repository access, branch and path, then use **Retry sync** or **Sync from VCS**. |
+
+Playbook snapshots are limited to 32 MiB compressed. If a snapshot exceeds the limit,
+reduce the repository content captured and sync it again before starting a new run.
 
 An older cached snapshot can remain usable after a failed sync. A green result from an
 import or an existing registration alone does not establish which revision a job ran.

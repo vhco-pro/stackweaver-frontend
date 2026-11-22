@@ -577,13 +577,11 @@ before changing the release; Helm history alone cannot restore data or keys.
 > `bff-client-secret` before upgrading. Follow [browser-session upgrade preparation](#upgrading-to-server-side-browser-sessions).
 
 Save your current values and recovery data. Choose the target `CHART_VERSION`, read its
-release notes, and keep a complete `my-values.yaml` under configuration management:
-
-```bash
-helm upgrade stackweaver oci://ghcr.io/vhco-pro/charts/stackweaver \
-  --version "$CHART_VERSION" --namespace stackweaver --values my-values.yaml
-kubectl get pods,pvc --namespace stackweaver
-```
+release notes, and keep a complete `my-values.yaml` under configuration management. Follow
+the ordered [API strategy transition](#api-strategy-transition) before changing the version.
+Local Kustomize, Argo CD and Flux installations use their
+[desired-configuration procedure](./kustomize/README.md#api-upgrades). The verified
+target package contains the [database inventory checks](../upgrading.md#retrieve-the-database-inventory-checks).
 
 For a small settings-only change, pin the **installed** version and use `--reuse-values`
 with the specific override file. Do not combine an incidental settings change with an
@@ -591,6 +589,181 @@ unreviewed chart upgrade. ConfigMap checksum changes roll affected pods; check i
 reconcile Jobs as well as workload readiness. Bootstrap skips existing Secrets rather than
 adding or rotating keys, and creates any whole Secret a new chart version adds; follow
 release-specific schema migration instructions when needed.
+
+### API strategy transition
+
+The chart omits the API Deployment's strategy, so Kubernetes defaults it to RollingUpdate.
+These first-release instructions require a temporary native Recreate transition for every
+upgrade, including required intermediate hops. An earlier API can retain cached database
+queries while the new API adds columns. Preparing Recreate at the source version stops
+those old pods before the target starts its database migration. The verified fixed **API
+component version** will be documented after publication. API component versions, chart
+versions and monorepo source tags identify different artifacts.
+
+Recreate causes an API outage during image pull and startup. Pause incoming work and
+schedules, let active work finish, and stop external launchers as described in
+[upgrade preparation](../upgrading.md). An older executor whose job finishes during the
+outage can lose its completion report. Upgrade the API, launchers and job images together,
+and retain the matching pre-upgrade recovery set.
+
+This procedure uses Helm 3, minimum 3.12, and its native three-way merge updates. Native
+preservation checks use Helm 3.20.0. Source and target API manifests must both omit
+`spec.strategy`. A customized chart that renders it needs its own reviewed desired-strategy
+transition before changing versions.
+
+#### Record the installation
+
+Run the stages from one operator shell. Set your selected context, namespace and release,
+then save protected state outside version control. Retain this directory after a failure.
+
+```bash
+umask 077
+export KUBE_CONTEXT="$(kubectl config current-context)"
+export NAMESPACE=stackweaver
+export HELM_RELEASE=stackweaver
+export STATE_DIR="$(mktemp -d)"
+helm --kube-context "$KUBE_CONTEXT" get manifest "$HELM_RELEASE" \
+  --namespace "$NAMESPACE" > "$STATE_DIR/source-manifest.yaml"
+helm --kube-context "$KUBE_CONTEXT" history "$HELM_RELEASE" \
+  --namespace "$NAMESPACE" > "$STATE_DIR/source-history.txt"
+helm --kube-context "$KUBE_CONTEXT" template "$HELM_RELEASE" \
+  oci://ghcr.io/vhco-pro/charts/stackweaver --version "$CHART_VERSION" \
+  --namespace "$NAMESPACE" --values my-values.yaml \
+  --show-only templates/api/api-deployment.yaml > "$STATE_DIR/target-api.yaml"
+```
+
+Find the API Deployment in the saved source manifest by its rendered name and labels
+`app.kubernetes.io/component: api` and `app.kubernetes.io/instance` matching your release.
+Confirm exactly one source object, the same target name, and an omitted strategy in both
+manifests. Set that rendered name explicitly, including any fullname override.
+
+```bash
+export API_DEPLOYMENT=REPLACE_WITH_RENDERED_API_DEPLOYMENT_NAME
+```
+
+Define this guard in the same shell. It checks namespace, Helm owner, rendered name and
+recorded UID on every invocation. The original live strategy is saved beside the desired
+source manifest. Merge patches include UID and resource-version preconditions.
+
+```bash
+guard_api() {
+  python3 - "$STATE_DIR" "$KUBE_CONTEXT" "$NAMESPACE" "$HELM_RELEASE" "$API_DEPLOYMENT" "$1" <<'PY'
+import fcntl
+import json
+import os
+from pathlib import Path
+import subprocess
+import sys
+
+directory, context, namespace, release, name, action = sys.argv[1:]
+directory = Path(directory)
+lock = (directory / "strategy.lock").open("a")
+fcntl.flock(lock.fileno(), fcntl.LOCK_EX)
+command = ["kubectl", "--context", context, "--namespace", namespace, "--request-timeout=20s"]
+selector = f"app.kubernetes.io/component=api,app.kubernetes.io/instance={release}"
+items = json.loads(subprocess.check_output(command + ["get", "deployments", "-l", selector, "-o", "json"]))["items"]
+assert len(items) == 1, "expected exactly one API Deployment"
+current = items[0]
+metadata = current["metadata"]
+assert metadata["namespace"] == namespace and metadata["name"] == name
+assert metadata["annotations"]["meta.helm.sh/release-name"] == release
+assert metadata["annotations"]["meta.helm.sh/release-namespace"] == namespace
+assert metadata["labels"]["app.kubernetes.io/managed-by"] == "Helm"
+path = directory / "api-strategy.json"
+if path.exists():
+    record = json.loads(path.read_text())
+else:
+    assert action == "prepare", "the original strategy record is missing"
+    revision = json.loads(subprocess.check_output(["helm", "--kube-context", context, "status", release, "--namespace", namespace, "-o", "json"]))["version"]
+    record = {"context": context, "namespace": namespace, "release": release,
+              "name": name, "uid": metadata["uid"], "original_strategy": current["spec"]["strategy"],
+              "original_template": current["spec"]["template"], "source_revision": revision,
+              "original_desired_manifest": "source-manifest.yaml", "phase": "captured", "pending": True}
+assert (record["context"], record["namespace"], record["release"], record["name"], record["uid"]) == (context, namespace, release, name, metadata["uid"])
+if action == "prepared":
+    assert current["spec"]["strategy"] == {"type": "Recreate"}
+    assert current["spec"]["template"] == record["original_template"]
+    revision = json.loads(subprocess.check_output(["helm", "--kube-context", context, "status", release, "--namespace", namespace, "-o", "json"]))["version"]
+    assert revision == record["source_revision"], "source release changed during preparation"
+    record["phase"] = "prepared"
+if action == "target":
+    assert current["spec"]["strategy"] == {"type": "Recreate"}
+    record["phase"] = "target-applied"
+if action in ("restore", "restored"):
+    replicas = current["spec"].get("replicas", 1)
+    status = current.get("status", {})
+    assert status.get("observedGeneration", 0) >= metadata["generation"]
+    assert all(status.get(field, 0) >= replicas for field in ("updatedReplicas", "readyReplicas", "availableReplicas"))
+if action in ("prepare", "restore"):
+    strategy = {"type": "Recreate"} if action == "prepare" else record["original_strategy"]
+    patch = {"metadata": {"uid": metadata["uid"], "resourceVersion": metadata["resourceVersion"]},
+             "spec": {"strategy": {"rollingUpdate": None, **strategy}}}
+    (directory / "strategy.patch.json").write_text(json.dumps(patch))
+if action == "restored":
+    assert current["spec"]["strategy"] == record["original_strategy"]
+    record["phase"] = "restored"
+    record["pending"] = False
+temporary = path.with_suffix(".tmp")
+temporary.write_text(json.dumps(record, indent=2) + "\n")
+os.replace(temporary, path)
+PY
+}
+```
+
+#### Prepare at the unchanged source version
+
+Run each command only after the preceding one succeeds. The complete native strategy patch
+sets `type: Recreate` and `rollingUpdate: null`. The null removes the API-server-defaulted
+rolling fields. Changing strategy leaves the source Pod template unchanged.
+
+```bash
+guard_api prepare
+kubectl --context "$KUBE_CONTEXT" --namespace "$NAMESPACE" patch deployment "$API_DEPLOYMENT" \
+  --type=merge --patch-file "$STATE_DIR/strategy.patch.json"
+kubectl --context "$KUBE_CONTEXT" --namespace "$NAMESPACE" rollout status \
+  "deployment/$API_DEPLOYMENT" --timeout=15m
+guard_api prepared
+```
+
+The final guard requires live strategy `{"type":"Recreate"}`, an unchanged source Pod
+template and the original Helm revision. Complete this stage before changing the chart or
+any API image version.
+
+#### Apply the target and restore after readiness
+
+Keep Recreate through the target update. Standard source and target charts omit the
+strategy, so Helm preserves that native patch during its merge. Complete the applicable
+identity initialization and readiness checks before restoration.
+
+```bash
+guard_api prepared
+helm --kube-context "$KUBE_CONTEXT" upgrade "$HELM_RELEASE" \
+  oci://ghcr.io/vhco-pro/charts/stackweaver --version "$CHART_VERSION" \
+  --namespace "$NAMESPACE" --values my-values.yaml
+guard_api target
+kubectl --context "$KUBE_CONTEXT" --namespace "$NAMESPACE" rollout status \
+  "deployment/$API_DEPLOYMENT" --timeout=15m
+```
+
+Run `guard_api restore` only after target readiness or completed documented recovery.
+It revalidates the same Deployment and its readiness, and prepares the original strategy.
+
+```bash
+guard_api restore
+kubectl --context "$KUBE_CONTEXT" --namespace "$NAMESPACE" patch deployment "$API_DEPLOYMENT" \
+  --type=merge --patch-file "$STATE_DIR/strategy.patch.json"
+kubectl --context "$KUBE_CONTEXT" --namespace "$NAMESPACE" rollout status \
+  "deployment/$API_DEPLOYMENT" --timeout=15m
+guard_api restored
+kubectl --context "$KUBE_CONTEXT" get pods,pvc --namespace "$NAMESPACE"
+```
+
+On any failure, keep the state directory, prepared strategy and saved desired configuration.
+Capture API, launcher, PostgreSQL and controller diagnostics before recovery. A migrated
+deployment requires the [matching pre-upgrade recovery set](../backup-and-restore.md#kubernetes-and-externally-managed-services).
+An image rollback alone cannot reverse its schema. After recovery completes and the same
+recorded Deployment is ready, restore and verify its original strategy. A changed UID or
+owner leaves restoration pending for the operator to resolve.
 
 ### OpenTofu engine version
 
@@ -707,7 +880,9 @@ If your release signs browsers in with the public frontend app, the chart versio
      --namespace stackweaver
    ```
 
-Browser sign-in is unavailable from the upgrade until the API rollout finishes, usually about a minute; the previous API pod keeps serving API tokens and launchers throughout.
+Browser sign-in is unavailable from the upgrade until the API rollout finishes, usually about
+a minute. With the [Recreate transition](#api-strategy-transition), previous API pods stop
+before the target starts, so API tokens and launchers also lose API access during that window.
 
 The chart does not read `frontend.env.VITE_ZITADEL_REDIRECT_URI`. The sign-in redirect is always the app URL followed by `/auth/callback`, and the chart builds the app URL from `ingress.hosts.app`, with `https` when `ingress.tls.enabled` is true and `http` otherwise. If you had set `VITE_ZITADEL_REDIRECT_URI`, set `ingress.hosts.app` and `ingress.tls.enabled` so that they produce the same callback URL, and remove `VITE_ZITADEL_REDIRECT_URI` from `frontend.env`.
 

@@ -9,11 +9,11 @@
       "evidence": [
         {
           "path": "backend/internal/executor/ansibleexec/run.go",
-          "sha256": "a6039fa9ccdd10eb52794831c27f316d4a6f6bf3e352ccd67c37bd157efc5c83"
+          "sha256": "0d19709d71b09a3f2101b7dd4fb9352bcb08d4274acd7dcada4419bb7c7c94df"
         },
         {
           "path": "core/services/ansible/job.go",
-          "sha256": "b919f04e9c3a4aeed87d696d3232d3057b7b567b32cb634e87feb66f495ec81a"
+          "sha256": "dada9d2678a7da91c600948b63d8ab519d360766055eefe22734ef60727007dc"
         },
         {
           "path": "core/services/ansible/job_test.go",
@@ -29,15 +29,15 @@
       "evidence": [
         {
           "path": "backend/internal/api/v2/handlers/runner_agent.go",
-          "sha256": "f307556dd3862f7072935e1693f1ecca97df4ebe819d57707858aa964a9f8c72"
+          "sha256": "79650c5fe375a78014e496cb399c2fa0a8c3d5a0810a2a2fdd4d69e49a059e43"
         },
         {
           "path": "backend/internal/launcher/launcher.go",
-          "sha256": "6f541f0f4c25cbad40dd23b88670d01dee9bb61dcd13b08fc274a8657f39bdaf"
+          "sha256": "34fa934611548fd2e0a469a4deddb0425b4910d6cda2f815febd60023e7bcf2a"
         },
         {
           "path": "core/services/ansible/job.go",
-          "sha256": "b919f04e9c3a4aeed87d696d3232d3057b7b567b32cb634e87feb66f495ec81a"
+          "sha256": "dada9d2678a7da91c600948b63d8ab519d360766055eefe22734ef60727007dc"
         }
       ]
     },
@@ -49,15 +49,15 @@
       "evidence": [
         {
           "path": "backend/cmd/launcher/main.go",
-          "sha256": "b02bf8d9fffe99f1d275b9b03a5f2095ce9238470e3fd285840d4f2fce6f717a"
+          "sha256": "dcc532f383c0ca36661e6a516ae3ddb3c83d9e3ec6fd78d7a1f0c604bd0901e7"
         },
         {
           "path": "backend/internal/api/v2/handlers/runner_agent.go",
-          "sha256": "f307556dd3862f7072935e1693f1ecca97df4ebe819d57707858aa964a9f8c72"
+          "sha256": "79650c5fe375a78014e496cb399c2fa0a8c3d5a0810a2a2fdd4d69e49a059e43"
         },
         {
           "path": "backend/internal/executor/ansibleexec/run.go",
-          "sha256": "a6039fa9ccdd10eb52794831c27f316d4a6f6bf3e352ccd67c37bd157efc5c83"
+          "sha256": "0d19709d71b09a3f2101b7dd4fb9352bcb08d4274acd7dcada4419bb7c7c94df"
         }
       ]
     },
@@ -85,11 +85,11 @@
       "evidence": [
         {
           "path": "backend/cmd/launcher/main.go",
-          "sha256": "b02bf8d9fffe99f1d275b9b03a5f2095ce9238470e3fd285840d4f2fce6f717a"
+          "sha256": "dcc532f383c0ca36661e6a516ae3ddb3c83d9e3ec6fd78d7a1f0c604bd0901e7"
         },
         {
           "path": "backend/internal/executor/ansibleexec/run.go",
-          "sha256": "a6039fa9ccdd10eb52794831c27f316d4a6f6bf3e352ccd67c37bd157efc5c83"
+          "sha256": "0d19709d71b09a3f2101b7dd4fb9352bcb08d4274acd7dcada4419bb7c7c94df"
         },
         {
           "path": "core/repository/ansible_playbook.go",
@@ -109,11 +109,11 @@
       "evidence": [
         {
           "path": "backend/cmd/launcher/main.go",
-          "sha256": "b02bf8d9fffe99f1d275b9b03a5f2095ce9238470e3fd285840d4f2fce6f717a"
+          "sha256": "dcc532f383c0ca36661e6a516ae3ddb3c83d9e3ec6fd78d7a1f0c604bd0901e7"
         },
         {
           "path": "backend/internal/api/v2/handlers/runner_agent_cache.go",
-          "sha256": "78afb47ec494d43bd88f9daf69beb2cf4c3c4c738a8ab575d1df5b5e2e776462"
+          "sha256": "2e349f81f05e4a7227a3990057cd85507e03b1c135364eeeabfa6af4e519f7dd"
         },
         {
           "path": "backend/internal/executor/ansibleexec/galaxy.go",
@@ -137,11 +137,11 @@
       "evidence": [
         {
           "path": "backend/cmd/launcher/main.go",
-          "sha256": "b02bf8d9fffe99f1d275b9b03a5f2095ce9238470e3fd285840d4f2fce6f717a"
+          "sha256": "dcc532f383c0ca36661e6a516ae3ddb3c83d9e3ec6fd78d7a1f0c604bd0901e7"
         },
         {
           "path": "backend/internal/executor/ansibleexec/run.go",
-          "sha256": "a6039fa9ccdd10eb52794831c27f316d4a6f6bf3e352ccd67c37bd157efc5c83"
+          "sha256": "0d19709d71b09a3f2101b7dd4fb9352bcb08d4274acd7dcada4419bb7c7c94df"
         },
         {
           "path": "core/services/ansible/inventory_slice_test.go",
@@ -149,7 +149,7 @@
         },
         {
           "path": "core/services/ansible/job.go",
-          "sha256": "b919f04e9c3a4aeed87d696d3232d3057b7b567b32cb634e87feb66f495ec81a"
+          "sha256": "dada9d2678a7da91c600948b63d8ab519d360766055eefe22734ef60727007dc"
         },
         {
           "path": "frontend/src/pages/Ansible/run-viewer/adapter.test.ts",
@@ -180,12 +180,12 @@
     {
       "id": "ansible-playbooks",
       "guide": "user-guides/ansible/managing-ansible-playbooks.md",
-      "guideHash": "a6911a7e617bbd3564529ca57ad6091fc733df362800e81b50e60f3b4b0228b6",
+      "guideHash": "966d462bf5eab05b73b3cc078e3f3f60fdd89f5faaf140aae2db96eb24e20eea",
       "metadataHash": "d8d844453864216b22b7e90fa3fa3b7407ffdb2860d8083275eed278a68b1742",
       "evidence": [
         {
           "path": "backend/cmd/launcher/main.go",
-          "sha256": "b02bf8d9fffe99f1d275b9b03a5f2095ce9238470e3fd285840d4f2fce6f717a"
+          "sha256": "dcc532f383c0ca36661e6a516ae3ddb3c83d9e3ec6fd78d7a1f0c604bd0901e7"
         },
         {
           "path": "backend/internal/api/v2/handlers/ansible/playbook_discovery.go",
@@ -193,7 +193,7 @@
         },
         {
           "path": "backend/internal/api/v2/handlers/runner_agent.go",
-          "sha256": "f307556dd3862f7072935e1693f1ecca97df4ebe819d57707858aa964a9f8c72"
+          "sha256": "79650c5fe375a78014e496cb399c2fa0a8c3d5a0810a2a2fdd4d69e49a059e43"
         },
         {
           "path": "core/services/ansible/playbook_sync.go",
@@ -261,11 +261,11 @@
       "evidence": [
         {
           "path": "backend/internal/executor/syncexec/run.go",
-          "sha256": "3f05e35de716d3d50abe80db6f5e6f7cc0dfdd71ca5d9a7a6e7b177172efc938"
+          "sha256": "da32a474dac1af7daabcc92c8c3c069656568910ef727f4545bff77f23e45ff8"
         },
         {
           "path": "core/services/ansible/inventory_source.go",
-          "sha256": "3cb312da86671932ff79ade81b4a0a4591e06d8eeaf818444887f1b8baa72b95"
+          "sha256": "8c28e59e416cd8b504b2e6f6281c642d5184f533b8cf424f8d88e0b5a78002cb"
         },
         {
           "path": "core/services/ansible/inventory_source_sync_test.go",
@@ -285,7 +285,7 @@
         },
         {
           "path": "backend/internal/executor/syncexec/run.go",
-          "sha256": "3f05e35de716d3d50abe80db6f5e6f7cc0dfdd71ca5d9a7a6e7b177172efc938"
+          "sha256": "da32a474dac1af7daabcc92c8c3c069656568910ef727f4545bff77f23e45ff8"
         }
       ]
     },
@@ -381,7 +381,7 @@
       "evidence": [
         {
           "path": "backend/internal/api/v2/routes/routes.go",
-          "sha256": "ad5ab33699f34ef28d5fefc1fa57855722e401b72d50e854cc783c67639c919f"
+          "sha256": "af126e768ff5320ec54c35e655b403904e8a3f900fdf55dd2573e6cd1a693ca4"
         },
         {
           "path": "frontend/src/pages/Docs/ApiReferenceExplorer.tsx",
@@ -397,7 +397,7 @@
       "evidence": [
         {
           "path": "backend/cmd/launcher/main.go",
-          "sha256": "b02bf8d9fffe99f1d275b9b03a5f2095ce9238470e3fd285840d4f2fce6f717a"
+          "sha256": "dcc532f383c0ca36661e6a516ae3ddb3c83d9e3ec6fd78d7a1f0c604bd0901e7"
         },
         {
           "path": "backend/internal/api/v2/handlers/terraform/runs.go",
@@ -405,7 +405,7 @@
         },
         {
           "path": "backend/internal/launcher/supervise.go",
-          "sha256": "76703c15c1ea48d5ecb98782c9a93db72cd2b13fb7fae3d30288fdf4cc5a0215"
+          "sha256": "41473d2bffbf4e5a445f93f51bb00630c45f5f9198742b41cef706220316d2ea"
         }
       ]
     },
@@ -421,7 +421,7 @@
         },
         {
           "path": "backend/internal/executor/tofuexec/run.go",
-          "sha256": "69d662fc992a94eae7d03f3be0eeccc2251f35cea1e86a587c097e58267f39df"
+          "sha256": "7412d688bd547dfb09705125a4598996be558f3009b7475c8461982f7b164b46"
         },
         {
           "path": "core/plugins/opentofu/plugin.go",
@@ -457,7 +457,7 @@
       "evidence": [
         {
           "path": "backend/cmd/orchestrator/main.go",
-          "sha256": "cf52e94186a0c512d4dc849e8b3a803b7c4457dccbd629371853cf1e9cf32d2e"
+          "sha256": "25beff639e2369ec01af1c53522351a46fc61b4c61861797f2a018f3ae4d6cab"
         },
         {
           "path": "backend/cmd/orchestrator/task_stages.go",
@@ -469,7 +469,7 @@
         },
         {
           "path": "backend/internal/launcher/supervise.go",
-          "sha256": "76703c15c1ea48d5ecb98782c9a93db72cd2b13fb7fae3d30288fdf4cc5a0215"
+          "sha256": "41473d2bffbf4e5a445f93f51bb00630c45f5f9198742b41cef706220316d2ea"
         },
         {
           "path": "core/models/workspace.go",
@@ -481,7 +481,7 @@
         },
         {
           "path": "core/repository/run.go",
-          "sha256": "0fa962687065fbea8b6e82d2d933ef018605435743359311e8307d99a7c33ffd"
+          "sha256": "f1a40c5779ceee255a0835b7ee23b09407c2a122534c668d7967de13e0618b74"
         },
         {
           "path": "core/repository/run_lifecycle_test.go",
@@ -509,7 +509,7 @@
         },
         {
           "path": "core/services/ansible/inventory.go",
-          "sha256": "dc3ced3c679b3f4f731df861729c3877b61fe594efa64fcd53dba0f3fdfeb18e"
+          "sha256": "3c8b7c5fe21891a725a85661fcdac9397608aaad38089de15051c35bc3d797a1"
         }
       ]
     },
@@ -637,7 +637,7 @@
         },
         {
           "path": "core/services/variable/service.go",
-          "sha256": "4443ca4925094442c4f2708287f56cd44e6a6fae7b42e3580f8cac4a610e95f1"
+          "sha256": "d828023cc45b3395b126ebec7007e01e7c3a21dc09aa33d0c3a1a15c24367333"
         },
         {
           "path": "core/services/variable/service_test.go",

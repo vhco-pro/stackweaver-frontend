@@ -1,5 +1,9 @@
 [
   {
+    "commit": "98b9c0d6586490191ff8ef37f8a80876f690dc13",
+    "reason": "Internal GitHub Actions time allowance for the existing database integration suite."
+  },
+  {
     "commit": "b3e1f74e5e5e7adf20f96c0abcc68ba194f364a1",
     "reason": "Internal docs-drift publisher acceptance: bind the actual owner dispatch separately from its bot credential, preserve the original refusal and install the released plugin in an isolated test profile."
   },
@@ -226,6 +230,22 @@
   {
     "commit": "800a5ca418533d17264c0512c69d3d7148864640",
     "reason": "Internal documentation-workflow staging only. Reverts an unpublished activation so the corrected shared component can pass installed and migration acceptance before cutover. No customer capability or application artifact changes."
+  },
+  {
+    "commit": "721cd5c0c75c9a5ab06982c5d894e3f3f6f1accc",
+    "reason": "Additive runner-contract and hidden model metadata form the first task of the accepted upgrade-recovery feature. The API does not yet advertise claim-recovery-v1. These fields alone provide no lost-start, retry or transactional-completion guarantee. Customer-facing recovery behavior and confirmed component availability remain pending the complete feature validation and release evidence."
+  },
+  {
+    "id": "runner-claim-foundation",
+    "reason": "Additive repository methods provide row-locked expected-attempt claims, guarded replay and legacy claim metadata backfill for the accepted upgrade-recovery feature. Existing API routes continue using their current repository entry points at this task. Customer-facing startup recovery requires the later API and launcher implementation, complete verification and release evidence."
+  },
+  {
+    "commit": "002ce66e93848df1657ce91ed7fecad795dfed3c",
+    "reason": "Merge integration of main with the approved draft release guidance. The imported CodeExplorer source has its own reviewed Documentation impact record. This merge resolves generated mappings and records internal planning work; customer availability follows the existing component release evidence."
+  },
+  {
+    "commit": "ed0022f864daba2d7dde915ad38af553ea152c8a",
+    "reason": "Internal kind test-harness work retains old and replacement component logs across historical upgrades and exercises failure diagnostics. Customer-facing upgrade recovery remains pending complete feature verification and component publication."
   },
   {
     "id": "kind-harness-run-lock",
