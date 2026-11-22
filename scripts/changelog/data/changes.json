@@ -3097,5 +3097,31 @@
       "frontend"
     ],
     "availability": []
+  },
+  {
+    "id": "database-password-quoting",
+    "title": "Connect to PostgreSQL with any password characters",
+    "area": "Platform",
+    "kind": "Fixed",
+    "reviewed": true,
+    "audience": "Operators whose PostgreSQL password, user or database name contains a space, quotes or backslashes, or whose password is empty.",
+    "before": "The API and orchestrator could not connect when the database password, user or database name contained a space, or when the password was empty. Some values combining quotes and backslashes were also misread.",
+    "after": "The API and orchestrator connect with any characters in the database password, user and database name, including an empty password.",
+    "action": "No action is required.",
+    "details": [
+      "Database settings and their environment variables are unchanged."
+    ],
+    "guides": [
+      {
+        "title": "Kubernetes with Helm",
+        "path": "/docs/get-started/self-hosting/kubernetes"
+      }
+    ],
+    "sourceCommits": [],
+    "draftCommits": [],
+    "requiredComponents": [
+      "api"
+    ],
+    "availability": []
   }
 ]
