@@ -141,7 +141,7 @@ assessment against the baseline's full requirement and the project's actual scop
 
 | Control | Review question | Evidence | Where to check |
 |---|---|---|---|
-| VM-02.01 | Documentation contains security contacts | Public | Use the contact and reporting route in the [security policy](https://github.com/vhco-pro/.github/blob/main/SECURITY.md). |
+| VM-02.01 | Documentation contains security contacts | Public | Use the contact and reporting route in the [security policy](https://github.com/vhco-pro/stackweaver-frontend/security/policy). |
 
 ## OSPS Baseline - Level 3
 
@@ -160,8 +160,8 @@ assessment against the baseline's full requirement and the project's actual scop
 |---|---|---|---|
 | DO-03.01 | Documentation explains how to verify release integrity and authenticity | Public | Follow [Verify a release](./verifying-releases.md) for signer, digest, provenance and failure handling. |
 | DO-03.02 | Documentation explains how to verify the identity of the release author | Public | The same guide pins the expected signing workflow identity and issuer; verify the selected artifact. |
-| DO-04.01 | A statement of support scope and duration accompanies each release | Gap | The public security policy labels the supported-version policy as a working policy. Confirm the release-specific support commitment with maintainers. |
-| DO-05.01 | A statement describes when releases stop receiving security updates | Public | Read the end-of-life section of the [security policy](https://github.com/vhco-pro/.github/blob/main/SECURITY.md#end-of-life) and confirm its applicability to the selected release. |
+| DO-04.01 | A statement of support scope and duration accompanies each release | Gap | The public policy identifies the release that receives security fixes. Confirm any release-specific support commitment with maintainers. |
+| DO-05.01 | A statement describes when releases stop receiving security updates | Public | The [Stackweaver security policy](https://github.com/vhco-pro/stackweaver-frontend/security/policy) identifies the release that receives security fixes. |
 
 ### Governance and quality assurance
 
@@ -199,9 +199,8 @@ separate.
 
 **Licensing and private source.** Apache-2.0 and BSL components need separate licence
 assessments. The private core module prevents a public reader from reviewing all product
-source. The [security policy](https://github.com/vhco-pro/.github/blob/main/SECURITY.md#audit-access-to-closed-components)
-offers an audit-access route under NDA; that is a restricted-access review, not public
-source availability.
+source. Auditors can request private source access under NDA at
+[contact@vhco.pro](mailto:contact@vhco.pro). Access is restricted.
 
 **Automated publication and human review.** The reviewer App's approval is automated. It
 does not satisfy a requirement for a non-author human approval. Upstream human review and
@@ -248,10 +247,9 @@ Request these additional inputs for a complete assessment:
 2. Human review requirements and records for the upstream source changes being assessed.
 3. Secret custody/rotation and vulnerability-remediation policies, including scanner
    thresholds, justified suppressions and release-blocking behavior.
-4. A release-specific support commitment. The public policy's supported-version section is
-   labelled a working policy; do not turn that into a guaranteed support window here.
+4. A release-specific support commitment. Confirm the support window for the selected release with maintainers.
 5. Private-source audit access and the product-wide threat model where they are in scope.
 
 Record gaps and unavailable evidence explicitly. For suspected vulnerabilities, follow the
-[private reporting policy](https://github.com/vhco-pro/.github/blob/main/SECURITY.md) rather
+[private reporting policy](https://github.com/vhco-pro/stackweaver-frontend/security/policy) rather
 than publishing sensitive findings or credentials in an issue.

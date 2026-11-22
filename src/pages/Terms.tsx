@@ -159,7 +159,7 @@ const CLAUSES: Clause[] = [
           'use it to distribute malware, to mine cryptocurrency, or to attack other systems; or',
           <>
             test its security without our agreement. If you find a vulnerability, please follow our{' '}
-            <External href="https://github.com/vhco-pro/.github/blob/main/SECURITY.md">Security Policy</External>.
+            <External href="https://github.com/vhco-pro/stackweaver-frontend/security/policy">Security Policy</External>.
           </>,
         ]}
       />

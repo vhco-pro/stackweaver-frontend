@@ -14,4 +14,4 @@ description: "Verify releases, understand satellite publication and inspect the 
 
 The guides distinguish publicly inspectable artifacts and source from settings or review records that require maintainer access. An API access error alone is not proof of a security problem.
 
-Internal access policies, vulnerability runbooks and audit workbooks are operational records and are not published here. For suspected vulnerabilities, follow the [organization-wide security policy](https://github.com/vhco-pro/.github/blob/main/SECURITY.md) and use its private reporting route.
+Internal access policies, vulnerability runbooks and audit workbooks are operational records and are not published here. For suspected vulnerabilities, follow the [Stackweaver security policy](https://github.com/vhco-pro/stackweaver-frontend/security/policy) and use its private reporting route.

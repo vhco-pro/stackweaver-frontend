@@ -43,8 +43,7 @@ flowchart TD
 
 **Public source and private development.** You can inspect the satellite's source, PR history
 and workflows. The shared `core/` module and upstream review records are not publicly
-readable. Auditors can request access through the
-[security policy](https://github.com/vhco-pro/.github/blob/main/SECURITY.md#source-code-review-boundary).
+readable. Auditors can request access under NDA at [contact@vhco.pro](mailto:contact@vhco.pro).
 Public artifact provenance identifies the satellite build; it does not by itself prove
 which private monorepo change was reviewed.
 
@@ -178,4 +177,4 @@ observations from private maintainer assertions and artifact-level verification 
 Do not infer a human review from an App approval, or infer uncompromised code from a valid
 signature. Use [OSPS evidence](./osps-baseline-compliance.md) for the control mapping and
 [release verification](./verifying-releases.md) for artifact checks. Report a suspected
-security problem through [the private reporting policy](https://github.com/vhco-pro/.github/blob/main/SECURITY.md).
+security problem through [the private reporting policy](https://github.com/vhco-pro/stackweaver-frontend/security/policy).

@@ -268,4 +268,4 @@ versions. Verify the digest and policy for your selected release.
 For a suspected authenticity problem, use the affected repository's **Security > Report a
 vulnerability** option or email [contact@vhco.pro](mailto:contact@vhco.pro). Include the
 artifact digest, expected version/identity and redacted command output. Do not post secrets
-or vulnerability details in a public issue. See the [security policy](https://github.com/vhco-pro/.github/blob/main/SECURITY.md).
+or vulnerability details in a public issue. See the [security policy](https://github.com/vhco-pro/stackweaver-frontend/security/policy).
