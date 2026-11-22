@@ -22,6 +22,8 @@ procedure; use [Kustomize and GitOps](./kustomize/README.md) for declarative rec
   version supported by your operator, with Helm available on the machine that runs the deployment.
 - An ingress controller, app and auth DNS names, and TLS certificates for both hosts.
 - Persistent storage suitable for PostgreSQL and Garage.
+- PostgreSQL 17 or later. The bundled PostgreSQL runs version 17; an external server must be
+  version 17 or later, or the API refuses to start.
 - Access to all image packages; create the [GHCR pull Secret](./kubernetes-pull-secret-ghcr.md)
   in the release namespace before installation when private images need it.
 - Permission to create the workloads and bootstrap Job/RBAC in that namespace.
@@ -403,7 +405,9 @@ job pods never hold it. The chart creates a strong key by default; a BYO key is 
 ## Using External Dependencies
 
 To use existing PostgreSQL, Redis and S3 services, save overrides like these alongside the
-matching credential Secrets. Replace hosts, database and bucket values:
+matching credential Secrets. Replace hosts, database and bucket values. An external PostgreSQL
+server must run PostgreSQL 17 or later; the API checks the version when it starts and refuses to
+start on an older server.
 
 ```yaml
 # External PostgreSQL

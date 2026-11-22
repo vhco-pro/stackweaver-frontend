@@ -30,6 +30,8 @@ Use [Helm](../kubernetes/README.md) when deploying into Kubernetes.
 - Ports 5173 (frontend), 8022 (API) and 8080 (Zitadel) available.
 - Pull access to every required image. For private packages, obtain access and authenticate
   with `docker login ghcr.io`; see [GHCR access](../kubernetes/kubernetes-pull-secret-ghcr.md).
+- PostgreSQL 17 or later. The bundled `postgres` service runs PostgreSQL 17; if you point
+  Stackweaver at your own server, it must be version 17 or later, or the API refuses to start.
 
 The supplied localhost passwords and storage keys are evaluation defaults. Before exposing a
 new install, choose unique database/storage credentials and a Zitadel master key/password in
@@ -449,6 +451,7 @@ Use `docker compose down` to stop the stack while retaining named volumes.
 | A published port is unavailable | `docker compose ps` and the host's listening ports. |
 | Identity initialization failed | `docker compose logs zitadel-init` and `docker compose logs zitadel`; reconcile after correcting inputs. |
 | API cannot reach PostgreSQL | Database health and matching credentials; `docker compose ps postgres` should report healthy. |
+| API logs `stackweaver requires PostgreSQL 17 or later` and exits | The database server is older than PostgreSQL 17. Upgrade it, or use the bundled `postgres` service. |
 | Blank page or wrong API address | Browser console, frontend logs and same-origin `VITE_API_URL`; reapply configuration and reload. |
 | A run or job stays pending | `docker compose logs launcher`. A launcher that says a hosted launcher needs `STACKWEAVER_HOSTED_SECRET` cannot read `.env`: check that its service sets `STACKWEAVER_ENV_FILE` and mounts `.env` as in the example Compose file, and that `zitadel-init` completed. A launcher that cannot reach the API retries, and `docker compose ps` shows it unhealthy until it is registered. |
 | The orchestrator logs `Waiting for the API to migrate the database` | The API migrates the schema when it starts, and the orchestrator waits for it after an upgrade. Read `docker compose logs api` for the reason the API has not finished starting. |

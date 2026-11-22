@@ -1,5 +1,33 @@
 [
   {
+    "id": "postgres-17-required",
+    "title": "The API requires PostgreSQL 17 or later",
+    "area": "Platform",
+    "kind": "Changed",
+    "reviewed": true,
+    "audience": "Operators who run Stackweaver against their own PostgreSQL server.",
+    "before": "The API started against any PostgreSQL server it could connect to.",
+    "after": "The API reads the server version when it starts and refuses to start on a server older than PostgreSQL 17, naming the version it found. The bundled database already runs PostgreSQL 17.",
+    "action": "If you use an external PostgreSQL server older than 17, upgrade it to PostgreSQL 17 or later before you upgrade Stackweaver.",
+    "details": [],
+    "guides": [
+      {
+        "title": "Kubernetes with Helm",
+        "path": "/docs/get-started/self-hosting/kubernetes"
+      },
+      {
+        "title": "Docker Compose",
+        "path": "/docs/get-started/self-hosting/docker-compose"
+      }
+    ],
+    "sourceCommits": [],
+    "draftCommits": [],
+    "requiredComponents": [
+      "api"
+    ],
+    "availability": []
+  },
+  {
     "id": "run-header-fact-chips",
     "title": "Run facts show as matching chips with coloured icons",
     "area": "OpenTofu",
