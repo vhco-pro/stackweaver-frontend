@@ -61,6 +61,11 @@ Automation uses `tfe-` API tokens; a Zitadel access token is not an API credenti
    remains. The orchestrator fails an OpenTofu run that is still pending 30 minutes after it
    was created, so queue any such run again after the upgrade.
 
+For Kubernetes, the first-release procedure uses Recreate on every API upgrade, including
+intermediate hops. It stops the source API before the target migrates the database and causes
+an API outage during image pull and startup. An older executor whose job finishes then can
+lose its completion report. Keep the quiet maintenance window until acceptance checks pass.
+
 > [!WARNING]
 > Upgrades are forward-only. Changing image tags back does not reverse database migrations
 > or identity changes: rolling back is a restore of the pre-upgrade backup with the previous
@@ -109,6 +114,13 @@ must not use `--wait` or `--atomic`. External Zitadel's BFF credentials must alr
 An upgrade from a chart version before 0.16.1 also follows
 [the launcher upgrade](./kubernetes/README.md#upgrading-to-the-chart-version-with-launchers).
 
+Complete the [native API strategy preparation](./kubernetes/README.md#api-strategy-transition)
+at the unchanged source version before changing the chart or API images. This applies to
+every pre-query-mode-fix source, including the `5.109.17` and `5.116.0` source releases.
+These first-release instructions use Recreate for every upgrade. The verified fixed API
+component boundary will be documented after publication, separately from chart versions
+and monorepo/source tags.
+
 Record the installed release before changing it. The example uses release and namespace
 `stackweaver`; replace them if yours differ. Values can contain secrets, so save them in a
 protected directory outside version control:
@@ -122,19 +134,65 @@ helm get values stackweaver --namespace stackweaver --all \
 kubectl get pods,pvc --namespace stackweaver
 ```
 
-Set `CHART_VERSION` to the reviewed target and maintain a complete `my-values.yaml`, with
-the image overrides and external Secret names your installation needs:
+After source preparation passes, set `CHART_VERSION` to the reviewed target and maintain a
+complete `my-values.yaml`, with the image overrides and external Secret names your
+installation needs. Keep Recreate through this target operation.
 
 ```bash
-helm upgrade stackweaver oci://ghcr.io/vhco-pro/charts/stackweaver \
-  --version "$CHART_VERSION" --namespace stackweaver --values my-values.yaml
-kubectl get jobs,pods,pvc --namespace stackweaver
-kubectl rollout status deployment/stackweaver-api --namespace stackweaver
+guard_api prepared
+helm --kube-context "$KUBE_CONTEXT" upgrade "$HELM_RELEASE" \
+  oci://ghcr.io/vhco-pro/charts/stackweaver \
+  --version "$CHART_VERSION" --namespace "$NAMESPACE" --values my-values.yaml
+guard_api target
+kubectl --context "$KUBE_CONTEXT" get jobs,pods,pvc --namespace "$NAMESPACE"
+kubectl --context "$KUBE_CONTEXT" rollout status "deployment/$API_DEPLOYMENT" --namespace "$NAMESPACE"
 ```
+
+After readiness, [restore the captured original strategy](./kubernetes/README.md#apply-the-target-and-restore-after-readiness)
+against the same namespace, Helm owner and Deployment UID, then verify it. A failed migrated
+upgrade uses the matching pre-upgrade recovery set before strategy restoration. Preserve
+the saved identity and desired configuration while recovery or restoration remains pending.
 
 A settings-only change should use the installed chart version and `--reuse-values`, with
 only the intended overrides. Keep it separate from a software upgrade. Neither Helm
 history nor `helm rollback` restores a database, an overwritten Secret or external storage.
+
+### Local Kustomize, Argo CD and Flux
+
+Follow the [desired-configuration API upgrade procedure](./kubernetes/kustomize/README.md#api-upgrades)
+through your installation's management path. Apply or reconcile Recreate at the unchanged
+source version, wait for its observed revision and live strategy, then change target pins
+with Recreate retained. Restore after readiness or completed matching-backup recovery.
+Keep the selected apply mode, controller identity and Deployment UID through all stages.
+
+### Retrieve the database inventory checks
+
+The verified target chart package includes two read-only checks in its README.
+Retrieve the package using the reviewed chart version and OCI manifest digest.
+
+```bash
+(
+  set -eu
+  umask 077
+  mkdir -p recovery-record
+  chart_dir=$(mktemp -d recovery-record/chart.XXXXXXXX)
+  helm pull "oci://ghcr.io/vhco-pro/charts/stackweaver@${CHART_DIGEST}" \
+    --destination "$chart_dir"
+  packages=("$chart_dir"/*.tgz)
+  test "${#packages[@]}" -eq 1
+  test -f "${packages[0]}"
+  actual_version=$(helm show chart "${packages[0]}" | awk '/^version: / {print $2; exit}')
+  test "$actual_version" = "$CHART_VERSION"
+  tar -xOzf "${packages[0]}" stackweaver/README.md > "$chart_dir/README.md"
+)
+```
+
+Use **Verify the stopped source database inventory** when the upgrade procedure holds
+the source writers before the target migrates the database. The staged procedure also
+uses **Inspect launcher work on the staged target database** after the target API is
+ready with intake paused. Use the recorded database and launcher identities in both
+checks. Advance only after the required database result and the separate runtime and
+controller checks succeed.
 
 ## 4. Verify before reopening access
 

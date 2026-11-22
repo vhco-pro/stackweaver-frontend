@@ -304,7 +304,9 @@ settings through workspace and variable-set variables rather than the launcher's
 
 Use [Back up and restore](../backup-and-restore.md) for a complete recovery set and
 restore rehearsal, and [Plan and verify an upgrade](../upgrading.md) to select component
-versions and check the result. The commands below provide deployment-specific details.
+versions and check the result. The same guide shows how to retrieve the
+[database inventory checks](../upgrading.md#retrieve-the-database-inventory-checks)
+from the verified target chart package. The commands below provide Compose details.
 
 | Volume | Data | Critical? |
 |---|---|---|

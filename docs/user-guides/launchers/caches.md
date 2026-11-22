@@ -3,8 +3,13 @@ title: "Caches"
 nav_order: 8
 description: "The organization's verified cache of OpenTofu releases, providers, Galaxy content and git sources, and the node-local copy a launcher keeps."
 covers:
+  - "backend/internal/launcher/readbody/**"
+  - "backend/internal/api/middleware/runner_read_response.go"
   - "backend/internal/launcher/**"
   - "core/runnerdriver/**"
+  - "backend/internal/executor/cache.go"
+  - "backend/internal/executor/client.go"
+  - "backend/internal/api/v2/handlers/runner_agent_cache.go"
 ---
 
 # Caches
@@ -17,9 +22,19 @@ The cache lives in the installation's object storage, under a prefix of its own 
 
 OpenTofu releases are verified with `cosign`, which consults the Sigstore transparency log; the OpenTofu job image includes `cosign`. A launcher that cannot reach the log, on an air-gapped network, can be started with `CACHE_VERIFY_TRANSPARENCY_LOG=false`; it then verifies the release's GPG signature against OpenTofu's release key, which the launcher carries, and records the entry as verified offline. A launcher under Strict hosted isolation (`STACKWEAVER_HOSTED_STRICT`) refuses that setting.
 
+A job allows up to two minutes to acquire an optional remote cache entry. After a read exhausts
+that allowance, later remote entries use their original sources for the rest of that job.
+Verified node-local copies remain available. Each new job starts with a fresh remote-read allowance.
+
+Once a cache response starts, a progressing transfer can finish after the acquisition allowance,
+within the job timeout and size limit. A transfer with no body progress for 30 seconds is closed.
+Its partial data is discarded, and retries use only the original acquisition allowance.
+
 ## The node-local cache
 
-A launcher keeps a copy of the cache entries its jobs used, so repeated jobs on the same host fetch nothing twice. Only the launcher writes the copy: it fetches each entry under its launcher token, checks its digest, and mounts the job's organization's part of it read-only into the job. The job still checks the digest of every entry it reads and fetches anything missing through the API. A run log line that ends in "(node-local copy)" says every entry came from it.
+A launcher keeps local copies of cache entries so later jobs can reuse verified entries. Only the launcher writes the copy: it fetches each entry under its launcher token, checks its digest, and mounts the job's organization's part of it read-only into the job. The job checks the digest of every entry it reads and tries missing entries through the API while its remote-read allowance remains available. A run log line that ends in "(node-local copy)" says every entry came from it.
+
+If another job is warming the local copy, a new job proceeds without waiting for that warm-up. The new job may fetch an entry that the other job is still acquiring.
 
 | Driver | Where the copy lives |
 |--------|----------------------|

@@ -183,8 +183,14 @@ sso:
 
 ### Step 3: Upgrade the Helm release
 
+Set `STACKWEAVER_CHART_VERSION` to the installed chart version shown by
+`helm list --namespace stackweaver`, and preserve your existing image pins and release
+values for this settings change. A software upgrade follows the
+[API strategy procedure](../../get-started/self-hosting/kubernetes/README.md#api-strategy-transition).
+
 ```bash
 helm upgrade stackweaver oci://ghcr.io/vhco-pro/charts/stackweaver \
+  --version "${STACKWEAVER_CHART_VERSION:?Set the installed chart version}" \
   --namespace stackweaver \
   --values my-values.yaml
 ```
@@ -207,12 +213,9 @@ If the zitadel-init logs show an error like this:
    rpc error: code = InvalidArgument desc = Errors.Target.DeniedURL (COMMAND-NcJUKo)
 ```
 
-This means Zitadel is blocking the webhook target URL. Zitadel v4.x includes SSRF protection that denies requests to private/loopback IP addresses by default. The StackWeaver Helm chart and the Docker Compose example's `zitadel-defaults.yaml` drop the private ranges from this deny list, because Zitadel needs to call the API service, and keep cloud-metadata addresses blocked. On Docker Compose, copy the current `zitadel-defaults.yaml` from the example and restart Zitadel. If your deployed ConfigMap does not include this setting, upgrade to the current chart version, then delete the Zitadel pod so it restarts with the updated config:
+This means Zitadel is blocking the webhook target URL. Zitadel v4.x includes SSRF protection that denies requests to private/loopback IP addresses by default. The StackWeaver Helm chart and the Docker Compose example's `zitadel-defaults.yaml` drop the private ranges from this deny list, because Zitadel needs to call the API service, and keep cloud-metadata addresses blocked. On Docker Compose, copy the current `zitadel-defaults.yaml` from the example and restart Zitadel. If your deployed ConfigMap lacks this setting, select the reviewed target chart and follow the complete [Kubernetes upgrade procedure](../../get-started/self-hosting/kubernetes/README.md#upgrading), including source Recreate preparation and original-strategy restoration. After that upgrade succeeds, restart the Zitadel pod to load its updated configuration.
 
 ```bash
-helm upgrade stackweaver oci://ghcr.io/vhco-pro/charts/stackweaver \
-  --namespace stackweaver \
-  --values my-values.yaml
 kubectl delete pod -l app.kubernetes.io/component=zitadel --namespace stackweaver
 ```
 

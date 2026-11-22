@@ -2649,6 +2649,93 @@
     "availability": []
   },
   {
+    "id": "runner-job-read-errors",
+    "title": "Runner job lookups distinguish database failures from deleted jobs",
+    "area": "Platform",
+    "kind": "Fixed",
+    "reviewed": true,
+    "audience": "Operators running Ansible and OpenTofu jobs through launchers.",
+    "before": "A temporary database lookup failure could be reported as a deleted job, omit an artifact input or end a synchronization work item.",
+    "after": "Runner job and artifact lookups return server errors for unexpected database failures. The status route identifies a deleted job with the job-deleted error code. Temporary artifact lookup failures preserve the work item and its token for retry.",
+    "action": "Update the API component when this correction is available.",
+    "details": [
+      "Earlier clients continue to receive HTTP 404 for a deleted job."
+    ],
+    "guides": [
+      {
+        "title": "Monitor and operate launchers",
+        "path": "/docs/user-guides/launchers/operate"
+      }
+    ],
+    "sourceCommits": [],
+    "requiredComponents": [
+      "api"
+    ],
+    "availability": []
+  },
+  {
+    "id": "runner-upgrade-recovery",
+    "title": "Keep job startup and completion bound to the original claim",
+    "area": "Runners",
+    "kind": "Fixed",
+    "reviewed": true,
+    "audience": "Operators running Ansible jobs, OpenTofu runs and inventory or project syncs through launchers.",
+    "before": "Start returned a status without the committed attempt or operation identity. Repeating a committed start received a conflict, leaving a launcher unable to resolve a lost acknowledgement. Completion outcome and cleanup writes could succeed independently.",
+    "after": "The API returns the committed claim identity and accepts matching start replays. Token acquisition and failed-start reports validate that identity. A guarded failed-start report can consume an eligible unstarted candidate and fences a delayed start. Ordinary completion commits its outcome and SQL cleanup together, and a replay preserves the first outcome.",
+    "action": "Schedule a quiet maintenance window, finish active work and pause incoming jobs and external launchers. Update the API, launcher, job images and chart together. For this first release, prepare native Recreate at the unchanged source version before every Kubernetes upgrade, retain it through target readiness, then restore the captured original strategy. Follow the selected Helm, local Kustomize, Argo CD or Flux procedure and retain the matching pre-upgrade recovery set.",
+    "details": [
+      "Update launchers and job images together for retry and restart recovery.",
+      "Previous-release start bodies and empty token requests remain supported for legacy claims. Unbound launcher-key completions receive HTTP 400.",
+      "Ordinary successful completion and job-data routes retain their job-token authorization.",
+      "Database failures leave completion retryable. SQL cleanup completes before the next phase acquires credentials and its lock. Post-commit log finalization targets the completed phase. Ordered OpenTofu artifact retries replace registry credentials atomically. A delayed older request preserves the newer credential.",
+      "Active jobs continue through an HTTP 404 status response unless it explicitly identifies the job as deleted.",
+      "Jobs retry completion delivery and ordinary control operations for up to two minutes, with attempts bounded to 20 seconds or the remaining allowance.",
+      "Required artifact acquisition allows five minutes, including storage and hashing before headers. Interrupted transfers share the original acquisition deadline. Successful bodies remain bounded by the job context and size limit.",
+      "Updated claims can refetch configuration and state with a strong content validator while their original claim remains active. Legacy claims keep one-fetch delivery. Required input failures return retryable errors before a successful artifact document.",
+      "An optional remote cache read has a separate two-minute acquisition allowance. After the first exhaustion, later entries use source fallback for that job. Verified local copies remain available, and the next job has a fresh reader.",
+      "A completion is confirmed by HTTP 200 headers. An explicit revoked, terminal or deleted response stops that job process and records its terminal disposition separately from delivery confirmation.",
+      "Output, event, state, saved-plan and snapshot uploads keep their existing retry and failure behavior. An outage affecting those writes can lose output or fail an upload-dependent operation.",
+      "Playbook snapshots have a 32 MiB compressed limit. For an oversized snapshot, reduce the repository content captured and refresh the snapshot before starting a new run.",
+      "Artifact input requests use fresh HTTP/1 connections to keep every retry and followed redirect under sequence control.",
+      "Launchers keep heartbeats progressing while replaying startup and acquiring credentials. Each operation has a separate two-minute budget. A failed startup uses a fresh, exact-attempt report and retains its capacity reservation until the API confirms or classifies the outcome.",
+      "Restarted launchers join complete placement and active-claim inventories before accepting new work. Surviving jobs retain their original operation and capacity through read failures. Claims without placements receive exact-attempt startup failures. Completed placements release capacity after an original-claim terminal response.",
+      "The API grants 150 seconds of recovery grace at startup and after database health returns. Health observations and settlement cycles have five-second bounds. Lost-work settlement, state-lock release and SQL credential cleanup commit together before a later claim can start.",
+      "New database connections default to describe_exec when no query mode is specified. The source API needs that fix for compatible migration overlap. Earlier or unidentified source APIs require Recreate, including additive migrations. The first-release guides apply that transition to every upgrade until the verified fixed API component boundary is documented after publication.",
+      "The chart retains the Kubernetes RollingUpdate default. Its temporary Recreate transition causes an API outage during image pull and startup. An older executor finishing then can lose its completion report. Preparation, target version and original-strategy restoration are separate operations with namespace, installation and Deployment UID checks. Failed upgrades retain their recovery state and use matching backups before restoration."
+    ],
+    "guides": [
+      {
+        "title": "Monitor and operate launchers",
+        "path": "/docs/user-guides/launchers/operate"
+      },
+      {
+        "title": "Plan and verify an upgrade",
+        "path": "/docs/get-started/self-hosting/upgrading"
+      },
+      {
+        "title": "Kubernetes API strategy transition",
+        "path": "/docs/get-started/self-hosting/kubernetes#api-strategy-transition"
+      },
+      {
+        "title": "Kustomize and GitOps API upgrades",
+        "path": "/docs/get-started/self-hosting/kubernetes/kustomize#api-upgrades"
+      }
+    ],
+    "draftCommits": [
+      "7f0a1aa1477e1d68b956f66f81bf9060221cfd09",
+      "f52a9bf6ba2b14fdddca0e0197222ab810c956a8"
+    ],
+    "sourceCommits": [],
+    "requiredComponents": [
+      "api",
+      "launcher",
+      "ansible-runner",
+      "opentofu-runner",
+      "helm"
+    ],
+    "availability": []
+  },
+  {
     "id": "launcher-delete-race-not-found",
     "title": "Deleting launchers and agent pools answers correctly when deletes overlap, and takes the launcher's key with it",
     "area": "Runners",
