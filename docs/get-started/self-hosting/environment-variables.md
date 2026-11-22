@@ -56,6 +56,9 @@ The API is the primary Go backend serving the REST API, managing authentication,
 
 ### Database
 
+Stackweaver requires PostgreSQL 17 or later. The API reads the server version when it starts and
+refuses to start on an older server, naming the version it found.
+
 | Variable | Description | Default |
 |---|---|---|
 | `DATABASE_HOST` | PostgreSQL hostname | `localhost` (from config.yaml) |
