@@ -18,7 +18,7 @@ const RESOURCES: FooterLink[] = [
   { label: 'Documentation', href: '/docs' },
   { label: 'API Reference', href: '/docs/api-reference/explorer' },
   { label: 'Support', href: 'https://github.com/vhco-pro/.github/blob/main/SUPPORT.md' },
-  { label: 'Security Policy', href: 'https://github.com/vhco-pro/.github/blob/main/SECURITY.md' },
+  { label: 'Security Policy', href: 'https://github.com/vhco-pro/stackweaver-frontend/security/policy' },
 ];
 
 const LEGAL: FooterLink[] = [

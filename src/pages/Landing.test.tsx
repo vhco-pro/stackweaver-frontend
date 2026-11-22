@@ -54,7 +54,7 @@ describe('Landing: links', () => {
 
   it('gives security.txt a policy and the two contacts the public policy names', () => {
     const txt = read('../public/.well-known/security.txt');
-    expect(txt).toMatch(/^Policy: https:\/\/github\.com\/vhco-pro\/\.github\/blob\/main\/SECURITY\.md$/m);
+    expect(txt).toMatch(/^Policy: https:\/\/github\.com\/vhco-pro\/stackweaver-frontend\/security\/policy$/m);
     expect(txt).toMatch(/^Contact: https:\/\/github\.com\/vhco-pro\/stackweaver-frontend\/security\/advisories\/new$/m);
     expect(txt).toMatch(/^Contact: mailto:contact@vhco\.pro$/m);
     expect(txt).toMatch(/^Expires: /m);

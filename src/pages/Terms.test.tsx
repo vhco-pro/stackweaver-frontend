@@ -88,7 +88,7 @@ describe('Terms', () => {
     );
     expect(screen.getByRole('link', { name: 'Security Policy' })).toHaveAttribute(
       'href',
-      'https://github.com/vhco-pro/.github/blob/main/SECURITY.md'
+      'https://github.com/vhco-pro/stackweaver-frontend/security/policy'
     );
   });
 

@@ -18,7 +18,7 @@ const renderFooter = () =>
 const EXTERNAL: Record<string, string> = {
   'License (BSL 1.1)': 'https://github.com/vhco-pro/stackweaver-api/blob/main/LICENSE',
   'Trademark Policy': 'https://github.com/vhco-pro/.github/blob/main/TRADEMARK.md',
-  'Security Policy': 'https://github.com/vhco-pro/.github/blob/main/SECURITY.md',
+  'Security Policy': 'https://github.com/vhco-pro/stackweaver-frontend/security/policy',
   Support: 'https://github.com/vhco-pro/.github/blob/main/SUPPORT.md',
 };
 

@@ -90,4 +90,4 @@ repository map for QA-04.01; it does not certify a release merely because a repo
 - Follow that repository's contribution instructions. Direct changes to a distribution
   mirror can be replaced by the next upstream sync.
 - Report vulnerabilities through the repository's private reporting channel or the
-  published [security policy](https://github.com/vhco-pro/.github/blob/main/SECURITY.md).
+  published [security policy](https://github.com/vhco-pro/stackweaver-frontend/security/policy).

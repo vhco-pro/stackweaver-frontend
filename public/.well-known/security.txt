@@ -12,4 +12,4 @@ Contact: https://github.com/vhco-pro/stackweaver-frontend/security/advisories/ne
 Contact: mailto:contact@vhco.pro
 Expires: 2027-07-06T00:00:00.000Z
 Preferred-Languages: en, nl
-Policy: https://github.com/vhco-pro/.github/blob/main/SECURITY.md
+Policy: https://github.com/vhco-pro/stackweaver-frontend/security/policy
