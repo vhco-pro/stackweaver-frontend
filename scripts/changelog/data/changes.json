@@ -3151,5 +3151,36 @@
       "api"
     ],
     "availability": []
+  },
+  {
+    "id": "api-health-probes",
+    "title": "The API reports liveness and readiness, and its image can check its own health",
+    "area": "Deployment",
+    "kind": "Added",
+    "reviewed": true,
+    "audience": "Operators who run Stackweaver on Kubernetes or Docker Compose, or monitor its API.",
+    "before": "The API answered /health with 200 without checking anything, and that route was rate limited per address like any other request. The published API image had no command to check its health, because it has no shell or wget. The launcher answered /healthz and /readyz.",
+    "after": "The API answers /livez with 200 while its process serves, and /readyz with 200 when its own database pool can ping Postgres within 2 seconds, or 503 with {\"status\":\"unavailable\",\"failing\":[\"postgres\"]} when it cannot. /health keeps its answer. The three probe paths skip the rate limiter and stay out of the request log. The API image runs /stackweaver-api healthcheck, which probes /readyz on the API's own address and exits 0 only on a 200. The launcher also answers /livez.",
+    "action": "No action is required. Monitors that check whether the API can serve should use /readyz on the API's own port.",
+    "details": [
+      "Readiness checks only Postgres; Redis does not affect it.",
+      "/readyz has no ingress route; reach it on the API Service, a pod or the published Compose port.",
+      "A bare IPv6 SERVER_HOST such as :: now works: the API brackets IPv6 hosts when it binds, and the healthcheck command reaches a wildcard host on its family's loopback address."
+    ],
+    "guides": [
+      {
+        "title": "Environment variables",
+        "path": "/docs/get-started/self-hosting/environment-variables"
+      }
+    ],
+    "sourceCommits": [],
+    "draftCommits": [
+      "ada9d750fc0b1591f2c4947a3289509376d026b9"
+    ],
+    "requiredComponents": [
+      "api",
+      "launcher"
+    ],
+    "availability": []
   }
 ]

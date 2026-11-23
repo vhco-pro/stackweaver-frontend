@@ -250,5 +250,9 @@
   {
     "id": "kind-harness-run-lock",
     "reason": "Test harness only: e2e/k8s/run.sh lets one kind run use the shared cluster at a time, and its internal guide says so. No product, chart, image or public documentation changes."
+  },
+  {
+    "commit": "7983a3585c66cbd08ac179b291d51fdac7e0ca2d",
+    "reason": "Adds the /stackweaver-api path to the development API image only, which the repository's own Compose stack builds; published images and customer configuration are unchanged."
   }
 ]
