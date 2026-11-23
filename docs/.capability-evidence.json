@@ -33,7 +33,7 @@
         },
         {
           "path": "backend/internal/launcher/launcher.go",
-          "sha256": "34fa934611548fd2e0a469a4deddb0425b4910d6cda2f815febd60023e7bcf2a"
+          "sha256": "c5bf551cc6aabd270d3efec21dd276cd7995d06d7719bcc2ad98c86a2ab2e161"
         },
         {
           "path": "core/services/ansible/job.go",
