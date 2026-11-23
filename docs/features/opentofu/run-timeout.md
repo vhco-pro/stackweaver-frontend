@@ -134,7 +134,7 @@ launcher that placed the job enforces it.
 ### What happens at the timeout
 
 When a plan or an apply runs longer than its timeout, the launcher running it reports the
-run failed with "the job exceeded its timeout of ... and was stopped", then stops the run's
+run failed with "the job exceeded its timeout of ... and is being stopped", then stops the run's
 container, pod or process. The output up to that point stays on the run.
 
 The platform also checks overdue executing runs about once a minute and marks them failed.

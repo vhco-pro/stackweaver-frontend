@@ -254,5 +254,9 @@
   {
     "commit": "7983a3585c66cbd08ac179b291d51fdac7e0ca2d",
     "reason": "Adds the /stackweaver-api path to the development API image only, which the repository's own Compose stack builds; published images and customer configuration are unchanged."
+  },
+  {
+    "commit": "111ebf959aa293a1c5700bca255291a57ea95fb8",
+    "reason": "Internal release tooling: the local watch-merge script retries GitHub API errors instead of reading them as no runs. No product, image, chart or public documentation changes."
   }
 ]

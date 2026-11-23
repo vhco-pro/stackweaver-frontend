@@ -3182,5 +3182,30 @@
       "launcher"
     ],
     "availability": []
+  },
+  {
+    "id": "in-process-launcher-stop-confirmation",
+    "title": "In-process launchers retain jobs until they stop",
+    "area": "Runners",
+    "kind": "Fixed",
+    "reviewed": true,
+    "audience": "Operators running Ansible or OpenTofu jobs on in-process launchers.",
+    "before": "An in-process launcher could deregister after the stop grace period while a job was still running.",
+    "after": "If the job is still running when the stop grace period ends, the launcher reports that it is waiting for the job to stop. It keeps the job slot, keeps heartbeating and waits for exit before deregistering. The stop deadline of the container or pod still applies.",
+    "action": "Update the image or binary that runs the in-process launcher to pick up the fix. Keep the stop deadline of its container or pod above the drain grace plus the time your slowest job needs to clean up.",
+    "details": [],
+    "guides": [
+      {
+        "title": "Drivers and network modes",
+        "path": "/docs/user-guides/launchers/drivers-and-network-modes"
+      }
+    ],
+    "sourceCommits": [],
+    "requiredComponents": [
+      "launcher",
+      "ansible-runner",
+      "opentofu-runner"
+    ],
+    "availability": []
   }
 ]
