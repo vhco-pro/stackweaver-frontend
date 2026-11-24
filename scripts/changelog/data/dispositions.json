@@ -274,5 +274,13 @@
   {
     "commit": "285d5c5f156c5fe1559258a8409f926469d20149",
     "reason": "Internal kind E2E harness only. run.sh appends the seed data's Helm flags so kind's launcher timer flags survive on a seeded run. No product, chart, image or public documentation changes."
+  },
+  {
+    "id": "codex-review-prompt-stdin",
+    "reason": "Internal agent tooling only. The vh-adlc loop's Codex reviewer routes in .vh-adlc/loop.yaml read their prompt on standard input. No product, chart, image or public documentation changes."
+  },
+  {
+    "id": "watch-merge-waits-for-bump-core-log",
+    "reason": "Internal release tooling: the local watch-merge script waits until GitHub serves bump-core's finished log before reading which syncs it dispatched, so a lagging log no longer ends the watch early. No product, image, chart or public documentation changes."
   }
 ]
