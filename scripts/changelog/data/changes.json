@@ -3286,5 +3286,33 @@
       "api"
     ],
     "availability": []
+  },
+  {
+    "id": "glob-and-telemetry-security-update",
+    "title": "API, identity setup and Ansible images include glob matching and telemetry security fixes",
+    "area": "Platform",
+    "kind": "Security",
+    "reviewed": true,
+    "audience": "Operators running the platform API, identity setup and Ansible execution images.",
+    "before": "The API and identity setup images included an OpenTelemetry trace library whose attribute length limit could be bypassed. The Ansible image included a wcmatch version with a polynomial-time pattern matching issue.",
+    "after": "The API and identity setup images include OpenTelemetry 1.47.0. The Ansible image includes wcmatch 11.2.",
+    "action": "Update the API, identity setup and Ansible images when this change is published. No configuration change is required. Rebuild derived Ansible images with the updated base or dependency lockfile.",
+    "details": [
+      "The updates preserve existing configuration, playbooks and inventories."
+    ],
+    "guides": [
+      {
+        "title": "Run images and execution environments",
+        "path": "/docs/user-guides/launchers/run-images-and-execution-environments"
+      }
+    ],
+    "sourceCommits": [],
+    "draftCommits": [],
+    "requiredComponents": [
+      "api",
+      "zitadel-init",
+      "ansible-runner"
+    ],
+    "availability": []
   }
 ]
