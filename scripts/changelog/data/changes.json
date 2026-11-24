@@ -3259,5 +3259,32 @@
       "api"
     ],
     "availability": []
+  },
+  {
+    "id": "ansible-schedule-dst-and-launch-values",
+    "title": "Ansible schedules run once across clock changes and apply their launch values",
+    "area": "Ansible",
+    "kind": "Fixed",
+    "reviewed": true,
+    "audience": "Teams with Ansible schedules in a time zone that observes daylight saving time, or with job template schedules that set a limit, tags or a start or end date.",
+    "before": "A schedule set to a time in the hour the clocks skip, such as 02:30 in Europe/Brussels, did not run that day, and one set in the hour the clocks repeat ran twice. A job template schedule applied only the extra variables in its config: a limit, tags or skip tags were ignored, so the job ran against every host of the inventory. Start and end dates were stored but not applied, and unknown config keys were accepted and ignored.",
+    "after": "A time in the skipped hour runs once at the end of the gap, a time in the repeated hour runs once at its first occurrence, and schedules that run every hour keep their interval. A job template schedule applies extra_vars, limit, tags and skip_tags to each job, and runs only between its start and end dates. Any other config key, including an inventory or credential override, is rejected with 400.",
+    "action": "Check the config of each job template schedule. A schedule whose config holds a key other than extra_vars, limit, tags or skip_tags records a failed run and launches nothing until that key is removed. A schedule with a limit in its config now runs on that limit only.",
+    "details": [
+      "Expressions that match no date, such as 0 0 30 2 *, and CRON_TZ= prefixes are rejected; set the zone in the timezone attribute.",
+      "Inventory source, playbook sync and workflow schedules accept an empty config only."
+    ],
+    "guides": [
+      {
+        "title": "Execution flows",
+        "path": "/docs/features/ansible/execution-flows"
+      }
+    ],
+    "sourceCommits": [],
+    "draftCommits": [],
+    "requiredComponents": [
+      "api"
+    ],
+    "availability": []
   }
 ]
