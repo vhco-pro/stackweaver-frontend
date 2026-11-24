@@ -258,7 +258,7 @@ Then change `launcher.yaml`:
 
 4. Check that `STACKWEAVER_SERVER` resolves from a job pod. Job pods reach the API at the same address as the launcher.
 
-Job pods pull their job image every time (`imagePullPolicy: Always`, from `RUNNER_JOB_IMAGE_PULL`). For a private job image, mount a dockerconfigjson Secret into the launcher pod and name the file in `RUNNER_DOCKER_CONFIG`: the launcher copies the matching registry's credential into a pull Secret of each job's own, keyed by the job image's repository, so no run image receives it. Use `auth`, or `username` and `password`, entries; an `identitytoken` entry cannot reach a job pod. A job pod that cannot pull its image fails after `RUNNER_PLACEMENT_TIMEOUT` (5 minutes by default).
+Job pods pull their job image every time (`imagePullPolicy: Always`, from `RUNNER_JOB_IMAGE_PULL`). For a private job image, mount a dockerconfigjson Secret into the launcher pod and name the file in `RUNNER_DOCKER_CONFIG`: the launcher copies the matching registry's credential into a pull Secret of each job's own, keyed by the job image's repository, so no run image receives it. Use `auth`, or `username` and `password`, entries; an `identitytoken` entry cannot reach a job pod. A job pod whose main container or an init container reports `ErrImagePull` or `ImagePullBackOff` fails once it is older than `RUNNER_PLACEMENT_TIMEOUT` (5 minutes by default, counted from the pod's creation); a pod still waiting for its image without either error is not affected.
 
 Apply both files with `kubectl apply -f launcher-rbac.yaml -f launcher.yaml`.
 
@@ -320,12 +320,12 @@ Replace the job image only when every job of an engine on a launcher needs the c
 | Requirement | Why |
 |-------------|-----|
 | The launcher binary at `/usr/local/bin/stackweaver-launcher`, as an executable file rather than a link. | The container and Kubernetes drivers start every job as `/usr/local/bin/stackweaver-launcher executor`, and copy that file into a job's run image as its `stackweaver-executor` program. |
-| A link to it at the engine's earlier path: `/usr/local/bin/ansible-runner` for Ansible, `/usr/local/bin/runner` for OpenTofu. | A launcher of an earlier release starts the executor through that path. |
-| `ansible-playbook` and `ansible-galaxy` on the path for Ansible, `tofu` for OpenTofu. | The executor runs the engine from the image. |
-| `/bin/sh`, `cp` and `chmod`. | The container driver copies the executor into a run image with `/bin/sh -c` running `cp` and `chmod`; the Kubernetes driver runs `cp` directly. |
+| A link to it at the engine's earlier path: `/usr/local/bin/ansible-runner` for Ansible, `/usr/local/bin/runner` for OpenTofu. | A launcher of an earlier release starts the job through that path. |
+| `ansible-playbook` and `ansible-galaxy` on the path for Ansible, `tofu` for OpenTofu. | The job runs the engine from the image. |
+| `/bin/sh`, `cp` and `chmod`. | The container driver copies the `stackweaver-executor` program into a run image with `/bin/sh -c` running `cp` and `chmod`; the Kubernetes driver runs `cp` directly. |
 | A non-root user. | A container-driver launcher refuses a root image unless it was started with `RUNNER_ALLOW_ROOT=true`, as for [run images](./run-images-and-execution-environments.md#how-a-run-image-runs). |
 
-An image built from an Ansible runner image of a release before launchers has no `/usr/local/bin/stackweaver-launcher`, so every job placed in it fails to start. Rebuild it from the current job image. Check an image before you configure it:
+An image built from an Ansible job image of a release before launchers has no `/usr/local/bin/stackweaver-launcher`, so every job placed in it fails to start. Rebuild it from the current job image. Check an image before you configure it:
 
 ```bash
 docker run --rm --entrypoint sh registry.example.com/acme/ansible-job:1.0 -c '
@@ -355,7 +355,7 @@ These variables work with Docker, Podman and Kubernetes. The [environment variab
 | `RUNNER_JOB_IMAGE_PULL` | When job images are pulled: `always`, `missing` or `never`. | `always`; with only `RUNNER_IMAGE` set, no policy: pulled when missing on the container driver, the cluster's default on Kubernetes |
 | `RUNNER_DOCKER_CONFIG` | Docker config files, comma separated, or a directory of them, holding the launcher's credential for private job images. | (none) |
 | `RUNNER_FIREWALL_IMAGE` | Image the container driver writes the jobs network's firewall rules from; pulled only when missing. | The OpenTofu job image |
-| `RUNNER_PLACEMENT_TIMEOUT` | How long a Kubernetes job pod may fail to pull its image before its job fails. | `5m` |
+| `RUNNER_PLACEMENT_TIMEOUT` | How old a Kubernetes job pod may be, counted from its creation, before an `ErrImagePull` or `ImagePullBackOff` in its main container or an init container fails its job. Every launcher reads it at start; only the Kubernetes driver uses it. | `5m` |
 | `RUNNER_IMAGE` | Deprecated: the one image of every job, used when neither job image is set. Set the job images instead. | (none) |
 | `RUNNER_NETWORK` | Jobs network of the container driver. | (none) |
 | `RUNNER_NETWORK_MODE` | `platform` or `host-identity` (see [Network modes](./drivers-and-network-modes.md#network-modes)). | `platform` |

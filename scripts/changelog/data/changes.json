@@ -2820,6 +2820,34 @@
     "availability": []
   },
   {
+    "id": "launcher-inventory-and-reap-intervals",
+    "title": "Launchers read their inventory and reap intervals from the environment and log each inventory read",
+    "area": "Runners",
+    "kind": "Added",
+    "reviewed": true,
+    "audience": "Operators running Kubernetes-driver launchers, especially in test or development clusters that need GitOps hand-over and kept-placement sweeps to happen sooner.",
+    "before": "A launcher reported its job namespace's inventory at most once a minute and swept kept failed placements once a minute, with no way to change either. Reading the inventory logged nothing unless it failed.",
+    "after": "RUNNER_INVENTORY_INTERVAL sets the least time between two inventory reports and RUNNER_REAP_INTERVAL how often kept failed placements are swept. Each takes a positive duration such as 10s and defaults to one minute, and a launcher refuses to start on an unreadable, zero or negative value, naming the variable. Each inventory read logs one line with the object count.",
+    "action": "No action is required. To change an interval, set the variable through launcher.env in the Helm values.",
+    "details": [
+      "A heartbeat resent after a lost response reuses the earlier read and logs no second line."
+    ],
+    "guides": [
+      {
+        "title": "Environment variables",
+        "path": "/docs/get-started/self-hosting/environment-variables"
+      }
+    ],
+    "sourceCommits": [],
+    "draftCommits": [
+      "569da9ef076a6ebfe0e340d749949921d15b2eb6"
+    ],
+    "requiredComponents": [
+      "launcher"
+    ],
+    "availability": []
+  },
+  {
     "id": "workspace-patch-keeps-omitted-attributes",
     "title": "Updating a workspace keeps its working directory and description unless the request changes them",
     "area": "OpenTofu",
