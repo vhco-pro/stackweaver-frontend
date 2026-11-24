@@ -252,11 +252,27 @@
     "reason": "Test harness only: e2e/k8s/run.sh lets one kind run use the shared cluster at a time, and its internal guide says so. No product, chart, image or public documentation changes."
   },
   {
+    "commit": "7ea5ca25161f1f26978743800de63f467e71e717",
+    "reason": "Internal agent and review rules only. Restores the kind harness final-run rule in CLAUDE.md, the loop procedure and loop settings after a merge dropped it. No customer capability or application artifact changes."
+  },
+  {
+    "commit": "63ce2ab433bf680b716ea5c9e4d06991ca96ed3b",
+    "reason": "Internal kind E2E harness only. run.sh parses seed.env as data, guards the parallel spec list before every run and reports its controls. No product, chart, image or public documentation changes."
+  },
+  {
     "commit": "7983a3585c66cbd08ac179b291d51fdac7e0ca2d",
     "reason": "Adds the /stackweaver-api path to the development API image only, which the repository's own Compose stack builds; published images and customer configuration are unchanged."
   },
   {
     "commit": "111ebf959aa293a1c5700bca255291a57ea95fb8",
     "reason": "Internal release tooling: the local watch-merge script retries GitHub API errors instead of reading them as no runs. No product, image, chart or public documentation changes."
+  },
+  {
+    "commit": "16d32121c1b77dbe20f8dbbc6dc96f21644ad60d",
+    "reason": "Internal kind E2E harness only. run.sh's background port-forwards call the kubectl binary with the kind context, so cleanup stops them. No product, chart, image or public documentation changes."
+  },
+  {
+    "commit": "285d5c5f156c5fe1559258a8409f926469d20149",
+    "reason": "Internal kind E2E harness only. run.sh appends the seed data's Helm flags so kind's launcher timer flags survive on a seeded run. No product, chart, image or public documentation changes."
   }
 ]

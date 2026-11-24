@@ -606,7 +606,7 @@ versions and monorepo source tags identify different artifacts.
 
 Recreate causes an API outage during image pull and startup. Pause incoming work and
 schedules, let active work finish, and stop external launchers as described in
-[upgrade preparation](../upgrading.md). An older executor whose job finishes during the
+[upgrade preparation](../upgrading.md). A job of the older release that finishes during the
 outage can lose its completion report. Upgrade the API, launchers and job images together,
 and retain the matching pre-upgrade recovery set.
 
@@ -797,8 +797,10 @@ alternatives.
   launcher copies the matching registry's credential into a pull Secret of each job's own in the
   job namespace, keyed by the job image's repository so that no run image receives it. Use an
   `auth`, or a `username` and `password`, entry: an `identitytoken` entry cannot reach a job pod.
-- A job pod that cannot pull its image fails after `RUNNER_PLACEMENT_TIMEOUT` (five minutes by
-  default), with the kubelet's reason in the run or job's error.
+- A job pod whose main container or an init container reports `ErrImagePull` or `ImagePullBackOff` fails
+  once it is older than `RUNNER_PLACEMENT_TIMEOUT` (five minutes by default, counted from the
+  pod's creation), with the kubelet's reason in the run or job's error. A pod still waiting for its
+  image without either error is not affected.
 
 ### Upgrading to the chart version with one launcher
 
