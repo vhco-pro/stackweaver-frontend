@@ -3314,5 +3314,33 @@
       "ansible-runner"
     ],
     "availability": []
+  },
+  {
+    "id": "edits-write-only-changed-fields",
+    "title": "Edits write only the fields they change",
+    "area": "Platform",
+    "kind": "Fixed",
+    "reviewed": true,
+    "audience": "Everyone who edits workspaces, projects, teams, variable sets, launchers, pool objects, providers or account details while other changes happen.",
+    "before": "Many edits saved the whole record as it was read at the start of the request, together with records loaded alongside it. A change made meanwhile by another request or by the platform, such as a resource count, a launcher drain, a download count or a membership change, could be reverted, and a record deleted meanwhile could be created again. A workspace's agent pool could not be cleared, and a variable set could not be moved from a project to the organization.",
+    "after": "Each edit writes only the fields it changes. Changes made meanwhile stay, and a record deleted meanwhile stays deleted. A workspace lock is taken by one request at a time. A workspace's agent pool can be cleared, and a variable set can be moved to the organization.",
+    "action": "No action is required.",
+    "details": [],
+    "guides": [
+      {
+        "title": "Read OpenTofu runs",
+        "path": "/docs/user-guides/opentofu/understanding-opentofu-runs"
+      },
+      {
+        "title": "Manage workspace variables",
+        "path": "/docs/user-guides/opentofu/managing-workspace-variables"
+      }
+    ],
+    "sourceCommits": [],
+    "draftCommits": [],
+    "requiredComponents": [
+      "api"
+    ],
+    "availability": []
   }
 ]
