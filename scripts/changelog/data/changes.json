@@ -3235,5 +3235,29 @@
       "opentofu-runner"
     ],
     "availability": []
+  },
+  {
+    "id": "ansible-workflow-and-schedule-edits-keep-concurrent-changes",
+    "title": "Workflow runs and Ansible edits keep changes made meanwhile",
+    "area": "Ansible",
+    "kind": "Fixed",
+    "reviewed": true,
+    "audience": "Teams that run Ansible workflows or schedules, or edit workflows, hosts, groups, schedules, credentials, notification templates or job template variables while other changes happen.",
+    "before": "A workflow run, and an edit of a workflow, workflow node, host, group, schedule, credential, notification template or job template variable, saved the whole record as it was read earlier. A workflow run could announce its start again, and a workflow node finished by an approval or timeout could take another outcome. A host removed from a group, a child group moved elsewhere, or a deleted node, group, playbook or project could come back, and a schedule edit reset the run count and last run. A record deleted meanwhile, including a credential, was created again.",
+    "after": "Each write changes only the fields it means to change. A workflow node and a workflow run are finished once, and the first outcome stays. Memberships, child groups, schedule run history and notification markers stay as recorded, and a record deleted meanwhile stays deleted. Approving or denying a node that a timeout or another decision already finished returns a conflict. An edit that still names a record deleted meanwhile is refused; reload the page and save again.",
+    "action": "No action is required.",
+    "details": [],
+    "guides": [
+      {
+        "title": "Dynamic inventories",
+        "path": "/docs/user-guides/ansible/dynamic-inventories"
+      }
+    ],
+    "sourceCommits": [],
+    "draftCommits": [],
+    "requiredComponents": [
+      "api"
+    ],
+    "availability": []
   }
 ]

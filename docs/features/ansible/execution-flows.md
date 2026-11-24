@@ -403,8 +403,9 @@ flowchart TD
 2. **Single start** - nodes are claimed atomically, so a tick racing an approval click cannot start the same node twice.
 3. **Skipped paths** - when an edge condition is not met, the unreachable subtree is marked skipped rather than left dangling.
 4. **Approvals** - pending approvals surface in the run dialog with Approve/Deny; an optional timeout auto-denies.
-5. **Organization boundary** - a node starts only when everything it names belongs to the workflow's organization. A node that names anything else fails without starting a job or a sync, and the run follows its failure edges.
-6. **Lost starts** - a running job-template or inventory sync node that recorded no job or sync five minutes after it started (its API process stopped while starting it) fails, and the run follows its failure edges. A node whose job or sync no longer exists fails the same way.
+5. **Single outcome** - a node and a run finish once, and the first outcome stays. Approving or denying a node that its timeout or another decision has already finished returns a conflict.
+6. **Organization boundary** - a node starts only when everything it names belongs to the workflow's organization. A node that names anything else fails without starting a job or a sync, and the run follows its failure edges.
+7. **Lost starts** - a running job-template or inventory sync node that recorded no job or sync five minutes after it started (its API process stopped while starting it) fails, and the run follows its failure edges. A node whose job or sync no longer exists fails the same way.
 
 </details>
 
