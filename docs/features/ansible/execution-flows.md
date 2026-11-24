@@ -503,11 +503,49 @@ A single 30-second loop in the API drives everything time-based. Every API repli
 
 Use the dedicated inventory-source schedule. A source form's **Sync Schedule** field alone
 does not activate recurring execution. Invalid cron expressions, timezones or targets from
-another organization are rejected with `400`; the error identifies the failed input.
+another organization are rejected with `400`; the error identifies the failed input. An
+expression that matches no date, such as `0 0 30 2 *`, and a `CRON_TZ=` prefix are rejected
+too: set the zone in `timezone`.
+
+#### Launch values
+
+A `job_template` schedule's `config` sets the launch values of each job it starts, as a
+[launch through the API](#launch-once-through-the-api) does:
+
+| `config` key | Effect on each scheduled job |
+|---|---|
+| `extra_vars` | An object. Its keys are merged over the template variables. |
+| `limit`, `tags`, `skip_tags` | Strings. Each replaces the template value; an empty string clears it. |
+
+A scheduled job always uses the template's inventory and credentials. A `config` holding
+`inventory`, `inventory_id`, `credential`, `credentials` or any other key is rejected with
+`400`, and so is a non-empty `config` on an `inventory_source`, `playbook_sync` or
+`workflow` schedule. A schedule stored with such a key before this check records a failed
+run each time it comes due, and launches nothing, until its `config` is corrected.
+
+#### Start and end dates
+
+`start-date-time` and `end-date-time` bound the runs, both inclusive. The first run is the
+first cron time at or after the start. After the end, the schedule has no next run and
+starts nothing. An end before the start is rejected with `400`. Run now ignores both dates.
+
+#### Daylight saving time
+
+A schedule's cron expression is read in its `timezone`. When the clocks change:
+
+| Expression | Clocks spring forward | Clocks fall back |
+|---|---|---|
+| Runs every hour, such as `*/15 * * * *` or `0 * * * *` | Keeps its interval. The skipped hour has no runs. | Keeps its interval and runs in both repeated hours. |
+| Any other, such as `30 2 * * *` or `0 */2 * * *` | A time in the skipped hour runs once, at the end of the gap (03:00 in `Europe/Brussels`). | A time in the repeated hour runs once, at its first occurrence. |
+
+For example, in `Europe/Brussels`, `30 2 * * *` runs at 03:00 on the day the clocks spring
+forward and once at 02:30 on the day they fall back. `0 */2 * * *` runs 00:00, 03:00, 04:00
+on the first day and 00:00, 02:00, 04:00 on the second. Several times that land on the same
+moment run once. Use `UTC` for a schedule that must keep exact 24-hour spacing.
 
 A schedule update uses a `schedules` document. Supplied `name`, `description`,
 `cron-expression`, `timezone` and `config` fields change; omitted ones remain. Updated
-cron/timezone values are validated again.
+cron, timezone and `config` values are validated again.
 
 - **Enable** recalculates the next run without launching immediately. A schedule can be
   enabled even if its template is disabled; each refused due launch records a failed run.
