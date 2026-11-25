@@ -282,5 +282,9 @@
   {
     "id": "watch-merge-waits-for-bump-core-log",
     "reason": "Internal release tooling: the local watch-merge script waits until GitHub serves bump-core's finished log before reading which syncs it dispatched, so a lagging log no longer ends the watch early. No product, image, chart or public documentation changes."
+  },
+  {
+    "id": "converging-auto-migrate",
+    "reason": "Schema migration internals: a second migration pass on a migrated database now issues no DDL. Thirteen jsonb columns store the empty-object default as jsonb_build_object() instead of '{}'::jsonb, which inserts the same value, and the hand-written runner and capture-index steps check the catalogue first. No column type, nullability, API, chart, image or public documentation changes."
   }
 ]
