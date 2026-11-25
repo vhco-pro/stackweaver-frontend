@@ -3390,5 +3390,55 @@
       "frontend"
     ],
     "availability": []
+  },
+  {
+    "id": "galaxy-token-galaxy-install-only",
+    "title": "Galaxy server tokens are given only to the Galaxy install",
+    "area": "Ansible",
+    "kind": "Fixed",
+    "reviewed": true,
+    "audience": "Operators who set STACKWEAVER_GALAXY_SERVER_<NAME>_TOKEN for a private Galaxy or Automation Hub server.",
+    "before": "A deployment's Galaxy server tokens were set in the environment of the whole job: the Galaxy install, the playbook, OpenTofu runs and syncs.",
+    "after": "Only the job's ansible-galaxy install receives the deployment's Galaxy server tokens. Playbooks, OpenTofu runs and syncs still receive the server URLs, proxy settings and CA bundle.",
+    "action": "Update the launcher and job images to pick up the change. A playbook that called ansible-galaxy itself against a private server needs that server's token in its own ansible.cfg or credential.",
+    "details": [],
+    "guides": [
+      {
+        "title": "Configure environment variables",
+        "path": "/docs/get-started/self-hosting/environment-variables"
+      }
+    ],
+    "sourceCommits": [],
+    "requiredComponents": [
+      "launcher",
+      "ansible-runner",
+      "opentofu-runner"
+    ],
+    "availability": []
+  },
+  {
+    "id": "git-source-cache-https-only",
+    "title": "The organization cache keeps git-sourced Ansible content from https repositories",
+    "area": "Ansible",
+    "kind": "Fixed",
+    "reviewed": true,
+    "audience": "Anyone whose Ansible requirements install collections or roles from git repositories.",
+    "before": "A launcher cached a git-sourced collection or role from whatever repository address the job reported, using the git configuration of the launcher's host.",
+    "after": "A launcher caches a git-sourced collection or role only from an https repository, and fetches it without the host's git configuration or credential helpers. Sources from other addresses still install in the job; they are not cached.",
+    "action": "Update the launcher and job images to pick up the change. No configuration change is needed.",
+    "details": [],
+    "guides": [
+      {
+        "title": "Galaxy collections and roles",
+        "path": "/docs/features/ansible/galaxy-collections"
+      }
+    ],
+    "sourceCommits": [],
+    "requiredComponents": [
+      "launcher",
+      "ansible-runner",
+      "opentofu-runner"
+    ],
+    "availability": []
   }
 ]

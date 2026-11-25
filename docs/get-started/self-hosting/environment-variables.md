@@ -227,7 +227,7 @@ The mirror block tells every job, and every launcher verifying cache entries, wh
 | `TOFU_VERSION_INDEX_URL` | URL of the OpenTofu version index the API seeds the version catalogue from at startup. | `https://get.opentofu.org/tofu/api.json` |
 | `STACKWEAVER_PROVIDER_MIRROR_URL` | Provider network mirror, written into every run's CLI configuration as `provider_installation { network_mirror }`. OpenTofu accepts only an `https` URL here, so a mirror behind your own CA also needs `STACKWEAVER_JOB_CA_FILE`. | (none) |
 | `STACKWEAVER_GALAXY_SERVERS` | Galaxy or Automation Hub servers, as comma-separated `name=url` pairs in the order `ansible-galaxy` should try them, for example `hub=https://hub.example.com/api/galaxy/,galaxy=https://galaxy.ansible.com/`. A name is letters, digits and underscores. Applied to a job only when the job's `ansible.cfg` names no server list of its own. | (none) |
-| `STACKWEAVER_GALAXY_SERVER_<NAME>_TOKEN` | Token of the server `<NAME>` (the name in upper case) from `STACKWEAVER_GALAXY_SERVERS`. | (none) |
+| `STACKWEAVER_GALAXY_SERVER_<NAME>_TOKEN` | Token of the server `<NAME>` (the name in upper case) from `STACKWEAVER_GALAXY_SERVERS`. Only the job's `ansible-galaxy` install receives it; playbooks, OpenTofu runs and syncs do not. | (none) |
 | `STACKWEAVER_PIP_INDEX_URL` | pip index for jobs that install Python packages (`PIP_INDEX_URL`). | (none) |
 | `STACKWEAVER_PIP_TRUSTED_HOST` | pip trusted host (`PIP_TRUSTED_HOST`). | (none) |
 | `STACKWEAVER_JOB_HTTP_PROXY` / `STACKWEAVER_JOB_HTTPS_PROXY` / `STACKWEAVER_JOB_NO_PROXY` | Proxy settings every job runs with, set in both the upper- and lower-case spellings tools read. | (none) |
