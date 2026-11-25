@@ -68,10 +68,14 @@ describe('Run Images', () => {
     renderPage();
     await screen.findByTestId('run-image-row');
     await user.click(screen.getByRole('button', { name: /Add run image/ }));
-    await user.type(screen.getByLabelText('Name'), 'awx-ee');
+    // Pasted, not typed: the test is about the request it sends, and typing every character, one
+    // re-render at a time, was most of its time and pushed it past the timeout on a loaded host.
+    await user.click(screen.getByLabelText('Name'));
+    await user.paste('awx-ee');
     await user.click(screen.getByRole('combobox', { name: 'Engine' }));
     await user.click(await screen.findByRole('option', { name: 'Ansible' }));
-    await user.type(screen.getByLabelText('Image'), 'quay.io/ansible/awx-ee:24.6.1');
+    await user.click(screen.getByLabelText('Image'));
+    await user.paste('quay.io/ansible/awx-ee:24.6.1');
     await user.click(screen.getByRole('button', { name: 'Create' }));
     await waitFor(() => {
       expect(runImagesApi.create).toHaveBeenCalledWith('acme', {

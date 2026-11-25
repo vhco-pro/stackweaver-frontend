@@ -67,9 +67,14 @@ describe('AgentPoolPullSecrets', () => {
     renderRow();
     await user.click(await screen.findByRole('button', { name: /New pull Secret/ }));
     const dialog = await screen.findByRole('dialog');
-    await user.type(within(dialog).getByLabelText('Name'), 'internal');
-    await user.type(within(dialog).getByLabelText('Registry'), 'registry.example:5000');
-    await user.type(within(dialog).getByLabelText('Secret name'), 'registry-internal');
+    // Pasted, not typed: the test is about the request it sends, and typing every character, one
+    // re-render at a time, was most of its time and pushed it past the timeout on a loaded host.
+    await user.click(within(dialog).getByLabelText('Name'));
+    await user.paste('internal');
+    await user.click(within(dialog).getByLabelText('Registry'));
+    await user.paste('registry.example:5000');
+    await user.click(within(dialog).getByLabelText('Secret name'));
+    await user.paste('registry-internal');
     await user.click(within(dialog).getByRole('combobox', { name: 'Secret mode' }));
     await user.click(await screen.findByRole('option', { name: 'Reference an existing one' }));
     await user.click(within(dialog).getByRole('button', { name: 'Create' }));
