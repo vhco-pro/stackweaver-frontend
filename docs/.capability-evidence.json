@@ -165,7 +165,7 @@
       "evidence": [
         {
           "path": "backend/internal/api/v2/handlers/ansible/notification_attachment_flags_test.go",
-          "sha256": "c6a99cfa4c978d68019d87ca457b145f88de1720e021bbc554174c7c7acd214b"
+          "sha256": "cd08328b715d79bf2bcc0e8a0122b09180a4a1be5d69e52f270b8a95479d2f24"
         },
         {
           "path": "core/services/ansible/notifications.go",
@@ -281,7 +281,7 @@
       "evidence": [
         {
           "path": "backend/internal/executor/syncexec/constructed_integration_test.go",
-          "sha256": "5152964e8da99d8c66b03bfdba8b1b558d2a66c8ce8283978fe9d3856f1e0cf8"
+          "sha256": "b4382173fc96107e39244826d106346d37c9216adaf795b2381ce2ba09840906"
         },
         {
           "path": "backend/internal/executor/syncexec/run.go",
@@ -485,7 +485,7 @@
         },
         {
           "path": "core/repository/run_lifecycle_test.go",
-          "sha256": "031b56d0b3fcea8924f42e2ed9ba53e82b156c87aa22a2e6e4961634716afcb1"
+          "sha256": "521e8716ed6a8e4077f0ee359824d53e71b4e42bfa9919ae9bed63595a815d14"
         },
         {
           "path": "core/settings/timeout.go",
@@ -505,7 +505,7 @@
       "evidence": [
         {
           "path": "backend/internal/api/v2/handlers/ansible/constructed_derived_only_test.go",
-          "sha256": "c5b58ecabb41a21dadb3f310e089d1c7f3b7f34fb5d7f57abfa68fd6c2c93bfc"
+          "sha256": "c962125a63647acf316c790590d99eb6cac61ea1166eb81bc3baf7db912fe328"
         },
         {
           "path": "core/services/ansible/inventory.go",
