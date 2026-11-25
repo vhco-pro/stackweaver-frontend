@@ -286,5 +286,9 @@
   {
     "id": "converging-auto-migrate",
     "reason": "Schema migration internals: a second migration pass on a migrated database now issues no DDL. Thirteen jsonb columns store the empty-object default as jsonb_build_object() instead of '{}'::jsonb, which inserts the same value, and the hand-written runner and capture-index steps check the catalogue first. No column type, nullability, API, chart, image or public documentation changes."
+  },
+  {
+    "id": "hosted-pool-per-organization",
+    "reason": "Launch routing internals: resolving an organization's hosted pool creates only that organization's missing pool, and the one-hosted-pool index moves from the request path into schema migration. A launch no longer fails when another organization is deleted at the same moment, a race no customer has reported. No API, chart, image or public documentation changes."
   }
 ]
