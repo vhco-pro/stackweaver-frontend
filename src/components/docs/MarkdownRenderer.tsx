@@ -4,9 +4,10 @@ import { useDocsEnvironment } from './DocsEnvironment';
 import { Children, createContext, isValidElement, useCallback, useContext, useEffect, useState, useRef, useMemo, type ReactNode, type KeyboardEvent, type RefObject } from 'react';
 import { useMountEffect } from '@/hooks/useMountEffect';
 import { useNavigate, useLocation } from 'react-router-dom';
-import ReactMarkdown from 'react-markdown';
+import ReactMarkdown, { type Options as MarkdownOptions } from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeRaw from 'rehype-raw';
+import rehypeSanitize, { defaultSchema, type Options as SanitizeSchema } from 'rehype-sanitize';
 import { cn } from '@/lib/utils';
 import { glassSurface } from '@/lib/surfaces';
 import './disclosures.css';
@@ -609,7 +610,21 @@ export interface MarkdownRendererProps {
   onLinkClick?: (href: string) => void;
   // Which brand logos headings may show; a public page keeps the default.
   brandLogos?: BrandPolicy;
+  // Keeps raw HTML unsanitized. Only for the reviewed docs and blog bundled with the
+  // frontend; content a user, module author or repository supplies must leave it unset.
+  trustedHtml?: boolean;
 }
+
+// GitHub's README allow-list, plus the escaped code group the remark plugin emits.
+// The docs-only code explorer and remote snippet elements are dropped.
+const untrustedHtmlSchema: SanitizeSchema = {
+  ...defaultSchema,
+  tagNames: [...(defaultSchema.tagNames ?? []), 'codegroup'],
+  attributes: { ...defaultSchema.attributes, codegroup: ['data*'] },
+};
+type RehypePlugins = NonNullable<MarkdownOptions['rehypePlugins']>;
+const trustedRehypePlugins: RehypePlugins = [rehypeRaw];
+const untrustedRehypePlugins: RehypePlugins = [rehypeRaw, [rehypeSanitize, untrustedHtmlSchema]];
 
 // ─── Frontmatter parsing ─────────────────────────────────────────────────────
 
@@ -870,6 +885,7 @@ export function MarkdownRenderer({
   docsBase = '/docs',
   isDirectoryPage = false,
   onLinkClick,
+  trustedHtml = false,
 }: MarkdownRendererProps) {
   const navigate = useNavigate();
   const location = useLocation();
@@ -1244,13 +1260,13 @@ export function MarkdownRenderer({
           },
         } as unknown as Record<string, unknown>
       }
-      rehypePlugins={[rehypeRaw]}
+      rehypePlugins={trustedHtml ? trustedRehypePlugins : untrustedRehypePlugins}
       // @ts-expect-error - react-markdown component types are complex and our custom components work correctly
       components={markdownComponents}
     >
       {markdownBody}
     </ReactMarkdown>
-  ), [markdownBody, markdownComponents]);
+  ), [markdownBody, markdownComponents, trustedHtml]);
 
   // Frontmatter metadata table - only rendered for internal docs (plans, analyses, etc.)
   // User-facing docs use frontmatter for search/indexing only, not for display.

@@ -32,7 +32,7 @@ function CollectionHome({ collection, folderPath = '', children }: Required<Pick
       return response.text();
     },
   });
-  const context = children ?? (rootIntro.data ? <MarkdownRenderer content={rootIntro.data} hideTitle docPath="README" docsBase={collection.docsBase} isDirectoryPage brandLogos={collection.brandLogos} /> : null);
+  const context = children ?? (rootIntro.data ? <MarkdownRenderer content={rootIntro.data} trustedHtml hideTitle docPath="README" docsBase={collection.docsBase} isDirectoryPage brandLogos={collection.brandLogos} /> : null);
   const titleBrand = root ? undefined : brandById(overview?.icon, collection.brandLogos);
   const title = root ? collection.title : overview?.title && overview.title !== 'README' ? overview.title : docLabel({ type: 'directory', name: folderPath.split('/').at(-1) ?? '', path: folderPath });
   return <DocsLayout collection={collection} homepage={root}>

@@ -59,7 +59,7 @@ it('preserves unlabelled and empty fences and the JSON renderer', async () => {
 });
 
 it('preserves authored attributes on inline and unhighlighted preformatted code', async () => {
-  const view = render(<MemoryRouter><ThemeProvider><MarkdownRenderer content={'<code id="inline-anchor" title="Inline title">inline</code>\n\n<pre><code id="empty-anchor" title="Empty title"></code></pre>'} /></ThemeProvider></MemoryRouter>);
+  const view = render(<MemoryRouter><ThemeProvider><MarkdownRenderer content={'<code id="inline-anchor" title="Inline title">inline</code>\n\n<pre><code id="empty-anchor" title="Empty title"></code></pre>'} trustedHtml /></ThemeProvider></MemoryRouter>);
   await act(async () => { await vi.dynamicImportSettled(); });
   expect(view.getByTitle('Inline title')).toHaveAttribute('id', 'inline-anchor');
   expect(view.getByTitle('Empty title')).toHaveAttribute('id', 'empty-anchor');
