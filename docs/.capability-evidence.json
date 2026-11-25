@@ -9,7 +9,7 @@
       "evidence": [
         {
           "path": "backend/internal/executor/ansibleexec/run.go",
-          "sha256": "d3ffad40a2c051da6934f7cf3eb731137b3767531599d3eed9f7964704b714e8"
+          "sha256": "5fca5a481a335b4231d5b5957f2f0493ca1051e381f7efa298443326ef4a7bd6"
         },
         {
           "path": "core/services/ansible/job.go",
@@ -57,7 +57,7 @@
         },
         {
           "path": "backend/internal/executor/ansibleexec/run.go",
-          "sha256": "d3ffad40a2c051da6934f7cf3eb731137b3767531599d3eed9f7964704b714e8"
+          "sha256": "5fca5a481a335b4231d5b5957f2f0493ca1051e381f7efa298443326ef4a7bd6"
         }
       ]
     },
@@ -89,7 +89,7 @@
         },
         {
           "path": "backend/internal/executor/ansibleexec/run.go",
-          "sha256": "d3ffad40a2c051da6934f7cf3eb731137b3767531599d3eed9f7964704b714e8"
+          "sha256": "5fca5a481a335b4231d5b5957f2f0493ca1051e381f7efa298443326ef4a7bd6"
         },
         {
           "path": "core/repository/ansible_playbook.go",
@@ -141,7 +141,7 @@
         },
         {
           "path": "backend/internal/executor/ansibleexec/run.go",
-          "sha256": "d3ffad40a2c051da6934f7cf3eb731137b3767531599d3eed9f7964704b714e8"
+          "sha256": "5fca5a481a335b4231d5b5957f2f0493ca1051e381f7efa298443326ef4a7bd6"
         },
         {
           "path": "core/services/ansible/inventory_slice_test.go",
