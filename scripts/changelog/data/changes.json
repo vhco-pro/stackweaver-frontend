@@ -3342,5 +3342,30 @@
       "api"
     ],
     "availability": []
+  },
+  {
+    "id": "jobs-not-failed-by-slow-output",
+    "title": "Jobs that succeed are no longer reported failed when their output is slow to deliver",
+    "area": "Runners",
+    "kind": "Fixed",
+    "reviewed": true,
+    "audience": "Anyone running Ansible jobs, OpenTofu runs or VCS syncs, especially when the API is under load.",
+    "before": "A job, run or sync whose command finished successfully could end failed with \"exec: WaitDelay expired before I/O complete\" when delivering its last output to the API took more than 10 seconds, as it can when many jobs run at once.",
+    "after": "A command that finishes on its own always delivers all of its output and keeps its own result, however long the delivery takes. The 10-second limit applies only to a job that is being stopped, so a stopped job still ends even when a leftover process holds its output open.",
+    "action": "Update the launcher and job images to pick up the fix. Rerun any job that failed with \"exec: WaitDelay expired before I/O complete\".",
+    "details": [],
+    "guides": [
+      {
+        "title": "Monitor and operate launchers",
+        "path": "/docs/user-guides/launchers/operate"
+      }
+    ],
+    "sourceCommits": [],
+    "requiredComponents": [
+      "launcher",
+      "ansible-runner",
+      "opentofu-runner"
+    ],
+    "availability": []
   }
 ]
