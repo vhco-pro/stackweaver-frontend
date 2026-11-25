@@ -128,7 +128,7 @@ export default function DocsViewer(props: CollectionProps) {
   if (index?.flat[`${directoryPath ? `${directoryPath}/` : ''}README.md`]?.layout === 'overview' ||
       index?.flat[`${directoryPath}/readme.md`]?.layout === 'overview') {
     return <DocsIndex collection={collection} folderPath={directoryPath}>
-      <MarkdownRenderer content={content} hideTitle docPath={docPath} docsBase={docsBase} isDirectoryPage={isDirectoryPage} brandLogos={collection.brandLogos} />
+      <MarkdownRenderer content={content} trustedHtml hideTitle docPath={docPath} docsBase={docsBase} isDirectoryPage={isDirectoryPage} brandLogos={collection.brandLogos} />
       <DocAnchorScroll />
     </DocsIndex>;
   }
@@ -138,6 +138,7 @@ export default function DocsViewer(props: CollectionProps) {
       <MarkdownRenderer
         className="docs-article"
         content={content}
+        trustedHtml
         docPath={docPath}
         docsBase={docsBase}
         isDirectoryPage={isDirectoryPage}

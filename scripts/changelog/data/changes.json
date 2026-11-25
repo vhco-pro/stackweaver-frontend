@@ -3367,5 +3367,28 @@
       "opentofu-runner"
     ],
     "availability": []
+  },
+  {
+    "id": "readme-html-github-rules",
+    "title": "Module and workspace READMEs render HTML the way GitHub does",
+    "area": "Registry",
+    "kind": "Fixed",
+    "reviewed": true,
+    "audience": "Anyone who reads module READMEs in the private registry or a workspace README from its repository.",
+    "before": "Module and workspace READMEs rendered any HTML they contained, including elements and attributes that GitHub does not display.",
+    "after": "Module and workspace READMEs render the HTML GitHub allows in a README, such as collapsible sections, tables, images and links, and leave out the rest. The product documentation and blog are unchanged.",
+    "action": "No action is required.",
+    "details": [],
+    "guides": [
+      {
+        "title": "Configure organization settings",
+        "path": "/docs/user-guides/administration/organization-settings"
+      }
+    ],
+    "sourceCommits": [],
+    "requiredComponents": [
+      "frontend"
+    ],
+    "availability": []
   }
 ]
