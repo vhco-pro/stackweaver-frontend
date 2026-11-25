@@ -9,7 +9,7 @@
       "evidence": [
         {
           "path": "backend/internal/executor/ansibleexec/run.go",
-          "sha256": "e40dd4c72969b3f9b0e5287a008c86bbf8bc6ffbda008d1f7c8ede13ca886d18"
+          "sha256": "d3ffad40a2c051da6934f7cf3eb731137b3767531599d3eed9f7964704b714e8"
         },
         {
           "path": "core/services/ansible/job.go",
@@ -57,7 +57,7 @@
         },
         {
           "path": "backend/internal/executor/ansibleexec/run.go",
-          "sha256": "e40dd4c72969b3f9b0e5287a008c86bbf8bc6ffbda008d1f7c8ede13ca886d18"
+          "sha256": "d3ffad40a2c051da6934f7cf3eb731137b3767531599d3eed9f7964704b714e8"
         }
       ]
     },
@@ -89,7 +89,7 @@
         },
         {
           "path": "backend/internal/executor/ansibleexec/run.go",
-          "sha256": "e40dd4c72969b3f9b0e5287a008c86bbf8bc6ffbda008d1f7c8ede13ca886d18"
+          "sha256": "d3ffad40a2c051da6934f7cf3eb731137b3767531599d3eed9f7964704b714e8"
         },
         {
           "path": "core/repository/ansible_playbook.go",
@@ -141,7 +141,7 @@
         },
         {
           "path": "backend/internal/executor/ansibleexec/run.go",
-          "sha256": "e40dd4c72969b3f9b0e5287a008c86bbf8bc6ffbda008d1f7c8ede13ca886d18"
+          "sha256": "d3ffad40a2c051da6934f7cf3eb731137b3767531599d3eed9f7964704b714e8"
         },
         {
           "path": "core/services/ansible/inventory_slice_test.go",
@@ -421,7 +421,7 @@
         },
         {
           "path": "backend/internal/executor/tofuexec/run.go",
-          "sha256": "e1a365f758374b39892c825ace0a15bb3cc6f1631b5f3340458b72df8f6e6704"
+          "sha256": "3a831b8a0a85a83a7dfb7ebb6fa3c32d63386e14c8ff5a5ca67f2a8ba8c50c5f"
         },
         {
           "path": "core/plugins/opentofu/plugin.go",
