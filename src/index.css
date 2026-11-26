@@ -5,6 +5,23 @@
 @import "./components/docs/code-blocks.css";
 @import "./components/docs/reading-layout.css";
 
+/* Self-hosted Latin variable fonts. The system stack fills missing glyphs. */
+@font-face {
+  font-family: "Plus Jakarta Sans";
+  src: url("./assets/fonts/plus-jakarta-sans-latin.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 200 800;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: Manrope;
+  src: url("./assets/fonts/manrope-latin.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 200 800;
+  font-display: swap;
+}
+
 @theme inline {
   --radius-lg: var(--radius);
   --radius-md: calc(var(--radius) - 2px);
@@ -49,6 +66,15 @@
 @variant dark (&:is(.dark *));
 
 @layer base {
+  html.web-fonts {
+    --font-sans: "Plus Jakarta Sans", system-ui, sans-serif;
+    --default-font-family: var(--font-sans);
+  }
+
+  :where(html.web-fonts) :where(h1, h2, h3, h4, h5, h6, [role="heading"]) {
+    font-family: Manrope, var(--font-sans);
+  }
+
   :root {
     --background: hsl(0 0% 100%);
     --foreground: hsl(222.2 84% 4.9%);

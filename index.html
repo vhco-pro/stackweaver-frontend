@@ -50,6 +50,12 @@
       // Apply theme class immediately to prevent white flash
       // Runs synchronously before body renders - html element always exists
       (function() {
+        // iPadOS can report MacIntel in desktop mode.
+        const platform = navigator.userAgentData?.platform || navigator.platform;
+        const isMac = /^(macOS|macIntel|macPPC|mac68K)$/i.test(platform) &&
+          navigator.maxTouchPoints < 2;
+        if (!isMac) document.documentElement.classList.add('web-fonts');
+
         const stored = localStorage.getItem('theme');
         let theme = 'dark'; // Default to dark
         

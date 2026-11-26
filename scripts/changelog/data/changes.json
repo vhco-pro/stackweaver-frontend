@@ -1,5 +1,30 @@
 [
   {
+    "id": "platform-typography",
+    "title": "Stackweaver uses consistent fonts outside macOS",
+    "area": "Frontend",
+    "kind": "Changed",
+    "reviewed": true,
+    "audience": "Everyone who uses Stackweaver or reads its documentation in a browser.",
+    "before": "Stackweaver used the browser's system font stack on every platform.",
+    "after": "Outside macOS, headings use Manrope and body text uses Plus Jakarta Sans. macOS continues to use its system font stack.",
+    "action": "No configuration change is required.",
+    "details": [
+      "Code and other monospace text keep their existing font stack."
+    ],
+    "guides": [
+      {
+        "title": "Get started with Stackweaver",
+        "path": "/docs/get-started"
+      }
+    ],
+    "sourceCommits": [],
+    "requiredComponents": [
+      "frontend"
+    ],
+    "availability": []
+  },
+  {
     "id": "postgres-17-required",
     "title": "The API requires PostgreSQL 17 or later",
     "area": "Platform",
