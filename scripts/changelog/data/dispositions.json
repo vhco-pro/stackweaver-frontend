@@ -290,5 +290,33 @@
   {
     "id": "hosted-pool-per-organization",
     "reason": "Launch routing internals: resolving an organization's hosted pool creates only that organization's missing pool, and the one-hosted-pool index moves from the request path into schema migration. A launch no longer fails when another organization is deleted at the same moment, a race no customer has reported. No API, chart, image or public documentation changes."
+  },
+  {
+    "commit": "1b2b6c2c3799510bfb6f4e67816f0179c327cb19",
+    "reason": "No customer-visible change of its own. It merges main into the central Azure workload identity feature branch; only generated evidence, screenshots and changelog data conflicted, and the feature's changes stay covered by the central-azure-workload-identity record."
+  },
+  {
+    "commit": "9bb564b4a8c9d4417e98c06d55d3bbd7ed6857cd",
+    "reason": "No customer-visible change. It reverts a docs-only edit to the stored review records of an internal feature document."
+  },
+  {
+    "commit": "0820ce2c762e78e2088cbcbd9c947688efc4ee4e",
+    "reason": "No customer-visible change of its own. It merges main into the central Azure workload identity feature branch; generated evidence, screenshots and changelog data are regenerated, the launcher's strict-isolation refusal adopts main's failure path, and the feature's changes stay covered by the central-azure-workload-identity record."
+  },
+  {
+    "commit": "b33dcce498febf98420ee98b12f31065e4eb1401",
+    "reason": "No customer-visible change of its own. It merges main into the central Azure workload identity feature branch; the identity binding repository takes main's column-scoped update, generated evidence and changelog data are regenerated, and the feature's changes stay covered by the central-azure-workload-identity record."
+  },
+  {
+    "commit": "f8db3e0f286644df4d9e880f5f7753ac5b3f59ed",
+    "reason": "No customer-visible change of its own. It merges main into the central Azure workload identity feature branch, bringing only the loop settings that run reviews on the host reviewer; the feature's changes stay covered by the central-azure-workload-identity record."
+  },
+  {
+    "commit": "3d918c08cb5f928e369c44c4f50cb53fceee41a4",
+    "reason": "No customer-visible change of its own. It takes the central Azure workload identity's unreleased frontend, chart and E2E work out of the feature's first PR so it can ship after the API images publish; that work never reached main, and the feature stays covered by the central-azure-workload-identity record."
+  },
+  {
+    "commit": "a65126f4111764820ad921779fe0b24fcff9714a",
+    "reason": "No customer-visible change of its own. It merges main into the central Azure workload identity feature branch, bringing the executor fix for slow job output, which its own jobs-not-failed-by-slow-output record covers; the feature's changes stay covered by the central-azure-workload-identity record."
   }
 ]

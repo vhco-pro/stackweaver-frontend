@@ -4,7 +4,7 @@
     {
       "id": "ad-hoc-commands",
       "guide": "user-guides/ansible/dynamic-inventories/README.md",
-      "guideHash": "e03faafed2c18279390b02e88ccb9ced1b09dd3d8db7fb5902123dfc41ba7ac0",
+      "guideHash": "657fa6b7ab03a87129d3eb303614c8d555a247eda736657525e1c6f81bf3eb22",
       "metadataHash": "f1c27ac8c147811f75b6ed3334a6b674b045e37f2174d5ee25595a80e4d1bf6d",
       "evidence": [
         {
@@ -24,12 +24,12 @@
     {
       "id": "ansible-agent-pools",
       "guide": "features/ansible/execution-flows.md",
-      "guideHash": "8eef22ea863384210e68b19580322f2ef7daecc028fe731d4cfa35f436b9bdd9",
-      "metadataHash": "b3c5e26e14ce0e577b69d4aaf1e2ea3c080b42723d5171a413ed022e23815127",
+      "guideHash": "358f64146966f54eb3de47a43f9a82001dbbfd47739b9fc706a5cfcbab83a9fd",
+      "metadataHash": "568b14ee6c8b2dacbf6a1186fa465ca36e9ae6f2f4ca60768735e11eccf8178c",
       "evidence": [
         {
           "path": "backend/internal/api/v2/handlers/runner_agent.go",
-          "sha256": "79650c5fe375a78014e496cb399c2fa0a8c3d5a0810a2a2fdd4d69e49a059e43"
+          "sha256": "801ae64d97263679e6c0a2dfc04a704338e7e36f7d816c0ccb9b5dc5442610fe"
         },
         {
           "path": "backend/internal/launcher/launcher.go",
@@ -44,7 +44,7 @@
     {
       "id": "ansible-azure-identity",
       "guide": "user-guides/ansible/azure-key-vault-from-playbooks.md",
-      "guideHash": "ba8ff6ab32a3e21004b8374d74cce2ed7925b2b2a24bc445c3cf52149c04be03",
+      "guideHash": "dbd66c49e536950c736fe68a15285ca017ba890c54206220520b47ab0d31f221",
       "metadataHash": "53a9695893099c8801bb3357ffe0d8484dc34b7d2150e7a0eb210591d3aedf49",
       "evidence": [
         {
@@ -53,7 +53,7 @@
         },
         {
           "path": "backend/internal/api/v2/handlers/runner_agent.go",
-          "sha256": "79650c5fe375a78014e496cb399c2fa0a8c3d5a0810a2a2fdd4d69e49a059e43"
+          "sha256": "801ae64d97263679e6c0a2dfc04a704338e7e36f7d816c0ccb9b5dc5442610fe"
         },
         {
           "path": "backend/internal/executor/ansibleexec/run.go",
@@ -64,7 +64,7 @@
     {
       "id": "ansible-callbacks",
       "guide": "features/ansible/execution-flows.md",
-      "guideHash": "8eef22ea863384210e68b19580322f2ef7daecc028fe731d4cfa35f436b9bdd9",
+      "guideHash": "358f64146966f54eb3de47a43f9a82001dbbfd47739b9fc706a5cfcbab83a9fd",
       "metadataHash": "26721c8f9ba767aa99002890f3af09f351240b71f34f101334cd345363c3b3f1",
       "evidence": [
         {
@@ -132,7 +132,7 @@
     {
       "id": "ansible-job-execution",
       "guide": "features/ansible/execution-flows.md",
-      "guideHash": "8eef22ea863384210e68b19580322f2ef7daecc028fe731d4cfa35f436b9bdd9",
+      "guideHash": "358f64146966f54eb3de47a43f9a82001dbbfd47739b9fc706a5cfcbab83a9fd",
       "metadataHash": "2ca8fd5b262a7ddc078664836c2207d868c3523cb18c60b7bf4a39ff5e907b4b",
       "evidence": [
         {
@@ -193,7 +193,7 @@
         },
         {
           "path": "backend/internal/api/v2/handlers/runner_agent.go",
-          "sha256": "79650c5fe375a78014e496cb399c2fa0a8c3d5a0810a2a2fdd4d69e49a059e43"
+          "sha256": "801ae64d97263679e6c0a2dfc04a704338e7e36f7d816c0ccb9b5dc5442610fe"
         },
         {
           "path": "core/services/ansible/playbook_sync.go",
@@ -204,7 +204,7 @@
     {
       "id": "ansible-schedules",
       "guide": "features/ansible/execution-flows.md",
-      "guideHash": "8eef22ea863384210e68b19580322f2ef7daecc028fe731d4cfa35f436b9bdd9",
+      "guideHash": "358f64146966f54eb3de47a43f9a82001dbbfd47739b9fc706a5cfcbab83a9fd",
       "metadataHash": "676e5b25fe099d05175712ff6caaea7c8ca86bd52914ec39315aadb6b004d61a",
       "evidence": [
         {
@@ -220,12 +220,12 @@
     {
       "id": "ansible-webhook-launches",
       "guide": "features/ansible/execution-flows.md",
-      "guideHash": "8eef22ea863384210e68b19580322f2ef7daecc028fe731d4cfa35f436b9bdd9",
+      "guideHash": "358f64146966f54eb3de47a43f9a82001dbbfd47739b9fc706a5cfcbab83a9fd",
       "metadataHash": "16ec619025fa07fb7850dea60ae670377f50857406cb28e349de1712bc2bda4c",
       "evidence": [
         {
           "path": "backend/internal/api/v2/handlers/vcs_app_installation.go",
-          "sha256": "66f00f9e739222a295cd738fd13daf03fa5ee0b8925fe34a90a1eebae4ae5fa4"
+          "sha256": "8bde97dddbbe7a971bf2986fd6236556916f02462960296a5c234be9f60844ef"
         },
         {
           "path": "backend/internal/api/v2/handlers/vcs_push_ansible_sync_test.go",
@@ -236,7 +236,7 @@
     {
       "id": "ansible-workflows",
       "guide": "features/ansible/execution-flows.md",
-      "guideHash": "8eef22ea863384210e68b19580322f2ef7daecc028fe731d4cfa35f436b9bdd9",
+      "guideHash": "358f64146966f54eb3de47a43f9a82001dbbfd47739b9fc706a5cfcbab83a9fd",
       "metadataHash": "c033f353314396c2c02d39dd8ab3cd395127b2d184c6dac62fc6ae4283e6b0a0",
       "evidence": [
         {
@@ -256,8 +256,8 @@
     {
       "id": "cloud-inventories",
       "guide": "user-guides/ansible/dynamic-inventories/README.md",
-      "guideHash": "e03faafed2c18279390b02e88ccb9ced1b09dd3d8db7fb5902123dfc41ba7ac0",
-      "metadataHash": "707616ee92f755f9ee257b8ed6adf3221e2ac13ec139d281b628713caadeb96e",
+      "guideHash": "657fa6b7ab03a87129d3eb303614c8d555a247eda736657525e1c6f81bf3eb22",
+      "metadataHash": "35857ae0a102b23bf81e2181c428d4c0544c52802552b546e193a191906da1fd",
       "evidence": [
         {
           "path": "backend/internal/executor/syncexec/run.go",
@@ -341,7 +341,7 @@
       "evidence": [
         {
           "path": "backend/internal/api/v2/handlers/terraform/runs.go",
-          "sha256": "df01ff48062dfd436e2f0920b0b2aa099df66f5574d4d527f52d2ce5a852ab80"
+          "sha256": "626756bc1a062f639c4c04c247468d60a72bc457391f5f0119140f7e36dd9610"
         },
         {
           "path": "core/plugins/opentofu/plugin.go",
@@ -361,11 +361,11 @@
       "evidence": [
         {
           "path": "backend/internal/api/middleware/org_wall_registry.go",
-          "sha256": "9eb518b900dc8cb815fcb4416d9d96b3859a5ddc55f632a1bba644b057f54b43"
+          "sha256": "e2ef23ec7a7feef0613b996f38d41cef04d3c5018eadd8929510d43a96adb57d"
         },
         {
           "path": "backend/internal/api/v2/handlers/organizations.go",
-          "sha256": "e7a7db2e57af25f24c8fd1eb285c97b44ee308fdeed012b06d31a0ea010f986f"
+          "sha256": "8d0243843493e39f7e19952424e8f45eef914bb1bfb8e92fd10c1efee018b221"
         },
         {
           "path": "frontend/src/pages/Settings/Organization.tsx",
@@ -381,7 +381,7 @@
       "evidence": [
         {
           "path": "backend/internal/api/v2/routes/routes.go",
-          "sha256": "80a2e0513230de5010f414d9236cf43a3f5fe1239d1ba2abc5e76b2b63319a90"
+          "sha256": "3ad495c0a95b064a8670f019ec9505786fed47d0548dd344f6eccc8021682d10"
         },
         {
           "path": "frontend/src/pages/Docs/ApiReferenceExplorer.tsx",
@@ -401,7 +401,7 @@
         },
         {
           "path": "backend/internal/api/v2/handlers/terraform/runs.go",
-          "sha256": "df01ff48062dfd436e2f0920b0b2aa099df66f5574d4d527f52d2ce5a852ab80"
+          "sha256": "626756bc1a062f639c4c04c247468d60a72bc457391f5f0119140f7e36dd9610"
         },
         {
           "path": "backend/internal/launcher/supervise.go",
@@ -417,7 +417,7 @@
       "evidence": [
         {
           "path": "backend/internal/api/v2/handlers/terraform/runs.go",
-          "sha256": "df01ff48062dfd436e2f0920b0b2aa099df66f5574d4d527f52d2ce5a852ab80"
+          "sha256": "626756bc1a062f639c4c04c247468d60a72bc457391f5f0119140f7e36dd9610"
         },
         {
           "path": "backend/internal/executor/tofuexec/run.go",
@@ -465,7 +465,7 @@
         },
         {
           "path": "backend/internal/api/v2/handlers/terraform/workspaces.go",
-          "sha256": "9230d621cdddb5d085abb6f014d0d68e500b699c7a52cca1d845637398c47553"
+          "sha256": "d883e4fe610f4bdd1382baf542c60267b71dd953608d0e49a5bd05cbf10941d6"
         },
         {
           "path": "backend/internal/launcher/supervise.go",
@@ -481,7 +481,7 @@
         },
         {
           "path": "core/repository/run.go",
-          "sha256": "c9544ca01a21ce78353af765632745bf6822e4299261492d1159109431f13f4f"
+          "sha256": "dbfda30ddbfb63fdd123c2d3cb2878fba691984bd05a4a446b341f6353ca3de5"
         },
         {
           "path": "core/repository/run_lifecycle_test.go",
@@ -509,19 +509,19 @@
         },
         {
           "path": "core/services/ansible/inventory.go",
-          "sha256": "3c8b7c5fe21891a725a85661fcdac9397608aaad38089de15051c35bc3d797a1"
+          "sha256": "edb2cab65f9b217b1394191195e83d63711e3ffae0f2ff5bc0ae4b9266e7f2a1"
         }
       ]
     },
     {
       "id": "vcs-connections",
       "guide": "user-guides/vcs/README.md",
-      "guideHash": "539ceed8ca1362fbe0f78a64ca3bb86eaf5f6d57c9a8cc009651ceb439db0231",
+      "guideHash": "d69b29701d491779afb850053d62018f6a7cebc15fcf4cb75daf056995975683",
       "metadataHash": "a4026e312400f47bd34ca3857c09dd2343b98beaab9f1eb72aea2d05418883d2",
       "evidence": [
         {
           "path": "backend/internal/api/v2/handlers/vcs_app_installation.go",
-          "sha256": "66f00f9e739222a295cd738fd13daf03fa5ee0b8925fe34a90a1eebae4ae5fa4"
+          "sha256": "8bde97dddbbe7a971bf2986fd6236556916f02462960296a5c234be9f60844ef"
         },
         {
           "path": "backend/internal/api/v2/handlers/vcs_connections.go",
@@ -536,7 +536,7 @@
     {
       "id": "workload-identity",
       "guide": "user-guides/workload-identity/README.md",
-      "guideHash": "297e64c3b68824bddb19bf90ec3afa93f317ffb2b5e74e50101aa6f5d57047c2",
+      "guideHash": "6a0a7d37cfdad863545d58b9ae0f0fcaf70fd8ce26a2d204a3b61239edc3d091",
       "metadataHash": "f883e77c516cacae6bb134352fa12a7d2345aa1f53ee189974bcdff3f6061c2c",
       "evidence": [
         {
@@ -617,7 +617,7 @@
         },
         {
           "path": "backend/internal/api/v2/handlers/terraform/workspaces.go",
-          "sha256": "9230d621cdddb5d085abb6f014d0d68e500b699c7a52cca1d845637398c47553"
+          "sha256": "d883e4fe610f4bdd1382baf542c60267b71dd953608d0e49a5bd05cbf10941d6"
         },
         {
           "path": "frontend/src/pages/WorkspaceDetail.tsx",

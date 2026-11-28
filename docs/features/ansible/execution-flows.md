@@ -82,7 +82,7 @@ capabilities: [
     "summary": "Run jobs and ad hoc commands on agents that can reach your private hosts.",
     "area": "ansible",
     "availability": "available",
-    "limitations": "Choose the pool on the job template or ad hoc launch, or set a project or organization default. Snapshot syncs, VCS inventory syncs and constructed rebuilds execute on the hosted capacity.",
+    "limitations": "Choose the pool on the job template or ad hoc launch, or set a project or organization default. Snapshot syncs and constructed rebuilds execute on the hosted capacity. A VCS inventory sync executes on the hosted capacity unless the inventory resolves to an agent pool's identity binding, which places it on that pool; when that pool does not let the inventory's project use it, the sync is refused.",
     "evidence": [
       "core/services/ansible/job.go",
       "backend/internal/launcher/launcher.go",
@@ -287,7 +287,7 @@ Every job takes the same path, whether its pool is the organization's hosted cap
 | | Hosted capacity | Agent pool |
 |---|---|---|
 | Who runs the launchers | The installation (the `launcher` service on Docker Compose, the launcher Deployment on Kubernetes) | You, on your own hosts or cluster |
-| Which jobs it gets | Jobs whose template, project and organization name no agent pool, every snapshot capture, VCS inventory file sync and constructed rebuild, and dynamic source syncs without an agent pool default | Jobs whose template targets the pool, or whose project or organization defaults to it |
+| Which jobs it gets | Jobs whose template, project and organization name no agent pool, every snapshot capture and constructed rebuild, VCS inventory file syncs whose inventory resolves to no agent pool binding, and dynamic source syncs without an agent pool default | Jobs whose template targets the pool, or whose project or organization defaults to it, and VCS inventory file syncs whose inventory resolves to one of its identity bindings, when the pool lets the inventory's project use it |
 | Driver | Container or Kubernetes. An operator can choose in-process instead, which a strict hosted deployment refuses. | In-process, container or Kubernetes |
 | Network position | Inside the Stackweaver deployment | Anywhere with outbound HTTPS to the API |
 
@@ -362,7 +362,7 @@ flowchart TD
 <summary><strong>Reconciliation semantics (Legend)</strong></summary>
 
 1. **Source ownership** - dynamic sources stamp the hosts and groups they discover. With *overwrite* on, a source prunes only its own rows when the provider stops reporting them; manual entries and other sources' rows are never touched.
-2. **Where syncs run** - a VCS inventory file sync and a constructed rebuild always run on the hosted capacity in the Ansible job image, with the only clone credential held in that sync's memory. A dynamic source sync runs on the project's or organization's default agent pool when one is set, otherwise on the hosted capacity, in the execution environment and with the identity binding its source resolves, bounded by its sync timeout.
+2. **Where syncs run** - a constructed rebuild runs on the hosted capacity in the Ansible job image. A VCS inventory file sync runs in the same image, with the only clone credential held in that sync's memory, on the agent pool of the identity binding its inventory, project or organization selects, or on the hosted capacity when none is selected; a sync whose binding's pool does not let the inventory's project use it is refused. On an agent pool, a GitHub App connection's clone token reaches only the inventory's repository, read-only, and a stored credential is used only when the organization turns on **Allow stored VCS credentials on agent pools**. A dynamic source sync runs on the project's or organization's default agent pool when one is set, otherwise on the hosted capacity, in the execution environment and with the identity binding its source resolves, bounded by its sync timeout.
 3. **A failed run reconciles nothing** - for a dynamic source sync and for a constructed inventory build, the sync tells `ansible-inventory` to exit non-zero when it cannot parse any one of the sources it was given (rejected credentials, an unreachable endpoint, a configuration the plugin refuses, an input it cannot read). Such a run is recorded as failed with the plugin's error in its output, and the rows stay as the last successful run left them. A run that succeeds with no hosts is a different outcome: with *overwrite* on it prunes everything the source owned.
 4. **Variable merging** - by default synced host variables merge into existing ones (your manual keys survive); *overwrite variables* switches to wholesale replacement.
 5. **Constructed inventories** - are derived-only: their hosts and groups come from the build alone, and every successful rebuild replaces the materialized set from the inputs and rules. The API refuses to add a host, a group or an inventory source to a constructed inventory, to add a host to one of its groups, or to move one of its groups under another, so every row a rebuild removes is one it derived. A host or group can still be deleted, and the next rebuild derives it again if the inputs and rules still produce it.

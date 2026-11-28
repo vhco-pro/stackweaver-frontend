@@ -3467,6 +3467,40 @@
     "availability": []
   },
   {
+    "id": "central-azure-workload-identity",
+    "title": "VCS inventory file syncs and hosted capacity can run with an identity binding",
+    "area": "Ansible",
+    "kind": "Added",
+    "reviewed": true,
+    "audience": "Operators who give Ansible jobs and syncs cloud access through a Kubernetes workload identity, such as Azure Workload Identity on AKS.",
+    "before": "A VCS inventory file sync always ran on hosted capacity with the platform identity, whatever identity binding its project or organization selected, and hosted capacity offered no identity binding at all.",
+    "after": "A VCS inventory has its own identity binding setting, inherited from its project and organization. A file sync whose binding belongs to an agent pool runs on that pool with that identity, when the pool lets the inventory's project use it. A file sync clones with a read-only token for the inventory's repository when its connection is a GitHub App; a GitHub token, GitLab, Bitbucket or Azure DevOps connection holds a stored credential, which reaches an agent pool only when the organization turns on Allow stored VCS credentials on agent pools. An operator can declare one hosted binding through the Helm chart (launcher.hostedIdentity), off by default, which every organization's hosted capacity offers.",
+    "action": "An organization or project that already selects an agent pool's identity binding as its default now runs its VCS file syncs on that pool, which must reach the VCS host. Where those inventories use a stored credential, their file syncs on the pool are refused until an organization owner turns on Allow stored VCS credentials on agent pools, or the inventory moves to a GitHub App connection or hosted capacity.",
+    "details": [
+      "Renaming or disabling the hosted binding refuses every new run, job and sync that still selects it until the selection is cleared.",
+      "The API refuses a job that resolves an identity binding when the claiming launcher runs strict hosted isolation or uses a driver other than Kubernetes.",
+      "Enabling the hosted binding lets every organization on the installation run jobs with the managed identity's cloud access; use an agent pool binding to keep organizations apart.",
+      "Core module: IdentityBindingRepository.Offered takes the organization first, InventoryService.CreateInventory and UpdateInventory take an IdentityChange, and AnsibleInventory, JobPlacement and Organization gain fields that break unkeyed struct literals. RequestInventorySync returns ErrPoolNotAllowed or ErrStoredCredentialNotAllowed for placements it used to accept, keeps one designated file sync per inventory and cancels the others, and placement reports no longer write the identity binding."
+    ],
+    "guides": [
+      {
+        "title": "Identity bindings and pull secrets",
+        "path": "/docs/user-guides/launchers/identity-bindings-and-pull-secrets"
+      }
+    ],
+    "sourceCommits": [],
+    "draftCommits": [
+      "265418fcf288c5c04387a3f780bfd125b4a44208"
+    ],
+    "requiredComponents": [
+      "api",
+      "frontend",
+      "launcher",
+      "helm"
+      ],
+      "availability": []
+    },
+    {
     "id": "configuration-version-create-run-permissions",
     "title": "Creating a configuration version takes the same permissions as creating a run",
     "area": "Terraform",
