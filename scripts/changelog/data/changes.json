@@ -3465,5 +3465,28 @@
       "opentofu-runner"
     ],
     "availability": []
+  },
+  {
+    "id": "configuration-version-create-run-permissions",
+    "title": "Creating a configuration version takes the same permissions as creating a run",
+    "area": "Terraform",
+    "kind": "Fixed",
+    "reviewed": true,
+    "audience": "Anyone who creates configuration versions through the API, the Terraform or OpenTofu remote backend, or the tfe provider.",
+    "before": "Creating a configuration version in a workspace checked only that the workspace belonged to the caller's organization.",
+    "after": "Creating a configuration version in a workspace requires permission to create runs there, the same runs and workspace write permissions a run create checks. A caller without them gets 403 and no configuration version is created.",
+    "action": "Update the API to pick up the change. A caller that uploads configuration needs a team or token with permission to create runs in the workspace.",
+    "details": [],
+    "guides": [
+      {
+        "title": "Understanding runs",
+        "path": "/docs/user-guides/opentofu/understanding-opentofu-runs"
+      }
+    ],
+    "sourceCommits": [],
+    "requiredComponents": [
+      "api"
+    ],
+    "availability": []
   }
 ]
