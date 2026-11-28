@@ -80,12 +80,12 @@ An execution environment applies to the jobs of the templates that select it and
 
 ## Where a setting comes from
 
-A run image, an identity binding and a run timeout can each be set at more than one level, and every one of them is resolved by the same rule: the most specific level that sets a value wins. The order is the launching object (the workspace for an OpenTofu run, the job template for an Ansible job, the inventory source for its dynamic syncs), then its project, then its organization, then the platform default. A level left empty defers to the next one.
+A run image, an identity binding and a run timeout can each be set at more than one level, and every one of them is resolved by the same rule: the most specific level that sets a value wins. The order is the launching object (the workspace for an OpenTofu run, the job template for an Ansible job, the inventory source for its dynamic syncs, the VCS inventory for its file syncs), then its project, then its organization, then the platform default. A VCS inventory sets only an identity binding; an organization-wide inventory, which has no project, goes from its own selection straight to its organization. A level left empty defers to the next one.
 
 | Setting | Launching object | Project | Organization | Platform default |
 |---------|------------------|---------|--------------|------------------|
 | Run image | Workspace, job template or inventory source | **Edit project** dialog, one per engine | **Run Defaults** in Settings > Organization, one per engine | The engine's job image |
-| Identity binding | Workspace, job template or inventory source | **Edit project** dialog | **Run Defaults** | The platform identity |
+| Identity binding | Workspace, job template, inventory source or VCS inventory (`identity-binding-id` over the API) | **Edit project** dialog | **Run Defaults** | The platform identity |
 | Run timeout | Workspace (`run-timeout` over the API), job template (**Timeout (seconds)**) or inventory source (**Sync timeout (seconds)**) | **Edit project** dialog | **Run Defaults** | `STACKWEAVER_RUN_TIMEOUT_DEFAULT` (two hours unless set); for an inventory source, `STACKWEAVER_SYNC_TIMEOUT` (one hour unless set) |
 | Cache size limit | | | **Run Defaults** | `CACHE_SIZE_LIMIT` (50 GiB unless set) |
 
@@ -97,7 +97,7 @@ A sync of the platform's own kind (a snapshot capture, a VCS inventory file sync
 
 ### Read the effective settings
 
-The resolved values, each with the level it came from, are available over the API at `GET /api/v2/workspaces/:id/effective-settings`, `GET /api/v2/ansible/job-templates/:id/effective-settings` and `GET /api/v2/ansible/inventory-sources/:id/effective-settings`. Each attribute of the `effective-settings` resource has a `value` and a `level` (`workspace`, `job-template`, `inventory-source`, `project`, `organization` or `deployment`). A workspace's settings include `execution-mode`, `agent-pool-id`, `tofu-version`, `run-timeout`, `run-image-id` and `identity-binding-id`. A `run-image-id` of `null` at the `deployment` level is the engine's job image, and an `identity-binding-id` of `null` is the platform identity.
+The resolved values, each with the level it came from, are available over the API at `GET /api/v2/workspaces/:id/effective-settings`, `GET /api/v2/ansible/job-templates/:id/effective-settings`, `GET /api/v2/ansible/inventory-sources/:id/effective-settings` and `GET /api/v2/ansible/inventories/:id/effective-settings`. Each attribute of the `effective-settings` resource has a `value` and a `level` (`workspace`, `job-template`, `inventory-source`, `inventory`, `project`, `organization` or `deployment`). A VCS inventory's settings hold only `identity-binding-id`. A workspace's settings include `execution-mode`, `agent-pool-id`, `tofu-version`, `run-timeout`, `run-image-id` and `identity-binding-id`. A `run-image-id` of `null` at the `deployment` level is the engine's job image, and an `identity-binding-id` of `null` is the platform identity.
 
 The image a job actually ran in is recorded on the job. The **Placement** panel of a run or job page shows the image and its digest, the level it came from, the identity binding and the node.
 

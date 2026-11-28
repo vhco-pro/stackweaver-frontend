@@ -18,7 +18,7 @@ capabilities: [
     "summary": "Refresh hosts from cloud inventory plugins or a Git repository, with sync history and per-source merge controls.",
     "area": "ansible",
     "availability": "available",
-    "limitations": "A VCS-backed inventory always syncs on the hosted capacity. A cloud source syncs on its project's or organization's default agent pool when one is set, and on the hosted capacity otherwise. Azure sources can use federated identity.",
+    "limitations": "A VCS-backed inventory syncs on the hosted capacity unless it resolves to an agent pool's identity binding, which places the sync on that pool when the pool lets the inventory's project use it; a stored credential reaches the pool only when the organization allows it. A cloud source syncs on its project's or organization's default agent pool when one is set, and on the hosted capacity otherwise. Azure sources can use federated identity.",
     "evidence": [
       "core/services/ansible/inventory_source.go",
       "core/services/ansible/inventory_source_sync_test.go",
@@ -56,9 +56,11 @@ history requires organization Ansible read permission. A visible button alone do
 establish that your account can perform the operation.
 
 The sync must reach the repository and cloud APIs and have the required Ansible
-inventory plugin and authentication available where it runs. A VCS inventory always
-syncs on the organization's **hosted capacity**, even when the eventual job uses a
-self-hosted agent pool. A cloud source syncs on its project's or organization's default
+inventory plugin and authentication available where it runs. A VCS inventory syncs on the
+organization's **hosted capacity** unless its identity binding belongs to an agent pool,
+which then runs the sync if it lets the inventory's project use it; see
+[Where a VCS inventory's file sync runs](../../launchers/identity-bindings-and-pull-secrets.md#where-a-vcs-inventorys-file-sync-runs).
+A cloud source syncs on its project's or organization's default
 agent pool when one is set, and on the hosted capacity otherwise. Choose a credential or
 identity with read access to the resources you intend to discover.
 

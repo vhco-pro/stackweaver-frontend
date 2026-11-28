@@ -114,7 +114,7 @@ The in-process driver does not isolate the network: a job of an in-process launc
 
 Two further options exist for launchers you run yourself:
 
-- An agent pool whose launchers use the Kubernetes driver can offer **identity bindings**. A binding runs the pool's job pods as a ServiceAccount that a cloud's pod identity mechanism trusts (`aws-irsa`, `aws-pod-identity`, `gcp-workload-identity` or `azure-workload-identity`). The hosted capacity offers no bindings. [Set up launchers](../launchers/identity-bindings-and-pull-secrets.md#identity-bindings) describes how bindings are created and selected.
+- An agent pool whose launchers use the Kubernetes driver can offer **identity bindings**. A binding runs the pool's job pods as a ServiceAccount that a cloud's pod identity mechanism trusts (`aws-irsa`, `aws-pod-identity`, `gcp-workload-identity` or `azure-workload-identity`). [Set up launchers](../launchers/identity-bindings-and-pull-secrets.md#identity-bindings) describes how bindings are created and selected.
 - Whoever installs a launcher can set the `host-identity` network mode on its container or Kubernetes driver. It leaves the metadata endpoints open, so jobs use the node's own identity. A strict hosted deployment refuses this mode.
 
-Stackweaver does not document the cloud-side setup of these options as a supported configuration. Use the platform identity described above, which works the same for every cloud, every driver and the hosted capacity.
+For Azure, [Set up Azure workload identity](../launchers/identity-bindings-and-pull-secrets.md#set-up-azure-workload-identity) lists the managed identity, federated credential and binding steps for an AKS agent pool. The platform identity described above works the same for every cloud, every driver and the hosted capacity.

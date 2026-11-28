@@ -28,17 +28,30 @@ covers:
 4. Check the completed sync and discovered hosts before selecting the inventory in a
    [job template](../../../get-started/your-first-ansible-job.md).
 
-Repository-backed discovery always syncs on the hosted capacity, in the platform Ansible
-image and with the platform identity, because the sync holds the repository's clone
-credential. It uses your file and that environment for cloud authentication. Attaching a cloud credential to a separate dynamic source does
-not authenticate a VCS inventory. For Azure, this path does not mint Stackweaver OIDC
-inventory tokens; arrange runtime identity or plugin authentication with your operator.
-A runtime identity from a cloud metadata service (Azure managed identity, Google
-Application Default Credentials from the metadata server, an AWS instance profile) reaches
-the sync only when your operator runs the hosted capacity's launchers in the
-`host-identity` network mode; in the default `platform` mode the sync cannot reach the
-metadata service, and a strict hosted deployment refuses `host-identity`.
-Keep secrets out of the repository.
+Repository-backed discovery syncs in the platform Ansible image and uses your file and
+the sync's environment for cloud authentication. Attaching a cloud credential to a separate
+dynamic source does not authenticate a VCS inventory, and this path mints no Stackweaver
+OIDC inventory token.
+
+The sync runs with the [identity binding](../../launchers/identity-bindings-and-pull-secrets.md#identity-bindings)
+the inventory selects, or inherits from its project or organization. With a binding of an
+agent pool it runs on that pool, which must let the inventory's project use it and reach the
+repository to clone it; with none, it runs on the hosted capacity. See
+[Where a VCS inventory's file sync runs](../../launchers/identity-bindings-and-pull-secrets.md#where-a-vcs-inventorys-file-sync-runs).
+On an agent pool, a GitHub App connection's sync gets a read-only token for this repository
+only. A GitHub token, GitLab, Bitbucket or Azure DevOps connection holds a stored credential,
+which reaches the pool only when the organization turns on
+**Allow stored VCS credentials on agent pools**; see
+[Repository credentials on agent pools](../../launchers/identity-bindings-and-pull-secrets.md#repository-credentials-on-agent-pools).
+An `azure-workload-identity` binding lets an `azure_rm` file authenticate with no credential;
+see [Set up Azure workload identity](../../launchers/identity-bindings-and-pull-secrets.md#set-up-azure-workload-identity).
+
+Without a binding the sync runs with the platform identity. A runtime identity from a cloud
+metadata service (Azure managed identity, Google Application Default Credentials from the
+metadata server, an AWS instance profile) then reaches it only when your operator runs the
+hosted capacity's launchers in the `host-identity` network mode; in the default `platform`
+mode the sync cannot reach the metadata service, and a strict hosted deployment refuses
+`host-identity`. Keep secrets out of the repository.
 
 <a id="step-1-prepare-the-inventory-plugin-file" style="scroll-margin-top: 7rem"></a>
 <a id="cloud-provider-detection" style="scroll-margin-top: 7rem"></a>
